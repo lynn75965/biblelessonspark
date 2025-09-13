@@ -22,7 +22,7 @@ interface Lesson {
   id: string;
   title: string;
   passage_or_topic: string;
-  age_group: 'Kids' | 'Youth' | 'Adults' | 'Seniors';
+  age_group: 'Preschoolers' | 'Elementary' | 'Middle School' | 'High School' | 'College & Career' | 'Young Adults' | 'Mid-Life Adults' | 'Mature Adults' | 'Active Seniors' | 'Senior Adults' | 'Mixed Groups';
   doctrine_profile: 'SBC' | 'RB' | 'IND';
   created_at: string;
   updated_at: string;
@@ -53,9 +53,9 @@ export function LessonLibrary({
   const [lessons] = useState<Lesson[]>([
     {
       id: "1",
-      title: "John 3:16-21 - Youth Study",
+      title: "John 3:16-21 - High School Study",
       passage_or_topic: "John 3:16-21",
-      age_group: "Youth",
+      age_group: "High School",
       doctrine_profile: "SBC",
       created_at: "2024-01-15T10:30:00Z",
       updated_at: "2024-01-15T10:30:00Z",
@@ -64,9 +64,9 @@ export function LessonLibrary({
     },
     {
       id: "2", 
-      title: "Salvation by Grace - Adults",
+      title: "Salvation by Grace - Young Adults",
       passage_or_topic: "Ephesians 2:8-10",
-      age_group: "Adults",
+      age_group: "Young Adults",
       doctrine_profile: "RB",
       created_at: "2024-01-10T14:20:00Z",
       updated_at: "2024-01-12T09:15:00Z",
@@ -75,9 +75,9 @@ export function LessonLibrary({
     },
     {
       id: "3",
-      title: "The Good Shepherd - Kids",
+      title: "The Good Shepherd - Elementary",
       passage_or_topic: "John 10:11-16",
-      age_group: "Kids",
+      age_group: "Elementary",
       doctrine_profile: "IND",
       created_at: "2024-01-08T16:45:00Z",
       updated_at: "2024-01-08T16:45:00Z",
@@ -97,10 +97,17 @@ export function LessonLibrary({
 
   const getAgeGroupBadgeColor = (ageGroup: string) => {
     const colors = {
-      Kids: "bg-green-100 text-green-800 border-green-200",
-      Youth: "bg-blue-100 text-blue-800 border-blue-200", 
-      Adults: "bg-purple-100 text-purple-800 border-purple-200",
-      Seniors: "bg-orange-100 text-orange-800 border-orange-200"
+      Preschoolers: "bg-pink-100 text-pink-800 border-pink-200",
+      Elementary: "bg-green-100 text-green-800 border-green-200",
+      "Middle School": "bg-cyan-100 text-cyan-800 border-cyan-200",
+      "High School": "bg-blue-100 text-blue-800 border-blue-200", 
+      "College & Career": "bg-indigo-100 text-indigo-800 border-indigo-200",
+      "Young Adults": "bg-purple-100 text-purple-800 border-purple-200",
+      "Mid-Life Adults": "bg-violet-100 text-violet-800 border-violet-200",
+      "Mature Adults": "bg-amber-100 text-amber-800 border-amber-200",
+      "Active Seniors": "bg-orange-100 text-orange-800 border-orange-200",
+      "Senior Adults": "bg-red-100 text-red-800 border-red-200",
+      "Mixed Groups": "bg-gray-100 text-gray-800 border-gray-200"
     };
     return colors[ageGroup as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
   };
@@ -160,10 +167,17 @@ export function LessonLibrary({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Ages</SelectItem>
-                <SelectItem value="Kids">Kids</SelectItem>
-                <SelectItem value="Youth">Youth</SelectItem>
-                <SelectItem value="Adults">Adults</SelectItem>
-                <SelectItem value="Seniors">Seniors</SelectItem>
+                <SelectItem value="Preschoolers">Preschoolers (3-5)</SelectItem>
+                <SelectItem value="Elementary">Elementary (6-12)</SelectItem>
+                <SelectItem value="Middle School">Middle School (11-14)</SelectItem>
+                <SelectItem value="High School">High School (15-18)</SelectItem>
+                <SelectItem value="College & Career">College & Career (19-25)</SelectItem>
+                <SelectItem value="Young Adults">Young Adults (26-35)</SelectItem>
+                <SelectItem value="Mid-Life Adults">Mid-Life Adults (36-50)</SelectItem>
+                <SelectItem value="Mature Adults">Mature Adults (51-65)</SelectItem>
+                <SelectItem value="Active Seniors">Active Seniors (66-75)</SelectItem>
+                <SelectItem value="Senior Adults">Senior Adults (76+)</SelectItem>
+                <SelectItem value="Mixed Groups">Mixed Groups</SelectItem>
               </SelectContent>
             </Select>
 
@@ -179,6 +193,14 @@ export function LessonLibrary({
                 <SelectItem value="IND">Independent Baptist</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          
+          {/* Advanced Filters Hint */}
+          <div className="mt-3 pt-3 border-t border-border/50">
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Filter className="h-3 w-3" />
+              <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus (Historical Context, Word Study, Social Impact, Spiritual Growth), class duration, group size, and teaching style
+            </p>
           </div>
         </CardContent>
       </Card>

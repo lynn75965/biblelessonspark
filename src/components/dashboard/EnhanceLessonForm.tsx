@@ -29,7 +29,7 @@ interface LessonContent {
 
 export function EnhanceLessonForm({ 
   organizationId, 
-  defaultAgeGroup = "Adults", 
+  defaultAgeGroup = "Young Adults", 
   defaultDoctrine = "SBC" 
 }: EnhanceLessonFormProps) {
   const [formData, setFormData] = useState({
@@ -169,10 +169,17 @@ export function EnhanceLessonForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Kids">Kids (5-12)</SelectItem>
-                    <SelectItem value="Youth">Youth (13-18)</SelectItem>
-                    <SelectItem value="Adults">Adults (19-64)</SelectItem>
-                    <SelectItem value="Seniors">Seniors (65+)</SelectItem>
+                    <SelectItem value="Preschoolers">Preschoolers (Ages 3-5)</SelectItem>
+                    <SelectItem value="Elementary">Elementary (Ages 6-12)</SelectItem>
+                    <SelectItem value="Middle School">Middle School (Ages 11-14)</SelectItem>
+                    <SelectItem value="High School">High School (Ages 15-18)</SelectItem>
+                    <SelectItem value="College & Career">College & Career (Ages 19-25)</SelectItem>
+                    <SelectItem value="Young Adults">Young Adults (Ages 26-35)</SelectItem>
+                    <SelectItem value="Mid-Life Adults">Mid-Life Adults (Ages 36-50)</SelectItem>
+                    <SelectItem value="Mature Adults">Mature Adults (Ages 51-65)</SelectItem>
+                    <SelectItem value="Active Seniors">Active Seniors (Ages 66-75)</SelectItem>
+                    <SelectItem value="Senior Adults">Senior Adults (Ages 76+)</SelectItem>
+                    <SelectItem value="Mixed Groups">Mixed Groups (Multi-generational)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -202,6 +209,9 @@ export function EnhanceLessonForm({
                   onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
                   rows={3}
                 />
+                <p className="text-xs text-muted-foreground">
+                  💡 <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration, and teaching style preferences
+                </p>
               </div>
             </div>
 
