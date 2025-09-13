@@ -41,7 +41,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             <div className="flex flex-wrap justify-center lg:justify-start gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Sparkles className="h-4 w-4 text-secondary" />
-                AI-Powered Enhancement
+                Enhancement, Not Plagiarism
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4 text-secondary" />
