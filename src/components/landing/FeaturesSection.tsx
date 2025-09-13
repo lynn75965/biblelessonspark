@@ -24,7 +24,7 @@ export function FeaturesSection() {
     {
       icon: <Users className="h-6 w-6" />,
       title: "Multi-Age Support", 
-      description: "Tailored content for Kids, Youth, Adults, and Seniors with appropriate language and concepts.",
+      description: "Tailored content for Children, Youth, Adults, and Seniors with appropriate language and concepts.",
       benefits: ["Age-specific tone", "Appropriate complexity", "Developmental focus"],
       category: "Flexibility"
     },
