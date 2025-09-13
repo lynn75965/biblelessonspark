@@ -53,7 +53,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4 text-secondary" />
-                Save Hours Weekly
+                Save Money & Time
               </div>
             </div>
 
