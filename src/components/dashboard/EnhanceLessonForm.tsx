@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface EnhanceLessonFormProps {
@@ -32,6 +33,9 @@ export function EnhanceLessonForm({
   defaultAgeGroup = "Young Adults", 
   defaultDoctrine = "SBC" 
 }: EnhanceLessonFormProps) {
+  const [enhancementType, setEnhancementType] = useState("curriculum");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [extractedContent, setExtractedContent] = useState("");
   const [formData, setFormData] = useState({
     passageOrTopic: "",
     ageGroup: defaultAgeGroup,
@@ -44,8 +48,38 @@ export function EnhanceLessonForm({
   const [lessonTitle, setLessonTitle] = useState("");
   const { toast } = useToast();
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFile(file);
+      // Mock content extraction
+      const mockExtractedContent = `Extracted content from ${file.name}:\n\nLesson Topic: The Good Samaritan\nScripture: Luke 10:25-37\n\nMain Points:\n1. Love your neighbor as yourself\n2. Show compassion to those in need\n3. Actions speak louder than words\n\nActivity Ideas:\n- Role play the parable\n- Discuss what it means to be a neighbor`;
+      setExtractedContent(mockExtractedContent);
+      setFormData(prev => ({ ...prev, passageOrTopic: "Luke 10:25-37 - The Good Samaritan" }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (enhancementType === "curriculum" && !uploadedFile && !extractedContent) {
+      toast({
+        title: "Missing Curriculum",
+        description: "Please upload a curriculum file to enhance",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (enhancementType === "generation" && !formData.passageOrTopic.trim()) {
+      toast({
+        title: "Missing Information", 
+        description: "Please enter a scripture passage or topic",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsGenerating(true);
 
     try {
@@ -90,11 +124,14 @@ export function EnhanceLessonForm({
         };
         
         setGeneratedContent(mockContent);
-        setLessonTitle(`${formData.passageOrTopic} - ${formData.ageGroup} Study`);
+        const title = enhancementType === "curriculum" 
+          ? `Enhanced Curriculum: ${uploadedFile?.name || formData.passageOrTopic}`
+          : `Generated Lesson: ${formData.passageOrTopic}`;
+        setLessonTitle(title);
         setIsGenerating(false);
         
         toast({
-          title: "Lesson enhanced successfully!",
+          title: enhancementType === "curriculum" ? "Curriculum enhanced successfully!" : "Lesson generated successfully!",
           description: "Your Baptist-aligned lesson content is ready to review and save.",
         });
       }, 2000);
@@ -148,18 +185,89 @@ export function EnhanceLessonForm({
         
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Passage/Topic */}
-              <div className="space-y-2">
+            {/* Enhancement Type Selection */}
+            <div className="space-y-4">
+              <Label className="text-base font-semibold">Choose Your Enhancement Type</Label>
+              <RadioGroup 
+                value={enhancementType} 
+                onValueChange={setEnhancementType}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
+                <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-accent">
+                  <RadioGroupItem value="curriculum" id="curriculum" />
+                  <div className="flex-1">
+                    <Label htmlFor="curriculum" className="flex items-center gap-2 cursor-pointer">
+                      <Upload className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">Option 1: Curriculum Enhancement</div>
+                        <div className="text-sm text-muted-foreground">Upload existing lesson materials to enhance and adapt</div>
+                      </div>
+                    </Label>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-accent">
+                  <RadioGroupItem value="generation" id="generation" />
+                  <div className="flex-1">
+                    <Label htmlFor="generation" className="flex items-center gap-2 cursor-pointer">
+                      <FileText className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">Option 2: Lesson Generation</div>
+                        <div className="text-sm text-muted-foreground">Create new lessons from scripture passages or topics</div>
+                      </div>
+                    </Label>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {/* Curriculum Enhancement Option */}
+            {enhancementType === "curriculum" && (
+              <div className="space-y-4 border rounded-lg p-4 bg-accent/5">
+                <div className="space-y-2">
+                  <Label htmlFor="file-upload">Upload Curriculum File</Label>
+                  <Input
+                    id="file-upload"
+                    type="file"
+                    accept=".pdf,.docx,.doc,.txt"
+                    onChange={handleFileUpload}
+                    className="cursor-pointer"
+                  />
+                  <div className="text-xs text-muted-foreground">
+                    Supported formats: PDF, Word documents, Text files
+                  </div>
+                </div>
+                
+                {extractedContent && (
+                  <div className="space-y-2">
+                    <Label>Extracted Content Preview</Label>
+                    <Textarea
+                      value={extractedContent}
+                      onChange={(e) => setExtractedContent(e.target.value)}
+                      className="min-h-[120px]"
+                      placeholder="Content will be extracted from your uploaded file..."
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Review and edit the extracted content before enhancement
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Lesson Generation Option */}
+            {enhancementType === "generation" && (
+              <div className="space-y-2 border rounded-lg p-4 bg-accent/5">
                 <Label htmlFor="passage">Scripture Passage or Topic</Label>
                 <Input
                   id="passage"
                   placeholder="e.g., John 3:16-21 or Salvation by Grace"
                   value={formData.passageOrTopic}
                   onChange={(e) => setFormData(prev => ({...prev, passageOrTopic: e.target.value}))}
-                  required
                 />
               </div>
+            )}
+
+            <div className="grid md:grid-cols-2 gap-6">
 
               {/* Age Group */}
               <div className="space-y-2">
@@ -219,18 +327,18 @@ export function EnhanceLessonForm({
               type="submit" 
               variant="hero" 
               size="lg" 
-              disabled={isGenerating || !formData.passageOrTopic}
+              disabled={isGenerating || (enhancementType === "generation" && !formData.passageOrTopic)}
               className="w-full"
             >
               {isGenerating ? (
                 <>
                   <Clock className="h-4 w-4 animate-spin" />
-                  Generating Baptist-Aligned Content...
+                  {enhancementType === "curriculum" ? "Enhancing Curriculum..." : "Generating Lesson..."}
                 </>
               ) : (
                 <>
                   <Sparkles className="h-4 w-4" />
-                  Enhance Lesson
+                  {enhancementType === "curriculum" ? "Enhance Curriculum" : "Generate Lesson"}
                 </>
               )}
             </Button>
