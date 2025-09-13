@@ -32,9 +32,8 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               </h1>
               
               <p className="text-xl text-muted-foreground max-w-2xl lg:max-w-none">
-                Generate age-appropriate activities, discussion prompts, and modern applications 
-                for your Sunday School and Bible study groups. Doctrinally sound, Baptist-aligned, 
-                and ready to inspire deeper faith.
+                Curriculum writers know the material. You know your class. Upload your purchased lesson. 
+                Make it speak to the needs of your people everytime. God called you to teach people, not lessons.
               </p>
             </div>
 
