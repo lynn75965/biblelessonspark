@@ -27,9 +27,8 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             {/* Main headline */}
             <div className="space-y-4">
               <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
-                Transform Your{" "}
-                <span className="gradient-text">Baptist Bible Studies</span>{" "}
-                with AI-Enhanced Lessons
+                <span className="gradient-text">In Less Than 8 Minutes</span>{" "}
+                Transform Any Curriculum Into Just What Your Class Needs This Week
               </h1>
               
               <p className="text-xl text-muted-foreground max-w-2xl lg:max-w-none">
