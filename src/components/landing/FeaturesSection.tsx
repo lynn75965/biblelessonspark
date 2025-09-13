@@ -1,88 +1,66 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BookOpen, 
-  Users, 
-  Sparkles, 
-  Shield, 
-  Clock, 
-  Heart,
-  Brain,
-  Target,
-  FileText
-} from "lucide-react";
-
+import { BookOpen, Users, Sparkles, Shield, Clock, Heart, Brain, Target, FileText } from "lucide-react";
 export function FeaturesSection() {
-  const features = [
-    {
-      icon: <Sparkles className="h-6 w-6" />,
-      title: "AI-Powered Enhancement",
-      description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned AI.",
-      benefits: ["Custom activities", "Discussion prompts", "Modern applications"],
-      category: "Core Feature"
-    },
-    {
-      icon: <Users className="h-6 w-6" />,
-      title: "Multi-Age Support", 
-      description: "Tailored content for Children, Youth, Adults, and Seniors with appropriate language and concepts.",
-      benefits: ["Age-specific tone", "Appropriate complexity", "Developmental focus"],
-      category: "Flexibility"
-    },
-    {
-      icon: <BookOpen className="h-6 w-6" />,
-      title: "Doctrinal Alignment",
-      description: "Choose from SBC, Reformed Baptist, or Independent Baptist theological perspectives.",
-      benefits: ["SBC alignment", "Reformed Baptist", "Independent Baptist"],
-      category: "Theology"
-    },
-    {
-      icon: <Shield className="h-6 w-6" />,
-      title: "Multi-Tenant Security",
-      description: "Each church organization has secure, isolated access to their own lessons and data.",
-      benefits: ["Data isolation", "Secure access", "Organization control"],
-      category: "Security"
-    },
-    {
-      icon: <Clock className="h-6 w-6" />,
-      title: "Time-Saving Workflow",
-      description: "Transform hours of lesson prep into minutes while maintaining quality and biblical accuracy.",
-      benefits: ["Quick generation", "Easy editing", "Print-ready format"],
-      category: "Efficiency"
-    },
-    {
-      icon: <Heart className="h-6 w-6" />,
-      title: "Baptist Heritage",
-      description: "Built specifically for Baptist churches with understanding of our unique traditions and practices.",
-      benefits: ["Baptist terminology", "Traditional practices", "Heritage respect"],
-      category: "Cultural Fit"
-    },
-    {
-      icon: <Brain className="h-6 w-6" />,
-      title: "Intelligent Prompts",
-      description: "Discussion questions that encourage deep thinking and personal application of scripture.",
-      benefits: ["Thought-provoking", "Personal application", "Group discussion"],
-      category: "Pedagogy"
-    },
-    {
-      icon: <Target className="h-6 w-6" />,
-      title: "Modern Applications",
-      description: "Connect ancient truths to contemporary life with relevant, practical applications.",
-      benefits: ["Current relevance", "Practical examples", "Life application"],
-      category: "Relevance"
-    },
-    {
-      icon: <FileText className="h-6 w-6" />,
-      title: "Export & Print",
-      description: "Beautiful, print-ready lesson formats that work great on paper or digital devices.",
-      benefits: ["PDF export", "Print optimized", "Digital friendly"],
-      category: "Output"
-    }
-  ];
-
+  const features = [{
+    icon: <Sparkles className="h-6 w-6" />,
+    title: "AI-Powered Enhancement",
+    description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned AI.",
+    benefits: ["Custom activities", "Discussion prompts", "Modern applications"],
+    category: "Core Feature"
+  }, {
+    icon: <Users className="h-6 w-6" />,
+    title: "Multi-Age Support",
+    description: "Tailored content for Children, Youth, Adults, and Seniors with appropriate language and concepts.",
+    benefits: ["Age-specific tone", "Appropriate complexity", "Developmental focus"],
+    category: "Flexibility"
+  }, {
+    icon: <BookOpen className="h-6 w-6" />,
+    title: "Doctrinal Alignment",
+    description: "Choose from SBC, Reformed Baptist, or Independent Baptist theological perspectives.",
+    benefits: ["SBC alignment", "Reformed Baptist", "Independent Baptist"],
+    category: "Theology"
+  }, {
+    icon: <Shield className="h-6 w-6" />,
+    title: "Multi-Tenant Security",
+    description: "Each church organization has secure, isolated access to their own lessons and data.",
+    benefits: ["Data isolation", "Secure access", "Organization control"],
+    category: "Security"
+  }, {
+    icon: <Clock className="h-6 w-6" />,
+    title: "Time-Saving Workflow",
+    description: "Transform hours of lesson prep into minutes while maintaining quality and biblical accuracy.",
+    benefits: ["Quick generation", "Easy editing", "Print-ready format"],
+    category: "Efficiency"
+  }, {
+    icon: <Heart className="h-6 w-6" />,
+    title: "Baptist Heritage",
+    description: "Built specifically for Baptist churches with understanding of our unique traditions and practices.",
+    benefits: ["Baptist terminology", "Traditional practices", "Heritage respect"],
+    category: "Cultural Fit"
+  }, {
+    icon: <Brain className="h-6 w-6" />,
+    title: "Intelligent Prompts",
+    description: "Discussion questions that encourage deep thinking and personal application of scripture.",
+    benefits: ["Thought-provoking", "Personal application", "Group discussion"],
+    category: "Pedagogy"
+  }, {
+    icon: <Target className="h-6 w-6" />,
+    title: "Modern Applications",
+    description: "Connect ancient truths to contemporary life with relevant, practical applications.",
+    benefits: ["Current relevance", "Practical examples", "Life application"],
+    category: "Relevance"
+  }, {
+    icon: <FileText className="h-6 w-6" />,
+    title: "Export & Print",
+    description: "Beautiful, print-ready lesson formats that work great on paper or digital devices.",
+    benefits: ["PDF export", "Print optimized", "Digital friendly"],
+    category: "Output"
+  }];
   const getCategoryColor = (category: string) => {
     const colors = {
       "Core Feature": "bg-primary text-primary-foreground",
-      "Flexibility": "bg-secondary text-secondary-foreground", 
+      "Flexibility": "bg-secondary text-secondary-foreground",
       "Theology": "bg-success text-success-foreground",
       "Security": "bg-warning text-warning-foreground",
       "Efficiency": "bg-purple-500 text-white",
@@ -93,9 +71,7 @@ export function FeaturesSection() {
     };
     return colors[category as keyof typeof colors] || "bg-muted text-muted-foreground";
   };
-
-  return (
-    <section className="py-20 bg-muted/30">
+  return <section className="py-20 bg-muted/30">
       <div className="container">
         <div className="text-center space-y-4 mb-16">
           <Badge variant="outline" className="px-4 py-1">
@@ -105,18 +81,12 @@ export function FeaturesSection() {
             Everything You Need for{" "}
             <span className="gradient-text">Exceptional Bible Studies</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            LessonSpark combines AI intelligence with Baptist theology to create 
-            lesson enhancement tools that honor God's Word and engage every age group.
-          </p>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">LessonSpark equips any teacher to make every lesson specifically applicable to the class, assuring Baptist theology honoring God's Word will engage 
+every age group.</p>
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature, index) => (
-            <Card 
-              key={index} 
-              className="group hover:shadow-glow transition-all duration-normal border-border/50 hover:border-primary/20 bg-gradient-card"
-            >
+          {features.map((feature, index) => <Card key={index} className="group hover:shadow-glow transition-all duration-normal border-border/50 hover:border-primary/20 bg-gradient-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary text-white group-hover:scale-110 transition-transform duration-normal">
@@ -135,17 +105,14 @@ export function FeaturesSection() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-foreground">Key Benefits:</p>
                   <ul className="space-y-1">
-                    {feature.benefits.map((benefit, idx) => (
-                      <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    {feature.benefits.map((benefit, idx) => <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
                         <div className="h-1.5 w-1.5 rounded-full bg-secondary" />
                         {benefit}
-                      </li>
-                    ))}
+                      </li>)}
                   </ul>
                 </div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
 
         {/* CTA Section */}
@@ -156,6 +123,5 @@ export function FeaturesSection() {
           </p>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 }
