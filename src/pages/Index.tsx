@@ -145,7 +145,7 @@ const Index = () => {
                   </div>
                   <CardTitle>Doctrinally Sound</CardTitle>
                   <CardDescription>
-                    AI training aligned with SBC, Reformed Baptist, and Independent Baptist theological perspectives.
+                    Select and be confident your lesson will express the sound doctrine of your congregation.
                   </CardDescription>
                 </CardHeader>
               </Card>
