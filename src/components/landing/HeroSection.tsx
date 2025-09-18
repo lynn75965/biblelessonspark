@@ -21,7 +21,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
           <div className="flex-1 space-y-8 text-center lg:text-left">
             {/* Beta badge */}
             <Badge className="bg-gradient-to-r from-secondary to-warning text-white px-4 py-1 text-sm font-semibold">
-              Private Beta • 30-35 Teachers Only
+              Welcome to the Beta • Exclusive for Baptist Teachers
             </Badge>
             
             {/* Main headline */}
@@ -62,19 +62,11 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               <Button 
                 variant="hero" 
                 size="xl" 
-                onClick={onRequestAccess}
-                className="text-lg"
-              >
-                <Star className="h-5 w-5" />
-                Request Early Access
-              </Button>
-              <Button 
-                variant="outline" 
-                size="xl" 
                 onClick={onSignIn}
                 className="text-lg"
               >
-                Sign In
+                <Star className="h-5 w-5" />
+                Get Started
               </Button>
             </div>
 
