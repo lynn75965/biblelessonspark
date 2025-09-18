@@ -81,7 +81,7 @@ export function FeaturesSection() {
             Everything You Need for{" "}
             <span className="gradient-text">Exceptional Bible Studies</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">LessonSpark equips any teacher to make every lesson specifically applicable to the class, assuring Baptist theology honoring God's Word will engage 
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">LessonSpark USA equips any teacher to make every lesson specifically applicable to the class, assuring Baptist theology honoring God's Word will engage 
 every age group.</p>
         </div>
 
@@ -119,7 +119,7 @@ every age group.</p>
         <div className="text-center mt-16 space-y-4">
           <h3 className="text-2xl font-bold">Ready to Transform Your Lesson Prep?</h3>
           <p className="text-muted-foreground">
-            Join the private beta and see how LessonSpark can revolutionize your Bible study preparation.
+            Join the private beta and see how LessonSpark USA can revolutionize your Bible study preparation.
           </p>
         </div>
       </div>

@@ -122,9 +122,9 @@ export default function Auth() {
             <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary">
               <BookOpen className="h-6 w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text">LessonSpark</span>
+            <span className="text-2xl font-bold gradient-text">LessonSpark USA</span>
           </div>
-          <h1 className="text-2xl font-bold mb-2">Welcome to LessonSpark</h1>
+          <h1 className="text-2xl font-bold mb-2">Welcome to LessonSpark USA</h1>
           <p className="text-muted-foreground">
             Baptist Bible Study Enhancement Platform
           </p>

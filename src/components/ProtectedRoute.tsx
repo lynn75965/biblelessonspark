@@ -27,7 +27,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
                 <BookOpen className="h-5 w-5 text-white animate-pulse" />
               </div>
-              <span className="text-xl font-bold gradient-text">LessonSpark</span>
+              <span className="text-xl font-bold gradient-text">LessonSpark USA</span>
             </div>
             <p className="text-muted-foreground">Loading your dashboard...</p>
           </CardContent>

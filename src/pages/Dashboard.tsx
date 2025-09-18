@@ -70,7 +70,7 @@ export default function Dashboard({
     e.preventDefault();
     toast({
       title: "Feedback submitted!",
-      description: "Thank you for helping us improve LessonSpark.",
+      description: "Thank you for helping us improve LessonSpark USA.",
     });
     setShowFeedbackDialog(false);
   };
@@ -331,7 +331,7 @@ export default function Dashboard({
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Complete Your LessonSpark Setup</DialogTitle>
+            <DialogTitle>Complete Your LessonSpark USA Setup</DialogTitle>
             <DialogDescription>
               Follow these steps to get your Baptist Bible study platform ready
             </DialogDescription>
@@ -346,7 +346,7 @@ export default function Dashboard({
           <DialogHeader>
             <DialogTitle>Share Your Feedback</DialogTitle>
             <DialogDescription>
-              Help us improve LessonSpark for Baptist teachers everywhere
+              Help us improve LessonSpark USA for Baptist teachers everywhere
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitFeedback} className="space-y-4">
@@ -355,7 +355,7 @@ export default function Dashboard({
               <Textarea
                 id="feedback-positive"
                 className="min-h-[80px]"
-                placeholder="Tell us what you love about LessonSpark..."
+                placeholder="Tell us what you love about LessonSpark USA..."
               />
             </div>
             <div className="space-y-2">
@@ -363,7 +363,7 @@ export default function Dashboard({
               <Textarea
                 id="feedback-improvements"
                 className="min-h-[80px]"
-                placeholder="Suggestions for making LessonSpark even better..."
+                placeholder="Suggestions for making LessonSpark USA even better..."
               />
             </div>
             <div className="flex gap-2">

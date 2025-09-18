@@ -78,7 +78,7 @@ const Index = () => {
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
                 Our comprehensive setup guide walks you through every step with verification buttons 
-                to ensure everything works perfectly before you start using LessonSpark.
+                to ensure everything works perfectly before you start using LessonSpark USA.
               </p>
             </div>
 
@@ -117,7 +117,7 @@ const Index = () => {
               </h2>
               <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
                 We understand Baptist theology, traditions, and the unique needs of your ministry.
-                LessonSpark is designed by Baptists, for Baptists.
+                LessonSpark USA is designed by Baptists, for Baptists.
               </p>
             </div>
 
@@ -172,7 +172,7 @@ const Index = () => {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
                   <BookOpen className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-xl font-bold gradient-text">LessonSpark</span>
+                <span className="text-xl font-bold gradient-text">LessonSpark USA</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Baptist Bible Study Enhancement Platform
@@ -214,7 +214,7 @@ const Index = () => {
 
           <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-muted-foreground">
-              © 2024 LessonSpark. All rights reserved.
+              © 2024 LessonSpark USA. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -290,7 +290,7 @@ const Index = () => {
       <Dialog open={showSignInDialog} onOpenChange={setShowSignInDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Sign In to LessonSpark</DialogTitle>
+            <DialogTitle>Sign In to LessonSpark USA</DialogTitle>
             <DialogDescription>
               Enter your email to receive a magic link for secure sign-in.
             </DialogDescription>
@@ -321,7 +321,7 @@ const Index = () => {
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>LessonSpark Setup Guide</DialogTitle>
+            <DialogTitle>LessonSpark USA Setup Guide</DialogTitle>
             <DialogDescription>
               Complete setup checklist with step-by-step instructions and verification
             </DialogDescription>

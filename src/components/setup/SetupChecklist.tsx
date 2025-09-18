@@ -63,7 +63,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       how: 'Copy the provided SQL script and paste it into Supabase SQL Editor',
       icon: <Database className="h-5 w-5" />,
       status: 'pending',
-      copyable: `-- LessonSpark Database Schema
+      copyable: `-- LessonSpark USA Database Schema
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Organizations table
@@ -381,7 +381,7 @@ A Record: www -> 185.158.133.1`
             <h2 className="text-3xl font-bold gradient-text">Setup Checklist</h2>
           </div>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            Complete these steps to get LessonSpark ready for your Baptist Bible study enhancement needs.
+            Complete these steps to get LessonSpark USA ready for your Baptist Bible study enhancement needs.
             Each step includes verification to ensure everything is working correctly.
           </p>
           

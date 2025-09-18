@@ -41,7 +41,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold gradient-text">LessonSpark</span>
+            <span className="text-xl font-bold gradient-text">LessonSpark USA</span>
           </a>
           
           {authenticated && organizationName && (

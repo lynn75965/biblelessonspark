@@ -1,4 +1,8 @@
-# Welcome to your Lovable project
+# LessonSpark USA
+
+## About
+
+LessonSpark USA is a Baptist Bible Study Enhancement Platform that provides AI-powered lesson enhancement for Baptist churches across America. Generate age-appropriate activities, discussion prompts, and modern applications aligned with SBC, Reformed Baptist, and Independent Baptist theology.
 
 ## Project info
 
@@ -27,7 +31,7 @@ Follow these steps:
 git clone <YOUR_GIT_URL>
 
 # Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+cd lessonspark-usa
 
 # Step 3: Install the necessary dependencies.
 npm i
@@ -59,6 +63,7 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase (Backend & Authentication)
 
 ## How can I deploy this project?
 
@@ -71,3 +76,15 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Features
+
+- **AI-Enhanced Lessons**: Generate age-appropriate content for Kids, Youth, Adults, and Seniors
+- **Baptist Theology Aligned**: Respects SBC, Reformed Baptist, and Independent Baptist traditions
+- **User Authentication**: Secure login and user management
+- **Lesson Library**: Save, organize, and manage your enhanced lessons
+- **Modern Interface**: Clean, responsive design built with shadcn/ui
+
+## Contact
+
+For support, email: support@lessonspark.com
