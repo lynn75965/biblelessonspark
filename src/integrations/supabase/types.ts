@@ -95,24 +95,24 @@ export type Database = {
           claimed_at: string | null
           claimed_by: string | null
           created_at: string | null
-          created_by: string | null
-          email: string | null
+          created_by: string
+          email: string
           token: string
         }
         Insert: {
           claimed_at?: string | null
           claimed_by?: string | null
           created_at?: string | null
-          created_by?: string | null
-          email?: string | null
+          created_by: string
+          email: string
           token?: string
         }
         Update: {
           claimed_at?: string | null
           claimed_by?: string | null
           created_at?: string | null
-          created_by?: string | null
-          email?: string | null
+          created_by?: string
+          email?: string
           token?: string
         }
         Relationships: []
