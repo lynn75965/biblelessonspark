@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,25 +17,24 @@ import {
   Plus,
   Download
 } from "lucide-react";
+import { useLessons, Lesson } from "@/hooks/useLessons";
+import { useToast } from "@/hooks/use-toast";
 
-interface Lesson {
-  id: string;
-  title: string;
+interface LessonDisplay extends Lesson {
   passage_or_topic: string;
-  age_group: 'Preschoolers' | 'Elementary' | 'Middle School' | 'High School' | 'College & Career' | 'Young Adults' | 'Mid-Life Adults' | 'Mature Adults' | 'Active Seniors' | 'Senior Adults' | 'Mixed Groups';
-  doctrine_profile: 'SBC' | 'RB' | 'IND';
-  created_at: string;
-  updated_at: string;
+  age_group: string;
+  doctrine_profile: string;
   created_by_name: string;
   has_content: boolean;
+  updated_at?: string;
 }
 
 interface LessonLibraryProps {
   onCreateNew?: () => void;
-  onViewLesson?: (lesson: Lesson) => void;
-  onEditLesson?: (lesson: Lesson) => void;
-  onDuplicateLesson?: (lesson: Lesson) => void;
-  onDeleteLesson?: (lesson: Lesson) => void;
+  onViewLesson?: (lesson: LessonDisplay) => void;
+  onEditLesson?: (lesson: LessonDisplay) => void;
+  onDuplicateLesson?: (lesson: LessonDisplay) => void;
+  onDeleteLesson?: (lesson: LessonDisplay) => void;
 }
 
 export function LessonLibrary({
@@ -48,52 +47,42 @@ export function LessonLibrary({
   const [searchTerm, setSearchTerm] = useState("");
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [doctrineFilter, setDoctrineFilter] = useState<string>("all");
+  
+  const { lessons, loading, deleteLesson } = useLessons();
+  const { toast } = useToast();
 
-  // Mock lessons data - replace with actual API call
-  const [lessons] = useState<Lesson[]>([
-    {
-      id: "1",
-      title: "John 3:16-21 - High School Study",
-      passage_or_topic: "John 3:16-21",
-      age_group: "High School",
-      doctrine_profile: "SBC",
-      created_at: "2024-01-15T10:30:00Z",
-      updated_at: "2024-01-15T10:30:00Z",
-      created_by_name: "Pastor Johnson",
-      has_content: true
-    },
-    {
-      id: "2", 
-      title: "Salvation by Grace - Young Adults",
-      passage_or_topic: "Ephesians 2:8-10",
-      age_group: "Young Adults",
-      doctrine_profile: "RB",
-      created_at: "2024-01-10T14:20:00Z",
-      updated_at: "2024-01-12T09:15:00Z",
-      created_by_name: "Teacher Smith",
-      has_content: true
-    },
-    {
-      id: "3",
-      title: "The Good Shepherd - Elementary",
-      passage_or_topic: "John 10:11-16",
-      age_group: "Elementary",
-      doctrine_profile: "IND",
-      created_at: "2024-01-08T16:45:00Z",
-      updated_at: "2024-01-08T16:45:00Z",
-      created_by_name: "Mrs. Davis",
-      has_content: false
-    }
-  ]);
+  // Transform lessons data for display
+  const displayLessons: LessonDisplay[] = lessons.map(lesson => ({
+    ...lesson,
+    passage_or_topic: lesson.title || (lesson.filters?.passage_or_topic) || "Untitled Lesson",
+    age_group: lesson.filters?.age_group || "Mixed Groups",
+    doctrine_profile: lesson.filters?.doctrine_profile || "SBC", 
+    created_by_name: "Teacher", // Would come from profiles table join
+    has_content: !!lesson.original_text,
+    updated_at: lesson.created_at, // Use created_at as updated_at for now
+  }));
 
-  const filteredLessons = lessons.filter(lesson => {
-    const matchesSearch = lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredLessons = displayLessons.filter(lesson => {
+    const matchesSearch = lesson.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lesson.passage_or_topic.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
     const matchesDoctrine = doctrineFilter === "all" || lesson.doctrine_profile === doctrineFilter;
     
     return matchesSearch && matchesAge && matchesDoctrine;
   });
+
+  const handleDelete = async (lesson: LessonDisplay) => {
+    if (window.confirm(`Are you sure you want to delete "${lesson.title}"?`)) {
+      await deleteLesson(lesson.id);
+    }
+  };
+
+  const handleDuplicate = (lesson: LessonDisplay) => {
+    toast({
+      title: "Feature coming soon",
+      description: "Lesson duplication will be available in the next update.",
+    });
+  };
 
   const getAgeGroupBadgeColor = (ageGroup: string) => {
     const colors = {
@@ -291,14 +280,14 @@ export function LessonLibrary({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => onDuplicateLesson?.(lesson)}
+                    onClick={() => handleDuplicate(lesson)}
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => onDeleteLesson?.(lesson)}
+                    onClick={() => handleDelete(lesson)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>

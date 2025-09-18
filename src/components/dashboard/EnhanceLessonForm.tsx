@@ -10,6 +10,47 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLessons } from "@/hooks/useLessons";
+import { useAuth } from "@/hooks/useAuth";
+
+interface EnhanceLessonFormProps {
+  organizationId?: string;
+  defaultAgeGroup?: string;
+  defaultDoctrine?: string;
+}
+
+interface LessonContent {
+  activities: Array<{
+    title: string;
+    duration_minutes: number;
+    materials: string[];
+    instructions: string;
+  }>;
+  discussion_prompts: string[];
+  applications: string[];
+}
+
+export function EnhanceLessonForm({ 
+  organizationId, 
+  defaultAgeGroup = "Young Adults", 
+  defaultDoctrine = "SBC" 
+}: EnhanceLessonFormProps) {
+  const [enhancementType, setEnhancementType] = useState("curriculum");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [extractedContent, setExtractedContent] = useState("");
+  const [formData, setFormData] = useState({
+    passageOrTopic: "",
+    ageGroup: defaultAgeGroup,
+    doctrineProfile: defaultDoctrine,
+    notes: ""
+  });
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
+  const [lessonTitle, setLessonTitle] = useState("");
+  const { toast } = useToast();
+  const { createLesson } = useLessons();
+  const { user } = useAuth();
 
 interface EnhanceLessonFormProps {
   organizationId?: string;
@@ -145,12 +186,50 @@ export function EnhanceLessonForm({
     }
   };
 
-  const handleSave = () => {
-    // Save to lessons table
+  const handleSave = async () => {
+    if (!generatedContent || !user) {
+      toast({
+        title: "Cannot save lesson",
+        description: "Please generate content first and ensure you're logged in.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const lessonData = {
+      title: lessonTitle,
+      original_text: extractedContent || formData.passageOrTopic,
+      source_type: enhancementType,
+      filters: {
+        age_group: formData.ageGroup,
+        doctrine_profile: formData.doctrineProfile,
+        passage_or_topic: formData.passageOrTopic,
+        notes: formData.notes,
+        generated_content: generatedContent
+      }
+    };
+
+    const result = await createLesson(lessonData);
+    if (result.error) {
+      toast({
+        title: "Error saving lesson",
+        description: "Failed to save your lesson. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopy = (content: string) => {
+    navigator.clipboard.writeText(content);
     toast({
-      title: "Lesson saved!",
-      description: "Your lesson has been saved to your library.",
+      title: "Copied to clipboard",
+      description: "Content has been copied to your clipboard.",
     });
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
   };
 
   const handleCopy = (content: string) => {

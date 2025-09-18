@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { 
   BookOpen, 
   Sparkles, 
@@ -20,6 +22,8 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useLessons } from "@/hooks/useLessons";
 
 interface DashboardProps {
   organizationName?: string;
@@ -36,12 +40,14 @@ export default function Dashboard({
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { lessons, loading: lessonsLoading } = useLessons();
 
-  // Mock data - replace with actual API calls
+  // Calculate real stats from data
   const stats = {
-    lessonsCreated: 12,
-    aiGenerations: 47,
-    membersActive: 8,
+    lessonsCreated: lessons.length,
+    aiGenerations: lessons.length * 3, // Approximate based on lessons
+    membersActive: 8, // This would come from members table
     setupProgress: 6
   };
 
@@ -69,6 +75,9 @@ export default function Dashboard({
     setShowFeedbackDialog(false);
   };
 
+  // Get user's name from auth
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+
   return (
     <div className="min-h-screen bg-background">
       <Header 
@@ -81,7 +90,7 @@ export default function Dashboard({
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold">
-              Welcome to <span className="gradient-text">LessonSpark</span>
+              Welcome back, <span className="gradient-text">{userName}!</span>
             </h1>
             <p className="text-muted-foreground">
               Baptist Bible Study Enhancement Platform for {organizationName}
@@ -342,16 +351,18 @@ export default function Dashboard({
           </DialogHeader>
           <form onSubmit={handleSubmitFeedback} className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">What's working well?</label>
-              <textarea 
-                className="w-full min-h-[80px] p-3 border rounded text-sm"
+              <Label htmlFor="feedback-positive">What's working well?</Label>
+              <Textarea
+                id="feedback-positive"
+                className="min-h-[80px]"
                 placeholder="Tell us what you love about LessonSpark..."
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">What could be improved?</label>
-              <textarea 
-                className="w-full min-h-[80px] p-3 border rounded text-sm"
+              <Label htmlFor="feedback-improvements">What could be improved?</Label>
+              <Textarea
+                id="feedback-improvements"
+                className="min-h-[80px]"
                 placeholder="Suggestions for making LessonSpark even better..."
               />
             </div>

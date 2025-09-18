@@ -1,105 +1,112 @@
-import { Button } from "@/components/ui/button";
-import { BookOpen, Menu, Settings, User } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { BookOpen, User, Settings, LogOut, Bell } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
+  onAuthClick?: () => void;
   isAuthenticated?: boolean;
   organizationName?: string;
-  onAuthClick?: () => void;
 }
 
-export function Header({ isAuthenticated = false, organizationName, onAuthClick }: HeaderProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+export function Header({ onAuthClick, isAuthenticated, organizationName }: HeaderProps) {
+  const { user, signOut } = useAuth();
+  const [notifications] = useState(2); // Mock notification count
+
+  // Use actual auth state if available, otherwise use prop
+  const authenticated = user ? true : isAuthenticated;
+  const userEmail = user?.email;
+  const displayName = user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'User';
+
+  const handleSignOut = async () => {
+    await signOut();
+    window.location.href = '/';
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-6">
+          <a href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold gradient-text">LessonSpark</h1>
-              {organizationName && (
-                <p className="text-xs text-muted-foreground">{organizationName}</p>
-              )}
-            </div>
-          </div>
-          <div className="beta-ribbon">Private Beta</div>
+            <span className="text-xl font-bold gradient-text">LessonSpark</span>
+          </a>
+          
+          {authenticated && organizationName && (
+            <Badge variant="outline" className="hidden md:flex">
+              {organizationName}
+            </Badge>
+          )}
         </div>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          {isAuthenticated ? (
+        {/* Navigation */}
+        <div className="flex items-center gap-4">
+          {authenticated ? (
             <>
-              <Button variant="ghost" size="sm">Dashboard</Button>
-              <Button variant="ghost" size="sm">My Lessons</Button>
-              <Button variant="ghost" size="sm">Members</Button>
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-                Settings
+              {/* Notifications */}
+              <Button variant="ghost" size="sm" className="relative">
+                <Bell className="h-4 w-4" />
+                {notifications > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs"
+                  >
+                    {notifications}
+                  </Badge>
+                )}
               </Button>
-              <Button variant="outline" size="sm">
-                <User className="h-4 w-4" />
-                Profile
-              </Button>
+
+              {/* User Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-secondary">
+                      <User className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="hidden md:block">{displayName}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{displayName}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {userEmail}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Sign Out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
-            <>
-              <Button variant="ghost" size="sm">Features</Button>
-              <Button variant="ghost" size="sm">Pricing</Button>
-              <Button variant="outline" size="sm" onClick={onAuthClick}>
-                Sign In
-              </Button>
-              <Button variant="hero" size="sm" onClick={onAuthClick}>
-                Request Access
-              </Button>
-            </>
+            <Button variant="hero" onClick={onAuthClick || (() => window.location.href = '/auth')}>
+              Sign In
+            </Button>
           )}
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
-      </div>
-
-      {/* Mobile Navigation */}
-      {isMenuOpen && (
-        <div className="md:hidden border-t bg-background/95 backdrop-blur">
-          <nav className="container py-4 space-y-2">
-            {isAuthenticated ? (
-              <>
-                <Button variant="ghost" size="sm" className="w-full justify-start">Dashboard</Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start">My Lessons</Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start">Members</Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant="ghost" size="sm" className="w-full justify-start">Features</Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start">Pricing</Button>
-                <Button variant="outline" size="sm" className="w-full" onClick={onAuthClick}>
-                  Sign In
-                </Button>
-                <Button variant="hero" size="sm" className="w-full" onClick={onAuthClick}>
-                  Request Access
-                </Button>
-              </>
-            )}
-          </nav>
         </div>
-      )}
+      </div>
     </header>
   );
 }

@@ -30,7 +30,7 @@ const Index = () => {
   };
 
   const handleSignIn = () => {
-    setShowSignInDialog(true);
+    window.location.href = '/auth';
   };
 
   const handleSubmitRequest = (e: React.FormEvent) => {
@@ -46,12 +46,8 @@ const Index = () => {
 
   const handleSignInSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // In real app, this would trigger Supabase magic link
-    toast({
-      title: "Magic link sent!",
-      description: "Check your email for a sign-in link.",
-    });
-    setShowSignInDialog(false);
+    // Redirect to auth page instead of handling here
+    window.location.href = '/auth';
   };
 
   return (
