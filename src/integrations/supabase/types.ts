@@ -21,7 +21,7 @@ export type Database = {
           id: number
           lesson_id: string | null
           meta: Json | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           created_at?: string | null
@@ -29,7 +29,7 @@ export type Database = {
           id?: number
           lesson_id?: string | null
           meta?: Json | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           created_at?: string | null
@@ -37,9 +37,17 @@ export type Database = {
           id?: number
           lesson_id?: string | null
           meta?: Json | null
-          user_id?: string | null
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "events_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {

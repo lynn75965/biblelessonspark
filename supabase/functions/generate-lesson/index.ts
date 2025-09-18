@@ -108,11 +108,18 @@ function validateInput(data: any): LessonRequest {
 }
 
 serve(async (req) => {
-  // CORS headers
+  // CORS headers - Restricted to specific domains for security
   const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': req.headers.get('origin') && 
+      (req.headers.get('origin')?.includes('.lovable.app') || 
+       req.headers.get('origin')?.includes('.supabase.co') ||
+       req.headers.get('origin')?.includes('localhost')) ? req.headers.get('origin') : null,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
   };
 
   // Handle CORS preflight
