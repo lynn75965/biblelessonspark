@@ -13,6 +13,7 @@ import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload
 import { useToast } from "@/hooks/use-toast";
 import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData } from "@/lib/fileValidation";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
@@ -55,6 +56,7 @@ export function EnhanceLessonForm({
   const { toast } = useToast();
   const { createLesson } = useLessons();
   const { user } = useAuth();
+  const { trackEvent, trackLessonCreated } = useAnalytics();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -248,6 +250,18 @@ export function EnhanceLessonForm({
         title: "Error saving lesson",
         description: "Failed to save your lesson. Please try again.",
         variant: "destructive",
+      });
+    } else {
+      // Track successful lesson creation
+      trackLessonCreated(result.data?.id || '', {
+        enhancementType,
+        ageGroup: formData.ageGroup,
+        doctrineProfile: formData.doctrineProfile
+      });
+      
+      toast({
+        title: "Lesson saved successfully!",
+        description: "Your lesson has been added to your library.",
       });
     }
   };

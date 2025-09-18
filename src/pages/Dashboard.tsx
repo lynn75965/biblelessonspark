@@ -3,13 +3,13 @@ import { Header } from "@/components/layout/Header";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { SetupChecklist } from "@/components/setup/SetupChecklist";
+import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
+import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
 import { 
   BookOpen, 
   Sparkles, 
@@ -24,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useLessons } from "@/hooks/useLessons";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface DashboardProps {
   organizationName?: string;
@@ -42,6 +43,7 @@ export default function Dashboard({
   const { toast } = useToast();
   const { user } = useAuth();
   const { lessons, loading: lessonsLoading } = useLessons();
+  const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
 
   // Calculate real stats from data
   const stats = {
@@ -52,10 +54,12 @@ export default function Dashboard({
   };
 
   const handleCreateLesson = () => {
+    trackFeatureUsed('create_lesson_clicked');
     setActiveTab("enhance");
   };
 
   const handleViewLesson = (lesson: any) => {
+    trackLessonViewed(lesson.id);
     toast({
       title: "Opening lesson",
       description: `Opening "${lesson.title}" for viewing.`,
@@ -63,16 +67,8 @@ export default function Dashboard({
   };
 
   const handleFeedback = () => {
+    trackFeatureUsed('feedback_button_clicked');
     setShowFeedbackDialog(true);
-  };
-
-  const handleSubmitFeedback = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Feedback submitted!",
-      description: "Thank you for helping us improve LessonSpark USA.",
-    });
-    setShowFeedbackDialog(false);
   };
 
   // Get user's name from auth
@@ -185,10 +181,10 @@ export default function Dashboard({
                   <Users className="h-4 w-4" />
                   Members
                 </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  <BarChart3 className="h-4 w-4" />
-                  Analytics
-                </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="h-4 w-4" />
+              Beta Analytics
+            </TabsTrigger>
               </>
             )}
             <TabsTrigger value="settings">
@@ -238,26 +234,7 @@ export default function Dashboard({
               </TabsContent>
 
               <TabsContent value="analytics" className="mt-6">
-                <Card className="bg-gradient-card">
-                  <CardHeader>
-                    <CardTitle>Usage Analytics</CardTitle>
-                    <CardDescription>
-                      Track lesson creation, AI usage, and member engagement
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Analytics Dashboard Coming Soon</h3>
-                      <p className="text-muted-foreground mb-4">
-                        View detailed insights about lesson creation and member activity.
-                      </p>
-                      <Button variant="outline">
-                        Preview Analytics Features
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <BetaAnalyticsDashboard />
               </TabsContent>
             </>
           )}
@@ -340,43 +317,11 @@ export default function Dashboard({
         </DialogContent>
       </Dialog>
 
-      {/* Feedback Dialog */}
-      <Dialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Share Your Feedback</DialogTitle>
-            <DialogDescription>
-              Help us improve LessonSpark USA for Baptist teachers everywhere
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmitFeedback} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="feedback-positive">What's working well?</Label>
-              <Textarea
-                id="feedback-positive"
-                className="min-h-[80px]"
-                placeholder="Tell us what you love about LessonSpark USA..."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="feedback-improvements">What could be improved?</Label>
-              <Textarea
-                id="feedback-improvements"
-                className="min-h-[80px]"
-                placeholder="Suggestions for making LessonSpark USA even better..."
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setShowFeedbackDialog(false)} className="flex-1">
-                Cancel
-              </Button>
-              <Button type="submit" variant="hero" className="flex-1">
-                Submit Feedback
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Beta Feedback Dialog */}
+      <BetaFeedbackForm 
+        open={showFeedbackDialog} 
+        onOpenChange={setShowFeedbackDialog}
+      />
     </div>
   );
 }
