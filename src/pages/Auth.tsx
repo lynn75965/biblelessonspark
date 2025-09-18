@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, Mail, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState('signin');
@@ -35,7 +36,9 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
-      const { error } = await signIn(formData.email);
+      // Sanitize email input
+      const sanitizedEmail = sanitizeEmail(formData.email);
+      const { error } = await signIn(sanitizedEmail);
       
       if (error) {
         toast({
@@ -73,9 +76,24 @@ export default function Auth() {
       return;
     }
 
+    // Enhanced password validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast({
+        title: "Weak password",
+        description: "Password must contain at least one uppercase letter, one lowercase letter, and one number.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const { error } = await signUp(formData.email, formData.password, formData.fullName);
+      // Sanitize inputs
+      const sanitizedEmail = sanitizeEmail(formData.email);
+      const sanitizedFullName = sanitizeText(formData.fullName);
+      
+      const { error } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
       
       if (error) {
         if (error.message.includes('User already registered')) {
@@ -110,7 +128,10 @@ export default function Auth() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    // Basic input sanitization on change
+    const sanitizedValue = field === 'email' ? value.toLowerCase().trim() : 
+                          field === 'fullName' ? sanitizeText(value) : value;
+    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
   };
 
   return (

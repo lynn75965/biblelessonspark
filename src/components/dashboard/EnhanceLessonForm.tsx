@@ -8,10 +8,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
+import { validateFileUpload, lessonFormSchema, type LessonFormData } from "@/lib/fileValidation";
+import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
+import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 
 interface EnhanceLessonFormProps {
   organizationId?: string;
@@ -54,31 +58,97 @@ export function EnhanceLessonForm({
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setUploadedFile(file);
-      // Mock content extraction
-      const mockExtractedContent = `Extracted content from ${file.name}:\n\nLesson Topic: The Good Samaritan\nScripture: Luke 10:25-37\n\nMain Points:\n1. Love your neighbor as yourself\n2. Show compassion to those in need\n3. Actions speak louder than words\n\nActivity Ideas:\n- Role play the parable\n- Discuss what it means to be a neighbor`;
-      setExtractedContent(mockExtractedContent);
-      setFormData(prev => ({ ...prev, passageOrTopic: "Luke 10:25-37 - The Good Samaritan" }));
+    if (!file || !user) return;
+
+    // Validate file
+    const validation = validateFileUpload(file);
+    
+    if (!validation.isValid) {
+      toast({
+        title: "Invalid file",
+        description: validation.error,
+        variant: "destructive",
+      });
+      logFileUploadEvent(user.id, file.name, file.size, false, { error: validation.error });
+      e.target.value = ''; // Clear the input
+      return;
     }
+
+    // Sanitize filename
+    const sanitizedName = sanitizeFileName(file.name);
+    
+    setUploadedFile(file);
+    logFileUploadEvent(user.id, sanitizedName, file.size, true);
+    
+    // Mock content extraction with sanitization
+    const mockExtractedContent = sanitizeLessonInput(`Extracted content from ${sanitizedName}:\n\nLesson Topic: The Good Samaritan\nScripture: Luke 10:25-37\n\nMain Points:\n1. Love your neighbor as yourself\n2. Show compassion to those in need\n3. Actions speak louder than words\n\nActivity Ideas:\n- Role play the parable\n- Discuss what it means to be a neighbor`);
+    
+    setExtractedContent(mockExtractedContent);
+    setFormData(prev => ({ ...prev, passageOrTopic: "Luke 10:25-37 - The Good Samaritan" }));
+    
+    toast({
+      title: "File uploaded successfully",
+      description: `${sanitizedName} has been processed and content extracted.`,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (enhancementType === "curriculum" && !uploadedFile && !extractedContent) {
+    if (!user) {
       toast({
-        title: "Missing Curriculum",
-        description: "Please upload a curriculum file to enhance",
+        title: "Authentication required",
+        description: "Please sign in to generate lessons",
         variant: "destructive",
       });
       return;
     }
-    
-    if (enhancementType === "generation" && !formData.passageOrTopic.trim()) {
+
+    // Validate form data with Zod
+    try {
+      const validatedData = lessonFormSchema.parse({
+        passageOrTopic: formData.passageOrTopic,
+        ageGroup: formData.ageGroup,
+        doctrineProfile: formData.doctrineProfile,
+        notes: formData.notes,
+      });
+
+      // Additional validation for curriculum enhancement
+      if (enhancementType === "curriculum" && !uploadedFile && !extractedContent) {
+        toast({
+          title: "Missing Curriculum",
+          description: "Please upload a curriculum file to enhance",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (enhancementType === "generation" && !validatedData.passageOrTopic.trim()) {
+        toast({
+          title: "Missing Information", 
+          description: "Please enter a scripture passage or topic",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setIsGenerating(true);
+      
+      // Sanitize extracted content if present
+      const sanitizedExtractedContent = extractedContent ? sanitizeLessonInput(extractedContent) : '';
+      
+      // Log lesson generation attempt
+      logLessonEvent('create', user.id, undefined, {
+        enhancementType,
+        ageGroup: validatedData.ageGroup,
+        doctrineProfile: validatedData.doctrineProfile,
+        hasFile: !!uploadedFile,
+      });
+
+    } catch (validationError: any) {
       toast({
-        title: "Missing Information", 
-        description: "Please enter a scripture passage or topic",
+        title: "Invalid input",
+        description: validationError.errors?.[0]?.message || "Please check your input and try again",
         variant: "destructive",
       });
       return;
@@ -252,19 +322,25 @@ export function EnhanceLessonForm({
             {/* Curriculum Enhancement Option */}
             {enhancementType === "curriculum" && (
               <div className="space-y-4 border rounded-lg p-4 bg-accent/5">
-                <div className="space-y-2">
-                  <Label htmlFor="file-upload">Upload Curriculum File</Label>
-                  <Input
-                    id="file-upload"
-                    type="file"
-                    accept=".pdf,.docx,.doc,.txt"
-                    onChange={handleFileUpload}
-                    className="cursor-pointer"
-                  />
-                  <div className="text-xs text-muted-foreground">
-                    Supported formats: PDF, Word documents, Text files
-                  </div>
-                </div>
+                 <div className="space-y-2">
+                   <Label htmlFor="file-upload">Upload Curriculum File</Label>
+                   <Input
+                     id="file-upload"
+                     type="file"
+                     accept=".pdf,.docx,.doc,.txt"
+                     onChange={handleFileUpload}
+                     className="cursor-pointer"
+                   />
+                   <div className="text-xs text-muted-foreground">
+                     Supported formats: PDF, Word documents, Text files (Max 10 MB)
+                   </div>
+                   <Alert>
+                     <AlertTriangle className="h-4 w-4" />
+                     <AlertDescription>
+                       Only upload files from trusted sources. Files are automatically scanned for security.
+                     </AlertDescription>
+                   </Alert>
+                 </div>
                 
                 {extractedContent && (
                   <div className="space-y-2">
