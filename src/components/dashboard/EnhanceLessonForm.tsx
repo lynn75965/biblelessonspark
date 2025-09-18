@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { validateFileUpload, lessonFormSchema, type LessonFormData } from "@/lib/fileValidation";
+import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 
@@ -50,6 +50,7 @@ export function EnhanceLessonForm({
     notes: ""
   });
   
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
   const [lessonTitle, setLessonTitle] = useState("");
@@ -337,21 +338,23 @@ export function EnhanceLessonForm({
             {enhancementType === "curriculum" && (
               <div className="space-y-4 border rounded-lg p-4 bg-accent/5">
                  <div className="space-y-2">
-                   <Label htmlFor="file-upload">Upload Curriculum File</Label>
+                   <Label htmlFor="file-upload">Upload Curriculum File or Photo</Label>
                    <Input
                      id="file-upload"
                      type="file"
-                     accept=".pdf,.docx,.doc,.txt"
+                     accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.gif,.webp"
                      onChange={handleFileUpload}
                      className="cursor-pointer"
+                     disabled={isProcessing}
                    />
                    <div className="text-xs text-muted-foreground">
-                     Supported formats: PDF, Word documents, Text files (Max 10 MB)
+                     Supported formats: PDF, Word documents, Text files, JPG/PNG photos of curriculum materials (Max 10 MB)
                    </div>
                    <Alert>
                      <AlertTriangle className="h-4 w-4" />
                      <AlertDescription>
                        Only upload files from trusted sources. Files are automatically scanned for security.
+                       {isProcessing && " Processing file, please wait..."}
                      </AlertDescription>
                    </Alert>
                  </div>
@@ -365,9 +368,10 @@ export function EnhanceLessonForm({
                       className="min-h-[120px]"
                       placeholder="Content will be extracted from your uploaded file..."
                     />
-                    <div className="text-xs text-muted-foreground">
-                      Review and edit the extracted content before enhancement
-                    </div>
+                     <div className="text-xs text-muted-foreground">
+                       Review and edit the extracted content before enhancement
+                       {uploadedFile && isImageFile(uploadedFile) && " (extracted using OCR from image)"}
+                     </div>
                   </div>
                 )}
               </div>
@@ -445,10 +449,15 @@ export function EnhanceLessonForm({
               type="submit" 
               variant="hero" 
               size="lg" 
-              disabled={isGenerating || (enhancementType === "generation" && !formData.passageOrTopic)}
+              disabled={isGenerating || isProcessing || (enhancementType === "generation" && !formData.passageOrTopic)}
               className="w-full"
             >
-              {isGenerating ? (
+              {isProcessing ? (
+                <>
+                  <Clock className="h-4 w-4 animate-spin" />
+                  Processing File...
+                </>
+              ) : isGenerating ? (
                 <>
                   <Clock className="h-4 w-4 animate-spin" />
                   {enhancementType === "curriculum" ? "Enhancing Curriculum..." : "Generating Lesson..."}

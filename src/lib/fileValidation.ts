@@ -1,13 +1,18 @@
 import { z } from 'zod';
 
 // File validation constants
-export const ALLOWED_FILE_TYPES = ['.pdf', '.docx', '.doc', '.txt'] as const;
+export const ALLOWED_FILE_TYPES = ['.pdf', '.docx', '.doc', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
-  'text/plain'
+  'text/plain',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp'
 ] as const;
 
 export interface FileValidationResult {
@@ -29,7 +34,7 @@ export function validateFileUpload(file: File): FileValidationResult {
   if (!ALLOWED_MIME_TYPES.includes(file.type as any)) {
     return {
       isValid: false,
-      error: `File type not allowed. Please upload: ${ALLOWED_FILE_TYPES.join(', ')}`
+      error: `File type not allowed. Please upload documents (PDF, DOC, TXT) or images (JPG, PNG, GIF) of curriculum materials.`
     };
   }
 
@@ -38,7 +43,7 @@ export function validateFileUpload(file: File): FileValidationResult {
   if (!ALLOWED_FILE_TYPES.includes(fileExtension as any)) {
     return {
       isValid: false,
-      error: `File extension not allowed. Please upload: ${ALLOWED_FILE_TYPES.join(', ')}`
+      error: `File extension not allowed. Please upload documents (PDF, DOC, TXT) or images (JPG, PNG, GIF) of curriculum materials.`
     };
   }
 
@@ -100,3 +105,10 @@ export const lessonFormSchema = z.object({
 });
 
 export type LessonFormData = z.infer<typeof lessonFormSchema>;
+
+// Helper function to check if file is an image
+export function isImageFile(file: File): boolean {
+  return file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp'].some(ext => 
+    file.name.toLowerCase().endsWith(ext)
+  );
+}
