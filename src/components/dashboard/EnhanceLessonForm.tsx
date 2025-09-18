@@ -52,43 +52,6 @@ export function EnhanceLessonForm({
   const { createLesson } = useLessons();
   const { user } = useAuth();
 
-interface EnhanceLessonFormProps {
-  organizationId?: string;
-  defaultAgeGroup?: string;
-  defaultDoctrine?: string;
-}
-
-interface LessonContent {
-  activities: Array<{
-    title: string;
-    duration_minutes: number;
-    materials: string[];
-    instructions: string;
-  }>;
-  discussion_prompts: string[];
-  applications: string[];
-}
-
-export function EnhanceLessonForm({ 
-  organizationId, 
-  defaultAgeGroup = "Young Adults", 
-  defaultDoctrine = "SBC" 
-}: EnhanceLessonFormProps) {
-  const [enhancementType, setEnhancementType] = useState("curriculum");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [extractedContent, setExtractedContent] = useState("");
-  const [formData, setFormData] = useState({
-    passageOrTopic: "",
-    ageGroup: defaultAgeGroup,
-    doctrineProfile: defaultDoctrine,
-    notes: ""
-  });
-  
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
-  const [lessonTitle, setLessonTitle] = useState("");
-  const { toast } = useToast();
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -230,19 +193,6 @@ export function EnhanceLessonForm({
   const handlePrint = () => {
     window.print();
   };
-  };
-
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content);
-    toast({
-      title: "Copied to clipboard",
-      description: "Content has been copied to your clipboard.",
-    });
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -347,7 +297,6 @@ export function EnhanceLessonForm({
             )}
 
             <div className="grid md:grid-cols-2 gap-6">
-
               {/* Age Group */}
               <div className="space-y-2">
                 <Label htmlFor="age-group">Age Group</Label>
@@ -385,21 +334,21 @@ export function EnhanceLessonForm({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
 
-              {/* Additional Notes */}
-              <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Special focus areas, class dynamics, or specific needs..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
-                  rows={3}
-                />
-                <p className="text-xs text-muted-foreground">
-                  💡 <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration, and teaching style preferences
-                </p>
-              </div>
+            {/* Additional Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Special focus areas, class dynamics, or specific needs..."
+                value={formData.notes}
+                onChange={(e) => setFormData(prev => ({...prev, notes: e.target.value}))}
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                💡 <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration, and teaching style preferences
+              </p>
             </div>
 
             <Button 
@@ -463,25 +412,23 @@ export function EnhanceLessonForm({
               <TabsContent value="activities" className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Age-Appropriate Activities</h3>
-                  <Badge variant="outline">{generatedContent.activities.length} activities</Badge>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(JSON.stringify(generatedContent.activities, null, 2))}>
+                    <Copy className="h-3 w-3" />
+                    Copy All
+                  </Button>
                 </div>
-                
                 <div className="space-y-4">
                   {generatedContent.activities.map((activity, index) => (
-                    <Card key={index} className="border border-border/50">
+                    <Card key={index} className="bg-accent/20">
                       <CardHeader>
                         <div className="flex items-center justify-between">
                           <CardTitle className="text-base">{activity.title}</CardTitle>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {activity.duration_minutes} min
                             </Badge>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => handleCopy(`${activity.title}\n\nMaterials: ${activity.materials.join(', ')}\n\nInstructions: ${activity.instructions}`)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleCopy(JSON.stringify(activity, null, 2))}>
                               <Copy className="h-3 w-3" />
                             </Button>
                           </div>
@@ -489,12 +436,20 @@ export function EnhanceLessonForm({
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div>
-                          <p className="text-sm font-medium text-foreground mb-1">Materials needed:</p>
-                          <p className="text-sm text-muted-foreground">{activity.materials.join(', ')}</p>
+                          <h4 className="font-medium text-sm mb-2">Materials Needed:</h4>
+                          <div className="flex flex-wrap gap-1">
+                            {activity.materials.map((material, idx) => (
+                              <Badge key={idx} variant="secondary" className="text-xs">
+                                {material}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-foreground mb-1">Instructions:</p>
-                          <p className="text-sm text-muted-foreground">{activity.instructions}</p>
+                          <h4 className="font-medium text-sm mb-2">Instructions:</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {activity.instructions}
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
@@ -505,20 +460,25 @@ export function EnhanceLessonForm({
               <TabsContent value="discussion" className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Discussion Prompts</h3>
-                  <Badge variant="outline">{generatedContent.discussion_prompts.length} prompts</Badge>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(generatedContent.discussion_prompts.join('\n\n'))}>
+                    <Copy className="h-3 w-3" />
+                    Copy All
+                  </Button>
                 </div>
-                
                 <div className="space-y-3">
                   {generatedContent.discussion_prompts.map((prompt, index) => (
-                    <Card key={index} className="border border-border/50">
+                    <Card key={index} className="bg-accent/20">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm text-muted-foreground flex-1">{prompt}</p>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleCopy(prompt)}
-                          >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                Question {index + 1}
+                              </Badge>
+                            </div>
+                            <p className="text-sm leading-relaxed">{prompt}</p>
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => handleCopy(prompt)}>
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
@@ -531,20 +491,25 @@ export function EnhanceLessonForm({
               <TabsContent value="applications" className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">Modern Applications</h3>
-                  <Badge variant="outline">{generatedContent.applications.length} applications</Badge>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(generatedContent.applications.join('\n\n'))}>
+                    <Copy className="h-3 w-3" />
+                    Copy All
+                  </Button>
                 </div>
-                
                 <div className="space-y-3">
                   {generatedContent.applications.map((application, index) => (
-                    <Card key={index} className="border border-border/50">
+                    <Card key={index} className="bg-accent/20">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm text-muted-foreground flex-1">{application}</p>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleCopy(application)}
-                          >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Badge variant="outline" className="text-xs">
+                                Application {index + 1}
+                              </Badge>
+                            </div>
+                            <p className="text-sm leading-relaxed">{application}</p>
+                          </div>
+                          <Button variant="ghost" size="sm" onClick={() => handleCopy(application)}>
                             <Copy className="h-3 w-3" />
                           </Button>
                         </div>
