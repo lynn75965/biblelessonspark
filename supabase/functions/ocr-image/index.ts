@@ -1,12 +1,41 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Secure CORS configuration
+const allowedOrigins = [
+  'https://lessonsparkusa.com',
+  'https://www.lessonsparkusa.com'
+];
+
+// In development, also allow localhost
+if (Deno.env.get('DENO_DEPLOYMENT_ID') === undefined) {
+  allowedOrigins.push(...[
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ]);
+}
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin');
+  const isAllowed = origin && (
+    allowedOrigins.includes(origin) ||
+    origin.includes('.lovable.app') ||
+    origin.includes('.supabase.co')
+  );
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : 'null',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'DENY',
+    'X-XSS-Protection': '1; mode=block',
+  };
+}
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
