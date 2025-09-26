@@ -67,26 +67,6 @@ export default function Auth() {
     e.preventDefault();
     if (!formData.email || !formData.password || !formData.fullName) return;
 
-    if (formData.password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Enhanced password validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{6,}$/;
-    if (!passwordRegex.test(formData.password)) {
-      toast({
-        title: "Weak password",
-        description: "Password must contain at least one uppercase letter, one lowercase letter, and one number.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
       // Sanitize inputs
@@ -249,7 +229,7 @@ export default function Auth() {
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Minimum 6 characters"
+                        placeholder="Enter your password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-10"
