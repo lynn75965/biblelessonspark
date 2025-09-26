@@ -32,24 +32,24 @@ export default function Auth() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.email) return;
+    if (!formData.email || !formData.password) return;
 
     setIsLoading(true);
     try {
       // Sanitize email input
       const sanitizedEmail = sanitizeEmail(formData.email);
-      const { error } = await signIn(sanitizedEmail);
+      const { error } = await signIn(sanitizedEmail, formData.password);
       
       if (error) {
         toast({
           title: "Sign in failed",
-          description: error.message || "Please check your email and try again.",
+          description: error.message || "Please check your email and password.",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Magic link sent!",
-          description: "Check your email for a sign-in link.",
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
         });
       }
     } catch (error) {
@@ -182,16 +182,31 @@ export default function Auth() {
                       />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signin-password"
+                        type="password"
+                        placeholder="Enter your password"
+                        value={formData.password}
+                        onChange={(e) => handleInputChange('password', e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
                   <Button 
                     type="submit" 
                     className="w-full" 
                     variant="hero"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Sending...' : 'Send Magic Link'}
+                    {isLoading ? 'Signing In...' : 'Sign In'}
                   </Button>
                   <p className="text-xs text-muted-foreground text-center">
-                    We'll send you a secure sign-in link via email
+                    Enter your email and password to access your account
                   </p>
                 </form>
               </TabsContent>
