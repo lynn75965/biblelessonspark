@@ -9,8 +9,10 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { BookOpen, User, Settings, LogOut, Bell } from "lucide-react";
+import { BookOpen, User, Settings, LogOut, Bell, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { Link } from "react-router-dom";
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -20,6 +22,7 @@ interface HeaderProps {
 
 export function Header({ onAuthClick, isAuthenticated, organizationName }: HeaderProps) {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdminAccess();
   const [notifications] = useState(2); // Mock notification count
 
   // Use actual auth state if available, otherwise use prop
@@ -88,6 +91,17 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex items-center">
+                          <Shield className="mr-2 h-4 w-4" />
+                          <span>Admin Panel</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
                   <DropdownMenuItem>
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Settings</span>
