@@ -2,14 +2,12 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
-import { SetupChecklist } from "@/components/setup/SetupChecklist";
 import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   BookOpen, 
   Sparkles, 
@@ -18,7 +16,6 @@ import {
   MessageSquare, 
   Settings,
   CheckCircle2,
-  AlertTriangle,
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -35,9 +32,8 @@ interface DashboardProps {
 export default function Dashboard({ 
   organizationName = "Demo Baptist Church",
   userRole = "admin",
-  setupComplete = false
+  setupComplete = true
 }: DashboardProps) {
-  const [showSetupDialog, setShowSetupDialog] = useState(!setupComplete);
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
   const { toast } = useToast();
@@ -92,17 +88,6 @@ export default function Dashboard({
               Baptist Bible Study Enhancement Platform for {organizationName}
             </p>
           </div>
-          
-          {/* Setup Status */}
-          {!setupComplete && (
-            <Button 
-              variant="warning" 
-              onClick={() => setShowSetupDialog(true)}
-            >
-              <AlertTriangle className="h-4 w-4" />
-              Complete Setup ({stats.setupProgress}/9)
-            </Button>
-          )}
         </div>
 
         {/* Quick Stats */}
@@ -304,18 +289,6 @@ export default function Dashboard({
         Give Feedback
       </Button>
 
-      {/* Setup Dialog */}
-      <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Complete Your LessonSpark USA Setup</DialogTitle>
-            <DialogDescription>
-              Follow these steps to get your Baptist Bible study platform ready
-            </DialogDescription>
-          </DialogHeader>
-          <SetupChecklist isModal onClose={() => setShowSetupDialog(false)} />
-        </DialogContent>
-      </Dialog>
 
       {/* Beta Feedback Dialog */}
       <BetaFeedbackForm 
