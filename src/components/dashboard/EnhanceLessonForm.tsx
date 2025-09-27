@@ -17,6 +17,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
+import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
 
 interface EnhanceLessonFormProps {
   organizationId?: string;
@@ -63,6 +64,10 @@ export function EnhanceLessonForm({
     doctrineProfile: defaultDoctrine,
     notes: ""
   });
+  
+  const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
+  const [showCustomization, setShowCustomization] = useState(false);
+  const [savedProfiles, setSavedProfiles] = useState<Array<{ name: string; preferences: TeacherPreferences }>>([]);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -196,6 +201,7 @@ export function EnhanceLessonForm({
           notes: formData.notes,
           enhancementType,
           extractedContent: sanitizedExtractedContent,
+          teacherPreferences,
         }),
       });
 
@@ -283,6 +289,15 @@ export function EnhanceLessonForm({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleSaveProfile = (preferences: TeacherPreferences, profileName: string) => {
+    setSavedProfiles(prev => [...prev.filter(p => p.name !== profileName), { name: profileName, preferences }]);
+    setTeacherPreferences(preferences);
+  };
+
+  const handleLoadProfile = (preferences: TeacherPreferences) => {
+    setTeacherPreferences(preferences);
   };
 
   return (
@@ -434,6 +449,33 @@ export function EnhanceLessonForm({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Teacher Customization Toggle */}
+            <div className="space-y-4 border rounded-lg p-4 bg-accent/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-semibold">Teacher Customization</Label>
+                  <p className="text-sm text-muted-foreground">Configure detailed preferences for personalized lesson generation</p>
+                </div>
+                <Button
+                  type="button"
+                  variant={showCustomization ? "default" : "outline"}
+                  onClick={() => setShowCustomization(!showCustomization)}
+                >
+                  {showCustomization ? "Hide" : "Customize"}
+                </Button>
+              </div>
+              
+              {showCustomization && (
+                <TeacherCustomization
+                  preferences={teacherPreferences}
+                  onPreferencesChange={setTeacherPreferences}
+                  onSaveProfile={handleSaveProfile}
+                  savedProfiles={savedProfiles}
+                  onLoadProfile={handleLoadProfile}
+                />
+              )}
             </div>
 
             {/* Additional Notes */}

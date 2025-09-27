@@ -2,6 +2,35 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
+interface TeacherPreferences {
+  teachingStyle: string;
+  classroomManagement: string;
+  techIntegration: string;
+  assessmentPreference: string;
+  classSize: string;
+  meetingFrequency: string;
+  sessionDuration: string;
+  physicalSpace: string;
+  specialNeeds: string[];
+  learningStyles: string[];
+  engagementLevel: string;
+  discussionFormat: string;
+  activityComplexity: string;
+  bibleTranslation: string;
+  theologicalEmphasis: string;
+  applicationFocus: string;
+  depthLevel: string;
+  handoutStyle: string;
+  visualAidPreference: string;
+  takehomeMaterials: string[];
+  preparationTime: string;
+  culturalBackground: string;
+  socioeconomicContext: string;
+  educationalBackground: string;
+  spiritualMaturity: string;
+  additionalContext: string;
+}
+
 interface LessonRequest {
   passageOrTopic: string;
   ageGroup: string;
@@ -9,6 +38,7 @@ interface LessonRequest {
   notes?: string;
   enhancementType: 'curriculum' | 'generation';
   extractedContent?: string;
+  teacherPreferences?: TeacherPreferences;
 }
 
 // Rate limiting storage (in production, use Redis or similar)
@@ -80,11 +110,67 @@ async function generateLessonWithAI(data: LessonRequest) {
     'Mixed Groups': 'Multi-generational, requiring adaptable content for various age levels and life stages'
   };
 
+  // Build customization context from teacher preferences
+  const buildCustomizationContext = (prefs: TeacherPreferences): string => {
+    if (!prefs) return '';
+    
+    const context = [];
+    
+    // Teaching style adaptation
+    context.push(`Teaching Style: ${prefs.teachingStyle.replace(/_/g, ' ')} approach`);
+    context.push(`Classroom Management: ${prefs.classroomManagement.replace(/_/g, ' ')} format`);
+    context.push(`Technology Integration: ${prefs.techIntegration} level of technology use`);
+    
+    // Class context
+    context.push(`Class Size: ${prefs.classSize} (${prefs.classSize === 'small' ? '5-15' : prefs.classSize === 'medium' ? '16-30' : prefs.classSize === 'large' ? '31-50' : '50+'} people)`);
+    context.push(`Session Duration: ${prefs.sessionDuration}`);
+    context.push(`Physical Space: ${prefs.physicalSpace.replace(/_/g, ' ')}`);
+    
+    // Learning preferences
+    if (prefs.learningStyles.length > 0) {
+      context.push(`Learning Styles: Focus on ${prefs.learningStyles.join(', ')} learners`);
+    }
+    context.push(`Engagement Level: ${prefs.engagementLevel.replace(/_/g, ' ')}`);
+    context.push(`Discussion Format: ${prefs.discussionFormat.replace(/_/g, ' ')}`);
+    context.push(`Activity Complexity: ${prefs.activityComplexity} level activities`);
+    
+    // Theological preferences
+    context.push(`Bible Translation: ${prefs.bibleTranslation}`);
+    context.push(`Theological Emphasis: ${prefs.theologicalEmphasis.replace(/_/g, ' ')} style`);
+    context.push(`Application Focus: ${prefs.applicationFocus.replace(/_/g, ' ')}`);
+    context.push(`Study Depth: ${prefs.depthLevel.replace(/_/g, ' ')}`);
+    
+    // Resource preferences
+    context.push(`Handout Style: ${prefs.handoutStyle.replace(/_/g, ' ')}`);
+    context.push(`Visual Aids: ${prefs.visualAidPreference.replace(/_/g, ' ')}`);
+    context.push(`Preparation Time Available: ${prefs.preparationTime}`);
+    
+    // Cultural context
+    context.push(`Cultural Background: ${prefs.culturalBackground} context`);
+    context.push(`Educational Background: ${prefs.educationalBackground.replace(/_/g, ' ')}`);
+    context.push(`Spiritual Maturity: ${prefs.spiritualMaturity.replace(/_/g, ' ')}`);
+    
+    if (prefs.specialNeeds.length > 0) {
+      context.push(`Special Considerations: ${prefs.specialNeeds.join(', ').replace(/_/g, ' ')}`);
+    }
+    
+    if (prefs.additionalContext) {
+      context.push(`Additional Context: ${prefs.additionalContext}`);
+    }
+    
+    return context.join('\n');
+  };
+
+  const customizationContext = buildCustomizationContext(data.teacherPreferences || {} as TeacherPreferences);
+
   const enhancementPrompt = data.enhancementType === 'curriculum' 
     ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || data.passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
     : `Generate a complete, original lesson plan based on: "${data.passageOrTopic}".`;
 
-  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]} 
+  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
+
+TEACHER CUSTOMIZATION PROFILE:
+${customizationContext}
 
 Create a publication-ready, comprehensive lesson that includes:
 
@@ -268,6 +354,7 @@ function validateInput(data: any): LessonRequest {
     notes: data.notes ? sanitizeString(data.notes) : undefined,
     enhancementType: data.enhancementType,
     extractedContent: data.extractedContent ? sanitizeString(data.extractedContent) : undefined,
+    teacherPreferences: data.teacherPreferences,
   };
 }
 
