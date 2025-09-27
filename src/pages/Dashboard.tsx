@@ -4,6 +4,8 @@ import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
+import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
+import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +36,11 @@ export default function Dashboard({
   setupComplete = true
 }: DashboardProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
+  const [orgDoctrine, setOrgDoctrine] = useState("SBC");
+  const [orgAgeGroup, setOrgAgeGroup] = useState("Adults");
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
@@ -65,6 +71,16 @@ export default function Dashboard({
   const handleFeedback = () => {
     trackFeatureUsed('feedback_button_clicked');
     setShowFeedbackDialog(true);
+  };
+
+  const handleOrgSettingsUpdated = (doctrine: string, ageGroup: string) => {
+    setOrgDoctrine(doctrine);
+    setOrgAgeGroup(ageGroup);
+  };
+
+  const handleProfileUpdated = () => {
+    // Force refresh of user data if needed
+    window.location.reload();
   };
 
   // Get user's name from auth
@@ -237,13 +253,21 @@ export default function Dashboard({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Default Doctrine</span>
-                      <Badge variant="outline">Southern Baptist Convention</Badge>
+                      <Badge variant="outline">
+                        {orgDoctrine === "SBC" ? "Southern Baptist Convention" : 
+                         orgDoctrine === "Reformed Baptist" ? "Reformed Baptist" : 
+                         "Independent Baptist"}
+                      </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Default Age Group</span>
-                      <Badge variant="outline">Adults</Badge>
+                      <Badge variant="outline">{orgAgeGroup}</Badge>
                     </div>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setShowOrgSettingsModal(true)}
+                    >
                       Modify Settings
                     </Button>
                   </div>
@@ -267,7 +291,11 @@ export default function Dashboard({
                       <span className="text-sm">Organization</span>
                       <Badge variant="outline">{organizationName}</Badge>
                     </div>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setShowProfileModal(true)}
+                    >
                       Update Profile
                     </Button>
                   </div>
@@ -294,6 +322,22 @@ export default function Dashboard({
       <BetaFeedbackForm 
         open={showFeedbackDialog} 
         onOpenChange={setShowFeedbackDialog}
+      />
+
+      {/* Organization Settings Modal */}
+      <OrganizationSettingsModal
+        open={showOrgSettingsModal}
+        onOpenChange={setShowOrgSettingsModal}
+        currentDoctrine={orgDoctrine}
+        currentAgeGroup={orgAgeGroup}
+        onSettingsUpdated={handleOrgSettingsUpdated}
+      />
+
+      {/* User Profile Modal */}
+      <UserProfileModal
+        open={showProfileModal}
+        onOpenChange={setShowProfileModal}
+        onProfileUpdated={handleProfileUpdated}
       />
     </div>
   );
