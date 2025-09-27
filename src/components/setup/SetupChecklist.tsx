@@ -81,16 +81,16 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
     <div className={cn("w-full max-w-2xl mx-auto", isModal && "max-h-[80vh] overflow-y-auto")}>
       <div className="space-y-8">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
-              <BookOpen className="h-8 w-8 text-white" />
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
+                <BookOpen className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
+                <p className="text-lg text-muted-foreground">Let's get you started with these simple steps</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
-              <p className="text-lg text-muted-foreground">Let's get you started</p>
-            </div>
-          </div>
           
           {/* Progress */}
           <div className="space-y-3">
