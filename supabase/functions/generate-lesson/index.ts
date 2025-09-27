@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 
@@ -50,6 +51,169 @@ function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: 
     allowed: true,
     remainingRequests: RATE_LIMIT_MAX_REQUESTS - userLimit.count,
     resetTime: userLimit.resetTime
+  };
+}
+
+async function generateLessonWithAI(data: LessonRequest) {
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openAIApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const doctrineContexts = {
+    'SBC': 'Southern Baptist Convention theological perspective, emphasizing biblical inerrancy, salvation by grace through faith alone, and believer\'s baptism by immersion.',
+    'RB': 'Regular Baptist theological perspective, focusing on fundamentalist principles, separation from worldly practices, and dispensational theology.',
+    'IND': 'Independent Baptist theological perspective, emphasizing local church autonomy, biblical authority, and conservative evangelical doctrine.'
+  };
+
+  const ageGroupContexts = {
+    'Preschoolers': 'Ages 3-5, requiring simple concepts, hands-on activities, and visual learning aids',
+    'Elementary': 'Ages 6-11, needing interactive activities, basic biblical concepts, and age-appropriate applications',
+    'Middle School': 'Ages 12-14, addressing identity questions, peer pressure, and foundational faith development',
+    'High School': 'Ages 15-18, tackling complex theological questions, life decisions, and future planning',
+    'College & Career': 'Ages 18-25, focusing on independence, career choices, and deep theological study',
+    'Young Adults': 'Ages 26-35, addressing marriage, family, and establishing life priorities',
+    'Mid-Life Adults': 'Ages 36-55, dealing with family responsibilities, career pressures, and spiritual maturity',
+    'Mature Adults': 'Ages 56-70, focusing on wisdom sharing, legacy building, and deeper spiritual reflection',
+    'Active Seniors': 'Ages 70+, emphasizing continued service, life reflection, and spiritual encouragement',
+    'Senior Adults': 'Ages 70+, focusing on comfort, encouragement, and simplified but meaningful content',
+    'Mixed Groups': 'Multi-generational, requiring adaptable content for various age levels and life stages'
+  };
+
+  const enhancementPrompt = data.enhancementType === 'curriculum' 
+    ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || data.passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
+    : `Generate a complete, original lesson plan based on: "${data.passageOrTopic}".`;
+
+  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]} 
+
+Create a publication-ready, comprehensive lesson that includes:
+
+LESSON STRUCTURE REQUIREMENTS:
+1. Lesson Overview (2-3 paragraphs)
+2. Learning Objectives (3-5 specific, measurable goals)
+3. Key Scripture Passages (with context and cross-references)
+4. Theological Background (denominational perspective and historical context)
+5. Opening Activities (2-3 engaging warm-up activities)
+6. Main Teaching Content (detailed exposition with illustrations)
+7. Interactive Activities (4-6 varied activities for different learning styles)
+8. Discussion Questions (8-10 thought-provoking questions)
+9. Life Applications (practical, age-appropriate applications)
+10. Assessment Methods (ways to measure understanding)
+11. Take-Home Resources (materials for continued learning)
+12. Teacher Preparation Notes (background study and tips)
+
+CONTENT QUALITY REQUIREMENTS:
+- Each section should be detailed and comprehensive (not bullet points)
+- Include specific materials lists for all activities
+- Provide estimated time durations for each component
+- Add biblical cross-references and supporting verses
+- Include age-appropriate illustrations and examples
+- Ensure theological accuracy according to ${data.doctrineProfile} perspective
+- Make content immediately usable without additional research
+
+TARGET AUDIENCE: ${ageGroupContexts[data.ageGroup as keyof typeof ageGroupContexts]}
+
+DENOMINATION EMPHASIS: ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
+
+${data.notes ? `ADDITIONAL REQUIREMENTS: ${data.notes}` : ''}
+
+Return a comprehensive lesson plan that a teacher could print and use immediately for a 45-60 minute class session.`;
+
+  const userPrompt = enhancementPrompt;
+
+  try {
+    console.log('Generating lesson with OpenAI...');
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 4000,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API Error:', errorData);
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const aiResponse = await response.json();
+    const generatedContent = aiResponse.choices[0].message.content;
+
+    // Parse the comprehensive content into structured format
+    const structuredContent = parseComprehensiveLesson(generatedContent);
+    
+    return {
+      content: structuredContent,
+      title: `${data.enhancementType === 'curriculum' ? 'Enhanced' : 'Generated'} Lesson: ${data.passageOrTopic}`,
+      wordCount: generatedContent.length,
+      estimatedDuration: '45-60 minutes'
+    };
+
+  } catch (error) {
+    console.error('Error generating lesson with AI:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    throw new Error(`Failed to generate lesson: ${errorMessage}`);
+  }
+}
+
+function parseComprehensiveLesson(content: string) {
+  // Parse the AI-generated content into structured sections
+  const sections: Record<string, string> = {};
+  
+  // Extract major sections using common headers
+  const sectionRegexes: Record<string, RegExp> = {
+    overview: /(?:lesson\s+overview|overview|introduction)[:\s]*(.*?)(?=\n(?:learning\s+objectives|objectives|key\s+scripture)|$)/is,
+    objectives: /(?:learning\s+objectives|objectives)[:\s]*(.*?)(?=\n(?:key\s+scripture|scripture|theological)|$)/is,
+    scripture: /(?:key\s+scripture|scripture\s+passages|scripture)[:\s]*(.*?)(?=\n(?:theological|background|opening)|$)/is,
+    background: /(?:theological\s+background|background|context)[:\s]*(.*?)(?=\n(?:opening\s+activities|opening|main\s+teaching)|$)/is,
+    opening: /(?:opening\s+activities|warm[- ]?up|opening)[:\s]*(.*?)(?=\n(?:main\s+teaching|teaching\s+content|interactive)|$)/is,
+    teaching: /(?:main\s+teaching|teaching\s+content|main\s+content)[:\s]*(.*?)(?=\n(?:interactive\s+activities|activities|discussion)|$)/is,
+    activities: /(?:interactive\s+activities|activities)[:\s]*(.*?)(?=\n(?:discussion\s+questions|discussion|life\s+applications)|$)/is,
+    discussion: /(?:discussion\s+questions|discussion)[:\s]*(.*?)(?=\n(?:life\s+applications|applications|assessment)|$)/is,
+    applications: /(?:life\s+applications|applications)[:\s]*(.*?)(?=\n(?:assessment|take[- ]?home|teacher)|$)/is,
+    assessment: /(?:assessment\s+methods|assessment)[:\s]*(.*?)(?=\n(?:take[- ]?home|teacher\s+preparation|teacher)|$)/is,
+    resources: /(?:take[- ]?home\s+resources|resources)[:\s]*(.*?)(?=\n(?:teacher\s+preparation|teacher\s+notes)|$)/is,
+    preparation: /(?:teacher\s+preparation|teacher\s+notes|preparation)[:\s]*(.*?)$/is
+  };
+
+  // Extract each section
+  Object.keys(sectionRegexes).forEach(key => {
+    const match = content.match(sectionRegexes[key]);
+    if (match) {
+      sections[key] = match[1].trim();
+    }
+  });
+
+  // If structured parsing fails, create sections from the raw content
+  if (Object.keys(sections).length < 5) {
+    const contentChunks = content.split('\n\n').filter(chunk => chunk.trim().length > 50);
+    
+    return {
+      overview: contentChunks[0] || 'Comprehensive lesson content generated.',
+      objectives: contentChunks[1] || 'Students will engage with biblical truth and apply it to their lives.',
+      scripture: contentChunks[2] || 'Key passages and supporting verses provided.',
+      background: contentChunks[3] || 'Theological context and historical background included.',
+      teaching: contentChunks.slice(4).join('\n\n') || 'Detailed teaching content with activities and applications.',
+      activities: 'Interactive learning experiences designed for engagement.',
+      discussion: 'Thought-provoking questions for deeper understanding.',
+      applications: 'Practical ways to live out biblical principles.',
+      fullContent: content
+    };
+  }
+
+  return {
+    ...sections,
+    fullContent: content
   };
 }
 
@@ -204,26 +368,8 @@ serve(async (req) => {
     const body = await req.json();
     const validatedData = validateInput(body);
 
-    // TODO: Integrate with actual AI service (OpenAI, etc.)
-    // For now, return mock data with proper structure
-    const mockLessonContent = {
-      activities: [
-        {
-          title: "Scripture Memory Activity",
-          duration_minutes: 15,
-          materials: ["Bible", "Index cards"],
-          instructions: `Engage ${validatedData.ageGroup.toLowerCase()} in memorizing key verses from ${validatedData.passageOrTopic}. Adapt for ${validatedData.doctrineProfile} theological emphasis.`
-        }
-      ],
-      discussion_prompts: [
-        `How does ${validatedData.passageOrTopic} align with Baptist beliefs about salvation?`,
-        `What practical applications can ${validatedData.ageGroup.toLowerCase()} take from this passage?`
-      ],
-      applications: [
-        `Daily Bible reading focused on ${validatedData.passageOrTopic}`,
-        `Prayer and reflection on the lesson's key themes`
-      ]
-    };
+    // Generate comprehensive lesson content using OpenAI
+    const lessonContent = await generateLessonWithAI(validatedData);
 
     // Log the successful generation (in production, you'd log to your audit system)
     console.log(`Lesson generated for user ${user.id}: ${validatedData.passageOrTopic}`);
@@ -231,12 +377,14 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        content: mockLessonContent,
-        title: `${validatedData.enhancementType === 'curriculum' ? 'Enhanced' : 'Generated'} Lesson: ${validatedData.passageOrTopic}`,
+        content: lessonContent.content,
+        title: lessonContent.title,
         metadata: {
           ageGroup: validatedData.ageGroup,
           doctrineProfile: validatedData.doctrineProfile,
-          enhancementType: validatedData.enhancementType
+          enhancementType: validatedData.enhancementType,
+          wordCount: lessonContent.wordCount,
+          estimatedDuration: lessonContent.estimatedDuration
         }
       }),
       {

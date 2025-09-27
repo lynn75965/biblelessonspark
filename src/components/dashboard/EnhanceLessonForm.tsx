@@ -25,14 +25,28 @@ interface EnhanceLessonFormProps {
 }
 
 interface LessonContent {
-  activities: Array<{
+  overview?: string;
+  objectives?: string;
+  scripture?: string;
+  background?: string;
+  opening?: string;
+  teaching?: string;
+  activities?: string;
+  discussion?: string;
+  applications?: string;
+  assessment?: string;
+  resources?: string;
+  preparation?: string;
+  fullContent?: string;
+  // Legacy support
+  activities_legacy?: Array<{
     title: string;
-    duration_minutes: number;
-    materials: string[];
+    duration_minutes?: number;
+    materials?: string[];
     instructions: string;
   }>;
-  discussion_prompts: string[];
-  applications: string[];
+  discussion_prompts?: string[];
+  applications_legacy?: string[];
 }
 
 export function EnhanceLessonForm({ 
@@ -137,9 +151,6 @@ export function EnhanceLessonForm({
 
       setIsGenerating(true);
       
-      // Sanitize extracted content if present
-      const sanitizedExtractedContent = extractedContent ? sanitizeLessonInput(extractedContent) : '';
-      
       // Log lesson generation attempt
       logLessonEvent('create', user.id, undefined, {
         enhancementType,
@@ -160,58 +171,52 @@ export function EnhanceLessonForm({
     setIsGenerating(true);
 
     try {
-      // Mock lesson generation - replace with actual API call
-      setTimeout(() => {
-        const mockContent: LessonContent = {
-          activities: [
-            {
-              title: "Scripture Memory Game",
-              duration_minutes: 10,
-              materials: ["Index cards", "Markers"],
-              instructions: `Write key verses on index cards. Have ${formData.ageGroup.toLowerCase()} take turns drawing cards and reciting the verses. For ${formData.ageGroup === 'Kids' ? 'younger children, use actions' : formData.ageGroup === 'Youth' ? 'teens, make it competitive' : 'adults, focus on application'}. This activity reinforces biblical truth through repetition and ${formData.doctrineProfile === 'SBC' ? 'Southern Baptist' : formData.doctrineProfile === 'RB' ? 'Reformed' : 'Independent Baptist'} theological emphasis.`
-            },
-            {
-              title: "Discussion Circle Activity",
-              duration_minutes: 15,
-              materials: ["Discussion questions", "Bible"],
-              instructions: `Form a circle and discuss how the passage applies to daily life. Use age-appropriate questions that encourage ${formData.ageGroup.toLowerCase()} to think deeply about God's Word. Include Baptist perspective on personal relationship with Jesus Christ.`
-            },
-            {
-              title: "Creative Expression",
-              duration_minutes: 20,
-              materials: ["Art supplies", "Paper"],
-              instructions: `Have participants create visual representations of the lesson theme. This works well for all ages and helps reinforce learning through multiple senses.`
-            }
-          ],
-          discussion_prompts: [
-            `How does this passage reflect Baptist beliefs about ${formData.doctrineProfile === 'SBC' ? 'soul competency and priesthood of believers' : formData.doctrineProfile === 'RB' ? 'God\'s sovereignty and grace' : 'local church autonomy and biblical authority'}?`,
-            `What practical steps can ${formData.ageGroup.toLowerCase()} take this week to apply these biblical truths?`,
-            `How might someone who doesn't know Jesus respond to this passage, and how can we share the gospel?`,
-            `What does this text teach us about God's character and His love for us?`,
-            `How can we encourage one another to live out these biblical principles in our daily lives?`
-          ],
-          applications: [
-            `Daily devotional reading: Encourage ${formData.ageGroup.toLowerCase()} to read this passage each morning and pray about its application.`,
-            `Service opportunity: Identify ways to serve others that reflect the passage's teachings about Christian love and compassion.`,
-            `Scripture memorization: Help everyone memorize key verses that capture the main theme of today's lesson.`,
-            `Family discussion: Provide take-home materials for families to continue the conversation at home.`,
-            `Prayer focus: Establish specific prayer requests related to living out this passage in practical ways.`,
-            `Baptist heritage connection: Discuss how this passage has influenced Baptist theology and practice throughout history.`
-          ]
-        };
-        
-        setGeneratedContent(mockContent);
-        const title = enhancementType === "curriculum" 
-          ? `Enhanced Curriculum: ${uploadedFile?.name || formData.passageOrTopic}`
-          : `Generated Lesson: ${formData.passageOrTopic}`;
-        setLessonTitle(title);
+      // Sanitize extracted content if present
+      const sanitizedExtractedContent = extractedContent ? sanitizeLessonInput(extractedContent) : '';
+      
+      // Get auth token
+      const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+      const authToken = session?.access_token;
+      
+      if (!authToken) {
+        throw new Error('Authentication required');
+      }
+
+      // Call the comprehensive lesson generation API
+      const response = await fetch(`https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/generate-lesson`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          passageOrTopic: formData.passageOrTopic,
+          ageGroup: formData.ageGroup,
+          doctrineProfile: formData.doctrineProfile,
+          notes: formData.notes,
+          enhancementType,
+          extractedContent: sanitizedExtractedContent,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setGeneratedContent(result.content);
+        setLessonTitle(result.title);
         setIsGenerating(false);
         
         toast({
           title: enhancementType === "curriculum" ? "Curriculum enhanced successfully!" : "Lesson generated successfully!",
-          description: "Your Baptist-aligned lesson content is ready to review and save.",
+          description: "Your comprehensive lesson content is ready to review and save.",
         });
-      }, 2000);
+      } else {
+        throw new Error(result.error || 'Failed to generate lesson');
+      }
     } catch (error) {
       setIsGenerating(false);
       toast({
@@ -267,8 +272,9 @@ export function EnhanceLessonForm({
     }
   };
 
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content);
+  const handleCopy = (content?: string) => {
+    const textToCopy = content || generatedContent?.fullContent || 'No content to copy';
+    navigator.clipboard.writeText(textToCopy);
     toast({
       title: "Copied to clipboard",
       description: "Content has been copied to your clipboard.",
@@ -501,121 +507,197 @@ export function EnhanceLessonForm({
           </CardHeader>
 
           <CardContent>
-            <Tabs defaultValue="activities" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 lg:grid-cols-6">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="teaching">Teaching</TabsTrigger>
                 <TabsTrigger value="activities">Activities</TabsTrigger>
-                <TabsTrigger value="discussion">Discussion Prompts</TabsTrigger>
-                <TabsTrigger value="applications">Modern Applications</TabsTrigger>
+                <TabsTrigger value="discussion">Discussion</TabsTrigger>
+                <TabsTrigger value="applications">Applications</TabsTrigger>
+                <TabsTrigger value="full">Full Lesson</TabsTrigger>
               </TabsList>
-
-              <TabsContent value="activities" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Age-Appropriate Activities</h3>
-                  <Button variant="outline" size="sm" onClick={() => handleCopy(JSON.stringify(generatedContent.activities, null, 2))}>
-                    <Copy className="h-3 w-3" />
-                    Copy All
-                  </Button>
-                </div>
+              
+              <TabsContent value="overview" className="space-y-4">
                 <div className="space-y-4">
-                  {generatedContent.activities.map((activity, index) => (
-                    <Card key={index} className="bg-accent/20">
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-base">{activity.title}</CardTitle>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {activity.duration_minutes} min
-                            </Badge>
-                            <Button variant="ghost" size="sm" onClick={() => handleCopy(JSON.stringify(activity, null, 2))}>
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Materials Needed:</h4>
-                          <div className="flex flex-wrap gap-1">
-                            {activity.materials.map((material, idx) => (
-                              <Badge key={idx} variant="secondary" className="text-xs">
-                                {material}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-sm mb-2">Instructions:</h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            {activity.instructions}
-                          </p>
-                        </div>
-                      </CardContent>
+                  {generatedContent.overview && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Lesson Overview</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <p className="whitespace-pre-wrap leading-relaxed">{generatedContent.overview}</p>
+                      </div>
                     </Card>
-                  ))}
+                  )}
+                  
+                  {generatedContent.objectives && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Learning Objectives</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.objectives}</div>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {generatedContent.scripture && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Key Scripture</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.scripture}</div>
+                      </div>
+                    </Card>
+                  )}
                 </div>
               </TabsContent>
-
-              <TabsContent value="discussion" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Discussion Prompts</h3>
-                  <Button variant="outline" size="sm" onClick={() => handleCopy(generatedContent.discussion_prompts.join('\n\n'))}>
-                    <Copy className="h-3 w-3" />
-                    Copy All
-                  </Button>
+              
+              <TabsContent value="teaching" className="space-y-4">
+                <div className="space-y-4">
+                  {generatedContent.background && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Theological Background</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.background}</div>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {generatedContent.teaching && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Main Teaching Content</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.teaching}</div>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {generatedContent.opening && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Opening Activities</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.opening}</div>
+                      </div>
+                    </Card>
+                  )}
                 </div>
-                <div className="space-y-3">
-                  {generatedContent.discussion_prompts.map((prompt, index) => (
-                    <Card key={index} className="bg-accent/20">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="text-xs">
-                                Question {index + 1}
-                              </Badge>
-                            </div>
+              </TabsContent>
+              
+              <TabsContent value="activities" className="space-y-4">
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Interactive Activities</h3>
+                  <div className="prose prose-sm max-w-none">
+                    {generatedContent.activities ? (
+                      <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.activities}</div>
+                    ) : generatedContent.activities_legacy?.length ? (
+                      <div className="space-y-4">
+                        {generatedContent.activities_legacy.map((activity, index) => (
+                          <div key={index} className="border-l-4 border-primary pl-4">
+                            <h4 className="font-medium text-lg mb-2">{activity.title}</h4>
+                            {activity.duration_minutes && (
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Duration: {activity.duration_minutes} minutes
+                              </p>
+                            )}
+                            {activity.materials && activity.materials.length > 0 && (
+                              <div className="mb-3">
+                                <p className="text-sm font-medium mb-1">Materials needed:</p>
+                                <ul className="text-sm list-disc list-inside text-muted-foreground">
+                                  {activity.materials.map((material, i) => (
+                                    <li key={i}>{material}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            <p className="text-sm leading-relaxed">{activity.instructions}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No activities generated.</p>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="discussion" className="space-y-4">
+                <Card className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Discussion Questions</h3>
+                  <div className="prose prose-sm max-w-none">
+                    {generatedContent.discussion ? (
+                      <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.discussion}</div>
+                    ) : generatedContent.discussion_prompts?.length ? (
+                      <div className="space-y-3">
+                        {generatedContent.discussion_prompts.map((prompt, index) => (
+                          <div key={index} className="border-l-4 border-primary pl-4">
                             <p className="text-sm leading-relaxed">{prompt}</p>
                           </div>
-                          <Button variant="ghost" size="sm" onClick={() => handleCopy(prompt)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground">No discussion questions generated.</p>
+                    )}
+                  </div>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="applications" className="space-y-4">
+                <div className="space-y-4">
+                  {generatedContent.applications && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Life Applications</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.applications}</div>
+                      </div>
                     </Card>
-                  ))}
+                  )}
+                  
+                  {generatedContent.assessment && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Assessment Methods</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.assessment}</div>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {generatedContent.resources && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Take-Home Resources</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.resources}</div>
+                      </div>
+                    </Card>
+                  )}
+                  
+                  {generatedContent.preparation && (
+                    <Card className="p-6">
+                      <h3 className="text-lg font-semibold mb-4">Teacher Preparation</h3>
+                      <div className="prose prose-sm max-w-none">
+                        <div className="whitespace-pre-wrap leading-relaxed">{generatedContent.preparation}</div>
+                      </div>
+                    </Card>
+                  )}
                 </div>
               </TabsContent>
-
-              <TabsContent value="applications" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Modern Applications</h3>
-                  <Button variant="outline" size="sm" onClick={() => handleCopy(generatedContent.applications.join('\n\n'))}>
-                    <Copy className="h-3 w-3" />
-                    Copy All
-                  </Button>
-                </div>
-                <div className="space-y-3">
-                  {generatedContent.applications.map((application, index) => (
-                    <Card key={index} className="bg-accent/20">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="text-xs">
-                                Application {index + 1}
-                              </Badge>
-                            </div>
-                            <p className="text-sm leading-relaxed">{application}</p>
-                          </div>
-                          <Button variant="ghost" size="sm" onClick={() => handleCopy(application)}>
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+              
+              <TabsContent value="full" className="space-y-4">
+                <Card className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Complete Lesson Plan</h3>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleCopy()}>
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy All
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={handlePrint}>
+                        <Printer className="h-4 w-4 mr-2" />
+                        Print
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="prose prose-sm max-w-none print:text-black">
+                    <div className="whitespace-pre-wrap leading-relaxed text-sm">
+                      {generatedContent.fullContent || 'Complete lesson content not available.'}
+                    </div>
+                  </div>
+                </Card>
               </TabsContent>
             </Tabs>
           </CardContent>
