@@ -8,7 +8,6 @@ export interface Organization {
   organization_type: string;
   denomination: string;
   default_doctrine: string;
-  default_age_group: string;
   description?: string;
   website?: string;
   address?: string;

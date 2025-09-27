@@ -3,11 +3,19 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
+
+const AGE_GROUP_OPTIONS = [
+  'Children (Ages 3-11)',
+  'Youth (Ages 12-18)', 
+  'Adults',
+  'Seniors (Ages 65+)'
+];
 
 interface UserProfileModalProps {
   open: boolean;
@@ -21,6 +29,7 @@ export function UserProfileModal({
   onProfileUpdated
 }: UserProfileModalProps) {
   const [fullName, setFullName] = useState("");
+  const [preferredAgeGroup, setPreferredAgeGroup] = useState("Adults");
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const { toast } = useToast();
@@ -39,15 +48,17 @@ export function UserProfileModal({
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, preferred_age_group')
         .eq('id', user.id)
         .single();
 
       if (error) {
         console.error('Error loading profile:', error);
         setFullName(user.user_metadata?.full_name || user.email?.split('@')[0] || '');
+        setPreferredAgeGroup("Adults");
       } else {
         setFullName(profile?.full_name || '');
+        setPreferredAgeGroup(profile?.preferred_age_group || "Adults");
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -75,7 +86,10 @@ export function UserProfileModal({
 
       const { error } = await supabase
         .from('profiles')
-        .update({ full_name: sanitizedName })
+        .update({ 
+          full_name: sanitizedName,
+          preferred_age_group: preferredAgeGroup
+        })
         .eq('id', user.id);
 
       if (error) {
@@ -140,6 +154,25 @@ export function UserProfileModal({
                 placeholder="Enter your full name"
                 maxLength={100}
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="preferredAgeGroup">Preferred Age Group</Label>
+              <Select
+                value={preferredAgeGroup}
+                onValueChange={setPreferredAgeGroup}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select age group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AGE_GROUP_OPTIONS.map(group => (
+                    <SelectItem key={group} value={group}>
+                      {group}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         )}

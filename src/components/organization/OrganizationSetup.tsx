@@ -46,12 +46,6 @@ const DOCTRINE_OPTIONS = [
   { value: "Non-denominational", label: "Non-denominational" }
 ];
 
-const AGE_GROUP_OPTIONS = [
-  { value: "Children", label: "Children (Ages 5-12)" },
-  { value: "Youth", label: "Youth (Ages 13-18)" },
-  { value: "Adults", label: "Adults (18+)" },
-  { value: "Seniors", label: "Seniors (65+)" }
-];
 
 export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) {
   const [activeTab, setActiveTab] = useState("create");
@@ -65,7 +59,6 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
     organization_type: "church",
     denomination: "Baptist",
     default_doctrine: "SBC",
-    default_age_group: "Adults",
     description: "",
     website: "",
     address: "",
@@ -203,7 +196,7 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="doctrine">Default Doctrine</Label>
                   <Select value={formData.default_doctrine} onValueChange={(value) => handleInputChange("default_doctrine", value)}>
@@ -220,21 +213,6 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
                   </Select>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="ageGroup">Default Age Group</Label>
-                  <Select value={formData.default_age_group} onValueChange={(value) => handleInputChange("default_age_group", value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {AGE_GROUP_OPTIONS.map((age) => (
-                        <SelectItem key={age.value} value={age.value}>
-                          {age.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
 
               <div className="grid gap-2">

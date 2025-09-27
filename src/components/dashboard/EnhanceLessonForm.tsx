@@ -21,7 +21,7 @@ import { TeacherCustomization, type TeacherPreferences, defaultPreferences } fro
 
 interface EnhanceLessonFormProps {
   organizationId?: string;
-  defaultAgeGroup?: string;
+  userPreferredAgeGroup?: string;
   defaultDoctrine?: string;
 }
 
@@ -52,7 +52,7 @@ interface LessonContent {
 
 export function EnhanceLessonForm({ 
   organizationId, 
-  defaultAgeGroup = "Young Adults", 
+  userPreferredAgeGroup = "Young Adults", 
   defaultDoctrine = "SBC" 
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
@@ -60,7 +60,7 @@ export function EnhanceLessonForm({
   const [extractedContent, setExtractedContent] = useState("");
   const [formData, setFormData] = useState({
     passageOrTopic: "",
-    ageGroup: defaultAgeGroup,
+    ageGroup: userPreferredAgeGroup,
     doctrineProfile: defaultDoctrine,
     notes: ""
   });

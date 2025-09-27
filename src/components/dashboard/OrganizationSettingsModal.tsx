@@ -20,12 +20,6 @@ const DOCTRINE_OPTIONS = [
   { value: "Independent Baptist", label: "Independent Baptist" }
 ];
 
-const AGE_GROUP_OPTIONS = [
-  { value: "Children", label: "Children (Ages 5-12)" },
-  { value: "Youth", label: "Youth (Ages 13-18)" },
-  { value: "Adults", label: "Adults (18+)" },
-  { value: "Seniors", label: "Seniors (65+)" }
-];
 
 export function OrganizationSettingsModal({
   open,
@@ -38,7 +32,6 @@ export function OrganizationSettingsModal({
   const [formData, setFormData] = useState(() => ({
     name: organization?.name || "",
     default_doctrine: organization?.default_doctrine || "SBC",
-    default_age_group: organization?.default_age_group || "Adults",
     description: organization?.description || "",
     website: organization?.website || "",
     address: organization?.address || "",
@@ -52,7 +45,6 @@ export function OrganizationSettingsModal({
       setFormData({
         name: organization.name || "",
         default_doctrine: organization.default_doctrine || "SBC",
-        default_age_group: organization.default_age_group || "Adults",
         description: organization.description || "",
         website: organization.website || "",
         address: organization.address || "",
@@ -119,46 +111,24 @@ export function OrganizationSettingsModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="doctrine">Default Doctrine</Label>
-              <Select 
-                value={formData.default_doctrine} 
-                onValueChange={(value) => handleInputChange("default_doctrine", value)}
-                disabled={!isAdmin}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select doctrine" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOCTRINE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="ageGroup">Default Age Group</Label>
-              <Select 
-                value={formData.default_age_group} 
-                onValueChange={(value) => handleInputChange("default_age_group", value)}
-                disabled={!isAdmin}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select age group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGE_GROUP_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="doctrine">Default Doctrine</Label>
+            <Select 
+              value={formData.default_doctrine} 
+              onValueChange={(value) => handleInputChange("default_doctrine", value)}
+              disabled={!isAdmin}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select doctrine" />
+              </SelectTrigger>
+              <SelectContent>
+                {DOCTRINE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">

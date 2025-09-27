@@ -201,7 +201,6 @@ export type Database = {
           address: string | null
           created_at: string
           created_by: string
-          default_age_group: string
           default_doctrine: string
           denomination: string
           description: string | null
@@ -217,7 +216,6 @@ export type Database = {
           address?: string | null
           created_at?: string
           created_by: string
-          default_age_group?: string
           default_doctrine?: string
           denomination?: string
           description?: string | null
@@ -233,7 +231,6 @@ export type Database = {
           address?: string | null
           created_at?: string
           created_by?: string
-          default_age_group?: string
           default_doctrine?: string
           denomination?: string
           description?: string | null
@@ -301,6 +298,7 @@ export type Database = {
           id: string
           organization_id: string | null
           organization_role: string | null
+          preferred_age_group: string | null
           role: string | null
         }
         Insert: {
@@ -312,6 +310,7 @@ export type Database = {
           id: string
           organization_id?: string | null
           organization_role?: string | null
+          preferred_age_group?: string | null
           role?: string | null
         }
         Update: {
@@ -323,6 +322,7 @@ export type Database = {
           id?: string
           organization_id?: string | null
           organization_role?: string | null
+          preferred_age_group?: string | null
           role?: string | null
         }
         Relationships: [

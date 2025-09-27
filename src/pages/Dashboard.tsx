@@ -47,6 +47,28 @@ export default function Dashboard({
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { organization, loading: orgLoading, hasOrganization } = useOrganization();
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load user profile
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
+          .from('profiles')
+          .select('preferred_age_group')
+          .eq('id', user.id)
+          .single();
+        
+        setUserProfile(profile);
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+
+    loadUserProfile();
+  }, [user]);
 
   // Calculate real stats from data
   const stats = {
@@ -78,9 +100,21 @@ export default function Dashboard({
     // Organization setup completed, will automatically refresh organization data
   };
 
-  const handleProfileUpdated = () => {
-    // Force refresh of user data if needed
-    window.location.reload();
+  const handleProfileUpdated = async () => {
+    // Reload user profile data
+    if (!user) return;
+    
+    try {
+      const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
+        .from('profiles')
+        .select('preferred_age_group')
+        .eq('id', user.id)
+        .single();
+      
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
   };
 
   // Get user's name from auth
@@ -213,7 +247,7 @@ export default function Dashboard({
           <TabsContent value="enhance" className="mt-6">
             <EnhanceLessonForm 
               organizationId={organization?.id || "demo-org-id"}
-              defaultAgeGroup={organization?.default_age_group || "Adults"}
+              userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
               defaultDoctrine={organization?.default_doctrine || "SBC"}
             />
           </TabsContent>
@@ -272,10 +306,6 @@ export default function Dashboard({
                       <Badge variant="outline">
                         {organization?.default_doctrine || "SBC"}
                       </Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Default Age Group</span>
-                      <Badge variant="outline">{organization?.default_age_group || "Adults"}</Badge>
                     </div>
                     <Button 
                       variant="outline" 
