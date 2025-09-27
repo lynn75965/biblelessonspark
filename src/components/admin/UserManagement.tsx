@@ -299,7 +299,10 @@ export function UserManagement() {
                                 </DialogHeader>
                                 <div className="py-4">
                                   <Label htmlFor="role">Role</Label>
-                                  <Select defaultValue={user.role}>
+                                  <Select 
+                                    defaultValue={user.role}
+                                    onValueChange={(value) => setSelectedUser(prev => prev ? {...prev, role: value} : null)}
+                                  >
                                     <SelectTrigger>
                                       <SelectValue />
                                     </SelectTrigger>
@@ -315,10 +318,11 @@ export function UserManagement() {
                                   </Button>
                                   <Button 
                                     onClick={() => {
-                                      const select = document.querySelector('[role="combobox"]') as HTMLElement;
-                                      const newRole = select?.textContent?.toLowerCase() || user.role;
-                                      handleUpdateRole(user.id, newRole);
+                                      if (selectedUser) {
+                                        handleUpdateRole(user.id, selectedUser.role);
+                                      }
                                     }}
+                                    className="bg-warning text-warning-foreground hover:bg-warning/90"
                                   >
                                     Save Changes
                                   </Button>

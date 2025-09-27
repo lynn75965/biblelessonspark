@@ -22,22 +22,22 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 interface DashboardProps {
   organizationName?: string;
-  userRole?: 'admin' | 'teacher';
   setupComplete?: boolean;
 }
 
 export default function Dashboard({ 
   organizationName = "Demo Baptist Church",
-  userRole = "admin",
   setupComplete = true
 }: DashboardProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isAdmin, loading: adminLoading } = useAdminAccess();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
 
@@ -160,7 +160,7 @@ export default function Dashboard({
               <BookOpen className="h-4 w-4" />
               My Lessons
             </TabsTrigger>
-            {userRole === 'admin' && (
+            {isAdmin && (
               <>
                 <TabsTrigger value="members">
                   <Users className="h-4 w-4" />
@@ -193,7 +193,7 @@ export default function Dashboard({
             />
           </TabsContent>
 
-          {userRole === 'admin' && (
+          {isAdmin && (
             <>
               <TabsContent value="members" className="mt-6">
                 <Card className="bg-gradient-card">
@@ -261,7 +261,7 @@ export default function Dashboard({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Role</span>
-                      <Badge variant="outline">{userRole === 'admin' ? 'Administrator' : 'Teacher'}</Badge>
+                      <Badge variant="outline">{isAdmin ? 'Administrator' : 'Teacher'}</Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Organization</span>
