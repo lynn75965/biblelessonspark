@@ -1,0 +1,198 @@
+import { useState, useEffect } from "react";
+import { useAuth } from "./useAuth";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface Organization {
+  id: string;
+  name: string;
+  organization_type: string;
+  denomination: string;
+  default_doctrine: string;
+  default_age_group: string;
+  description?: string;
+  website?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: string;
+  joined_at: string;
+}
+
+export function useOrganization() {
+  const { user } = useAuth();
+  const [organization, setOrganization] = useState<Organization | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserOrganization = async () => {
+      if (!user) {
+        setOrganization(null);
+        setUserRole(null);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Get user's profile to find their organization
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('organization_id, organization_role')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          setLoading(false);
+          return;
+        }
+
+        if (!profile?.organization_id) {
+          setOrganization(null);
+          setUserRole(null);
+          setLoading(false);
+          return;
+        }
+
+        // Get organization details
+        const { data: org, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', profile.organization_id)
+          .single();
+
+        if (orgError) {
+          console.error('Error fetching organization:', orgError);
+        } else {
+          setOrganization(org);
+        }
+
+        setUserRole(profile.organization_role);
+      } catch (error) {
+        console.error('Error in fetchUserOrganization:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserOrganization();
+  }, [user]);
+
+  const createOrganization = async (orgData: Partial<Organization> & { name: string }) => {
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .insert([{
+        ...orgData,
+        created_by: user.id
+      }])
+      .select()
+      .single();
+
+    if (orgError) throw orgError;
+
+    // Add user as organization owner
+    const { error: memberError } = await supabase
+      .from('organization_members')
+      .insert({
+        organization_id: org.id,
+        user_id: user.id,
+        role: 'owner'
+      });
+
+    if (memberError) throw memberError;
+
+    // Update user's profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        organization_id: org.id,
+        organization_role: 'owner'
+      })
+      .eq('id', user.id);
+
+    if (profileError) throw profileError;
+
+    setOrganization(org);
+    setUserRole('owner');
+    return org;
+  };
+
+  const joinOrganization = async (organizationId: string) => {
+    if (!user) throw new Error('User not authenticated');
+
+    // Add user to organization
+    const { error: memberError } = await supabase
+      .from('organization_members')
+      .insert({
+        organization_id: organizationId,
+        user_id: user.id,
+        role: 'member'
+      });
+
+    if (memberError) throw memberError;
+
+    // Update user's profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({
+        organization_id: organizationId,
+        organization_role: 'member'
+      })
+      .eq('id', user.id);
+
+    if (profileError) throw profileError;
+
+    // Fetch the organization details
+    const { data: org, error: orgError } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', organizationId)
+      .single();
+
+    if (orgError) throw orgError;
+
+    setOrganization(org);
+    setUserRole('member');
+    return org;
+  };
+
+  const updateOrganization = async (updates: Partial<Organization>) => {
+    if (!organization) throw new Error('No organization to update');
+    if (!['owner', 'admin'].includes(userRole || '')) {
+      throw new Error('Insufficient permissions');
+    }
+
+    const { data: updated, error } = await supabase
+      .from('organizations')
+      .update(updates)
+      .eq('id', organization.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setOrganization(updated);
+    return updated;
+  };
+
+  return {
+    organization,
+    userRole,
+    loading,
+    createOrganization,
+    joinOrganization,
+    updateOrganization,
+    isAdmin: ['owner', 'admin'].includes(userRole || ''),
+    hasOrganization: !!organization
+  };
+}

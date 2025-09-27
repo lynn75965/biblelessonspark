@@ -122,6 +122,7 @@ export type Database = {
           created_at: string | null
           filters: Json
           id: string
+          organization_id: string | null
           original_text: string | null
           source_type: string
           title: string | null
@@ -132,6 +133,7 @@ export type Database = {
           created_at?: string | null
           filters?: Json
           id?: string
+          organization_id?: string | null
           original_text?: string | null
           source_type: string
           title?: string | null
@@ -142,11 +144,106 @@ export type Database = {
           created_at?: string | null
           filters?: Json
           id?: string
+          organization_id?: string | null
           original_text?: string | null
           source_type?: string
           title?: string | null
           upload_path?: string | null
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          id: string
+          invited_by: string | null
+          joined_at: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_by?: string | null
+          joined_at?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          address: string | null
+          created_at: string
+          created_by: string
+          default_age_group: string
+          default_doctrine: string
+          denomination: string
+          description: string | null
+          email: string | null
+          id: string
+          name: string
+          organization_type: string
+          phone: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          created_by: string
+          default_age_group?: string
+          default_doctrine?: string
+          denomination?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          organization_type?: string
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          created_by?: string
+          default_age_group?: string
+          default_doctrine?: string
+          denomination?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          organization_type?: string
+          phone?: string | null
+          updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
@@ -202,6 +299,8 @@ export type Database = {
           founder_status: string | null
           full_name: string | null
           id: string
+          organization_id: string | null
+          organization_role: string | null
           role: string | null
         }
         Insert: {
@@ -211,6 +310,8 @@ export type Database = {
           founder_status?: string | null
           full_name?: string | null
           id: string
+          organization_id?: string | null
+          organization_role?: string | null
           role?: string | null
         }
         Update: {
@@ -220,9 +321,19 @@ export type Database = {
           founder_status?: string | null
           full_name?: string | null
           id?: string
+          organization_id?: string | null
+          organization_role?: string | null
           role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refinements: {
         Row: {
@@ -261,6 +372,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_organization: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       is_admin: {
         Args: { user_id?: string }
         Returns: boolean

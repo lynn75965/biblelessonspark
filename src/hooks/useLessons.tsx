@@ -12,6 +12,7 @@ export interface Lesson {
   filters: any;
   created_at: string | null;
   user_id: string;
+  organization_id: string | null;
 }
 
 export function useLessons() {
@@ -56,6 +57,7 @@ export function useLessons() {
     source_type: string;
     upload_path?: string;
     filters: any;
+    organization_id?: string;
   }) => {
     if (!user) return { error: 'Not authenticated' };
 

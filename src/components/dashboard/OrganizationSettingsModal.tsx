@@ -1,17 +1,17 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useOrganization } from "@/hooks/useOrganization";
 import { Loader2 } from "lucide-react";
 
 interface OrganizationSettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentDoctrine: string;
-  currentAgeGroup: string;
-  onSettingsUpdated: (doctrine: string, ageGroup: string) => void;
 }
 
 const DOCTRINE_OPTIONS = [
@@ -29,23 +29,56 @@ const AGE_GROUP_OPTIONS = [
 
 export function OrganizationSettingsModal({
   open,
-  onOpenChange,
-  currentDoctrine,
-  currentAgeGroup,
-  onSettingsUpdated
+  onOpenChange
 }: OrganizationSettingsModalProps) {
-  const [doctrine, setDoctrine] = useState(currentDoctrine);
-  const [ageGroup, setAgeGroup] = useState(currentAgeGroup);
+  const { organization, updateOrganization, isAdmin } = useOrganization();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
+  const [formData, setFormData] = useState(() => ({
+    name: organization?.name || "",
+    default_doctrine: organization?.default_doctrine || "SBC",
+    default_age_group: organization?.default_age_group || "Adults",
+    description: organization?.description || "",
+    website: organization?.website || "",
+    address: organization?.address || "",
+    phone: organization?.phone || "",
+    email: organization?.email || ""
+  }));
+
+  // Update form data when organization changes
+  React.useEffect(() => {
+    if (organization) {
+      setFormData({
+        name: organization.name || "",
+        default_doctrine: organization.default_doctrine || "SBC",
+        default_age_group: organization.default_age_group || "Adults",
+        description: organization.description || "",
+        website: organization.website || "",
+        address: organization.address || "",
+        phone: organization.phone || "",
+        email: organization.email || ""
+      });
+    }
+  }, [organization]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleSave = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "Error",
+        description: "You don't have permission to update organization settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      // Simulate save operation - in a real app this would update database
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      onSettingsUpdated(doctrine, ageGroup);
+      await updateOrganization(formData);
       
       toast({
         title: "Settings Updated",
@@ -53,10 +86,10 @@ export function OrganizationSettingsModal({
       });
       
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to update settings. Please try again.",
+        description: error.message || "Failed to update settings. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -70,41 +103,120 @@ export function OrganizationSettingsModal({
         <DialogHeader>
           <DialogTitle>Organization Settings</DialogTitle>
           <DialogDescription>
-            Configure default doctrine and age group preferences for your organization.
+            Configure your organization's settings and preferences. 
+            {!isAdmin && " (View only - contact an administrator to make changes)"}
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
           <div className="grid gap-2">
-            <Label htmlFor="doctrine">Default Doctrine</Label>
-            <Select value={doctrine} onValueChange={setDoctrine}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select doctrine" />
-              </SelectTrigger>
-              <SelectContent>
-                {DOCTRINE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="name">Organization Name</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              disabled={!isAdmin}
+            />
           </div>
-          
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="doctrine">Default Doctrine</Label>
+              <Select 
+                value={formData.default_doctrine} 
+                onValueChange={(value) => handleInputChange("default_doctrine", value)}
+                disabled={!isAdmin}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select doctrine" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DOCTRINE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="ageGroup">Default Age Group</Label>
+              <Select 
+                value={formData.default_age_group} 
+                onValueChange={(value) => handleInputChange("default_age_group", value)}
+                disabled={!isAdmin}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select age group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AGE_GROUP_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="grid gap-2">
-            <Label htmlFor="ageGroup">Default Age Group</Label>
-            <Select value={ageGroup} onValueChange={setAgeGroup}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select age group" />
-              </SelectTrigger>
-              <SelectContent>
-                {AGE_GROUP_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange("description", e.target.value)}
+              disabled={!isAdmin}
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                value={formData.website}
+                onChange={(e) => handleInputChange("website", e.target.value)}
+                disabled={!isAdmin}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handleInputChange("phone", e.target.value)}
+                disabled={!isAdmin}
+                placeholder="(555) 123-4567"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) => handleInputChange("address", e.target.value)}
+              disabled={!isAdmin}
+              placeholder="Street address"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="orgEmail">Organization Email</Label>
+            <Input
+              id="orgEmail"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              disabled={!isAdmin}
+              placeholder="contact@organization.com"
+            />
           </div>
         </div>
         
@@ -114,12 +226,14 @@ export function OrganizationSettingsModal({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            Cancel
+            {isAdmin ? "Cancel" : "Close"}
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Save Changes
-          </Button>
+          {isAdmin && (
+            <Button onClick={handleSave} disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>

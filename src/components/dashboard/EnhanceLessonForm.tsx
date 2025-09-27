@@ -247,6 +247,7 @@ export function EnhanceLessonForm({
       title: lessonTitle,
       original_text: extractedContent || formData.passageOrTopic,
       source_type: enhancementType,
+      organization_id: organizationId,
       filters: {
         age_group: formData.ageGroup,
         doctrine_profile: formData.doctrineProfile,

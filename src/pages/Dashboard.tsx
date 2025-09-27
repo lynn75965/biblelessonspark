@@ -25,6 +25,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useOrganization } from "@/hooks/useOrganization";
+import { OrganizationSetup } from "@/components/organization/OrganizationSetup";
 
 interface DashboardProps {
   organizationName?: string;
@@ -39,13 +41,12 @@ export default function Dashboard({
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
-  const [orgDoctrine, setOrgDoctrine] = useState("SBC");
-  const [orgAgeGroup, setOrgAgeGroup] = useState("Adults");
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
+  const { organization, loading: orgLoading, hasOrganization } = useOrganization();
 
   // Calculate real stats from data
   const stats = {
@@ -73,9 +74,8 @@ export default function Dashboard({
     setShowFeedbackDialog(true);
   };
 
-  const handleOrgSettingsUpdated = (doctrine: string, ageGroup: string) => {
-    setOrgDoctrine(doctrine);
-    setOrgAgeGroup(ageGroup);
+  const handleOrgSetupComplete = () => {
+    // Organization setup completed, will automatically refresh organization data
   };
 
   const handleProfileUpdated = () => {
@@ -85,12 +85,28 @@ export default function Dashboard({
 
   // Get user's name from auth
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
+  
+  // Get organization name - use actual organization data if available
+  const currentOrgName = organization?.name || organizationName;
+
+  // Show organization setup if user doesn't have an organization
+  if (!orgLoading && !hasOrganization) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header isAuthenticated organizationName="LessonSpark" />
+        <OrganizationSetup 
+          open={true} 
+          onComplete={handleOrgSetupComplete}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <Header 
         isAuthenticated 
-        organizationName={organizationName}
+        organizationName={currentOrgName}
       />
 
       <main className="container py-6">
@@ -101,7 +117,7 @@ export default function Dashboard({
               Welcome back, <span className="gradient-text">{userName}!</span>
             </h1>
             <p className="text-muted-foreground">
-              Baptist Bible Study Enhancement Platform for {organizationName}
+              Bible Study Enhancement Platform for {currentOrgName}
             </p>
           </div>
         </div>
@@ -196,9 +212,9 @@ export default function Dashboard({
 
           <TabsContent value="enhance" className="mt-6">
             <EnhanceLessonForm 
-              organizationId="demo-org-id"
-              defaultAgeGroup="Adults"
-              defaultDoctrine="SBC"
+              organizationId={organization?.id || "demo-org-id"}
+              defaultAgeGroup={organization?.default_age_group || "Adults"}
+              defaultDoctrine={organization?.default_doctrine || "SBC"}
             />
           </TabsContent>
 
@@ -216,7 +232,7 @@ export default function Dashboard({
                   <CardHeader>
                     <CardTitle>Organization Members</CardTitle>
                     <CardDescription>
-                      Manage teachers and administrators for {organizationName}
+                      Manage teachers and administrators for {currentOrgName}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -254,14 +270,12 @@ export default function Dashboard({
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Default Doctrine</span>
                       <Badge variant="outline">
-                        {orgDoctrine === "SBC" ? "Southern Baptist Convention" : 
-                         orgDoctrine === "Reformed Baptist" ? "Reformed Baptist" : 
-                         "Independent Baptist"}
+                        {organization?.default_doctrine || "SBC"}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Default Age Group</span>
-                      <Badge variant="outline">{orgAgeGroup}</Badge>
+                      <Badge variant="outline">{organization?.default_age_group || "Adults"}</Badge>
                     </div>
                     <Button 
                       variant="outline" 
@@ -289,7 +303,7 @@ export default function Dashboard({
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Organization</span>
-                      <Badge variant="outline">{organizationName}</Badge>
+                      <Badge variant="outline">{currentOrgName}</Badge>
                     </div>
                     <Button 
                       variant="outline" 
@@ -328,9 +342,6 @@ export default function Dashboard({
       <OrganizationSettingsModal
         open={showOrgSettingsModal}
         onOpenChange={setShowOrgSettingsModal}
-        currentDoctrine={orgDoctrine}
-        currentAgeGroup={orgAgeGroup}
-        onSettingsUpdated={handleOrgSettingsUpdated}
       />
 
       {/* User Profile Modal */}
