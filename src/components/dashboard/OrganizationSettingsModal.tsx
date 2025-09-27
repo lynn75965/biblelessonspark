@@ -155,37 +155,37 @@ export function OrganizationSettingsModal({
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">Phone {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
               <Input
                 id="phone"
-                value={formData.phone}
+                value={isAdmin ? formData.phone : "••••••••••"}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 disabled={!isAdmin}
-                placeholder="(555) 123-4567"
+                placeholder={isAdmin ? "(555) 123-4567" : "Contact information restricted"}
               />
             </div>
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="address">Address</Label>
+            <Label htmlFor="address">Address {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
             <Input
               id="address"
-              value={formData.address}
+              value={isAdmin ? formData.address : "••••••••••"}
               onChange={(e) => handleInputChange("address", e.target.value)}
               disabled={!isAdmin}
-              placeholder="Street address"
+              placeholder={isAdmin ? "Street address" : "Contact information restricted"}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="orgEmail">Organization Email</Label>
+            <Label htmlFor="orgEmail">Organization Email {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
             <Input
               id="orgEmail"
               type="email"
-              value={formData.email}
+              value={isAdmin ? formData.email : "••••••••••"}
               onChange={(e) => handleInputChange("email", e.target.value)}
               disabled={!isAdmin}
-              placeholder="contact@organization.com"
+              placeholder={isAdmin ? "contact@organization.com" : "Contact information restricted"}
             />
           </div>
         </div>

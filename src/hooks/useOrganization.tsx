@@ -71,7 +71,15 @@ export function useOrganization() {
         if (orgError) {
           console.error('Error fetching organization:', orgError);
         } else {
-          setOrganization(org);
+          // Mask sensitive contact information for non-admin users
+          const isAdmin = ['owner', 'admin'].includes(profile.organization_role || '');
+          const maskedOrg = {
+            ...org,
+            email: isAdmin ? org.email : null,
+            phone: isAdmin ? org.phone : null,
+            address: isAdmin ? org.address : null
+          };
+          setOrganization(maskedOrg);
         }
 
         setUserRole(profile.organization_role);
@@ -152,16 +160,23 @@ export function useOrganization() {
     if (profileError) throw profileError;
 
     // Fetch the organization details
-    const { data: org, error: orgError } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', organizationId)
-      .single();
+        const { data: org, error: orgError } = await supabase
+          .from('organizations')
+          .select('*')
+          .eq('id', organizationId)
+          .single();
 
-    if (orgError) throw orgError;
+        if (orgError) throw orgError;
 
-    setOrganization(org);
-    setUserRole('member');
+        // Mask sensitive contact information for new members (non-admin users)
+        const maskedOrg = {
+          ...org,
+          email: null, // Members don't see contact info
+          phone: null,
+          address: null
+        };
+        setOrganization(maskedOrg);
+        setUserRole('member');
     return org;
   };
 

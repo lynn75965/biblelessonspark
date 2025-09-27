@@ -156,13 +156,6 @@ export type Database = {
             foreignKeyName: "lessons_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "organization_public_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lessons_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -194,13 +187,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "organization_members_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organization_public_view"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "organization_members_organization_id_fkey"
             columns: ["organization_id"]
@@ -344,13 +330,6 @@ export type Database = {
             foreignKeyName: "profiles_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "organization_public_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -390,66 +369,19 @@ export type Database = {
       }
     }
     Views: {
-      organization_public_view: {
-        Row: {
-          address: string | null
-          created_at: string | null
-          created_by: string | null
-          default_doctrine: string | null
-          denomination: string | null
-          description: string | null
-          email: string | null
-          id: string | null
-          name: string | null
-          organization_type: string | null
-          phone: string | null
-          updated_at: string | null
-          website: string | null
-        }
-        Insert: {
-          address?: never
-          created_at?: string | null
-          created_by?: never
-          default_doctrine?: string | null
-          denomination?: string | null
-          description?: string | null
-          email?: never
-          id?: string | null
-          name?: string | null
-          organization_type?: string | null
-          phone?: never
-          updated_at?: string | null
-          website?: string | null
-        }
-        Update: {
-          address?: never
-          created_at?: string | null
-          created_by?: never
-          default_doctrine?: string | null
-          denomination?: string | null
-          description?: string | null
-          email?: never
-          id?: string | null
-          name?: string | null
-          organization_type?: string | null
-          phone?: never
-          updated_at?: string | null
-          website?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
+      check_organization_admin: {
+        Args: { org_id: string }
+        Returns: boolean
+      }
       get_user_organization: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
       is_admin: {
         Args: { user_id?: string }
-        Returns: boolean
-      }
-      is_organization_admin: {
-        Args: { org_id: string; user_id?: string }
         Returns: boolean
       }
       log_security_event: {
