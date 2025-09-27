@@ -16,17 +16,15 @@ export function useAdminAccess() {
       }
 
       try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
+        // Use the new security definer function for enhanced admin validation
+        const { data, error } = await supabase
+          .rpc('verify_admin_access', { user_id: user.id });
 
         if (error) {
-          console.error('Error fetching user role:', error);
+          console.error('Error verifying admin access:', error);
           setIsAdmin(false);
         } else {
-          setIsAdmin(profile?.role === 'admin');
+          setIsAdmin(data === true);
         }
       } catch (error) {
         console.error('Error checking admin status:', error);

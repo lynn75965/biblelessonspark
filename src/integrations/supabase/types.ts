@@ -384,9 +384,21 @@ export type Database = {
         Args: { user_id?: string }
         Returns: boolean
       }
+      is_organization_admin_safe: {
+        Args: { org_id: string; user_id?: string }
+        Returns: boolean
+      }
+      is_organization_member: {
+        Args: { org_id: string; user_id?: string }
+        Returns: boolean
+      }
       log_security_event: {
         Args: { event_type: string; metadata?: Json; user_id?: string }
         Returns: undefined
+      }
+      verify_admin_access: {
+        Args: { user_id?: string }
+        Returns: boolean
       }
     }
     Enums: {
