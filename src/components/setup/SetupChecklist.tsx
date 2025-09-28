@@ -88,7 +88,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
               </div>
               <div>
                 <h2 className="text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
-                <p className="text-lg text-muted-foreground">Let's get you started with these simple steps</p>
+                <p className="text-lg text-muted-foreground">Let's get you started with these simple steps!</p>
               </div>
             </div>
           
