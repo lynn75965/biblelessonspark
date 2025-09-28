@@ -96,6 +96,16 @@ export function useOrganization() {
   const createOrganization = async (orgData: Partial<Organization> & { name: string }) => {
     if (!user) throw new Error('User not authenticated');
 
+    // Validate and refresh session before database operation
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session) {
+      // Try to refresh the session
+      const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshedSession) {
+        throw new Error('Authentication session expired. Please log in again.');
+      }
+    }
+
     const { data: org, error: orgError } = await supabase
       .from('organizations')
       .insert([{
@@ -105,7 +115,12 @@ export function useOrganization() {
       .select()
       .single();
 
-    if (orgError) throw orgError;
+    if (orgError) {
+      if (orgError.message?.includes('row-level security policy')) {
+        throw new Error('Authentication session not properly synchronized. Please log out and log back in.');
+      }
+      throw orgError;
+    }
 
     // Add user as organization owner
     const { error: memberError } = await supabase

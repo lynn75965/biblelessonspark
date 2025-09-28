@@ -89,9 +89,19 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
       });
       onComplete();
     } catch (error: any) {
+      console.error('Error creating organization:', error);
+      
+      // Provide specific error message for authentication issues
+      let errorMessage = error.message || "Failed to create organization";
+      if (error.message?.includes('Authentication session')) {
+        errorMessage = "Your session has expired. Please log out and log back in to continue.";
+      } else if (error.message?.includes('row-level security policy')) {
+        errorMessage = "Authentication error. Please try logging out and back in.";
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to create organization.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
