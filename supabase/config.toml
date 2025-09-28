@@ -31,5 +31,11 @@ verify_jwt = true
 [functions.ocr-image]
 verify_jwt = true
 
+[functions.admin-management]
+verify_jwt = true
+
+[functions.setup-lynn-admin]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"

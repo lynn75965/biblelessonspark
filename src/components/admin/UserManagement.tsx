@@ -10,8 +10,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User } from "lucide-react";
+import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Settings } from "lucide-react";
 import { format } from "date-fns";
+import { useAdminOperations } from "@/hooks/useAdminOperations";
 
 interface UserProfile {
   id: string;
@@ -27,7 +28,9 @@ export function UserManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { updateUserRole, deleteUser, setupLynnAdmin, loading: adminLoading } = useAdminOperations();
 
   const fetchUsers = async () => {
     try {
@@ -55,55 +58,39 @@ export function UserManagement() {
 
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (error) {
-        throw error;
-      }
-
+      await deleteUser(userId);
       toast({
         title: "User Deleted",
         description: `${userName || 'User'} has been successfully deleted.`,
       });
-
-      // Refresh the users list
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete user. You may not have sufficient permissions.",
-        variant: "destructive",
-      });
     }
   };
 
   const handleUpdateRole = async (userId: string, newRole: string) => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Role Updated",
-        description: `User role has been updated to ${newRole}.`,
-      });
-
+      await updateUserRole(userId, newRole);
       setEditDialogOpen(false);
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
       console.error('Error updating role:', error);
+    }
+  };
+
+  const handleSetupLynn = async () => {
+    try {
+      await setupLynnAdmin();
+      fetchUsers();
+      setSetupDialogOpen(false);
       toast({
-        title: "Error",
-        description: "Failed to update user role.",
-        variant: "destructive",
+        title: "Success",
+        description: "Lynn Eckeberger admin account is now ready to use with email: eckeberger@gmail.com",
       });
+    } catch (error) {
+      console.error('Error setting up Lynn admin:', error);
     }
   };
 
@@ -174,6 +161,36 @@ export function UserManagement() {
                 <RefreshCw className="h-4 w-4" />
                 Refresh
               </Button>
+              <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Setup Lynn Admin
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Setup Lynn Eckeberger Admin Account</DialogTitle>
+                    <DialogDescription>
+                      This will ensure Lynn Eckeberger's admin account is properly configured with:
+                      <br />
+                      <strong>Email:</strong> eckeberger@gmail.com
+                      <br />
+                      <strong>Password:</strong> 3527Raguet
+                      <br />
+                      <strong>Role:</strong> Administrator
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setSetupDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSetupLynn} disabled={adminLoading}>
+                      {adminLoading ? "Setting up..." : "Setup Admin Account"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <Button className="flex items-center gap-2">
                 <UserPlus className="h-4 w-4" />
                 Invite User
