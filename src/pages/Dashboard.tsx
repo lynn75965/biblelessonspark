@@ -121,20 +121,25 @@ export default function Dashboard({
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
   
   // Get organization name - use actual organization data if available
-  const currentOrgName = organization?.name || organizationName;
+  const currentOrgName = organization?.name || "Personal Workspace";
+  const isIndividualUser = !organization;
 
-  // Show organization setup if user doesn't have an organization
-  if (!orgLoading && !hasOrganization) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header isAuthenticated organizationName="LessonSpark" />
-        <OrganizationSetup 
-          open={true} 
-          onComplete={handleOrgSetupComplete}
-        />
-      </div>
-    );
-  }
+  // Show organization setup only on first visit (can be skipped)
+  const [showOrgSetup, setShowOrgSetup] = useState(false);
+  
+  useEffect(() => {
+    // Only show setup modal if user has never seen it before
+    // They can choose to skip and use as individual
+    if (!orgLoading && !hasOrganization && !localStorage.getItem('org-setup-seen')) {
+      setShowOrgSetup(true);
+    }
+  }, [orgLoading, hasOrganization]);
+
+  const handleOrgSetupCompleteInternal = () => {
+    localStorage.setItem('org-setup-seen', 'true');
+    setShowOrgSetup(false);
+    handleOrgSetupComplete();
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,6 +147,14 @@ export default function Dashboard({
         isAuthenticated 
         organizationName={currentOrgName}
       />
+
+      {/* Organization Setup Modal */}
+      {showOrgSetup && (
+        <OrganizationSetup 
+          open={true} 
+          onComplete={handleOrgSetupCompleteInternal}
+        />
+      )}
 
       <main className="container py-6">
         {/* Welcome Header */}
@@ -151,7 +164,7 @@ export default function Dashboard({
               Welcome back, <span className="gradient-text">{userName}!</span>
             </h1>
             <p className="text-muted-foreground">
-              Bible Study Enhancement Platform for {currentOrgName}
+              {isIndividualUser ? "Your Personal Bible Study Enhancement Platform" : `Bible Study Enhancement Platform for ${currentOrgName}`}
             </p>
           </div>
         </div>
@@ -186,19 +199,36 @@ export default function Dashboard({
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success">
-                  <Users className="h-5 w-5 text-white" />
+          {!isIndividualUser && (
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{stats.membersActive}</p>
+                    <p className="text-xs text-muted-foreground">Active Members</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.membersActive}</p>
-                  <p className="text-xs text-muted-foreground">Active Members</p>
+              </CardContent>
+            </Card>
+          )}
+          {isIndividualUser && (
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success">
+                    <CheckCircle2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">Personal</p>
+                    <p className="text-xs text-muted-foreground">Workspace</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           <Card className="bg-gradient-card">
             <CardContent className="p-4">
@@ -217,7 +247,7 @@ export default function Dashboard({
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+          <TabsList className={`grid w-full ${isIndividualUser ? 'grid-cols-3' : (isAdmin ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-3')}`}>
             <TabsTrigger value="enhance">
               <Sparkles className="h-4 w-4" />
               Enhance Lesson
@@ -226,7 +256,7 @@ export default function Dashboard({
               <BookOpen className="h-4 w-4" />
               My Lessons
             </TabsTrigger>
-            {isAdmin && (
+            {!isIndividualUser && isAdmin && (
               <>
                 <TabsTrigger value="members">
                   <Users className="h-4 w-4" />
@@ -246,7 +276,7 @@ export default function Dashboard({
 
           <TabsContent value="enhance" className="mt-6">
             <EnhanceLessonForm 
-              organizationId={organization?.id || "demo-org-id"}
+              organizationId={organization?.id}
               userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
               defaultDoctrine={organization?.default_doctrine || "SBC"}
             />
@@ -259,7 +289,7 @@ export default function Dashboard({
             />
           </TabsContent>
 
-          {isAdmin && (
+          {!isIndividualUser && isAdmin && (
             <>
               <TabsContent value="members" className="mt-6">
                 <Card className="bg-gradient-card">
@@ -292,31 +322,33 @@ export default function Dashboard({
 
           <TabsContent value="settings" className="mt-6">
             <div className="grid md:grid-cols-2 gap-6">
-              <Card className="bg-gradient-card">
-                <CardHeader>
-                  <CardTitle>Organization Settings</CardTitle>
-                  <CardDescription>
-                    Configure default doctrine and age group preferences
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Default Doctrine</span>
-                      <Badge variant="outline">
-                        {organization?.default_doctrine || "SBC"}
-                      </Badge>
+              {!isIndividualUser && (
+                <Card className="bg-gradient-card">
+                  <CardHeader>
+                    <CardTitle>Organization Settings</CardTitle>
+                    <CardDescription>
+                      Configure default doctrine and age group preferences
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Default Doctrine</span>
+                        <Badge variant="outline">
+                          {organization?.default_doctrine || "SBC"}
+                        </Badge>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setShowOrgSettingsModal(true)}
+                      >
+                        Modify Settings
+                      </Button>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => setShowOrgSettingsModal(true)}
-                    >
-                      Modify Settings
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
               <Card className="bg-gradient-card">
                 <CardHeader>
@@ -327,14 +359,24 @@ export default function Dashboard({
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Role</span>
-                      <Badge variant="outline">{isAdmin ? 'Administrator' : 'Teacher'}</Badge>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Organization</span>
-                      <Badge variant="outline">{currentOrgName}</Badge>
-                    </div>
+                    {!isIndividualUser && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Role</span>
+                          <Badge variant="outline">{isAdmin ? 'Administrator' : 'Teacher'}</Badge>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm">Organization</span>
+                          <Badge variant="outline">{currentOrgName}</Badge>
+                        </div>
+                      </>
+                    )}
+                    {isIndividualUser && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Mode</span>
+                        <Badge variant="outline">Individual User</Badge>
+                      </div>
+                    )}
                     <Button 
                       variant="outline" 
                       className="w-full"
@@ -342,6 +384,15 @@ export default function Dashboard({
                     >
                       Update Profile
                     </Button>
+                    {isIndividualUser && (
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setShowOrgSetup(true)}
+                      >
+                        Join an Organization
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

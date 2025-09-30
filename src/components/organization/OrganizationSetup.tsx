@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/hooks/useOrganization";
-import { Loader2, Building, Users } from "lucide-react";
+import { Loader2, Building, Users, User } from "lucide-react";
 
 interface OrganizationSetupProps {
   open: boolean;
@@ -144,19 +144,23 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
         <DialogHeader>
           <DialogTitle>Setup Your Organization</DialogTitle>
           <DialogDescription>
-            Create a new organization or join an existing one to get started with LessonSpark.
+            Create a new organization or join an existing one. You can also use LessonSpark individually.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="create" className="flex items-center gap-2">
               <Building className="h-4 w-4" />
-              Create Organization
+              Create
             </TabsTrigger>
             <TabsTrigger value="join" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Join Organization
+              Join
+            </TabsTrigger>
+            <TabsTrigger value="individual" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Individual
             </TabsTrigger>
           </TabsList>
 
@@ -263,9 +267,36 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Join Organization
             </Button>
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
+            </TabsContent>
+
+            <TabsContent value="individual" className="space-y-4">
+              <div className="space-y-4 text-center py-6">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-primary mx-auto">
+                  <User className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Use LessonSpark Individually</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Perfect for homeschool educators, independent Bible study leaders, or teachers who prefer a personal workspace.
+                  </p>
+                  <div className="text-sm text-muted-foreground space-y-2 text-left max-w-md mx-auto">
+                    <p>✓ Full access to AI lesson enhancement</p>
+                    <p>✓ Personal lesson library</p>
+                    <p>✓ Customizable age groups and doctrine preferences</p>
+                    <p>✓ No organization management needed</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => onComplete()}
+                  size="lg"
+                  className="mt-4"
+                >
+                  Continue as Individual User
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
   );
 }
