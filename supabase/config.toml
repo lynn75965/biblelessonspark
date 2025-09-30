@@ -37,5 +37,8 @@ verify_jwt = true
 [functions.setup-lynn-admin]
 verify_jwt = false
 
+[functions.send-auth-email]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
