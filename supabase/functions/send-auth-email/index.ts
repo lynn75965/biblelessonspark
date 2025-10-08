@@ -115,7 +115,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const { data, error } = await resend.emails.send({
-      from: 'LessonSpark USA <onboarding@resend.dev>',
+      from: 'LessonSpark USA <support@lessonsparkusa.com>',
       to: [user.email],
       subject,
       html,
