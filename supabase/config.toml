@@ -40,5 +40,8 @@ verify_jwt = false
 [functions.send-auth-email]
 verify_jwt = false
 
+[functions.send-invite]
+verify_jwt = true
+
 [edge_runtime]
 policy = "per_worker"

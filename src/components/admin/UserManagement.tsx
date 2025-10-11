@@ -10,9 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Settings } from "lucide-react";
+import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Settings, Mail, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
+import { useInvites } from "@/hooks/useInvites";
 
 interface UserProfile {
   id: string;
@@ -29,8 +30,11 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [setupDialogOpen, setSetupDialogOpen] = useState(false);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
   const { toast } = useToast();
   const { updateUserRole, deleteUser, setupLynnAdmin, loading: adminLoading } = useAdminOperations();
+  const { sendInvite, loading: inviteLoading } = useInvites();
 
   const fetchUsers = async () => {
     try {
@@ -91,6 +95,23 @@ export function UserManagement() {
       });
     } catch (error) {
       console.error('Error setting up Lynn admin:', error);
+    }
+  };
+
+  const handleSendInvite = async () => {
+    if (!inviteEmail) {
+      toast({
+        title: "Email required",
+        description: "Please enter an email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const success = await sendInvite(inviteEmail);
+    if (success) {
+      setInviteDialogOpen(false);
+      setInviteEmail("");
     }
   };
 
@@ -191,7 +212,10 @@ export function UserManagement() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button className="flex items-center gap-2">
+              <Button 
+                onClick={() => setInviteDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
                 <UserPlus className="h-4 w-4" />
                 Invite User
               </Button>
@@ -387,6 +411,53 @@ export function UserManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Invite User Dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5" />
+              Invite New User
+            </DialogTitle>
+            <DialogDescription>
+              Send an invitation email to a new user to join LessonSpark USA.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="invite-email">Email Address</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                placeholder="user@church.org"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                disabled={inviteLoading}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setInviteDialogOpen(false);
+                setInviteEmail("");
+              }}
+              disabled={inviteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendInvite}
+              disabled={inviteLoading || !inviteEmail}
+            >
+              {inviteLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Invitation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

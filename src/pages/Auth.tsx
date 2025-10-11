@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BookOpen, Mail, User, Lock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useInvites } from '@/hooks/useInvites';
+import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 
 export default function Auth() {
+  const [searchParams] = useSearchParams();
+  const inviteToken = searchParams.get('invite');
+  
   const [activeTab, setActiveTab] = useState('signin');
   const [isLoading, setIsLoading] = useState(false);
+  const [inviterName, setInviterName] = useState<string>('');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -21,7 +27,44 @@ export default function Auth() {
   
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
+  const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
+
+  // Handle invite token
+  useEffect(() => {
+    const handleInvite = async () => {
+      if (inviteToken) {
+        const invite = await getInviteByToken(inviteToken);
+        if (invite) {
+          setFormData(prev => ({ ...prev, email: invite.email }));
+          setActiveTab('signup');
+          
+          // Get inviter name
+          const { data: inviterProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', invite.created_by)
+            .single();
+          
+          if (inviterProfile) {
+            setInviterName(inviterProfile.full_name || 'LessonSpark USA');
+          }
+          
+          toast({
+            title: "You've been invited!",
+            description: `${inviterProfile?.full_name || 'Someone'} has invited you to join LessonSpark USA.`,
+          });
+        } else {
+          toast({
+            title: "Invalid invite",
+            description: "This invitation link is invalid or has already been used.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+    handleInvite();
+  }, [inviteToken, getInviteByToken, toast]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -91,6 +134,11 @@ export default function Auth() {
           });
         }
       } else {
+        // Claim invite if token exists
+        if (inviteToken) {
+          await claimInvite(inviteToken);
+        }
+        
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",
@@ -133,9 +181,13 @@ export default function Auth() {
 
         <Card className="bg-gradient-card shadow-glow">
           <CardHeader>
-            <CardTitle>Access Your Account</CardTitle>
+            <CardTitle>
+              {inviteToken ? `Invitation from ${inviterName}` : 'Access Your Account'}
+            </CardTitle>
             <CardDescription>
-              Sign in to enhance your Bible study lessons with AI
+              {inviteToken 
+                ? 'Complete your sign up to join LessonSpark USA' 
+                : 'Sign in to enhance your Bible study lessons with AI'}
             </CardDescription>
           </CardHeader>
           <CardContent>
