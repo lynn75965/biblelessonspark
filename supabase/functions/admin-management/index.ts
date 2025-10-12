@@ -47,14 +47,12 @@ serve(async (req) => {
       throw new Error('Invalid authentication');
     }
 
-    // Check if user is admin in profiles table
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
+    // Check if user is admin using new user_roles table
+    const { data: hasAdminRole, error: roleError } = await supabaseAdmin
+      .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
-    if (profileError || profile?.role !== 'admin') {
+    if (roleError || !hasAdminRole) {
+      console.error('Role verification error:', roleError);
       throw new Error('Insufficient permissions - admin role required');
     }
 
@@ -95,6 +93,21 @@ serve(async (req) => {
           throw new Error(`Failed to create profile: ${profileError.message}`);
         }
 
+        // Add role to user_roles table
+        const { error: roleError } = await supabaseAdmin
+          .from('user_roles')
+          .insert({
+            user_id: newUser.user.id,
+            role: role || 'teacher',
+            created_by: user.id
+          });
+
+        if (roleError) {
+          // If role creation fails, delete the auth user and profile
+          await supabaseAdmin.auth.admin.deleteUser(newUser.user.id);
+          throw new Error(`Failed to create user role: ${roleError.message}`);
+        }
+
         console.log(`Created user: ${email} with role: ${role || 'teacher'}`);
         return new Response(JSON.stringify({ success: true, user: newUser.user }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -106,13 +119,39 @@ serve(async (req) => {
           throw new Error('Missing required fields: user_id, role');
         }
 
+        // Validate role is a valid enum value
+        const validRoles = ['admin', 'teacher', 'moderator'];
+        if (!validRoles.includes(role)) {
+          throw new Error(`Invalid role. Must be one of: ${validRoles.join(', ')}`);
+        }
+
+        // First, remove existing roles for this user
+        await supabaseAdmin
+          .from('user_roles')
+          .delete()
+          .eq('user_id', user_id);
+
+        // Insert new role into user_roles table
+        const { error: roleError } = await supabaseAdmin
+          .from('user_roles')
+          .insert({
+            user_id: user_id,
+            role: role,
+            created_by: user.id
+          });
+
+        if (roleError) {
+          throw new Error(`Failed to update role in user_roles: ${roleError.message}`);
+        }
+
+        // Also update profiles.role for backward compatibility
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
           .update({ role })
           .eq('id', user_id);
 
         if (updateError) {
-          throw new Error(`Failed to update role: ${updateError.message}`);
+          throw new Error(`Failed to update role in profiles: ${updateError.message}`);
         }
 
         console.log(`Updated user ${user_id} role to: ${role}`);

@@ -71,13 +71,14 @@ export function useOrganization() {
         if (orgError) {
           console.error('Error fetching organization:', orgError);
         } else {
-          // Mask sensitive contact information for non-admin users
+          // SECURITY FIX: Mask sensitive contact information for non-admin users
+          // This provides defense-in-depth even though RLS policies should handle this
           const isAdmin = ['owner', 'admin'].includes(profile.organization_role || '');
           const maskedOrg = {
             ...org,
-            email: isAdmin ? org.email : null,
-            phone: isAdmin ? org.phone : null,
-            address: isAdmin ? org.address : null
+            email: isAdmin ? org.email : '***@***.***',
+            phone: isAdmin ? org.phone : '***-***-****',
+            address: isAdmin ? org.address : '*** *** ***'
           };
           setOrganization(maskedOrg);
         }
@@ -183,12 +184,12 @@ export function useOrganization() {
 
         if (orgError) throw orgError;
 
-        // Mask sensitive contact information for new members (non-admin users)
+        // SECURITY FIX: Mask sensitive contact information for new members (non-admin users)
         const maskedOrg = {
           ...org,
-          email: null, // Members don't see contact info
-          phone: null,
-          address: null
+          email: '***@***.***', // Members don't see contact info
+          phone: '***-***-****',
+          address: '*** *** ***'
         };
         setOrganization(maskedOrg);
         setUserRole('member');

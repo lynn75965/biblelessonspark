@@ -54,12 +54,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verify user is admin
-    const { data: adminCheck } = await supabaseClient
-      .rpc("verify_admin_access", { user_id: user.id });
+    // Verify user is admin using new role system
+    const { data: hasAdminRole, error: roleError } = await supabaseClient
+      .rpc("has_role", { _user_id: user.id, _role: 'admin' });
 
-    if (!adminCheck) {
-      console.error("User is not an admin:", user.id);
+    if (roleError || !hasAdminRole) {
+      console.error("Admin verification error:", roleError, "User:", user.id);
       return new Response(
         JSON.stringify({ error: "Only administrators can send invites" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

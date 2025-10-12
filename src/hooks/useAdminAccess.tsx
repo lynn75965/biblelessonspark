@@ -16,9 +16,9 @@ export function useAdminAccess() {
       }
 
       try {
-        // Use the new security definer function for enhanced admin validation
+        // Use has_role function to check admin status
         const { data, error } = await supabase
-          .rpc('verify_admin_access', { user_id: user.id });
+          .rpc('has_role', { _user_id: user.id, _role: 'admin' });
 
         if (error) {
           console.error('Error verifying admin access:', error);

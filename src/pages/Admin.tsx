@@ -24,14 +24,14 @@ export default function Admin() {
       }
 
       try {
-        const { data: profile, error } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          console.error('Error fetching profile:', error);
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
           toast({
             title: "Access Error",
             description: "Could not verify admin access.",
@@ -43,8 +43,12 @@ export default function Admin() {
 
         setUserProfile(profile);
 
-        // Check if user has admin role
-        if (profile?.role !== 'admin') {
+        // Check if user has admin role using new role system
+        const { data: hasAdminRole, error: roleError } = await supabase
+          .rpc('has_role', { _user_id: user.id, _role: 'admin' });
+
+        if (roleError || !hasAdminRole) {
+          console.error('Admin verification error:', roleError);
           toast({
             title: "Access Denied",
             description: "You don't have permission to access the admin panel.",
@@ -77,7 +81,7 @@ export default function Admin() {
     );
   }
 
-  if (!userProfile || userProfile.role !== 'admin') {
+  if (!userProfile) {
     return null; // Will redirect
   }
 
