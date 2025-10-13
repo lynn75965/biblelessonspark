@@ -45,7 +45,6 @@ serve(async (req) => {
     const { dryRun = false } = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     console.log(`Running seed-stripe-catalog with dryRun=${dryRun}`);
 
-  try {
     // Check admin auth
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -127,7 +126,8 @@ serve(async (req) => {
         if (dryRun) {
           console.log(`[DRY RUN] Would create product: ${item.name}`);
           summary.created.products++;
-          continue; // Skip price processing in dry run if product doesn't exist
+          // In dry run, skip this entire item since we can't check prices without a product
+          continue;
         }
         product = await stripe.products.create({
           name: item.name,
@@ -159,23 +159,23 @@ serve(async (req) => {
           if (dryRun) {
             console.log(`[DRY RUN] Would create monthly price for ${item.name}`);
             summary.created.prices++;
-            continue; // Skip to next item
+          } else {
+            monthlyPrice = await stripe.prices.create({
+              product: product.id,
+              unit_amount: item.monthly.amount_cents,
+              currency: item.monthly.currency,
+              recurring: { interval: "month" },
+              lookup_key: monthlyLookupKey,
+              billing_scheme: "per_unit",
+              tax_behavior: "exclusive",
+              metadata: {
+                tier: item.tier,
+                credits_monthly: item.credits_monthly?.toString() || "UNLIMITED",
+              },
+            });
+            console.log(`Created monthly price: ${monthlyPrice.id}`);
+            summary.created.prices++;
           }
-          monthlyPrice = await stripe.prices.create({
-            product: product.id,
-            unit_amount: item.monthly.amount_cents,
-            currency: item.monthly.currency,
-            recurring: { interval: "month" },
-            lookup_key: monthlyLookupKey,
-            billing_scheme: "per_unit",
-            tax_behavior: "exclusive",
-            metadata: {
-              tier: item.tier,
-              credits_monthly: item.credits_monthly?.toString() || "UNLIMITED",
-            },
-          });
-          console.log(`Created monthly price: ${monthlyPrice.id}`);
-          summary.created.prices++;
         }
       } catch (err) {
         console.error(`Error processing monthly price for ${item.name}:`, err);
@@ -200,23 +200,23 @@ serve(async (req) => {
           if (dryRun) {
             console.log(`[DRY RUN] Would create yearly price for ${item.name}`);
             summary.created.prices++;
-            continue; // Skip to upsert
+          } else {
+            yearlyPrice = await stripe.prices.create({
+              product: product.id,
+              unit_amount: item.yearly.amount_cents,
+              currency: item.yearly.currency,
+              recurring: { interval: "year" },
+              lookup_key: yearlyLookupKey,
+              billing_scheme: "per_unit",
+              tax_behavior: "exclusive",
+              metadata: {
+                tier: item.tier,
+                credits_monthly: item.credits_monthly?.toString() || "UNLIMITED",
+              },
+            });
+            console.log(`Created yearly price: ${yearlyPrice.id}`);
+            summary.created.prices++;
           }
-          yearlyPrice = await stripe.prices.create({
-            product: product.id,
-            unit_amount: item.yearly.amount_cents,
-            currency: item.yearly.currency,
-            recurring: { interval: "year" },
-            lookup_key: yearlyLookupKey,
-            billing_scheme: "per_unit",
-            tax_behavior: "exclusive",
-            metadata: {
-              tier: item.tier,
-              credits_monthly: item.credits_monthly?.toString() || "UNLIMITED",
-            },
-          });
-          console.log(`Created yearly price: ${yearlyPrice.id}`);
-          summary.created.prices++;
         }
       } catch (err) {
         console.error(`Error processing yearly price for ${item.name}:`, err);
@@ -226,6 +226,12 @@ serve(async (req) => {
       // Upsert subscription_plans (skip in dry run mode)
       if (dryRun) {
         console.log(`[DRY RUN] Would upsert plan: ${item.name}`);
+        continue;
+      }
+
+      // Skip upsert if we don't have both prices (shouldn't happen in non-dry-run)
+      if (!monthlyPrice || !yearlyPrice) {
+        console.error(`Missing prices for ${item.name}, skipping upsert`);
         continue;
       }
 
