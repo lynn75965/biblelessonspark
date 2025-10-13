@@ -41,6 +41,11 @@ serve(async (req) => {
   }
 
   try {
+    // Parse request body for dryRun flag
+    const { dryRun = false } = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+    console.log(`Running seed-stripe-catalog with dryRun=${dryRun}`);
+
+  try {
     // Check admin auth
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -94,6 +99,10 @@ serve(async (req) => {
       );
     }
 
+    if (dryRun) {
+      console.log("DRY RUN MODE - No Stripe objects will be created or modified");
+    }
+
     const summary = {
       created: { products: 0, prices: 0 },
       reused: { products: 0, prices: 0 },
@@ -115,6 +124,11 @@ serve(async (req) => {
         console.log(`Reusing product: ${product.id}`);
         summary.reused.products++;
       } else {
+        if (dryRun) {
+          console.log(`[DRY RUN] Would create product: ${item.name}`);
+          summary.created.products++;
+          continue; // Skip price processing in dry run if product doesn't exist
+        }
         product = await stripe.products.create({
           name: item.name,
           description: item.description,
@@ -142,6 +156,11 @@ serve(async (req) => {
           console.log(`Reusing monthly price: ${monthlyPrice.id}`);
           summary.reused.prices++;
         } else {
+          if (dryRun) {
+            console.log(`[DRY RUN] Would create monthly price for ${item.name}`);
+            summary.created.prices++;
+            continue; // Skip to next item
+          }
           monthlyPrice = await stripe.prices.create({
             product: product.id,
             unit_amount: item.monthly.amount_cents,
@@ -178,6 +197,11 @@ serve(async (req) => {
           console.log(`Reusing yearly price: ${yearlyPrice.id}`);
           summary.reused.prices++;
         } else {
+          if (dryRun) {
+            console.log(`[DRY RUN] Would create yearly price for ${item.name}`);
+            summary.created.prices++;
+            continue; // Skip to upsert
+          }
           yearlyPrice = await stripe.prices.create({
             product: product.id,
             unit_amount: item.yearly.amount_cents,
@@ -199,7 +223,12 @@ serve(async (req) => {
         throw err;
       }
 
-      // Upsert subscription_plans
+      // Upsert subscription_plans (skip in dry run mode)
+      if (dryRun) {
+        console.log(`[DRY RUN] Would upsert plan: ${item.name}`);
+        continue;
+      }
+
       const planData = {
         name: item.name,
         lookup_key: monthlyLookupKey,
