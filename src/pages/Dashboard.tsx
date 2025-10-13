@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
+import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
+import { GenerateLessonButton } from "@/components/dashboard/GenerateLessonButton";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
@@ -22,6 +24,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useCredits } from "@/hooks/useCredits";
 import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -43,6 +46,7 @@ export default function Dashboard({
   const [activeTab, setActiveTab] = useState("enhance");
   const { toast } = useToast();
   const { user } = useAuth();
+  const { balance, loading: creditsLoading, refetch: refetchCredits } = useCredits();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
@@ -157,16 +161,22 @@ export default function Dashboard({
       )}
 
       <main className="container py-6">
-        {/* Welcome Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">
+        {/* Welcome Header with Credits */}
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          <div className="md:col-span-2">
+            <h1 className="text-3xl font-bold mb-2">
               Welcome back, <span className="gradient-text">{userName}!</span>
             </h1>
             <p className="text-muted-foreground">
               {isIndividualUser ? "Your Personal Bible Study Enhancement Platform" : `Bible Study Enhancement Platform for ${currentOrgName}`}
             </p>
           </div>
+          <CreditsDisplay balance={balance} loading={creditsLoading} />
+        </div>
+
+        {/* Generate Lesson Section */}
+        <div className="mb-8">
+          <GenerateLessonButton onSuccess={refetchCredits} />
         </div>
 
         {/* Quick Stats */}

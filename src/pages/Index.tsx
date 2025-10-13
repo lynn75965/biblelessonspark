@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
+import { PricingCard } from "@/components/subscription/PricingCard";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { PricingSection } from "@/components/landing/PricingSection";
 import { SetupChecklist } from "@/components/setup/SetupChecklist";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +13,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Mail, MapPin, Phone, Heart, Shield, Users } from "lucide-react";
+import { BookOpen, Mail, Heart, Shield, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+
+interface SubscriptionPlan {
+  id: string;
+  name: string;
+  lookup_key: string;
+  price_monthly_cents: number;
+  price_yearly_cents: number;
+  credits_monthly: number | null;
+}
+
 const Index = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
-  const [showSignInDialog, setShowSignInDialog] = useState(false);
   const [showSetupDialog, setShowSetupDialog] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -23,19 +40,73 @@ const Index = () => {
     organization: "",
     message: ""
   });
-  const { toast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .order("price_monthly_cents", { ascending: true });
+
+      if (error) throw error;
+      setPlans(data || []);
+    } catch (error: any) {
+      console.error("Error loading plans:", error);
+    }
+  };
+
+  const handleSubscribe = async (plan: SubscriptionPlan, interval: "monthly" | "yearly") => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const lookupKey = interval === "monthly" 
+        ? plan.lookup_key 
+        : plan.lookup_key.replace("_monthly", "_yearly");
+
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { lookup_key: lookupKey },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create checkout session",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRequestAccess = () => {
     setShowRequestDialog(true);
   };
 
   const handleSignIn = () => {
-    window.location.href = '/auth';
+    navigate("/auth");
   };
+
 
   const handleSubmitRequest = (e: React.FormEvent) => {
     e.preventDefault();
-    // In real app, this would submit to the leads table
     toast({
       title: "Request submitted!",
       description: "We'll review your application and get back to you within 48 hours.",
@@ -44,30 +115,45 @@ const Index = () => {
     setFormData({ name: "", email: "", organization: "", message: "" });
   };
 
-  const handleSignInSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Redirect to auth page instead of handling here
-    window.location.href = '/auth';
-  };
-
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <Header onAuthClick={handleSignIn} />
 
-      {/* Main Content */}
       <main>
-        {/* Hero Section */}
         <HeroSection 
           onRequestAccess={handleRequestAccess}
           onSignIn={handleSignIn}
         />
 
-        {/* Features Section */}
         <FeaturesSection />
 
         {/* Pricing Section */}
-        <PricingSection onRequestAccess={handleRequestAccess} />
+        <section id="pricing" className="py-20">
+          <div className="container">
+            <div className="text-center space-y-4 mb-12">
+              <h2 className="text-3xl lg:text-4xl font-bold">
+                <span className="gradient-text">Simple, Transparent Pricing</span>
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Choose the plan that works best for you
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {plans.map((plan) => (
+                <PricingCard
+                  key={plan.id}
+                  name={plan.name.replace("LessonSparkUSA — ", "")}
+                  monthlyPrice={plan.price_monthly_cents}
+                  yearlyPrice={plan.price_yearly_cents}
+                  credits={plan.credits_monthly}
+                  onSubscribe={(interval) => handleSubscribe(plan, interval)}
+                  loading={loading}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* Setup Preview Section */}
         <section className="py-20 bg-muted/20">
@@ -286,38 +372,6 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Sign In Dialog */}
-      <Dialog open={showSignInDialog} onOpenChange={setShowSignInDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Sign In to LessonSpark USA</DialogTitle>
-            <DialogDescription>
-              Enter your email to receive a magic link for secure sign-in.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSignInSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="signin-email">Email</Label>
-              <Input
-                id="signin-email"
-                type="email"
-                placeholder="your.email@church.org"
-                required
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" onClick={() => setShowSignInDialog(false)} className="flex-1">
-                Cancel
-              </Button>
-              <Button type="submit" variant="default" className="flex-1">
-                Send Magic Link
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Setup Guide Dialog */}
       <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
