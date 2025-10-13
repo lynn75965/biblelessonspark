@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          payload: Json | null
+          target_org_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          target_org_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          target_org_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
+      credits_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          reference_id: string | null
+          reference_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          reference_id?: string | null
+          reference_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          reference_id?: string | null
+          reference_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string | null
@@ -300,6 +360,8 @@ export type Database = {
           organization_role: string | null
           preferred_age_group: string | null
           role: string | null
+          subscription_status: string | null
+          subscription_tier: string | null
         }
         Insert: {
           created_at?: string | null
@@ -312,6 +374,8 @@ export type Database = {
           organization_role?: string | null
           preferred_age_group?: string | null
           role?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
         }
         Update: {
           created_at?: string | null
@@ -324,6 +388,8 @@ export type Database = {
           organization_role?: string | null
           preferred_age_group?: string | null
           role?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
         }
         Relationships: [
           {
@@ -367,6 +433,63 @@ export type Database = {
           },
         ]
       }
+      stripe_events: {
+        Row: {
+          event_id: string
+          event_type: string
+          id: string
+          processed_at: string
+        }
+        Insert: {
+          event_id: string
+          event_type: string
+          id?: string
+          processed_at?: string
+        }
+        Update: {
+          event_id?: string
+          event_type?: string
+          id?: string
+          processed_at?: string
+        }
+        Relationships: []
+      }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          credits_monthly: number | null
+          currency: string
+          id: string
+          lookup_key: string
+          name: string
+          price_monthly_cents: number
+          price_yearly_cents: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits_monthly?: number | null
+          currency?: string
+          id?: string
+          lookup_key: string
+          name: string
+          price_monthly_cents: number
+          price_yearly_cents: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits_monthly?: number | null
+          currency?: string
+          id?: string
+          lookup_key?: string
+          name?: string
+          price_monthly_cents?: number
+          price_yearly_cents?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -391,14 +514,94 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_id: string | null
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end: string
+          current_period_start: string
+          id?: string
+          plan_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          id?: string
+          plan_id?: string | null
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      credits_balance: {
+        Row: {
+          balance: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      allocate_monthly_credits: {
+        Args: { p_subscription_id: string }
+        Returns: Json
+      }
       check_organization_admin: {
         Args: { org_id: string }
         Returns: boolean
+      }
+      deduct_credits: {
+        Args: {
+          p_amount: number
+          p_idempotency_key: string
+          p_reference_id: string
+          p_reference_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      get_credits_balance: {
+        Args: { p_user_id: string }
+        Returns: number
       }
       get_user_organization: {
         Args: Record<PropertyKey, never>
