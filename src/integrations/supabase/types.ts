@@ -356,6 +356,7 @@ export type Database = {
           founder_status: string | null
           full_name: string | null
           id: string
+          org_setup_dismissed: boolean
           organization_id: string | null
           organization_role: string | null
           preferred_age_group: string | null
@@ -370,6 +371,7 @@ export type Database = {
           founder_status?: string | null
           full_name?: string | null
           id: string
+          org_setup_dismissed?: boolean
           organization_id?: string | null
           organization_role?: string | null
           preferred_age_group?: string | null
@@ -384,6 +386,7 @@ export type Database = {
           founder_status?: string | null
           full_name?: string | null
           id?: string
+          org_setup_dismissed?: boolean
           organization_id?: string | null
           organization_role?: string | null
           preferred_age_group?: string | null

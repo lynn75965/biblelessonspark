@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Loader2, Building, Users, User } from "lucide-react";
 interface OrganizationSetupProps {
   open: boolean;
   onComplete: () => void;
+  onDismiss?: () => void;
 }
 
 const ORGANIZATION_TYPES = [
@@ -47,12 +48,18 @@ const DOCTRINE_OPTIONS = [
 ];
 
 
-export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) {
+export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationSetupProps) {
+  const [internalOpen, setInternalOpen] = useState(open);
   const [activeTab, setActiveTab] = useState("create");
   const [loading, setLoading] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const { toast } = useToast();
   const { createOrganization, joinOrganization } = useOrganization();
+
+  // Sync internal state with prop changes
+  useEffect(() => {
+    setInternalOpen(open);
+  }, [open]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -139,7 +146,15 @@ export function OrganizationSetup({ open, onComplete }: OrganizationSetupProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog 
+      open={internalOpen} 
+      onOpenChange={(newOpen) => {
+        if (!newOpen) {
+          onDismiss?.();
+        }
+        setInternalOpen(newOpen);
+      }}
+    >
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Setup Your Organization</DialogTitle>

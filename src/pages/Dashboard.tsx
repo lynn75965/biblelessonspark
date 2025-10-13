@@ -59,11 +59,11 @@ export default function Dashboard({
       if (!user) return;
       
       try {
-        const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
-          .from('profiles')
-          .select('preferred_age_group')
-          .eq('id', user.id)
-          .single();
+      const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
+        .from('profiles')
+        .select('preferred_age_group, org_setup_dismissed')
+        .eq('id', user.id)
+        .single();
         
         setUserProfile(profile);
       } catch (error) {
@@ -109,11 +109,11 @@ export default function Dashboard({
     if (!user) return;
     
     try {
-      const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
-        .from('profiles')
-        .select('preferred_age_group')
-        .eq('id', user.id)
-        .single();
+    const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
+      .from('profiles')
+      .select('preferred_age_group, org_setup_dismissed')
+      .eq('id', user.id)
+      .single();
       
       setUserProfile(profile);
     } catch (error) {
@@ -132,17 +132,76 @@ export default function Dashboard({
   const [showOrgSetup, setShowOrgSetup] = useState(false);
   
   useEffect(() => {
-    // Only show setup modal if user has never seen it before
-    // They can choose to skip and use as individual
-    if (!orgLoading && !hasOrganization && !localStorage.getItem('org-setup-seen')) {
-      setShowOrgSetup(true);
+    // Skip on SSR
+    if (typeof window === 'undefined') return;
+    
+    // Wait until both loading states are resolved
+    if (orgLoading || adminLoading) return;
+    
+    // Admins bypass the modal entirely
+    if (isAdmin) return;
+    
+    // Check localStorage for quick client-side check
+    const localSeen = localStorage.getItem('org-setup-seen') === 'true';
+    if (localSeen) return;
+    
+    // Check database for persistent dismissal (from userProfile state)
+    const dismissed = userProfile?.org_setup_dismissed === true;
+    if (dismissed) {
+      // Sync to localStorage for faster future checks
+      localStorage.setItem('org-setup-seen', 'true');
+      return;
     }
-  }, [orgLoading, hasOrganization]);
+    
+    // If user already has an organization, don't show
+    if (hasOrganization) return;
+    
+    // All checks passed - show the modal
+    setShowOrgSetup(true);
+  }, [orgLoading, adminLoading, hasOrganization, isAdmin, userProfile?.org_setup_dismissed]);
 
-  const handleOrgSetupCompleteInternal = () => {
-    localStorage.setItem('org-setup-seen', 'true');
-    setShowOrgSetup(false);
-    handleOrgSetupComplete();
+  const handleOrgSetupCompleteInternal = async () => {
+    try {
+      // Set localStorage for quick client check
+      localStorage.setItem('org-setup-seen', 'true');
+      
+      // Persist to database for cross-device sync
+      if (user?.id) {
+        await (await import('@/integrations/supabase/client')).supabase
+          .from('profiles')
+          .update({ org_setup_dismissed: true })
+          .eq('id', user.id);
+      }
+      
+      setShowOrgSetup(false);
+      handleOrgSetupComplete();
+    } catch (error) {
+      console.error('Error saving org setup completion:', error);
+      // Still close modal even if database update fails
+      setShowOrgSetup(false);
+      handleOrgSetupComplete();
+    }
+  };
+
+  const handleOrgSetupDismiss = async () => {
+    try {
+      // Set localStorage for quick client check
+      localStorage.setItem('org-setup-seen', 'true');
+      
+      // Persist to database for cross-device sync
+      if (user?.id) {
+        await (await import('@/integrations/supabase/client')).supabase
+          .from('profiles')
+          .update({ org_setup_dismissed: true })
+          .eq('id', user.id);
+      }
+      
+      setShowOrgSetup(false);
+    } catch (error) {
+      console.error('Error saving org setup dismissal:', error);
+      // Still close modal even if database update fails
+      setShowOrgSetup(false);
+    }
   };
 
   return (
@@ -155,8 +214,9 @@ export default function Dashboard({
       {/* Organization Setup Modal */}
       {showOrgSetup && (
         <OrganizationSetup 
-          open={true} 
+          open={showOrgSetup}
           onComplete={handleOrgSetupCompleteInternal}
+          onDismiss={handleOrgSetupDismiss}
         />
       )}
 
