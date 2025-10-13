@@ -43,7 +43,7 @@ verify_jwt = false
 [functions.send-invite]
 verify_jwt = true
 
-[functions.setup-stripe-products]
+[functions.seed-stripe-catalog]
 verify_jwt = false
 
 [edge_runtime]
