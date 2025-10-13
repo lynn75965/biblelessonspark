@@ -46,5 +46,8 @@ verify_jwt = true
 [functions.seed-stripe-catalog]
 verify_jwt = false
 
+[functions.sync-pricing-from-stripe]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"

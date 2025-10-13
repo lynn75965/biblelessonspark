@@ -5,8 +5,9 @@ import { Header } from "@/components/layout/Header";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Users, Settings, BarChart3 } from "lucide-react";
+import { Shield, Users, Settings, BarChart3, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Admin() {
@@ -108,27 +109,35 @@ export default function Admin() {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
             <TabsTrigger value="users">
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4 mr-2" />
               User Management
             </TabsTrigger>
+            <TabsTrigger value="pricing">
+              <DollarSign className="h-4 w-4 mr-2" />
+              Pricing & Plans
+            </TabsTrigger>
             <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4 mr-2" />
               System Analytics
             </TabsTrigger>
             <TabsTrigger value="settings">
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 mr-2" />
               System Settings
             </TabsTrigger>
             <TabsTrigger value="security">
-              <Shield className="h-4 w-4" />
+              <Shield className="h-4 w-4 mr-2" />
               Security
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="mt-6">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="pricing" className="mt-6">
+            <PricingPlansManager />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
