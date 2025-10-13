@@ -43,5 +43,8 @@ verify_jwt = false
 [functions.send-invite]
 verify_jwt = true
 
+[functions.setup-stripe-products]
+verify_jwt = false
+
 [edge_runtime]
 policy = "per_worker"
