@@ -363,6 +363,7 @@ export type Database = {
           role: string | null
           subscription_status: string | null
           subscription_tier: string | null
+          theological_preference: string | null
         }
         Insert: {
           created_at?: string | null
@@ -378,6 +379,7 @@ export type Database = {
           role?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
+          theological_preference?: string | null
         }
         Update: {
           created_at?: string | null
@@ -393,6 +395,7 @@ export type Database = {
           role?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
+          theological_preference?: string | null
         }
         Relationships: [
           {

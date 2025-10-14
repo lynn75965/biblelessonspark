@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -12,6 +12,7 @@ import {
 import { BookOpen, User, Settings, LogOut, Bell, Shield } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 
 interface HeaderProps {
@@ -24,11 +25,39 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const [notifications] = useState(2); // Mock notification count
+  const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
 
   // Use actual auth state if available, otherwise use prop
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
   const displayName = user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'User';
+
+  // Fetch user's theological preference
+  useEffect(() => {
+    const fetchTheologicalPreference = async () => {
+      if (!user) {
+        setTheologicalLens(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('theological_preference')
+        .eq('id', user.id)
+        .single();
+
+      if (!error && data?.theological_preference) {
+        const lensNames: Record<string, string> = {
+          'southern_baptist': 'Southern Baptist',
+          'reformed_baptist': 'Reformed Baptist',
+          'independent_baptist': 'Independent Baptist'
+        };
+        setTheologicalLens(lensNames[data.theological_preference] || null);
+      }
+    };
+
+    fetchTheologicalPreference();
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -50,6 +79,12 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
           {authenticated && organizationName && (
             <Badge variant="outline" className="hidden md:flex">
               {organizationName}
+            </Badge>
+          )}
+          
+          {authenticated && theologicalLens && (
+            <Badge variant="secondary" className="hidden lg:flex">
+              Lens: {theologicalLens}
             </Badge>
           )}
         </div>

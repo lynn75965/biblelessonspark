@@ -62,7 +62,8 @@ export function EnhanceLessonForm({
     passageOrTopic: "",
     ageGroup: userPreferredAgeGroup,
     doctrineProfile: defaultDoctrine,
-    notes: ""
+    notes: "",
+    theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist'
   });
   
   const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
@@ -202,6 +203,7 @@ export function EnhanceLessonForm({
           enhancementType,
           extractedContent: sanitizedExtractedContent,
           teacherPreferences,
+          theologicalPreference: formData.theologicalPreference,
         }),
       });
 
@@ -450,6 +452,44 @@ export function EnhanceLessonForm({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Theological Preference */}
+            <div className="space-y-2">
+              <Label htmlFor="theological-preference" className="text-base font-semibold">
+                Theological Lens <span className="text-destructive">*</span>
+              </Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Select the theological perspective that will shape this lesson's teaching approach
+              </p>
+              <Select 
+                value={formData.theologicalPreference} 
+                onValueChange={(value: any) => setFormData(prev => ({...prev, theologicalPreference: value}))}
+              >
+                <SelectTrigger id="theological-preference">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="southern_baptist">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Southern Baptist</span>
+                      <span className="text-xs text-muted-foreground">Baptist Faith & Message (2000)</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="reformed_baptist">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Reformed Baptist</span>
+                      <span className="text-xs text-muted-foreground">1689 London Baptist Confession</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="independent_baptist">
+                    <div className="flex flex-col">
+                      <span className="font-medium">Independent Baptist</span>
+                      <span className="text-xs text-muted-foreground">Independent & Fundamental</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Teacher Customization Toggle */}
