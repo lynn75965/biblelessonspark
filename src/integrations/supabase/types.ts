@@ -361,6 +361,7 @@ export type Database = {
           organization_role: string | null
           preferred_age_group: string | null
           role: string | null
+          sb_confession_version: string | null
           subscription_status: string | null
           subscription_tier: string | null
           theological_preference: string | null
@@ -377,6 +378,7 @@ export type Database = {
           organization_role?: string | null
           preferred_age_group?: string | null
           role?: string | null
+          sb_confession_version?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
           theological_preference?: string | null
@@ -393,6 +395,7 @@ export type Database = {
           organization_role?: string | null
           preferred_age_group?: string | null
           role?: string | null
+          sb_confession_version?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
           theological_preference?: string | null

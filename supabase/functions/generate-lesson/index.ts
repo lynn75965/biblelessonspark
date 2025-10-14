@@ -40,6 +40,7 @@ interface LessonRequest {
   extractedContent?: string;
   teacherPreferences?: TeacherPreferences;
   theologicalPreference: 'southern_baptist' | 'reformed_baptist' | 'independent_baptist';
+  sbConfessionVersion?: 'bfm_1963' | 'bfm_2000';
 }
 
 // Rate limiting storage (in production, use Redis or similar)
@@ -97,14 +98,30 @@ async function generateLessonWithAI(data: LessonRequest) {
       name: 'Southern Baptist',
       short: 'SB',
       label: 'Southern Baptist Lens',
-      description: 'Align with the Baptist Faith & Message (2000). Emphasize believer\'s baptism by immersion, congregational polity, local church autonomy, evangelism/missions, assurance/perseverance. Avoid pedobaptism or non-congregational governance.',
-      distinctives: [
-        'Based on the Baptist Faith & Message (2000)',
-        'Emphasizes believer\'s baptism by immersion',
-        'Affirms local-church autonomy and congregational governance',
-        'Highlights evangelism and missions as ongoing responsibilities',
-        'Upholds assurance and perseverance of the believer'
-      ]
+      description: 'Align with the Baptist Faith & Message. Emphasize believer\'s baptism by immersion, congregational polity, local church autonomy, evangelism/missions, assurance/perseverance. Avoid pedobaptism or non-congregational governance.',
+      distinctives: [],
+      versions: {
+        'bfm_1963': {
+          label: 'BF&M 1963',
+          distinctives: [
+            'Based on the Baptist Faith & Message (1963)',
+            'Highlights "the criterion by which the Bible is to be interpreted is Jesus Christ"',
+            'Emphasizes believer\'s baptism by immersion',
+            'Affirms congregational governance & local-church autonomy',
+            'Stresses evangelism & missions'
+          ]
+        },
+        'bfm_2000': {
+          label: 'BF&M 2000',
+          distinctives: [
+            'Based on the Baptist Faith & Message (2000)',
+            'Emphasizes the Bible\'s full authority & sufficiency',
+            'Emphasizes believer\'s baptism by immersion',
+            'Affirms congregational governance & local-church autonomy',
+            'Stresses evangelism, missions, and perseverance of the believer'
+          ]
+        }
+      }
     },
     'reformed_baptist': {
       name: 'Reformed Baptist',
@@ -134,7 +151,19 @@ async function generateLessonWithAI(data: LessonRequest) {
     }
   };
 
-  const lens = theologicalLenses[data.theologicalPreference];
+  let lens = theologicalLenses[data.theologicalPreference];
+  
+  // Handle Southern Baptist version selection
+  let versionLabel = '';
+  let lensDistinctives: string[] = lens.distinctives || [];
+  
+  if (data.theologicalPreference === 'southern_baptist') {
+    const version = data.sbConfessionVersion || 'bfm_2000';
+    if (lens.versions && lens.versions[version]) {
+      versionLabel = lens.versions[version].label;
+      lensDistinctives = lens.versions[version].distinctives;
+    }
+  }
 
   const doctrineContexts = {
     'SBC': 'Southern Baptist Convention theological perspective, emphasizing biblical inerrancy, salvation by grace through faith alone, and believer\'s baptism by immersion.',
@@ -213,19 +242,23 @@ async function generateLessonWithAI(data: LessonRequest) {
     ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || data.passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
     : `Generate a complete, original lesson plan based on: "${data.passageOrTopic}".`;
 
+  const lensDisplayName = versionLabel ? `${lens.name} — ${versionLabel}` : lens.name;
+  const lensSubtitle = versionLabel ? `Confession: ${versionLabel}` : '';
+  
   const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
 
-THEOLOGICAL LENS: ${lens.name}
-You are generating this lesson under the ${lens.label}.
+THEOLOGICAL LENS: ${lensDisplayName}
+You are generating this lesson under the ${lens.label}${versionLabel ? ` (${versionLabel})` : ''}.
 ${lens.description}
 
 When doctrine is debated, present this lens' position clearly and charitably without attacking other positions.
 
 REQUIRED: At the very top of your lesson output, include:
-1. A Lens Banner showing: "Theological Lens: ${lens.name}"
+1. A Lens Banner showing: "Theological Lens: ${lensDisplayName}"
+${lensSubtitle ? `   ${lensSubtitle}` : ''}
 2. A "Lens Distinctives" section with exactly these bullet points (use verbatim):
-   ${lens.label}
-${lens.distinctives.map(d => `   • ${d}`).join('\n')}
+   ${lens.label}${versionLabel ? ` — ${versionLabel}` : ''}
+${lensDistinctives.map(d => `   • ${d}`).join('\n')}
 
 REQUIRED: Prefix the lesson title with "${lens.short} • " (e.g., "${lens.short} • Understanding Grace")
 
@@ -306,7 +339,10 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
       title: `${lens.short} • ${data.enhancementType === 'curriculum' ? 'Enhanced' : 'Generated'} Lesson: ${data.passageOrTopic}`,
       wordCount: generatedContent.length,
       estimatedDuration: '45-60 minutes',
-      theologicalLens: lens.name
+      theologicalLens: lens.name,
+      ...(data.theologicalPreference === 'southern_baptist' && data.sbConfessionVersion && {
+        sbConfessionVersion: data.sbConfessionVersion
+      })
     };
 
   } catch (error) {
@@ -533,7 +569,10 @@ serve(async (req) => {
     const lessonContent = await generateLessonWithAI(validatedData);
 
     // Log the successful generation with theological preference
-    console.log(`Lesson generated for user ${user.id}: ${validatedData.passageOrTopic} (Lens: ${validatedData.theologicalPreference})`);
+    const lensInfo = validatedData.theologicalPreference === 'southern_baptist' && validatedData.sbConfessionVersion 
+      ? `${validatedData.theologicalPreference} (${validatedData.sbConfessionVersion})` 
+      : validatedData.theologicalPreference;
+    console.log(`Lesson generated for user ${user.id}: ${validatedData.passageOrTopic} (Lens: ${lensInfo})`);
 
     return new Response(
       JSON.stringify({
@@ -547,7 +586,10 @@ serve(async (req) => {
           wordCount: lessonContent.wordCount,
           estimatedDuration: lessonContent.estimatedDuration,
           theologicalLens: lessonContent.theologicalLens,
-          theologicalPreference: validatedData.theologicalPreference
+          theologicalPreference: validatedData.theologicalPreference,
+          ...(validatedData.theologicalPreference === 'southern_baptist' && validatedData.sbConfessionVersion && {
+            sbConfessionVersion: validatedData.sbConfessionVersion
+          })
         }
       }),
       {

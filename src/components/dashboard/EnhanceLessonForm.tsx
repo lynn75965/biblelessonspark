@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -63,8 +63,11 @@ export function EnhanceLessonForm({
     ageGroup: userPreferredAgeGroup,
     doctrineProfile: defaultDoctrine,
     notes: "",
-    theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist'
+    theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
+    sbConfessionVersion: "bfm_2000" as 'bfm_1963' | 'bfm_2000'
   });
+  
+  const [rememberConfessionChoice, setRememberConfessionChoice] = useState(false);
   
   const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -78,6 +81,29 @@ export function EnhanceLessonForm({
   const { createLesson } = useLessons();
   const { user } = useAuth();
   const { trackEvent, trackLessonCreated } = useAnalytics();
+  
+  // Fetch saved confession version from profile on mount
+  React.useEffect(() => {
+    const fetchProfilePreferences = async () => {
+      if (!user) return;
+      
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('sb_confession_version')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.sb_confession_version) {
+        setFormData(prev => ({
+          ...prev,
+          sbConfessionVersion: profile.sb_confession_version as 'bfm_1963' | 'bfm_2000'
+        }));
+      }
+    };
+    
+    fetchProfilePreferences();
+  }, [user]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -204,6 +230,7 @@ export function EnhanceLessonForm({
           extractedContent: sanitizedExtractedContent,
           teacherPreferences,
           theologicalPreference: formData.theologicalPreference,
+          sbConfessionVersion: formData.sbConfessionVersion,
         }),
       });
 
@@ -217,6 +244,15 @@ export function EnhanceLessonForm({
         setGeneratedContent(result.content);
         setLessonTitle(result.title);
         setIsGenerating(false);
+        
+        // Save confession version to profile if checkbox is checked
+        if (rememberConfessionChoice && formData.theologicalPreference === 'southern_baptist') {
+          const { supabase } = await import('@/integrations/supabase/client');
+          await supabase
+            .from('profiles')
+            .update({ sb_confession_version: formData.sbConfessionVersion })
+            .eq('id', user.id);
+        }
         
         toast({
           title: enhancementType === "curriculum" ? "Curriculum enhanced successfully!" : "Lesson generated successfully!",
@@ -473,7 +509,7 @@ export function EnhanceLessonForm({
                   <SelectItem value="southern_baptist">
                     <div className="flex flex-col">
                       <span className="font-medium">Southern Baptist</span>
-                      <span className="text-xs text-muted-foreground">Baptist Faith & Message (2000)</span>
+                      <span className="text-xs text-muted-foreground">Baptist Faith & Message</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="reformed_baptist">
@@ -490,6 +526,39 @@ export function EnhanceLessonForm({
                   </SelectItem>
                 </SelectContent>
               </Select>
+              
+              {/* Southern Baptist BF&M Version Selection */}
+              {formData.theologicalPreference === 'southern_baptist' && (
+                <div className="mt-4 p-3 border rounded-lg bg-accent/5 space-y-3">
+                  <Label className="text-sm font-medium">Baptist Faith & Message Version</Label>
+                  <RadioGroup 
+                    value={formData.sbConfessionVersion} 
+                    onValueChange={(value: any) => setFormData(prev => ({...prev, sbConfessionVersion: value}))}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="bfm_1963" id="bfm_1963" />
+                      <Label htmlFor="bfm_1963" className="cursor-pointer font-normal">BF&M 1963</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="bfm_2000" id="bfm_2000" />
+                      <Label htmlFor="bfm_2000" className="cursor-pointer font-normal">BF&M 2000</Label>
+                    </div>
+                  </RadioGroup>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="remember-confession"
+                      checked={rememberConfessionChoice}
+                      onChange={(e) => setRememberConfessionChoice(e.target.checked)}
+                      className="h-4 w-4 rounded border-input"
+                    />
+                    <Label htmlFor="remember-confession" className="text-xs cursor-pointer font-normal text-muted-foreground">
+                      Remember this choice in my profile
+                    </Label>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Teacher Customization Toggle */}
