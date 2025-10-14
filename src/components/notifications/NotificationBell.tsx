@@ -17,6 +17,7 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<Notif[]>([]);
   const [unread, setUnread] = useState<number>(0);
+  const [isAdmin, setIsAdmin] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -40,9 +41,35 @@ export default function NotificationBell() {
         setItems(data?.items ?? []);
         setUnread(data?.unreadCount ?? 0);
       }
+
+      // Check if user is admin
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        setIsAdmin(profile?.role === 'admin');
+      }
     } finally {
       setLoading(false);
       setLoaded(true);
+    }
+  }
+
+  async function seedSampleNotifications() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('seed-notifications');
+      if (error) {
+        console.error("seed error", error);
+      } else if (data?.ok) {
+        // Reload the list
+        await load();
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -92,7 +119,17 @@ export default function NotificationBell() {
           {loading ? (
             <div className="p-4 text-sm text-muted-foreground">Loading…</div>
           ) : items.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground">You're all caught up.</div>
+            <div className="p-4 text-center">
+              <div className="text-sm text-muted-foreground mb-2">You're all caught up.</div>
+              {isAdmin && (
+                <button
+                  onClick={seedSampleNotifications}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Load sample notifications
+                </button>
+              )}
+            </div>
           ) : (
             <ul className="max-h-96 divide-y overflow-auto">
               {items.map((n) => (
