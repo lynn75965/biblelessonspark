@@ -40,7 +40,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
       <div className="container flex h-16 items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" title="Return to Home">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
