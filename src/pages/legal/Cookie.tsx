@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Cookie as CookieIcon, Mail } from "lucide-react";
 
 const Cookie = () => {
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
@@ -16,6 +15,9 @@ const Cookie = () => {
             </div>
             <h1 className="text-4xl font-bold gradient-text">Cookie Policy</h1>
             <p className="text-sm text-muted-foreground">Last updated: October 14, 2025</p>
+            <Button asChild variant="secondary" size="sm">
+              <Link to="/">Back to Home</Link>
+            </Button>
           </div>
 
           <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
@@ -45,9 +47,6 @@ const Cookie = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 border-t">
-            <Button variant="hero" size="lg" onClick={() => navigate("/")}>
-              Back to Home
-            </Button>
             <Button variant="outline" size="lg" asChild>
               <a href="mailto:support@lessonspark.com" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />

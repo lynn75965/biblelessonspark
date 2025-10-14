@@ -1,9 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { BookOpen, Mail } from "lucide-react";
 
 const Setup = () => {
-  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
@@ -20,10 +19,11 @@ const Setup = () => {
             Coming soon! Our comprehensive setup guide will help you get started with LessonSpark USA.
           </p>
 
+          <Button asChild variant="secondary" size="sm">
+            <Link to="/">Back to Home</Link>
+          </Button>
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-            <Button variant="hero" size="lg" onClick={() => navigate("/")}>
-              Back to Home
-            </Button>
             <Button variant="outline" size="lg" asChild>
               <a href="mailto:support@lessonspark.com" className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
