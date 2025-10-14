@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -8,7 +9,8 @@ import {
   Church, 
   BookOpen,
   Users,
-  Sparkles
+  Sparkles,
+  ArrowRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +20,8 @@ interface SetupStep {
   description: string;
   icon: React.ReactNode;
   completed: boolean;
-  action?: () => void;
+  navigateTo?: string;
+  actionLabel?: string;
 }
 
 interface SetupChecklistProps {
@@ -27,41 +30,53 @@ interface SetupChecklistProps {
 }
 
 export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps) {
+  const navigate = useNavigate();
+  
   const [steps, setSteps] = useState<SetupStep[]>([
     {
       id: 'account',
       title: 'Set up your teacher account',
       description: 'Create your personal account and sign in',
       icon: <User className="h-6 w-6" />,
-      completed: false
+      completed: false,
+      navigateTo: '/auth',
+      actionLabel: 'Go to Sign In'
     },
     {
       id: 'church',
       title: 'Add your church information',
       description: 'Tell us about your church and ministry',
       icon: <Church className="h-6 w-6" />,
-      completed: false
+      completed: false,
+      navigateTo: '/account',
+      actionLabel: 'Go to Profile'
     },
     {
       id: 'lesson',
       title: 'Create your first lesson',
       description: 'Try our smart lesson enhancement',
       icon: <BookOpen className="h-6 w-6" />,
-      completed: false
+      completed: false,
+      navigateTo: '/dashboard',
+      actionLabel: 'Go to Dashboard'
     },
     {
       id: 'invite',
       title: 'Invite other teachers (optional)',
       description: 'Share LessonSpark with your ministry team',
       icon: <Users className="h-6 w-6" />,
-      completed: false
+      completed: false,
+      navigateTo: '/account',
+      actionLabel: 'Go to Account'
     },
     {
       id: 'ready',
       title: 'You\'re ready to go!',
       description: 'Start enhancing lessons for your Baptist Bible study',
       icon: <Sparkles className="h-6 w-6" />,
-      completed: false
+      completed: false,
+      navigateTo: '/dashboard',
+      actionLabel: 'Go to Dashboard'
     }
   ]);
 
@@ -134,20 +149,38 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                   
                   {/* Step Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="text-lg font-semibold text-foreground">{step.title}</h3>
-                        <p className="text-muted-foreground">{step.description}</p>
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-foreground mb-1">{step.title}</h3>
+                        <p className="text-muted-foreground text-sm mb-2">{step.description}</p>
+                        {step.navigateTo && !step.completed && (
+                          <p className="text-xs text-muted-foreground/70">
+                            Click below to open this step
+                          </p>
+                        )}
                       </div>
-                      {!step.completed && (
-                        <Button
-                          onClick={() => handleStepComplete(step.id)}
-                          size="sm"
-                          className="ml-4 whitespace-nowrap"
-                        >
-                          Complete
-                        </Button>
-                      )}
+                      <div className="flex gap-2 flex-shrink-0">
+                        {!step.completed && step.navigateTo && (
+                          <Button
+                            onClick={() => navigate(step.navigateTo!)}
+                            size="sm"
+                            variant="outline"
+                            className="whitespace-nowrap"
+                          >
+                            {step.actionLabel}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        )}
+                        {!step.completed && (
+                          <Button
+                            onClick={() => handleStepComplete(step.id)}
+                            size="sm"
+                            className="whitespace-nowrap"
+                          >
+                            Complete
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
