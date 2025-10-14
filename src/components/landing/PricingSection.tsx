@@ -96,52 +96,37 @@ export function PricingSection() {
             Pricing
           </Badge>
           <h2 className="text-3xl lg:text-4xl font-bold">
-            Choose Your{" "}
-            <span className="gradient-text">Ministry Plan</span>
+            Simple, Transparent{" "}
+            <span className="gradient-text">Pricing</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Transparent pricing designed for Baptist churches of all sizes. 
-            Start your journey with a plan that grows with your ministry.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Choose the plan that works best for you
           </p>
 
           {/* Billing cycle toggle */}
-          <div className="inline-flex items-center gap-2 mt-6 rounded-full border border-border bg-card px-2 py-1.5">
+          <div className="inline-flex items-center gap-3 mt-8 rounded-full border-2 border-border bg-card px-2 py-1.5 shadow-sm">
             <button
               onClick={() => setCycle("monthly")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
                 cycle === "monthly" 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-primary text-primary-foreground shadow-md" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
               aria-pressed={cycle === "monthly"}
             >
               Monthly
             </button>
-            <span className="text-xs text-muted-foreground">/</span>
             <button
               onClick={() => setCycle("yearly")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
                 cycle === "yearly" 
-                  ? "bg-primary text-primary-foreground" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-gradient-to-r from-secondary to-warning text-foreground shadow-md" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
               aria-pressed={cycle === "yearly"}
             >
-              Yearly <span className="ml-1 text-xs opacity-80">(save 20%)</span>
+              Yearly <span className="ml-1 text-xs opacity-90 font-semibold">(save 20%)</span>
             </button>
-          </div>
-
-          <p className="text-sm text-muted-foreground">
-            {cycle === "yearly" 
-              ? "Save 20% with annual billing" 
-              : "Switch to yearly to save 20%"}
-          </p>
-          
-          {/* Beta notice */}
-          <div className="bg-secondary-light border border-secondary/20 rounded-lg p-4 max-w-2xl mx-auto mt-6">
-            <p className="text-secondary-foreground font-medium">
-              🎉 Private Beta Special: All plans include 30-day free trial and setup assistance
-            </p>
           </div>
         </div>
 
@@ -161,97 +146,72 @@ export function PricingSection() {
               const showYearlyHelper = cycle === "yearly";
               const monthlyEq = showYearlyHelper ? monthlyEquivalentFromYearly(plan.priceCents) : null;
               const isPopular = plan.bestValue && cycle === "yearly";
+              const isPro = plan.name.toLowerCase().includes("pro");
 
               return (
                 <Card 
                   key={plan.id}
-                  className={`relative overflow-hidden transition-all duration-normal hover:shadow-glow ${
+                  className={`relative overflow-hidden transition-all duration-300 ${
                     isPopular 
-                      ? "border-primary scale-105 shadow-lg bg-gradient-card" 
-                      : "border-border hover:border-primary/20 bg-gradient-card"
+                      ? "border-[#C9A341] border-2 shadow-xl scale-[1.05] bg-gradient-to-br from-white via-[#C9A341]/5 to-white dark:from-card dark:via-[#C9A341]/10 dark:to-card" 
+                      : "border-border hover:border-primary/30 hover:shadow-lg bg-gradient-card"
                   }`}
                 >
                   {isPopular && (
-                    <div className="absolute -top-0 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-gradient-to-r from-primary to-secondary text-white px-4 py-1 rounded-b-lg">
-                        Most Popular
+                    <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-gradient-to-r from-[#C9A341] to-[#E5C478] text-white px-5 py-1.5 rounded-b-lg font-semibold shadow-md">
+                        Best Value
                       </Badge>
                     </div>
                   )}
                   
-                  <CardHeader className={`text-center ${isPopular ? "pt-8" : "pt-6"}`}>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                        isPopular ? "bg-gradient-primary" : "bg-muted"
-                      }`}>
-                        <div className={isPopular ? "text-white" : "text-muted-foreground"}>
-                          {getPlanIcon(plan.name)}
-                        </div>
-                      </div>
-                      <CardTitle className="text-2xl">{plan.name}</CardTitle>
+                  <CardHeader className={`text-center ${isPopular ? "pt-10" : "pt-6"}`}>
+                    <CardTitle className="text-xl font-semibold mb-1">{plan.name}</CardTitle>
+                    
+                    <div className="text-sm text-muted-foreground mb-4">
+                      {plan.creditsMonthly === null 
+                        ? "Unlimited credits/month" 
+                        : `${plan.creditsMonthly} credits/month`}
                     </div>
                     
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold">
+                        <span className={`font-bold ${isPopular ? "text-5xl" : "text-4xl"}`}>
                           {formatMoney(plan.priceCents, plan.currency.toUpperCase())}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground text-sm">
                           {cycle === "yearly" ? "/year" : "/month"}
                         </span>
                       </div>
                       {showYearlyHelper && monthlyEq !== null && (
-                        <p className="text-xs text-muted-foreground">
-                          That's just {formatMoney(monthlyEq, plan.currency.toUpperCase())}/month
+                        <p className="text-sm text-muted-foreground font-medium">
+                          That's just {formatMoney(monthlyEq, plan.currency.toUpperCase())}/month — save 20% annually
                         </p>
                       )}
-                      <CardDescription className="text-sm">
-                        {planDetails.description}
-                      </CardDescription>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-6">
-                    {/* Credits info */}
-                    <div className="text-center py-2 bg-muted/50 rounded-lg">
-                      <p className="text-sm font-medium">
-                        {plan.creditsMonthly === null 
-                          ? "Unlimited lesson enhancements" 
-                          : `${plan.creditsMonthly} lesson enhancements/month`}
-                      </p>
-                    </div>
-
+                  <CardContent className="space-y-6 pt-2">
                     {/* Features */}
                     <div className="space-y-3">
-                      <h4 className="font-medium text-sm text-foreground">Included:</h4>
-                      <ul className="space-y-2">
+                      <ul className="space-y-2.5">
                         {planDetails.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-2 text-sm">
+                          <li key={idx} className="flex items-start gap-2.5 text-sm">
                             <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
-                            <span className="text-muted-foreground">{feature}</span>
+                            <span className="text-foreground/80">{feature}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    {/* Limitations */}
-                    {planDetails.limitations && planDetails.limitations.length > 0 && (
-                      <div className="space-y-3 pt-3 border-t">
-                        <h4 className="font-medium text-sm text-muted-foreground">Limitations:</h4>
-                        <ul className="space-y-1">
-                          {planDetails.limitations.map((limitation, idx) => (
-                            <li key={idx} className="text-xs text-muted-foreground">
-                              • {limitation}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
                     {/* CTA */}
                     <Button 
-                      className="w-full"
-                      variant={isPopular ? "hero" : "outline"}
+                      className={`w-full ${
+                        isPopular 
+                          ? "bg-gradient-to-r from-[#C9A341] to-[#E5C478] text-white hover:from-[#B89237] hover:to-[#C9A341] shadow-lg" 
+                          : ""
+                      }`}
+                      variant={isPopular ? "default" : "outline"}
                       size="lg"
                       onClick={() => handleSubscribe(plan.lookupKey, plan.id)}
                       disabled={checkoutLoading === plan.id}
@@ -261,19 +221,10 @@ export function PricingSection() {
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Processing...
                         </>
-                      ) : isPopular ? (
-                        <>
-                          <Star className="h-4 w-4" />
-                          {cycle === "yearly" ? "Subscribe Yearly" : "Subscribe Monthly"}
-                        </>
                       ) : (
                         cycle === "yearly" ? "Subscribe Yearly" : "Subscribe Monthly"
                       )}
                     </Button>
-                    
-                    <p className="text-center text-xs text-muted-foreground">
-                      Private beta • Setup included • Cancel anytime
-                    </p>
                   </CardContent>
                 </Card>
               );
@@ -281,22 +232,6 @@ export function PricingSection() {
           </div>
         )}
 
-        {/* FAQ note */}
-        <div className="text-center mt-12 space-y-4">
-          <h3 className="text-xl font-semibold">Questions about pricing?</h3>
-          <p className="text-muted-foreground">
-            We're here to help you choose the right plan for your ministry. 
-            Contact us for volume discounts and custom enterprise solutions.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button variant="outline">
-              Contact Sales
-            </Button>
-            <Button variant="ghost">
-              View FAQ
-            </Button>
-          </div>
-        </div>
       </div>
     </section>
   );
