@@ -4,8 +4,8 @@ import { BookOpen, Users, Sparkles, Shield, Clock, Heart, Brain, Target, FileTex
 export function FeaturesSection() {
   const features = [{
     icon: <Sparkles className="h-6 w-6" />,
-    title: "AI-Powered Enhancement",
-    description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned AI.",
+    title: "Smart Enhancement",
+    description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned content.",
     benefits: ["Custom activities", "Discussion prompts", "Modern applications"],
     category: "Core Feature"
   }, {

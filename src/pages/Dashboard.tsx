@@ -263,7 +263,7 @@ export default function Dashboard({
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.aiGenerations}</p>
-                  <p className="text-xs text-muted-foreground">AI Enhancements</p>
+                  <p className="text-xs text-muted-foreground">Enhancements</p>
                 </div>
               </div>
             </CardContent>

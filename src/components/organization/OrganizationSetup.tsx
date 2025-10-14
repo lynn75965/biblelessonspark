@@ -295,7 +295,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
                     Perfect for homeschool educators, independent Bible study leaders, or teachers who prefer a personal workspace.
                   </p>
                   <div className="text-sm text-muted-foreground space-y-2 text-left max-w-md mx-auto">
-                    <p>✓ Full access to AI lesson enhancement</p>
+                    <p>✓ Full access to lesson enhancement</p>
                     <p>✓ Personal lesson library</p>
                     <p>✓ Customizable age groups and doctrine preferences</p>
                     <p>✓ No organization management needed</p>

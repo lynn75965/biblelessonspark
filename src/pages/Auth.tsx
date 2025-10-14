@@ -187,7 +187,7 @@ export default function Auth() {
             <CardDescription>
               {inviteToken 
                 ? 'Complete your sign up to join LessonSpark USA' 
-                : 'Sign in to enhance your Bible study lessons with AI'}
+                : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>
           <CardContent>

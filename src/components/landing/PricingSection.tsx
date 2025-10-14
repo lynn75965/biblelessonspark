@@ -17,7 +17,7 @@ export function PricingSection({ onRequestAccess }: PricingSectionProps) {
       icon: <Zap className="h-5 w-5" />,
       popular: false,
       features: [
-        "50 AI lesson enhancements per month",
+        "50 lesson enhancements per month",
         "All age groups (Kids, Youth, Adults, Seniors)",
         "SBC, RB, IND doctrinal profiles",
         "Print & PDF export",
@@ -37,7 +37,7 @@ export function PricingSection({ onRequestAccess }: PricingSectionProps) {
       icon: <Star className="h-5 w-5" />,
       popular: true,
       features: [
-        "200 AI lesson enhancements per month", 
+        "200 lesson enhancements per month", 
         "Up to 10 teacher accounts",
         "Advanced lesson customization",
         "Lesson sharing & collaboration",
@@ -57,7 +57,7 @@ export function PricingSection({ onRequestAccess }: PricingSectionProps) {
       icon: <Crown className="h-5 w-5" />,
       popular: false,
       features: [
-        "Unlimited AI lesson enhancements",
+        "Unlimited lesson enhancements",
         "Unlimited teacher accounts",
         "Custom doctrinal profiles",
         "White-label branding",

@@ -57,7 +57,7 @@ export function GenerateLessonButton({ onSuccess }: GenerateLessonButtonProps) {
     <Card>
       <CardHeader>
         <CardTitle>Generate Lesson</CardTitle>
-        <CardDescription>Create a new AI-powered lesson (costs 1 credit)</CardDescription>
+        <CardDescription>Create a new enhanced lesson (costs 1 credit)</CardDescription>
       </CardHeader>
       <CardContent>
         <Button 

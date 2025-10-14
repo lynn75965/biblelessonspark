@@ -45,7 +45,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
     {
       id: 'lesson',
       title: 'Create your first lesson',
-      description: 'Try our AI-powered lesson enhancement',
+      description: 'Try our smart lesson enhancement',
       icon: <BookOpen className="h-6 w-6" />,
       completed: false
     },
