@@ -94,7 +94,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
           {authenticated ? (
             <>
               {/* Notifications */}
-              <NotificationsDropdown />
+              <NotificationBell />
 
               {/* User Menu */}
               <DropdownMenu>
