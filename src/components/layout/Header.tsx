@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { NotificationsDropdown } from "@/components/notifications/NotificationsDropdown";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 interface HeaderProps {
   onAuthClick?: () => void;
