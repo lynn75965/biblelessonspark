@@ -96,37 +96,40 @@ async function generateLessonWithAI(data: LessonRequest) {
     'southern_baptist': {
       name: 'Southern Baptist',
       short: 'SB',
+      label: 'Southern Baptist Lens',
       description: 'Align with the Baptist Faith & Message (2000). Emphasize believer\'s baptism by immersion, congregational polity, local church autonomy, evangelism/missions, assurance/perseverance. Avoid pedobaptism or non-congregational governance.',
       distinctives: [
-        'Believer\'s baptism by immersion only',
-        'Congregational church governance with pastoral leadership',
-        'Autonomous local churches cooperating in missions',
-        'Strong emphasis on evangelism and the Great Commission',
-        'Perseverance and assurance of salvation'
+        'Based on the Baptist Faith & Message (2000)',
+        'Emphasizes believer\'s baptism by immersion',
+        'Affirms local-church autonomy and congregational governance',
+        'Highlights evangelism and missions as ongoing responsibilities',
+        'Upholds assurance and perseverance of the believer'
       ]
     },
     'reformed_baptist': {
       name: 'Reformed Baptist',
       short: 'RB',
+      label: 'Reformed Baptist Lens',
       description: 'Align with the 1689 London Baptist Confession. Emphasize doctrines of grace (TULIP), elder-led congregationalism, covenantal reading distinct from paedobaptism (still credobaptist). Avoid language that conflicts with credobaptism.',
       distinctives: [
-        'Doctrines of grace (TULIP) - Reformed soteriology',
-        'Elder-led congregational polity',
-        'Covenant theology with credobaptist conviction',
-        'Believer\'s baptism by immersion (no infant baptism)',
-        'High view of God\'s sovereignty in salvation'
+        'Grounded in the 1689 London Baptist Confession',
+        'Emphasizes doctrines of grace (TULIP)',
+        'Holds to elder-led congregational polity',
+        'Reads Scripture through a covenantal but credobaptist framework',
+        'Values expository teaching and doctrinal depth'
       ]
     },
     'independent_baptist': {
       name: 'Independent Baptist',
       short: 'IB',
+      label: 'Independent Baptist Lens',
       description: 'Emphasize independent local church governance, separation, strong personal evangelism, believer\'s baptism by immersion, congregational polity. Avoid implying denominational boards/structures.',
       distinctives: [
-        'Complete local church autonomy and independence',
-        'Separation from worldliness and ecumenism',
-        'Strong emphasis on personal soul-winning',
-        'Believer\'s baptism by immersion',
-        'No denominational hierarchy or conventions'
+        'Stresses complete independence of the local church',
+        'Upholds believer\'s baptism by immersion',
+        'Strong focus on personal evangelism and soul-winning',
+        'Prefers traditional worship and separation from denominational control',
+        'Highlights practical holiness and daily obedience'
       ]
     }
   };
@@ -213,14 +216,15 @@ async function generateLessonWithAI(data: LessonRequest) {
   const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
 
 THEOLOGICAL LENS: ${lens.name}
-You are generating this lesson under the ${lens.name} theological lens.
+You are generating this lesson under the ${lens.label}.
 ${lens.description}
 
 When doctrine is debated, present this lens' position clearly and charitably without attacking other positions.
 
 REQUIRED: At the very top of your lesson output, include:
 1. A Lens Banner showing: "Theological Lens: ${lens.name}"
-2. A "Lens Distinctives" section with these key points:
+2. A "Lens Distinctives" section with exactly these bullet points (use verbatim):
+   ${lens.label}
 ${lens.distinctives.map(d => `   • ${d}`).join('\n')}
 
 REQUIRED: Prefix the lesson title with "${lens.short} • " (e.g., "${lens.short} • Understanding Grace")
