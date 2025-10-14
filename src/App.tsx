@@ -11,6 +11,14 @@ import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import Admin from "./pages/Admin";
 import Account from "./pages/Account";
+import Setup from "./pages/Setup";
+import Docs from "./pages/Docs";
+import Help from "./pages/Help";
+import Training from "./pages/Training";
+import Community from "./pages/Community";
+import Privacy from "./pages/legal/Privacy";
+import Terms from "./pages/legal/Terms";
+import Cookie from "./pages/legal/Cookie";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,6 +58,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route path="/setup" element={<Setup />} />
+            <Route path="/docs" element={<Docs />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/training" element={<Training />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/legal/privacy" element={<Privacy />} />
+            <Route path="/legal/terms" element={<Terms />} />
+            <Route path="/legal/cookie" element={<Cookie />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, Mail, Heart, Shield, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FOOTER_LINKS } from "@/config/footerLinks";
 
 
 interface SubscriptionPlan {
@@ -125,7 +126,9 @@ const Index = () => {
           onSignIn={handleSignIn}
         />
 
-        <FeaturesSection />
+        <section id="features">
+          <FeaturesSection />
+        </section>
 
         {/* Pricing Section */}
         <section id="pricing" className="section">
@@ -269,10 +272,10 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="font-semibold">Product</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Setup Guide</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Documentation</a></li>
+                <li><a href={FOOTER_LINKS.product.features} className="hover:text-primary transition-colors">Features</a></li>
+                <li><a href={FOOTER_LINKS.product.pricing} className="hover:text-primary transition-colors">Pricing</a></li>
+                <li><a href={FOOTER_LINKS.product.setup} className="hover:text-primary transition-colors">Setup Guide</a></li>
+                <li><a href={FOOTER_LINKS.product.docs} className="hover:text-primary transition-colors">Documentation</a></li>
               </ul>
             </div>
 
@@ -280,10 +283,10 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="font-semibold">Support</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Training</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Community</a></li>
+                <li><a href={FOOTER_LINKS.support.help} className="hover:text-primary transition-colors">Help Center</a></li>
+                <li><a href={FOOTER_LINKS.support.contact} className="hover:text-primary transition-colors">Contact Us</a></li>
+                <li><a href={FOOTER_LINKS.support.training} className="hover:text-primary transition-colors">Training</a></li>
+                <li><a href={FOOTER_LINKS.support.community} className="hover:text-primary transition-colors">Community</a></li>
               </ul>
             </div>
 
@@ -291,9 +294,9 @@ const Index = () => {
             <div className="space-y-4">
               <h4 className="font-semibold">Legal</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Cookie Policy</a></li>
+                <li><a href={FOOTER_LINKS.legal.privacy} className="hover:text-primary transition-colors">Privacy Policy</a></li>
+                <li><a href={FOOTER_LINKS.legal.terms} className="hover:text-primary transition-colors">Terms of Service</a></li>
+                <li><a href={FOOTER_LINKS.legal.cookie} className="hover:text-primary transition-colors">Cookie Policy</a></li>
               </ul>
             </div>
           </div>
