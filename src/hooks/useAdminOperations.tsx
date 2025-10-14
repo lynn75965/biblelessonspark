@@ -21,10 +21,19 @@ export function useAdminOperations() {
   }) => {
     setLoading(true);
     try {
+      // Get current session to pass JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-management', {
         body: {
           action: 'create_user',
           ...userData
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -45,11 +54,20 @@ export function useAdminOperations() {
   const updateUserRole = async (userId: string, role: string) => {
     setLoading(true);
     try {
+      // Get current session to pass JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-management', {
         body: {
           action: 'update_role',
           user_id: userId,
           role
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -70,10 +88,19 @@ export function useAdminOperations() {
   const deleteUser = async (userId: string) => {
     setLoading(true);
     try {
+      // Get current session to pass JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-management', {
         body: {
           action: 'delete_user',
           user_id: userId
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -94,11 +121,20 @@ export function useAdminOperations() {
   const resetPassword = async (userId: string, password: string) => {
     setLoading(true);
     try {
+      // Get current session to pass JWT token
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-management', {
         body: {
           action: 'reset_password',
           user_id: userId,
           password
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
