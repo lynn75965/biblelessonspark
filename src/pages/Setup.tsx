@@ -20,9 +20,15 @@ const Setup = () => {
             Coming soon! Our comprehensive setup guide will help you get started with LessonSpark USA.
           </p>
 
-          <Button asChild variant="secondary" size="sm">
-            <Link to="/">Back to Home</Link>
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild variant="secondary" size="lg">
+              <Link to="/setup/checklist">Interactive Setup Checklist</Link>
+            </Button>
+            
+            <Button asChild variant="outline" size="lg">
+              <Link to="/">Back to Home</Link>
+            </Button>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
             <Button variant="outline" size="lg" asChild>
