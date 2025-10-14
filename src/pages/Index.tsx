@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { BookOpen, Mail, Heart, Shield, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FOOTER_LINKS } from "@/config/footerLinks";
+import { SITE } from "@/config/site";
 
 
 interface SubscriptionPlan {
@@ -308,7 +309,7 @@ const Index = () => {
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Mail className="h-4 w-4" />
-                support@lessonspark.com
+                {SITE.supportEmail}
               </span>
             </div>
           </div>

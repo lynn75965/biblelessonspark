@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Users, Mail } from "lucide-react";
+import { SITE } from "@/config/site";
 
 const Community = () => {
 
@@ -25,7 +26,7 @@ const Community = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
             <Button variant="outline" size="lg" asChild>
-              <a href="mailto:support@lessonspark.com" className="flex items-center gap-2">
+              <a href={`mailto:${SITE.supportEmail}`} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email Support
               </a>

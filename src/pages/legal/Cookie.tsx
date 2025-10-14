@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Cookie as CookieIcon, Mail } from "lucide-react";
+import { SITE } from "@/config/site";
 
 const Cookie = () => {
 
@@ -42,13 +43,13 @@ const Cookie = () => {
 
             <h2 className="text-2xl font-semibold mt-8">Contact Us</h2>
             <p>
-              If you have questions about our use of cookies, please contact us at support@lessonspark.com.
+              If you have questions about our use of cookies, please contact us at {SITE.supportEmail}.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 border-t">
             <Button variant="outline" size="lg" asChild>
-              <a href="mailto:support@lessonspark.com" className="flex items-center gap-2">
+              <a href={`mailto:${SITE.supportEmail}`} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email Support
               </a>
