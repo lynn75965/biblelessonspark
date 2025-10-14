@@ -15,7 +15,7 @@ import {
 } from "@/lib/pricingSource";
 
 export function PricingSection() {
-  const [cycle, setCycle] = useState<BillingCycle>("yearly");
+  const [cycle, setCycle] = useState<BillingCycle>("monthly");
   const [plans, setPlans] = useState<UiPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
