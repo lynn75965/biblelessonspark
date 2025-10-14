@@ -63,13 +63,15 @@ export function UserManagement() {
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
       await deleteUser(userId);
+      // Refresh the user list immediately after successful deletion
+      await fetchUsers();
       toast({
-        title: "User Deleted",
+        title: "Success",
         description: `${userName || 'User'} has been successfully deleted.`,
       });
-      fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
+      // Error toast is already shown by useAdminOperations
     }
   };
 
