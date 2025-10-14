@@ -94,9 +94,8 @@ export function useAdminOperations() {
         throw new Error('No active session');
       }
 
-      const { data, error } = await supabase.functions.invoke('admin-management', {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
         body: {
-          action: 'delete_user',
           user_id: userId
         },
         headers: {
@@ -106,6 +105,11 @@ export function useAdminOperations() {
 
       if (error) {
         throw new Error(error.message);
+      }
+
+      // Check for error in response body
+      if (data?.error) {
+        throw new Error(data.error);
       }
 
       toast.success('User deleted successfully');
