@@ -58,5 +58,14 @@ verify_jwt = false
 [functions.admin-delete-user]
 verify_jwt = true
 
+[functions.notifications-list]
+verify_jwt = true
+
+[functions.notifications-mark-read]
+verify_jwt = true
+
+[functions.seed-test-notifications]
+verify_jwt = true
+
 [edge_runtime]
 policy = "per_worker"
