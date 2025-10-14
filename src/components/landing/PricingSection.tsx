@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Star, Crown, Zap, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { 
   BillingCycle, 
   UiPlan, 
@@ -12,14 +14,11 @@ import {
   getPlanFeatures 
 } from "@/lib/pricingSource";
 
-interface PricingSectionProps {
-  onRequestAccess?: () => void;
-}
-
-export function PricingSection({ onRequestAccess }: PricingSectionProps) {
+export function PricingSection() {
   const [cycle, setCycle] = useState<BillingCycle>("yearly");
   const [plans, setPlans] = useState<UiPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   // Load saved billing cycle preference
   useEffect(() => {
@@ -50,6 +49,36 @@ export function PricingSection({ onRequestAccess }: PricingSectionProps) {
       });
     return () => { alive = false; };
   }, [cycle]);
+
+  const handleSubscribe = async (lookupKey: string, planId: string) => {
+    setCheckoutLoading(planId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error("Please sign in to subscribe");
+        window.location.href = "/auth";
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { lookup_key: lookupKey }
+      });
+
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, "_blank");
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("Failed to create checkout session. Please try again.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   const getPlanIcon = (planName: string) => {
     const name = planName.toLowerCase();
@@ -224,16 +253,21 @@ export function PricingSection({ onRequestAccess }: PricingSectionProps) {
                       className="w-full"
                       variant={isPopular ? "hero" : "outline"}
                       size="lg"
-                      onClick={onRequestAccess}
-                      disabled={true}
+                      onClick={() => handleSubscribe(plan.lookupKey, plan.id)}
+                      disabled={checkoutLoading === plan.id}
                     >
-                      {isPopular ? (
+                      {checkoutLoading === plan.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : isPopular ? (
                         <>
                           <Star className="h-4 w-4" />
-                          {cycle === "yearly" ? "Subscribe Yearly" : "Request Access"}
+                          {cycle === "yearly" ? "Subscribe Yearly" : "Subscribe Monthly"}
                         </>
                       ) : (
-                        cycle === "yearly" ? "Subscribe Yearly" : "Request Access"
+                        cycle === "yearly" ? "Subscribe Yearly" : "Subscribe Monthly"
                       )}
                     </Button>
                     
