@@ -98,6 +98,16 @@
     --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 
+    /* Section Spacing Tokens */
+    --section-y: 2.5rem; /* ~40px */
+    --section-y-lg: 3.5rem; /* ~56px */
+  }
+
+  @media (min-width: 1024px) {
+    :root {
+      --section-y: 3rem; /* ~48px */
+      --section-y-lg: 4rem; /* ~64px */
+    }
   }
 
   .dark {
@@ -217,5 +227,16 @@
   /* Beta ribbon */
   .beta-ribbon {
     @apply absolute top-4 right-4 bg-gradient-to-r from-secondary to-warning text-white px-3 py-1 rounded-full text-xs font-semibold shadow-md transform rotate-12;
+  }
+
+  /* Section spacing utilities */
+  .section {
+    padding-top: var(--section-y);
+    padding-bottom: var(--section-y);
+  }
+
+  .section-lg {
+    padding-top: var(--section-y-lg);
+    padding-bottom: var(--section-y-lg);
   }
 }

@@ -71,9 +71,9 @@ export function FeaturesSection() {
     };
     return colors[category as keyof typeof colors] || "bg-muted text-muted-foreground";
   };
-  return <section className="py-20 bg-muted/30">
+  return <section className="section bg-muted/30">
       <div className="container">
-        <div className="text-center space-y-4 mb-16">
+        <div className="text-center space-y-4 mb-8">
           <Badge variant="outline" className="px-4 py-1">
             Features
           </Badge>
@@ -85,7 +85,7 @@ export function FeaturesSection() {
 every age group.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {features.map((feature, index) => <Card key={index} className="group hover:shadow-glow transition-all duration-normal border-border/50 hover:border-primary/20 bg-gradient-card">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -116,7 +116,7 @@ every age group.</p>
         </div>
 
         {/* CTA Section */}
-        <div className="text-center mt-16 space-y-4">
+        <div className="text-center mt-8 space-y-4">
           <h3 className="text-2xl font-bold">Ready to Transform Your Lesson Prep?</h3>
           <p className="text-muted-foreground">
             Join the private beta and see how LessonSpark USA can revolutionize your Bible study preparation.

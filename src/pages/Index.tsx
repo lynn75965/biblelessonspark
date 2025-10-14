@@ -128,9 +128,9 @@ const Index = () => {
         <FeaturesSection />
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-20">
+        <section id="pricing" className="section">
           <div className="container">
-            <div className="text-center space-y-4 mb-12">
+            <div className="text-center space-y-4 mb-8">
               <h2 className="text-3xl lg:text-4xl font-bold">
                 <span className="gradient-text">Simple, Transparent Pricing</span>
               </h2>
@@ -139,7 +139,7 @@ const Index = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {plans.map((plan) => (
                 <PricingCard
                   key={plan.id}
@@ -156,9 +156,9 @@ const Index = () => {
         </section>
 
         {/* Setup Preview Section */}
-        <section className="py-20 bg-muted/20">
+        <section className="section bg-muted/20">
           <div className="container">
-            <div className="text-center space-y-4 mb-12">
+            <div className="text-center space-y-4 mb-8">
               <h2 className="text-3xl lg:text-4xl font-bold">
                 <span className="gradient-text">Setup Made Simple</span>
               </h2>
@@ -194,9 +194,9 @@ const Index = () => {
         </section>
 
         {/* Trust Section */}
-        <section className="py-20">
+        <section className="section">
           <div className="container">
-            <div className="text-center space-y-4 mb-16">
+            <div className="text-center space-y-4 mb-8">
               <h2 className="text-3xl lg:text-4xl font-bold">
                 Built for{" "}
                 <span className="gradient-text">Baptist Churches</span>
@@ -207,7 +207,7 @@ const Index = () => {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-6">
               <Card className="text-center bg-gradient-card">
                 <CardHeader>
                   <div className="mx-auto h-12 w-12 rounded-lg bg-gradient-primary flex items-center justify-center">
