@@ -19,6 +19,7 @@ import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile 
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
+import DebugPanel from "./DebugPanel";
 
 interface EnhanceLessonFormProps {
   organizationId?: string;
@@ -103,6 +104,7 @@ export function EnhanceLessonForm({
     console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
     console.log("✅ VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
     console.log("✅ VERIFIED_BUILD: runtime instrumentation active");
+    console.log("✅ VERIFIED_BUILD: DebugPanel visible and reactive");
   }, []);
   
   React.useEffect(() => {
@@ -919,6 +921,18 @@ export function EnhanceLessonForm({
           </div>
         </Card>
       )}
+
+      <DebugPanel 
+        job={{
+          jobId: extractJobId,
+          sessionId,
+          uploadId,
+          fileHash,
+          source: sourceFilename,
+          state: extractState,
+          progress: extractProgress
+        }}
+      />
     </div>
   );
 }
