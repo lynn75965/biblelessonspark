@@ -375,43 +375,45 @@ export function EnhanceLessonForm({
     try {
       const lessonData = {
         title: lessonTitle,
-        overview: generatedContent.overview || "",
-        objectives: generatedContent.objectives || "",
-        scripture: generatedContent.scripture || "",
-        background: generatedContent.background || "",
-        opening: generatedContent.opening || "",
-        teaching: generatedContent.teaching || "",
-        activities: generatedContent.activities || "",
-        discussion: generatedContent.discussion || "",
-        applications: generatedContent.applications || "",
-        assessment: generatedContent.assessment || "",
-        resources: generatedContent.resources || "",
-        preparation: generatedContent.preparation || "",
-        fullContent: generatedContent.fullContent || "",
-        organization_id: organizationId,
-        created_by: user.id,
-        age_group: formData.ageGroup,
-        doctrine_profile: formData.doctrineProfile,
-        notes: formData.notes,
-        theological_preference: formData.theologicalPreference,
-        sb_confession_version: formData.sbConfessionVersion,
-        source_file: sourceFilename,
-        session_id: sessionId,
-        upload_id: uploadId,
-        file_hash: fileHash,
+        original_text: generatedContent.fullContent || "",
+        source_type: "enhanced",
+        upload_path: sourceFilename || null,
+        filters: {
+          overview: generatedContent.overview || "",
+          objectives: generatedContent.objectives || "",
+          scripture: generatedContent.scripture || "",
+          background: generatedContent.background || "",
+          opening: generatedContent.opening || "",
+          teaching: generatedContent.teaching || "",
+          activities: generatedContent.activities || "",
+          discussion: generatedContent.discussion || "",
+          applications: generatedContent.applications || "",
+          assessment: generatedContent.assessment || "",
+          resources: generatedContent.resources || "",
+          preparation: generatedContent.preparation || "",
+          age_group: formData.ageGroup,
+          doctrine_profile: formData.doctrineProfile,
+          notes: formData.notes,
+          theological_preference: formData.theologicalPreference,
+          sb_confession_version: formData.sbConfessionVersion,
+          session_id: sessionId,
+          upload_id: uploadId,
+          file_hash: fileHash,
+        },
+        organization_id: organizationId || undefined,
       };
 
-      const newLesson = await createLesson(lessonData);
+      const result = await createLesson(lessonData);
 
-      if (newLesson) {
-        trackLessonCreated(newLesson.id);
+      if (result.data && !result.error) {
+        trackLessonCreated(result.data.id);
         toast({
           title: "Lesson saved!",
           description: "Your lesson has been successfully saved.",
         });
         handleClearForm();
       } else {
-        throw new Error("Failed to save lesson");
+        throw new Error(result.error?.message || "Failed to save lesson");
       }
     } catch (error: any) {
       console.error("Save error:", error);
@@ -430,7 +432,7 @@ export function EnhanceLessonForm({
         title: "Content copied!",
         description: "Full lesson content copied to clipboard.",
       });
-      trackEvent("lesson_copied", {
+      trackEvent("lesson_copied", undefined, {
         lesson_title: lessonTitle,
         age_group: formData.ageGroup,
         doctrine_profile: formData.doctrineProfile,
@@ -469,7 +471,7 @@ export function EnhanceLessonForm({
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-        trackEvent("lesson_printed", {
+        trackEvent("lesson_printed", undefined, {
           lesson_title: lessonTitle,
           age_group: formData.ageGroup,
           doctrine_profile: formData.doctrineProfile,
@@ -495,7 +497,7 @@ export function EnhanceLessonForm({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      trackEvent("lesson_downloaded", {
+      trackEvent("lesson_downloaded", undefined, {
         lesson_title: lessonTitle,
         age_group: formData.ageGroup,
         doctrine_profile: formData.doctrineProfile,
@@ -702,7 +704,7 @@ export function EnhanceLessonForm({
             {showCustomization && (
               <TeacherCustomization
                 preferences={teacherPreferences}
-                setPreferences={setTeacherPreferences}
+                onPreferencesChange={setTeacherPreferences}
               />
             )}
 
