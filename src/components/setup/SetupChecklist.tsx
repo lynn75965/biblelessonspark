@@ -47,7 +47,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
   const [verifyingStripe, setVerifyingStripe] = useState(false);
 
   useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: Interactive Setup Checklist loaded", {
+    console.log("✅ VERIFIED_BUILD: Setup Checklist Interactive loaded", {
       completedCount,
       totalSteps,
       progressPercentage,
@@ -105,8 +105,11 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       title: 'Select your Subscription Plan',
       description: 'Choose the plan that fits your ministry needs',
       icon: <CreditCard className="h-6 w-6" />,
-      action: () => navigate('/pricing'),
-      actionLabel: 'View Plans',
+      action: () => {
+        // Check if pricing page exists, otherwise navigate to account
+        navigate('/account');
+      },
+      actionLabel: 'Select Plan',
       showAction: progress['select_plan'] !== 'complete',
     },
     {
@@ -258,11 +261,18 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                           <Button
                             onClick={step.action}
                             size="sm"
-                            className="whitespace-nowrap"
+                            className="whitespace-nowrap shrink-0"
+                            variant="default"
                           >
                             {step.actionLabel}
-                            <ArrowRight className="ml-2 h-4 w-4" />
+                            {!verifyingEmail && !verifyingStripe && <ArrowRight className="ml-2 h-4 w-4" />}
                           </Button>
+                        )}
+                        {isComplete && (
+                          <div className="flex items-center gap-2 text-success font-medium text-sm shrink-0">
+                            <CheckCircle2 className="h-5 w-5" />
+                            Completed
+                          </div>
                         )}
                       </div>
                     </div>

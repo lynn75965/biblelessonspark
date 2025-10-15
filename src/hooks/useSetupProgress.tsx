@@ -73,7 +73,7 @@ export function useSetupProgress() {
       .eq('id', user.id)
       .single();
     
-    if (profile?.theological_preference && profile.theological_preference !== 'southern_baptist') {
+    if (profile?.theological_preference) {
       await updateStep('choose_lens', 'complete');
     }
 
