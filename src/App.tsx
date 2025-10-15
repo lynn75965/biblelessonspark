@@ -13,6 +13,7 @@ import Admin from "./pages/Admin";
 import Account from "./pages/Account";
 import Setup from "./pages/Setup";
 import SetupChecklist from "./pages/SetupChecklist";
+import PreferencesLens from "./pages/PreferencesLens";
 import Docs from "./pages/Docs";
 import Help from "./pages/Help";
 import Training from "./pages/Training";
@@ -61,6 +62,11 @@ const App = () => (
             />
             <Route path="/setup" element={<Setup />} />
             <Route path="/setup/checklist" element={<SetupChecklist />} />
+            <Route path="/preferences/lens" element={
+              <ProtectedRoute>
+                <PreferencesLens />
+              </ProtectedRoute>
+            } />
             <Route path="/docs" element={<Docs />} />
             <Route path="/help" element={<Help />} />
             <Route path="/training" element={<Training />} />

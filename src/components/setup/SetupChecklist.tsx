@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,18 +10,28 @@ import {
   BookOpen,
   Users,
   Sparkles,
-  ArrowRight
+  ArrowRight,
+  Mail,
+  CreditCard,
+  Zap,
+  LayoutDashboard,
+  UserPlus,
+  CheckCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useSetupProgress, StepKey } from "@/hooks/useSetupProgress";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SetupStep {
-  id: string;
+  id: StepKey;
   title: string;
   description: string;
   icon: React.ReactNode;
-  completed: boolean;
-  navigateTo?: string;
+  action: () => void | Promise<void>;
   actionLabel?: string;
+  showAction?: boolean;
 }
 
 interface SetupChecklistProps {
@@ -31,92 +41,170 @@ interface SetupChecklistProps {
 
 export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps) {
   const navigate = useNavigate();
-  
-  const [steps, setSteps] = useState<SetupStep[]>([
+  const { user } = useAuth();
+  const { progress, loading, updateStep, refreshProgress, completedCount, totalSteps, progressPercentage } = useSetupProgress();
+  const [verifyingEmail, setVerifyingEmail] = useState(false);
+  const [verifyingStripe, setVerifyingStripe] = useState(false);
+
+  const steps: SetupStep[] = [
     {
-      id: 'account',
-      title: 'Set up your teacher account',
-      description: 'Create your personal account and sign in',
+      id: 'create_account',
+      title: 'Create your LessonSpark USA account',
+      description: 'Sign up and create your teacher profile',
       icon: <User className="h-6 w-6" />,
-      completed: false,
-      navigateTo: '/auth',
-      actionLabel: 'Go to Sign In'
+      action: () => {
+        if (!user) navigate('/auth');
+      },
+      actionLabel: 'Go to Sign In',
+      showAction: !user,
     },
     {
-      id: 'church',
-      title: 'Add your church information',
-      description: 'Tell us about your church and ministry',
+      id: 'verify_email',
+      title: 'Verify your email',
+      description: 'Check your inbox and confirm your email address',
+      icon: <Mail className="h-6 w-6" />,
+      action: async () => {
+        setVerifyingEmail(true);
+        try {
+          const { data } = await supabase.auth.refreshSession();
+          if (data.user?.email_confirmed_at) {
+            await updateStep('verify_email', 'complete');
+            toast.success('Email verified!');
+          } else {
+            toast.error('Email not yet verified. Please check your inbox.');
+          }
+        } catch (error) {
+          toast.error('Failed to verify email');
+        } finally {
+          setVerifyingEmail(false);
+        }
+      },
+      actionLabel: verifyingEmail ? 'Verifying...' : 'Verify',
+      showAction: user && progress['verify_email'] !== 'complete',
+    },
+    {
+      id: 'choose_lens',
+      title: 'Choose your Theological Lens',
+      description: 'Select your preferred Baptist theological perspective',
       icon: <Church className="h-6 w-6" />,
-      completed: false,
-      navigateTo: '/account',
-      actionLabel: 'Go to Profile'
+      action: () => navigate('/preferences/lens'),
+      actionLabel: 'Choose Lens',
+      showAction: progress['choose_lens'] !== 'complete',
     },
     {
-      id: 'lesson',
-      title: 'Create your first lesson',
-      description: 'Try our smart lesson enhancement',
+      id: 'select_plan',
+      title: 'Select your Subscription Plan',
+      description: 'Choose the plan that fits your ministry needs',
+      icon: <CreditCard className="h-6 w-6" />,
+      action: () => navigate('/pricing'),
+      actionLabel: 'View Plans',
+      showAction: progress['select_plan'] !== 'complete',
+    },
+    {
+      id: 'connect_stripe',
+      title: 'Connect Stripe (auto-checked if live)',
+      description: 'Payment processing setup for subscriptions',
+      icon: <Zap className="h-6 w-6" />,
+      action: async () => {
+        setVerifyingStripe(true);
+        try {
+          const { data, error } = await supabase.functions.invoke('stripe-status');
+          if (error) throw error;
+          
+          if (data?.connected && data?.live) {
+            await updateStep('connect_stripe', 'complete');
+            toast.success('Stripe is connected and live!');
+          } else {
+            toast.error('Stripe is not yet configured');
+          }
+        } catch (error) {
+          toast.error('Failed to verify Stripe status');
+        } finally {
+          setVerifyingStripe(false);
+        }
+      },
+      actionLabel: verifyingStripe ? 'Verifying...' : 'Verify',
+      showAction: progress['connect_stripe'] !== 'complete',
+    },
+    {
+      id: 'generate_lesson',
+      title: 'Generate your first lesson',
+      description: 'Try creating an enhanced Bible study lesson',
       icon: <BookOpen className="h-6 w-6" />,
-      completed: false,
-      navigateTo: '/dashboard',
-      actionLabel: 'Go to Dashboard'
+      action: () => navigate('/dashboard'),
+      actionLabel: 'Create Lesson',
+      showAction: progress['generate_lesson'] !== 'complete',
     },
     {
-      id: 'invite',
-      title: 'Invite other teachers (optional)',
+      id: 'review_dashboard',
+      title: 'Review your dashboard and credit balance',
+      description: 'Familiarize yourself with your workspace',
+      icon: <LayoutDashboard className="h-6 w-6" />,
+      action: async () => {
+        navigate('/dashboard');
+        await updateStep('review_dashboard', 'complete');
+      },
+      actionLabel: 'View Dashboard',
+      showAction: progress['review_dashboard'] !== 'complete',
+    },
+    {
+      id: 'invite_teacher',
+      title: 'Invite another teacher (optional)',
       description: 'Share LessonSpark with your ministry team',
-      icon: <Users className="h-6 w-6" />,
-      completed: false,
-      navigateTo: '/account',
-      actionLabel: 'Go to Account'
+      icon: <UserPlus className="h-6 w-6" />,
+      action: () => navigate('/account'),
+      actionLabel: 'Invite Teachers',
+      showAction: progress['invite_teacher'] !== 'complete',
     },
     {
-      id: 'ready',
-      title: 'You\'re ready to go!',
-      description: 'Start enhancing lessons for your Baptist Bible study',
-      icon: <Sparkles className="h-6 w-6" />,
-      completed: false,
-      navigateTo: '/dashboard',
-      actionLabel: 'Go to Dashboard'
-    }
-  ]);
+      id: 'mark_complete',
+      title: 'Mark Setup Complete',
+      description: "You're ready to start enhancing lessons!",
+      icon: <CheckCheck className="h-6 w-6" />,
+      action: async () => {
+        await updateStep('mark_complete', 'complete');
+        toast.success('Setup complete! Welcome to LessonSpark USA!');
+      },
+      actionLabel: 'Complete',
+      showAction: false,
+    },
+  ];
 
-  const handleStepComplete = (stepId: string) => {
-    setSteps(prev => prev.map(step => 
-      step.id === stepId 
-        ? { ...step, completed: true }
-        : step
-    ));
-  };
-
-  const completedSteps = steps.filter(step => step.completed).length;
-  const totalSteps = steps.length;
-  const progress = (completedSteps / totalSteps) * 100;
+  if (loading) {
+    return (
+      <div className={cn("w-full max-w-2xl mx-auto", isModal && "max-h-[80vh] overflow-y-auto")}>
+        <div className="flex items-center justify-center py-12">
+          <BookOpen className="h-8 w-8 animate-pulse text-primary" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("w-full max-w-2xl mx-auto", isModal && "max-h-[80vh] overflow-y-auto")}>
       <div className="space-y-8">
         {/* Header */}
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
-                <BookOpen className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
-                <p className="text-lg text-muted-foreground">Let's get you started with these simple steps!</p>
-              </div>
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-center gap-3">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
+              <BookOpen className="h-8 w-8 text-white" />
             </div>
+            <div>
+              <h2 className="text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
+              <p className="text-lg text-muted-foreground">Let's get you started with these simple steps!</p>
+            </div>
+          </div>
           
           {/* Progress */}
           <div className="space-y-3">
             <div className="flex justify-between text-sm font-medium">
               <span>Setup Progress</span>
-              <span className="text-primary">{completedSteps} of {totalSteps} complete</span>
+              <span className="text-primary">{completedCount} of {totalSteps} complete</span>
             </div>
             <div className="w-full bg-muted rounded-full h-3">
               <div 
                 className="bg-gradient-primary h-3 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${progress}%` }}
+                style={{ width: `${progressPercentage}%` }}
               />
             </div>
           </div>
@@ -124,73 +212,60 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
 
         {/* Steps */}
         <div className="space-y-4">
-          {steps.map((step, index) => (
-            <Card key={step.id} className={cn(
-              "border-2 transition-all duration-300 hover:shadow-md",
-              step.completed 
-                ? "border-success bg-success/5" 
-                : "border-border hover:border-primary/30"
-            )}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  {/* Step Icon/Number */}
-                  <div className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-300",
-                    step.completed 
-                      ? "bg-success text-white" 
-                      : "bg-primary/10 text-primary"
-                  )}>
-                    {step.completed ? (
-                      <CheckCircle2 className="h-6 w-6" />
-                    ) : (
-                      <Circle className="h-6 w-6" />
-                    )}
-                  </div>
-                  
-                  {/* Step Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-2">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-foreground mb-1">{step.title}</h3>
-                        <p className="text-muted-foreground text-sm mb-2">{step.description}</p>
-                        {step.navigateTo && !step.completed && (
-                          <p className="text-xs text-muted-foreground/70">
-                            Click below to open this step
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-2 flex-shrink-0">
-                        {!step.completed && step.navigateTo && (
+          {steps.map((step) => {
+            const isComplete = progress[step.id] === 'complete';
+            
+            return (
+              <Card key={step.id} className={cn(
+                "border-2 transition-all duration-300 hover:shadow-md",
+                isComplete 
+                  ? "border-success bg-success/5" 
+                  : "border-border hover:border-primary/30"
+              )}>
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    {/* Step Icon/Number */}
+                    <div className={cn(
+                      "flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-300",
+                      isComplete 
+                        ? "bg-success text-white" 
+                        : "bg-primary/10 text-primary"
+                    )}>
+                      {isComplete ? (
+                        <CheckCircle2 className="h-6 w-6" />
+                      ) : (
+                        step.icon
+                      )}
+                    </div>
+                    
+                    {/* Step Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-foreground mb-1">{step.title}</h3>
+                          <p className="text-muted-foreground text-sm">{step.description}</p>
+                        </div>
+                        {!isComplete && step.showAction && (
                           <Button
-                            onClick={() => navigate(step.navigateTo!)}
+                            onClick={step.action}
                             size="sm"
-                            variant="outline"
                             className="whitespace-nowrap"
                           >
                             {step.actionLabel}
                             <ArrowRight className="ml-2 h-4 w-4" />
                           </Button>
                         )}
-                        {!step.completed && (
-                          <Button
-                            onClick={() => handleStepComplete(step.id)}
-                            size="sm"
-                            className="whitespace-nowrap"
-                          >
-                            Complete
-                          </Button>
-                        )}
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Completion Message */}
-        {completedSteps === totalSteps && (
+        {progress['mark_complete'] === 'complete' && (
           <Card className="border-success bg-gradient-to-r from-success/10 to-primary/10">
             <CardContent className="p-6 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success text-white mx-auto mb-3">
@@ -202,6 +277,12 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
               <p className="text-muted-foreground mb-4">
                 You're all set to start creating amazing Baptist Bible study lessons!
               </p>
+              <Button 
+                onClick={() => navigate('/dashboard')}
+                className="bg-gradient-primary"
+              >
+                Go to Dashboard
+              </Button>
             </CardContent>
           </Card>
         )}

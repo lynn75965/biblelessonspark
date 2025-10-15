@@ -472,6 +472,36 @@ export type Database = {
           },
         ]
       }
+      setup_progress: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          status: string
+          step_key: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          step_key: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          status?: string
+          step_key?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       stripe_events: {
         Row: {
           event_id: string
