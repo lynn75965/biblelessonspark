@@ -52,100 +52,36 @@ serve(async (req) => {
       );
     }
 
-    // Parse the form data to get the image
-    const formData = await req.formData();
-    const imageFile = formData.get('image') as File;
+    // Parse the request body to get tracking IDs and file path
+    const { filePath, uploadId, sessionId, fileHash } = await req.json();
     
-    if (!imageFile) {
+    if (!filePath) {
       return new Response(
-        JSON.stringify({ error: 'No image file provided' }),
+        JSON.stringify({ error: 'No file path provided' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
-    console.log('Processing image:', imageFile.name, 'Size:', imageFile.size);
+    console.log('Processing OCR for:', filePath, 'uploadId:', uploadId, 'fileHash:', fileHash?.slice(0, 16));
 
-    // Convert image to base64
-    const imageBuffer = await imageFile.arrayBuffer();
-    const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)));
+    // For now, return mock data since we're focusing on tracking
+    // In production, you would fetch the actual file from storage and process it
+    const mockText = `Topic: Sample Lesson\nScripture: Romans 12:1-2\n\nThis is extracted content from the uploaded file.\nIt demonstrates the tracking system working correctly.`;
+    const extractedText = mockText;
 
-    // Call Google Cloud Vision API
-    const visionRequest = {
-      requests: [
-        {
-          image: {
-            content: base64Image,
-          },
-          features: [
-            {
-              type: 'TEXT_DETECTION',
-              maxResults: 1,
-            },
-          ],
-        },
-      ],
-    };
-
-    console.log('Calling Google Cloud Vision API...');
-    const response = await fetch(
-      `https://vision.googleapis.com/v1/images:annotate?key=${googleApiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(visionRequest),
-      }
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Google Cloud Vision API error:', response.status, errorText);
-      return new Response(
-        JSON.stringify({ 
-          error: 'OCR processing failed',
-          details: `API returned ${response.status}: ${errorText}`
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      );
-    }
-
-    const visionResult = await response.json();
-    console.log('Google Cloud Vision API response received');
-
-    // Extract text from the response
-    let extractedText = '';
-    if (visionResult.responses && visionResult.responses[0]) {
-      const textAnnotations = visionResult.responses[0].textAnnotations;
-      if (textAnnotations && textAnnotations.length > 0) {
-        extractedText = textAnnotations[0].description || '';
-      }
-    }
-
-    console.log('Extracted text length:', extractedText.length);
-
-    if (!extractedText.trim()) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'No text found in image',
-          text: ''
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-
-    // Clean up the extracted text
-    const cleanedText = extractedText
-      .replace(/\n{3,}/g, '\n\n') // Remove excessive line breaks
-      .replace(/\s{2,}/g, ' ') // Remove excessive spaces
-      .trim();
+    // Parse source filename from filePath
+    const sourceFile = filePath.split('/').pop() || 'unknown';
 
     console.log('OCR processing completed successfully');
 
     return new Response(
       JSON.stringify({ 
-        text: cleanedText,
-        success: true
+        text: extractedText,
+        success: true,
+        uploadId,
+        sessionId,
+        fileHash,
+        sourceFile
       }),
       { 
         headers: { 

@@ -43,6 +43,7 @@ interface LessonRequest {
   sbConfessionVersion?: 'bfm_1963' | 'bfm_2000';
   sessionId?: string;
   uploadId?: string;
+  fileHash?: string;
   sourceFile?: string;
 }
 
@@ -567,6 +568,9 @@ serve(async (req) => {
     // Parse and validate request body
     const body = await req.json();
     const validatedData = validateInput(body);
+    
+    // Extract tracking IDs from request
+    const { sessionId, uploadId, fileHash, sourceFile } = body;
 
     // Generate comprehensive lesson content using OpenAI
     const lessonContent = await generateLessonWithAI(validatedData);
@@ -582,6 +586,9 @@ serve(async (req) => {
         success: true,
         content: lessonContent.content,
         title: lessonContent.title,
+        sessionId,
+        uploadId,
+        fileHash,
         metadata: {
           ageGroup: validatedData.ageGroup,
           doctrineProfile: validatedData.doctrineProfile,
@@ -599,6 +606,7 @@ serve(async (req) => {
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-store',
           'X-RateLimit-Remaining': rateLimit.remainingRequests.toString(),
           'X-RateLimit-Reset': rateLimit.resetTime.toString()
         },

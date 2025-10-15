@@ -61,6 +61,7 @@ export function EnhanceLessonForm({
   // Session and upload tracking
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [uploadId, setUploadId] = useState<string | null>(null);
+  const [fileHash, setFileHash] = useState<string | null>(null);
   const [enhancementJobId, setEnhancementJobId] = useState<string | null>(null);
   
   const [extractedContent, setExtractedContent] = useState("");
@@ -96,6 +97,8 @@ export function EnhanceLessonForm({
   
   // Fetch saved confession version from profile on mount
   React.useEffect(() => {
+    console.log('✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload');
+    
     const fetchProfilePreferences = async () => {
       if (!user) return;
       
@@ -117,15 +120,41 @@ export function EnhanceLessonForm({
     fetchProfilePreferences();
   }, [user]);
 
+  // Compute SHA-256 hash of file content
+  const computeFileHash = async (file: File): Promise<string> => {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Generate unique session and upload IDs - clear ALL previous state
+    // Generate unique session and upload IDs
     const newSessionId = crypto.randomUUID();
     const newUploadId = crypto.randomUUID();
+    
+    // Compute file hash
+    let newFileHash: string;
+    try {
+      newFileHash = await computeFileHash(file);
+    } catch (error) {
+      console.error('Failed to compute file hash:', error);
+      toast({
+        title: "File processing failed",
+        description: "Could not process file. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Clear ALL previous state
     setSessionId(newSessionId);
     setUploadId(newUploadId);
+    setFileHash(newFileHash);
     setEnhancementJobId(null);
     setEnhancedResult(null);
     setExtractedContent("");
@@ -158,7 +187,7 @@ export function EnhanceLessonForm({
     setSourceFile(sanitizedName);
     logFileUploadEvent(user.id, sanitizedName, file.size, true);
 
-    console.log('UPLOAD_DONE', { sessionId: newSessionId, uploadId: newUploadId, sourceFile: sanitizedName });
+    console.log('UPLOAD_DONE', { sessionId: newSessionId, uploadId: newUploadId, fileHash: newFileHash, sourceFile: sanitizedName });
 
     try {
       // For image files, use OCR
@@ -181,6 +210,7 @@ export function EnhanceLessonForm({
               filePath: `${user.id}/${newUploadId}/${sanitizedName}`,
               uploadId: newUploadId,
               sessionId: newSessionId,
+              fileHash: newFileHash,
             }),
             cache: 'no-store',
           }
@@ -194,12 +224,13 @@ export function EnhanceLessonForm({
         
         console.log('EXTRACT_DONE', { 
           uploadId: ocrResult.uploadId, 
-          sessionId: ocrResult.sessionId, 
+          sessionId: ocrResult.sessionId,
+          fileHash: ocrResult.fileHash,
           sourceFile: ocrResult.sourceFile 
         });
 
         // Race condition guard: only update if this is still the current upload
-        if (newUploadId === uploadId && newSessionId === sessionId) {
+        if (newUploadId === uploadId && newSessionId === sessionId && newFileHash === fileHash) {
           const extractedText = sanitizeLessonInput(ocrResult.text || '');
           
           // Parse topic and scripture from extracted text
@@ -219,7 +250,7 @@ export function EnhanceLessonForm({
         const reader = new FileReader();
         reader.onload = (event) => {
           // Race condition guard
-          if (newUploadId !== uploadId || newSessionId !== sessionId) return;
+          if (newUploadId !== uploadId || newSessionId !== sessionId || newFileHash !== fileHash) return;
 
           const text = event.target?.result as string;
           const sanitizedText = sanitizeLessonInput(text);
@@ -262,7 +293,7 @@ export function EnhanceLessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user || !sessionId || !uploadId) {
+    if (!user || !sessionId || !uploadId || !fileHash) {
       toast({
         title: "Authentication required",
         description: "Please sign in and upload a file to generate lessons",
@@ -351,6 +382,7 @@ export function EnhanceLessonForm({
           // Session tracking
           sessionId,
           uploadId,
+          fileHash,
           sourceFile,
         }),
         cache: 'no-store',
@@ -365,11 +397,12 @@ export function EnhanceLessonForm({
       console.log('ENHANCE_STARTED', { 
         jobId: result?.lesson?.id, 
         uploadId: result?.uploadId, 
-        sessionId: result?.sessionId 
+        sessionId: result?.sessionId,
+        fileHash: result?.fileHash
       });
 
       // Race-proof: Only set result if IDs match current session
-      if (result.sessionId === sessionId && result.uploadId === uploadId) {
+      if (result.sessionId === sessionId && result.uploadId === uploadId && result.fileHash === fileHash) {
         if (result.success) {
           setGeneratedContent(result.output?.teacher_plan);
           setLessonTitle(result.lesson?.title || '');
@@ -378,12 +411,14 @@ export function EnhanceLessonForm({
             ...result,
             sessionId: result.sessionId,
             uploadId: result.uploadId,
+            fileHash: result.fileHash,
           });
 
           console.log('ENHANCE_RESULT', {
             jobId: result.lesson?.id,
             uploadId: result.uploadId,
             sessionId: result.sessionId,
+            fileHash: result.fileHash,
             source: sourceFile,
           });
           
@@ -406,7 +441,9 @@ export function EnhanceLessonForm({
       } else {
         console.warn('Stale response ignored', { 
           responseSession: result?.sessionId, 
-          currentSession: sessionId 
+          currentSession: sessionId,
+          responseHash: result?.fileHash,
+          currentHash: fileHash
         });
       }
     } catch (error: any) {
@@ -442,6 +479,7 @@ export function EnhanceLessonForm({
           ...formData,
           sessionId,
           uploadId,
+          fileHash,
           sourceFile,
         }
       });
@@ -618,12 +656,40 @@ export function EnhanceLessonForm({
               />
               
               {/* Debug instrumentation */}
-              {sessionId && uploadId && (
-                <div className="text-xs text-muted-foreground/60 mt-1 font-mono">
-                  UI sessionId: {sessionId.slice(0, 8)}... | uploadId: {uploadId.slice(0, 8)}...
-                  {enhancementJobId && ` | jobId: ${enhancementJobId.slice(0, 8)}...`}
-                  {sourceFile && ` | source: ${sourceFile}`}
+              {sessionId && uploadId && fileHash && (
+                <div className="text-xs text-muted-foreground/60 mt-1 font-mono space-y-0.5">
+                  <div>sessionId: {sessionId.slice(0, 8)}... | uploadId: {uploadId.slice(0, 8)}...</div>
+                  <div>fileHash: {fileHash.slice(0, 16)}...{fileHash.slice(-8)}</div>
+                  {enhancementJobId && <div>jobId: {enhancementJobId.slice(0, 8)}...</div>}
+                  {sourceFile && <div>source: {sourceFile}</div>}
                 </div>
+              )}
+              
+              {/* Reset extraction button */}
+              {(extractedContent || enhancedResult) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSessionId(null);
+                    setUploadId(null);
+                    setFileHash(null);
+                    setEnhancementJobId(null);
+                    setUploadedFile(null);
+                    setExtractedContent("");
+                    setExtractedTopic(null);
+                    setExtractedScripture(null);
+                    setSourceFile(null);
+                    setEnhancedResult(null);
+                    setGeneratedContent(null);
+                    setExtractionStatus("idle");
+                    console.log('✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload');
+                  }}
+                  className="mt-2"
+                >
+                  Clear extraction
+                </Button>
               )}
               
               {/* Extraction Preview */}
