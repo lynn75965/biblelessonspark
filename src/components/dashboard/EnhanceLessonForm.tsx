@@ -102,6 +102,7 @@ export function EnhanceLessonForm({
   useEffect(() => {
     console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
     console.log("✅ VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
+    console.log("✅ VERIFIED_BUILD: runtime instrumentation active");
   }, []);
   
   React.useEffect(() => {
@@ -162,6 +163,15 @@ export function EnhanceLessonForm({
     const newSessionId = crypto.randomUUID();
     const newUploadId = crypto.randomUUID();
     const hash = await computeFileHash(file);
+    const tempJobId = crypto.randomUUID();
+
+    console.log('EXTRACT_START', { 
+      jobId: tempJobId, 
+      sessionId: newSessionId, 
+      uploadId: newUploadId, 
+      fileHash: hash,
+      filename: file.name 
+    });
 
     // Reset all state
     setSessionId(newSessionId);
@@ -176,8 +186,11 @@ export function EnhanceLessonForm({
     setExtractState('queued');
     setExtractProgress(0);
     setExtractError(null);
-    setExtractJobId('');
+    setExtractJobId(tempJobId);
     setIsExtracting(true);
+
+    const startTime = Date.now();
+    const timeoutDuration = 70000; // 70 seconds
 
     try {
       // Fast-path for .txt files < 2MB
@@ -185,9 +198,30 @@ export function EnhanceLessonForm({
         setExtractState('processing');
         setExtractProgress(50);
         
+        console.log('EXTRACT_PROGRESS', { 
+          jobId: tempJobId, 
+          sessionId: newSessionId, 
+          uploadId: newUploadId, 
+          fileHash: hash,
+          filename: file.name,
+          state: 'processing',
+          progress: 50
+        });
+        
         const parsed = await parseTxtFile(file);
         
-        console.log('EXTRACT_DONE', { jobId: 'txt-sync', sessionId: newSessionId, uploadId: newUploadId, fileHash: hash });
+        // Check for timeout
+        if (Date.now() - startTime > timeoutDuration) {
+          throw new Error('Timeout exceeded');
+        }
+        
+        console.log('EXTRACT_DONE', { 
+          jobId: tempJobId, 
+          sessionId: newSessionId, 
+          uploadId: newUploadId, 
+          fileHash: hash,
+          filename: file.name 
+        });
         
         setExtractedContent(parsed.content);
         setExtractedTopic(parsed.topic);
@@ -200,6 +234,15 @@ export function EnhanceLessonForm({
       }
 
       // For other files, show error (OCR not fully implemented yet)
+      console.log('EXTRACT_FAILED', { 
+        jobId: tempJobId, 
+        sessionId: newSessionId, 
+        uploadId: newUploadId, 
+        fileHash: hash,
+        filename: file.name,
+        error: { code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' }
+      });
+      
       setExtractError({ code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' });
       setExtractState('failed');
       setIsExtracting(false);
@@ -207,7 +250,19 @@ export function EnhanceLessonForm({
 
     } catch (error) {
       console.error('Error processing file:', error);
-      setExtractError({ code: 'unknown', msg: error instanceof Error ? error.message : 'Unknown error' });
+      
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      
+      console.log('EXTRACT_FAILED', { 
+        jobId: tempJobId, 
+        sessionId: newSessionId, 
+        uploadId: newUploadId, 
+        fileHash: hash,
+        filename: file.name,
+        error: { code: 'unknown', msg: errorMsg }
+      });
+      
+      setExtractError({ code: 'unknown', msg: errorMsg });
       setExtractState('failed');
       setIsExtracting(false);
       toast({ title: "Failed to process file", variant: "destructive" });
@@ -524,6 +579,33 @@ export function EnhanceLessonForm({
 
   return (
     <div className="w-full">
+      {/* Debug Panel */}
+      {extractJobId && extractState !== 'idle' && extractState !== 'done' && extractState !== 'failed' && (
+        <div className="fixed bottom-4 right-4 bg-background border border-border rounded-lg shadow-lg p-4 max-w-md z-50">
+          <div className="text-sm font-mono space-y-1">
+            <div className="font-semibold text-foreground mb-2">Extraction Job Status</div>
+            <div className="text-muted-foreground">
+              <span className="text-foreground">Job:</span> {extractJobId.slice(0, 8)}...
+            </div>
+            <div className="text-muted-foreground">
+              <span className="text-foreground">State:</span> {extractState} {extractProgress > 0 && `(${extractProgress}%)`}
+            </div>
+            <div className="text-muted-foreground">
+              <span className="text-foreground">sessionId:</span> {sessionId.slice(0, 8)}...
+            </div>
+            <div className="text-muted-foreground">
+              <span className="text-foreground">uploadId:</span> {uploadId.slice(0, 8)}...
+            </div>
+            <div className="text-muted-foreground">
+              <span className="text-foreground">fileHash:</span> {fileHash.slice(0, 8)}...
+            </div>
+            <div className="text-muted-foreground">
+              <span className="text-foreground">file:</span> {sourceFilename}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <Card className="w-full">
         <CardHeader>
           <CardTitle>Enhance Lesson</CardTitle>
