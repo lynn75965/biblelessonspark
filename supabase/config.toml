@@ -67,5 +67,11 @@ verify_jwt = true
 [functions.seed-test-notifications]
 verify_jwt = true
 
+[functions.extract-start]
+verify_jwt = true
+
+[functions.extract-status]
+verify_jwt = true
+
 [edge_runtime]
 policy = "per_worker"

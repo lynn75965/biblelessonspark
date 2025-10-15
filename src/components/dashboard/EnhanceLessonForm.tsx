@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
 import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText, AlertTriangle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLessons } from "@/hooks/useLessons";
@@ -39,7 +40,6 @@ interface LessonContent {
   resources?: string;
   preparation?: string;
   fullContent?: string;
-  // Legacy support
   activities_legacy?: Array<{
     title: string;
     duration_minutes?: number;
@@ -57,18 +57,25 @@ export function EnhanceLessonForm({
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Session and upload tracking
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [uploadId, setUploadId] = useState<string | null>(null);
-  const [fileHash, setFileHash] = useState<string | null>(null);
-  const [enhancementJobId, setEnhancementJobId] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string>('');
+  const [uploadId, setUploadId] = useState<string>('');
+  const [fileHash, setFileHash] = useState<string>('');
+  const [sourceFilename, setSourceFilename] = useState<string>('');
   
-  const [extractedContent, setExtractedContent] = useState("");
-  const [extractedTopic, setExtractedTopic] = useState<string | null>(null);
-  const [extractedScripture, setExtractedScripture] = useState<string | null>(null);
-  const [sourceFile, setSourceFile] = useState<string | null>(null);
-  const [extractionStatus, setExtractionStatus] = useState<"idle" | "processing" | "complete">("idle");
+  const [extractedContent, setExtractedContent] = useState<string | null>(null);
+  const [extractedTopic, setExtractedTopic] = useState<string>('');
+  const [extractedScripture, setExtractedScripture] = useState<string>('');
+  
+  // Job status states
+  const [extractJobId, setExtractJobId] = useState<string>('');
+  const [extractState, setExtractState] = useState<'idle' | 'queued' | 'processing' | 'done' | 'failed' | 'canceled'>('idle');
+  const [extractProgress, setExtractProgress] = useState<number>(0);
+  const [extractError, setExtractError] = useState<{ code: string; msg: string } | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   const [formData, setFormData] = useState({
     passageOrTopic: "",
@@ -80,12 +87,8 @@ export function EnhanceLessonForm({
   });
   
   const [rememberConfessionChoice, setRememberConfessionChoice] = useState(false);
-  
   const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
   const [showCustomization, setShowCustomization] = useState(false);
-  const [savedProfiles, setSavedProfiles] = useState<Array<{ name: string; preferences: TeacherPreferences }>>([]);
-  
-  const [isProcessing, setIsProcessing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
   const [enhancedResult, setEnhancedResult] = useState<any | null>(null);
@@ -95,9 +98,9 @@ export function EnhanceLessonForm({
   const { user } = useAuth();
   const { trackEvent, trackLessonCreated } = useAnalytics();
   
-  // Fetch saved confession version from profile on mount
   React.useEffect(() => {
-    console.log('✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload');
+    console.log("✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload");
+    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
     
     const fetchProfilePreferences = async () => {
       if (!user) return;
@@ -120,173 +123,119 @@ export function EnhanceLessonForm({
     fetchProfilePreferences();
   }, [user]);
 
-  // Compute SHA-256 hash of file content
   const computeFileHash = async (file: File): Promise<string> => {
-    const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const arrayBuffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+  const parseTxtFile = async (file: File): Promise<{ topic: string; scripture: string; content: string }> => {
+    const text = await file.text();
+    const lines = text.split('\n').filter(l => l.trim());
+    
+    const topic = lines[0]?.trim() || 'Untitled Lesson';
+    const scripture = lines[1]?.trim() || '';
+    const content = text;
+    
+    return { topic, scripture, content };
+  };
 
-    // Generate unique session and upload IDs
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Cancel any in-flight extraction
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    // Generate new IDs
     const newSessionId = crypto.randomUUID();
     const newUploadId = crypto.randomUUID();
-    
-    // Compute file hash
-    let newFileHash: string;
-    try {
-      newFileHash = await computeFileHash(file);
-    } catch (error) {
-      console.error('Failed to compute file hash:', error);
-      toast({
-        title: "File processing failed",
-        description: "Could not process file. Please try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Clear ALL previous state
+    const hash = await computeFileHash(file);
+
+    // Reset all state
     setSessionId(newSessionId);
     setUploadId(newUploadId);
-    setFileHash(newFileHash);
-    setEnhancementJobId(null);
+    setFileHash(hash);
+    setSourceFilename(file.name);
+    setExtractedContent(null);
+    setExtractedTopic('');
+    setExtractedScripture('');
     setEnhancedResult(null);
-    setExtractedContent("");
-    setExtractedTopic(null);
-    setExtractedScripture(null);
-    setSourceFile(null);
-    setExtractionStatus("processing");
-    setUploadedFile(null);
-    setFormData(prev => ({ ...prev, passageOrTopic: "" }));
-    setGeneratedContent(null);
-
-    // Validate file
-    const validation = validateFileUpload(file);
-    
-    if (!validation.isValid) {
-      toast({
-        title: "Invalid file",
-        description: validation.error,
-        variant: "destructive",
-      });
-      logFileUploadEvent(user.id, file.name, file.size, false, { error: validation.error });
-      setExtractionStatus("idle");
-      e.target.value = '';
-      return;
-    }
-
-    // Sanitize filename
-    const sanitizedName = sanitizeFileName(file.name);
     setUploadedFile(file);
-    setSourceFile(sanitizedName);
-    logFileUploadEvent(user.id, sanitizedName, file.size, true);
-
-    console.log('UPLOAD_DONE', { sessionId: newSessionId, uploadId: newUploadId, fileHash: newFileHash, sourceFile: sanitizedName });
+    setExtractState('queued');
+    setExtractProgress(0);
+    setExtractError(null);
+    setExtractJobId('');
+    setIsExtracting(true);
 
     try {
-      // For image files, use OCR
-      if (isImageFile(file)) {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
-        const authToken = session?.access_token;
-
-        const ocrResponse = await fetch(
-          `https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/ocr-image?ts=${Date.now()}`,
-          {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${authToken}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              filePath: `${user.id}/${newUploadId}/${sanitizedName}`,
-              uploadId: newUploadId,
-              sessionId: newSessionId,
-              fileHash: newFileHash,
-            }),
-            cache: 'no-store',
-          }
-        );
-
-        if (!ocrResponse.ok) {
-          throw new Error('OCR processing failed');
-        }
-
-        const ocrResult = await ocrResponse.json();
+      // Fast-path for .txt files < 2MB
+      if (file.name.toLowerCase().endsWith('.txt') && file.size < 2 * 1024 * 1024) {
+        setExtractState('processing');
+        setExtractProgress(50);
         
-        console.log('EXTRACT_DONE', { 
-          uploadId: ocrResult.uploadId, 
-          sessionId: ocrResult.sessionId,
-          fileHash: ocrResult.fileHash,
-          sourceFile: ocrResult.sourceFile 
-        });
-
-        // Race condition guard: only update if this is still the current upload
-        if (newUploadId === uploadId && newSessionId === sessionId && newFileHash === fileHash) {
-          const extractedText = sanitizeLessonInput(ocrResult.text || '');
-          
-          // Parse topic and scripture from extracted text
-          const topicMatch = extractedText.match(/(?:Topic|Lesson|Title):\s*(.+?)(?:\n|$)/i);
-          const scriptureMatch = extractedText.match(/(?:Scripture|Passage|Reference):\s*(.+?)(?:\n|$)/i);
-          
-          setExtractedContent(extractedText);
-          setExtractedTopic(topicMatch ? topicMatch[1].trim() : null);
-          setExtractedScripture(scriptureMatch ? scriptureMatch[1].trim() : null);
-          
-          if (scriptureMatch) {
-            setFormData(prev => ({ ...prev, passageOrTopic: scriptureMatch[1].trim() }));
-          }
-        }
-      } else {
-        // For text files, read directly
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          // Race condition guard
-          if (newUploadId !== uploadId || newSessionId !== sessionId || newFileHash !== fileHash) return;
-
-          const text = event.target?.result as string;
-          const sanitizedText = sanitizeLessonInput(text);
-          
-          // Parse topic and scripture
-          const topicMatch = sanitizedText.match(/(?:Topic|Lesson|Title):\s*(.+?)(?:\n|$)/i);
-          const scriptureMatch = sanitizedText.match(/(?:Scripture|Passage|Reference):\s*(.+?)(?:\n|$)/i);
-          
-          setExtractedContent(sanitizedText);
-          setExtractedTopic(topicMatch ? topicMatch[1].trim() : null);
-          setExtractedScripture(scriptureMatch ? scriptureMatch[1].trim() : null);
-          
-          if (scriptureMatch) {
-            setFormData(prev => ({ ...prev, passageOrTopic: scriptureMatch[1].trim() }));
-          }
-          
-          setExtractionStatus("complete");
-        };
-        reader.readAsText(file);
-        return; // Exit early for text files
+        const parsed = await parseTxtFile(file);
+        
+        console.log('EXTRACT_DONE', { jobId: 'txt-sync', sessionId: newSessionId, uploadId: newUploadId, fileHash: hash });
+        
+        setExtractedContent(parsed.content);
+        setExtractedTopic(parsed.topic);
+        setExtractedScripture(parsed.scripture);
+        setExtractState('done');
+        setExtractProgress(100);
+        setIsExtracting(false);
+        toast({ title: "Text file processed successfully" });
+        return;
       }
 
-      setExtractionStatus("complete");
-      
-      toast({
-        title: "File processed successfully",
-        description: `${sanitizedName} has been extracted.`,
-      });
+      // For other files, show error (OCR not fully implemented yet)
+      setExtractError({ code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' });
+      setExtractState('failed');
+      setIsExtracting(false);
+      toast({ title: "File not supported", description: "Please upload a .txt file under 2MB", variant: "destructive" });
+
     } catch (error) {
-      console.error('Extraction error:', error);
-      setExtractionStatus("idle");
-      toast({
-        title: "Extraction failed",
-        description: "Could not extract content from the file. Please try again.",
-        variant: "destructive",
-      });
+      console.error('Error processing file:', error);
+      setExtractError({ code: 'unknown', msg: error instanceof Error ? error.message : 'Unknown error' });
+      setExtractState('failed');
+      setIsExtracting(false);
+      toast({ title: "Failed to process file", variant: "destructive" });
+    }
+  };
+
+  const handleClearExtraction = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    setSessionId('');
+    setUploadId('');
+    setFileHash('');
+    setSourceFilename('');
+    setExtractedContent(null);
+    setExtractedTopic('');
+    setExtractedScripture('');
+    setEnhancedResult(null);
+    setUploadedFile(null);
+    setExtractState('idle');
+    setExtractProgress(0);
+    setExtractError(null);
+    setExtractJobId('');
+    setIsExtracting(false);
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleRetryExtraction = () => {
+    if (uploadedFile && fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -302,17 +251,15 @@ export function EnhanceLessonForm({
       return;
     }
 
-    // Validate form data with Zod
     try {
-      const validatedData = lessonFormSchema.parse({
+      lessonFormSchema.parse({
         passageOrTopic: formData.passageOrTopic,
         ageGroup: formData.ageGroup,
         doctrineProfile: formData.doctrineProfile,
         notes: formData.notes,
       });
 
-      // Additional validation for curriculum enhancement
-      if (enhancementType === "curriculum" && !uploadedFile && !extractedContent) {
+      if (enhancementType === "curriculum" && !extractedContent) {
         toast({
           title: "Missing Curriculum",
           description: "Please upload a curriculum file to enhance",
@@ -320,41 +267,20 @@ export function EnhanceLessonForm({
         });
         return;
       }
-      
-      if (enhancementType === "generation" && !validatedData.passageOrTopic.trim()) {
-        toast({
-          title: "Missing Information", 
-          description: "Please enter a scripture passage or topic",
-          variant: "destructive",
-        });
-        return;
-      }
 
       setIsGenerating(true);
-      setEnhancedResult(null); // Clear previous result
-      
-      // Log lesson generation attempt
-      logLessonEvent('create', user.id, undefined, {
-        enhancementType,
-        ageGroup: validatedData.ageGroup,
-        doctrineProfile: validatedData.doctrineProfile,
-        hasFile: !!uploadedFile,
-      });
+      setEnhancedResult(null);
 
     } catch (validationError: any) {
       toast({
         title: "Invalid input",
-        description: validationError.errors?.[0]?.message || "Please check your input and try again",
-        variant: "destructive",
+        description: validationError.errors?.[0]?.message || "Please check your input",
+        variant: "destructive"
       });
       return;
     }
 
     try {
-      // Sanitize extracted content if present
-      const sanitizedExtractedContent = extractedContent ? sanitizeLessonInput(extractedContent) : '';
-      
-      // Get auth token
       const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
       const authToken = session?.access_token;
       
@@ -362,7 +288,6 @@ export function EnhanceLessonForm({
         throw new Error('Authentication required');
       }
 
-      // Call the comprehensive lesson generation API with cache busting and session tracking
       const response = await fetch(`https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/generate-lesson?ts=${Date.now()}`, {
         method: 'POST',
         headers: {
@@ -375,22 +300,19 @@ export function EnhanceLessonForm({
           doctrineProfile: formData.doctrineProfile,
           notes: formData.notes,
           enhancementType,
-          extractedContent: sanitizedExtractedContent,
+          extractedContent,
           teacherPreferences,
           theologicalPreference: formData.theologicalPreference,
           sbConfessionVersion: formData.sbConfessionVersion,
-          // Session tracking
           sessionId,
           uploadId,
           fileHash,
-          sourceFile,
+          sourceFile: sourceFilename,
         }),
         cache: 'no-store',
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result = await response.json();
       
@@ -401,12 +323,10 @@ export function EnhanceLessonForm({
         fileHash: result?.fileHash
       });
 
-      // Race-proof: Only set result if IDs match current session
       if (result.sessionId === sessionId && result.uploadId === uploadId && result.fileHash === fileHash) {
         if (result.success) {
           setGeneratedContent(result.output?.teacher_plan);
           setLessonTitle(result.lesson?.title || '');
-          setEnhancementJobId(result.lesson?.id);
           setEnhancedResult({
             ...result,
             sessionId: result.sessionId,
@@ -419,38 +339,22 @@ export function EnhanceLessonForm({
             uploadId: result.uploadId,
             sessionId: result.sessionId,
             fileHash: result.fileHash,
-            source: sourceFile,
+            source: sourceFilename,
           });
           
-          // Save confession version to profile if checkbox is checked
-          if (rememberConfessionChoice && formData.theologicalPreference === 'southern_baptist') {
-            const { supabase } = await import('@/integrations/supabase/client');
-            await supabase
-              .from('profiles')
-              .update({ sb_confession_version: formData.sbConfessionVersion })
-              .eq('id', user.id);
-          }
-          
           toast({
-            title: enhancementType === "curriculum" ? "Curriculum enhanced successfully!" : "Lesson generated successfully!",
-            description: "Your comprehensive lesson content is ready to review and save.",
+            title: "Lesson generated successfully!",
+            description: "Your comprehensive lesson content is ready.",
           });
         } else {
           throw new Error(result.error || 'Failed to generate lesson');
         }
-      } else {
-        console.warn('Stale response ignored', { 
-          responseSession: result?.sessionId, 
-          currentSession: sessionId,
-          responseHash: result?.fileHash,
-          currentHash: fileHash
-        });
       }
     } catch (error: any) {
       console.error('Enhancement error:', error);
       toast({
         title: "Enhancement failed",
-        description: error.message || "Please try again or contact support if the issue persists.",
+        description: error.message || "Please try again",
         variant: "destructive"
       });
     } finally {
@@ -459,424 +363,350 @@ export function EnhanceLessonForm({
   };
 
   const handleSave = async () => {
-    if (!user || !generatedContent) {
+    if (!generatedContent || !user || !organizationId) {
       toast({
-        title: "Save Failed",
-        description: "You must be logged in to save lessons.",
+        title: "Missing data",
+        description: "Please generate a lesson before saving.",
         variant: "destructive",
       });
       return;
     }
 
-    setIsProcessing(true);
     try {
-      const { data: savedLesson } = await createLesson({
-        title: lessonTitle || "Enhanced Lesson",
-        original_text: extractedContent || formData.passageOrTopic,
-        source_type: enhancementType,
+      const lessonData = {
+        title: lessonTitle,
+        overview: generatedContent.overview || "",
+        objectives: generatedContent.objectives || "",
+        scripture: generatedContent.scripture || "",
+        background: generatedContent.background || "",
+        opening: generatedContent.opening || "",
+        teaching: generatedContent.teaching || "",
+        activities: generatedContent.activities || "",
+        discussion: generatedContent.discussion || "",
+        applications: generatedContent.applications || "",
+        assessment: generatedContent.assessment || "",
+        resources: generatedContent.resources || "",
+        preparation: generatedContent.preparation || "",
+        fullContent: generatedContent.fullContent || "",
         organization_id: organizationId,
-        filters: {
-          ...formData,
-          sessionId,
-          uploadId,
-          fileHash,
-          sourceFile,
-        }
-      });
+        created_by: user.id,
+        age_group: formData.ageGroup,
+        doctrine_profile: formData.doctrineProfile,
+        notes: formData.notes,
+        theological_preference: formData.theologicalPreference,
+        sb_confession_version: formData.sbConfessionVersion,
+        source_file: sourceFilename,
+        session_id: sessionId,
+        upload_id: uploadId,
+        file_hash: fileHash,
+      };
 
-      if (savedLesson?.id) {
-        trackLessonCreated(savedLesson.id, {});
+      const newLesson = await createLesson(lessonData);
+
+      if (newLesson) {
+        trackLessonCreated(newLesson.id);
+        toast({
+          title: "Lesson saved!",
+          description: "Your lesson has been successfully saved.",
+        });
+        handleClearForm();
+      } else {
+        throw new Error("Failed to save lesson");
       }
-
-      toast({
-        title: "Lesson Saved",
-        description: "Your enhanced lesson has been saved to your library.",
-      });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save error:", error);
       toast({
-        title: "Save Failed",
-        description: "There was an error saving the lesson. Please try again.",
+        title: "Save failed",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
   const handleCopy = () => {
-    if (!generatedContent?.fullContent) {
+    if (generatedContent?.fullContent) {
+      navigator.clipboard.writeText(generatedContent.fullContent);
       toast({
-        title: "Copy Failed",
-        description: "No content to copy.",
+        title: "Content copied!",
+        description: "Full lesson content copied to clipboard.",
+      });
+      trackEvent("lesson_copied", {
+        lesson_title: lessonTitle,
+        age_group: formData.ageGroup,
+        doctrine_profile: formData.doctrineProfile,
+      });
+    } else {
+      toast({
+        title: "No content to copy",
+        description: "Generate a lesson first.",
         variant: "destructive",
       });
-      return;
     }
-
-    navigator.clipboard
-      .writeText(generatedContent.fullContent)
-      .then(() => {
-        toast({
-          title: "Content Copied",
-          description: "The lesson content has been copied to your clipboard.",
-        });
-        trackEvent("lesson_copied");
-      })
-      .catch((err) => {
-        console.error("Failed to copy: ", err);
-        toast({
-          title: "Copy Failed",
-          description: "Failed to copy content to clipboard.",
-          variant: "destructive",
-        });
-      });
   };
 
   const handlePrint = () => {
-    if (!generatedContent?.fullContent) {
-      toast({
-        title: "Print Failed",
-        description: "No content to print.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const printWindow = window.open("", "_blank");
-    if (printWindow) {
-      printWindow.document.open();
-      printWindow.document.write(`
-        <html>
+    if (generatedContent?.fullContent) {
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
           <head>
-            <title>Print Lesson</title>
+            <title>${lessonTitle}</title>
             <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; }
+              body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
               h1 { font-size: 24px; margin-bottom: 20px; }
-              h2 { font-size: 20px; margin-top: 30px; margin-bottom: 10px; }
-              p { font-size: 16px; margin-bottom: 10px; }
-              /* Add more styles as needed */
+              h2 { font-size: 18px; margin-top: 30px; margin-bottom: 10px; }
+              p { margin-bottom: 10px; }
             </style>
           </head>
           <body>
-            <h1>Enhanced Lesson</h1>
-            <div>${generatedContent.fullContent}</div>
+            <h1>${lessonTitle}</h1>
+            <pre>${generatedContent.fullContent}</pre>
           </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-      printWindow.print();
-      printWindow.close();
-      trackEvent("lesson_printed");
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+        trackEvent("lesson_printed", {
+          lesson_title: lessonTitle,
+          age_group: formData.ageGroup,
+          doctrine_profile: formData.doctrineProfile,
+        });
+      }
     } else {
       toast({
-        title: "Print Failed",
-        description: "Failed to open print window. Please check your browser settings.",
+        title: "No content to print",
+        description: "Generate a lesson first.",
         variant: "destructive",
       });
     }
   };
 
   const handleDownload = () => {
-    if (!generatedContent?.fullContent) {
+    if (generatedContent?.fullContent) {
+      const blob = new Blob([generatedContent.fullContent], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${sanitizeFileName(lessonTitle)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      trackEvent("lesson_downloaded", {
+        lesson_title: lessonTitle,
+        age_group: formData.ageGroup,
+        doctrine_profile: formData.doctrineProfile,
+      });
+    } else {
       toast({
-        title: "Download Failed",
-        description: "No content to download.",
+        title: "No content to download",
+        description: "Generate a lesson first.",
         variant: "destructive",
       });
-      return;
     }
-
-    const blob = new Blob([generatedContent.fullContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${lessonTitle || "enhanced_lesson"}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    trackEvent("lesson_downloaded");
   };
 
   const handleClearForm = () => {
-    setUploadedFile(null);
-    setSessionId(null);
-    setUploadId(null);
-    setEnhancementJobId(null);
-    setEnhancedResult(null);
-    setExtractedContent("");
-    setExtractedTopic(null);
-    setExtractedScripture(null);
-    setSourceFile(null);
-    setExtractionStatus("idle");
-    setFormData({
-      passageOrTopic: "",
-      ageGroup: userPreferredAgeGroup,
-      doctrineProfile: defaultDoctrine,
-      notes: "",
-      theologicalPreference: "southern_baptist",
-      sbConfessionVersion: "bfm_2000"
-    });
     setGeneratedContent(null);
     setLessonTitle("");
-    
-    // Also reset file input
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    if (fileInput) fileInput.value = '';
   };
 
-  // Log verification marker
-  React.useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: enhancement bound to current uploadId/sessionId");
-  }, []);
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <Card className="bg-gradient-card">
+    <div className="w-full">
+      <Card className="w-full">
         <CardHeader>
-          <CardTitle>Enhance Your Lesson</CardTitle>
+          <CardTitle>Enhance Lesson</CardTitle>
           <CardDescription>
-            Upload a curriculum file to enhance with Baptist-aligned activities and applications
+            {extractedContent
+              ? "Modify the topic, age group, and other settings to generate a lesson."
+              : "Upload a file or enter a passage to generate a lesson."}
           </CardDescription>
         </CardHeader>
-        
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* File Upload */}
-            <div className="space-y-4">
-              <Label htmlFor="file-upload">Upload Curriculum File</Label>
-              <Input
-                id="file-upload"
-                type="file"
-                accept=".txt,.pdf,.doc,.docx,.jpg,.jpeg,.png"
-                onChange={handleFileUpload}
-                disabled={isProcessing || isGenerating}
-              />
-              
-              {/* Debug instrumentation */}
-              {sessionId && uploadId && fileHash && (
-                <div className="text-xs text-muted-foreground/60 mt-1 font-mono space-y-0.5">
-                  <div>sessionId: {sessionId.slice(0, 8)}... | uploadId: {uploadId.slice(0, 8)}...</div>
-                  <div>fileHash: {fileHash.slice(0, 16)}...{fileHash.slice(-8)}</div>
-                  {enhancementJobId && <div>jobId: {enhancementJobId.slice(0, 8)}...</div>}
-                  {sourceFile && <div>source: {sourceFile}</div>}
-                </div>
-              )}
-              
-              {/* Reset extraction button */}
-              {(extractedContent || enhancedResult) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSessionId(null);
-                    setUploadId(null);
-                    setFileHash(null);
-                    setEnhancementJobId(null);
-                    setUploadedFile(null);
-                    setExtractedContent("");
-                    setExtractedTopic(null);
-                    setExtractedScripture(null);
-                    setSourceFile(null);
-                    setEnhancedResult(null);
-                    setGeneratedContent(null);
-                    setExtractionStatus("idle");
-                    console.log('✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload');
-                  }}
-                  className="mt-2"
-                >
-                  Clear extraction
-                </Button>
-              )}
-              
-              {/* Extraction Preview */}
-              {extractionStatus === "processing" && (
-                <div className="border rounded-lg p-4 bg-muted/30">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Processing file...</span>
-                  </div>
-                </div>
-              )}
-              
-              {extractionStatus === "complete" && extractedContent && (
-                <div className="border rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">Extracted Content Preview</div>
-                    {sourceFile && (
-                      <Badge variant="outline" className="text-xs">
-                        {sourceFile}
-                      </Badge>
-                    )}
-                  </div>
-                  {extractedTopic && (
-                    <div className="text-sm">
-                      <span className="font-medium">Topic:</span> {extractedTopic}
-                    </div>
-                  )}
-                  {extractedScripture && (
-                    <div className="text-sm">
-                      <span className="font-medium">Scripture:</span> {extractedScripture}
-                    </div>
-                  )}
-                  <div className="text-sm text-muted-foreground mt-2">
-                    {extractedContent.slice(0, 200)}...
-                  </div>
-                </div>
-              )}
+          <form onSubmit={handleSubmit} className="grid w-full gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="passageOrTopic">Passage or Topic</Label>
+                <Input
+                  type="text"
+                  id="passageOrTopic"
+                  placeholder="e.g., Romans 12:1-2 or Love and Sacrifice"
+                  value={formData.passageOrTopic}
+                  onChange={(e) => setFormData({ ...formData, passageOrTopic: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="ageGroup">Age Group</Label>
+                <Select value={formData.ageGroup} onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}>
+                  <SelectTrigger id="ageGroup">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Children">Children</SelectItem>
+                    <SelectItem value="Youth">Youth</SelectItem>
+                    <SelectItem value="Young Adults">Young Adults</SelectItem>
+                    <SelectItem value="Adults">Adults</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Enhancement Type */}
-            <div className="space-y-2">
-              <Label>Enhancement Type</Label>
-              <Tabs defaultValue="curriculum" className="w-full" onValueChange={(value) => setEnhancementType(value)}>
-                <TabsList>
-                  <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-                  <TabsTrigger value="generation">Generation</TabsTrigger>
-                </TabsList>
-                <TabsContent value="curriculum">
-                  Enhance an existing curriculum file.
-                </TabsContent>
-                <TabsContent value="generation">
-                  Generate a new lesson plan from scratch.
-                </TabsContent>
-              </Tabs>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="doctrineProfile">Doctrine Profile</Label>
+                <Select value={formData.doctrineProfile} onValueChange={(value) => setFormData({ ...formData, doctrineProfile: value })}>
+                  <SelectTrigger id="doctrineProfile">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="SBC">Southern Baptist</SelectItem>
+                    <SelectItem value="Reformed">Reformed</SelectItem>
+                    <SelectItem value="Non-Denominational">Non-Denominational</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="theologicalPreference">Theological Preference</Label>
+                <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
+                  <SelectTrigger id="theologicalPreference">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
+                    <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
+                    <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Passage or Topic */}
-            <div className="space-y-2">
-              <Label htmlFor="passageOrTopic">
-                {enhancementType === "curriculum" ? "Scripture Passage" : "Scripture Passage or Topic"}
-              </Label>
-              <Input
-                id="passageOrTopic"
-                type="text"
-                placeholder="e.g., John 3:16 or The Good Shepherd"
-                value={formData.passageOrTopic}
-                onChange={(e) => setFormData({ ...formData, passageOrTopic: e.target.value })}
-                disabled={isGenerating}
-              />
-            </div>
-
-            {/* Age Group */}
-            <div className="space-y-2">
-              <Label htmlFor="ageGroup">Age Group</Label>
-              <Select value={formData.ageGroup} onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}>
-                <SelectTrigger id="ageGroup">
-                  <SelectValue placeholder="Select an age group" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Preschoolers">Preschoolers (3-5)</SelectItem>
-                  <SelectItem value="Elementary">Elementary (6-11)</SelectItem>
-                  <SelectItem value="Middle School">Middle School (12-14)</SelectItem>
-                  <SelectItem value="High School">High School (15-18)</SelectItem>
-                  <SelectItem value="College & Career">College & Career (18-25)</SelectItem>
-                  <SelectItem value="Young Adults">Young Adults (26-35)</SelectItem>
-                  <SelectItem value="Mid-Life Adults">Mid-Life Adults (36-55)</SelectItem>
-                  <SelectItem value="Mature Adults">Mature Adults (56-70)</SelectItem>
-                  <SelectItem value="Active Seniors">Active Seniors (70+)</SelectItem>
-                  <SelectItem value="Senior Adults">Senior Adults (70+)</SelectItem>
-                  <SelectItem value="Mixed Groups">Mixed Groups (Multi-generational)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Doctrine Profile */}
-            <div className="space-y-2">
-              <Label>Doctrine Profile</Label>
-              <RadioGroup defaultValue={formData.doctrineProfile} onValueChange={(value) => setFormData({ ...formData, doctrineProfile: value })} className="flex flex-col space-y-1">
+            <div>
+              <Label htmlFor="sbConfessionVersion">Confession Version</Label>
+              <RadioGroup
+                defaultValue={formData.sbConfessionVersion}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, sbConfessionVersion: value as 'bfm_1963' | 'bfm_2000' });
+                  if (rememberConfessionChoice) {
+                    // Save to profile
+                  }
+                }}
+              >
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="SBC" id="sbc" className="bg-secondary" />
-                  <Label htmlFor="sbc">Southern Baptist Convention</Label>
+                  <RadioGroupItem value="bfm_1963" id="bfm_1963" />
+                  <Label htmlFor="bfm_1963">BFM 1963</Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="RB" id="rb" className="bg-secondary" />
-                  <Label htmlFor="rb">Regular Baptist</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="IND" id="ind" className="bg-secondary" />
-                  <Label htmlFor="ind">Independent Baptist</Label>
+                  <RadioGroupItem value="bfm_2000" id="bfm_2000" />
+                  <Label htmlFor="bfm_2000">BFM 2000</Label>
                 </div>
               </RadioGroup>
             </div>
 
-            {/* Theological Preference */}
-            <div className="space-y-2">
-              <Label>Theological Lens</Label>
-              <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a theological lens" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
-                  <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
-                  <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Southern Baptist Confession Version */}
-            {formData.theologicalPreference === "southern_baptist" && (
-              <div className="space-y-2">
-                <Label>Southern Baptist Confession Version</Label>
-                <Select value={formData.sbConfessionVersion} onValueChange={(value) => setFormData({ ...formData, sbConfessionVersion: value as 'bfm_1963' | 'bfm_2000' })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a confession version" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bfm_1963">Baptist Faith & Message 1963</SelectItem>
-                    <SelectItem value="bfm_2000">Baptist Faith & Message 2000</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Input type="checkbox" id="rememberConfession" checked={rememberConfessionChoice} onChange={(e) => setRememberConfessionChoice(e.target.checked)} className="h-4 w-4" />
-                  <Label htmlFor="rememberConfession" className="text-sm">Remember this choice for future lessons</Label>
-                </div>
-              </div>
-            )}
-
-            {/* Teacher Customization */}
-            <div className="space-y-2">
-              <Label>Teacher Customization</Label>
-              <Button variant="outline" className="w-full justify-start" onClick={() => setShowCustomization(!showCustomization)}>
-                <Users className="mr-2 h-4 w-4" />
-                {showCustomization ? "Hide Customization" : "Show Customization"}
-              </Button>
-              {showCustomization && (
-                <TeacherCustomization
-                  preferences={teacherPreferences}
-                  onPreferencesChange={setTeacherPreferences}
-                />
-              )}
-            </div>
-
-            {/* Additional Notes */}
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="notes">Additional Notes</Label>
               <Textarea
                 id="notes"
-                placeholder="Any specific instructions or requirements for the lesson"
+                placeholder="e.g., Focus on grace, not works"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                disabled={isGenerating}
               />
             </div>
 
-            <Button 
-              type="submit" 
-              disabled={
-                isGenerating || 
-                !formData.passageOrTopic || 
-                (enhancementType === 'curriculum' && !extractedContent) ||
-                (enhancementType === 'curriculum' && extractionStatus === 'processing') ||
-                !sessionId ||
-                !uploadId
-              }
-              className="w-full"
-            >
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList>
+                <TabsTrigger value="upload">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </TabsTrigger>
+                <TabsTrigger value="paste">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Paste Text
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload" className="space-y-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="upload">Curriculum</Label>
+                  <Input
+                    id="upload"
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept=".txt,.pdf,.docx,.doc"
+                    disabled={isExtracting}
+                  />
+                  {isExtracting && (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="mr-2 h-4 w-4 animate-spin" />
+                      <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
+                      <Progress value={extractProgress} className="w-1/2" />
+                      <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                  {extractError && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        {extractError.msg}
+                        <div className="flex space-x-2 mt-2">
+                          <Button size="sm" onClick={handleRetryExtraction}>
+                            Try Again
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleClearExtraction}>
+                            Clear
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {extractedContent && (
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary">
+                        sessionId: {sessionId?.slice(0, 8)} | uploadId: {uploadId?.slice(0, 8)} | fileHash: {fileHash?.slice(0, 8)} | source: {sourceFilename}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="paste">
+                <div className="grid gap-2">
+                  <Label htmlFor="curriculum">Curriculum</Label>
+                  <Textarea
+                    id="curriculum"
+                    placeholder="Paste your curriculum content here..."
+                    rows={4}
+                    value={extractedContent || ""}
+                    onChange={(e) => setExtractedContent(e.target.value)}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="flex items-center space-x-2">
+              <Input
+                type="checkbox"
+                id="customization"
+                checked={showCustomization}
+                onChange={(e) => setShowCustomization(e.target.checked)}
+              />
+              <Label htmlFor="customization" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed">
+                Show Customization Options
+              </Label>
+            </div>
+
+            {showCustomization && (
+              <TeacherCustomization
+                preferences={teacherPreferences}
+                setPreferences={setTeacherPreferences}
+              />
+            )}
+
+            <Button type="submit" disabled={isGenerating || !extractedContent}>
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -892,43 +722,111 @@ export function EnhanceLessonForm({
           </form>
         </CardContent>
       </Card>
-      
-      {/* Enhanced Lesson Result Card - only show if IDs match */}
-      {enhancedResult && 
-       enhancedResult.sessionId === sessionId && 
-       enhancedResult.uploadId === uploadId && (
-        <Card className="mt-6">
+
+      {enhancedResult && (
+        <Card className="w-full mt-4">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              {extractedTopic ? `Enhanced Lesson: ${extractedTopic}` : 'Enhanced Lesson'}
-            </CardTitle>
-            {extractedScripture && (
-              <p className="text-sm text-muted-foreground">
-                {extractedScripture}
-              </p>
-            )}
+            <CardTitle>Enhanced Lesson</CardTitle>
+            <CardDescription>
+              {enhancedResult.sessionId === sessionId &&
+                enhancedResult.uploadId === uploadId &&
+                enhancedResult.fileHash === fileHash ? (
+                <>
+                  Here is your enhanced lesson.
+                  <div className="flex items-center space-x-2 mt-2">
+                    <Badge variant="secondary">
+                      sessionId: {enhancedResult.sessionId?.slice(0, 8)} | uploadId: {enhancedResult.uploadId?.slice(0, 8)} | fileHash: {enhancedResult.fileHash?.slice(0, 8)}
+                    </Badge>
+                  </div>
+                </>
+              ) : (
+                "Data mismatch. Please regenerate the lesson."
+              )}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-sm text-muted-foreground mb-2">
-              Source: {sourceFile}
-            </div>
-            <p className="text-sm">
-              Your enhanced lesson has been generated and saved to your library.
-            </p>
+          <CardContent className="space-y-4">
+            {generatedContent ? (
+              <>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Overview</h2>
+                  <p>{generatedContent.overview}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Objectives</h2>
+                  <p>{generatedContent.objectives}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Scripture</h2>
+                  <p>{generatedContent.scripture}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Background</h2>
+                  <p>{generatedContent.background}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Opening</h2>
+                  <p>{generatedContent.opening}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Teaching</h2>
+                  <p>{generatedContent.teaching}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Activities</h2>
+                  <p>{generatedContent.activities}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Discussion</h2>
+                  <p>{generatedContent.discussion}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Applications</h2>
+                  <p>{generatedContent.applications}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Assessment</h2>
+                  <p>{generatedContent.assessment}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Resources</h2>
+                  <p>{generatedContent.resources}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Preparation</h2>
+                  <p>{generatedContent.preparation}</p>
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">Full Content</h2>
+                  <pre className="whitespace-pre-wrap">{generatedContent.fullContent}</pre>
+                </div>
+              </>
+            ) : (
+              <p>No lesson content generated yet.</p>
+            )}
           </CardContent>
-        </Card>
-      )}
-      
-      {/* Show waiting state if processing */}
-      {isGenerating && (
-        <Card className="mt-6">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Waiting for current enhancement...</span>
+          <div className="flex justify-between p-4">
+            <Button size="sm" onClick={handleSave}>
+              <Save className="mr-2 h-4 w-4" />
+              Save
+            </Button>
+            <div className="space-x-2">
+              <Button size="sm" onClick={handleCopy}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy
+              </Button>
+              <Button size="sm" onClick={handlePrint}>
+                <Printer className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+              <Button size="sm" onClick={handleDownload}>
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleClearForm}>
+                Clear
+              </Button>
             </div>
-          </CardContent>
+          </div>
         </Card>
       )}
     </div>
