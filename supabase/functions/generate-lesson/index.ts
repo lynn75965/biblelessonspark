@@ -41,6 +41,9 @@ interface LessonRequest {
   teacherPreferences?: TeacherPreferences;
   theologicalPreference: 'southern_baptist' | 'reformed_baptist' | 'independent_baptist';
   sbConfessionVersion?: 'bfm_1963' | 'bfm_2000';
+  sessionId?: string;
+  uploadId?: string;
+  sourceFile?: string;
 }
 
 // Rate limiting storage (in production, use Redis or similar)
