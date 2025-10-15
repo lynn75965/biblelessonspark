@@ -45,9 +45,11 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
   const { progress, loading, updateStep, refreshProgress, completedCount, totalSteps, progressPercentage } = useSetupProgress();
   const [verifyingEmail, setVerifyingEmail] = useState(false);
   const [verifyingStripe, setVerifyingStripe] = useState(false);
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [canResendEmail, setCanResendEmail] = useState(true);
 
   useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: Setup Checklist Interactive loaded", {
+    console.log("✅ VERIFIED_BUILD: Interactive Setup Checklist working in preview", {
       completedCount,
       totalSteps,
       progressPercentage,
@@ -88,7 +90,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
           setVerifyingEmail(false);
         }
       },
-      actionLabel: verifyingEmail ? 'Verifying...' : 'Verify',
+      actionLabel: verifyingEmail ? 'Checking...' : 'Check Verification',
       showAction: user && progress['verify_email'] !== 'complete',
     },
     {
@@ -276,15 +278,49 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                           <p className="text-muted-foreground text-sm">{step.description}</p>
                         </div>
                         {!isComplete && step.showAction && (
-                          <Button
-                            onClick={step.action}
-                            size="sm"
-                            className="whitespace-nowrap shrink-0"
-                            variant="default"
-                          >
-                            {step.actionLabel}
-                            {!verifyingEmail && !verifyingStripe && <ArrowRight className="ml-2 h-4 w-4" />}
-                          </Button>
+                          <div className="flex gap-2 shrink-0">
+                            <Button
+                              onClick={step.action}
+                              size="sm"
+                              className="whitespace-nowrap"
+                              variant="default"
+                            >
+                              {step.actionLabel}
+                              {!verifyingEmail && !verifyingStripe && <ArrowRight className="ml-2 h-4 w-4" />}
+                            </Button>
+                            {step.id === 'verify_email' && (
+                              <Button
+                                onClick={async () => {
+                                  if (!canResendEmail) return;
+                                  setSendingVerification(true);
+                                  setCanResendEmail(false);
+                                  try {
+                                    const { data, error } = await supabase.functions.invoke('resend-verification');
+                                    if (error) throw error;
+                                    if (data.already_verified) {
+                                      await updateStep('verify_email', 'complete');
+                                      toast.success('Email already verified!');
+                                    } else {
+                                      toast.success('Verification email sent! Check your inbox.');
+                                    }
+                                    // Rate limit: 60 seconds
+                                    setTimeout(() => setCanResendEmail(true), 60000);
+                                  } catch (error) {
+                                    toast.error('Failed to send verification email');
+                                    setCanResendEmail(true);
+                                  } finally {
+                                    setSendingVerification(false);
+                                  }
+                                }}
+                                size="sm"
+                                variant="outline"
+                                disabled={sendingVerification || !canResendEmail}
+                                className="whitespace-nowrap"
+                              >
+                                {sendingVerification ? 'Sending...' : canResendEmail ? 'Resend Email' : 'Wait 60s'}
+                              </Button>
+                            )}
+                          </div>
                         )}
                         {isComplete && (
                           <div className="flex items-center gap-2 text-success font-medium text-sm shrink-0">

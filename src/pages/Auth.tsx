@@ -139,6 +139,16 @@ export default function Auth() {
           await claimInvite(inviteToken);
         }
         
+        // Trigger verification email
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user && !userData.user.email_confirmed_at) {
+            await supabase.functions.invoke('resend-verification');
+          }
+        } catch (emailError) {
+          console.error('Failed to send verification email:', emailError);
+        }
+        
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",

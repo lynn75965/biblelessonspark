@@ -24,6 +24,18 @@ export default function Admin() {
         return;
       }
 
+      // Check email verification first
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user && !userData.user.email_confirmed_at) {
+        toast({
+          title: "Email Verification Required",
+          description: "Please verify your email to access admin tools.",
+          variant: "destructive",
+        });
+        navigate('/setup');
+        return;
+      }
+
       try {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
