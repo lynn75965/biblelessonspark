@@ -182,6 +182,24 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
     },
   ];
 
+  // Show sign-in prompt if not authenticated
+  if (!user) {
+    return (
+      <div className={cn("w-full max-w-2xl mx-auto", isModal && "max-h-[80vh] overflow-y-auto")}>
+        <Card className="p-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg mx-auto mb-4">
+            <BookOpen className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to LessonSpark USA!</h2>
+          <p className="text-muted-foreground mb-6">Please sign in to access your setup checklist and start creating amazing Bible study lessons.</p>
+          <Button onClick={() => navigate('/auth')} className="bg-gradient-primary">
+            Sign In to Continue
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className={cn("w-full max-w-2xl mx-auto", isModal && "max-h-[80vh] overflow-y-auto")}>
