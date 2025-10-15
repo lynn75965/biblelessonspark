@@ -46,6 +46,15 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
   const [verifyingEmail, setVerifyingEmail] = useState(false);
   const [verifyingStripe, setVerifyingStripe] = useState(false);
 
+  useEffect(() => {
+    console.log("✅ VERIFIED_BUILD: Interactive Setup Checklist loaded", {
+      completedCount,
+      totalSteps,
+      progressPercentage,
+      progress
+    });
+  }, [completedCount, totalSteps, progressPercentage, progress]);
+
   const steps: SetupStep[] = [
     {
       id: 'create_account',
