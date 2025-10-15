@@ -57,7 +57,11 @@ export function EnhanceLessonForm({
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [currentUploadId, setCurrentUploadId] = useState<string | null>(null);
   const [extractedContent, setExtractedContent] = useState("");
+  const [extractedTopic, setExtractedTopic] = useState<string | null>(null);
+  const [extractedScripture, setExtractedScripture] = useState<string | null>(null);
+  const [extractionStatus, setExtractionStatus] = useState<"idle" | "processing" | "complete">("idle");
   const [formData, setFormData] = useState({
     passageOrTopic: "",
     ageGroup: userPreferredAgeGroup,
@@ -105,9 +109,19 @@ export function EnhanceLessonForm({
     fetchProfilePreferences();
   }, [user]);
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
+
+    // Generate unique upload ID and immediately clear stale state
+    const uploadId = crypto.randomUUID();
+    setCurrentUploadId(uploadId);
+    setExtractedContent("");
+    setExtractedTopic(null);
+    setExtractedScripture(null);
+    setExtractionStatus("processing");
+    setUploadedFile(null);
+    setFormData(prev => ({ ...prev, passageOrTopic: "" }));
 
     // Validate file
     const validation = validateFileUpload(file);
@@ -119,26 +133,102 @@ export function EnhanceLessonForm({
         variant: "destructive",
       });
       logFileUploadEvent(user.id, file.name, file.size, false, { error: validation.error });
-      e.target.value = ''; // Clear the input
+      setExtractionStatus("idle");
+      e.target.value = '';
       return;
     }
 
     // Sanitize filename
     const sanitizedName = sanitizeFileName(file.name);
-    
     setUploadedFile(file);
     logFileUploadEvent(user.id, sanitizedName, file.size, true);
-    
-    // Mock content extraction with sanitization
-    const mockExtractedContent = sanitizeLessonInput(`Extracted content from ${sanitizedName}:\n\nLesson Topic: The Good Samaritan\nScripture: Luke 10:25-37\n\nMain Points:\n1. Love your neighbor as yourself\n2. Show compassion to those in need\n3. Actions speak louder than words\n\nActivity Ideas:\n- Role play the parable\n- Discuss what it means to be a neighbor`);
-    
-    setExtractedContent(mockExtractedContent);
-    setFormData(prev => ({ ...prev, passageOrTopic: "Luke 10:25-37 - The Good Samaritan" }));
-    
-    toast({
-      title: "File uploaded successfully",
-      description: `${sanitizedName} has been processed and content extracted.`,
-    });
+
+    try {
+      // For image files, use OCR
+      if (isImageFile(file)) {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+        const authToken = session?.access_token;
+
+        const ocrResponse = await fetch(
+          `https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/ocr-image?ts=${Date.now()}&uploadId=${uploadId}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${authToken}`,
+            },
+            body: formData,
+            cache: 'no-store',
+          }
+        );
+
+        if (!ocrResponse.ok) {
+          throw new Error('OCR processing failed');
+        }
+
+        const ocrResult = await ocrResponse.json();
+        
+        // Race condition guard: only update if this is still the current upload
+        if (uploadId !== currentUploadId) return;
+
+        const extractedText = sanitizeLessonInput(ocrResult.text || '');
+        
+        // Parse topic and scripture from extracted text
+        const topicMatch = extractedText.match(/(?:Topic|Lesson|Title):\s*(.+?)(?:\n|$)/i);
+        const scriptureMatch = extractedText.match(/(?:Scripture|Passage|Reference):\s*(.+?)(?:\n|$)/i);
+        
+        setExtractedContent(extractedText);
+        setExtractedTopic(topicMatch ? topicMatch[1].trim() : null);
+        setExtractedScripture(scriptureMatch ? scriptureMatch[1].trim() : null);
+        
+        if (scriptureMatch) {
+          setFormData(prev => ({ ...prev, passageOrTopic: scriptureMatch[1].trim() }));
+        }
+      } else {
+        // For text files, read directly
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          // Race condition guard
+          if (uploadId !== currentUploadId) return;
+
+          const text = event.target?.result as string;
+          const sanitizedText = sanitizeLessonInput(text);
+          
+          // Parse topic and scripture
+          const topicMatch = sanitizedText.match(/(?:Topic|Lesson|Title):\s*(.+?)(?:\n|$)/i);
+          const scriptureMatch = sanitizedText.match(/(?:Scripture|Passage|Reference):\s*(.+?)(?:\n|$)/i);
+          
+          setExtractedContent(sanitizedText);
+          setExtractedTopic(topicMatch ? topicMatch[1].trim() : null);
+          setExtractedScripture(scriptureMatch ? scriptureMatch[1].trim() : null);
+          
+          if (scriptureMatch) {
+            setFormData(prev => ({ ...prev, passageOrTopic: scriptureMatch[1].trim() }));
+          }
+          
+          setExtractionStatus("complete");
+        };
+        reader.readAsText(file);
+        return; // Exit early for text files
+      }
+
+      setExtractionStatus("complete");
+      
+      toast({
+        title: "File processed successfully",
+        description: `${sanitizedName} has been extracted.`,
+      });
+    } catch (error) {
+      console.error('Extraction error:', error);
+      setExtractionStatus("idle");
+      toast({
+        title: "Extraction failed",
+        description: "Could not extract content from the file. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -214,8 +304,8 @@ export function EnhanceLessonForm({
         throw new Error('Authentication required');
       }
 
-      // Call the comprehensive lesson generation API
-      const response = await fetch(`https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/generate-lesson`, {
+      // Call the comprehensive lesson generation API with cache busting
+      const response = await fetch(`https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/generate-lesson?ts=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -231,7 +321,9 @@ export function EnhanceLessonForm({
           teacherPreferences,
           theologicalPreference: formData.theologicalPreference,
           sbConfessionVersion: formData.sbConfessionVersion,
+          uploadId: currentUploadId,
         }),
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -339,6 +431,34 @@ export function EnhanceLessonForm({
     setTeacherPreferences(preferences);
   };
 
+  const handleClearForm = () => {
+    setUploadedFile(null);
+    setCurrentUploadId(null);
+    setExtractedContent("");
+    setExtractedTopic(null);
+    setExtractedScripture(null);
+    setExtractionStatus("idle");
+    setFormData({
+      passageOrTopic: "",
+      ageGroup: userPreferredAgeGroup,
+      doctrineProfile: defaultDoctrine,
+      notes: "",
+      theologicalPreference: "southern_baptist",
+      sbConfessionVersion: "bfm_2000"
+    });
+    setGeneratedContent(null);
+    setLessonTitle("");
+    
+    // Also reset file input
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) fileInput.value = '';
+  };
+
+  // Log verification marker
+  React.useEffect(() => {
+    console.log("✅ VERIFIED_BUILD: fresh extraction with uploadId");
+  }, []);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Enhancement Form */}
@@ -419,19 +539,57 @@ export function EnhanceLessonForm({
                    </Alert>
                  </div>
                 
-                {extractedContent && (
+                {extractionStatus === "processing" && (
                   <div className="space-y-2">
                     <Label>Extracted Content Preview</Label>
+                    <div className="min-h-[120px] border rounded-md p-4 bg-muted/50 flex items-center justify-center">
+                      <div className="text-center space-y-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                        <p className="text-sm text-muted-foreground">Processing file...</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {extractedContent && extractionStatus === "complete" && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Extracted Content Preview</Label>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleClearForm}
+                        className="h-8 text-xs"
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                    {uploadedFile && (
+                      <p className="text-xs text-muted-foreground">
+                        Extracted content from: <span className="font-medium">{uploadedFile.name}</span>
+                      </p>
+                    )}
+                    {extractedTopic && (
+                      <p className="text-sm">
+                        <span className="font-medium">Lesson Topic:</span> {extractedTopic}
+                      </p>
+                    )}
+                    {extractedScripture && (
+                      <p className="text-sm">
+                        <span className="font-medium">Scripture:</span> {extractedScripture}
+                      </p>
+                    )}
                     <Textarea
                       value={extractedContent}
                       onChange={(e) => setExtractedContent(e.target.value)}
                       className="min-h-[120px]"
                       placeholder="Content will be extracted from your uploaded file..."
                     />
-                     <div className="text-xs text-muted-foreground">
-                       Review and edit the extracted content before enhancement
-                       {uploadedFile && isImageFile(uploadedFile) && " (extracted using OCR from image)"}
-                     </div>
+                    <div className="text-xs text-muted-foreground">
+                      Review and edit the extracted content before enhancement
+                      {uploadedFile && isImageFile(uploadedFile) && " (extracted using OCR from image)"}
+                    </div>
                   </div>
                 )}
               </div>

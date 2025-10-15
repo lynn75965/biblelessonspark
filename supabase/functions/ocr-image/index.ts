@@ -147,7 +147,13 @@ serve(async (req) => {
         text: cleanedText,
         success: true
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+        } 
+      }
     );
 
   } catch (error) {
