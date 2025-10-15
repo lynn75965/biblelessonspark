@@ -782,6 +782,7 @@ export function EnhanceLessonForm({
               {showCustomization && (
                 <TeacherCustomization
                   preferences={teacherPreferences}
+                  onPreferencesChange={setTeacherPreferences}
                 />
               )}
             </div>
