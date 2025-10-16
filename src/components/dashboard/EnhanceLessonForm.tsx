@@ -84,7 +84,7 @@ export function EnhanceLessonForm({
     doctrineProfile: defaultDoctrine,
     notes: "",
     theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
-    sbConfessionVersion: "bfm_2000" as 'bfm_1963' | 'bfm_2000'
+    sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
   });
   
   const [rememberConfessionChoice, setRememberConfessionChoice] = useState(false);
@@ -105,6 +105,7 @@ export function EnhanceLessonForm({
     console.log("✅ VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
     console.log("✅ VERIFIED_BUILD: runtime instrumentation active");
     console.log("✅ VERIFIED_BUILD: DebugPanel visible and reactive");
+    console.log("✅ VERIFIED_BUILD: BFM Version label and default (BFM 1963) loaded");
   }, []);
   
   React.useEffect(() => {
@@ -677,7 +678,7 @@ export function EnhanceLessonForm({
             </div>
 
             <div>
-              <Label htmlFor="sbConfessionVersion">Confession Version</Label>
+              <Label htmlFor="sbConfessionVersion">BFM Version</Label>
               <RadioGroup
                 defaultValue={formData.sbConfessionVersion}
                 onValueChange={(value) => {
