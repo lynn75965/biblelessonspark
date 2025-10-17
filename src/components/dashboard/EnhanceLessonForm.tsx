@@ -731,27 +731,29 @@ export function EnhanceLessonForm({
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="sbConfessionVersion">BFM Version</Label>
-              <RadioGroup
-                defaultValue={formData.sbConfessionVersion}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, sbConfessionVersion: value as 'bfm_1963' | 'bfm_2000' });
-                  if (rememberConfessionChoice) {
-                    // Save to profile
-                  }
-                }}
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="bfm_1963" id="bfm_1963" />
-                  <Label htmlFor="bfm_1963">BFM 1963</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="bfm_2000" id="bfm_2000" />
-                  <Label htmlFor="bfm_2000">BFM 2000</Label>
-                </div>
-              </RadioGroup>
-            </div>
+            {formData.theologicalPreference === 'southern_baptist' && (
+              <div>
+                <Label htmlFor="sbConfessionVersion">BFM Version</Label>
+                <RadioGroup
+                  defaultValue={formData.sbConfessionVersion}
+                  onValueChange={(value) => {
+                    setFormData({ ...formData, sbConfessionVersion: value as 'bfm_1963' | 'bfm_2000' });
+                    if (rememberConfessionChoice) {
+                      // Save to profile
+                    }
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="bfm_1963" id="bfm_1963" />
+                    <Label htmlFor="bfm_1963">BFM 1963</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="bfm_2000" id="bfm_2000" />
+                    <Label htmlFor="bfm_2000">BFM 2000</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            )}
 
             <div>
               <Label htmlFor="notes">Additional Notes</Label>
