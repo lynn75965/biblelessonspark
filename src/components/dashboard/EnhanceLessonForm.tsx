@@ -613,13 +613,84 @@ export function EnhanceLessonForm({
         <CardHeader>
           <CardTitle>Enhance Lesson</CardTitle>
           <CardDescription>
-            {extractedContent
-              ? "Modify the topic, age group, and other settings to generate a lesson."
-              : "Upload a file or enter a passage to generate a lesson."}
+            Upload a file or enter a passage to generate a lesson.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid w-full gap-4">
+            {/* Upload/Paste Section - Moved to top */}
+            <Tabs defaultValue="upload" className="w-full">
+              <TabsList>
+                <TabsTrigger value="upload">
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload File
+                </TabsTrigger>
+                <TabsTrigger value="paste">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Paste Text
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="upload" className="space-y-2">
+                <div className="grid gap-2">
+                  <Label htmlFor="upload">Curriculum</Label>
+                  <Input
+                    id="upload"
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileSelect}
+                    accept=".txt,.pdf,.docx,.doc"
+                    disabled={isExtracting}
+                  />
+                  {isExtracting && (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="mr-2 h-4 w-4 animate-spin" />
+                      <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
+                      <Progress value={extractProgress} className="w-1/2" />
+                      <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
+                        Cancel
+                      </Button>
+                    </div>
+                  )}
+                  {extractError && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        {extractError.msg}
+                        <div className="flex space-x-2 mt-2">
+                          <Button size="sm" onClick={handleRetryExtraction}>
+                            Try Again
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={handleClearExtraction}>
+                            Clear
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {extractedContent && (
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary">
+                        sessionId: {sessionId?.slice(0, 8)} | uploadId: {uploadId?.slice(0, 8)} | fileHash: {fileHash?.slice(0, 8)} | source: {sourceFilename}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              <TabsContent value="paste">
+                <div className="grid gap-2">
+                  <Label htmlFor="curriculum">Curriculum</Label>
+                  <Textarea
+                    id="curriculum"
+                    placeholder="Paste your curriculum content here..."
+                    rows={4}
+                    value={extractedContent || ""}
+                    onChange={(e) => setExtractedContent(e.target.value)}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            {/* Form Inputs Section */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="passageOrTopic">Passage or Topic</Label>
@@ -708,77 +779,6 @@ export function EnhanceLessonForm({
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               />
             </div>
-
-            <Tabs defaultValue="upload" className="w-full">
-              <TabsList>
-                <TabsTrigger value="upload">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload File
-                </TabsTrigger>
-                <TabsTrigger value="paste">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Paste Text
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="upload" className="space-y-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="upload">Curriculum</Label>
-                  <Input
-                    id="upload"
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    accept=".txt,.pdf,.docx,.doc"
-                    disabled={isExtracting}
-                  />
-                  {isExtracting && (
-                    <div className="flex items-center space-x-2">
-                      <Clock className="mr-2 h-4 w-4 animate-spin" />
-                      <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
-                      <Progress value={extractProgress} className="w-1/2" />
-                      <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  {extractError && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        {extractError.msg}
-                        <div className="flex space-x-2 mt-2">
-                          <Button size="sm" onClick={handleRetryExtraction}>
-                            Try Again
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={handleClearExtraction}>
-                            Clear
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {extractedContent && (
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">
-                        sessionId: {sessionId?.slice(0, 8)} | uploadId: {uploadId?.slice(0, 8)} | fileHash: {fileHash?.slice(0, 8)} | source: {sourceFilename}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="paste">
-                <div className="grid gap-2">
-                  <Label htmlFor="curriculum">Curriculum</Label>
-                  <Textarea
-                    id="curriculum"
-                    placeholder="Paste your curriculum content here..."
-                    rows={4}
-                    value={extractedContent || ""}
-                    onChange={(e) => setExtractedContent(e.target.value)}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
 
             <div className="flex items-center space-x-2">
               <Input
