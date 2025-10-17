@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
-import { GenerateLessonButton } from "@/components/dashboard/GenerateLessonButton";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
@@ -232,11 +231,6 @@ export default function Dashboard({
             </p>
           </div>
           <CreditsDisplay balance={balance} loading={creditsLoading} />
-        </div>
-
-        {/* Generate Lesson Section */}
-        <div className="mb-8">
-          <GenerateLessonButton onSuccess={refetchCredits} />
         </div>
 
         {/* Quick Stats */}
