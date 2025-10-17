@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText, AlertTriangle, Loader2 } from "lucide-react";
@@ -714,18 +715,20 @@ export function EnhanceLessonForm({
               </div>
             </div>
 
-            <div>
-              <Label htmlFor="theologicalPreference">Theological Preference</Label>
-              <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
-                <SelectTrigger id="theologicalPreference">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
-                  <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
-                  <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="theologicalPreference">Theological Preference</Label>
+                <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
+                  <SelectTrigger id="theologicalPreference">
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
+                    <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
+                    <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div>
@@ -760,14 +763,13 @@ export function EnhanceLessonForm({
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Input
-                type="checkbox"
+            <div className="flex items-center gap-2">
+              <Checkbox
                 id="customization"
                 checked={showCustomization}
-                onChange={(e) => setShowCustomization(e.target.checked)}
+                onCheckedChange={(checked) => setShowCustomization(checked === true)}
               />
-              <Label htmlFor="customization" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed">
+              <Label htmlFor="customization" className="text-sm font-medium leading-none cursor-pointer">
                 Show Customization Options
               </Label>
             </div>
