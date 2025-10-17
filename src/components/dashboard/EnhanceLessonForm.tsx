@@ -81,7 +81,6 @@ export function EnhanceLessonForm({
   const [formData, setFormData] = useState({
     passageOrTopic: "",
     ageGroup: userPreferredAgeGroup,
-    doctrineProfile: defaultDoctrine,
     notes: "",
     theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
     sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
@@ -319,7 +318,6 @@ export function EnhanceLessonForm({
       lessonFormSchema.parse({
         passageOrTopic: formData.passageOrTopic,
         ageGroup: formData.ageGroup,
-        doctrineProfile: formData.doctrineProfile,
         notes: formData.notes,
       });
 
@@ -361,7 +359,6 @@ export function EnhanceLessonForm({
         body: JSON.stringify({
           passageOrTopic: formData.passageOrTopic,
           ageGroup: formData.ageGroup,
-          doctrineProfile: formData.doctrineProfile,
           notes: formData.notes,
           enhancementType,
           extractedContent,
@@ -456,7 +453,6 @@ export function EnhanceLessonForm({
           resources: generatedContent.resources || "",
           preparation: generatedContent.preparation || "",
           age_group: formData.ageGroup,
-          doctrine_profile: formData.doctrineProfile,
           notes: formData.notes,
           theological_preference: formData.theologicalPreference,
           sb_confession_version: formData.sbConfessionVersion,
@@ -499,7 +495,7 @@ export function EnhanceLessonForm({
       trackEvent("lesson_copied", undefined, {
         lesson_title: lessonTitle,
         age_group: formData.ageGroup,
-        doctrine_profile: formData.doctrineProfile,
+        theological_preference: formData.theologicalPreference,
       });
     } else {
       toast({
@@ -538,7 +534,7 @@ export function EnhanceLessonForm({
         trackEvent("lesson_printed", undefined, {
           lesson_title: lessonTitle,
           age_group: formData.ageGroup,
-          doctrine_profile: formData.doctrineProfile,
+          theological_preference: formData.theologicalPreference,
         });
       }
     } else {
@@ -564,7 +560,7 @@ export function EnhanceLessonForm({
       trackEvent("lesson_downloaded", undefined, {
         lesson_title: lessonTitle,
         age_group: formData.ageGroup,
-        doctrine_profile: formData.doctrineProfile,
+        theological_preference: formData.theologicalPreference,
       });
     } else {
       toast({
@@ -718,34 +714,18 @@ export function EnhanceLessonForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="doctrineProfile">Doctrine Profile</Label>
-                <Select value={formData.doctrineProfile} onValueChange={(value) => setFormData({ ...formData, doctrineProfile: value })}>
-                  <SelectTrigger id="doctrineProfile">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SBC">Southern Baptist</SelectItem>
-                    <SelectItem value="Reformed">Reformed</SelectItem>
-                    <SelectItem value="Non-Denominational">Non-Denominational</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="theologicalPreference">Theological Preference</Label>
-                <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
-                  <SelectTrigger id="theologicalPreference">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
-                    <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
-                    <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="theologicalPreference">Theological Preference</Label>
+              <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
+                <SelectTrigger id="theologicalPreference">
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
+                  <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
+                  <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
