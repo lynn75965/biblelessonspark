@@ -60,7 +60,8 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
-            <Route path="/setup" element={<SetupChecklist />} />
+            <Route path="/setup" element={<Setup />} />
+            <Route path="/setup/checklist" element={<SetupChecklist />} />
             <Route path="/setup/guide" element={<Setup />} />
             <Route path="/preferences/lens" element={
               <ProtectedRoute>
