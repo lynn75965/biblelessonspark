@@ -23,22 +23,23 @@ export function PricingCard({
 
   return (
     <Card className="flex flex-col">
-      <CardHeader>
-        <CardTitle>{name}</CardTitle>
-        <CardDescription>
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="text-lg sm:text-xl">{name}</CardTitle>
+        <CardDescription className="text-sm">
           {credits === null ? "Unlimited" : credits} credits/month
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-4">
+      <CardContent className="flex-1 flex flex-col gap-3 sm:gap-4 p-4 sm:p-6">
         <div className="space-y-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{formatPrice(monthlyPrice)}</span>
-            <span className="text-muted-foreground">/month</span>
+            <span className="text-2xl sm:text-3xl font-bold">{formatPrice(monthlyPrice)}</span>
+            <span className="text-muted-foreground text-sm">/month</span>
           </div>
           <Button 
             onClick={() => onSubscribe("monthly")}
             disabled={loading}
-            className="w-full"
+            className="w-full text-sm sm:text-base"
+            size="lg"
           >
             Subscribe Monthly
           </Button>
@@ -46,30 +47,31 @@ export function PricingCard({
         
         <div className="space-y-2">
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{formatPrice(yearlyPrice)}</span>
-            <span className="text-muted-foreground">/year</span>
+            <span className="text-2xl sm:text-3xl font-bold">{formatPrice(yearlyPrice)}</span>
+            <span className="text-muted-foreground text-sm">/year</span>
           </div>
           <Button 
             onClick={() => onSubscribe("yearly")}
             disabled={loading}
             variant="outline"
-            className="w-full"
+            className="w-full text-sm sm:text-base"
+            size="lg"
           >
             Subscribe Yearly
           </Button>
         </div>
 
-        <div className="mt-4 pt-4 border-t space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Check className="h-4 w-4 text-primary" />
+        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t space-y-2">
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-primary shrink-0" />
             <span>Enhanced lessons</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Check className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-primary shrink-0" />
             <span>Customizable content</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <Check className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2 text-xs sm:text-sm">
+            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-primary shrink-0" />
             <span>Priority support</span>
           </div>
         </div>

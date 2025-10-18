@@ -174,127 +174,128 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md px-4 sm:px-0">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary">
-              <BookOpen className="h-6 w-6 text-white" />
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <span className="text-2xl font-bold gradient-text">LessonSpark USA</span>
+            <span className="text-xl sm:text-2xl font-bold gradient-text">LessonSpark USA</span>
           </div>
-          <h1 className="text-2xl font-bold mb-2">Welcome to LessonSpark USA</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">Welcome to LessonSpark USA</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Baptist Bible Study Enhancement Platform
           </p>
         </div>
 
         <Card className="bg-gradient-card shadow-glow">
-          <CardHeader>
-            <CardTitle>
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl">
               {inviteToken ? `Invitation from ${inviterName}` : 'Access Your Account'}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               {inviteToken 
                 ? 'Complete your sign up to join LessonSpark USA' 
                 : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 text-sm">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="signin" className="space-y-4">
-                <form onSubmit={handleSignIn} className="space-y-4">
+              <TabsContent value="signin" className="space-y-3 sm:space-y-4">
+                <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
+                    <Label htmlFor="signin-email" className="text-sm">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signin-email"
                         type="email"
                         placeholder="your.email@church.org"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="pl-10"
+                        className="pl-9 sm:pl-10 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <Label htmlFor="signin-password" className="text-sm">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signin-password"
                         type="password"
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="pl-10"
+                        className="pl-9 sm:pl-10 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full text-sm sm:text-base" 
                     variant="hero"
+                    size="lg"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Signing In...' : 'Sign In'}
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
                     Enter your email and password to access your account
                   </p>
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup" className="space-y-4">
-                <form onSubmit={handleSignUp} className="space-y-4">
+              <TabsContent value="signup" className="space-y-3 sm:space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-sm">Full Name</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         placeholder="Your full name"
                         value={formData.fullName}
                         onChange={(e) => handleInputChange('fullName', e.target.value)}
-                        className="pl-10"
+                        className="pl-9 sm:pl-10 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email" className="text-sm">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         type="email"
                         placeholder="your.email@church.org"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="pl-10"
+                        className="pl-9 sm:pl-10 text-sm sm:text-base"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
+                    <Label htmlFor="signup-password" className="text-sm">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
                         placeholder="Enter your password"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="pl-10"
+                        className="pl-9 sm:pl-10 text-sm sm:text-base"
                         minLength={6}
                         required
                       />
@@ -302,13 +303,14 @@ export default function Auth() {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full" 
+                    className="w-full text-sm sm:text-base" 
                     variant="hero"
+                    size="lg"
                     disabled={isLoading}
                   >
                     {isLoading ? 'Creating Account...' : 'Create Account'}
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
                     By signing up, you agree to our terms of service and privacy policy
                   </p>
                 </form>
@@ -318,8 +320,8 @@ export default function Auth() {
         </Card>
 
         {/* Back to Home */}
-        <div className="text-center mt-6">
-          <Button variant="ghost" onClick={() => navigate('/')}>
+        <div className="text-center mt-4 sm:mt-6">
+          <Button variant="ghost" onClick={() => navigate('/')} size="sm" className="text-xs sm:text-sm">
             ← Back to Home
           </Button>
         </div>

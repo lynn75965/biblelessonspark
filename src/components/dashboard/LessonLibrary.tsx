@@ -119,39 +119,40 @@ export function LessonLibrary({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-4 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h2 className="text-2xl font-bold">My Lessons</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl font-bold">My Lessons</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Manage your Baptist Bible study lessons and enhancements
           </p>
         </div>
-        <Button variant="hero" onClick={onCreateNew}>
+        <Button variant="hero" onClick={onCreateNew} size="sm" className="w-full sm:w-auto">
           <Plus className="h-4 w-4" />
-          Create New Lesson
+          <span className="hidden xs:inline">Create New Lesson</span>
+          <span className="xs:hidden">Create</span>
         </Button>
       </div>
 
       {/* Search and Filters */}
       <Card className="bg-gradient-card">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:gap-4">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
               <Input
-                placeholder="Search lessons by title or passage..."
+                placeholder="Search lessons..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9 sm:pl-10 text-sm sm:text-base"
               />
             </div>
 
             {/* Age Group Filter */}
             <Select value={ageFilter} onValueChange={setAgeFilter}>
-              <SelectTrigger className="w-full md:w-[150px]">
+              <SelectTrigger className="w-full sm:w-[140px] text-xs sm:text-sm">
                 <SelectValue placeholder="All Ages" />
               </SelectTrigger>
               <SelectContent>
@@ -172,7 +173,7 @@ export function LessonLibrary({
 
             {/* Doctrine Filter */}
             <Select value={doctrineFilter} onValueChange={setDoctrineFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px] text-xs sm:text-sm">
                 <SelectValue placeholder="All Doctrines" />
               </SelectTrigger>
               <SelectContent>
@@ -209,27 +210,28 @@ export function LessonLibrary({
 
       {/* Lessons Grid */}
       {filteredLessons.length > 0 ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredLessons.map((lesson) => (
             <Card key={lesson.id} className="group hover:shadow-glow transition-all duration-normal bg-gradient-card">
-              <CardHeader>
-                <div className="flex items-start justify-between">
+              <CardHeader className="p-4 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 flex-1 min-w-0">
-                    <CardTitle className="text-base line-clamp-2">{lesson.title}</CardTitle>
-                    <CardDescription className="text-sm">
+                    <CardTitle className="text-sm sm:text-base line-clamp-2">{lesson.title}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">
                       {lesson.passage_or_topic}
                     </CardDescription>
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary shrink-0">
-                    <BookOpen className="h-4 w-4 text-white" />
+                  <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary shrink-0">
+                    <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                   </div>
                 </div>
 
                 {/* Badges */}
-                <div className="flex flex-wrap gap-2">
-                  <Badge className={getAgeGroupBadgeColor(lesson.age_group)} variant="secondary">
-                    <Users className="h-3 w-3" />
-                    {lesson.age_group}
+                <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                  <Badge className={`${getAgeGroupBadgeColor(lesson.age_group)} text-xs`} variant="secondary">
+                    <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                    <span className="hidden sm:inline">{lesson.age_group}</span>
+                    <span className="sm:hidden">{lesson.age_group.split(' ')[0]}</span>
                   </Badge>
                   <Badge className={getDoctrineBadgeColor(lesson.doctrine_profile)} variant="secondary">
                     {lesson.doctrine_profile}
@@ -242,11 +244,11 @@ export function LessonLibrary({
                 </div>
               </CardHeader>
 
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                 {/* Meta Information */}
-                <div className="text-xs text-muted-foreground space-y-1">
+                <div className="text-[10px] sm:text-xs text-muted-foreground space-y-1">
                   <div className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
+                    <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                     Created {formatDate(lesson.created_at)}
                   </div>
                   <div>
@@ -260,19 +262,20 @@ export function LessonLibrary({
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2">
+                <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    className="flex-1"
+                    className="col-span-2 text-xs"
                     onClick={() => onViewLesson?.(lesson)}
                   >
-                    <Eye className="h-3 w-3" />
-                    View
+                    <Eye className="h-3 w-3 mr-1" />
+                    <span className="hidden xs:inline">View</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     size="sm"
+                    className="text-xs"
                     onClick={() => onEditLesson?.(lesson)}
                   >
                     <Edit className="h-3 w-3" />
@@ -280,18 +283,21 @@ export function LessonLibrary({
                   <Button 
                     variant="outline" 
                     size="sm"
+                    className="text-xs"
                     onClick={() => handleDuplicate(lesson)}
                   >
                     <Copy className="h-3 w-3" />
                   </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleDelete(lesson)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full text-xs"
+                  onClick={() => handleDelete(lesson)}
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Delete Lesson
+                </Button>
               </CardContent>
             </Card>
           ))}

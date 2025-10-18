@@ -578,12 +578,12 @@ export function EnhanceLessonForm({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full px-4 sm:px-0">
       {/* Debug Panel */}
       {extractJobId && extractState !== 'idle' && extractState !== 'done' && extractState !== 'failed' && (
-        <div className="fixed bottom-4 right-4 bg-background border border-border rounded-lg shadow-lg p-4 max-w-md z-50">
-          <div className="text-sm font-mono space-y-1">
-            <div className="font-semibold text-foreground mb-2">Extraction Job Status</div>
+        <div className="fixed bottom-4 right-4 bg-background border border-border rounded-lg shadow-lg p-3 sm:p-4 max-w-[90vw] sm:max-w-md z-50 text-xs sm:text-sm">
+          <div className="font-mono space-y-1">
+            <div className="font-semibold text-foreground mb-2">Extraction Status</div>
             <div className="text-muted-foreground">
               <span className="text-foreground">Job:</span> {extractJobId.slice(0, 8)}...
             </div>
@@ -599,7 +599,7 @@ export function EnhanceLessonForm({
             <div className="text-muted-foreground">
               <span className="text-foreground">fileHash:</span> {fileHash.slice(0, 8)}...
             </div>
-            <div className="text-muted-foreground">
+            <div className="text-muted-foreground break-all">
               <span className="text-foreground">file:</span> {sourceFilename}
             </div>
           </div>
@@ -607,24 +607,26 @@ export function EnhanceLessonForm({
       )}
       
       <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Enhance Lesson</CardTitle>
-          <CardDescription>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-xl sm:text-2xl">Enhance Lesson</CardTitle>
+          <CardDescription className="text-sm">
             Upload a file or enter a passage to generate a lesson.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <form onSubmit={handleSubmit} className="grid w-full gap-4">
             {/* Upload/Paste Section - Moved to top */}
             <Tabs defaultValue="upload" className="w-full">
-              <TabsList>
-                <TabsTrigger value="upload">
-                  <Upload className="mr-2 h-4 w-4" />
-                  Upload File
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="upload" className="text-xs sm:text-sm">
+                  <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Upload File</span>
+                  <span className="xs:hidden">Upload</span>
                 </TabsTrigger>
-                <TabsTrigger value="paste">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Paste Text
+                <TabsTrigger value="paste" className="text-xs sm:text-sm">
+                  <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden xs:inline">Paste Text</span>
+                  <span className="xs:hidden">Paste</span>
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="upload" className="space-y-2">
@@ -688,21 +690,22 @@ export function EnhanceLessonForm({
             </Tabs>
 
             {/* Form Inputs Section */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="passageOrTopic">Passage or Topic</Label>
+                <Label htmlFor="passageOrTopic" className="text-sm">Passage or Topic</Label>
                 <Input
                   type="text"
                   id="passageOrTopic"
-                  placeholder="e.g., Romans 12:1-2 or Love and Sacrifice"
+                  placeholder="e.g., Romans 12:1-2"
                   value={formData.passageOrTopic}
                   onChange={(e) => setFormData({ ...formData, passageOrTopic: e.target.value })}
+                  className="text-sm sm:text-base"
                 />
               </div>
               <div>
-                <Label htmlFor="ageGroup">Age Group</Label>
+                <Label htmlFor="ageGroup" className="text-sm">Age Group</Label>
                 <Select value={formData.ageGroup} onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}>
-                  <SelectTrigger id="ageGroup">
+                  <SelectTrigger id="ageGroup" className="text-sm sm:text-base">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
@@ -715,11 +718,11 @@ export function EnhanceLessonForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="theologicalPreference">Theological Preference</Label>
+                <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
                 <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
-                  <SelectTrigger id="theologicalPreference">
+                  <SelectTrigger id="theologicalPreference" className="text-sm sm:text-base">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
@@ -783,16 +786,18 @@ export function EnhanceLessonForm({
               />
             )}
 
-            <Button type="submit" disabled={isGenerating || !extractedContent}>
+            <Button type="submit" disabled={isGenerating || !extractedContent} className="w-full sm:w-auto" size="lg">
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating...
+                  <span className="hidden xs:inline">Generating...</span>
+                  <span className="xs:hidden">...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Enhance Curriculum
+                  <span className="hidden xs:inline">Enhance Curriculum</span>
+                  <span className="xs:hidden">Enhance</span>
                 </>
               )}
             </Button>
@@ -802,16 +807,16 @@ export function EnhanceLessonForm({
 
       {enhancedResult && (
         <Card className="w-full mt-4">
-          <CardHeader>
-            <CardTitle>Enhanced Lesson</CardTitle>
-            <CardDescription>
+          <CardHeader className="px-4 sm:px-6">
+            <CardTitle className="text-xl sm:text-2xl">Enhanced Lesson</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               {enhancedResult.sessionId === sessionId &&
                 enhancedResult.uploadId === uploadId &&
                 enhancedResult.fileHash === fileHash ? (
                 <>
                   Here is your enhanced lesson.
-                  <div className="flex items-center space-x-2 mt-2">
-                    <Badge variant="secondary">
+                  <div className="flex items-center space-x-2 mt-2 overflow-x-auto">
+                    <Badge variant="secondary" className="text-xs whitespace-nowrap">
                       sessionId: {enhancedResult.sessionId?.slice(0, 8)} | uploadId: {enhancedResult.uploadId?.slice(0, 8)} | fileHash: {enhancedResult.fileHash?.slice(0, 8)}
                     </Badge>
                   </div>
@@ -821,12 +826,12 @@ export function EnhanceLessonForm({
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-4 sm:px-6">
             {generatedContent ? (
               <>
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Overview</h2>
-                  <p>{generatedContent.overview}</p>
+                  <h2 className="text-lg sm:text-xl font-semibold">Overview</h2>
+                  <p className="text-sm sm:text-base">{generatedContent.overview}</p>
                 </div>
                 <div className="space-y-2">
                   <h2 className="text-xl font-semibold">Objectives</h2>
@@ -881,26 +886,26 @@ export function EnhanceLessonForm({
               <p>No lesson content generated yet.</p>
             )}
           </CardContent>
-          <div className="flex justify-between p-4">
-            <Button size="sm" onClick={handleSave}>
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-3 p-4 sm:p-6">
+            <Button size="sm" onClick={handleSave} className="w-full sm:w-auto">
               <Save className="mr-2 h-4 w-4" />
               Save
             </Button>
-            <div className="space-x-2">
-              <Button size="sm" onClick={handleCopy}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copy
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleCopy} className="flex-1 sm:flex-none">
+                <Copy className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">Copy</span>
               </Button>
-              <Button size="sm" onClick={handlePrint}>
-                <Printer className="mr-2 h-4 w-4" />
-                Print
+              <Button size="sm" onClick={handlePrint} className="flex-1 sm:flex-none">
+                <Printer className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">Print</span>
               </Button>
-              <Button size="sm" onClick={handleDownload}>
-                <Download className="mr-2 h-4 w-4" />
-                Download
+              <Button size="sm" onClick={handleDownload} className="flex-1 sm:flex-none">
+                <Download className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="text-xs sm:text-sm">Download</span>
               </Button>
-              <Button size="sm" variant="outline" onClick={handleClearForm}>
-                Clear
+              <Button size="sm" variant="outline" onClick={handleClearForm} className="flex-1 sm:flex-none">
+                <span className="text-xs sm:text-sm">Clear</span>
               </Button>
             </div>
           </div>

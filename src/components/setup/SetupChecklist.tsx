@@ -213,29 +213,29 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
   }
 
   return (
-    <div className={cn("w-full max-w-2xl mx-auto", isModal && "max-h-[80vh] overflow-y-auto")}>
-      <div className="space-y-8">
+    <div className={cn("w-full max-w-2xl mx-auto px-4 sm:px-0", isModal && "max-h-[80vh] overflow-y-auto")}>
+      <div className="space-y-6 sm:space-y-8">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
-              <BookOpen className="h-8 w-8 text-white" />
+        <div className="text-center space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <div className="flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg">
+              <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
-              <p className="text-lg text-muted-foreground">Let's get you started with these simple steps!</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome to LessonSpark USA!</h2>
+              <p className="text-base sm:text-lg text-muted-foreground">Let's get you started with these simple steps!</p>
             </div>
           </div>
           
           {/* Progress */}
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm font-medium">
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex justify-between text-xs sm:text-sm font-medium">
               <span>Setup Progress</span>
               <span className="text-primary">{completedCount} of {totalSteps} complete</span>
             </div>
-            <div className="w-full bg-muted rounded-full h-3">
+            <div className="w-full bg-muted rounded-full h-2 sm:h-3">
               <div 
-                className="bg-gradient-primary h-3 rounded-full transition-all duration-500 ease-out"
+                className="bg-gradient-primary h-2 sm:h-3 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progressPercentage}%` }}
               />
             </div>
@@ -243,7 +243,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
         </div>
 
         {/* Steps */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {steps.map((step) => {
             const isComplete = progress[step.id] === 'complete';
             
@@ -254,39 +254,39 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                   ? "border-success bg-success/5" 
                   : "border-border hover:border-primary/30"
               )}>
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex items-start gap-3 sm:gap-4">
                     {/* Step Icon/Number */}
                     <div className={cn(
-                      "flex h-12 w-12 items-center justify-center rounded-lg transition-all duration-300",
+                      "flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg transition-all duration-300 shrink-0",
                       isComplete 
                         ? "bg-success text-white" 
                         : "bg-primary/10 text-primary"
                     )}>
                       {isComplete ? (
-                        <CheckCircle2 className="h-6 w-6" />
+                        <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6" />
                       ) : (
-                        step.icon
+                        <div className="h-5 w-5 sm:h-6 sm:w-6">{step.icon}</div>
                       )}
                     </div>
                     
                     {/* Step Content */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-foreground mb-1">{step.title}</h3>
-                          <p className="text-muted-foreground text-sm">{step.description}</p>
+                      <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-2 sm:gap-4 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-foreground mb-1">{step.title}</h3>
+                          <p className="text-muted-foreground text-xs sm:text-sm">{step.description}</p>
                         </div>
                         {!isComplete && step.showAction && (
-                          <div className="flex gap-2 shrink-0">
+                          <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:shrink-0">
                             <Button
                               onClick={step.action}
                               size="sm"
-                              className="whitespace-nowrap"
+                              className="whitespace-nowrap text-xs sm:text-sm flex-1 sm:flex-none"
                               variant="default"
                             >
                               {step.actionLabel}
-                              {!verifyingEmail && !verifyingStripe && <ArrowRight className="ml-2 h-4 w-4" />}
+                              {!verifyingEmail && !verifyingStripe && <ArrowRight className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />}
                             </Button>
                             {step.id === 'verify_email' && (
                               <Button
