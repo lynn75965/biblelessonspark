@@ -89,25 +89,25 @@ export function PricingSection() {
   };
 
   return (
-    <section className="py-20">
-      <div className="container">
-        <div className="text-center space-y-4 mb-16">
-          <Badge variant="outline" className="px-4 py-1">
+    <section className="py-10 sm:py-16 lg:py-20">
+      <div className="container px-4 sm:px-6">
+        <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12 lg:mb-16">
+          <Badge variant="outline" className="px-3 py-1 text-xs sm:text-sm">
             Pricing
           </Badge>
-          <h2 className="text-3xl lg:text-4xl font-bold">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold">
             Simple, Transparent{" "}
             <span className="gradient-text">Pricing</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
             Choose the plan that works best for you
           </p>
 
           {/* Billing cycle toggle */}
-          <div className="inline-flex items-center gap-3 mt-8 rounded-full border-2 border-border bg-card px-2 py-1.5 shadow-sm">
+          <div className="inline-flex items-center gap-2 sm:gap-3 mt-4 sm:mt-6 lg:mt-8 rounded-full border-2 border-border bg-card px-1.5 sm:px-2 py-1 sm:py-1.5 shadow-sm w-auto max-w-full">
             <button
               onClick={() => setCycle("monthly")}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              className={`px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 min-h-[36px] sm:min-h-[40px] ${
                 cycle === "monthly" 
                   ? "bg-primary text-primary-foreground shadow-md" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -118,29 +118,29 @@ export function PricingSection() {
             </button>
             <button
               onClick={() => setCycle("yearly")}
-              className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-200 ${
+              className={`px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 min-h-[36px] sm:min-h-[40px] ${
                 cycle === "yearly" 
                   ? "bg-gradient-to-r from-secondary to-warning text-foreground shadow-md" 
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
               aria-pressed={cycle === "yearly"}
             >
-              Yearly <span className="ml-1 text-xs opacity-90 font-semibold">(save 20%)</span>
+              Yearly <span className="ml-0.5 sm:ml-1 text-[10px] sm:text-xs opacity-90 font-semibold whitespace-nowrap">(save 20%)</span>
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mx-auto" />
-            <p className="text-muted-foreground mt-4">Loading pricing plans…</p>
+          <div className="text-center py-12 sm:py-16 lg:py-20">
+            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground mx-auto" />
+            <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4">Loading pricing plans…</p>
           </div>
         ) : plans.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-muted-foreground">No pricing plans available. Please contact support.</p>
+          <div className="text-center py-12 sm:py-16 lg:py-20 px-4">
+            <p className="text-sm sm:text-base text-muted-foreground">No pricing plans available. Please contact support.</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-6xl mx-auto">
             {plans.map((plan) => {
               const planDetails = getPlanFeatures(plan.name);
               const showYearlyHelper = cycle === "yearly";
@@ -153,22 +153,22 @@ export function PricingSection() {
                   key={plan.id}
                   className={`relative overflow-hidden transition-all duration-300 ${
                     isPopular 
-                      ? "border-[#C9A341] border-2 shadow-xl scale-[1.05] bg-gradient-to-br from-white via-[#C9A341]/5 to-white dark:from-card dark:via-[#C9A341]/10 dark:to-card" 
+                      ? "border-[#C9A341] border-2 shadow-xl md:scale-[1.05] bg-gradient-to-br from-white via-[#C9A341]/5 to-white dark:from-card dark:via-[#C9A341]/10 dark:to-card" 
                       : "border-border hover:border-primary/30 hover:shadow-lg bg-gradient-card"
                   }`}
                 >
                   {isPopular && (
                     <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
-                      <Badge className="bg-gradient-to-r from-[#C9A341] to-[#E5C478] text-white px-5 py-1.5 rounded-b-lg font-semibold shadow-md">
+                      <Badge className="bg-gradient-to-r from-[#C9A341] to-[#E5C478] text-white px-3 sm:px-4 lg:px-5 py-1 sm:py-1.5 rounded-b-lg text-xs sm:text-sm font-semibold shadow-md">
                         Best Value
                       </Badge>
                     </div>
                   )}
                   
-                  <CardHeader className={`text-center ${isPopular ? "pt-10" : "pt-6"}`}>
-                    <CardTitle className="text-xl font-semibold mb-1">{plan.name}</CardTitle>
+                  <CardHeader className={`text-center px-4 sm:px-6 ${isPopular ? "pt-8 sm:pt-10" : "pt-4 sm:pt-6"}`}>
+                    <CardTitle className="text-lg sm:text-xl font-semibold mb-1">{plan.name}</CardTitle>
                     
-                    <div className="text-sm text-muted-foreground mb-4">
+                    <div className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                       {plan.creditsMonthly === null 
                         ? "Unlimited credits/month" 
                         : `${plan.creditsMonthly} credits/month`}
@@ -176,28 +176,28 @@ export function PricingSection() {
                     
                     <div className="space-y-1">
                       <div className="flex items-baseline justify-center gap-1">
-                        <span className={`font-bold ${isPopular ? "text-5xl" : "text-4xl"}`}>
+                        <span className={`font-bold ${isPopular ? "text-3xl sm:text-4xl lg:text-5xl" : "text-2xl sm:text-3xl lg:text-4xl"}`}>
                           {formatMoney(plan.priceCents, plan.currency.toUpperCase())}
                         </span>
-                        <span className="text-muted-foreground text-sm">
+                        <span className="text-muted-foreground text-xs sm:text-sm">
                           {cycle === "yearly" ? "/year" : "/month"}
                         </span>
                       </div>
                       {showYearlyHelper && monthlyEq !== null && (
-                        <p className="text-sm text-muted-foreground font-medium">
+                        <p className="text-xs sm:text-sm text-muted-foreground font-medium px-2">
                           That's just {formatMoney(monthlyEq, plan.currency.toUpperCase())}/month — save 20% annually
                         </p>
                       )}
                     </div>
                   </CardHeader>
 
-                  <CardContent className="space-y-6 pt-2">
+                  <CardContent className="space-y-4 sm:space-y-6 pt-2 px-4 sm:px-6 pb-4 sm:pb-6">
                     {/* Features */}
-                    <div className="space-y-3">
-                      <ul className="space-y-2.5">
+                    <div className="space-y-2 sm:space-y-3">
+                      <ul className="space-y-2">
                         {planDetails.features.map((feature, idx) => (
-                          <li key={idx} className="flex items-start gap-2.5 text-sm">
-                            <Check className="h-4 w-4 text-success shrink-0 mt-0.5" />
+                          <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm">
+                            <Check className="h-3 w-3 sm:h-4 sm:w-4 text-success shrink-0 mt-0.5" />
                             <span className="text-foreground/80">{feature}</span>
                           </li>
                         ))}
@@ -206,7 +206,7 @@ export function PricingSection() {
 
                     {/* CTA */}
                     <Button 
-                      className={`w-full ${
+                      className={`w-full min-h-[44px] text-sm sm:text-base ${
                         isPopular 
                           ? "bg-gradient-to-r from-[#C9A341] to-[#E5C478] text-white hover:from-[#B89237] hover:to-[#C9A341] shadow-lg" 
                           : ""
@@ -218,11 +218,11 @@ export function PricingSection() {
                     >
                       {checkoutLoading === plan.id ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Processing...
+                          <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                          <span className="ml-2">Processing...</span>
                         </>
                       ) : (
-                        cycle === "yearly" ? "Subscribe Yearly" : "Subscribe Monthly"
+                        <span>{cycle === "yearly" ? "Subscribe Yearly" : "Subscribe Monthly"}</span>
                       )}
                     </Button>
                   </CardContent>

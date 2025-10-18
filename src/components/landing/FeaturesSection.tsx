@@ -71,43 +71,42 @@ export function FeaturesSection() {
     };
     return colors[category as keyof typeof colors] || "bg-muted text-muted-foreground";
   };
-  return <section className="section bg-muted/30">
-      <div className="container">
-        <div className="text-center space-y-4 mb-8">
-          <Badge variant="outline" className="px-4 py-1">
+  return <section className="py-10 sm:py-16 lg:py-20 bg-muted/30">
+      <div className="container px-4 sm:px-6">
+        <div className="text-center space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+          <Badge variant="outline" className="px-3 py-1 text-xs sm:text-sm">
             Features
           </Badge>
-          <h2 className="text-3xl lg:text-4xl font-bold">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold px-2">
             Everything You Need for{" "}
-            <span className="gradient-text">Exceptional Bible Studies</span>
+            <span className="gradient-text block sm:inline">Exceptional Bible Studies</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">LessonSpark USA equips any teacher to make every lesson specifically applicable to the class, assuring Baptist theology honoring God's Word will engage 
-every age group.</p>
+          <p className="text-sm sm:text-base lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">LessonSpark USA equips any teacher to make every lesson specifically applicable to the class, assuring Baptist theology honoring God's Word will engage every age group.</p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {features.map((feature, index) => <Card key={index} className="group hover:shadow-glow transition-all duration-normal border-border/50 hover:border-primary/20 bg-gradient-card">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary text-white group-hover:scale-110 transition-transform duration-normal">
+              <CardHeader className="p-4 sm:p-6">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary text-white group-hover:scale-110 transition-transform duration-normal shrink-0">
                     {feature.icon}
                   </div>
-                  <Badge className={getCategoryColor(feature.category)} variant="secondary">
+                  <Badge className={`${getCategoryColor(feature.category)} text-[10px] sm:text-xs px-2 py-0.5`} variant="secondary">
                     {feature.category}
                   </Badge>
                 </div>
-                <CardTitle className="text-lg">{feature.title}</CardTitle>
-                <CardDescription className="text-muted-foreground">
+                <CardTitle className="text-base sm:text-lg">{feature.title}</CardTitle>
+                <CardDescription className="text-sm text-muted-foreground">
                   {feature.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-foreground">Key Benefits:</p>
+              <CardContent className="p-4 sm:p-6 pt-0">
+                <div className="space-y-1.5 sm:space-y-2">
+                  <p className="text-xs sm:text-sm font-medium text-foreground">Key Benefits:</p>
                   <ul className="space-y-1">
-                    {feature.benefits.map((benefit, idx) => <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="h-1.5 w-1.5 rounded-full bg-secondary" />
-                        {benefit}
+                    {feature.benefits.map((benefit, idx) => <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
+                        <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0 mt-1.5" />
+                        <span>{benefit}</span>
                       </li>)}
                   </ul>
                 </div>
@@ -116,9 +115,9 @@ every age group.</p>
         </div>
 
         {/* CTA Section */}
-        <div className="text-center mt-8 space-y-4">
-          <h3 className="text-2xl font-bold">Ready to Transform Your Lesson Prep?</h3>
-          <p className="text-muted-foreground">
+        <div className="text-center mt-6 sm:mt-8 space-y-2 sm:space-y-4 px-4">
+          <h3 className="text-xl sm:text-2xl font-bold">Ready to Transform Your Lesson Prep?</h3>
+          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
             Join the private beta and see how LessonSpark USA can revolutionize your Bible study preparation.
           </p>
         </div>

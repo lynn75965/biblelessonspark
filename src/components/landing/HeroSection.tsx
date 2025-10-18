@@ -15,71 +15,71 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
       {/* Background pattern */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
       
-      <div className="container relative">
-        <div className="flex flex-col lg:flex-row items-center gap-8 section-lg">
+      <div className="container relative px-4 sm:px-6">
+        <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 py-8 sm:py-12 lg:py-16">
           {/* Left side - Content */}
-          <div className="flex-1 space-y-8 text-center lg:text-left">
+          <div className="flex-1 space-y-4 sm:space-y-6 lg:space-y-8 text-center lg:text-left w-full">
             {/* Beta badge */}
-            <Badge className="bg-gradient-to-r from-secondary to-warning text-white px-4 py-1 text-sm font-semibold">
+            <Badge className="bg-gradient-to-r from-secondary to-warning text-white px-3 py-1 text-xs sm:text-sm font-semibold inline-block">
               Welcome to the Beta • Exclusive for Baptist Teachers
             </Badge>
             
             {/* Main headline */}
-            <div className="space-y-4">
-              <h1 className="text-4xl lg:text-6xl font-bold leading-tight">
+            <div className="space-y-3 sm:space-y-4">
+              <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
                 <span className="gradient-text">In Less Than 8 Minutes</span>{" "}
-                Transform Any Curriculum Into Just What Your Class Needs This Week
+                <span className="block sm:inline">Transform Any Curriculum Into Just What Your Class Needs This Week</span>
               </h1>
               
-              <p className="text-xl text-muted-foreground max-w-2xl lg:max-w-none">
+              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
                 Curriculum writers know the material. You know your class. Upload your purchased lesson. 
                 Make it speak to the needs of your people everytime. God called you to teach people, not lessons.
               </p>
             </div>
 
             {/* Feature highlights */}
-            <div className="flex flex-wrap justify-center lg:justify-start gap-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Sparkles className="h-4 w-4 text-secondary" />
-                Enhancement, Not Plagiarism
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-secondary shrink-0" />
+                <span>Enhancement</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Users className="h-4 w-4 text-secondary" />
-                Multi-Age Support
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                <Users className="h-3 w-3 sm:h-4 sm:w-4 text-secondary shrink-0" />
+                <span>Multi-Age</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <BookOpen className="h-4 w-4 text-secondary" />
-                Baptist Doctrine Aligned
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 text-secondary shrink-0" />
+                <span>Doctrine Aligned</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4 text-secondary" />
-                Save Money & Time
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 text-secondary shrink-0" />
+                <span>Save Time</span>
               </div>
             </div>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
               <Button 
                 variant="hero" 
-                size="xl" 
+                size="lg"
                 onClick={onSignIn}
-                className="text-lg"
+                className="text-base sm:text-lg w-full sm:w-auto min-h-[44px]"
               >
-                <Star className="h-5 w-5" />
+                <Star className="h-4 w-4 sm:h-5 sm:w-5" />
                 Get Started
               </Button>
             </div>
 
             {/* Social proof */}
-            <div className="pt-8 space-y-2">
-              <p className="text-sm text-muted-foreground">
+            <div className="pt-4 sm:pt-6 lg:pt-8 space-y-2">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Trusted by Baptist teachers across the country
               </p>
-              <div className="flex items-center justify-center lg:justify-start gap-1">
+              <div className="flex items-center justify-center lg:justify-start gap-0.5 sm:gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-secondary text-secondary" />
+                  <Star key={i} className="h-3 w-3 sm:h-4 sm:w-4 fill-secondary text-secondary" />
                 ))}
-                <span className="ml-2 text-sm text-muted-foreground">
+                <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-muted-foreground">
                   Early feedback from pilot program
                 </span>
               </div>
@@ -87,38 +87,38 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
           </div>
 
           {/* Right side - Hero image */}
-          <div className="flex-1 relative">
-            <div className="relative">
+          <div className="flex-1 relative w-full mt-4 sm:mt-6 lg:mt-0">
+            <div className="relative px-4 sm:px-0">
               <img
                 src={heroImage}
                 alt="Baptist teachers and students in modern Bible study classroom"
-                className="rounded-2xl shadow-2xl w-full max-w-lg mx-auto lg:max-w-none"
+                className="rounded-lg sm:rounded-2xl shadow-xl sm:shadow-2xl w-full max-w-sm sm:max-w-lg mx-auto lg:max-w-none"
               />
               
-              {/* Floating feature cards */}
-              <Card className="absolute -top-4 -left-4 bg-gradient-card border-white/20 shadow-glow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 text-white" />
+              {/* Floating feature cards - hidden on smallest screens */}
+              <Card className="hidden xs:block absolute -top-2 -left-2 sm:-top-4 sm:-left-4 bg-gradient-card border-white/20 shadow-glow">
+                <CardContent className="p-2 sm:p-3 lg:p-4">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
+                      <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4 text-white" />
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">Smart Enhanced</p>
-                      <p className="text-xs text-muted-foreground">Custom activities</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-xs sm:text-sm truncate">Smart Enhanced</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Custom activities</p>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="absolute -bottom-4 -right-4 bg-gradient-card border-white/20 shadow-glow">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-secondary flex items-center justify-center">
-                      <BookOpen className="h-4 w-4 text-white" />
+              <Card className="hidden xs:block absolute -bottom-2 -right-2 sm:-bottom-4 sm:-right-4 bg-gradient-card border-white/20 shadow-glow">
+                <CardContent className="p-2 sm:p-3 lg:p-4">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 rounded-lg bg-gradient-secondary flex items-center justify-center shrink-0">
+                      <BookOpen className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4 text-white" />
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">Baptist Aligned</p>
-                      <p className="text-xs text-muted-foreground">SBC • RB • IND</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-xs sm:text-sm truncate">Baptist Aligned</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">SBC • RB • IND</p>
                     </div>
                   </div>
                 </CardContent>

@@ -66,31 +66,31 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         {/* Logo */}
-        <div className="flex items-center gap-6">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity" title="Return to Home">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-primary">
-              <BookOpen className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
+          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-90 transition-opacity shrink-0" title="Return to Home">
+            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
-            <span className="text-xl font-bold gradient-text">LessonSpark USA</span>
+            <span className="text-base sm:text-lg lg:text-xl font-bold gradient-text hidden xs:inline">LessonSpark USA</span>
           </Link>
           
           {authenticated && organizationName && (
-            <Badge variant="outline" className="hidden md:flex">
+            <Badge variant="outline" className="hidden md:flex text-xs truncate max-w-[120px] lg:max-w-none">
               {organizationName}
             </Badge>
           )}
           
           {authenticated && theologicalLens && (
-            <Badge variant="secondary" className="hidden lg:flex">
+            <Badge variant="secondary" className="hidden lg:flex text-xs">
               Lens: {theologicalLens}
             </Badge>
           )}
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
           {authenticated ? (
             <>
               {/* Notifications */}
@@ -99,14 +99,14 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
               {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-secondary">
-                      <User className="h-4 w-4 text-white" />
+                  <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-secondary shrink-0">
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                     </div>
-                    <span className="hidden md:block">{displayName}</span>
+                    <span className="hidden sm:block text-sm lg:text-base max-w-[100px] lg:max-w-none truncate">{displayName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-48 sm:w-56">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">{displayName}</p>
@@ -140,7 +140,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
               </DropdownMenu>
             </>
           ) : (
-            <Button variant="hero" onClick={onAuthClick || (() => window.location.href = '/auth')}>
+            <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={onAuthClick || (() => window.location.href = '/auth')}>
               Sign In
             </Button>
           )}

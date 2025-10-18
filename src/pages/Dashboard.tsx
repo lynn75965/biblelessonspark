@@ -219,14 +219,14 @@ export default function Dashboard({
         />
       )}
 
-      <main className="container py-6">
+      <main className="container py-4 sm:py-6 px-4 sm:px-6">
         {/* Welcome Header with Credits */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
-            <h1 className="text-3xl font-bold mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
               Welcome back, <span className="gradient-text">{userName}!</span>
             </h1>
-            <p className="text-muted-foreground">
+            <p className="text-sm sm:text-base text-muted-foreground">
               {isIndividualUser ? "Your Personal Bible Study Enhancement Platform" : `Bible Study Enhancement Platform for ${currentOrgName}`}
             </p>
           </div>
@@ -234,30 +234,30 @@ export default function Dashboard({
         </div>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card className="bg-gradient-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
-                  <BookOpen className="h-5 w-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-primary shrink-0">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.lessonsCreated}</p>
-                  <p className="text-xs text-muted-foreground">Lessons Created</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{stats.lessonsCreated}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Lessons Created</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-gradient-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-secondary">
-                  <Sparkles className="h-5 w-5 text-white" />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-secondary shrink-0">
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{stats.aiGenerations}</p>
-                  <p className="text-xs text-muted-foreground">Enhancements</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{stats.aiGenerations}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Enhancements</p>
                 </div>
               </div>
             </CardContent>
