@@ -1,0 +1,38 @@
+-- Safe, idempotent migration. Avoids $$ nesting conflicts by:
+--  • using DO $do$ ... END $do$;
+--  • placing the function definition outside DO blocks with AS $fn$ ... $fn$.
+
+------------------------------------------------------------
+-- (1) Optional guarded block (if you actually need to touch events)
+------------------------------------------------------------
+DO $do$
+BEGIN
+  IF to_regclass('public.events') IS NOT NULL THEN
+    -- no-op placeholder; keep if you plan to add guarded DDL here
+    PERFORM 1;
+  END IF;
+END
+$do$;
+
+------------------------------------------------------------
+-- (2) Create/replace audit function (NOT inside DO; uses $fn$ tag)
+------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.log_security_event(
+  event_type TEXT,
+  user_id UUID DEFAULT auth.uid(),
+  metadata JSONB DEFAULT '{}'::jsonb
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $fn$
+BEGIN
+  -- Try to insert into security_events; if table doesn't exist yet, skip
+  BEGIN
+    INSERT INTO public.security_events (event_type, user_id, metadata, created_at)
+    VALUES (event_type, user_id, metadata, now());
+  EXCEPTION
+    WHEN undefined_table THEN
+      NULL; -- table not present yet; ignore
+  END;
+END
+$fn$;

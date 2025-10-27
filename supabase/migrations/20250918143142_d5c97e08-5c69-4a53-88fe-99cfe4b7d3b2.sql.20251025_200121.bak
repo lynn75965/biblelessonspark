@@ -1,0 +1,74 @@
+DO $do$BEGIN
+  -- Only run if the invites table already exists
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name   = 'invites'
+  ) THEN
+
+    ------------------------------------------------------------------
+    -- Remove older / vulnerable policies (if present)
+    ------------------------------------------------------------------
+    DROP POLICY IF EXISTS "Users can claim invites"                 ON public.invites;
+    DROP POLICY IF EXISTS "Users can read invites for their email"  ON public.invites;
+    DROP POLICY IF EXISTS "Users can read invites they created"     ON public.invites;
+    DROP POLICY IF EXISTS "Creator can read their invites"          ON public.invites;
+    DROP POLICY IF EXISTS "User can read their own email invites"   ON public.invites;
+
+    ------------------------------------------------------------------
+    -- Safer UPDATE policy: a user may claim ONLY an invite for their
+    -- own email address, and only if it is not yet claimed.
+    ------------------------------------------------------------------
+    CREATE POLICY "Users can claim invites for their email"
+    ON public.invites
+    FOR UPDATE
+    USING (
+      claimed_by IS NULL
+      AND auth.uid() IS NOT NULL
+      AND EXISTS (
+        SELECT 1
+        FROM auth.users u
+        WHERE u.id = auth.uid()
+          AND u.email IS NOT NULL
+          AND u.email = public.invites.email
+      )
+    )
+    WITH CHECK (claimed_by = auth.uid());
+
+    ------------------------------------------------------------------
+    -- SELECT policies
+    ------------------------------------------------------------------
+
+    -- 1) Creator can always read the invites they created
+    CREATE POLICY "Creator can read their invites"
+    ON public.invites
+    FOR SELECT
+    USING (
+      auth.uid() IS NOT NULL
+      AND created_by = auth.uid()
+    );
+
+    -- 2) A user can read invites sent to their own email.
+    --    (Also permits reading if they already claimed it.)
+    CREATE POLICY "User can read their own email invites"
+    ON public.invites
+    FOR SELECT
+    USING (
+      auth.uid() IS NOT NULL
+      AND (
+        created_by = auth.uid()
+        OR (
+          (claimed_by IS NULL OR claimed_by = auth.uid())
+          AND EXISTS (
+            SELECT 1
+            FROM auth.users u
+            WHERE u.id = auth.uid()
+              AND u.email = public.invites.email
+          )
+        )
+      )
+    );
+
+  END IF;
+END $do$;

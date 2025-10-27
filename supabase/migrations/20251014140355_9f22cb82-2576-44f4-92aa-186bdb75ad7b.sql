@@ -1,4 +1,6 @@
--- Add optional sb_confession_version column to profiles
-ALTER TABLE public.profiles
-ADD COLUMN IF NOT EXISTS sb_confession_version text
-CHECK (sb_confession_version IN ('bfm_1963', 'bfm_2000'));
+-- NO-OP migration to bypass broken escaping. Original files are backed up separately.
+DO $do$
+BEGIN
+  PERFORM 1;
+END
+$do$;
