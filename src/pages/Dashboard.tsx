@@ -7,6 +7,7 @@ import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
+import LanguageSelector from "@/components/settings/LanguageSelector"; // NEW: Added Language Selector
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -386,6 +387,19 @@ export default function Dashboard({
 
           <TabsContent value="settings" className="mt-6">
             <div className="grid md:grid-cols-2 gap-6">
+              {/* NEW: Language Selector Card - Added at the top of settings */}
+              <Card className="bg-gradient-card md:col-span-2">
+                <CardHeader>
+                  <CardTitle>Language Preferences</CardTitle>
+                  <CardDescription>
+                    Choose your preferred language for lesson plans and content
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LanguageSelector />
+                </CardContent>
+              </Card>
+
               {!isIndividualUser && (
                 <Card className="bg-gradient-card">
                   <CardHeader>

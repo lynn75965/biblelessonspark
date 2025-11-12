@@ -1,0 +1,108 @@
+DO \$\$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='invites')
+  THEN
+-- Safe, idempotent migration for invites policies and column
+-- Works even if the table does not (yet) exist.
+
+DO $migration$
+DECLARE
+  has_table  boolean;
+  has_email  boolean;
+  has_policy boolean;
+BEGIN
+  -- 0) Skip everything if the table isn't present yet
+  has_table := to_regclass('public.invites') IS NOT NULL;
+  IF NOT has_table THEN
+    RAISE NOTICE 'Skipping: table public.invites does not exist yet';
+    RETURN;
+  END IF;
+
+  -- 1) Column: created_by (only add if missing)
+  EXECUTE '
+    ALTER TABLE public.invites
+    ADD COLUMN IF NOT EXISTS created_by uuid
+  ';
+
+  -- 2) Ensure RLS is enabled (ignore if the table disappears mid-migration)
+  BEGIN
+    EXECUTE 'ALTER TABLE public.invites ENABLE ROW LEVEL SECURITY';
+  EXCEPTION WHEN undefined_table THEN
+    -- table vanished; nothing to do
+    NULL;
+  END;
+
+  -- 3) Remove the old permissive policy if it exists
+  EXECUTE '
+    DROP POLICY IF EXISTS "Anyone can read invites" ON public.invites
+  ';
+
+  -- 4) Policy: Users can read invites they created (create if missing)
+  SELECT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'invites'
+      AND policyname = 'Users can read invites they created'
+  ) INTO has_policy;
+
+  IF NOT has_policy THEN
+    EXECUTE $sql$
+      CREATE POLICY "Users can read invites they created"
+      ON public.invites
+      FOR SELECT
+      USING (created_by = auth.uid())
+    $sql$;
+  END IF;
+
+  -- 5) Policy: Users can read invites for their email (only if email column exists)
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name   = 'invites'
+      AND column_name  = 'email'
+  ) INTO has_email;
+
+  IF has_email THEN
+    SELECT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public'
+        AND tablename  = 'invites'
+        AND policyname = 'Users can read invites for their email'
+    ) INTO has_policy;
+
+    IF NOT has_policy THEN
+      EXECUTE $sql$
+        CREATE POLICY "Users can read invites for their email"
+        ON public.invites
+        FOR SELECT
+        USING (
+          auth.uid() IS NOT NULL
+          AND email = (SELECT email FROM auth.users WHERE id = auth.uid())
+        )
+      $sql$;
+    END IF;
+  ELSE
+    RAISE NOTICE 'Skipping email policy: column public.invites.email not found';
+  END IF;
+
+  -- 6) Insert policy: ensure created_by matches the inserting user
+  EXECUTE '
+    DROP POLICY IF EXISTS "Authenticated users can create invites"
+    ON public.invites
+  ';
+
+  EXECUTE $sql$
+    CREATE POLICY "Authenticated users can create invites"
+    ON public.invites
+    FOR INSERT
+    WITH CHECK (
+      auth.uid() IS NOT NULL
+      AND created_by = auth.uid()
+    )
+  $sql$;
+
+END
+$migration$;
+  END IF;
+END \$\$;

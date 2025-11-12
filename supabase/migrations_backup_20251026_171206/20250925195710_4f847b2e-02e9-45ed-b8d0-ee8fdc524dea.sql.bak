@@ -1,0 +1,100 @@
+-- Harden profiles updates and invites indices/constraints safely.
+-- Uses distinct dollar tags ($do$, $p$, $fn$) to avoid nesting conflicts.
+
+------------------------------------------------------------
+-- (1) Profiles: lock down self-update, add admin policy
+------------------------------------------------------------
+DO $do$
+BEGIN
+  IF to_regclass('public.profiles') IS NOT NULL THEN
+    -- Remove legacy self-update policy if it exists
+    EXECUTE 'DROP POLICY IF EXISTS "profiles self update" ON public.profiles';
+
+    -- Users can update basic profile info, but NOT role or founder_status
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename='profiles'
+        AND policyname='Users can update basic profile info'
+    ) THEN
+      EXECUTE $p$
+        CREATE POLICY "Users can update basic profile info"
+        ON public.profiles
+        FOR UPDATE
+        USING (id = auth.uid())
+        WITH CHECK (
+          id = auth.uid()
+          AND role = (SELECT role FROM public.profiles WHERE id = auth.uid())
+          AND founder_status = (SELECT founder_status FROM public.profiles WHERE id = auth.uid())
+        )
+      $p$;
+    END IF;
+
+    -- Admins can update any profile (future admin UI)
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename='profiles'
+        AND policyname='Admins can manage all profiles'
+    ) THEN
+      EXECUTE $p$
+        CREATE POLICY "Admins can manage all profiles"
+        ON public.profiles
+        FOR UPDATE
+        USING (
+          auth.uid() IN (SELECT id FROM public.profiles WHERE role = 'admin')
+        )
+      $p$;
+    END IF;
+  END IF;
+END
+$do$;
+
+------------------------------------------------------------
+-- (2) Invites: indexes + email format constraint (guarded)
+------------------------------------------------------------
+DO $do$
+BEGIN
+  IF to_regclass('public.invites') IS NOT NULL THEN
+    -- Helpful indexes
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_invites_email_created ON public.invites(email, created_at)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_invites_created_by_created ON public.invites(created_by, created_at)';
+
+    -- Email format constraint (add once)
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_constraint
+      WHERE conname = 'check_email_format'
+        AND conrelid = 'public.invites'::regclass
+    ) THEN
+      EXECUTE $p$
+        ALTER TABLE public.invites
+        ADD CONSTRAINT check_email_format
+        CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+      $p$;
+    END IF;
+  END IF;
+END
+$do$;
+
+------------------------------------------------------------
+-- (3) Audit function (safe if table not yet present)
+------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.log_security_event(
+  event_type TEXT,
+  user_id UUID DEFAULT auth.uid(),
+  metadata JSONB DEFAULT '{}'::jsonb
+)
+RETURNS VOID
+LANGUAGE plpgsql
+AS $fn$
+BEGIN
+  -- Write into security_events if present; otherwise no-op
+  BEGIN
+    INSERT INTO public.security_events (event_type, user_id, metadata, created_at)
+    VALUES (event_type, user_id, metadata, now());
+  EXCEPTION
+    WHEN undefined_table THEN
+      -- security_events table not created yet; skip logging
+      NULL;
+  END;
+END
+$fn$;

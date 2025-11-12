@@ -1,0 +1,67 @@
+DO \$\$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='events')
+  THEN
+-- Safe, idempotent migration for events INSERT policy
+-- Skips cleanly if public.events (or user_id column) doesn't exist.
+
+DO $migration$
+DECLARE
+  has_table  boolean;
+  has_userid boolean;
+  has_policy boolean;
+BEGIN
+  -- 0) Skip if the table isn't present yet
+  has_table := to_regclass('public.events') IS NOT NULL;
+  IF NOT has_table THEN
+    RAISE NOTICE 'Skipping: table public.events does not exist yet';
+    RETURN;
+  END IF;
+
+  -- 1) Ensure RLS is enabled (ignore if table disappears mid-migration)
+  BEGIN
+    EXECUTE 'ALTER TABLE public.events ENABLE ROW LEVEL SECURITY';
+  EXCEPTION WHEN undefined_table THEN
+    NULL;
+  END;
+
+  -- 2) Remove the old problematic INSERT policy, if it exists
+  EXECUTE '
+    DROP POLICY IF EXISTS "events insert self" ON public.events
+  ';
+
+  -- 3) Only create the correct INSERT policy if the table has user_id
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name   = 'events'
+      AND column_name  = 'user_id'
+  ) INTO has_userid;
+
+  IF NOT has_userid THEN
+    RAISE NOTICE 'Skipping: column public.events.user_id not found; cannot enforce insert-self policy yet';
+    RETURN;
+  END IF;
+
+  -- 4) Create the correct INSERT policy (idempotent)
+  SELECT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'events'
+      AND policyname = 'Users can insert their own events'
+  ) INTO has_policy;
+
+  IF NOT has_policy THEN
+    EXECUTE $sql$
+      CREATE POLICY "Users can insert their own events"
+      ON public.events
+      FOR INSERT
+      WITH CHECK (user_id = auth.uid())
+    $sql$;
+  END IF;
+
+END
+$migration$;
+  END IF;
+END \$\$;
