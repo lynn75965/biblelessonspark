@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
-import { AGE_GROUP_OPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
 
 interface UserProfileModalProps {
   open: boolean;
@@ -160,11 +161,20 @@ export function UserProfileModal({
                   <SelectValue placeholder="Select age group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AGE_GROUP_OPTIONS.map(group => (
-                    <SelectItem key={group} value={group}>
-                      {group}
-                    </SelectItem>
-                  ))}
+                  <TooltipProvider>
+                    {AGE_GROUP_OPTIONS.map(group => (
+                      <Tooltip key={group} delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <SelectItem value={group}>
+                            {group}
+                          </SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{AGE_GROUP_DESCRIPTIONS[group]}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
                 </SelectContent>
               </Select>
             </div>
@@ -191,3 +201,4 @@ export function UserProfileModal({
     </Dialog>
   );
 }
+

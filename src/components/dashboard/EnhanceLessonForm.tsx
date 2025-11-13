@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
-import { AGE_GROUP_OPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
@@ -710,11 +711,20 @@ export function EnhanceLessonForm({
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                      {AGE_GROUP_OPTIONS.map(group => (
-                        <SelectItem key={group} value={group}>
-                          {group}
-                        </SelectItem>
-                      ))}
+                      <TooltipProvider>
+                        {AGE_GROUP_OPTIONS.map(group => (
+                          <Tooltip key={group} delayDuration={300}>
+                            <TooltipTrigger asChild>
+                              <SelectItem value={group}>
+                                {group}
+                              </SelectItem>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs">
+                              <p>{AGE_GROUP_DESCRIPTIONS[group]}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                      </TooltipProvider>
                     </SelectContent>
                 </Select>
               </div>
@@ -928,4 +938,7 @@ export function EnhanceLessonForm({
     </div>
   );
 }
+
+
+
 

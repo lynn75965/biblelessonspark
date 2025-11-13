@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
@@ -18,7 +19,7 @@ import {
   Download
 } from "lucide-react";
 import { useLessons, Lesson } from "@/hooks/useLessons";
-import { AGE_GROUP_OPTIONS } from "@/lib/constants";
+import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 
 interface LessonDisplay extends Lesson {
@@ -157,13 +158,22 @@ export function LessonLibrary({
                 <SelectValue placeholder="All Ages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Ages</SelectItem>
-                {AGE_GROUP_OPTIONS.map(group => (
-                  <SelectItem key={group} value={group}>
-                    {group}
-                  </SelectItem>
-                ))}
-              </SelectContent>
+                  <SelectItem value="all">All Ages</SelectItem>
+                  <TooltipProvider>
+                    {AGE_GROUP_OPTIONS.map(group => (
+                      <Tooltip key={group} delayDuration={300}>
+                        <TooltipTrigger asChild>
+                          <SelectItem value={group}>
+                            {group}
+                          </SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          <p>{AGE_GROUP_DESCRIPTIONS[group]}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </TooltipProvider>
+                </SelectContent>
             </Select>
 
             {/* Doctrine Filter */}
@@ -330,3 +340,5 @@ export function LessonLibrary({
     </div>
   );
 }
+
+
