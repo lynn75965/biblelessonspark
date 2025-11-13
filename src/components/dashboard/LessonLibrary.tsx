@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
@@ -159,20 +158,14 @@ export function LessonLibrary({
               </SelectTrigger>
               <SelectContent>
                   <SelectItem value="all">All Ages</SelectItem>
-                  <TooltipProvider>
-                    {AGE_GROUP_OPTIONS.map(group => (
-                      <Tooltip key={group} delayDuration={300}>
-                        <TooltipTrigger asChild>
-                          <SelectItem value={group}>
-                            {group}
-                          </SelectItem>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-xs">
-                          <p>{AGE_GROUP_DESCRIPTIONS[group]}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TooltipProvider>
+                  {AGE_GROUP_OPTIONS.map(group => (
+                    <SelectItem key={group} value={group}>
+                      <div className="flex flex-col">
+                        <span>{group}</span>
+                        <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
                 </SelectContent>
             </Select>
 
@@ -340,5 +333,6 @@ export function LessonLibrary({
     </div>
   );
 }
+
 
 
