@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
-
-const AGE_GROUP_OPTIONS = [
-  'Children (Ages 3-11)',
-  'Youth (Ages 12-18)', 
-  'Adults',
-  'Seniors (Ages 65+)'
-];
+import { AGE_GROUP_OPTIONS, getDefaultAgeGroup } from "@/lib/constants";
 
 interface UserProfileModalProps {
   open: boolean;
@@ -29,7 +23,7 @@ export function UserProfileModal({
   onProfileUpdated
 }: UserProfileModalProps) {
   const [fullName, setFullName] = useState("");
-  const [preferredAgeGroup, setPreferredAgeGroup] = useState("Adults");
+  const [preferredAgeGroup, setPreferredAgeGroup] = useState(getDefaultAgeGroup());
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const { toast } = useToast();
@@ -55,10 +49,10 @@ export function UserProfileModal({
       if (error) {
         console.error('Error loading profile:', error);
         setFullName(user.user_metadata?.full_name || user.email?.split('@')[0] || '');
-        setPreferredAgeGroup("Adults");
+        setPreferredAgeGroup(getDefaultAgeGroup());
       } else {
         setFullName(profile?.full_name || '');
-        setPreferredAgeGroup(profile?.preferred_age_group || "Adults");
+        setPreferredAgeGroup(profile?.preferred_age_group || getDefaultAgeGroup());
       }
     } catch (error) {
       console.error('Error loading profile:', error);

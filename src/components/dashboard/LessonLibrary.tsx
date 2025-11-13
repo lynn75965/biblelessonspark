@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ import {
   Download
 } from "lucide-react";
 import { useLessons, Lesson } from "@/hooks/useLessons";
+import { AGE_GROUP_OPTIONS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 
 interface LessonDisplay extends Lesson {
@@ -55,7 +56,7 @@ export function LessonLibrary({
   const displayLessons: LessonDisplay[] = lessons.map(lesson => ({
     ...lesson,
     passage_or_topic: lesson.title || (lesson.filters?.passage_or_topic) || "Untitled Lesson",
-    age_group: lesson.filters?.age_group || "Mixed Groups",
+    age_group: lesson.filters?.age_group || 'Mixed Groups',
     doctrine_profile: lesson.filters?.doctrine_profile || "SBC", 
     created_by_name: "Teacher", // Would come from profiles table join
     has_content: !!lesson.original_text,
@@ -85,20 +86,20 @@ export function LessonLibrary({
   };
 
   const getAgeGroupBadgeColor = (ageGroup: string) => {
-    const colors = {
-      Preschoolers: "bg-pink-100 text-pink-800 border-pink-200",
-      Elementary: "bg-green-100 text-green-800 border-green-200",
-      "Middle School": "bg-cyan-100 text-cyan-800 border-cyan-200",
-      "High School": "bg-blue-100 text-blue-800 border-blue-200", 
-      "College & Career": "bg-indigo-100 text-indigo-800 border-indigo-200",
-      "Young Adults": "bg-purple-100 text-purple-800 border-purple-200",
-      "Mid-Life Adults": "bg-violet-100 text-violet-800 border-violet-200",
-      "Mature Adults": "bg-amber-100 text-amber-800 border-amber-200",
-      "Active Seniors": "bg-orange-100 text-orange-800 border-orange-200",
-      "Senior Adults": "bg-red-100 text-red-800 border-red-200",
+    const colors: Record<string, string> = {
+      "Preschoolers (Ages 3–5)": "bg-pink-100 text-pink-800 border-pink-200",
+      "Elementary Kids (Ages 6–10)": "bg-green-100 text-green-800 border-green-200",
+      "Preteens & Middle Schoolers (Ages 11–14)": "bg-cyan-100 text-cyan-800 border-cyan-200",
+      "High School Students (Ages 15–18)": "bg-blue-100 text-blue-800 border-blue-200",
+      "College & Early Career (Ages 19–25)": "bg-indigo-100 text-indigo-800 border-indigo-200",
+      "Young Adults (Ages 26–35)": "bg-purple-100 text-purple-800 border-purple-200",
+      "Mid-Life Adults (Ages 36–50)": "bg-violet-100 text-violet-800 border-violet-200",
+      "Mature Adults (Ages 51–65)": "bg-amber-100 text-amber-800 border-amber-200",
+      "Active Seniors (Ages 66–75)": "bg-orange-100 text-orange-800 border-orange-200",
+      "Senior Adults (Ages 76+)": "bg-red-100 text-red-800 border-red-200",
       "Mixed Groups": "bg-gray-100 text-gray-800 border-gray-200"
     };
-    return colors[ageGroup as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
+    return colors[ageGroup] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
   const getDoctrineBadgeColor = (doctrine: string) => {
@@ -157,17 +158,11 @@ export function LessonLibrary({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Ages</SelectItem>
-                <SelectItem value="Preschoolers">Preschoolers (3-5)</SelectItem>
-                <SelectItem value="Elementary">Elementary (6-12)</SelectItem>
-                <SelectItem value="Middle School">Middle School (11-14)</SelectItem>
-                <SelectItem value="High School">High School (15-18)</SelectItem>
-                <SelectItem value="College & Career">College & Career (19-25)</SelectItem>
-                <SelectItem value="Young Adults">Young Adults (26-35)</SelectItem>
-                <SelectItem value="Mid-Life Adults">Mid-Life Adults (36-50)</SelectItem>
-                <SelectItem value="Mature Adults">Mature Adults (51-65)</SelectItem>
-                <SelectItem value="Active Seniors">Active Seniors (66-75)</SelectItem>
-                <SelectItem value="Senior Adults">Senior Adults (76+)</SelectItem>
-                <SelectItem value="Mixed Groups">Mixed Groups</SelectItem>
+                {AGE_GROUP_OPTIONS.map(group => (
+                  <SelectItem key={group} value={group}>
+                    {group}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

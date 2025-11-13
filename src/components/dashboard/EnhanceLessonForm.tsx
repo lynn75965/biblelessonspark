@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
+import { AGE_GROUP_OPTIONS, getDefaultAgeGroup } from "@/lib/constants";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
@@ -54,7 +55,7 @@ interface LessonContent {
 
 export function EnhanceLessonForm({ 
   organizationId, 
-  userPreferredAgeGroup = "Young Adults", 
+  userPreferredAgeGroup = "Young Adults (Ages 26–35)", 
   defaultDoctrine = "SBC" 
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
@@ -101,16 +102,16 @@ export function EnhanceLessonForm({
 
   // Verification marker
   useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
-    console.log("✅ VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
-    console.log("✅ VERIFIED_BUILD: runtime instrumentation active");
-    console.log("✅ VERIFIED_BUILD: DebugPanel visible and reactive");
-    console.log("✅ VERIFIED_BUILD: BFM Version label and default (BFM 1963) loaded");
+    console.log("âœ… VERIFIED_BUILD: extract jobs reach terminal state");
+    console.log("âœ… VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
+    console.log("âœ… VERIFIED_BUILD: runtime instrumentation active");
+    console.log("âœ… VERIFIED_BUILD: DebugPanel visible and reactive");
+    console.log("âœ… VERIFIED_BUILD: BFM Version label and default (BFM 1963) loaded");
   }, []);
   
   React.useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload");
-    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
+    console.log("âœ… VERIFIED_BUILD: extraction bound to fileHash/session/upload");
+    console.log("âœ… VERIFIED_BUILD: extract jobs reach terminal state");
     
     const fetchProfilePreferences = async () => {
       if (!user) return;
@@ -709,11 +710,12 @@ export function EnhanceLessonForm({
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Children">Children</SelectItem>
-                    <SelectItem value="Youth">Youth</SelectItem>
-                    <SelectItem value="Young Adults">Young Adults</SelectItem>
-                    <SelectItem value="Adults">Adults</SelectItem>
-                  </SelectContent>
+                      {AGE_GROUP_OPTIONS.map(group => (
+                        <SelectItem key={group} value={group}>
+                          {group}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                 </Select>
               </div>
             </div>
@@ -926,3 +928,4 @@ export function EnhanceLessonForm({
     </div>
   );
 }
+
