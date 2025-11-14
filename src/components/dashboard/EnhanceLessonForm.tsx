@@ -693,36 +693,9 @@ const [formData, setFormData] = useState({
             </Tabs>
 
             {/* Form Inputs Section */}
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-  <div>
-    <Label htmlFor="bibleTranslation" className="text-sm">Bible Translation</Label>
-    <Select value={formData.bibleTranslation} onValueChange={(value) => setFormData({ ...formData, bibleTranslation: value })}>
-      <SelectTrigger id="bibleTranslation" className="text-sm sm:text-base">
-        <SelectValue placeholder="Select translation" />
-      </SelectTrigger>
-<SelectContent>
-  {BIBLE_TRANSLATIONS.map(translation => (
-    <SelectItem key={translation.id} value={translation.id}>
-      {translation.name} ({translation.abbreviation})
-    </SelectItem>
-  ))}
-</SelectContent>
-    </Select>
-  </div>
-  <div>
-    <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
-    <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
-      <SelectTrigger id="theologicalPreference" className="text-sm sm:text-base">
-        <SelectValue placeholder="Select" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
-        <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
-        <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="passageOrTopic" className="text-sm">Bible Passage or Topic</Label>
                 <Input
                   type="text"
                   id="passageOrTopic"
@@ -739,20 +712,35 @@ const [formData, setFormData] = useState({
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                      {AGE_GROUP_OPTIONS.map(group => (
-                        <SelectItem key={group} value={group}>
-                          <div className="flex flex-col">
-                            <span>{group}</span>
-                            <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    {AGE_GROUP_OPTIONS.map(group => (
+                      <SelectItem key={group} value={group}>
+                        <div className="flex flex-col">
+                          <span>{group}</span>
+                          <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="bibleTranslation" className="text-sm">Bible Translation</Label>
+                <Select value={formData.bibleTranslation} onValueChange={(value) => setFormData({ ...formData, bibleTranslation: value })}>
+                  <SelectTrigger id="bibleTranslation" className="text-sm sm:text-base">
+                    <SelectValue placeholder="Select translation" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BIBLE_TRANSLATIONS.map(translation => (
+                      <SelectItem key={translation.id} value={translation.id}>
+                        {translation.name} ({translation.abbreviation})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
                 <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
