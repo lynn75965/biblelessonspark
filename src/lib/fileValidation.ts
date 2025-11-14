@@ -83,13 +83,13 @@ export function validateFileUpload(file: File): FileValidationResult {
   };
 }
 
-// ✅ FIXED: Flexible validation schema - frontend constants are source of truth
+// Flexible validation schema - frontend constants are source of truth
 export const lessonFormSchema = z.object({
   passage: z.string().optional(),
   topic: z.string().optional(),
   passageOrTopic: z.string().optional(),
   
-  // ✅ FIXED: Accept any age group string from frontend
+  // Accept any age group string from frontend
   ageGroup: z.string().min(1, 'Age group is required'),
 
   doctrineProfile: z.string().optional(),
