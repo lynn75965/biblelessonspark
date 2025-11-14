@@ -1,78 +1,54 @@
-// Bible Translation Configuration
-// This file manages all available Bible translations across different APIs
+// Bible Version Configuration
+// This file manages all available Bible versions across different APIs
 
-export interface BibleTranslation {
+export interface BibleVersion {
   id: string;           // API-specific ID
   name: string;         // Display name
   abbreviation: string; // Short code (KJV, ESV, etc.)
-  apiSource: 'api.bible' | 'esv' | 'net' | 'other'; // Which API provides it
-  description: string;  // Brief description
-  year?: number;        // Year published
-  recommended?: boolean; // Highlight as recommended
+  apiSource: 'api.bible' | 'esv' | 'net' | 'other';
 }
 
-export const BIBLE_TRANSLATIONS: BibleTranslation[] = [
+export const BIBLE_VERSIONS: BibleVersion[] = [
   {
     id: 'de4e12af7f28f599-02',
     name: 'King James Version',
     abbreviation: 'KJV',
-    apiSource: 'api.bible',
-    description: 'Traditional translation widely used in Baptist churches (1611)',
-    year: 1611,
-    recommended: true
+    apiSource: 'api.bible'
   },
   {
     id: '9879dbb7cfe39e4d-01',
     name: 'World English Bible',
     abbreviation: 'WEB',
-    apiSource: 'api.bible',
-    description: 'Modern, readable English translation based on ASV',
-    recommended: true
+    apiSource: 'api.bible'
   },
   {
     id: '06125adad2d5898a-01',
     name: 'American Standard Version',
     abbreviation: 'ASV',
-    apiSource: 'api.bible',
-    description: 'Highly accurate literal translation (1901)',
-    year: 1901
+    apiSource: 'api.bible'
   },
   {
     id: '01b29f4b342acc35-01',
     name: 'Literal Standard Version',
     abbreviation: 'LSV',
-    apiSource: 'api.bible',
-    description: 'Modern literal translation with high accuracy'
+    apiSource: 'api.bible'
   },
   {
     id: 'bba9f40183526463-01',
     name: 'Berean Standard Bible',
     abbreviation: 'BSB',
-    apiSource: 'api.bible',
-    description: 'Contemporary, readable translation free for ministry use'
+    apiSource: 'api.bible'
   }
-  // ESV will be added here when approved:
+  // To add ESV when approved, just add this:
   // {
   //   id: 'esv',
   //   name: 'English Standard Version',
   //   abbreviation: 'ESV',
-  //   apiSource: 'esv',
-  //   description: 'Popular modern literal translation',
-  //   recommended: true
+  //   apiSource: 'esv'
   // }
 ];
 
-// Helper to get default translation
-export const getDefaultTranslation = (): BibleTranslation => {
-  return BIBLE_TRANSLATIONS[0]; // KJV as default
-};
+export const getDefaultVersion = (): BibleVersion => BIBLE_VERSIONS[0];
 
-// Helper to get translation by ID
-export const getTranslationById = (id: string): BibleTranslation | undefined => {
-  return BIBLE_TRANSLATIONS.find(t => t.id === id);
-};
-
-// Helper to get translations by API source
-export const getTranslationsBySource = (source: string): BibleTranslation[] => {
-  return BIBLE_TRANSLATIONS.filter(t => t.apiSource === source);
-};
+export const getVersionById = (id: string): BibleVersion | undefined => 
+  BIBLE_VERSIONS.find(v => v.id === id);

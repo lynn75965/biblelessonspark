@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
 import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { BIBLE_VERSIONS, getDefaultVersion } from "@/lib/bibleTranslations";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
@@ -84,6 +85,7 @@ export function EnhanceLessonForm({
     passageOrTopic: "",
     ageGroup: userPreferredAgeGroup,
     notes: "",
+    bibleVersion: getDefaultVersion().id,
     theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
     sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
   });
@@ -102,16 +104,16 @@ export function EnhanceLessonForm({
 
   // Verification marker
   useEffect(() => {
-    console.log("âœ… VERIFIED_BUILD: extract jobs reach terminal state");
-    console.log("âœ… VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
-    console.log("âœ… VERIFIED_BUILD: runtime instrumentation active");
-    console.log("âœ… VERIFIED_BUILD: DebugPanel visible and reactive");
-    console.log("âœ… VERIFIED_BUILD: BFM Version label and default (BFM 1963) loaded");
+    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
+    console.log("✅ VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
+    console.log("✅ VERIFIED_BUILD: runtime instrumentation active");
+    console.log("✅ VERIFIED_BUILD: DebugPanel visible and reactive");
+    console.log("✅ VERIFIED_BUILD: BFM Version label and default (BFM 1963) loaded");
   }, []);
   
   React.useEffect(() => {
-    console.log("âœ… VERIFIED_BUILD: extraction bound to fileHash/session/upload");
-    console.log("âœ… VERIFIED_BUILD: extract jobs reach terminal state");
+    console.log("✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload");
+    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
     
     const fetchProfilePreferences = async () => {
       if (!user) return;
@@ -362,6 +364,7 @@ export function EnhanceLessonForm({
           passageOrTopic: formData.passageOrTopic,
           ageGroup: formData.ageGroup,
           notes: formData.notes,
+          bibleVersion: formData.bibleVersion,
           enhancementType,
           extractedContent,
           teacherPreferences,
@@ -456,6 +459,7 @@ export function EnhanceLessonForm({
           preparation: generatedContent.preparation || "",
           age_group: formData.ageGroup,
           notes: formData.notes,
+          bible_version: formData.bibleVersion,
           theological_preference: formData.theologicalPreference,
           sb_confession_version: formData.sbConfessionVersion,
           session_id: sessionId,
@@ -710,20 +714,35 @@ export function EnhanceLessonForm({
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                      {AGE_GROUP_OPTIONS.map(group => (
-                        <SelectItem key={group} value={group}>
-                          <div className="flex flex-col">
-                            <span>{group}</span>
-                            <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    {AGE_GROUP_OPTIONS.map(group => (
+                      <SelectItem key={group} value={group}>
+                        <div className="flex flex-col">
+                          <span>{group}</span>
+                          <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="bibleVersion" className="text-sm">Bible Version</Label>
+                <Select value={formData.bibleVersion} onValueChange={(value) => setFormData({ ...formData, bibleVersion: value })}>
+                  <SelectTrigger id="bibleVersion" className="text-sm sm:text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BIBLE_VERSIONS.map(version => (
+                      <SelectItem key={version.id} value={version.id}>
+                        {version.abbreviation} - {version.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
                 <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
@@ -931,8 +950,3 @@ export function EnhanceLessonForm({
     </div>
   );
 }
-
-
-
-
-
