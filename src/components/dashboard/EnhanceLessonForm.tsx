@@ -700,16 +700,13 @@ const [formData, setFormData] = useState({
       <SelectTrigger id="bibleTranslation" className="text-sm sm:text-base">
         <SelectValue placeholder="Select translation" />
       </SelectTrigger>
-      <SelectContent>
-        {BIBLE_TRANSLATIONS.map(translation => (
-          <SelectItem key={translation.id} value={translation.id}>
-            <div className="flex flex-col">
-              <span>{translation.name} ({translation.abbreviation})</span>
-              <span className="text-xs text-muted-foreground">{translation.description}</span>
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
+<SelectContent>
+  {BIBLE_TRANSLATIONS.map(translation => (
+    <SelectItem key={translation.id} value={translation.id}>
+      {translation.name} ({translation.abbreviation})
+    </SelectItem>
+  ))}
+</SelectContent>
     </Select>
   </div>
   <div>
