@@ -643,7 +643,18 @@ export function EnhanceLessonForm({
                     onChange={handleFileSelect}
                     accept=".txt,.pdf,.docx,.doc,.jpg,.jpeg,.png"
                     disabled={isExtracting}
+                    className="sr-only"
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isExtracting}
+                    className="w-full"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Click to select file
+                  </Button>
                   {uploadedFile && (
                     <p className="text-sm text-muted-foreground mt-2">
                       Selected: {uploadedFile.name}
