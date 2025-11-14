@@ -83,32 +83,31 @@ export function validateFileUpload(file: File): FileValidationResult {
   };
 }
 
-// Zod schema for lesson form validation
+// ✅ FIXED: Flexible validation schema - frontend constants are source of truth
 export const lessonFormSchema = z.object({
-  passageOrTopic: z.string()
-    .min(1, 'Scripture passage or topic is required')
-    .max(200, 'Scripture passage or topic must be less than 200 characters')
-    .regex(/^[a-zA-Z0-9\s:;,.-]+$/, 'Only letters, numbers, and basic punctuation allowed'),
+  passage: z.string().optional(),
+  topic: z.string().optional(),
+  passageOrTopic: z.string().optional(),
   
-  ageGroup: z.enum([
-    'Preschoolers', 'Elementary', 'Middle School', 'High School', 
-    'College & Career', 'Young Adults', 'Mid-Life Adults', 
-    'Mature Adults', 'Active Seniors', 'Senior Adults', 'Mixed Groups'
-  ]),
-  
-  doctrineProfile: z.enum(['SBC', 'RB', 'IND']),
-  
+  // ✅ FIXED: Accept any age group string from frontend
+  ageGroup: z.string().min(1, 'Age group is required'),
+
+  doctrineProfile: z.string().optional(),
+
   notes: z.string()
     .max(1000, 'Notes must be less than 1000 characters')
     .optional()
     .transform(val => val?.trim() || ''),
-});
+}).refine(
+  (data) => data.passage || data.topic || data.passageOrTopic,
+  { message: 'Either passage, topic, or passageOrTopic is required' }
+);
 
 export type LessonFormData = z.infer<typeof lessonFormSchema>;
 
 // Helper function to check if file is an image
 export function isImageFile(file: File): boolean {
-  return file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp'].some(ext => 
+  return file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp'].some(ext =>
     file.name.toLowerCase().endsWith(ext)
   );
 }
