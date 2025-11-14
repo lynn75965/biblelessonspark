@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
 import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { BIBLE_TRANSLATIONS, getDefaultTranslation } from "@/lib/bibleTranslations";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
@@ -80,13 +81,14 @@ export function EnhanceLessonForm({
   const [isExtracting, setIsExtracting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   
-  const [formData, setFormData] = useState({
-    passageOrTopic: "",
-    ageGroup: userPreferredAgeGroup,
-    notes: "",
-    theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
-    sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
-  });
+const [formData, setFormData] = useState({
+  passageOrTopic: "",
+  ageGroup: userPreferredAgeGroup,
+  notes: "",
+  bibleTranslation: getDefaultTranslation().id,
+  theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
+  sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
+});
   
   const [rememberConfessionChoice, setRememberConfessionChoice] = useState(false);
   const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
@@ -691,9 +693,39 @@ export function EnhanceLessonForm({
             </Tabs>
 
             {/* Form Inputs Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="passageOrTopic" className="text-sm">Passage or Topic</Label>
+<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div>
+    <Label htmlFor="bibleTranslation" className="text-sm">Bible Translation</Label>
+    <Select value={formData.bibleTranslation} onValueChange={(value) => setFormData({ ...formData, bibleTranslation: value })}>
+      <SelectTrigger id="bibleTranslation" className="text-sm sm:text-base">
+        <SelectValue placeholder="Select translation" />
+      </SelectTrigger>
+      <SelectContent>
+        {BIBLE_TRANSLATIONS.map(translation => (
+          <SelectItem key={translation.id} value={translation.id}>
+            <div className="flex flex-col">
+              <span>{translation.name} ({translation.abbreviation})</span>
+              <span className="text-xs text-muted-foreground">{translation.description}</span>
+            </div>
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+  <div>
+    <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
+    <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
+      <SelectTrigger id="theologicalPreference" className="text-sm sm:text-base">
+        <SelectValue placeholder="Select" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
+        <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
+        <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+</div>
                 <Input
                   type="text"
                   id="passageOrTopic"
