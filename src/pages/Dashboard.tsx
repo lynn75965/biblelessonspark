@@ -61,7 +61,7 @@ export default function Dashboard({
       try {
       const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
         .from('profiles')
-        .select('preferred_age_group, org_setup_dismissed')
+        .select('preferred_age_group')
         .eq('id', user.id)
         .single();
         
@@ -165,14 +165,6 @@ export default function Dashboard({
       // Set localStorage for quick client check
       localStorage.setItem('org-setup-seen', 'true');
       
-      // Persist to database for cross-device sync
-      if (user?.id) {
-        await (await import('@/integrations/supabase/client')).supabase
-          .from('profiles')
-          .update({ org_setup_dismissed: true })
-          .eq('id', user.id);
-      }
-      
       setShowOrgSetup(false);
       handleOrgSetupComplete();
     } catch (error) {
@@ -187,14 +179,6 @@ export default function Dashboard({
     try {
       // Set localStorage for quick client check
       localStorage.setItem('org-setup-seen', 'true');
-      
-      // Persist to database for cross-device sync
-      if (user?.id) {
-        await (await import('@/integrations/supabase/client')).supabase
-          .from('profiles')
-          .update({ org_setup_dismissed: true })
-          .eq('id', user.id);
-      }
       
       setShowOrgSetup(false);
     } catch (error) {

@@ -37,14 +37,14 @@ export function useSetupProgress() {
     try {
       const { data, error } = await supabase
         .from('setup_progress')
-        .select('step_key, status')
+        .select('step_name, completed')
         .eq('user_id', user.id);
 
       if (error) throw error;
 
       const progressMap: SetupProgress = {};
       data?.forEach(item => {
-        progressMap[item.step_key] = item.status as StepStatus;
+        progressMap[item.step_name] = item.completed ? 'complete' : 'not_started';
       });
       setProgress(progressMap);
     } catch (error) {
@@ -119,11 +119,10 @@ export function useSetupProgress() {
         .from('setup_progress')
         .upsert({
           user_id: user.id,
-          step_key: stepKey,
-          status,
-          completed_at: status === 'complete' ? new Date().toISOString() : null,
+          step_name: stepKey,
+          completed: status === 'complete',
         }, {
-          onConflict: 'user_id,step_key'
+          onConflict: 'user_id,step_name'
         });
 
       if (error) throw error;

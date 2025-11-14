@@ -6,12 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Shield, AlertTriangle, Clock, User } from 'lucide-react';
 
 interface SecurityEvent {
-  id: number;
+  id: string;
   event: string;
   meta: any;
   created_at: string;
   user_id: string;
-  lesson_id?: string;
+  lesson_id?: string | null;
 }
 
 export function SecurityMonitor() {

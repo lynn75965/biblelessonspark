@@ -18,7 +18,7 @@ import {
   Download
 } from "lucide-react";
 import { useLessons, Lesson } from "@/hooks/useLessons";
-import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS } from "@/lib/constants";
+import { AGE_GROUP_OPTIONS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
 
 interface LessonDisplay extends Lesson {
@@ -157,16 +157,13 @@ export function LessonLibrary({
                 <SelectValue placeholder="All Ages" />
               </SelectTrigger>
               <SelectContent>
-                  <SelectItem value="all">All Ages</SelectItem>
-                  {AGE_GROUP_OPTIONS.map(group => (
-                    <SelectItem key={group} value={group}>
-                      <div className="flex flex-col">
-                        <span>{group}</span>
-                        <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+                <SelectItem value="all">All Ages</SelectItem>
+                {AGE_GROUP_OPTIONS.map(group => (
+                  <SelectItem key={group} value={group}>
+                    {group}
+                  </SelectItem>
+                ))}
+              </SelectContent>
             </Select>
 
             {/* Doctrine Filter */}
@@ -333,6 +330,3 @@ export function LessonLibrary({
     </div>
   );
 }
-
-
-
