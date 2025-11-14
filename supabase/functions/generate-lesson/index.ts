@@ -1,629 +1,471 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-interface TeacherPreferences {
-  teachingStyle: string;
-  classroomManagement: string;
-  techIntegration: string;
-  assessmentPreference: string;
-  classSize: string;
-  meetingFrequency: string;
-  sessionDuration: string;
-  physicalSpace: string;
-  specialNeeds: string[];
-  learningStyles: string[];
-  engagementLevel: string;
-  discussionFormat: string;
-  activityComplexity: string;
-  bibleTranslation: string;
-  theologicalEmphasis: string;
-  applicationFocus: string;
-  depthLevel: string;
-  handoutStyle: string;
-  visualAidPreference: string;
-  takehomeMaterials: string[];
-  preparationTime: string;
-  culturalBackground: string;
-  socioeconomicContext: string;
-  educationalBackground: string;
-  spiritualMaturity: string;
-  additionalContext: string;
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+};
 
 interface LessonRequest {
-  passageOrTopic: string;
-  ageGroup: string;
-  doctrineProfile: string;
-  notes?: string;
-  enhancementType: 'curriculum' | 'generation';
-  extractedContent?: string;
-  teacherPreferences?: TeacherPreferences;
-  theologicalPreference: 'southern_baptist' | 'reformed_baptist' | 'independent_baptist';
-  sbConfessionVersion?: 'bfm_1963' | 'bfm_2000';
-  sessionId?: string;
-  uploadId?: string;
-  fileHash?: string;
-  sourceFile?: string;
+  user_id: string;
+  topic: string;
+  passage: string;
+  age_group: string;
+  lesson_length: number;
+  lesson_type: 'teacher' | 'student';
+  doctrine_profile?: string;
+  theological_lens?: string;
+  additional_notes?: string;
 }
 
-// Rate limiting storage (in production, use Redis or similar)
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-// Rate limiting constants
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per user
-
-function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: number; resetTime: number } {
-  const now = Date.now();
-  const userLimit = rateLimitMap.get(userId);
-
-  if (!userLimit || now > userLimit.resetTime) {
-    // Reset or initialize rate limit
-    rateLimitMap.set(userId, {
-      count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW
-    });
-    return {
-      allowed: true,
-      remainingRequests: RATE_LIMIT_MAX_REQUESTS - 1,
-      resetTime: now + RATE_LIMIT_WINDOW
-    };
-  }
-
-  if (userLimit.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return {
-      allowed: false,
-      remainingRequests: 0,
-      resetTime: userLimit.resetTime
-    };
-  }
-
-  // Increment count
-  userLimit.count++;
-  rateLimitMap.set(userId, userLimit);
-
-  return {
-    allowed: true,
-    remainingRequests: RATE_LIMIT_MAX_REQUESTS - userLimit.count,
-    resetTime: userLimit.resetTime
-  };
-}
-
-async function generateLessonWithAI(data: LessonRequest) {
-  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openAIApiKey) {
-    throw new Error('OpenAI API key not configured');
-  }
-
-  // Theological lens configurations
-  const theologicalLenses = {
-    'southern_baptist': {
-      name: 'Southern Baptist',
-      short: 'SB',
-      label: 'Southern Baptist Lens',
-      description: 'Align with the Baptist Faith & Message. Emphasize believer\'s baptism by immersion, congregational polity, local church autonomy, evangelism/missions, assurance/perseverance. Avoid pedobaptism or non-congregational governance.',
-      distinctives: [],
-      versions: {
-        'bfm_1963': {
-          label: 'BF&M 1963',
-          distinctives: [
-            'Based on the Baptist Faith & Message (1963)',
-            'Highlights "the criterion by which the Bible is to be interpreted is Jesus Christ"',
-            'Emphasizes believer\'s baptism by immersion',
-            'Affirms congregational governance & local-church autonomy',
-            'Stresses evangelism & missions'
-          ]
-        },
-        'bfm_2000': {
-          label: 'BF&M 2000',
-          distinctives: [
-            'Based on the Baptist Faith & Message (2000)',
-            'Emphasizes the Bible\'s full authority & sufficiency',
-            'Emphasizes believer\'s baptism by immersion',
-            'Affirms congregational governance & local-church autonomy',
-            'Stresses evangelism, missions, and perseverance of the believer'
-          ]
-        }
-      }
-    },
-    'reformed_baptist': {
-      name: 'Reformed Baptist',
-      short: 'RB',
-      label: 'Reformed Baptist Lens',
-      description: 'Align with the 1689 London Baptist Confession. Emphasize doctrines of grace (TULIP), elder-led congregationalism, covenantal reading distinct from paedobaptism (still credobaptist). Avoid language that conflicts with credobaptism.',
-      distinctives: [
-        'Grounded in the 1689 London Baptist Confession',
-        'Emphasizes doctrines of grace (TULIP)',
-        'Holds to elder-led congregational polity',
-        'Reads Scripture through a covenantal but credobaptist framework',
-        'Values expository teaching and doctrinal depth'
-      ]
-    },
-    'independent_baptist': {
-      name: 'Independent Baptist',
-      short: 'IB',
-      label: 'Independent Baptist Lens',
-      description: 'Emphasize independent local church governance, separation, strong personal evangelism, believer\'s baptism by immersion, congregational polity. Avoid implying denominational boards/structures.',
-      distinctives: [
-        'Stresses complete independence of the local church',
-        'Upholds believer\'s baptism by immersion',
-        'Strong focus on personal evangelism and soul-winning',
-        'Prefers traditional worship and separation from denominational control',
-        'Highlights practical holiness and daily obedience'
-      ]
-    }
-  };
-
-  let lens = theologicalLenses[data.theologicalPreference];
+// ENHANCED: Comprehensive age-appropriate teaching strategies
+const ageGroupProfiles = {
+  'Preschoolers (Ages 3–5)': {
+    cognitiveLevel: 'Concrete, literal thinking. Cannot grasp abstract concepts yet.',
+    attentionSpan: '5-7 minutes per activity. Need frequent transitions.',
+    vocabulary: 'Use 3-4 word sentences. Avoid theological terms. Use tangible objects.',
+    activities: 'Hands-on crafts, movement songs, simple stories with repetition, sensory experiences.',
+    illustrations: 'Use stuffed animals, colorful pictures, puppet shows. Show, don\'t tell.',
+    questions: 'Yes/no questions only. "Can you show me...?" instead of "Why...?"',
+    application: 'Immediate, practical actions: "Give a hug", "Say thank you", "Be kind to friends"',
+    bibleVersion: 'Use simple paraphrases or picture Bibles',
+    teachingTips: 'Repeat key phrases 3-4 times. Use physical movements. Keep lessons under 20 minutes total.'
+  },
   
-  // Handle Southern Baptist version selection
-  let versionLabel = '';
-  let lensDistinctives: string[] = lens.distinctives || [];
+  'Elementary Kids (Ages 6–10)': {
+    cognitiveLevel: 'Beginning abstract thinking. Can connect cause and effect.',
+    attentionSpan: '10-15 minutes per segment. Can handle longer stories.',
+    vocabulary: 'Simple sentences but can learn new words with definitions. Introduce basic theological terms.',
+    activities: 'Interactive games, creative arts, drama, simple Scripture memorization, group projects.',
+    illustrations: 'Relatable stories from school/home life, age-appropriate media, object lessons.',
+    questions: 'Mix of factual recall and simple "why" questions. "What would you do if...?"',
+    application: 'Specific, observable behaviors: sharing toys, helping at home, being truthful.',
+    bibleVersion: 'ICB, NLT, or CEV - clear, simple language',
+    teachingTips: 'Use visuals extensively. Create take-home reminders. Celebrate small victories.'
+  },
   
-  if (data.theologicalPreference === 'southern_baptist') {
-    const version = data.sbConfessionVersion || 'bfm_2000';
-    if (lens.versions && lens.versions[version]) {
-      versionLabel = lens.versions[version].label;
-      lensDistinctives = lens.versions[version].distinctives;
-    }
+  'Preteens & Middle Schoolers (Ages 11–14)': {
+    cognitiveLevel: 'Developing abstract reasoning. Question authority and test boundaries.',
+    attentionSpan: '15-20 minutes with engagement. Need interactive elements.',
+    vocabulary: 'Can handle theological vocabulary with clear explanations. Like feeling "smart".',
+    activities: 'Small group discussions, debates, technology integration, service projects, competitions.',
+    illustrations: 'Pop culture references, social media analogies, peer pressure scenarios, real-world issues.',
+    questions: 'Open-ended questions about feelings, identity, fairness. "How does this apply to your life?"',
+    application: 'Address identity formation, peer relationships, family dynamics, faith ownership.',
+    bibleVersion: 'NIV, NLT, ESV - balance readability and depth',
+    teachingTips: 'Acknowledge their struggles authentically. Avoid talking down. Give leadership opportunities.'
+  },
+  
+  'High School Students (Ages 15–18)': {
+    cognitiveLevel: 'Full abstract reasoning. Can handle nuance and complexity.',
+    attentionSpan: '20-30 minutes if engaged. Expect intellectual rigor.',
+    vocabulary: 'Full theological vocabulary expected. Introduce Greek/Hebrew concepts.',
+    activities: 'Socratic seminars, apologetics discussions, worldview analysis, ministry applications.',
+    illustrations: 'College prep, dating, sexuality, career choices, suffering, doubt, cultural issues.',
+    questions: 'Challenging questions about faith validity, God\'s existence, biblical reliability, tough topics.',
+    application: 'Decision-making frameworks, relationship boundaries, mission/calling, faith defense.',
+    bibleVersion: 'ESV, NASB, NIV - balance accuracy and readability',
+    teachingTips: 'Create safe space for doubt. Address real objections. Model authentic faith struggles.'
+  },
+  
+  'College & Early Career (Ages 19–25)': {
+    cognitiveLevel: 'Mature abstract thinking. Processing independence and identity.',
+    attentionSpan: '30-45 minutes with breaks. Expect academic-level discussion.',
+    vocabulary: 'Academic theological language. Comfortable with systematic theology terms.',
+    activities: 'Case studies, theological debates, ministry practicum, mentorship, accountability groups.',
+    illustrations: 'Career pressures, relationship navigation, financial decisions, purpose-finding, church involvement.',
+    questions: 'Existential questions about calling, suffering, God\'s will, denominational differences.',
+    application: 'Life integration: work ethics, relationship commitments, church engagement, missional living.',
+    bibleVersion: 'ESV, NASB, NKJV - value accuracy and study depth',
+    teachingTips: 'Respect their agency. Provide resources for further study. Connect to life transitions.'
+  },
+  
+  'Young Adults (Ages 26–35)': {
+    cognitiveLevel: 'Peak cognitive function. Balancing multiple life responsibilities.',
+    attentionSpan: '45-60 minutes. Appreciate efficient, practical teaching.',
+    vocabulary: 'Expect sophisticated theological discourse. Value practical application.',
+    activities: 'Workshop-style teaching, real-life case studies, marriage/parenting applications, mentorship.',
+    illustrations: 'Work-life balance, parenting challenges, marriage enrichment, financial stewardship.',
+    questions: 'How-to questions: "How do I teach my kids?", "How do we handle conflict?", "How do I balance priorities?"',
+    application: 'Family discipleship, marriage strengthening, workplace witness, community service.',
+    bibleVersion: 'ESV, NIV, NASB - balance study depth and accessibility',
+    teachingTips: 'Provide practical tools and resources. Honor their time. Offer childcare during classes.'
+  },
+  
+  'Mid-Life Adults (Ages 36–50)': {
+    cognitiveLevel: 'Wisdom-building phase. Reflective and experiential.',
+    attentionSpan: '60+ minutes. Appreciate deep dives and discussion.',
+    vocabulary: 'Theological sophistication with life experience. Value nuanced teaching.',
+    activities: 'In-depth Bible study, book discussions, ministry leadership training, mentoring younger adults.',
+    illustrations: 'Parenting teenagers, aging parents, career transitions, health challenges, legacy building.',
+    questions: 'Integration questions: "How does this connect to...?", "What does Scripture say about...?"',
+    application: 'Raising godly teens, caring for aging parents, career ministry integration, church leadership.',
+    bibleVersion: 'ESV, NASB, NKJV - prefer depth and accuracy',
+    teachingTips: 'Draw on their wisdom. Facilitate peer-to-peer learning. Address "sandwich generation" pressures.'
+  },
+  
+  'Mature Adults (Ages 51–65)': {
+    cognitiveLevel: 'Life-wisdom integration. Value depth over novelty.',
+    attentionSpan: '60+ minutes. Appreciate thorough, scholarly approaches.',
+    vocabulary: 'Lifetime of biblical knowledge. Enjoy connecting Scripture across testament.',
+    activities: 'Inductive Bible study, theological deep-dives, mentorship training, mission focus.',
+    illustrations: 'Empty nest adjustments, retirement planning, grandparenting, legacy-leaving.',
+    questions: 'Reflective questions about life meaning, spiritual legacy, ministry in later years.',
+    application: 'Mentoring next generation, wise stewardship, finishing well, renewed mission.',
+    bibleVersion: 'ESV, NASB, NKJV - prefer traditional, accurate translations',
+    teachingTips: 'Honor their experience. Create inter-generational connections. Focus on legacy and wisdom-sharing.'
+  },
+  
+  'Active Seniors (Ages 66–75)': {
+    cognitiveLevel: 'Reflective wisdom. May need accommodations for memory.',
+    attentionSpan: '45-60 minutes with breaks. Comfortable pace appreciated.',
+    vocabulary: 'Rich biblical background. May prefer traditional terminology.',
+    activities: 'Hymn-based teaching, testimony sharing, prayer ministry, mentoring, service projects.',
+    illustrations: 'Health challenges, loss and grief, spiritual legacy, joy in golden years.',
+    questions: 'Reflection questions about life faithfulness, God\'s provision, hope in aging.',
+    application: 'Remaining active in service, prayer ministry, grandchildren discipleship, testimonies.',
+    bibleVersion: 'KJV, NKJV, ESV - may prefer familiar translations',
+    teachingTips: 'Use larger fonts. Slower pace. Honor their stories. Emphasize encouragement and hope.'
+  },
+  
+  'Senior Adults (Ages 76+)': {
+    cognitiveLevel: 'Lifetime wisdom. May have cognitive changes. Value familiar.',
+    attentionSpan: '30-45 minutes. Shorter lessons, more rest.',
+    vocabulary: 'Lifetime biblical vocabulary. Prefer traditional, familiar language.',
+    activities: 'Reminiscence, hymn singing, Scripture reading, prayer circles, life review.',
+    illustrations: 'God\'s faithfulness throughout life, eternal hope, comfort in transition.',
+    questions: 'Comfort-focused questions about God\'s presence, eternal home, peace.',
+    application: 'Finding joy daily, sharing faith with family, prayer ministry, godly witness.',
+    bibleVersion: 'KJV, NKJV - strongly prefer familiar, beloved translations',
+    teachingTips: 'Large print materials. Comfort-focused. Honor lifetime of faithfulness. Emphasize eternal hope.'
+  },
+  
+  'Mixed Groups': {
+    cognitiveLevel: 'Varied. Design for middle-range with optional depth and simplification.',
+    attentionSpan: '30-45 minutes. Multiple engagement styles needed.',
+    vocabulary: 'Accessible core with optional deeper exploration.',
+    activities: 'Multi-level activities, breakout groups by age, inter-generational sharing.',
+    illustrations: 'Universal life themes that resonate across ages.',
+    questions: 'Tiered questions from simple to complex.',
+    application: 'General principles with age-specific suggestions.',
+    bibleVersion: 'NIV or ESV - accessible to all',
+    teachingTips: 'Design main teaching for all, offer breakout options for deeper/simpler exploration.'
   }
+};
 
-  const doctrineContexts = {
-    'SBC': 'Southern Baptist Convention theological perspective, emphasizing biblical inerrancy, salvation by grace through faith alone, and believer\'s baptism by immersion.',
-    'RB': 'Regular Baptist theological perspective, focusing on fundamentalist principles, separation from worldly practices, and dispensational theology.',
-    'IND': 'Independent Baptist theological perspective, emphasizing local church autonomy, biblical authority, and conservative evangelical doctrine.'
-  };
+// ENHANCED: Language-specific age instructions
+const languageConfigs = {
+  'en': {
+    name: 'English',
+    promptInstruction: 'You must generate ALL content in English.'
+  },
+  'es': {
+    name: 'Spanish',
+    promptInstruction: 'Debes generar TODO el contenido en español. Usa lenguaje natural y apropiado para hispanohablantes.'
+  },
+  'fr': {
+    name: 'French',
+    promptInstruction: 'Vous devez générer TOUT le contenu en français. Utilisez un langage naturel et approprié pour les francophones.'
+  }
+};
 
-  const ageGroupContexts = {
-    'Preschoolers': 'Ages 3-5, requiring simple concepts, hands-on activities, and visual learning aids',
-    'Elementary': 'Ages 6-11, needing interactive activities, basic biblical concepts, and age-appropriate applications',
-    'Middle School': 'Ages 12-14, addressing identity questions, peer pressure, and foundational faith development',
-    'High School': 'Ages 15-18, tackling complex theological questions, life decisions, and future planning',
-    'College & Career': 'Ages 18-25, focusing on independence, career choices, and deep theological study',
-    'Young Adults': 'Ages 26-35, addressing marriage, family, and establishing life priorities',
-    'Mid-Life Adults': 'Ages 36-55, dealing with family responsibilities, career pressures, and spiritual maturity',
-    'Mature Adults': 'Ages 56-70, focusing on wisdom sharing, legacy building, and deeper spiritual reflection',
-    'Active Seniors': 'Ages 70+, emphasizing continued service, life reflection, and spiritual encouragement',
-    'Senior Adults': 'Ages 70+, focusing on comfort, encouragement, and simplified but meaningful content',
-    'Mixed Groups': 'Multi-generational, requiring adaptable content for various age levels and life stages'
-  };
-
-  // Build customization context from teacher preferences
-  const buildCustomizationContext = (prefs: TeacherPreferences): string => {
-    if (!prefs) return '';
-    
-    const context = [];
-    
-    // Teaching style adaptation
-    context.push(`Teaching Style: ${prefs.teachingStyle.replace(/_/g, ' ')} approach`);
-    context.push(`Classroom Management: ${prefs.classroomManagement.replace(/_/g, ' ')} format`);
-    context.push(`Technology Integration: ${prefs.techIntegration} level of technology use`);
-    
-    // Class context
-    context.push(`Class Size: ${prefs.classSize} (${prefs.classSize === 'small' ? '5-15' : prefs.classSize === 'medium' ? '16-30' : prefs.classSize === 'large' ? '31-50' : '50+'} people)`);
-    context.push(`Session Duration: ${prefs.sessionDuration}`);
-    context.push(`Physical Space: ${prefs.physicalSpace.replace(/_/g, ' ')}`);
-    
-    // Learning preferences
-    if (prefs.learningStyles.length > 0) {
-      context.push(`Learning Styles: Focus on ${prefs.learningStyles.join(', ')} learners`);
-    }
-    context.push(`Engagement Level: ${prefs.engagementLevel.replace(/_/g, ' ')}`);
-    context.push(`Discussion Format: ${prefs.discussionFormat.replace(/_/g, ' ')}`);
-    context.push(`Activity Complexity: ${prefs.activityComplexity} level activities`);
-    
-    // Theological preferences
-    context.push(`Bible Translation: ${prefs.bibleTranslation}`);
-    context.push(`Theological Emphasis: ${prefs.theologicalEmphasis.replace(/_/g, ' ')} style`);
-    context.push(`Application Focus: ${prefs.applicationFocus.replace(/_/g, ' ')}`);
-    context.push(`Study Depth: ${prefs.depthLevel.replace(/_/g, ' ')}`);
-    
-    // Resource preferences
-    context.push(`Handout Style: ${prefs.handoutStyle.replace(/_/g, ' ')}`);
-    context.push(`Visual Aids: ${prefs.visualAidPreference.replace(/_/g, ' ')}`);
-    context.push(`Preparation Time Available: ${prefs.preparationTime}`);
-    
-    // Cultural context
-    context.push(`Cultural Background: ${prefs.culturalBackground} context`);
-    context.push(`Educational Background: ${prefs.educationalBackground.replace(/_/g, ' ')}`);
-    context.push(`Spiritual Maturity: ${prefs.spiritualMaturity.replace(/_/g, ' ')}`);
-    
-    if (prefs.specialNeeds.length > 0) {
-      context.push(`Special Considerations: ${prefs.specialNeeds.join(', ').replace(/_/g, ' ')}`);
-    }
-    
-    if (prefs.additionalContext) {
-      context.push(`Additional Context: ${prefs.additionalContext}`);
-    }
-    
-    return context.join('\n');
-  };
-
-  const customizationContext = buildCustomizationContext(data.teacherPreferences || {} as TeacherPreferences);
-
-  const enhancementPrompt = data.enhancementType === 'curriculum' 
-    ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || data.passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
-    : `Generate a complete, original lesson plan based on: "${data.passageOrTopic}".`;
-
-  const lensDisplayName = versionLabel ? `${lens.name} — ${versionLabel}` : lens.name;
-  const lensSubtitle = versionLabel ? `Confession: ${versionLabel}` : '';
-  
-  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
-
-THEOLOGICAL LENS: ${lensDisplayName}
-You are generating this lesson under the ${lens.label}${versionLabel ? ` (${versionLabel})` : ''}.
-${lens.description}
-
-When doctrine is debated, present this lens' position clearly and charitably without attacking other positions.
-
-REQUIRED: At the very top of your lesson output, include:
-1. A Lens Banner showing: "Theological Lens: ${lensDisplayName}"
-${lensSubtitle ? `   ${lensSubtitle}` : ''}
-2. A "Lens Distinctives" section with exactly these bullet points (use verbatim):
-   ${lens.label}${versionLabel ? ` — ${versionLabel}` : ''}
-${lensDistinctives.map(d => `   • ${d}`).join('\n')}
-
-REQUIRED: Prefix the lesson title with "${lens.short} • " (e.g., "${lens.short} • Understanding Grace")
-
-TEACHER CUSTOMIZATION PROFILE:
-${customizationContext}
-
-Create a publication-ready, comprehensive lesson that includes:
-
-LESSON STRUCTURE REQUIREMENTS:
-1. Lesson Overview (2-3 paragraphs)
-2. Learning Objectives (3-5 specific, measurable goals)
-3. Key Scripture Passages (with context and cross-references)
-4. Theological Background (denominational perspective and historical context)
-5. Opening Activities (2-3 engaging warm-up activities)
-6. Main Teaching Content (detailed exposition with illustrations)
-7. Interactive Activities (4-6 varied activities for different learning styles)
-8. Discussion Questions (8-10 thought-provoking questions)
-9. Life Applications (practical, age-appropriate applications)
-10. Assessment Methods (ways to measure understanding)
-11. Take-Home Resources (materials for continued learning)
-12. Teacher Preparation Notes (background study and tips)
-
-CONTENT QUALITY REQUIREMENTS:
-- Each section should be detailed and comprehensive (not bullet points)
-- Include specific materials lists for all activities
-- Provide estimated time durations for each component
-- Add biblical cross-references and supporting verses
-- Include age-appropriate illustrations and examples
-- Ensure theological accuracy according to ${data.doctrineProfile} perspective
-- Make content immediately usable without additional research
-
-TARGET AUDIENCE: ${ageGroupContexts[data.ageGroup as keyof typeof ageGroupContexts]}
-
-DENOMINATION EMPHASIS: ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
-
-${data.notes ? `ADDITIONAL REQUIREMENTS: ${data.notes}` : ''}
-
-REQUIRED FOOTER: At the end of the lesson, include this note:
-"This lesson reflects the ${lens.name} lens selected in settings."
-
-Return a comprehensive lesson plan that a teacher could print and use immediately for a 45-60 minute class session.`;
-
-  const userPrompt = enhancementPrompt;
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   try {
-    console.log('Generating lesson with OpenAI...');
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
+    const requestData: LessonRequest = await req.json();
+    const { 
+      user_id, 
+      topic, 
+      passage, 
+      age_group, 
+      lesson_length, 
+      lesson_type, 
+      doctrine_profile = 'southern_baptist',
+      theological_lens = 'sbc',
+      additional_notes 
+    } = requestData;
+
+    console.log('Received request:', { user_id, age_group, topic, passage });
+
+    // CRITICAL: Validate age group
+    if (!age_group || !ageGroupProfiles[age_group as keyof typeof ageGroupProfiles]) {
+      return new Response(
+        JSON.stringify({ 
+          error: `Invalid age group: ${age_group}. Must be one of: ${Object.keys(ageGroupProfiles).join(', ')}` 
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get user's language preference
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("preferred_language")
+      .eq("id", user_id)
+      .single();
+
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError);
+    }
+    
+    const language = (profile?.preferred_language as keyof typeof languageConfigs) || "en";
+    const languageConfig = languageConfigs[language];
+    const ageProfile = ageGroupProfiles[age_group as keyof typeof ageGroupProfiles];
+
+    console.log('Using language:', language, 'for age group:', age_group);
+
+    // ENHANCED: Build highly specific age-differentiated prompt
+    const systemPrompt = `${languageConfig.promptInstruction}
+
+CRITICAL: You are creating a ${lesson_length}-minute Bible lesson for ${age_group}.
+
+═══════════════════════════════════════════════════════════
+AGE GROUP PROFILE: ${age_group}
+═══════════════════════════════════════════════════════════
+
+COGNITIVE LEVEL: ${ageProfile.cognitiveLevel}
+ATTENTION SPAN: ${ageProfile.attentionSpan}
+VOCABULARY LEVEL: ${ageProfile.vocabulary}
+RECOMMENDED ACTIVITIES: ${ageProfile.activities}
+ILLUSTRATION STYLE: ${ageProfile.illustrations}
+QUESTION TYPES: ${ageProfile.questions}
+APPLICATION FOCUS: ${ageProfile.application}
+BIBLE VERSION: ${ageProfile.bibleVersion}
+TEACHING TIPS: ${ageProfile.teachingTips}
+
+═══════════════════════════════════════════════════════════
+THEOLOGICAL CONTEXT
+═══════════════════════════════════════════════════════════
+
+Doctrine Profile: ${doctrine_profile} (Southern Baptist Convention - Baptist Faith & Message 1963/2000)
+Theological Lens: ${theological_lens}
+
+Core Baptist Distinctives to Honor:
+• Biblical Authority: Scripture as sole authority for faith and practice
+• Soul Competency: Individual accountability before God
+• Believer's Baptism: Baptism by immersion following profession of faith
+• Security of the Believer: Eternal security in Christ
+• Priesthood of Believers: Direct access to God without human mediator
+• Autonomy of Local Church: Each church self-governing under Christ
+• Separation of Church and State: Religious freedom
+
+${additional_notes ? `\nTEACHER'S ADDITIONAL NOTES:\n${additional_notes}\n` : ''}
+
+═══════════════════════════════════════════════════════════
+LESSON GENERATION REQUIREMENTS
+═══════════════════════════════════════════════════════════
+
+Lesson Type: ${lesson_type === 'teacher' ? 'TEACHER TRANSCRIPT' : 'STUDENT HANDOUT'}
+
+${lesson_type === 'teacher' ? `
+As a TEACHER TRANSCRIPT, include:
+
+1. LESSON OVERVIEW (2-3 paragraphs)
+   - Big idea in age-appropriate language
+   - Why this matters to ${age_group}
+   - Expected outcomes
+
+2. MATERIALS NEEDED
+   - Complete list with quantities
+   - Preparation notes
+   - Room setup suggestions
+
+3. OPENING ACTIVITY (${ageProfile.attentionSpan.split('.')[0]})
+   - Attention-grabbing hook appropriate for cognitive level
+   - Clear connection to lesson theme
+   - Specific instructions
+
+4. SCRIPTURE INTRODUCTION (5-7 minutes)
+   - Context setting for ${age_group}
+   - Read from ${ageProfile.bibleVersion}
+   - Age-appropriate background information
+
+5. MAIN TEACHING CONTENT (${Math.floor(lesson_length * 0.4)}-${Math.floor(lesson_length * 0.5)} minutes)
+   - Use vocabulary level: ${ageProfile.vocabulary}
+   - Include illustrations: ${ageProfile.illustrations}
+   - Break into segments respecting: ${ageProfile.attentionSpan}
+   - Theological accuracy maintaining Baptist distinctives
+   - Interactive elements: ${ageProfile.activities}
+
+6. DISCUSSION QUESTIONS (8-12 questions)
+   - Type: ${ageProfile.questions}
+   - Progress from simple to complex
+   - Include suggested answers with Scripture references
+
+7. ACTIVITIES (2-3 options)
+   - ${ageProfile.activities}
+   - Detailed instructions
+   - Materials lists
+   - Time estimates
+   - Learning objectives
+
+8. LIFE APPLICATION (5-10 minutes)
+   - Focus: ${ageProfile.application}
+   - Specific, measurable, achievable actions
+   - Follow-up suggestions
+
+9. CLOSING & PRAYER (3-5 minutes)
+   - Summary appropriate for age
+   - Prayer prompts
+   - Take-home connection
+
+10. TEACHER PREPARATION NOTES
+    - Background study resources
+    - Anticipated questions/objections
+    - Adaptation suggestions
+    - ${ageProfile.teachingTips}
+` : `
+As a STUDENT HANDOUT, include:
+
+1. ATTRACTIVE HEADER
+   - Lesson title in engaging language
+   - Scripture reference
+   - Age-appropriate graphics description
+
+2. KEY VERSE
+   - ${ageProfile.bibleVersion}
+   - Memory help/illustration
+
+3. LESSON SUMMARY (2-3 paragraphs)
+   - Written at reading level for ${age_group}
+   - Main points clearly stated
+   - Personal engagement questions
+
+4. FILL-IN-THE-BLANK NOTES (8-12 items)
+   - Vocabulary: ${ageProfile.vocabulary}
+   - Key concepts to remember
+   - Scripture references to look up
+
+5. ACTIVITIES (2-3)
+   - ${ageProfile.activities}
+   - Clear instructions
+   - Space for responses
+
+6. DISCUSSION QUESTIONS (6-8)
+   - ${ageProfile.questions}
+   - Space for notes
+
+7. THIS WEEK'S CHALLENGE
+   - ${ageProfile.application}
+   - Specific daily actions
+   - Accountability check-in method
+
+8. PRAYER JOURNAL SPACE
+   - Prayer requests
+   - Praise reports
+   - Scripture to pray
+
+9. PARENT CONNECTION (if applicable)
+   - What we learned today
+   - Discussion starters for home
+   - Reinforcement activities
+`}
+
+═══════════════════════════════════════════════════════════
+CRITICAL REMINDERS
+═══════════════════════════════════════════════════════════
+
+✓ ALL content must be in ${languageConfig.name}
+✓ Maintain theological accuracy (Baptist Faith & Message)
+✓ Use vocabulary appropriate for ${age_group}: ${ageProfile.vocabulary}
+✓ Design activities respecting attention span: ${ageProfile.attentionSpan}
+✓ Include specific timing for each section (total: ${lesson_length} minutes)
+✓ Make content immediately usable - no placeholder text
+✓ Include ALL materials, resources, and preparation steps
+✓ Honor Christian values and biblical authority throughout
+
+Your lesson should be so complete and age-appropriate that a volunteer teacher could print it and teach confidently with minimal additional preparation.`;
+
+    const userPrompt = `Create a ${lesson_length}-minute ${lesson_type} for ${age_group} on:
+
+TOPIC: ${topic}
+SCRIPTURE: ${passage}
+
+Remember: This is for ${age_group} with these characteristics:
+- Cognitive Level: ${ageProfile.cognitiveLevel}
+- Attention Span: ${ageProfile.attentionSpan}
+- Best Activities: ${ageProfile.activities}
+- Application Style: ${ageProfile.application}`;
+
+    // Call Claude API
+    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicKey) {
+      throw new Error("ANTHROPIC_API_KEY not configured");
+    }
+
+    console.log('Calling Claude API...');
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 4000,
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 8000,
         temperature: 0.7,
-      }),
+        messages: [
+          { 
+            role: "user", 
+            content: `${systemPrompt}\n\n${userPrompt}` 
+          }
+        ]
+      })
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('OpenAI API Error:', errorData);
-      throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      console.error('Claude API Error:', errorData);
+      throw new Error(`Claude API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const aiResponse = await response.json();
-    const generatedContent = aiResponse.choices[0].message.content;
+    const generatedContent = aiResponse.content[0].text;
 
-    // Parse the comprehensive content into structured format
-    const structuredContent = parseComprehensiveLesson(generatedContent);
-    
-    return {
-      content: structuredContent,
-      title: `${lens.short} • ${data.enhancementType === 'curriculum' ? 'Enhanced' : 'Generated'} Lesson: ${data.passageOrTopic}`,
-      wordCount: generatedContent.length,
-      estimatedDuration: '45-60 minutes',
-      theologicalLens: lens.name,
-      ...(data.theologicalPreference === 'southern_baptist' && data.sbConfessionVersion && {
-        sbConfessionVersion: data.sbConfessionVersion
-      })
-    };
-
-  } catch (error) {
-    console.error('Error generating lesson with AI:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    throw new Error(`Failed to generate lesson: ${errorMessage}`);
-  }
-}
-
-function parseComprehensiveLesson(content: string) {
-  // Parse the AI-generated content into structured sections
-  const sections: Record<string, string> = {};
-  
-  // Extract major sections using common headers
-  const sectionRegexes: Record<string, RegExp> = {
-    overview: /(?:lesson\s+overview|overview|introduction)[:\s]*(.*?)(?=\n(?:learning\s+objectives|objectives|key\s+scripture)|$)/is,
-    objectives: /(?:learning\s+objectives|objectives)[:\s]*(.*?)(?=\n(?:key\s+scripture|scripture|theological)|$)/is,
-    scripture: /(?:key\s+scripture|scripture\s+passages|scripture)[:\s]*(.*?)(?=\n(?:theological|background|opening)|$)/is,
-    background: /(?:theological\s+background|background|context)[:\s]*(.*?)(?=\n(?:opening\s+activities|opening|main\s+teaching)|$)/is,
-    opening: /(?:opening\s+activities|warm[- ]?up|opening)[:\s]*(.*?)(?=\n(?:main\s+teaching|teaching\s+content|interactive)|$)/is,
-    teaching: /(?:main\s+teaching|teaching\s+content|main\s+content)[:\s]*(.*?)(?=\n(?:interactive\s+activities|activities|discussion)|$)/is,
-    activities: /(?:interactive\s+activities|activities)[:\s]*(.*?)(?=\n(?:discussion\s+questions|discussion|life\s+applications)|$)/is,
-    discussion: /(?:discussion\s+questions|discussion)[:\s]*(.*?)(?=\n(?:life\s+applications|applications|assessment)|$)/is,
-    applications: /(?:life\s+applications|applications)[:\s]*(.*?)(?=\n(?:assessment|take[- ]?home|teacher)|$)/is,
-    assessment: /(?:assessment\s+methods|assessment)[:\s]*(.*?)(?=\n(?:take[- ]?home|teacher\s+preparation|teacher)|$)/is,
-    resources: /(?:take[- ]?home\s+resources|resources)[:\s]*(.*?)(?=\n(?:teacher\s+preparation|teacher\s+notes)|$)/is,
-    preparation: /(?:teacher\s+preparation|teacher\s+notes|preparation)[:\s]*(.*?)$/is
-  };
-
-  // Extract each section
-  Object.keys(sectionRegexes).forEach(key => {
-    const match = content.match(sectionRegexes[key]);
-    if (match) {
-      sections[key] = match[1].trim();
-    }
-  });
-
-  // If structured parsing fails, create sections from the raw content
-  if (Object.keys(sections).length < 5) {
-    const contentChunks = content.split('\n\n').filter(chunk => chunk.trim().length > 50);
-    
-    return {
-      overview: contentChunks[0] || 'Comprehensive lesson content generated.',
-      objectives: contentChunks[1] || 'Students will engage with biblical truth and apply it to their lives.',
-      scripture: contentChunks[2] || 'Key passages and supporting verses provided.',
-      background: contentChunks[3] || 'Theological context and historical background included.',
-      teaching: contentChunks.slice(4).join('\n\n') || 'Detailed teaching content with activities and applications.',
-      activities: 'Interactive learning experiences designed for engagement.',
-      discussion: 'Thought-provoking questions for deeper understanding.',
-      applications: 'Practical ways to live out biblical principles.',
-      fullContent: content
-    };
-  }
-
-  return {
-    ...sections,
-    fullContent: content
-  };
-}
-
-function validateInput(data: any): LessonRequest {
-  // Validate required fields
-  if (!data.passageOrTopic || typeof data.passageOrTopic !== 'string') {
-    throw new Error('passageOrTopic is required and must be a string');
-  }
-
-  if (!data.ageGroup || typeof data.ageGroup !== 'string') {
-    throw new Error('ageGroup is required and must be a string');
-  }
-
-  if (!data.doctrineProfile || typeof data.doctrineProfile !== 'string') {
-    throw new Error('doctrineProfile is required and must be a string');
-  }
-
-  if (!data.theologicalPreference || typeof data.theologicalPreference !== 'string') {
-    throw new Error('Theological preference is required. Please select your theological lens (Southern Baptist, Reformed Baptist, or Independent Baptist) in your settings or the generation form.');
-  }
-
-  // Validate enum values
-  const allowedAgeGroups = [
-    'Preschoolers', 'Elementary', 'Middle School', 'High School',
-    'College & Career', 'Young Adults', 'Mid-Life Adults',
-    'Mature Adults', 'Active Seniors', 'Senior Adults', 'Mixed Groups'
-  ];
-
-  const allowedDoctrineProfiles = ['SBC', 'RB', 'IND'];
-  const allowedEnhancementTypes = ['curriculum', 'generation'];
-  const allowedTheologicalPreferences = ['southern_baptist', 'reformed_baptist', 'independent_baptist'];
-
-  if (!allowedAgeGroups.includes(data.ageGroup)) {
-    throw new Error('Invalid ageGroup');
-  }
-
-  if (!allowedDoctrineProfiles.includes(data.doctrineProfile)) {
-    throw new Error('Invalid doctrineProfile');
-  }
-
-  if (!allowedEnhancementTypes.includes(data.enhancementType)) {
-    throw new Error('Invalid enhancementType');
-  }
-
-  if (!allowedTheologicalPreferences.includes(data.theologicalPreference)) {
-    throw new Error('Invalid theological preference. Must be one of: southern_baptist, reformed_baptist, independent_baptist');
-  }
-
-  // Sanitize strings
-  const sanitizeString = (str: string): string => {
-    return str.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-             .replace(/javascript:/gi, '')
-             .trim()
-             .substring(0, 1000); // Limit length
-  };
-
-  return {
-    passageOrTopic: sanitizeString(data.passageOrTopic),
-    ageGroup: data.ageGroup,
-    doctrineProfile: data.doctrineProfile,
-    notes: data.notes ? sanitizeString(data.notes) : undefined,
-    enhancementType: data.enhancementType,
-    extractedContent: data.extractedContent ? sanitizeString(data.extractedContent) : undefined,
-    teacherPreferences: data.teacherPreferences,
-    theologicalPreference: data.theologicalPreference,
-  };
-}
-
-serve(async (req) => {
-  // CORS headers - Restricted to specific domains for security
-  const allowedOrigins = [
-    'https://lessonsparkusa.com',
-    'https://www.lessonsparkusa.com'
-  ];
-  
-  // In development, also allow Lovable and localhost
-  if (Deno.env.get('DENO_DEPLOYMENT_ID') === undefined) {
-    allowedOrigins.push(...[
-      'http://localhost:5173',
-      'http://localhost:3000'
-    ]);
-  }
-  
-  // Always allow Lovable preview domains
-  const origin = req.headers.get('origin');
-  const isAllowed = origin && (
-    allowedOrigins.includes(origin) ||
-    origin.includes('.lovable.app') ||
-    origin.includes('.supabase.co')
-  );
-  
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': isAllowed ? origin : 'null',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Max-Age': '86400', // Cache preflight for 24 hours
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-    'X-XSS-Protection': '1; mode=block',
-  };
-
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
-
-  try {
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    );
-
-    // Get user from JWT
-    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authorization token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check rate limit
-    const rateLimit = checkRateLimit(user.id);
-    if (!rateLimit.allowed) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.',
-          resetTime: rateLimit.resetTime 
-        }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': rateLimit.resetTime.toString()
-          } 
-        }
-      );
-    }
-
-    // Parse and validate request body
-    const body = await req.json();
-    const validatedData = validateInput(body);
-    
-    // Extract tracking IDs from request
-    const { sessionId, uploadId, fileHash, sourceFile } = body;
-
-    // Generate comprehensive lesson content using OpenAI
-    const lessonContent = await generateLessonWithAI(validatedData);
-
-    // Log the successful generation with theological preference
-    const lensInfo = validatedData.theologicalPreference === 'southern_baptist' && validatedData.sbConfessionVersion 
-      ? `${validatedData.theologicalPreference} (${validatedData.sbConfessionVersion})` 
-      : validatedData.theologicalPreference;
-    console.log(`Lesson generated for user ${user.id}: ${validatedData.passageOrTopic} (Lens: ${lensInfo})`);
+    console.log('Successfully generated lesson content');
 
     return new Response(
       JSON.stringify({
         success: true,
-        content: lessonContent.content,
-        title: lessonContent.title,
-        sessionId,
-        uploadId,
-        fileHash,
+        content: generatedContent,
         metadata: {
-          ageGroup: validatedData.ageGroup,
-          doctrineProfile: validatedData.doctrineProfile,
-          enhancementType: validatedData.enhancementType,
-          wordCount: lessonContent.wordCount,
-          estimatedDuration: lessonContent.estimatedDuration,
-          theologicalLens: lessonContent.theologicalLens,
-          theologicalPreference: validatedData.theologicalPreference,
-          ...(validatedData.theologicalPreference === 'southern_baptist' && validatedData.sbConfessionVersion && {
-            sbConfessionVersion: validatedData.sbConfessionVersion
-          })
+          age_group,
+          language,
+          lesson_length,
+          lesson_type,
+          topic,
+          passage,
+          word_count: generatedContent.length,
+          generated_at: new Date().toISOString()
         }
       }),
-      {
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-          'X-RateLimit-Remaining': rateLimit.remainingRequests.toString(),
-          'X-RateLimit-Reset': rateLimit.resetTime.toString()
-        },
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
 
   } catch (error) {
-    console.error('Error in generate-lesson function:', error);
+    console.error('Error generating lesson:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
     return new Response(
       JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Internal server error',
-        timestamp: new Date().toISOString()
+        success: false,
+        error: `Failed to generate lesson: ${errorMessage}` 
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   }

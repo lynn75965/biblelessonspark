@@ -17,6 +17,8 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
+import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { BIBLE_VERSIONS, getDefaultVersion } from "@/lib/bibleTranslations";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
@@ -52,25 +54,25 @@ interface LessonContent {
   applications_legacy?: string[];
 }
 
-export function EnhanceLessonForm({ 
-  organizationId, 
-  userPreferredAgeGroup = "Young Adults", 
-  defaultDoctrine = "SBC" 
+export function EnhanceLessonForm({
+  organizationId,
+  userPreferredAgeGroup = "Young Adults (Ages 26–35)",
+  defaultDoctrine = "SBC"
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Session and upload tracking
   const [sessionId, setSessionId] = useState<string>('');
   const [uploadId, setUploadId] = useState<string>('');
   const [fileHash, setFileHash] = useState<string>('');
   const [sourceFilename, setSourceFilename] = useState<string>('');
-  
+
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
   const [extractedTopic, setExtractedTopic] = useState<string>('');
   const [extractedScripture, setExtractedScripture] = useState<string>('');
-  
+
   // Job status states
   const [extractJobId, setExtractJobId] = useState<string>('');
   const [extractState, setExtractState] = useState<'idle' | 'queued' | 'processing' | 'done' | 'failed' | 'canceled'>('idle');
@@ -78,15 +80,18 @@ export function EnhanceLessonForm({
   const [extractError, setExtractError] = useState<{ code: string; msg: string } | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
-  
+
+  // ✅ FIXED: Separate passage and topic fields
   const [formData, setFormData] = useState({
-    passageOrTopic: "",
+    passage: "",
+    topic: "",
     ageGroup: userPreferredAgeGroup,
     notes: "",
+    bibleVersion: getDefaultVersion().id,
     theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
     sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
   });
-  
+
   const [rememberConfessionChoice, setRememberConfessionChoice] = useState(false);
   const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
   const [showCustomization, setShowCustomization] = useState(false);
@@ -101,27 +106,23 @@ export function EnhanceLessonForm({
 
   // Verification marker
   useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
-    console.log("✅ VERIFIED_BUILD: EnhanceLessonForm fixed & functional");
-    console.log("✅ VERIFIED_BUILD: runtime instrumentation active");
-    console.log("✅ VERIFIED_BUILD: DebugPanel visible and reactive");
-    console.log("✅ VERIFIED_BUILD: BFM Version label and default (BFM 1963) loaded");
+    console.log("✅ VERIFIED_BUILD: EnhanceLessonForm FIXED version loaded");
+    console.log("✅ FIXED: Separate passage and topic fields");
+    console.log("✅ FIXED: Optional file upload");
+    console.log("✅ FIXED: Button enabled with passage/topic even without file");
   }, []);
-  
+
   React.useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: extraction bound to fileHash/session/upload");
-    console.log("✅ VERIFIED_BUILD: extract jobs reach terminal state");
-    
     const fetchProfilePreferences = async () => {
       if (!user) return;
-      
+
       const { supabase } = await import('@/integrations/supabase/client');
       const { data: profile } = await supabase
         .from('profiles')
         .select('sb_confession_version')
         .eq('id', user.id)
         .single();
-      
+
       if (profile?.sb_confession_version) {
         setFormData(prev => ({
           ...prev,
@@ -129,7 +130,7 @@ export function EnhanceLessonForm({
         }));
       }
     };
-    
+
     fetchProfilePreferences();
   }, [user]);
 
@@ -144,11 +145,11 @@ export function EnhanceLessonForm({
   const parseTxtFile = async (file: File): Promise<{ topic: string; scripture: string; content: string }> => {
     const text = await file.text();
     const lines = text.split('\n').filter(l => l.trim());
-    
+
     const topic = lines[0]?.trim() || 'Untitled Lesson';
     const scripture = lines[1]?.trim() || '';
     const content = text;
-    
+
     return { topic, scripture, content };
   };
 
@@ -168,12 +169,12 @@ export function EnhanceLessonForm({
     const hash = await computeFileHash(file);
     const tempJobId = crypto.randomUUID();
 
-    console.log('EXTRACT_START', { 
-      jobId: tempJobId, 
-      sessionId: newSessionId, 
-      uploadId: newUploadId, 
+    console.log('EXTRACT_START', {
+      jobId: tempJobId,
+      sessionId: newSessionId,
+      uploadId: newUploadId,
       fileHash: hash,
-      filename: file.name 
+      filename: file.name
     });
 
     // Reset all state
@@ -200,32 +201,32 @@ export function EnhanceLessonForm({
       if (file.name.toLowerCase().endsWith('.txt') && file.size < 2 * 1024 * 1024) {
         setExtractState('processing');
         setExtractProgress(50);
-        
-        console.log('EXTRACT_PROGRESS', { 
-          jobId: tempJobId, 
-          sessionId: newSessionId, 
-          uploadId: newUploadId, 
+
+        console.log('EXTRACT_PROGRESS', {
+          jobId: tempJobId,
+          sessionId: newSessionId,
+          uploadId: newUploadId,
           fileHash: hash,
           filename: file.name,
           state: 'processing',
           progress: 50
         });
-        
+
         const parsed = await parseTxtFile(file);
-        
+
         // Check for timeout
         if (Date.now() - startTime > timeoutDuration) {
           throw new Error('Timeout exceeded');
         }
-        
-        console.log('EXTRACT_DONE', { 
-          jobId: tempJobId, 
-          sessionId: newSessionId, 
-          uploadId: newUploadId, 
+
+        console.log('EXTRACT_DONE', {
+          jobId: tempJobId,
+          sessionId: newSessionId,
+          uploadId: newUploadId,
           fileHash: hash,
-          filename: file.name 
+          filename: file.name
         });
-        
+
         setExtractedContent(parsed.content);
         setExtractedTopic(parsed.topic);
         setExtractedScripture(parsed.scripture);
@@ -237,15 +238,15 @@ export function EnhanceLessonForm({
       }
 
       // For other files, show error (OCR not fully implemented yet)
-      console.log('EXTRACT_FAILED', { 
-        jobId: tempJobId, 
-        sessionId: newSessionId, 
-        uploadId: newUploadId, 
+      console.log('EXTRACT_FAILED', {
+        jobId: tempJobId,
+        sessionId: newSessionId,
+        uploadId: newUploadId,
         fileHash: hash,
         filename: file.name,
         error: { code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' }
       });
-      
+
       setExtractError({ code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' });
       setExtractState('failed');
       setIsExtracting(false);
@@ -253,18 +254,18 @@ export function EnhanceLessonForm({
 
     } catch (error) {
       console.error('Error processing file:', error);
-      
+
       const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-      
-      console.log('EXTRACT_FAILED', { 
-        jobId: tempJobId, 
-        sessionId: newSessionId, 
-        uploadId: newUploadId, 
+
+      console.log('EXTRACT_FAILED', {
+        jobId: tempJobId,
+        sessionId: newSessionId,
+        uploadId: newUploadId,
         fileHash: hash,
         filename: file.name,
         error: { code: 'unknown', msg: errorMsg }
       });
-      
+
       setExtractError({ code: 'unknown', msg: errorMsg });
       setExtractState('failed');
       setIsExtracting(false);
@@ -276,7 +277,7 @@ export function EnhanceLessonForm({
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
+
     setSessionId('');
     setUploadId('');
     setFileHash('');
@@ -291,7 +292,7 @@ export function EnhanceLessonForm({
     setExtractError(null);
     setExtractJobId('');
     setIsExtracting(false);
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -303,119 +304,134 @@ export function EnhanceLessonForm({
     }
   };
 
+  // ✅ FIXED: New validation logic
+  const isFormValid = () => {
+    // Must have user authentication
+    if (!user) return false;
+    
+    // Must have either passage, topic, OR extracted content
+    const hasPassage = formData.passage.trim().length > 0;
+    const hasTopic = formData.topic.trim().length > 0;
+    const hasExtractedContent = extractedContent !== null && extractedContent.trim().length > 0;
+    
+    return hasPassage || hasTopic || hasExtractedContent;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user || !sessionId || !uploadId || !fileHash) {
+
+    // ✅ FIXED: Only require user authentication, not file IDs
+    if (!user) {
       toast({
         title: "Authentication required",
-        description: "Please sign in and upload a file to generate lessons",
+        description: "Please sign in to generate lessons",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // ✅ FIXED: Validate that user has entered passage, topic, OR uploaded file
+    if (!formData.passage.trim() && !formData.topic.trim() && !extractedContent) {
+      toast({
+        title: "Missing input",
+        description: "Please enter a passage, topic, or upload a file",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      lessonFormSchema.parse({
-        passageOrTopic: formData.passageOrTopic,
-        ageGroup: formData.ageGroup,
-        notes: formData.notes,
-      });
-
-      if (enhancementType === "curriculum" && !extractedContent) {
-        toast({
-          title: "Missing Curriculum",
-          description: "Please upload a curriculum file to enhance",
-          variant: "destructive",
-        });
-        return;
-      }
+      // ✅ FIXED: Determine mode based on what user provided
+      const mode = extractedContent ? "enhance" : "generate";
+      const passageOrTopic = formData.passage.trim() || formData.topic.trim();
 
       setIsGenerating(true);
       setEnhancedResult(null);
 
-    } catch (validationError: any) {
-      toast({
-        title: "Invalid input",
-        description: validationError.errors?.[0]?.message || "Please check your input",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
       const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
       const authToken = session?.access_token;
-      
+
       if (!authToken) {
         throw new Error('Authentication required');
       }
 
-      const response = await fetch(`https://csdtqqddtoureffhtuuz.supabase.co/functions/v1/generate-lesson?ts=${Date.now()}`, {
+      // ✅ FIXED: Build request body conditionally
+      const requestBody: any = {
+        passage: formData.passage.trim(),
+        topic: formData.topic.trim(),
+        passageOrTopic, // Keep for backward compatibility
+        ageGroup: formData.ageGroup,
+        notes: formData.notes,
+        bibleVersion: formData.bibleVersion,
+        enhancementType: mode,
+        teacherPreferences,
+        theologicalPreference: formData.theologicalPreference,
+        sbConfessionVersion: formData.sbConfessionVersion,
+      };
+
+      // Only include file-related data if file was uploaded
+      if (extractedContent) {
+        requestBody.extractedContent = extractedContent;
+        requestBody.sessionId = sessionId;
+        requestBody.uploadId = uploadId;
+        requestBody.fileHash = fileHash;
+        requestBody.sourceFile = sourceFilename;
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
         },
-        body: JSON.stringify({
-          passageOrTopic: formData.passageOrTopic,
-          ageGroup: formData.ageGroup,
-          notes: formData.notes,
-          enhancementType,
-          extractedContent,
-          teacherPreferences,
-          theologicalPreference: formData.theologicalPreference,
-          sbConfessionVersion: formData.sbConfessionVersion,
-          sessionId,
-          uploadId,
-          fileHash,
-          sourceFile: sourceFilename,
-        }),
+        body: JSON.stringify(requestBody),
         cache: 'no-store',
       });
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result = await response.json();
-      
-      console.log('ENHANCE_STARTED', { 
-        jobId: result?.lesson?.id, 
-        uploadId: result?.uploadId, 
+
+      console.log('ENHANCE_STARTED', {
+        jobId: result?.lesson?.id,
+        mode,
+        uploadId: result?.uploadId,
         sessionId: result?.sessionId,
         fileHash: result?.fileHash
       });
 
-      if (result.sessionId === sessionId && result.uploadId === uploadId && result.fileHash === fileHash) {
-        if (result.success) {
-          setGeneratedContent(result.output?.teacher_plan);
-          setLessonTitle(result.lesson?.title || '');
-          setEnhancedResult({
-            ...result,
-            sessionId: result.sessionId,
-            uploadId: result.uploadId,
-            fileHash: result.fileHash,
-          });
+      // ✅ FIXED: Handle result regardless of whether file was uploaded
+      if (result.success) {
+        setGeneratedContent(result.output?.teacher_plan);
+        setLessonTitle(result.lesson?.title || '');
+        setEnhancedResult({
+          ...result,
+          sessionId: result.sessionId,
+          uploadId: result.uploadId,
+          fileHash: result.fileHash,
+        });
 
-          console.log('ENHANCE_RESULT', {
-            jobId: result.lesson?.id,
-            uploadId: result.uploadId,
-            sessionId: result.sessionId,
-            fileHash: result.fileHash,
-            source: sourceFilename,
-          });
-          
-          toast({
-            title: "Lesson generated successfully!",
-            description: "Your comprehensive lesson content is ready.",
-          });
-        } else {
-          throw new Error(result.error || 'Failed to generate lesson');
-        }
+        console.log('ENHANCE_RESULT', {
+          jobId: result.lesson?.id,
+          mode,
+          uploadId: result.uploadId,
+          sessionId: result.sessionId,
+          fileHash: result.fileHash,
+          source: sourceFilename || 'manual_entry',
+        });
+
+        toast({
+          title: mode === "enhance" ? "Lesson enhanced successfully!" : "Lesson generated successfully!",
+          description: "Your comprehensive lesson content is ready.",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to generate lesson');
       }
     } catch (error: any) {
       console.error('Enhancement error:', error);
       toast({
-        title: "Enhancement failed",
+        title: "Generation failed",
         description: error.message || "Please try again",
         variant: "destructive"
       });
@@ -438,7 +454,7 @@ export function EnhanceLessonForm({
       const lessonData = {
         title: lessonTitle,
         original_text: generatedContent.fullContent || "",
-        source_type: "enhanced",
+        source_type: extractedContent ? "enhanced" : "generated",
         upload_path: sourceFilename || null,
         filters: {
           overview: generatedContent.overview || "",
@@ -453,13 +469,16 @@ export function EnhanceLessonForm({
           assessment: generatedContent.assessment || "",
           resources: generatedContent.resources || "",
           preparation: generatedContent.preparation || "",
+          passage: formData.passage,
+          topic: formData.topic,
           age_group: formData.ageGroup,
           notes: formData.notes,
+          bible_version: formData.bibleVersion,
           theological_preference: formData.theologicalPreference,
           sb_confession_version: formData.sbConfessionVersion,
-          session_id: sessionId,
-          upload_id: uploadId,
-          file_hash: fileHash,
+          session_id: sessionId || null,
+          upload_id: uploadId || null,
+          file_hash: fileHash || null,
         },
         organization_id: organizationId || undefined,
       };
@@ -575,6 +594,7 @@ export function EnhanceLessonForm({
   const handleClearForm = () => {
     setGeneratedContent(null);
     setLessonTitle("");
+    setFormData(prev => ({ ...prev, passage: "", topic: "" }));
   };
 
   return (
@@ -605,103 +625,125 @@ export function EnhanceLessonForm({
           </div>
         </div>
       )}
-      
+
       <Card className="w-full">
         <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-xl sm:text-2xl">Enhance Lesson</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl">Generate Lesson</CardTitle>
           <CardDescription className="text-sm">
-            Upload a file or enter a passage to generate a lesson.
+            Enter a passage or topic to generate a lesson, or upload a file to enhance existing curriculum.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <form onSubmit={handleSubmit} className="grid w-full gap-4">
-            {/* Upload/Paste Section - Moved to top */}
-            <Tabs defaultValue="upload" className="w-full">
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="upload" className="text-xs sm:text-sm">
-                  <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Upload File</span>
-                  <span className="xs:hidden">Upload</span>
-                </TabsTrigger>
-                <TabsTrigger value="paste" className="text-xs sm:text-sm">
-                  <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Paste Text</span>
-                  <span className="xs:hidden">Paste</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="upload" className="space-y-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="upload">Curriculum</Label>
-                  <Input
-                    id="upload"
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileSelect}
-                    accept=".txt,.pdf,.docx,.doc"
-                    disabled={isExtracting}
-                  />
-                  {isExtracting && (
-                    <div className="flex items-center space-x-2">
-                      <Clock className="mr-2 h-4 w-4 animate-spin" />
-                      <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
-                      <Progress value={extractProgress} className="w-1/2" />
-                      <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
-                  {extractError && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>
-                        {extractError.msg}
-                        <div className="flex space-x-2 mt-2">
-                          <Button size="sm" onClick={handleRetryExtraction}>
-                            Try Again
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={handleClearExtraction}>
-                            Clear
-                          </Button>
-                        </div>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {extractedContent && (
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="secondary">
-                        sessionId: {sessionId?.slice(0, 8)} | uploadId: {uploadId?.slice(0, 8)} | fileHash: {fileHash?.slice(0, 8)} | source: {sourceFilename}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="paste">
-                <div className="grid gap-2">
-                  <Label htmlFor="curriculum">Curriculum</Label>
-                  <Textarea
-                    id="curriculum"
-                    placeholder="Paste your curriculum content here..."
-                    rows={4}
-                    value={extractedContent || ""}
-                    onChange={(e) => setExtractedContent(e.target.value)}
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            {/* Form Inputs Section */}
+            {/* ✅ FIXED: Separate Passage and Topic Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="passageOrTopic" className="text-sm">Passage or Topic</Label>
+                <Label htmlFor="passage" className="text-sm">Bible Passage <span className="text-muted-foreground">(Optional)</span></Label>
                 <Input
                   type="text"
-                  id="passageOrTopic"
+                  id="passage"
                   placeholder="e.g., Romans 12:1-2"
-                  value={formData.passageOrTopic}
-                  onChange={(e) => setFormData({ ...formData, passageOrTopic: e.target.value })}
+                  value={formData.passage}
+                  onChange={(e) => setFormData({ ...formData, passage: e.target.value })}
                   className="text-sm sm:text-base"
                 />
               </div>
+              <div>
+                <Label htmlFor="topic" className="text-sm">Lesson Topic <span className="text-muted-foreground">(Optional)</span></Label>
+                <Input
+                  type="text"
+                  id="topic"
+                  placeholder="e.g., Living Sacrifices"
+                  value={formData.topic}
+                  onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                  className="text-sm sm:text-base"
+                />
+              </div>
+            </div>
+
+            {/* ✅ FIXED: Optional File Upload Section */}
+            <div className="border-t pt-4 mt-2">
+              <Label className="text-sm font-medium mb-2 block">
+                Optional: Upload Existing Curriculum to Enhance
+              </Label>
+              <Tabs defaultValue="upload" className="w-full">
+                <TabsList className="grid grid-cols-2 w-full">
+                  <TabsTrigger value="upload" className="text-xs sm:text-sm">
+                    <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Upload File</span>
+                    <span className="xs:hidden">Upload</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="paste" className="text-xs sm:text-sm">
+                    <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Paste Text</span>
+                    <span className="xs:hidden">Paste</span>
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="upload" className="space-y-2">
+                  <div className="grid gap-2">
+                    <Input
+                      id="upload"
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileSelect}
+                      accept=".txt,.pdf,.docx,.doc"
+                      disabled={isExtracting}
+                    />
+                    {isExtracting && (
+                      <div className="flex items-center space-x-2">
+                        <Clock className="mr-2 h-4 w-4 animate-spin" />
+                        <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
+                        <Progress value={extractProgress} className="w-1/2" />
+                        <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+                    {extractError && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          {extractError.msg}
+                          <div className="flex space-x-2 mt-2">
+                            <Button size="sm" onClick={handleRetryExtraction}>
+                              Try Again
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleClearExtraction}>
+                              Clear
+                            </Button>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {extractedContent && (
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary">
+                          File uploaded: {sourceFilename}
+                        </Badge>
+                        <Button variant="ghost" size="sm" onClick={handleClearExtraction}>
+                          Remove
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="paste">
+                  <div className="grid gap-2">
+                    <Label htmlFor="curriculum">Curriculum Content</Label>
+                    <Textarea
+                      id="curriculum"
+                      placeholder="Paste your curriculum content here..."
+                      rows={4}
+                      value={extractedContent || ""}
+                      onChange={(e) => setExtractedContent(e.target.value)}
+                    />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            {/* Rest of Form Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="ageGroup" className="text-sm">Age Group</Label>
                 <Select value={formData.ageGroup} onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}>
@@ -709,10 +751,29 @@ export function EnhanceLessonForm({
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Children">Children</SelectItem>
-                    <SelectItem value="Youth">Youth</SelectItem>
-                    <SelectItem value="Young Adults">Young Adults</SelectItem>
-                    <SelectItem value="Adults">Adults</SelectItem>
+                    {AGE_GROUP_OPTIONS.map(group => (
+                      <SelectItem key={group} value={group}>
+                        <div className="flex flex-col">
+                          <span>{group}</span>
+                          <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="bibleVersion" className="text-sm">Bible Version</Label>
+                <Select value={formData.bibleVersion} onValueChange={(value) => setFormData({ ...formData, bibleVersion: value })}>
+                  <SelectTrigger id="bibleVersion" className="text-sm sm:text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BIBLE_VERSIONS.map(version => (
+                      <SelectItem key={version.id} value={version.id}>
+                        {version.abbreviation} - {version.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -786,7 +847,13 @@ export function EnhanceLessonForm({
               />
             )}
 
-            <Button type="submit" disabled={isGenerating || !extractedContent} className="w-full sm:w-auto" size="lg">
+            {/* ✅ FIXED: Button enabled when form is valid (passage OR topic OR file) */}
+            <Button 
+              type="submit" 
+              disabled={isGenerating || !isFormValid()} 
+              className="w-full sm:w-auto" 
+              size="lg"
+            >
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -796,8 +863,12 @@ export function EnhanceLessonForm({
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  <span className="hidden xs:inline">Enhance Curriculum</span>
-                  <span className="xs:hidden">Enhance</span>
+                  <span className="hidden xs:inline">
+                    {extractedContent ? "Enhance Curriculum" : "Generate Lesson"}
+                  </span>
+                  <span className="xs:hidden">
+                    {extractedContent ? "Enhance" : "Generate"}
+                  </span>
                 </>
               )}
             </Button>
@@ -808,22 +879,11 @@ export function EnhanceLessonForm({
       {enhancedResult && (
         <Card className="w-full mt-4">
           <CardHeader className="px-4 sm:px-6">
-            <CardTitle className="text-xl sm:text-2xl">Enhanced Lesson</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">
+              {extractedContent ? "Enhanced Lesson" : "Generated Lesson"}
+            </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              {enhancedResult.sessionId === sessionId &&
-                enhancedResult.uploadId === uploadId &&
-                enhancedResult.fileHash === fileHash ? (
-                <>
-                  Here is your enhanced lesson.
-                  <div className="flex items-center space-x-2 mt-2 overflow-x-auto">
-                    <Badge variant="secondary" className="text-xs whitespace-nowrap">
-                      sessionId: {enhancedResult.sessionId?.slice(0, 8)} | uploadId: {enhancedResult.uploadId?.slice(0, 8)} | fileHash: {enhancedResult.fileHash?.slice(0, 8)}
-                    </Badge>
-                  </div>
-                </>
-              ) : (
-                "Data mismatch. Please regenerate the lesson."
-              )}
+              Your lesson content is ready.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 px-4 sm:px-6">
@@ -912,13 +972,13 @@ export function EnhanceLessonForm({
         </Card>
       )}
 
-      <DebugPanel 
+      <DebugPanel
         job={{
           jobId: extractJobId,
           sessionId,
           uploadId,
           fileHash,
-          source: sourceFilename,
+          source: sourceFilename || 'manual_entry',
           state: extractState,
           progress: extractProgress
         }}
