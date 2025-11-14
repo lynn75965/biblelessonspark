@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { AGE_GROUP_OPTIONS } from '../_shared/constants.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -19,6 +20,7 @@ interface LessonRequest {
 }
 
 // ENHANCED: Comprehensive age-appropriate teaching strategies
+// Using EXACT keys from shared constants to ensure frontend/backend match
 const ageGroupProfiles = {
   'Preschoolers (Ages 3–5)': {
     cognitiveLevel: 'Concrete, literal thinking. Cannot grasp abstract concepts yet.',
@@ -31,7 +33,7 @@ const ageGroupProfiles = {
     bibleVersion: 'Use simple paraphrases or picture Bibles',
     teachingTips: 'Repeat key phrases 3-4 times. Use physical movements. Keep lessons under 20 minutes total.'
   },
-  
+
   'Elementary Kids (Ages 6–10)': {
     cognitiveLevel: 'Beginning abstract thinking. Can connect cause and effect.',
     attentionSpan: '10-15 minutes per segment. Can handle longer stories.',
@@ -43,7 +45,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ICB, NLT, or CEV - clear, simple language',
     teachingTips: 'Use visuals extensively. Create take-home reminders. Celebrate small victories.'
   },
-  
+
   'Preteens & Middle Schoolers (Ages 11–14)': {
     cognitiveLevel: 'Developing abstract reasoning. Question authority and test boundaries.',
     attentionSpan: '15-20 minutes with engagement. Need interactive elements.',
@@ -55,7 +57,7 @@ const ageGroupProfiles = {
     bibleVersion: 'NIV, NLT, ESV - balance readability and depth',
     teachingTips: 'Acknowledge their struggles authentically. Avoid talking down. Give leadership opportunities.'
   },
-  
+
   'High School Students (Ages 15–18)': {
     cognitiveLevel: 'Full abstract reasoning. Can handle nuance and complexity.',
     attentionSpan: '20-30 minutes if engaged. Expect intellectual rigor.',
@@ -67,7 +69,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NIV - balance accuracy and readability',
     teachingTips: 'Create safe space for doubt. Address real objections. Model authentic faith struggles.'
   },
-  
+
   'College & Early Career (Ages 19–25)': {
     cognitiveLevel: 'Mature abstract thinking. Processing independence and identity.',
     attentionSpan: '30-45 minutes with breaks. Expect academic-level discussion.',
@@ -79,7 +81,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NKJV - value accuracy and study depth',
     teachingTips: 'Respect their agency. Provide resources for further study. Connect to life transitions.'
   },
-  
+
   'Young Adults (Ages 26–35)': {
     cognitiveLevel: 'Peak cognitive function. Balancing multiple life responsibilities.',
     attentionSpan: '45-60 minutes. Appreciate efficient, practical teaching.',
@@ -91,7 +93,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NIV, NASB - balance study depth and accessibility',
     teachingTips: 'Provide practical tools and resources. Honor their time. Offer childcare during classes.'
   },
-  
+
   'Mid-Life Adults (Ages 36–50)': {
     cognitiveLevel: 'Wisdom-building phase. Reflective and experiential.',
     attentionSpan: '60+ minutes. Appreciate deep dives and discussion.',
@@ -103,7 +105,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NKJV - prefer depth and accuracy',
     teachingTips: 'Draw on their wisdom. Facilitate peer-to-peer learning. Address "sandwich generation" pressures.'
   },
-  
+
   'Mature Adults (Ages 51–65)': {
     cognitiveLevel: 'Life-wisdom integration. Value depth over novelty.',
     attentionSpan: '60+ minutes. Appreciate thorough, scholarly approaches.',
@@ -115,7 +117,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NKJV - prefer traditional, accurate translations',
     teachingTips: 'Honor their experience. Create inter-generational connections. Focus on legacy and wisdom-sharing.'
   },
-  
+
   'Active Seniors (Ages 66–75)': {
     cognitiveLevel: 'Reflective wisdom. May need accommodations for memory.',
     attentionSpan: '45-60 minutes with breaks. Comfortable pace appreciated.',
@@ -127,43 +129,43 @@ const ageGroupProfiles = {
     bibleVersion: 'KJV, NKJV, ESV - may prefer familiar translations',
     teachingTips: 'Use larger fonts. Slower pace. Honor their stories. Emphasize encouragement and hope.'
   },
-  
+
   'Senior Adults (Ages 76+)': {
-    cognitiveLevel: 'Lifetime wisdom. May have cognitive changes. Value familiar.',
-    attentionSpan: '30-45 minutes. Shorter lessons, more rest.',
-    vocabulary: 'Lifetime biblical vocabulary. Prefer traditional, familiar language.',
-    activities: 'Reminiscence, hymn singing, Scripture reading, prayer circles, life review.',
-    illustrations: 'God\'s faithfulness throughout life, eternal hope, comfort in transition.',
-    questions: 'Comfort-focused questions about God\'s presence, eternal home, peace.',
-    application: 'Finding joy daily, sharing faith with family, prayer ministry, godly witness.',
-    bibleVersion: 'KJV, NKJV - strongly prefer familiar, beloved translations',
-    teachingTips: 'Large print materials. Comfort-focused. Honor lifetime of faithfulness. Emphasize eternal hope.'
+    cognitiveLevel: 'Deep spiritual wisdom. May have physical/cognitive limitations.',
+    attentionSpan: '30-45 minutes. Prioritize comfort and accessibility.',
+    vocabulary: 'Biblical fluency with preference for familiar language.',
+    activities: 'Reflective teaching, prayer circles, memory-sharing, simplified crafts, gentle music.',
+    illustrations: 'God\'s faithfulness over decades, eternal perspective, preparing for glory.',
+    questions: 'Comfort-oriented questions about heaven, God\'s presence, peace in suffering.',
+    application: 'Modeling faith, blessing family, prayer as ministry, leaving godly legacy.',
+    bibleVersion: 'KJV, NKJV, Large Print - familiar, readable',
+    teachingTips: 'Prioritize dignity and comfort. Use large print. Provide seating support. Celebrate their lives.'
   },
-  
+
   'Mixed Groups': {
-    cognitiveLevel: 'Varied. Design for middle-range with optional depth and simplification.',
-    attentionSpan: '30-45 minutes. Multiple engagement styles needed.',
-    vocabulary: 'Accessible core with optional deeper exploration.',
-    activities: 'Multi-level activities, breakout groups by age, inter-generational sharing.',
-    illustrations: 'Universal life themes that resonate across ages.',
-    questions: 'Tiered questions from simple to complex.',
-    application: 'General principles with age-specific suggestions.',
-    bibleVersion: 'NIV or ESV - accessible to all',
-    teachingTips: 'Design main teaching for all, offer breakout options for deeper/simpler exploration.'
+    cognitiveLevel: 'Varied - design for multiple engagement levels.',
+    attentionSpan: '30-45 minutes with variety to keep all ages engaged.',
+    vocabulary: 'Use accessible language with optional depth for advanced learners.',
+    activities: 'Multi-generational activities, group discussions, mentor pairings, service projects.',
+    illustrations: 'Life-stage relevant examples that span ages. Universal themes like family, faith, community.',
+    questions: 'Questions that invite perspectives from different life experiences.',
+    application: 'Inter-generational application that benefits all ages and encourages mentorship.',
+    bibleVersion: 'NIV, NLT, ESV - accessible yet substantial',
+    teachingTips: 'Create opportunities for cross-generational interaction. Value each age\'s contribution.'
   }
 };
 
-// ENHANCED: Language-specific age instructions
+// Language configuration
 const languageConfigs = {
-  'en': {
+  english: {
     name: 'English',
     promptInstruction: 'You must generate ALL content in English.'
   },
-  'es': {
+  spanish: {
     name: 'Spanish',
     promptInstruction: 'Debes generar TODO el contenido en español. Usa lenguaje natural y apropiado para hispanohablantes.'
   },
-  'fr': {
+  french: {
     name: 'French',
     promptInstruction: 'Vous devez générer TOUT le contenu en français. Utilisez un langage naturel et approprié pour les francophones.'
   }
@@ -176,25 +178,35 @@ serve(async (req) => {
 
   try {
     const requestData: LessonRequest = await req.json();
-    const { 
-      user_id, 
-      topic, 
-      passage, 
-      age_group, 
-      lesson_length, 
-      lesson_type, 
+    const {
+      user_id,
+      topic,
+      passage,
+      age_group,
+      lesson_length,
+      lesson_type,
       doctrine_profile = 'southern_baptist',
       theological_lens = 'sbc',
-      additional_notes 
+      additional_notes
     } = requestData;
 
     console.log('Received request:', { user_id, age_group, topic, passage });
 
-    // CRITICAL: Validate age group
-    if (!age_group || !ageGroupProfiles[age_group as keyof typeof ageGroupProfiles]) {
+    // CRITICAL: Validate age group against shared constants
+    if (!age_group || !AGE_GROUP_OPTIONS.includes(age_group as any)) {
       return new Response(
-        JSON.stringify({ 
-          error: `Invalid age group: ${age_group}. Must be one of: ${Object.keys(ageGroupProfiles).join(', ')}` 
+        JSON.stringify({
+          error: `Invalid age group: ${age_group}. Must be one of: ${AGE_GROUP_OPTIONS.join(', ')}`
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate that age group profile exists
+    if (!ageGroupProfiles[age_group]) {
+      return new Response(
+        JSON.stringify({
+          error: `Age group profile not found for: ${age_group}`
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -205,203 +217,81 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-    
+
     const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("preferred_language")
-      .eq("id", user_id)
+      .from('profiles')
+      .select('preferred_language')
+      .eq('id', user_id)
       .single();
 
-    if (profileError) {
-      console.error("Error fetching user profile:", profileError);
-    }
-    
-    const language = (profile?.preferred_language as keyof typeof languageConfigs) || "en";
-    const languageConfig = languageConfigs[language];
-    const ageProfile = ageGroupProfiles[age_group as keyof typeof ageGroupProfiles];
+    const userLanguage = profile?.preferred_language || 'english';
+    const languageConfig = languageConfigs[userLanguage as keyof typeof languageConfigs] || languageConfigs.english;
 
-    console.log('Using language:', language, 'for age group:', age_group);
+    console.log(`Using language: ${languageConfig.name}`);
 
-    // ENHANCED: Build highly specific age-differentiated prompt
-    const systemPrompt = `${languageConfig.promptInstruction}
+    // Get age-appropriate strategies
+    const ageProfile = ageGroupProfiles[age_group];
 
-CRITICAL: You are creating a ${lesson_length}-minute Bible lesson for ${age_group}.
+    // Build comprehensive lesson generation prompt
+    const systemPrompt = `You are a theologically trained Sunday School curriculum writer for the Southern Baptist Convention.
 
-═══════════════════════════════════════════════════════════
-AGE GROUP PROFILE: ${age_group}
-═══════════════════════════════════════════════════════════
+${languageConfig.promptInstruction}
 
-COGNITIVE LEVEL: ${ageProfile.cognitiveLevel}
-ATTENTION SPAN: ${ageProfile.attentionSpan}
-VOCABULARY LEVEL: ${ageProfile.vocabulary}
-RECOMMENDED ACTIVITIES: ${ageProfile.activities}
-ILLUSTRATION STYLE: ${ageProfile.illustrations}
-QUESTION TYPES: ${ageProfile.questions}
-APPLICATION FOCUS: ${ageProfile.application}
-BIBLE VERSION: ${ageProfile.bibleVersion}
-TEACHING TIPS: ${ageProfile.teachingTips}
+CRITICAL REQUIREMENTS:
+- Generate ALL content in ${languageConfig.name}
+- Maintain theological alignment with Southern Baptist Convention (Baptist Faith & Message 1963)
+- Be age-appropriate for ${age_group}
+- Content must be respectful of Christian values and biblical authority
 
-═══════════════════════════════════════════════════════════
-THEOLOGICAL CONTEXT
-═══════════════════════════════════════════════════════════
-
-Doctrine Profile: ${doctrine_profile} (Southern Baptist Convention - Baptist Faith & Message 1963/2000)
-Theological Lens: ${theological_lens}
-
-Core Baptist Distinctives to Honor:
-• Biblical Authority: Scripture as sole authority for faith and practice
-• Soul Competency: Individual accountability before God
-• Believer's Baptism: Baptism by immersion following profession of faith
-• Security of the Believer: Eternal security in Christ
-• Priesthood of Believers: Direct access to God without human mediator
-• Autonomy of Local Church: Each church self-governing under Christ
-• Separation of Church and State: Religious freedom
-
-${additional_notes ? `\nTEACHER'S ADDITIONAL NOTES:\n${additional_notes}\n` : ''}
-
-═══════════════════════════════════════════════════════════
-LESSON GENERATION REQUIREMENTS
-═══════════════════════════════════════════════════════════
-
-Lesson Type: ${lesson_type === 'teacher' ? 'TEACHER TRANSCRIPT' : 'STUDENT HANDOUT'}
-
-${lesson_type === 'teacher' ? `
-As a TEACHER TRANSCRIPT, include:
-
-1. LESSON OVERVIEW (2-3 paragraphs)
-   - Big idea in age-appropriate language
-   - Why this matters to ${age_group}
-   - Expected outcomes
-
-2. MATERIALS NEEDED
-   - Complete list with quantities
-   - Preparation notes
-   - Room setup suggestions
-
-3. OPENING ACTIVITY (${ageProfile.attentionSpan.split('.')[0]})
-   - Attention-grabbing hook appropriate for cognitive level
-   - Clear connection to lesson theme
-   - Specific instructions
-
-4. SCRIPTURE INTRODUCTION (5-7 minutes)
-   - Context setting for ${age_group}
-   - Read from ${ageProfile.bibleVersion}
-   - Age-appropriate background information
-
-5. MAIN TEACHING CONTENT (${Math.floor(lesson_length * 0.4)}-${Math.floor(lesson_length * 0.5)} minutes)
-   - Use vocabulary level: ${ageProfile.vocabulary}
-   - Include illustrations: ${ageProfile.illustrations}
-   - Break into segments respecting: ${ageProfile.attentionSpan}
-   - Theological accuracy maintaining Baptist distinctives
-   - Interactive elements: ${ageProfile.activities}
-
-6. DISCUSSION QUESTIONS (8-12 questions)
-   - Type: ${ageProfile.questions}
-   - Progress from simple to complex
-   - Include suggested answers with Scripture references
-
-7. ACTIVITIES (2-3 options)
-   - ${ageProfile.activities}
-   - Detailed instructions
-   - Materials lists
-   - Time estimates
-   - Learning objectives
-
-8. LIFE APPLICATION (5-10 minutes)
-   - Focus: ${ageProfile.application}
-   - Specific, measurable, achievable actions
-   - Follow-up suggestions
-
-9. CLOSING & PRAYER (3-5 minutes)
-   - Summary appropriate for age
-   - Prayer prompts
-   - Take-home connection
-
-10. TEACHER PREPARATION NOTES
-    - Background study resources
-    - Anticipated questions/objections
-    - Adaptation suggestions
-    - ${ageProfile.teachingTips}
-` : `
-As a STUDENT HANDOUT, include:
-
-1. ATTRACTIVE HEADER
-   - Lesson title in engaging language
-   - Scripture reference
-   - Age-appropriate graphics description
-
-2. KEY VERSE
-   - ${ageProfile.bibleVersion}
-   - Memory help/illustration
-
-3. LESSON SUMMARY (2-3 paragraphs)
-   - Written at reading level for ${age_group}
-   - Main points clearly stated
-   - Personal engagement questions
-
-4. FILL-IN-THE-BLANK NOTES (8-12 items)
-   - Vocabulary: ${ageProfile.vocabulary}
-   - Key concepts to remember
-   - Scripture references to look up
-
-5. ACTIVITIES (2-3)
-   - ${ageProfile.activities}
-   - Clear instructions
-   - Space for responses
-
-6. DISCUSSION QUESTIONS (6-8)
-   - ${ageProfile.questions}
-   - Space for notes
-
-7. THIS WEEK'S CHALLENGE
-   - ${ageProfile.application}
-   - Specific daily actions
-   - Accountability check-in method
-
-8. PRAYER JOURNAL SPACE
-   - Prayer requests
-   - Praise reports
-   - Scripture to pray
-
-9. PARENT CONNECTION (if applicable)
-   - What we learned today
-   - Discussion starters for home
-   - Reinforcement activities
-`}
-
-═══════════════════════════════════════════════════════════
-CRITICAL REMINDERS
-═══════════════════════════════════════════════════════════
-
-✓ ALL content must be in ${languageConfig.name}
-✓ Maintain theological accuracy (Baptist Faith & Message)
-✓ Use vocabulary appropriate for ${age_group}: ${ageProfile.vocabulary}
-✓ Design activities respecting attention span: ${ageProfile.attentionSpan}
-✓ Include specific timing for each section (total: ${lesson_length} minutes)
-✓ Make content immediately usable - no placeholder text
-✓ Include ALL materials, resources, and preparation steps
-✓ Honor Christian values and biblical authority throughout
-
-Your lesson should be so complete and age-appropriate that a volunteer teacher could print it and teach confidently with minimal additional preparation.`;
-
-    const userPrompt = `Create a ${lesson_length}-minute ${lesson_type} for ${age_group} on:
-
-TOPIC: ${topic}
-SCRIPTURE: ${passage}
-
-Remember: This is for ${age_group} with these characteristics:
+AGE GROUP PROFILE for ${age_group}:
 - Cognitive Level: ${ageProfile.cognitiveLevel}
 - Attention Span: ${ageProfile.attentionSpan}
+- Vocabulary: ${ageProfile.vocabulary}
 - Best Activities: ${ageProfile.activities}
-- Application Style: ${ageProfile.application}`;
+- Effective Illustrations: ${ageProfile.illustrations}
+- Question Types: ${ageProfile.questions}
+- Application Style: ${ageProfile.application}
+- Recommended Bible Version: ${ageProfile.bibleVersion}
+- Teaching Tips: ${ageProfile.teachingTips}
 
-    // Call Claude API
+${lesson_type === "teacher" ? `
+OUTPUT FORMAT - TEACHER TRANSCRIPT:
+1. Lesson Overview (brief summary)
+2. Opening Prayer (2-3 sentences)
+3. Scripture Reading & Context
+4. Main Teaching Points (3-5 key points with explanations)
+5. Discussion Questions (3-5 age-appropriate questions)
+6. Activities/Application (practical ways to apply the lesson)
+7. Closing Prayer
+8. Additional Resources/Notes for Teacher
+` : `
+OUTPUT FORMAT - STUDENT HANDOUT:
+1. Title and Scripture Reference
+2. Key Verse (formatted clearly)
+3. Lesson Summary (age-appropriate language)
+4. Fill-in-the-blank or short answer questions
+5. Activity or reflection exercise
+6. Memory verse
+7. Prayer starter or reflection prompt
+`}`;
+
+    const userPrompt = `Create a ${lesson_length}-minute ${age_group} ${lesson_type === "teacher" ? "teacher transcript" : "student handout"} on the topic: "${topic}"
+
+Biblical Passage: ${passage}
+${additional_notes ? `\nAdditional Instructions: ${additional_notes}` : ""}
+
+Generate comprehensive, engaging content that honors God and serves the teacher/student effectively.`;
+
+    // Call Claude API (using Anthropic)
     const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+    
     if (!anthropicKey) {
-      throw new Error("ANTHROPIC_API_KEY not configured");
+      return new Response(
+        JSON.stringify({ error: "API key not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log('Calling Claude API...');
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -411,8 +301,7 @@ Remember: This is for ${age_group} with these characteristics:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 8000,
-        temperature: 0.7,
+        max_tokens: 4096,
         messages: [
           { 
             role: "user", 
@@ -423,50 +312,43 @@ Remember: This is for ${age_group} with these characteristics:
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Claude API Error:', errorData);
-      throw new Error(`Claude API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      const errorText = await response.text();
+      console.error("Anthropic API error:", errorText);
+      return new Response(
+        JSON.stringify({ error: "Failed to generate lesson content" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const aiResponse = await response.json();
-    const generatedContent = aiResponse.content[0].text;
+    const result = await response.json();
+    const content = result.content?.[0]?.text;
 
-    console.log('Successfully generated lesson content');
+    if (!content) {
+      return new Response(
+        JSON.stringify({ error: "No content generated" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        content: generatedContent,
-        metadata: {
-          age_group,
-          language,
-          lesson_length,
-          lesson_type,
-          topic,
-          passage,
-          word_count: generatedContent.length,
-          generated_at: new Date().toISOString()
-        }
+        content,
+        lesson_type,
+        age_group,
+        language: userLanguage,
+        lesson_length
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
 
   } catch (error) {
-    console.error('Error generating lesson:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
+    console.error("Error in generate-lesson function:", error);
     return new Response(
-      JSON.stringify({ 
-        success: false,
-        error: `Failed to generate lesson: ${errorMessage}` 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
