@@ -67,6 +67,7 @@ export function useLessons() {
         .insert([
           {
             ...lessonData,
+            title: lessonData.title || 'Untitled Lesson',
             user_id: user.id,
           },
         ])

@@ -623,10 +623,14 @@ export function EnhanceLessonForm({
             {/* Upload/Paste Section - Moved to top */}
             <Tabs defaultValue="upload" className="w-full">
               <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="upload" className="text-xs sm:text-sm">
+                <TabsTrigger 
+                  value="upload" 
+                  className="text-xs sm:text-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                  <span className="hidden xs:inline">Upload File</span>
-                  <span className="xs:hidden">Upload</span>
+                  <span className="hidden sm:inline">Upload (file: pdf, txt, jpg, doc)</span>
+                  <span className="sm:hidden">Upload File</span>
                 </TabsTrigger>
                 <TabsTrigger value="paste" className="text-xs sm:text-sm">
                   <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -636,15 +640,20 @@ export function EnhanceLessonForm({
               </TabsList>
               <TabsContent value="upload" className="space-y-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="upload">Curriculum</Label>
                   <Input
                     id="upload"
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileSelect}
-                    accept=".txt,.pdf,.docx,.doc"
+                    accept=".txt,.pdf,.docx,.doc,.jpg,.jpeg,.png"
                     disabled={isExtracting}
+                    className="sr-only"
                   />
+                  {uploadedFile && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Selected: {uploadedFile.name}
+                    </p>
+                  )}
                   {isExtracting && (
                     <div className="flex items-center space-x-2">
                       <Clock className="mr-2 h-4 w-4 animate-spin" />
