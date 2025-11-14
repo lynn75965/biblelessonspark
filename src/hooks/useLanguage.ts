@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useSupabaseClient, useUser } from '@supabase/supabase-auth-helpers/react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 type Language = 'en' | 'es' | 'fr';
 
@@ -18,8 +19,7 @@ interface UseLanguageReturn {
  * Automatically syncs with Supabase and i18next
  */
 export function useLanguage(): UseLanguageReturn {
-  const supabase = useSupabaseClient();
-  const user = useUser();
+  const { user } = useAuth();
   const { i18n } = useTranslation();
   const { toast } = useToast();
   
@@ -62,7 +62,7 @@ export function useLanguage(): UseLanguageReturn {
     }
 
     loadLanguage();
-  }, [user, supabase, i18n]);
+  }, [user, i18n]);
 
   // Listen for language change events from LanguageSelector
   useEffect(() => {
