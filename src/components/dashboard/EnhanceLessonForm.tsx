@@ -623,7 +623,11 @@ export function EnhanceLessonForm({
             {/* Upload/Paste Section - Moved to top */}
             <Tabs defaultValue="upload" className="w-full">
               <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="upload" className="text-xs sm:text-sm">
+                <TabsTrigger 
+                  value="upload" 
+                  className="text-xs sm:text-sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Upload (file: pdf, txt, jpg, doc)</span>
                   <span className="sm:hidden">Upload File</span>
@@ -645,16 +649,6 @@ export function EnhanceLessonForm({
                     disabled={isExtracting}
                     className="sr-only"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isExtracting}
-                    className="w-full"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Click to select file
-                  </Button>
                   {uploadedFile && (
                     <p className="text-sm text-muted-foreground mt-2">
                       Selected: {uploadedFile.name}
