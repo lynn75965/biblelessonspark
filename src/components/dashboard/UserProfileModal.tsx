@@ -52,7 +52,8 @@ export function UserProfileModal({
         setPreferredAgeGroup(getDefaultAgeGroup());
       } else {
         setFullName(profile?.full_name || '');
-        setPreferredAgeGroup(profile?.preferred_age_group || getDefaultAgeGroup());
+        const ageGroup = profile?.preferred_age_group as typeof AGE_GROUP_OPTIONS[number] | undefined;
+        setPreferredAgeGroup(ageGroup || getDefaultAgeGroup());
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -154,7 +155,7 @@ export function UserProfileModal({
               <Label htmlFor="preferredAgeGroup">Preferred Age Group</Label>
               <Select
                 value={preferredAgeGroup}
-                onValueChange={setPreferredAgeGroup}
+                onValueChange={(value) => setPreferredAgeGroup(value as typeof preferredAgeGroup)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select age group" />
