@@ -32,18 +32,15 @@ interface TeacherPreferences {
 }
 
 interface LessonRequest {
-  passage?: string;
-  topic?: string;
   passageOrTopic: string;
   ageGroup: string;
   doctrineProfile: string;
   notes?: string;
-  enhancementType: 'curriculum' | 'generation' | 'enhance' | 'generate';
+  enhancementType: 'curriculum' | 'generation';
   extractedContent?: string;
   teacherPreferences?: TeacherPreferences;
   theologicalPreference: 'southern_baptist' | 'reformed_baptist' | 'independent_baptist';
   sbConfessionVersion?: 'bfm_1963' | 'bfm_2000';
-  bibleVersion?: string;
   sessionId?: string;
   uploadId?: string;
   fileHash?: string;
@@ -91,54 +88,6 @@ function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: 
     remainingRequests: RATE_LIMIT_MAX_REQUESTS - userLimit.count,
     resetTime: userLimit.resetTime
   };
-}
-
-// ✅ FIXED: Extract age range and category from age group string
-function parseAgeGroup(ageGroup: string): { category: string; ageRange: string; description: string } {
-  // Extract age range if present (e.g., "Ages 3-5" or "Ages 51–65")
-  const ageRangeMatch = ageGroup.match(/\(Ages?\s+([\d–\-]+)\s*[+]?\)/i);
-  const ageRange = ageRangeMatch ? ageRangeMatch[1] : '';
-  
-  // Determine category based on keywords
-  let category = 'General';
-  let description = `Tailored for ${ageGroup}`;
-  
-  if (ageGroup.toLowerCase().includes('preschool')) {
-    category = 'Preschoolers';
-    description = 'Ages 3-5, requiring simple concepts, hands-on activities, and visual learning aids';
-  } else if (ageGroup.toLowerCase().includes('elementary')) {
-    category = 'Elementary';
-    description = 'Ages 6-11, needing interactive activities, basic biblical concepts, and age-appropriate applications';
-  } else if (ageGroup.toLowerCase().includes('middle school')) {
-    category = 'Middle School';
-    description = 'Ages 12-14, addressing identity questions, peer pressure, and foundational faith development';
-  } else if (ageGroup.toLowerCase().includes('high school')) {
-    category = 'High School';
-    description = 'Ages 15-18, tackling complex theological questions, life decisions, and future planning';
-  } else if (ageGroup.toLowerCase().includes('college') || ageGroup.toLowerCase().includes('career')) {
-    category = 'College & Career';
-    description = 'Ages 18-25, focusing on independence, career choices, and deep theological study';
-  } else if (ageGroup.toLowerCase().includes('young adult')) {
-    category = 'Young Adults';
-    description = 'Ages 26-35, addressing marriage, family, and establishing life priorities';
-  } else if (ageGroup.toLowerCase().includes('mid-life') || (ageGroup.toLowerCase().includes('adult') && ageRange.includes('36'))) {
-    category = 'Mid-Life Adults';
-    description = 'Ages 36-50, dealing with family responsibilities, career pressures, and spiritual maturity';
-  } else if (ageGroup.toLowerCase().includes('mature adult') || (ageGroup.toLowerCase().includes('adult') && ageRange.includes('51'))) {
-    category = 'Mature Adults';
-    description = 'Ages 51-65, focusing on wisdom sharing, legacy building, and deeper spiritual reflection';
-  } else if (ageGroup.toLowerCase().includes('active senior')) {
-    category = 'Active Seniors';
-    description = 'Ages 66-80, emphasizing continued service, life reflection, and spiritual encouragement';
-  } else if (ageGroup.toLowerCase().includes('senior')) {
-    category = 'Senior Adults';
-    description = 'Ages 70+, focusing on comfort, encouragement, and simplified but meaningful content';
-  } else if (ageGroup.toLowerCase().includes('mixed')) {
-    category = 'Mixed Groups';
-    description = 'Multi-generational, requiring adaptable content for various age levels and life stages';
-  }
-  
-  return { category, ageRange, description };
 }
 
 async function generateLessonWithAI(data: LessonRequest) {
@@ -207,11 +156,11 @@ async function generateLessonWithAI(data: LessonRequest) {
   };
 
   let lens = theologicalLenses[data.theologicalPreference];
-
+  
   // Handle Southern Baptist version selection
   let versionLabel = '';
   let lensDistinctives: string[] = lens.distinctives || [];
-
+  
   if (data.theologicalPreference === 'southern_baptist') {
     const version = data.sbConfessionVersion || 'bfm_2000';
     if (lens.versions && lens.versions[version]) {
@@ -226,25 +175,36 @@ async function generateLessonWithAI(data: LessonRequest) {
     'IND': 'Independent Baptist theological perspective, emphasizing local church autonomy, biblical authority, and conservative evangelical doctrine.'
   };
 
-  // ✅ FIXED: Use flexible age group parsing
-  const ageGroupInfo = parseAgeGroup(data.ageGroup);
+  const ageGroupContexts = {
+    'Preschoolers': 'Ages 3-5, requiring simple concepts, hands-on activities, and visual learning aids',
+    'Elementary': 'Ages 6-11, needing interactive activities, basic biblical concepts, and age-appropriate applications',
+    'Middle School': 'Ages 12-14, addressing identity questions, peer pressure, and foundational faith development',
+    'High School': 'Ages 15-18, tackling complex theological questions, life decisions, and future planning',
+    'College & Career': 'Ages 18-25, focusing on independence, career choices, and deep theological study',
+    'Young Adults': 'Ages 26-35, addressing marriage, family, and establishing life priorities',
+    'Mid-Life Adults': 'Ages 36-55, dealing with family responsibilities, career pressures, and spiritual maturity',
+    'Mature Adults': 'Ages 56-70, focusing on wisdom sharing, legacy building, and deeper spiritual reflection',
+    'Active Seniors': 'Ages 70+, emphasizing continued service, life reflection, and spiritual encouragement',
+    'Senior Adults': 'Ages 70+, focusing on comfort, encouragement, and simplified but meaningful content',
+    'Mixed Groups': 'Multi-generational, requiring adaptable content for various age levels and life stages'
+  };
 
   // Build customization context from teacher preferences
   const buildCustomizationContext = (prefs: TeacherPreferences): string => {
     if (!prefs) return '';
-
+    
     const context = [];
-
+    
     // Teaching style adaptation
     context.push(`Teaching Style: ${prefs.teachingStyle.replace(/_/g, ' ')} approach`);
     context.push(`Classroom Management: ${prefs.classroomManagement.replace(/_/g, ' ')} format`);
     context.push(`Technology Integration: ${prefs.techIntegration} level of technology use`);
-
+    
     // Class context
     context.push(`Class Size: ${prefs.classSize} (${prefs.classSize === 'small' ? '5-15' : prefs.classSize === 'medium' ? '16-30' : prefs.classSize === 'large' ? '31-50' : '50+'} people)`);
     context.push(`Session Duration: ${prefs.sessionDuration}`);
     context.push(`Physical Space: ${prefs.physicalSpace.replace(/_/g, ' ')}`);
-
+    
     // Learning preferences
     if (prefs.learningStyles.length > 0) {
       context.push(`Learning Styles: Focus on ${prefs.learningStyles.join(', ')} learners`);
@@ -252,46 +212,43 @@ async function generateLessonWithAI(data: LessonRequest) {
     context.push(`Engagement Level: ${prefs.engagementLevel.replace(/_/g, ' ')}`);
     context.push(`Discussion Format: ${prefs.discussionFormat.replace(/_/g, ' ')}`);
     context.push(`Activity Complexity: ${prefs.activityComplexity} level activities`);
-
+    
     // Theological preferences
     context.push(`Bible Translation: ${prefs.bibleTranslation}`);
     context.push(`Theological Emphasis: ${prefs.theologicalEmphasis.replace(/_/g, ' ')} style`);
     context.push(`Application Focus: ${prefs.applicationFocus.replace(/_/g, ' ')}`);
     context.push(`Study Depth: ${prefs.depthLevel.replace(/_/g, ' ')}`);
-
+    
     // Resource preferences
     context.push(`Handout Style: ${prefs.handoutStyle.replace(/_/g, ' ')}`);
     context.push(`Visual Aids: ${prefs.visualAidPreference.replace(/_/g, ' ')}`);
     context.push(`Preparation Time Available: ${prefs.preparationTime}`);
-
+    
     // Cultural context
     context.push(`Cultural Background: ${prefs.culturalBackground} context`);
     context.push(`Educational Background: ${prefs.educationalBackground.replace(/_/g, ' ')}`);
     context.push(`Spiritual Maturity: ${prefs.spiritualMaturity.replace(/_/g, ' ')}`);
-
+    
     if (prefs.specialNeeds.length > 0) {
       context.push(`Special Considerations: ${prefs.specialNeeds.join(', ').replace(/_/g, ' ')}`);
     }
-
+    
     if (prefs.additionalContext) {
       context.push(`Additional Context: ${prefs.additionalContext}`);
     }
-
+    
     return context.join('\n');
   };
 
   const customizationContext = buildCustomizationContext(data.teacherPreferences || {} as TeacherPreferences);
 
-  // ✅ FIXED: Support both passage and topic fields
-  const passageOrTopic = data.passage || data.topic || data.passageOrTopic;
-
-  const enhancementPrompt = data.enhancementType === 'curriculum' || data.enhancementType === 'enhance'
-    ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
-    : `Generate a complete, original lesson plan based on: "${passageOrTopic}".`;
+  const enhancementPrompt = data.enhancementType === 'curriculum' 
+    ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || data.passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
+    : `Generate a complete, original lesson plan based on: "${data.passageOrTopic}".`;
 
   const lensDisplayName = versionLabel ? `${lens.name} — ${versionLabel}` : lens.name;
   const lensSubtitle = versionLabel ? `Confession: ${versionLabel}` : '';
-
+  
   const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
 
 THEOLOGICAL LENS: ${lensDisplayName}
@@ -337,7 +294,7 @@ CONTENT QUALITY REQUIREMENTS:
 - Ensure theological accuracy according to ${data.doctrineProfile} perspective
 - Make content immediately usable without additional research
 
-TARGET AUDIENCE: ${ageGroupInfo.description}
+TARGET AUDIENCE: ${ageGroupContexts[data.ageGroup as keyof typeof ageGroupContexts]}
 
 DENOMINATION EMPHASIS: ${doctrineContexts[data.doctrineProfile as keyof typeof doctrineContexts]}
 
@@ -380,10 +337,10 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
 
     // Parse the comprehensive content into structured format
     const structuredContent = parseComprehensiveLesson(generatedContent);
-
+    
     return {
       content: structuredContent,
-      title: `${lens.short} • ${data.enhancementType === 'curriculum' || data.enhancementType === 'enhance' ? 'Enhanced' : 'Generated'} Lesson: ${passageOrTopic}`,
+      title: `${lens.short} • ${data.enhancementType === 'curriculum' ? 'Enhanced' : 'Generated'} Lesson: ${data.passageOrTopic}`,
       wordCount: generatedContent.length,
       estimatedDuration: '45-60 minutes',
       theologicalLens: lens.name,
@@ -402,7 +359,7 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
 function parseComprehensiveLesson(content: string) {
   // Parse the AI-generated content into structured sections
   const sections: Record<string, string> = {};
-
+  
   // Extract major sections using common headers
   const sectionRegexes: Record<string, RegExp> = {
     overview: /(?:lesson\s+overview|overview|introduction)[:\s]*(.*?)(?=\n(?:learning\s+objectives|objectives|key\s+scripture)|$)/is,
@@ -430,7 +387,7 @@ function parseComprehensiveLesson(content: string) {
   // If structured parsing fails, create sections from the raw content
   if (Object.keys(sections).length < 5) {
     const contentChunks = content.split('\n\n').filter(chunk => chunk.trim().length > 50);
-
+    
     return {
       overview: contentChunks[0] || 'Comprehensive lesson content generated.',
       objectives: contentChunks[1] || 'Students will engage with biblical truth and apply it to their lives.',
@@ -451,34 +408,44 @@ function parseComprehensiveLesson(content: string) {
 }
 
 function validateInput(data: any): LessonRequest {
-  // ✅ FIXED: More flexible validation - frontend is source of truth
-  
-  // Validate that we have passage, topic, or passageOrTopic
-  if (!data.passage && !data.topic && !data.passageOrTopic) {
-    throw new Error('Either passage, topic, or passageOrTopic is required');
+  // Validate required fields
+  if (!data.passageOrTopic || typeof data.passageOrTopic !== 'string') {
+    throw new Error('passageOrTopic is required and must be a string');
   }
 
-  // Validate ageGroup is a non-empty string
-  if (!data.ageGroup || typeof data.ageGroup !== 'string' || data.ageGroup.trim().length === 0) {
-    throw new Error('ageGroup is required and must be a non-empty string');
+  if (!data.ageGroup || typeof data.ageGroup !== 'string') {
+    throw new Error('ageGroup is required and must be a string');
   }
 
-  // Validate doctrineProfile
   if (!data.doctrineProfile || typeof data.doctrineProfile !== 'string') {
     throw new Error('doctrineProfile is required and must be a string');
   }
 
-  // Validate theologicalPreference
   if (!data.theologicalPreference || typeof data.theologicalPreference !== 'string') {
     throw new Error('Theological preference is required. Please select your theological lens (Southern Baptist, Reformed Baptist, or Independent Baptist) in your settings or the generation form.');
   }
 
-  // Validate enum values for doctrine and theological preference
+  // Validate enum values
+  const allowedAgeGroups = [
+    'Preschoolers', 'Elementary', 'Middle School', 'High School',
+    'College & Career', 'Young Adults', 'Mid-Life Adults',
+    'Mature Adults', 'Active Seniors', 'Senior Adults', 'Mixed Groups'
+  ];
+
   const allowedDoctrineProfiles = ['SBC', 'RB', 'IND'];
+  const allowedEnhancementTypes = ['curriculum', 'generation'];
   const allowedTheologicalPreferences = ['southern_baptist', 'reformed_baptist', 'independent_baptist'];
 
+  if (!allowedAgeGroups.includes(data.ageGroup)) {
+    throw new Error('Invalid ageGroup');
+  }
+
   if (!allowedDoctrineProfiles.includes(data.doctrineProfile)) {
-    throw new Error('Invalid doctrineProfile. Must be one of: SBC, RB, IND');
+    throw new Error('Invalid doctrineProfile');
+  }
+
+  if (!allowedEnhancementTypes.includes(data.enhancementType)) {
+    throw new Error('Invalid enhancementType');
   }
 
   if (!allowedTheologicalPreferences.includes(data.theologicalPreference)) {
@@ -493,26 +460,15 @@ function validateInput(data: any): LessonRequest {
              .substring(0, 1000); // Limit length
   };
 
-  // Build passageOrTopic from individual fields if not provided
-  const passageOrTopic = data.passageOrTopic || data.passage || data.topic || '';
-
   return {
-    passage: data.passage ? sanitizeString(data.passage) : undefined,
-    topic: data.topic ? sanitizeString(data.topic) : undefined,
-    passageOrTopic: sanitizeString(passageOrTopic),
-    ageGroup: sanitizeString(data.ageGroup), // Accept any age group string from frontend
+    passageOrTopic: sanitizeString(data.passageOrTopic),
+    ageGroup: data.ageGroup,
     doctrineProfile: data.doctrineProfile,
     notes: data.notes ? sanitizeString(data.notes) : undefined,
-    enhancementType: data.enhancementType || 'generation',
+    enhancementType: data.enhancementType,
     extractedContent: data.extractedContent ? sanitizeString(data.extractedContent) : undefined,
     teacherPreferences: data.teacherPreferences,
     theologicalPreference: data.theologicalPreference,
-    sbConfessionVersion: data.sbConfessionVersion,
-    bibleVersion: data.bibleVersion,
-    sessionId: data.sessionId,
-    uploadId: data.uploadId,
-    fileHash: data.fileHash,
-    sourceFile: data.sourceFile,
   };
 }
 
@@ -522,7 +478,7 @@ serve(async (req) => {
     'https://lessonsparkusa.com',
     'https://www.lessonsparkusa.com'
   ];
-
+  
   // In development, also allow Lovable and localhost
   if (Deno.env.get('DENO_DEPLOYMENT_ID') === undefined) {
     allowedOrigins.push(...[
@@ -530,7 +486,7 @@ serve(async (req) => {
       'http://localhost:3000'
     ]);
   }
-
+  
   // Always allow Lovable preview domains
   const origin = req.headers.get('origin');
   const isAllowed = origin && (
@@ -538,7 +494,7 @@ serve(async (req) => {
     origin.includes('.lovable.app') ||
     origin.includes('.supabase.co')
   );
-
+  
   const corsHeaders = {
     'Access-Control-Allow-Origin': isAllowed ? origin : 'null',
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -571,9 +527,9 @@ serve(async (req) => {
     if (!token) {
       return new Response(
         JSON.stringify({ error: 'Missing authorization token' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
@@ -582,9 +538,9 @@ serve(async (req) => {
     if (authError || !user) {
       return new Response(
         JSON.stringify({ error: 'Invalid authorization token' }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
     }
@@ -593,18 +549,18 @@ serve(async (req) => {
     const rateLimit = checkRateLimit(user.id);
     if (!rateLimit.allowed) {
       return new Response(
-        JSON.stringify({
+        JSON.stringify({ 
           error: 'Rate limit exceeded. Please try again later.',
-          resetTime: rateLimit.resetTime
+          resetTime: rateLimit.resetTime 
         }),
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders,
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
             'Content-Type': 'application/json',
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': rateLimit.resetTime.toString()
-          }
+          } 
         }
       );
     }
@@ -612,7 +568,7 @@ serve(async (req) => {
     // Parse and validate request body
     const body = await req.json();
     const validatedData = validateInput(body);
-
+    
     // Extract tracking IDs from request
     const { sessionId, uploadId, fileHash, sourceFile } = body;
 
@@ -620,22 +576,16 @@ serve(async (req) => {
     const lessonContent = await generateLessonWithAI(validatedData);
 
     // Log the successful generation with theological preference
-    const lensInfo = validatedData.theologicalPreference === 'southern_baptist' && validatedData.sbConfessionVersion
-      ? `${validatedData.theologicalPreference} (${validatedData.sbConfessionVersion})`
+    const lensInfo = validatedData.theologicalPreference === 'southern_baptist' && validatedData.sbConfessionVersion 
+      ? `${validatedData.theologicalPreference} (${validatedData.sbConfessionVersion})` 
       : validatedData.theologicalPreference;
     console.log(`Lesson generated for user ${user.id}: ${validatedData.passageOrTopic} (Lens: ${lensInfo})`);
 
-    // ✅ FIXED: Return proper response structure
     return new Response(
       JSON.stringify({
         success: true,
-        output: {
-          teacher_plan: lessonContent.content
-        },
-        lesson: {
-          id: crypto.randomUUID(),
-          title: lessonContent.title
-        },
+        content: lessonContent.content,
+        title: lessonContent.title,
         sessionId,
         uploadId,
         fileHash,
@@ -653,8 +603,8 @@ serve(async (req) => {
         }
       }),
       {
-        headers: {
-          ...corsHeaders,
+        headers: { 
+          ...corsHeaders, 
           'Content-Type': 'application/json',
           'Cache-Control': 'no-store',
           'X-RateLimit-Remaining': rateLimit.remainingRequests.toString(),
@@ -665,10 +615,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in generate-lesson function:', error);
-
+    
     return new Response(
-      JSON.stringify({
-        success: false,
+      JSON.stringify({ 
         error: error instanceof Error ? error.message : 'Internal server error',
         timestamp: new Date().toISOString()
       }),
