@@ -463,26 +463,32 @@ function validateInput(data: any): LessonRequest {
     throw new Error('ageGroup is required and must be a non-empty string');
   }
 
-  // Validate doctrineProfile
-  if (!data.doctrineProfile || typeof data.doctrineProfile !== 'string') {
-    throw new Error('doctrineProfile is required and must be a string');
-  }
-
   // Validate theologicalPreference
   if (!data.theologicalPreference || typeof data.theologicalPreference !== 'string') {
     throw new Error('Theological preference is required. Please select your theological lens (Southern Baptist, Reformed Baptist, or Independent Baptist) in your settings or the generation form.');
   }
 
-  // Validate enum values for doctrine and theological preference
-  const allowedDoctrineProfiles = ['SBC', 'RB', 'IND'];
+  // Validate theological preference enum
   const allowedTheologicalPreferences = ['southern_baptist', 'reformed_baptist', 'independent_baptist'];
-
-  if (!allowedDoctrineProfiles.includes(data.doctrineProfile)) {
-    throw new Error('Invalid doctrineProfile. Must be one of: SBC, RB, IND');
-  }
-
   if (!allowedTheologicalPreferences.includes(data.theologicalPreference)) {
     throw new Error('Invalid theological preference. Must be one of: southern_baptist, reformed_baptist, independent_baptist');
+  }
+
+  // ✅ FIXED: Auto-map theologicalPreference to doctrineProfile if not provided
+  let doctrineProfile = data.doctrineProfile;
+  if (!doctrineProfile) {
+    const preferenceToProfile: Record<string, string> = {
+      'southern_baptist': 'SBC',
+      'reformed_baptist': 'RB',
+      'independent_baptist': 'IND'
+    };
+    doctrineProfile = preferenceToProfile[data.theologicalPreference] || 'SBC';
+  }
+
+  // Validate doctrineProfile
+  const allowedDoctrineProfiles = ['SBC', 'RB', 'IND'];
+  if (!allowedDoctrineProfiles.includes(doctrineProfile)) {
+    throw new Error('Invalid doctrineProfile. Must be one of: SBC, RB, IND');
   }
 
   // Sanitize strings
@@ -501,7 +507,7 @@ function validateInput(data: any): LessonRequest {
     topic: data.topic ? sanitizeString(data.topic) : undefined,
     passageOrTopic: sanitizeString(passageOrTopic),
     ageGroup: sanitizeString(data.ageGroup), // Accept any age group string from frontend
-    doctrineProfile: data.doctrineProfile,
+    doctrineProfile: doctrineProfile, // ✅ Auto-mapped from theologicalPreference
     notes: data.notes ? sanitizeString(data.notes) : undefined,
     enhancementType: data.enhancementType || 'generation',
     extractedContent: data.extractedContent ? sanitizeString(data.extractedContent) : undefined,
