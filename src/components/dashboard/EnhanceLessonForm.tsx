@@ -636,7 +636,6 @@ export function EnhanceLessonForm({
               </TabsList>
               <TabsContent value="upload" className="space-y-2">
                 <div className="grid gap-2">
-                  <Label htmlFor="upload">Curriculum</Label>
                   <Input
                     id="upload"
                     type="file"
@@ -644,7 +643,23 @@ export function EnhanceLessonForm({
                     onChange={handleFileSelect}
                     accept=".txt,.pdf,.docx,.doc"
                     disabled={isExtracting}
+                    className="sr-only"
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isExtracting}
+                    className="w-full"
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload (file: pdf, txt, jpg, doc)
+                  </Button>
+                  {uploadedFile && (
+                    <p className="text-sm text-muted-foreground">
+                      {uploadedFile.name}
+                    </p>
+                  )}
                   {isExtracting && (
                     <div className="flex items-center space-x-2">
                       <Clock className="mr-2 h-4 w-4 animate-spin" />
