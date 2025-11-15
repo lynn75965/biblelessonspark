@@ -668,7 +668,11 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
               </Label>
               <Tabs defaultValue="upload" className="w-full">
                 <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="upload" className="text-xs sm:text-sm">
+                  <TabsTrigger 
+                    value="upload" 
+                    className="text-xs sm:text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
                     <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="hidden xs:inline">Upload File</span>
                     <span className="xs:hidden">Upload</span>
@@ -688,6 +692,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                       onChange={handleFileSelect}
                       accept=".txt,.pdf,.docx,.doc"
                       disabled={isExtracting}
+                      className="hidden"
                     />
                     {isExtracting && (
                       <div className="flex items-center space-x-2">
