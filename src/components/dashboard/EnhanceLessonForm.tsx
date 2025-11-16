@@ -56,7 +56,7 @@ interface LessonContent {
 
 export function EnhanceLessonForm({
   organizationId,
-  userPreferredAgeGroup = "Young Adults (Ages 26–35)",
+  userPreferredAgeGroup = getDefaultAgeGroup(),
   defaultDoctrine = "SBC"
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
@@ -668,16 +668,20 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
               </Label>
               <Tabs defaultValue="upload" className="w-full">
                 <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="upload" className="text-xs sm:text-sm">
-                    <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden xs:inline">Upload File</span>
-                    <span className="xs:hidden">Upload</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="paste" className="text-xs sm:text-sm">
-                    <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden xs:inline">Paste Text</span>
-                    <span className="xs:hidden">Paste</span>
-                  </TabsTrigger>
+<TabsTrigger 
+  value="upload" 
+  className="text-xs sm:text-sm"
+  onClick={() => fileInputRef.current?.click()}
+>
+  <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+  <span className="hidden xs:inline">Upload File</span>
+  <span className="xs:hidden">Upload</span>
+</TabsTrigger>
+<TabsTrigger value="paste" className="text-xs sm:text-sm">
+  <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+  <span className="hidden xs:inline">Paste Text</span>
+  <span className="xs:hidden">Paste</span>
+</TabsTrigger>
                 </TabsList>
                 <TabsContent value="upload" className="space-y-2">
                   <div className="grid gap-2">
@@ -686,8 +690,9 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                       type="file"
                       ref={fileInputRef}
                       onChange={handleFileSelect}
-                      accept=".txt,.pdf,.docx,.doc"
+                      accept=".txt,.pdf,.docx,.doc,.jpg"
                       disabled={isExtracting}
+					  className="hidden"
                     />
                     {isExtracting && (
                       <div className="flex items-center space-x-2">
