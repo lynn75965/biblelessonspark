@@ -12,8 +12,9 @@ const corsHeaders = {
 const VALID_AGE_GROUPS = AGE_GROUP_OPTIONS;
 
 // Detailed age-specific teaching profiles
+// Detailed age-specific teaching profiles
 const ageGroupProfiles = {
-  'Preschoolers (Ages 3-5)': {
+  'Preschoolers (Ages 3–5)': {
     cognitiveLevel: 'Concrete, literal thinking. Cannot grasp abstract concepts yet.',
     attentionSpan: '5-7 minutes per activity. Need frequent transitions.',
     vocabulary: 'Use 3-4 word sentences. Avoid theological terms. Use tangible objects.',
@@ -24,7 +25,7 @@ const ageGroupProfiles = {
     bibleVersion: 'Use simple paraphrases or picture Bibles',
     teachingTips: 'Repeat key phrases 3-4 times. Use physical movements. Keep lessons under 20 minutes total.'
   },
-  'Elementary Kids (Ages 6-10)': {
+  'Elementary Kids (Ages 6–10)': {
     cognitiveLevel: 'Beginning abstract thinking. Can connect cause and effect.',
     attentionSpan: '10-15 minutes per segment. Can handle longer stories.',
     vocabulary: 'Simple sentences but can learn new words with definitions. Introduce basic theological terms.',
@@ -35,7 +36,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ICB, NLT, or CEV - clear, simple language',
     teachingTips: 'Use visuals extensively. Create take-home reminders. Celebrate small victories.'
   },
-  'Preteens & Middle Schoolers (Ages 11-14)': {
+  'Preteens & Middle Schoolers (Ages 11–14)': {
     cognitiveLevel: 'Developing abstract reasoning. Question authority and test boundaries.',
     attentionSpan: '15-20 minutes with engagement. Need interactive elements.',
     vocabulary: 'Can handle theological vocabulary with clear explanations. Like feeling "smart".',
@@ -46,7 +47,7 @@ const ageGroupProfiles = {
     bibleVersion: 'NIV, NLT, ESV - balance readability and depth',
     teachingTips: 'Acknowledge their struggles authentically. Avoid talking down. Give leadership opportunities.'
   },
-  'High School Students (Ages 15-18)': {
+  'High School Students (Ages 15–18)': {
     cognitiveLevel: 'Full abstract reasoning. Can handle nuance and complexity.',
     attentionSpan: '20-30 minutes if engaged. Expect intellectual rigor.',
     vocabulary: 'Full theological vocabulary expected. Introduce Greek/Hebrew concepts.',
@@ -57,7 +58,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NIV - balance accuracy and readability',
     teachingTips: 'Create safe space for doubt. Address real objections. Model authentic faith struggles.'
   },
-  'College & Early Career (Ages 19-25)': {
+  'College & Early Career (Ages 19–25)': {
     cognitiveLevel: 'Mature abstract thinking. Processing independence and identity.',
     attentionSpan: '30-45 minutes with breaks. Expect academic-level discussion.',
     vocabulary: 'Academic theological language. Comfortable with systematic theology terms.',
@@ -68,7 +69,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NKJV - value accuracy and study depth',
     teachingTips: 'Respect their agency. Provide resources for further study. Connect to life transitions.'
   },
-  'Young Adults (Ages 26-35)': {
+  'Young Adults (Ages 26–35)': {
     cognitiveLevel: 'Peak cognitive function. Balancing multiple life responsibilities.',
     attentionSpan: '45-60 minutes. Appreciate efficient, practical teaching.',
     vocabulary: 'Expect sophisticated theological discourse. Value practical application.',
@@ -79,7 +80,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NIV, NASB - balance study depth and accessibility',
     teachingTips: 'Provide practical tools and resources. Honor their time. Offer childcare during classes.'
   },
-  'Mid-Life Adults (Ages 36-50)': {
+  'Mid-Life Adults (Ages 36–50)': {
     cognitiveLevel: 'Wisdom-building phase. Reflective and experiential.',
     attentionSpan: '60+ minutes. Appreciate deep dives and discussion.',
     vocabulary: 'Theological sophistication with life experience. Value nuanced teaching.',
@@ -90,7 +91,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NKJV - prefer depth and accuracy',
     teachingTips: 'Draw on their wisdom. Facilitate peer-to-peer learning. Address "sandwich generation" pressures.'
   },
-  'Mature Adults (Ages 51-65)': {
+  'Mature Adults (Ages 51–65)': {
     cognitiveLevel: 'Life-wisdom integration. Value depth over novelty.',
     attentionSpan: '60+ minutes. Appreciate thorough, scholarly approaches.',
     vocabulary: 'Lifetime of biblical knowledge. Enjoy connecting Scripture across testament.',
@@ -101,7 +102,7 @@ const ageGroupProfiles = {
     bibleVersion: 'ESV, NASB, NKJV - prefer traditional, accurate translations',
     teachingTips: 'Honor their experience. Create inter-generational connections. Focus on legacy and wisdom-sharing.'
   },
-  'Active Seniors (Ages 66-75)': {
+  'Active Seniors (Ages 66–75)': {
     cognitiveLevel: 'Reflective wisdom. May need accommodations for memory.',
     attentionSpan: '45-60 minutes with breaks. Comfortable pace appreciated.',
     vocabulary: 'Rich biblical background. May prefer traditional terminology.',
@@ -135,7 +136,6 @@ const ageGroupProfiles = {
     teachingTips: 'Create opportunities for cross-generational interaction. Value each age\'s contribution.'
   }
 };
-
 // Multi-language support configurations
 const languageConfigs = {
   english: {
@@ -210,11 +210,17 @@ serve(async (req) => {
         JSON.stringify({ error: 'Age group is required' }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
+}
     if (!VALID_AGE_GROUPS.includes(ageGroup)) {
-      console.error("Invalid age group:", ageGroup);
+      // DEBUG: Log exact characters to find invisible differences
+      console.error("❌ VALIDATION FAILED");
+      console.error("Received age group:", ageGroup);
+      console.error("Received length:", ageGroup.length);
+      console.error("Received char codes:", Array.from(ageGroup).map(c => c.charCodeAt(0)));
       console.error("Valid options:", VALID_AGE_GROUPS);
+      console.error("First valid option:", VALID_AGE_GROUPS[1]);
+      console.error("First valid option char codes:", Array.from(VALID_AGE_GROUPS[1]).map(c => c.charCodeAt(0)));
+      
       return new Response(
         JSON.stringify({ 
           error: `Invalid age group: "${ageGroup}". Must be one of: ${VALID_AGE_GROUPS.join(', ')}` 

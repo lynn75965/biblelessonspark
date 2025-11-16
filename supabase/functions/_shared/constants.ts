@@ -1,6 +1,5 @@
 // SOURCE OF TRUTH: These constants are shared between frontend and backend
 // MUST stay in sync with src/lib/constants.ts
-
 export const AGE_GROUP_OPTIONS = [
   'Preschoolers (Ages 3–5)',
   'Elementary Kids (Ages 6–10)',
