@@ -466,6 +466,7 @@ export function EnhanceLessonForm({
   // ✅ FIXED: Remove organizationId requirement
   const handleSave = async () => {
     if (!generatedContent || !user) {
+      // <-- Should NOT have organizationId here
       toast({
         title: "Missing data",
         description: "Please generate a lesson before saving.",
