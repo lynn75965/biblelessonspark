@@ -52,6 +52,42 @@ export type Database = {
           },
         ]
       }
+      bible_versions: {
+        Row: {
+          abbreviation: string
+          copyright_holder: string | null
+          copyright_status: string
+          created_at: string | null
+          display_order: number
+          id: string
+          name: string
+          quote_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          abbreviation: string
+          copyright_holder?: string | null
+          copyright_status: string
+          created_at?: string | null
+          display_order?: number
+          id: string
+          name: string
+          quote_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          abbreviation?: string
+          copyright_holder?: string | null
+          copyright_status?: string
+          created_at?: string | null
+          display_order?: number
+          id?: string
+          name?: string
+          quote_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       credits_ledger: {
         Row: {
           amount: number
@@ -436,6 +472,8 @@ export type Database = {
           subscription_status: string | null
           subscription_tier: string | null
           theological_preference: string | null
+          theology_choice: string | null
+          theology_family: string
           updated_at: string
         }
         Insert: {
@@ -455,6 +493,8 @@ export type Database = {
           subscription_status?: string | null
           subscription_tier?: string | null
           theological_preference?: string | null
+          theology_choice?: string | null
+          theology_family?: string
           updated_at?: string
         }
         Update: {
@@ -474,6 +514,8 @@ export type Database = {
           subscription_status?: string | null
           subscription_tier?: string | null
           theological_preference?: string | null
+          theology_choice?: string | null
+          theology_family?: string
           updated_at?: string
         }
         Relationships: [
