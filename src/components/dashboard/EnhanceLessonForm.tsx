@@ -462,12 +462,69 @@ export function EnhanceLessonForm({
   };
 
   const handleSave = async () => {
-    if (!generatedContent || !user || !organizationId) {
+  if (!generatedContent || !user) {
+    toast({
+      title: "Missing data",
+      description: "Please generate a lesson before saving.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    const lessonData = {
+      title: lessonTitle,
+      original_text: generatedContent.fullContent || "",
+      source_type: extractedContent ? "enhanced" : "generated",
+      upload_path: sourceFilename || null,
+      filters: {
+        overview: generatedContent.overview || "",
+        objectives: generatedContent.objectives || "",
+        scripture: generatedContent.scripture || "",
+        background: generatedContent.background || "",
+        opening: generatedContent.opening || "",
+        teaching: generatedContent.teaching || "",
+        activities: generatedContent.activities || "",
+        discussion: generatedContent.discussion || "",
+        applications: generatedContent.applications || "",
+        assessment: generatedContent.assessment || "",
+        resources: generatedContent.resources || "",
+        preparation: generatedContent.preparation || "",
+        passage: formData.passage,
+        topic: formData.topic,
+        age_group: formData.ageGroup,
+        notes: formData.notes,
+        bible_version: formData.bibleVersion,
+        theological_preference: formData.theologicalPreference,
+        sb_confession_version: formData.sbConfessionVersion,
+        session_id: sessionId || null,
+        upload_id: uploadId || null,
+        file_hash: fileHash || null,
+      },
+      organization_id: organizationId || undefined,
+    };
+
+    const result = await createLesson(lessonData);
+
+    if (result.data && !result.error) {
+      trackLessonCreated(result.data.id);
       toast({
-        title: "Missing data",
-        description: "Please generate a lesson before saving.",
-        variant: "destructive",
+        title: "Lesson saved!",
+        description: "Your lesson has been successfully saved.",
       });
+      handleClearForm();
+    } else {
+      throw new Error(result.error?.message || "Failed to save lesson");
+    }
+  } catch (error: any) {
+    console.error("Save error:", error);
+    toast({
+      title: "Save failed",
+      description: error.message || "Please try again",
+      variant: "destructive",
+    });
+  }
+};
       return;
     }
 
