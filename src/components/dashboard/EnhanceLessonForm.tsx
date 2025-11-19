@@ -126,6 +126,7 @@ export function EnhanceLessonForm({
     console.log("✅ FIXED: Optional file upload");
     console.log("✅ FIXED: Button enabled with passage/topic even without file");
     console.log("✅ FIXED: All buttons have type='button' to prevent form submission");
+    console.log("✅ FIXED: Save button works without organizationId");
   }, []);
 
   React.useEffect(() => {
@@ -461,70 +462,14 @@ export function EnhanceLessonForm({
     }
   };
 
+  // ✅ FIXED: Remove organizationId requirement
   const handleSave = async () => {
-  if (!generatedContent || !user) {
-    toast({
-      title: "Missing data",
-      description: "Please generate a lesson before saving.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  try {
-    const lessonData = {
-      title: lessonTitle,
-      original_text: generatedContent.fullContent || "",
-      source_type: extractedContent ? "enhanced" : "generated",
-      upload_path: sourceFilename || null,
-      filters: {
-        overview: generatedContent.overview || "",
-        objectives: generatedContent.objectives || "",
-        scripture: generatedContent.scripture || "",
-        background: generatedContent.background || "",
-        opening: generatedContent.opening || "",
-        teaching: generatedContent.teaching || "",
-        activities: generatedContent.activities || "",
-        discussion: generatedContent.discussion || "",
-        applications: generatedContent.applications || "",
-        assessment: generatedContent.assessment || "",
-        resources: generatedContent.resources || "",
-        preparation: generatedContent.preparation || "",
-        passage: formData.passage,
-        topic: formData.topic,
-        age_group: formData.ageGroup,
-        notes: formData.notes,
-        bible_version: formData.bibleVersion,
-        theological_preference: formData.theologicalPreference,
-        sb_confession_version: formData.sbConfessionVersion,
-        session_id: sessionId || null,
-        upload_id: uploadId || null,
-        file_hash: fileHash || null,
-      },
-      organization_id: organizationId || undefined,
-    };
-
-    const result = await createLesson(lessonData);
-
-    if (result.data && !result.error) {
-      trackLessonCreated(result.data.id);
+    if (!generatedContent || !user) {
       toast({
-        title: "Lesson saved!",
-        description: "Your lesson has been successfully saved.",
+        title: "Missing data",
+        description: "Please generate a lesson before saving.",
+        variant: "destructive",
       });
-      handleClearForm();
-    } else {
-      throw new Error(result.error?.message || "Failed to save lesson");
-    }
-  } catch (error: any) {
-    console.error("Save error:", error);
-    toast({
-      title: "Save failed",
-      description: error.message || "Please try again",
-      variant: "destructive",
-    });
-  }
-};
       return;
     }
 
@@ -979,55 +924,7 @@ export function EnhanceLessonForm({
             {generatedContent ? (
               <>
                 <div className="space-y-2">
-                  <h2 className="text-lg sm:text-xl font-semibold">Overview</h2>
-                  <p className="text-sm sm:text-base">{generatedContent.overview}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Objectives</h2>
-                  <p>{generatedContent.objectives}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Scripture</h2>
-                  <p>{generatedContent.scripture}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Background</h2>
-                  <p>{generatedContent.background}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Opening</h2>
-                  <p>{generatedContent.opening}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Teaching</h2>
-                  <p>{generatedContent.teaching}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Activities</h2>
-                  <p>{generatedContent.activities}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Discussion</h2>
-                  <p>{generatedContent.discussion}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Applications</h2>
-                  <p>{generatedContent.applications}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Assessment</h2>
-                  <p>{generatedContent.assessment}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Resources</h2>
-                  <p>{generatedContent.resources}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Preparation</h2>
-                  <p>{generatedContent.preparation}</p>
-                </div>
-                <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">Full Content</h2>
+                  <h2 className="text-lg sm:text-xl font-semibold">Full Content</h2>
                   <pre className="whitespace-pre-wrap">{generatedContent.fullContent}</pre>
                 </div>
               </>
