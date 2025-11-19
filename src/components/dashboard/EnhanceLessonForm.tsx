@@ -11,14 +11,27 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, Clock, Users, BookOpen, Copy, Download, Save, Printer, Upload, FileText, AlertTriangle, Loader2 } from "lucide-react";
+import {
+  Sparkles,
+  Clock,
+  Users,
+  BookOpen,
+  Copy,
+  Download,
+  Save,
+  Printer,
+  Upload,
+  FileText,
+  AlertTriangle,
+  Loader2,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
 import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
-import { BIBLE_VERSIONS, getDefaultVersion } from "@/lib/bibleTranslations";
+import { BibleVersionSelector } from "./BibleVersionSelector";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
 import { TeacherCustomization, type TeacherPreferences, defaultPreferences } from "./TeacherCustomization";
@@ -57,25 +70,27 @@ interface LessonContent {
 export function EnhanceLessonForm({
   organizationId,
   userPreferredAgeGroup = getDefaultAgeGroup(),
-  defaultDoctrine = "SBC"
+  defaultDoctrine = "SBC",
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Session and upload tracking
-  const [sessionId, setSessionId] = useState<string>('');
-  const [uploadId, setUploadId] = useState<string>('');
-  const [fileHash, setFileHash] = useState<string>('');
-  const [sourceFilename, setSourceFilename] = useState<string>('');
+  const [sessionId, setSessionId] = useState<string>("");
+  const [uploadId, setUploadId] = useState<string>("");
+  const [fileHash, setFileHash] = useState<string>("");
+  const [sourceFilename, setSourceFilename] = useState<string>("");
 
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
-  const [extractedTopic, setExtractedTopic] = useState<string>('');
-  const [extractedScripture, setExtractedScripture] = useState<string>('');
+  const [extractedTopic, setExtractedTopic] = useState<string>("");
+  const [extractedScripture, setExtractedScripture] = useState<string>("");
 
   // Job status states
-  const [extractJobId, setExtractJobId] = useState<string>('');
-  const [extractState, setExtractState] = useState<'idle' | 'queued' | 'processing' | 'done' | 'failed' | 'canceled'>('idle');
+  const [extractJobId, setExtractJobId] = useState<string>("");
+  const [extractState, setExtractState] = useState<"idle" | "queued" | "processing" | "done" | "failed" | "canceled">(
+    "idle",
+  );
   const [extractProgress, setExtractProgress] = useState<number>(0);
   const [extractError, setExtractError] = useState<{ code: string; msg: string } | null>(null);
   const [isExtracting, setIsExtracting] = useState(false);
@@ -87,9 +102,9 @@ export function EnhanceLessonForm({
     topic: "",
     ageGroup: userPreferredAgeGroup,
     notes: "",
-    bibleVersion: getDefaultVersion().id,
-    theologicalPreference: "southern_baptist" as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist',
-    sbConfessionVersion: "bfm_1963" as 'bfm_1963' | 'bfm_2000'
+    bibleVersion: "kjv",
+    theologicalPreference: "southern_baptist" as "southern_baptist" | "reformed_baptist" | "independent_baptist",
+    sbConfessionVersion: "bfm_1963" as "bfm_1963" | "bfm_2000",
   });
 
   const [rememberConfessionChoice, setRememberConfessionChoice] = useState(false);
@@ -116,17 +131,17 @@ export function EnhanceLessonForm({
     const fetchProfilePreferences = async () => {
       if (!user) return;
 
-      const { supabase } = await import('@/integrations/supabase/client');
+      const { supabase } = await import("@/integrations/supabase/client");
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('sb_confession_version')
-        .eq('id', user.id)
+        .from("profiles")
+        .select("sb_confession_version")
+        .eq("id", user.id)
         .single();
 
       if (profile?.sb_confession_version) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          sbConfessionVersion: profile.sb_confession_version as 'bfm_1963' | 'bfm_2000'
+          sbConfessionVersion: profile.sb_confession_version as "bfm_1963" | "bfm_2000",
         }));
       }
     };
@@ -136,18 +151,18 @@ export function EnhanceLessonForm({
 
   const computeFileHash = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
     return hashHex;
   };
 
   const parseTxtFile = async (file: File): Promise<{ topic: string; scripture: string; content: string }> => {
     const text = await file.text();
-    const lines = text.split('\n').filter(l => l.trim());
+    const lines = text.split("\n").filter((l) => l.trim());
 
-    const topic = lines[0]?.trim() || 'Untitled Lesson';
-    const scripture = lines[1]?.trim() || '';
+    const topic = lines[0]?.trim() || "Untitled Lesson";
+    const scripture = lines[1]?.trim() || "";
     const content = text;
 
     return { topic, scripture, content };
@@ -169,12 +184,12 @@ export function EnhanceLessonForm({
     const hash = await computeFileHash(file);
     const tempJobId = crypto.randomUUID();
 
-    console.log('EXTRACT_START', {
+    console.log("EXTRACT_START", {
       jobId: tempJobId,
       sessionId: newSessionId,
       uploadId: newUploadId,
       fileHash: hash,
-      filename: file.name
+      filename: file.name,
     });
 
     // Reset all state
@@ -183,11 +198,11 @@ export function EnhanceLessonForm({
     setFileHash(hash);
     setSourceFilename(file.name);
     setExtractedContent(null);
-    setExtractedTopic('');
-    setExtractedScripture('');
+    setExtractedTopic("");
+    setExtractedScripture("");
     setEnhancedResult(null);
     setUploadedFile(file);
-    setExtractState('queued');
+    setExtractState("queued");
     setExtractProgress(0);
     setExtractError(null);
     setExtractJobId(tempJobId);
@@ -198,39 +213,39 @@ export function EnhanceLessonForm({
 
     try {
       // Fast-path for .txt files < 2MB
-      if (file.name.toLowerCase().endsWith('.txt') && file.size < 2 * 1024 * 1024) {
-        setExtractState('processing');
+      if (file.name.toLowerCase().endsWith(".txt") && file.size < 2 * 1024 * 1024) {
+        setExtractState("processing");
         setExtractProgress(50);
 
-        console.log('EXTRACT_PROGRESS', {
+        console.log("EXTRACT_PROGRESS", {
           jobId: tempJobId,
           sessionId: newSessionId,
           uploadId: newUploadId,
           fileHash: hash,
           filename: file.name,
-          state: 'processing',
-          progress: 50
+          state: "processing",
+          progress: 50,
         });
 
         const parsed = await parseTxtFile(file);
 
         // Check for timeout
         if (Date.now() - startTime > timeoutDuration) {
-          throw new Error('Timeout exceeded');
+          throw new Error("Timeout exceeded");
         }
 
-        console.log('EXTRACT_DONE', {
+        console.log("EXTRACT_DONE", {
           jobId: tempJobId,
           sessionId: newSessionId,
           uploadId: newUploadId,
           fileHash: hash,
-          filename: file.name
+          filename: file.name,
         });
 
         setExtractedContent(parsed.content);
         setExtractedTopic(parsed.topic);
         setExtractedScripture(parsed.scripture);
-        setExtractState('done');
+        setExtractState("done");
         setExtractProgress(100);
         setIsExtracting(false);
         toast({ title: "Text file processed successfully" });
@@ -238,36 +253,39 @@ export function EnhanceLessonForm({
       }
 
       // For other files, show error (OCR not fully implemented yet)
-      console.log('EXTRACT_FAILED', {
+      console.log("EXTRACT_FAILED", {
         jobId: tempJobId,
         sessionId: newSessionId,
         uploadId: newUploadId,
         fileHash: hash,
         filename: file.name,
-        error: { code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' }
+        error: { code: "unsupported", msg: "Only .txt files under 2MB are currently supported" },
       });
 
-      setExtractError({ code: 'unsupported', msg: 'Only .txt files under 2MB are currently supported' });
-      setExtractState('failed');
+      setExtractError({ code: "unsupported", msg: "Only .txt files under 2MB are currently supported" });
+      setExtractState("failed");
       setIsExtracting(false);
-      toast({ title: "File not supported", description: "Please upload a .txt file under 2MB", variant: "destructive" });
-
+      toast({
+        title: "File not supported",
+        description: "Please upload a .txt file under 2MB",
+        variant: "destructive",
+      });
     } catch (error) {
-      console.error('Error processing file:', error);
+      console.error("Error processing file:", error);
 
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
 
-      console.log('EXTRACT_FAILED', {
+      console.log("EXTRACT_FAILED", {
         jobId: tempJobId,
         sessionId: newSessionId,
         uploadId: newUploadId,
         fileHash: hash,
         filename: file.name,
-        error: { code: 'unknown', msg: errorMsg }
+        error: { code: "unknown", msg: errorMsg },
       });
 
-      setExtractError({ code: 'unknown', msg: errorMsg });
-      setExtractState('failed');
+      setExtractError({ code: "unknown", msg: errorMsg });
+      setExtractState("failed");
       setIsExtracting(false);
       toast({ title: "Failed to process file", variant: "destructive" });
     }
@@ -278,23 +296,23 @@ export function EnhanceLessonForm({
       abortControllerRef.current.abort();
     }
 
-    setSessionId('');
-    setUploadId('');
-    setFileHash('');
-    setSourceFilename('');
+    setSessionId("");
+    setUploadId("");
+    setFileHash("");
+    setSourceFilename("");
     setExtractedContent(null);
-    setExtractedTopic('');
-    setExtractedScripture('');
+    setExtractedTopic("");
+    setExtractedScripture("");
     setEnhancedResult(null);
     setUploadedFile(null);
-    setExtractState('idle');
+    setExtractState("idle");
     setExtractProgress(0);
     setExtractError(null);
-    setExtractJobId('');
+    setExtractJobId("");
     setIsExtracting(false);
 
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -308,12 +326,12 @@ export function EnhanceLessonForm({
   const isFormValid = () => {
     // Must have user authentication
     if (!user) return false;
-    
+
     // Must have either passage, topic, OR extracted content
     const hasPassage = formData.passage.trim().length > 0;
     const hasTopic = formData.topic.trim().length > 0;
     const hasExtractedContent = extractedContent !== null && extractedContent.trim().length > 0;
-    
+
     return hasPassage || hasTopic || hasExtractedContent;
   };
 
@@ -348,11 +366,13 @@ export function EnhanceLessonForm({
       setIsGenerating(true);
       setEnhancedResult(null);
 
-      const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
       const authToken = session?.access_token;
 
       if (!authToken) {
-        throw new Error('Authentication required');
+        throw new Error("Authentication required");
       }
 
       // ✅ FIXED: Build request body conditionally
@@ -379,32 +399,32 @@ export function EnhanceLessonForm({
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${Date.now()}`, {
-        method: 'POST',
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${Date.now()}`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
         },
         body: JSON.stringify(requestBody),
-        cache: 'no-store',
+        cache: "no-store",
       });
 
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result = await response.json();
 
-      console.log('ENHANCE_STARTED', {
+      console.log("ENHANCE_STARTED", {
         jobId: result?.lesson?.id,
         mode,
         uploadId: result?.uploadId,
         sessionId: result?.sessionId,
-        fileHash: result?.fileHash
+        fileHash: result?.fileHash,
       });
 
       // ✅ FIXED: Handle result regardless of whether file was uploaded
       if (result.success) {
         setGeneratedContent(result.output?.teacher_plan);
-        setLessonTitle(result.lesson?.title || '');
+        setLessonTitle(result.lesson?.title || "");
         setEnhancedResult({
           ...result,
           sessionId: result.sessionId,
@@ -412,13 +432,13 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
           fileHash: result.fileHash,
         });
 
-        console.log('ENHANCE_RESULT', {
+        console.log("ENHANCE_RESULT", {
           jobId: result.lesson?.id,
           mode,
           uploadId: result.uploadId,
           sessionId: result.sessionId,
           fileHash: result.fileHash,
-          source: sourceFilename || 'manual_entry',
+          source: sourceFilename || "manual_entry",
         });
 
         toast({
@@ -426,14 +446,14 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
           description: "Your comprehensive lesson content is ready.",
         });
       } else {
-        throw new Error(result.error || 'Failed to generate lesson');
+        throw new Error(result.error || "Failed to generate lesson");
       }
     } catch (error: any) {
-      console.error('Enhancement error:', error);
+      console.error("Enhancement error:", error);
       toast({
         title: "Generation failed",
         description: error.message || "Please try again",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
@@ -594,13 +614,13 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
   const handleClearForm = () => {
     setGeneratedContent(null);
     setLessonTitle("");
-    setFormData(prev => ({ ...prev, passage: "", topic: "" }));
+    setFormData((prev) => ({ ...prev, passage: "", topic: "" }));
   };
 
   return (
     <div className="w-full px-4 sm:px-0">
       {/* Debug Panel */}
-      {extractJobId && extractState !== 'idle' && extractState !== 'done' && extractState !== 'failed' && (
+      {extractJobId && extractState !== "idle" && extractState !== "done" && extractState !== "failed" && (
         <div className="fixed bottom-4 right-4 bg-background border border-border rounded-lg shadow-lg p-3 sm:p-4 max-w-[90vw] sm:max-w-md z-50 text-xs sm:text-sm">
           <div className="font-mono space-y-1">
             <div className="font-semibold text-foreground mb-2">Extraction Status</div>
@@ -608,7 +628,8 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
               <span className="text-foreground">Job:</span> {extractJobId.slice(0, 8)}...
             </div>
             <div className="text-muted-foreground">
-              <span className="text-foreground">State:</span> {extractState} {extractProgress > 0 && `(${extractProgress}%)`}
+              <span className="text-foreground">State:</span> {extractState}{" "}
+              {extractProgress > 0 && `(${extractProgress}%)`}
             </div>
             <div className="text-muted-foreground">
               <span className="text-foreground">sessionId:</span> {sessionId.slice(0, 8)}...
@@ -638,7 +659,9 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
             {/* ✅ FIXED: Separate Passage and Topic Fields */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="passage" className="text-sm">Bible Passage <span className="text-muted-foreground">(Optional)</span></Label>
+                <Label htmlFor="passage" className="text-sm">
+                  Bible Passage <span className="text-muted-foreground">(Optional)</span>
+                </Label>
                 <Input
                   type="text"
                   id="passage"
@@ -649,7 +672,9 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                 />
               </div>
               <div>
-                <Label htmlFor="topic" className="text-sm">Lesson Topic <span className="text-muted-foreground">(Optional)</span></Label>
+                <Label htmlFor="topic" className="text-sm">
+                  Lesson Topic <span className="text-muted-foreground">(Optional)</span>
+                </Label>
                 <Input
                   type="text"
                   id="topic"
@@ -663,25 +688,23 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
 
             {/* ✅ FIXED: Optional File Upload Section */}
             <div className="border-t pt-4 mt-2">
-              <Label className="text-sm font-medium mb-2 block">
-                Optional: Upload Existing Curriculum to Enhance
-              </Label>
+              <Label className="text-sm font-medium mb-2 block">Optional: Upload Existing Curriculum to Enhance</Label>
               <Tabs defaultValue="upload" className="w-full">
                 <TabsList className="grid grid-cols-2 w-full">
-<TabsTrigger 
-  value="upload" 
-  className="text-xs sm:text-sm"
-  onClick={() => fileInputRef.current?.click()}
->
-  <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-  <span className="hidden xs:inline">Upload File</span>
-  <span className="xs:hidden">Upload</span>
-</TabsTrigger>
-<TabsTrigger value="paste" className="text-xs sm:text-sm">
-  <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-  <span className="hidden xs:inline">Paste Text</span>
-  <span className="xs:hidden">Paste</span>
-</TabsTrigger>
+                  <TabsTrigger
+                    value="upload"
+                    className="text-xs sm:text-sm"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Upload File</span>
+                    <span className="xs:hidden">Upload</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="paste" className="text-xs sm:text-sm">
+                    <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Paste Text</span>
+                    <span className="xs:hidden">Paste</span>
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="upload" className="space-y-2">
                   <div className="grid gap-2">
@@ -692,14 +715,21 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                       onChange={handleFileSelect}
                       accept=".txt,.pdf,.docx,.doc,.jpg"
                       disabled={isExtracting}
-					  className="hidden"
+                      className="hidden"
                     />
                     {isExtracting && (
                       <div className="flex items-center space-x-2">
                         <Clock className="mr-2 h-4 w-4 animate-spin" />
-                        <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
+                        <span>
+                          {extractState === "queued" ? "Queued" : "Processing"} ({extractProgress}%)
+                        </span>
                         <Progress value={extractProgress} className="w-1/2" />
-                        <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearExtraction}
+                          disabled={extractState === "done"}
+                        >
                           Cancel
                         </Button>
                       </div>
@@ -722,9 +752,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                     )}
                     {extractedContent && (
                       <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">
-                          File uploaded: {sourceFilename}
-                        </Badge>
+                        <Badge variant="secondary">File uploaded: {sourceFilename}</Badge>
                         <Button variant="ghost" size="sm" onClick={handleClearExtraction}>
                           Remove
                         </Button>
@@ -750,13 +778,18 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
             {/* Rest of Form Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="ageGroup" className="text-sm">Age Group</Label>
-                <Select value={formData.ageGroup} onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}>
+                <Label htmlFor="ageGroup" className="text-sm">
+                  Age Group
+                </Label>
+                <Select
+                  value={formData.ageGroup}
+                  onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}
+                >
                   <SelectTrigger id="ageGroup" className="text-sm sm:text-base">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {AGE_GROUP_OPTIONS.map(group => (
+                    {AGE_GROUP_OPTIONS.map((group) => (
                       <SelectItem key={group} value={group}>
                         <div className="flex flex-col">
                           <span>{group}</span>
@@ -767,27 +800,30 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label htmlFor="bibleVersion" className="text-sm">Bible Version</Label>
-                <Select value={formData.bibleVersion} onValueChange={(value) => setFormData({ ...formData, bibleVersion: value })}>
-                  <SelectTrigger id="bibleVersion" className="text-sm sm:text-base">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BIBLE_VERSIONS.map(version => (
-                      <SelectItem key={version.id} value={version.id}>
-                        {version.abbreviation} - {version.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Bible Version Selector - NEW COMPONENT */}
+            <div className="mt-4">
+              <BibleVersionSelector
+                selectedVersion={formData.bibleVersion}
+                onVersionChange={(version) => setFormData({ ...formData, bibleVersion: version })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
               <div>
-                <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
-                <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
+                <Label htmlFor="theologicalPreference" className="text-sm">
+                  Theological Preference
+                </Label>
+                <Select
+                  value={formData.theologicalPreference}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      theologicalPreference: value as "southern_baptist" | "reformed_baptist" | "independent_baptist",
+                    })
+                  }
+                >
                   <SelectTrigger id="theologicalPreference" className="text-sm sm:text-base">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
@@ -800,13 +836,13 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
               </div>
             </div>
 
-            {formData.theologicalPreference === 'southern_baptist' && (
+            {formData.theologicalPreference === "southern_baptist" && (
               <div>
                 <Label htmlFor="sbConfessionVersion">BFM Version</Label>
                 <RadioGroup
                   defaultValue={formData.sbConfessionVersion}
                   onValueChange={(value) => {
-                    setFormData({ ...formData, sbConfessionVersion: value as 'bfm_1963' | 'bfm_2000' });
+                    setFormData({ ...formData, sbConfessionVersion: value as "bfm_1963" | "bfm_2000" });
                     if (rememberConfessionChoice) {
                       // Save to profile
                     }
@@ -846,19 +882,11 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
             </div>
 
             {showCustomization && (
-              <TeacherCustomization
-                preferences={teacherPreferences}
-                onPreferencesChange={setTeacherPreferences}
-              />
+              <TeacherCustomization preferences={teacherPreferences} onPreferencesChange={setTeacherPreferences} />
             )}
 
             {/* ✅ FIXED: Button enabled when form is valid (passage OR topic OR file) */}
-            <Button 
-              type="submit" 
-              disabled={isGenerating || !isFormValid()} 
-              className="w-full sm:w-auto" 
-              size="lg"
-            >
+            <Button type="submit" disabled={isGenerating || !isFormValid()} className="w-full sm:w-auto" size="lg">
               {isGenerating ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -871,9 +899,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                   <span className="hidden xs:inline">
                     {extractedContent ? "Enhance Curriculum" : "Generate Lesson"}
                   </span>
-                  <span className="xs:hidden">
-                    {extractedContent ? "Enhance" : "Generate"}
-                  </span>
+                  <span className="xs:hidden">{extractedContent ? "Enhance" : "Generate"}</span>
                 </>
               )}
             </Button>
@@ -887,9 +913,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
             <CardTitle className="text-xl sm:text-2xl">
               {extractedContent ? "Enhanced Lesson" : "Generated Lesson"}
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">
-              Your lesson content is ready.
-            </CardDescription>
+            <CardDescription className="text-xs sm:text-sm">Your lesson content is ready.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 px-4 sm:px-6">
             {generatedContent ? (
@@ -983,9 +1007,9 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
           sessionId,
           uploadId,
           fileHash,
-          source: sourceFilename || 'manual_entry',
+          source: sourceFilename || "manual_entry",
           state: extractState,
-          progress: extractProgress
+          progress: extractProgress,
         }}
       />
     </div>
