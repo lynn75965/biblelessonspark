@@ -1,0 +1,335 @@
+/**
+ * Theology Profiles Configuration
+ * 
+ * INTERNAL USE ONLY - NOT FOR UI DISPLAY
+ * 
+ * This is the Single Source of Truth (SSOT) for all theology profiles.
+ * These profiles control how AI-generated lessons are shaped for different
+ * theological traditions.
+ * 
+ * DO NOT expose these profiles in the UI.
+ * DO NOT log them in user-facing logs.
+ * ALWAYS apply them during lesson generation.
+ */
+
+import type { TheologyProfile } from "@/types/TheologyProfile";
+
+export const THEOLOGY_PROFILES: TheologyProfile[] = [
+  // ========================================================================
+  // PROFILE 1: Reformed Baptist
+  // ========================================================================
+  {
+    id: "reformed_baptist",
+    family: "reformed_baptist",
+    confession_label: "1689 London Baptist Confession",
+    is_default_for_family: true,
+
+    doctrinal_priorities: [
+      "God's absolute sovereignty",
+      "Doctrines of Grace (TULIP)",
+      "Covenant theology (Baptistic)",
+      "Regenerate church membership",
+      "Christ-centered exposition",
+      "Law/Gospel distinction",
+      "Elder-led congregationalism"
+    ],
+    
+    interpretive_lens: [
+      "Strong redemptive-historical framework",
+      "All Scripture fulfilled in Christ",
+      "Emphasis on original context and authorial intent",
+      "Use of confessional anchors when summarizing doctrine (1689 LBCF)"
+    ],
+    
+    teaching_tone: [
+      "Reverent",
+      "Doctrinally rich",
+      "Precision-oriented",
+      "Avoid sentimentality and emotional over-appeal"
+    ],
+    
+    key_distinctives_to_emphasize: [
+      "Providence and sovereignty in all things",
+      "Particular redemption",
+      "Effectual calling",
+      "Perseverance of the saints",
+      "Worship regulated by Scripture (regulative principle of worship)",
+      "Church discipline as a mark of the church"
+    ],
+    
+    boundaries: [
+      "Avoid manipulative emotional altar calls",
+      "Avoid decisionism",
+      "Avoid man-centered moralism",
+      "Avoid egalitarian interpretations"
+    ],
+    
+    scripture_use: [
+      "Expository teaching prioritized",
+      "Theological coherence emphasized across passages",
+      "Emphasis on covenants, typology, and Christ's fulfillment"
+    ],
+
+    soteriology_profile: "doctrines_of_grace",
+    sovereignty_vs_responsibility: "high_sovereignty",
+    invitation_style: "clear_gospel_without_decisionism",
+    worship_regulation: "regulative_principle",
+    gender_role_profile: "strong_complementarian",
+    holiness_separation_profile: "doctrinal_holiness_emphasis",
+
+    allowed_vocabulary_tags: [
+      "sovereignty",
+      "providence",
+      "effectual_calling",
+      "particular_redemption",
+      "perseverance_of_the_saints",
+      "covenant",
+      "redemptive_history"
+    ],
+    
+    forbidden_vocabulary_tags: [
+      "decisionism",
+      "altar_call_language",
+      "man_centered_success_language"
+    ],
+
+    notes: "Internal only – used to steer tone, emphasis, and constraints for Reformed Baptist users."
+  },
+
+  // ========================================================================
+  // PROFILE 2: Independent Baptist
+  // ========================================================================
+  {
+    id: "independent_baptist",
+    family: "independent_baptist",
+    confession_label: "Independent Baptist – conservative Baptist",
+    is_default_for_family: true,
+
+    doctrinal_priorities: [
+      "Biblical authority and inerrancy",
+      "Salvation by grace through faith",
+      "Human responsibility and free will",
+      "Eternal security of the believer",
+      "Local church autonomy",
+      "Personal and ecclesiastical separation"
+    ],
+    
+    interpretive_lens: [
+      "Literal, plain-sense reading of Scripture",
+      "Clear application focus in every passage",
+      "Strong evangelistic emphasis"
+    ],
+    
+    teaching_tone: [
+      "Warm, direct, urgent",
+      "Evangelistic and practical",
+      "Traditional and conservative tone",
+      "Clear invitations to trust Christ"
+    ],
+    
+    key_distinctives_to_emphasize: [
+      "The necessity of personal conversion",
+      "Holiness and separation from worldliness",
+      "Conservative moral standards",
+      "Missions, soul winning, and gospel proclamation",
+      "Strong emphasis on family, purity, and modesty"
+    ],
+    
+    boundaries: [
+      "Avoid Calvinistic determinism",
+      "Avoid sacramental language",
+      "Avoid ecumenical endorsements",
+      "Avoid gender-role ambiguity"
+    ],
+    
+    scripture_use: [
+      "Verse-by-verse but application-heavy teaching",
+      "Emphasis on obedience and Christian living",
+      "Include clear gospel invitations"
+    ],
+
+    soteriology_profile: "traditionalist_free_will",
+    sovereignty_vs_responsibility: "high_responsibility",
+    invitation_style: "direct_evangelistic_invitation",
+    worship_regulation: "normative_principle_traditional",
+    gender_role_profile: "traditional_complementarian_strong",
+    holiness_separation_profile: "strong_separation",
+
+    allowed_vocabulary_tags: [
+      "personal_conversion",
+      "soul_winning",
+      "separation",
+      "holiness",
+      "worldliness",
+      "purity",
+      "modesty",
+      "eternal_security"
+    ],
+    
+    forbidden_vocabulary_tags: [
+      "irresistible_grace_strong_form",
+      "effectual_calling_language",
+      "sacramental_regeneration",
+      "ecumenical_partnership_language"
+    ],
+
+    notes: "Internal only – used to steer tone, emphasis, and constraints for Independent Baptist users."
+  },
+
+  // ========================================================================
+  // PROFILE 3: Southern Baptist – BF&M 2000 (Default SBC)
+  // ========================================================================
+  {
+    id: "sbc_bfm_2000",
+    family: "sbc",
+    confession_label: "Baptist Faith & Message 2000",
+    is_default_for_family: true,
+
+    doctrinal_priorities: [
+      "Scriptural inerrancy and authority",
+      "Salvation by grace through faith in Christ",
+      "Security of the believer",
+      "Complementarianism (male pastors/elders)",
+      "Local church autonomy with cooperative mission",
+      "Religious liberty",
+      "Great Commission focus"
+    ],
+    
+    interpretive_lens: [
+      "Christ-centered, conservative evangelical hermeneutic",
+      "Balanced view of God's sovereignty and human responsibility",
+      "BF&M 2000 doctrinal boundaries honored"
+    ],
+    
+    teaching_tone: [
+      "Pastorally warm",
+      "Accessible and clear",
+      "Mission-focused",
+      "Balanced between doctrinal depth and practical application"
+    ],
+    
+    key_distinctives_to_emphasize: [
+      "Complementarian leadership (male pastors)",
+      "Strong evangelism and discipleship practice",
+      "Missions centrality (Lottie Moon / Annie Armstrong ethos)",
+      "Importance of the local church community",
+      "Christian ethics rooted in Scripture"
+    ],
+    
+    boundaries: [
+      "Avoid endorsing egalitarian clergy roles",
+      "Avoid hyper-Calvinism or extreme determinism",
+      "Avoid fundamentalist legalism",
+      "Avoid charismatic excess"
+    ],
+    
+    scripture_use: [
+      "Expository with clear, practical application",
+      "Emphasis on gospel proclamation",
+      "Christ-centered ethical instruction"
+    ],
+
+    soteriology_profile: "mixed_conservative_evangelical",
+    sovereignty_vs_responsibility: "balanced",
+    invitation_style: "warm_evangelistic_invitation",
+    worship_regulation: "normative_principle",
+    gender_role_profile: "explicit_complementarian_male_pastors",
+    holiness_separation_profile: "moderate_holiness_without_fundamentalism",
+
+    allowed_vocabulary_tags: [
+      "gospel",
+      "mission",
+      "discipleship",
+      "cooperative_missions",
+      "religious_liberty",
+      "complementarian_leadership"
+    ],
+    
+    forbidden_vocabulary_tags: [
+      "egalitarian_ordained_pastor_language",
+      "hyper_calvinism",
+      "legalistic_separation_badge",
+      "charismatic_manifestation_emphasis"
+    ],
+
+    notes: "Internal only – used to steer tone, emphasis, and constraints for SBC BF&M 2000 users."
+  },
+
+  // ========================================================================
+  // PROFILE 4: Southern Baptist – BF&M 1963
+  // ========================================================================
+  {
+    id: "sbc_bfm_1963",
+    family: "sbc",
+    confession_label: "Baptist Faith & Message 1963",
+    is_default_for_family: false,
+
+    doctrinal_priorities: [
+      "Biblical authority and trustworthiness",
+      "Christ-centered interpretation ('Christ is the criterion')",
+      "Salvation by grace through faith",
+      "Mission and evangelism",
+      "Local church autonomy",
+      "Security of the believer",
+      "Family and moral integrity"
+    ],
+    
+    interpretive_lens: [
+      "Christocentric reading of Scripture",
+      "Warm evangelistic focus",
+      "Traditionalist soteriology more typical"
+    ],
+    
+    teaching_tone: [
+      "Pastoral and gentle",
+      "Invitational and warm",
+      "Accessible, traditional Southern Baptist tone",
+      "Less formal doctrinal sharpness than 2000"
+    ],
+    
+    key_distinctives_to_emphasize: [
+      "Christ as the interpretive center of Scripture",
+      "Traditional gender roles (without the explicit clergy formulations of 2000)",
+      "Evangelistic invitation",
+      "Discipleship focused on daily living",
+      "Family-centered application"
+    ],
+    
+    boundaries: [
+      "Avoid rigid complementarian formulations",
+      "Avoid detailed theological systems not present in the text",
+      "Avoid hyper-separatist tones",
+      "Avoid doctrinal harshness"
+    ],
+    
+    scripture_use: [
+      "Christ-centered exposition",
+      "Practical application for home, marriage, and discipleship",
+      "Warm gospel appeal"
+    ],
+
+    soteriology_profile: "traditionalist_sbc",
+    sovereignty_vs_responsibility: "moderately_balanced_with_traditionalist_flavor",
+    invitation_style: "gentle_evangelistic_invitation",
+    worship_regulation: "normative_principle_traditional",
+    gender_role_profile: "traditional_roles_less_explicit",
+    holiness_separation_profile: "moderate_conservative_without_rigidity",
+
+    allowed_vocabulary_tags: [
+      "christ_centered",
+      "invitation",
+      "family",
+      "daily_discipleship",
+      "mission",
+      "local_church"
+    ],
+    
+    forbidden_vocabulary_tags: [
+      "rigid_gender_systems",
+      "hyper_systematic_theology_frames",
+      "harsh_separation_language"
+    ],
+
+    notes: "Internal only – used to steer tone, emphasis, and constraints for SBC BF&M 1963 users."
+  }
+];

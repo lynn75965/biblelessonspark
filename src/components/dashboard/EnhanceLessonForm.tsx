@@ -441,7 +441,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
   };
 
   const handleSave = async () => {
-    if (!generatedContent || !user || !organizationId) {
+    if (!generatedContent || !user) {
       toast({
         title: "Missing data",
         description: "Please generate a lesson before saving.",

@@ -21,6 +21,7 @@ interface UserProfile {
   role: string;
   founder_status: string;
   created_at: string;
+  user_roles?: Array<{ role: string }>;
 }
 
 export function UserManagement() {
@@ -38,16 +39,28 @@ export function UserManagement() {
 
   const fetchUsers = async () => {
     try {
+      // Fetch profiles WITH their roles from user_roles table (authoritative source)
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          user_roles (
+            role
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
         throw error;
       }
 
-      setUsers(data || []);
+      // Map to include role from user_roles (primary), fallback to profiles.role (deprecated)
+      const usersWithRoles = (data || []).map(profile => ({
+        ...profile,
+        role: profile.user_roles?.[0]?.role || profile.role || 'teacher',
+      }));
+
+      setUsers(usersWithRoles);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -63,7 +76,6 @@ export function UserManagement() {
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
       await deleteUser(userId);
-      // Refresh the user list immediately after successful deletion
       await fetchUsers();
       toast({
         title: "Success",
@@ -71,7 +83,6 @@ export function UserManagement() {
       });
     } catch (error) {
       console.error('Error deleting user:', error);
-      // Error toast is already shown by useAdminOperations
     }
   };
 

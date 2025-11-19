@@ -1,18 +1,27 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-// ✅ IMPORT from shared constants - Single Source of Truth
-import { AGE_GROUP_OPTIONS } from "../_shared/constants.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
 
-// ✅ Use imported constants instead of duplicating
-const VALID_AGE_GROUPS = AGE_GROUP_OPTIONS;
+// CLEAN age groups with EN-DASHES (–) matching frontend exactly
+const VALID_AGE_GROUPS = [
+  'Preschoolers (Ages 3–5)',
+  'Elementary Kids (Ages 6–10)',
+  'Preteens & Middle Schoolers (Ages 11–14)',
+  'High School Students (Ages 15–18)',
+  'College & Early Career (Ages 19–25)',
+  'Young Adults (Ages 26–35)',
+  'Mid-Life Adults (Ages 36–50)',
+  'Mature Adults (Ages 51–65)',
+  'Active Seniors (Ages 66–75)',
+  'Senior Adults (Ages 76+)',
+  'Mixed Groups'
+];
 
-// Detailed age-specific teaching profiles
-// Detailed age-specific teaching profiles
+// Age-specific teaching profiles - KEYS MUST MATCH VALID_AGE_GROUPS EXACTLY
 const ageGroupProfiles = {
   'Preschoolers (Ages 3–5)': {
     cognitiveLevel: 'Concrete, literal thinking. Cannot grasp abstract concepts yet.',
@@ -44,72 +53,72 @@ const ageGroupProfiles = {
     illustrations: 'Pop culture references, social media analogies, peer pressure scenarios, real-world issues.',
     questions: 'Open-ended questions about feelings, identity, fairness. "How does this apply to your life?"',
     application: 'Address identity formation, peer relationships, family dynamics, faith ownership.',
-    bibleVersion: 'NIV, NLT, ESV - balance readability and depth',
-    teachingTips: 'Acknowledge their struggles authentically. Avoid talking down. Give leadership opportunities.'
+    bibleVersion: 'NIrV, NLT, CSB - accessible yet substantive',
+    teachingTips: 'Create safe space for questions. Use multimedia. Address real-world issues honestly.'
   },
   'High School Students (Ages 15–18)': {
-    cognitiveLevel: 'Full abstract reasoning. Can handle nuance and complexity.',
-    attentionSpan: '20-30 minutes if engaged. Expect intellectual rigor.',
-    vocabulary: 'Full theological vocabulary expected. Introduce Greek/Hebrew concepts.',
-    activities: 'Socratic seminars, apologetics discussions, worldview analysis, ministry applications.',
-    illustrations: 'College prep, dating, sexuality, career choices, suffering, doubt, cultural issues.',
-    questions: 'Challenging questions about faith validity, God\'s existence, biblical reliability, tough topics.',
-    application: 'Decision-making frameworks, relationship boundaries, mission/calling, faith defense.',
-    bibleVersion: 'ESV, NASB, NIV - balance accuracy and readability',
-    teachingTips: 'Create safe space for doubt. Address real objections. Model authentic faith struggles.'
+    cognitiveLevel: 'Advanced abstract thinking. Can handle complex theological concepts.',
+    attentionSpan: '20-30 minutes with interactive elements. Can sustain deeper discussions.',
+    vocabulary: 'Use full theological vocabulary with nuanced explanations. Challenge intellectually.',
+    activities: 'Apologetics debates, case studies, mission projects, leadership opportunities, deep Bible study.',
+    illustrations: 'Cultural issues, philosophical questions, college prep, relationship ethics, calling/vocation.',
+    questions: 'Socratic questioning: "How do you know?", "What evidence supports this?", "What would you say to someone who..."',
+    application: 'Worldview formation, preparing for college/career, sexual purity, dating wisdom, standing for faith.',
+    bibleVersion: 'ESV, NIV, CSB - solid translations for serious study',
+    teachingTips: 'Respect their intelligence. Acknowledge hard questions. Model authentic faith.'
   },
   'College & Early Career (Ages 19–25)': {
-    cognitiveLevel: 'Mature abstract thinking. Processing independence and identity.',
-    attentionSpan: '30-45 minutes with breaks. Expect academic-level discussion.',
-    vocabulary: 'Academic theological language. Comfortable with systematic theology terms.',
-    activities: 'Case studies, theological debates, ministry practicum, mentorship, accountability groups.',
-    illustrations: 'Career pressures, relationship navigation, financial decisions, purpose-finding, church involvement.',
-    questions: 'Existential questions about calling, suffering, God\'s will, denominational differences.',
-    application: 'Life integration: work ethics, relationship commitments, church engagement, missional living.',
-    bibleVersion: 'ESV, NASB, NKJV - value accuracy and study depth',
-    teachingTips: 'Respect their agency. Provide resources for further study. Connect to life transitions.'
+    cognitiveLevel: 'Fully developed abstract reasoning. Processing independence and identity.',
+    attentionSpan: '30-45 minutes. Can handle extended theological discussions.',
+    vocabulary: 'Full theological discourse. Engage academic and philosophical language.',
+    activities: 'Theological discussions, mentoring relationships, service projects, career integration with faith.',
+    illustrations: 'Career pressures, relationship decisions, financial stewardship, calling, doubt and faith.',
+    questions: 'Existential questions about purpose, suffering, God\'s will, career, relationships, doubt.',
+    application: 'Integrating faith with career, navigating singleness/dating, financial wisdom, church involvement.',
+    bibleVersion: 'ESV, NASB, NIV - serious study translations',
+    teachingTips: 'Address real tensions. Welcome doubt and questions. Provide mentoring opportunities.'
   },
   'Young Adults (Ages 26–35)': {
-    cognitiveLevel: 'Peak cognitive function. Balancing multiple life responsibilities.',
-    attentionSpan: '45-60 minutes. Appreciate efficient, practical teaching.',
-    vocabulary: 'Expect sophisticated theological discourse. Value practical application.',
-    activities: 'Workshop-style teaching, real-life case studies, marriage/parenting applications, mentorship.',
-    illustrations: 'Work-life balance, parenting challenges, marriage enrichment, financial stewardship.',
-    questions: 'How-to questions: "How do I teach my kids?", "How do we handle conflict?", "How do I balance priorities?"',
-    application: 'Family discipleship, marriage strengthening, workplace witness, community service.',
-    bibleVersion: 'ESV, NIV, NASB - balance study depth and accessibility',
-    teachingTips: 'Provide practical tools and resources. Honor their time. Offer childcare during classes.'
+    cognitiveLevel: 'Mature theological understanding. Balancing multiple life roles.',
+    attentionSpan: '30-45 minutes. Appreciate depth but need practical application.',
+    vocabulary: 'Mature theological vocabulary. Connect doctrine to daily life.',
+    activities: 'Case study discussions, mentoring, service projects, leadership development, parenting seminars.',
+    illustrations: 'Marriage challenges, parenting young children, career advancement, financial pressures, time management.',
+    questions: 'How-to questions: "How do I teach my kids?", "How do we handle conflict?", "How do I balance work and faith?"',
+    application: 'Marriage enrichment, parenting biblically, workplace integrity, financial stewardship, serving others.',
+    bibleVersion: 'NIV, ESV, CSB - balance accessibility and depth',
+    teachingTips: 'Provide practical tools. Honor time constraints. Facilitate peer learning.'
   },
   'Mid-Life Adults (Ages 36–50)': {
-    cognitiveLevel: 'Wisdom-building phase. Reflective and experiential.',
-    attentionSpan: '60+ minutes. Appreciate deep dives and discussion.',
-    vocabulary: 'Theological sophistication with life experience. Value nuanced teaching.',
-    activities: 'In-depth Bible study, book discussions, ministry leadership training, mentoring younger adults.',
-    illustrations: 'Parenting teenagers, aging parents, career transitions, health challenges, legacy building.',
-    questions: 'Integration questions: "How does this connect to...?", "What does Scripture say about...?"',
-    application: 'Raising godly teens, caring for aging parents, career ministry integration, church leadership.',
-    bibleVersion: 'ESV, NASB, NKJV - prefer depth and accuracy',
-    teachingTips: 'Draw on their wisdom. Facilitate peer-to-peer learning. Address "sandwich generation" pressures.'
+    cognitiveLevel: 'Deep theological understanding from life experience. Leading others.',
+    attentionSpan: '45-60 minutes. Appreciate thorough teaching and discussion.',
+    vocabulary: 'Rich theological vocabulary. Connect truth to complex life situations.',
+    activities: 'Leadership training, mentoring programs, mission trips, theological study, ministry service.',
+    illustrations: 'Parenting teens, caring for aging parents, career transitions, marriage longevity, financial planning.',
+    questions: 'Legacy questions: "How do I leave a godly legacy?", "How do I lead my family well?", "How do I mentor others?"',
+    application: 'Family leadership, mentoring next generation, workplace influence, generosity, church leadership.',
+    bibleVersion: 'ESV, NASB, NIV - depth for teaching others',
+    teachingTips: 'Leverage their experience. Create mentoring opportunities. Address mid-life transitions.'
   },
   'Mature Adults (Ages 51–65)': {
-    cognitiveLevel: 'Life-wisdom integration. Value depth over novelty.',
-    attentionSpan: '60+ minutes. Appreciate thorough, scholarly approaches.',
-    vocabulary: 'Lifetime of biblical knowledge. Enjoy connecting Scripture across testament.',
-    activities: 'Inductive Bible study, theological deep-dives, mentorship training, mission focus.',
-    illustrations: 'Empty nest adjustments, retirement planning, grandparenting, legacy-leaving.',
-    questions: 'Reflective questions about life meaning, spiritual legacy, ministry in later years.',
-    application: 'Mentoring next generation, wise stewardship, finishing well, renewed mission.',
-    bibleVersion: 'ESV, NASB, NKJV - prefer traditional, accurate translations',
-    teachingTips: 'Honor their experience. Create inter-generational connections. Focus on legacy and wisdom-sharing.'
+    cognitiveLevel: 'Rich theological wisdom from decades of faith. Processing legacy and purpose.',
+    attentionSpan: '45-60 minutes. Value depth and life application.',
+    vocabulary: 'Full theological depth. Connect to life\'s major transitions.',
+    activities: 'Mentoring, Bible study leadership, mission work, prayer ministry, legacy planning.',
+    illustrations: 'Empty nest, grandparenting, retirement planning, aging parents, health challenges, legacy.',
+    questions: 'Purpose questions: "What\'s my role now?", "How do I stay relevant?", "How do I finish well?"',
+    application: 'Grandparenting with purpose, mentoring younger believers, generosity, preparing for aging, leaving legacy.',
+    bibleVersion: 'ESV, NASB, NIV - translations for teaching',
+    teachingTips: 'Honor their wisdom. Address transitions positively. Create mentoring roles.'
   },
   'Active Seniors (Ages 66–75)': {
-    cognitiveLevel: 'Reflective wisdom. May need accommodations for memory.',
-    attentionSpan: '45-60 minutes with breaks. Comfortable pace appreciated.',
-    vocabulary: 'Rich biblical background. May prefer traditional terminology.',
-    activities: 'Hymn-based teaching, testimony sharing, prayer ministry, mentoring, service projects.',
-    illustrations: 'Health challenges, loss and grief, spiritual legacy, joy in golden years.',
-    questions: 'Reflection questions about life faithfulness, God\'s provision, hope in aging.',
-    application: 'Remaining active in service, prayer ministry, grandchildren discipleship, testimonies.',
+    cognitiveLevel: 'Lifetime of spiritual wisdom. May have physical limitations but mentally sharp.',
+    attentionSpan: '30-45 minutes. Value depth but need comfort considerations.',
+    vocabulary: 'Full biblical vocabulary with grace for hearing/vision challenges.',
+    activities: 'Prayer ministry, mentoring, life story sharing, simplified service projects, Bible study.',
+    illustrations: 'Retirement purpose, health challenges, grandchildren, loss of peers, God\'s faithfulness.',
+    questions: 'Reflection questions: "How has God been faithful?", "What wisdom can I share?", "How do I face aging?"',
+    application: 'Staying engaged in ministry, prayer as service, blessing family, modeling faithfulness, facing aging with grace.',
     bibleVersion: 'KJV, NKJV, ESV - may prefer familiar translations',
     teachingTips: 'Use larger fonts. Slower pace. Honor their stories. Emphasize encouragement and hope.'
   },
@@ -136,7 +145,8 @@ const ageGroupProfiles = {
     teachingTips: 'Create opportunities for cross-generational interaction. Value each age\'s contribution.'
   }
 };
-// Multi-language support configurations
+
+// Multi-language support
 const languageConfigs = {
   english: {
     name: 'English',
@@ -158,69 +168,55 @@ serve(async (req) => {
   }
 
   try {
-    console.log("=== GENERATE LESSON REQUEST STARTED ===");
-    
-    // 1. AUTHENTICATE USER
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error("Missing Authorization header");
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      console.error("Auth error:", authError);
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("User authenticated:", user.id);
-
-    // 2. PARSE REQUEST BODY
-    const body = await req.json();
-    console.log("Request body:", JSON.stringify(body, null, 2));
-
-    const {
-      passage = '',
-      topic = '',
-      ageGroup,
-      notes = '',
-      bibleVersion = 'ASV',
+    const { 
+      passage, 
+      topic, 
+      ageGroup, 
+      notes, 
+      bibleVersion, 
       theologicalPreference = 'southern_baptist',
       sbConfessionVersion = 'bfm_1963',
-      extractedContent = null
-    } = body;
+      extractedContent,
+      sessionId,
+      uploadId,
+      fileHash,
+      sourceFile
+    } = await req.json();
 
-    // 3. VALIDATE REQUIRED FIELDS
+    // VALIDATE REQUIRED FIELDS
     if (!ageGroup) {
       console.error("Missing ageGroup");
       return new Response(
         JSON.stringify({ error: 'Age group is required' }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-}
+    }
+
     if (!VALID_AGE_GROUPS.includes(ageGroup)) {
-      // DEBUG: Log exact characters to find invisible differences
-      console.error("❌ VALIDATION FAILED");
-      console.error("Received age group:", ageGroup);
-      console.error("Received length:", ageGroup.length);
-      console.error("Received char codes:", Array.from(ageGroup).map(c => c.charCodeAt(0)));
+      console.error("Invalid age group:", ageGroup);
       console.error("Valid options:", VALID_AGE_GROUPS);
-      console.error("First valid option:", VALID_AGE_GROUPS[1]);
-      console.error("First valid option char codes:", Array.from(VALID_AGE_GROUPS[1]).map(c => c.charCodeAt(0)));
-      
       return new Response(
         JSON.stringify({ 
           error: `Invalid age group: "${ageGroup}". Must be one of: ${VALID_AGE_GROUPS.join(', ')}` 
@@ -247,7 +243,7 @@ serve(async (req) => {
 
     console.log("Validation passed - generating lesson");
 
-    // 4. GET USER LANGUAGE PREFERENCE
+    // GET USER LANGUAGE PREFERENCE
     const { data: profile } = await supabase
       .from('profiles')
       .select('preferred_language')
@@ -261,7 +257,7 @@ serve(async (req) => {
     console.log("Using language:", languageConfig.name);
     console.log("Age profile loaded for:", ageGroup);
 
-    // 5. BUILD COMPREHENSIVE PROMPT WITH AGE-SPECIFIC DETAILS
+    // BUILD COMPREHENSIVE PROMPT WITH AGE-SPECIFIC DETAILS
     const systemPrompt = `You are a theologically trained Sunday School curriculum writer for the Southern Baptist Convention.
 
 ${languageConfig.promptInstruction}
@@ -286,114 +282,103 @@ AGE GROUP PROFILE for ${ageGroup}:
 OUTPUT FORMAT - TEACHER TRANSCRIPT:
 1. Lesson Overview (brief summary)
 2. Opening Prayer (2-3 sentences)
-3. Scripture Reading & Context
-4. Main Teaching Points (3-5 key points with explanations)
-5. Discussion Questions (3-5 age-appropriate questions)
-6. Activities/Application (practical ways to apply the lesson)
-7. Closing Prayer
-8. Additional Resources/Notes for Teacher`;
+3. Hook/Introduction (engage learners immediately)
+4. Bible Story/Passage Teaching (main content)
+5. Discussion Questions (age-appropriate)
+6. Practical Application (specific, actionable)
+7. Activities (hands-on learning)
+8. Memory Verse (if applicable)
+9. Closing Prayer
+10. Take-Home Points (for parents/learners)`;
 
-    let userPrompt = `Create a 45-minute ${ageGroup} teacher transcript.\n\n`;
-    if (passage) userPrompt += `Biblical Passage: ${passage}\n`;
-    if (topic) userPrompt += `Topic: ${topic}\n`;
-    if (notes) userPrompt += `Additional Notes: ${notes}\n`;
-    if (extractedContent) userPrompt += `\nExisting Curriculum to Enhance:\n${extractedContent}\n`;
-
-    console.log("Calling Anthropic API...");
-
-    // 6. CALL ANTHROPIC API
-    const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicKey) {
-      console.error("Missing ANTHROPIC_API_KEY");
-      return new Response(
-        JSON.stringify({ error: "API configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    let userPrompt = '';
+    if (passage) {
+      userPrompt += `Bible Passage: ${passage}\n`;
+    }
+    if (topic) {
+      userPrompt += `Topic: ${topic}\n`;
+    }
+    if (extractedContent) {
+      userPrompt += `Teacher's Content: ${extractedContent}\n`;
+    }
+    if (notes) {
+      userPrompt += `Additional Notes: ${notes}\n`;
+    }
+    if (bibleVersion) {
+      userPrompt += `Preferred Bible Version: ${bibleVersion}\n`;
     }
 
+    userPrompt += `\nCreate a complete, ready-to-teach Sunday School lesson for ${ageGroup} that follows the teaching profile above.`;
+
+    // CALL ANTHROPIC API
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) {
+      throw new Error("ANTHROPIC_API_KEY not configured");
+    }
+
+    console.log("Calling Anthropic API...");
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
+        "x-api-key": anthropicApiKey,
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 4096,
-        messages: [{
-          role: "user",
-          content: `${systemPrompt}\n\n${userPrompt}`
-        }]
+        messages: [
+          {
+            role: "user",
+            content: `${systemPrompt}\n\n${userPrompt}`
+          }
+        ]
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("Anthropic API error:", errorText);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate lesson" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      throw new Error(`Anthropic API error: ${response.status}`);
     }
 
     const result = await response.json();
-    const content = result.content?.[0]?.text;
-
-    if (!content) {
-      console.error("No content in response");
-      return new Response(
-        JSON.stringify({ error: "No content generated" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const generatedContent = result.content[0].text;
 
     console.log("Lesson generated successfully");
 
-    // 7. RETURN SUCCESS RESPONSE IN FORMAT FORM EXPECTS
     return new Response(
       JSON.stringify({
         success: true,
         output: {
           teacher_plan: {
-            fullContent: content,
-            overview: content.split('\n').slice(0, 3).join('\n'),
-            objectives: '',
-            scripture: passage || topic || 'Bible Lesson',
-            background: '',
-            opening: '',
-            teaching: content,
-            activities: '',
-            discussion: '',
-            applications: '',
-            assessment: '',
-            resources: '',
-            preparation: ''
+            fullContent: generatedContent,
+            overview: "Complete Sunday School Lesson",
+            scripture: passage || topic || "See lesson content",
+            targetAge: ageGroup
           }
         },
-        lesson: {
-          id: crypto.randomUUID(),
-          title: topic || passage || 'Generated Lesson'
-        },
-        sessionId: body.sessionId || '',
-        uploadId: body.uploadId || '',
-        fileHash: body.fileHash || ''
+        sessionId: sessionId || "",
+        uploadId: uploadId || "",
+        fileHash: fileHash || ""
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
 
   } catch (error) {
-    console.error("=== ERROR IN GENERATE-LESSON ===");
-    console.error(error);
+    console.error("Error in generate-lesson:", error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || "Internal server error",
-        details: error.stack
+        error: error.message || 'Internal server error',
+        details: error.toString()
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   }
 });

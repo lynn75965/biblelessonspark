@@ -1,0 +1,174 @@
+/**
+ * Theology Prompt Builder
+ * 
+ * INTERNAL USE ONLY
+ * 
+ * This module converts a TheologyProfile into a structured instruction block
+ * that MUST be included in the system prompt for every AI lesson generation.
+ * 
+ * The instruction block tells the AI:
+ * - What doctrines to prioritize
+ * - What tone to use
+ * - What to emphasize
+ * - What to avoid
+ * - How to use Scripture
+ * - What vocabulary to favor/avoid
+ * 
+ * CRITICAL: These instructions are INTERNAL and must NEVER be mentioned
+ * or exposed in the generated lesson content itself.
+ */
+
+import type { TheologyProfile } from "@/types/TheologyProfile";
+
+/**
+ * Build a theology instruction block for the AI system prompt.
+ * 
+ * This text should be prepended to the system message for every lesson generation
+ * to ensure theological guardrails are enforced.
+ * 
+ * The profile details are converted into clear, directive language that guides
+ * the AI's tone, emphasis, vocabulary, and boundaries.
+ * 
+ * @param profile - The theology profile to convert into AI instructions
+ * @returns A formatted string containing all theology instructions
+ * 
+ * @example
+ * const profile = getTheologyProfileForUser(user);
+ * const theologyBlock = buildTheologyInstructionBlock(profile);
+ * const systemPrompt = `
+ *   You are LessonSparkUSA, a Bible study lesson generator.
+ *   
+ *   ${theologyBlock}
+ *   
+ *   [Additional system instructions...]
+ * `;
+ */
+export function buildTheologyInstructionBlock(profile: TheologyProfile): string {
+  return `
+=============================================================================
+INTERNAL THEOLOGY CONSTRAINTS (DO NOT MENTION IN OUTPUT)
+=============================================================================
+
+You are generating Bible study content for a theological context defined as:
+- Theological Family: ${profile.family}
+- Confessional Anchor: ${profile.confession_label}
+
+CRITICAL: This profile is INTERNAL and MUST NOT be mentioned, referenced, or 
+described in the lesson content. Users should never see profile names, IDs, 
+or internal categorizations. These instructions shape your TONE, EMPHASIS, 
+and BOUNDARIES invisibly.
+
+-----------------------------------------------------------------------------
+DOCTRINAL PRIORITIES (What to emphasize)
+-----------------------------------------------------------------------------
+You MUST honor and prioritize these doctrinal emphases:
+${profile.doctrinal_priorities.map((p) => `  • ${p}`).join("\n")}
+
+-----------------------------------------------------------------------------
+INTERPRETIVE LENS (How to approach Scripture)
+-----------------------------------------------------------------------------
+Use this interpretive framework:
+${profile.interpretive_lens.map((p) => `  • ${p}`).join("\n")}
+
+-----------------------------------------------------------------------------
+TEACHING TONE (How to communicate)
+-----------------------------------------------------------------------------
+Maintain this tone and style throughout:
+${profile.teaching_tone.map((p) => `  • ${p}`).join("\n")}
+
+-----------------------------------------------------------------------------
+KEY DISTINCTIVES (What makes this tradition unique)
+-----------------------------------------------------------------------------
+Emphasize these distinctive theological points:
+${profile.key_distinctives_to_emphasize.map((p) => `  • ${p}`).join("\n")}
+
+-----------------------------------------------------------------------------
+BOUNDARIES (What to avoid)
+-----------------------------------------------------------------------------
+Do NOT cross these theological or stylistic boundaries:
+${profile.boundaries.map((p) => `  • ${p}`).join("\n")}
+
+-----------------------------------------------------------------------------
+SCRIPTURE USE GUIDELINES
+-----------------------------------------------------------------------------
+Follow these principles when using and applying Scripture:
+${profile.scripture_use.map((p) => `  • ${p}`).join("\n")}
+
+-----------------------------------------------------------------------------
+THEOLOGICAL POSITION PROFILES
+-----------------------------------------------------------------------------
+Soteriology (Salvation Theology): ${profile.soteriology_profile}
+Sovereignty vs Responsibility Balance: ${profile.sovereignty_vs_responsibility}
+Gospel Invitation Style: ${profile.invitation_style}
+Worship Regulation Principle: ${profile.worship_regulation}
+Gender Role Framework: ${profile.gender_role_profile}
+Holiness & Separation Approach: ${profile.holiness_separation_profile}
+
+-----------------------------------------------------------------------------
+VOCABULARY GUIDANCE
+-----------------------------------------------------------------------------
+FAVOR these concepts and vocabulary:
+${profile.allowed_vocabulary_tags.map((t) => `  • ${t}`).join("\n")}
+
+AVOID these concepts and vocabulary:
+${profile.forbidden_vocabulary_tags.map((t) => `  • ${t}`).join("\n")}
+
+=============================================================================
+END THEOLOGY CONSTRAINTS
+=============================================================================
+
+Remember: Let these constraints shape your output naturally. Do not reference
+them explicitly. Generate content that honors these boundaries while remaining
+engaging, clear, and helpful for the teacher and students.
+`.trim();
+}
+
+/**
+ * Build a condensed version of the theology instruction block.
+ * 
+ * This is useful for contexts where token limits are tight and you need
+ * a shorter version of the instructions while maintaining core guardrails.
+ * 
+ * @param profile - The theology profile to convert
+ * @returns A condensed instruction string
+ */
+export function buildCondensedTheologyBlock(profile: TheologyProfile): string {
+  return `
+THEOLOGY CONTEXT (Internal - do not mention):
+Family: ${profile.family} | Confession: ${profile.confession_label}
+
+PRIORITIES: ${profile.doctrinal_priorities.slice(0, 3).join(", ")}
+TONE: ${profile.teaching_tone.join(", ")}
+AVOID: ${profile.boundaries.slice(0, 3).join(", ")}
+
+Soteriology: ${profile.soteriology_profile}
+Invitation Style: ${profile.invitation_style}
+Gender Roles: ${profile.gender_role_profile}
+`.trim();
+}
+
+/**
+ * Validate that a theology instruction block has been included in a prompt.
+ * 
+ * This is a helper function for testing/debugging to ensure that theology
+ * instructions are actually being included in system prompts.
+ * 
+ * @param systemPrompt - The full system prompt to check
+ * @returns true if theology instructions are detected, false otherwise
+ */
+export function hasTheologyInstructions(systemPrompt: string): boolean {
+  return systemPrompt.includes("INTERNAL THEOLOGY CONSTRAINTS") ||
+         systemPrompt.includes("Theological Family:");
+}
+
+/**
+ * Extract the profile ID from a system prompt that contains theology instructions.
+ * Useful for logging/debugging which profile was used for a generation.
+ * 
+ * @param systemPrompt - The system prompt containing theology instructions
+ * @returns The profile family name, or null if not found
+ */
+export function extractProfileFamily(systemPrompt: string): string | null {
+  const match = systemPrompt.match(/Theological Family: (\w+)/);
+  return match ? match[1] : null;
+}
