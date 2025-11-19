@@ -127,7 +127,7 @@ export function EnhanceLessonForm({
     console.log("✅ FIXED: Button enabled with passage/topic even without file");
     console.log("✅ FIXED: All buttons have type='button' to prevent form submission");
     console.log("✅ FIXED: Save button works without organizationId");
-    console.log("✅ BUILD_TIMESTAMP:", new Date().toISOString()); // <-- ADD THIS LINE
+    console.log("✅ DEPLOYMENT_TIMESTAMP:", new Date().toISOString());
   }, []);
 
   React.useEffect(() => {
