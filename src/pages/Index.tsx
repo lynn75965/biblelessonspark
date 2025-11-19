@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { SetupChecklist } from "@/components/setup/SetupChecklist";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
