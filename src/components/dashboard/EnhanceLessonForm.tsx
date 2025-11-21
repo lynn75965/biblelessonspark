@@ -106,6 +106,7 @@ export function EnhanceLessonForm({
   useEffect(() => {
     if (viewingLesson) {
       setGeneratedContent({ fullContent: viewingLesson.original_text });
+      setEnhancedResult({ viewing: true });
       setLessonTitle(viewingLesson.title || "");
     }
   }, [viewingLesson]);
