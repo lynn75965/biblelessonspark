@@ -89,6 +89,9 @@ export default function Dashboard({
   };
 
   const handleViewLesson = (lesson: any) => {
+    console.log('DEBUG Dashboard: handleViewLesson called');
+    console.log('DEBUG Dashboard: lesson object:', lesson);
+    console.log('DEBUG Dashboard: lesson.original_text:', lesson?.original_text);
     trackLessonViewed(lesson.id);
     setSelectedLesson(lesson);
     setActiveTab("enhance");
