@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
+import { LESSON_SECTIONS, LESSON_STRUCTURE_VERSION, TOTAL_TARGET_WORD_COUNT, buildLessonStructurePrompt } from '../_shared/lessonStructure.ts'
 
 interface TeacherPreferences {
   teachingStyle: string;
@@ -93,7 +94,7 @@ function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: 
 }
 
 function parseAgeGroup(ageGroup: string): { category: string; ageRange: string; description: string } {
-  const ageRangeMatch = ageGroup.match(/\(Ages?\s+([\d–\-]+)\s*[+]?\)/i);
+  const ageRangeMatch = ageGroup.match(/\(Ages?\s+([\dâ€“\-]+)\s*[+]?\)/i);
   const ageRange = ageRangeMatch ? ageRangeMatch[1] : '';
 
   let category = 'General';
@@ -267,8 +268,11 @@ async function generateLessonWithAI(data: LessonRequest) {
     ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
     : `Generate a complete, original lesson plan based on: "${passageOrTopic}".`;
 
-  const lensDisplayName = versionLabel ? `${lens.name} – ${versionLabel}` : lens.name;
+  const lensDisplayName = versionLabel ? `${lens.name} â€“ ${versionLabel}` : lens.name;
   const lensSubtitle = versionLabel ? `Confession: ${versionLabel}` : '';
+
+  // Build dynamic lesson structure from SSOT constants
+  const lessonStructurePrompt = buildLessonStructurePrompt();
 
   const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.theologicalPreference]}
 
@@ -282,29 +286,17 @@ REQUIRED: At the very top of your lesson output, include:
 1. A Lens Banner showing: "Theological Lens: ${lensDisplayName}"
 ${lensSubtitle ? `   ${lensSubtitle}` : ''}
 2. A "Lens Distinctives" section with exactly these bullet points (use verbatim):
-   ${lens.label}${versionLabel ? ` – ${versionLabel}` : ''}
-${lensDistinctives.map(d => `   • ${d}`).join('\n')}
+   ${lens.label}${versionLabel ? ` â€“ ${versionLabel}` : ''}
+${lensDistinctives.map(d => `   â€¢ ${d}`).join('\n')}
 
-REQUIRED: Prefix the lesson title with "${lens.short} • " (e.g., "${lens.short} • Understanding Grace")
+REQUIRED: Prefix the lesson title with "${lens.short} â€¢ " (e.g., "${lens.short} â€¢ Understanding Grace")
 
 TEACHER CUSTOMIZATION PROFILE:
 ${customizationContext}
 
 Create a publication-ready, comprehensive lesson that includes:
 
-LESSON STRUCTURE REQUIREMENTS:
-1. Lesson Overview (2-3 paragraphs)
-2. Learning Objectives (3-5 specific, measurable goals)
-3. Key Scripture Passages (with context and cross-references)
-4. Theological Background (denominational perspective and historical context)
-5. Opening Activities (2-3 engaging warm-up activities)
-6. Main Teaching Content (detailed exposition with illustrations)
-7. Interactive Activities (4-6 varied activities for different learning styles)
-8. Discussion Questions (8-10 thought-provoking questions)
-9. Life Applications (practical, age-appropriate applications)
-10. Assessment Methods (ways to measure understanding)
-11. Student Handout (1-page printable handout with: lesson title, key Scripture verses, 4-6 fill-in-the-blank or reflection questions, memory verse, and take-home challenge)
-12. Teacher Preparation Notes (background study and tips)
+${lessonStructurePrompt}
 
 CONTENT QUALITY REQUIREMENTS:
 - Each section should be detailed and comprehensive (not bullet points)
@@ -324,7 +316,9 @@ ${data.notes ? `ADDITIONAL REQUIREMENTS: ${data.notes}` : ''}
 REQUIRED FOOTER: At the end of the lesson, include this note:
 "This lesson reflects the ${lens.name} lens selected in settings."
 
-CRITICAL: Aim for approximately 4000-4500 words total. Ensure ALL sections are complete with proper conclusions. Do not cut off mid-sentence. If approaching the limit, prioritize completing sections over starting new ones.
+CRITICAL: Aim for approximately ${TOTAL_TARGET_WORD_COUNT}-${TOTAL_TARGET_WORD_COUNT + 500} words total. Ensure ALL ${LESSON_SECTIONS.length} sections are complete with proper conclusions. Do not cut off mid-sentence. Do not skip Section 11 (Student Handout). If approaching the limit, prioritize completing sections over starting new ones.
+
+Lesson Structure Version: ${LESSON_STRUCTURE_VERSION}
 
 Return a comprehensive lesson plan that a teacher could print and use immediately for a 45-60 minute class session.`;
 
@@ -332,6 +326,10 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
 
   try {
     console.log('Calling Anthropic API with Claude...');
+    console.log(`Using Lesson Structure Version: ${LESSON_STRUCTURE_VERSION}`);
+    console.log(`Total sections required: ${LESSON_SECTIONS.length}`);
+    console.log(`Target word count: ${TOTAL_TARGET_WORD_COUNT}`);
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -341,7 +339,7 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 6500,
+        max_tokens: 8000,
         system: systemPrompt,
         messages: [
           { role: 'user', content: userPrompt }
@@ -361,7 +359,8 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
     return {
       fullContent: content,
       wordCount: content.length,
-      estimatedDuration: '45-60 minutes'
+      estimatedDuration: '45-60 minutes',
+      structureVersion: LESSON_STRUCTURE_VERSION
     };
   } catch (error) {
     console.error('Error calling Anthropic:', error);
@@ -450,25 +449,25 @@ serve(async (req) => {
     const rateLimit = checkRateLimit(user.id);
     if (!rateLimit.allowed) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'Rate limit exceeded. Please try again later.',
-          resetTime: rateLimit.resetTime 
+          resetTime: rateLimit.resetTime
         }),
-        { 
-          status: 429, 
-          headers: { 
-            ...corsHeaders, 
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
             'Content-Type': 'application/json',
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': rateLimit.resetTime.toString()
-          } 
+          }
         }
       );
     }
 
     const requestData = await req.json()
     console.log('Received request:', JSON.stringify(requestData, null, 2))
-    
+
     const validatedData = validateInput(requestData)
     console.log('Validated data:', JSON.stringify(validatedData, null, 2))
 
@@ -498,7 +497,8 @@ serve(async (req) => {
             estimatedDuration: lessonContent.estimatedDuration,
             theologicalPreference: validatedData.theologicalPreference,
             sbConfessionVersion: validatedData.sbConfessionVersion || null,
-            bibleVersion: validatedData.bibleVersion || 'KJV'
+            bibleVersion: validatedData.bibleVersion || 'KJV',
+            structureVersion: lessonContent.structureVersion
           }
         }
       })

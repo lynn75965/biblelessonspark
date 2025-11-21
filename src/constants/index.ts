@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LessonSparkUSA Constants - Single Export Point
  * 
  * This is the SINGLE SOURCE OF TRUTH for all structural constants.
@@ -16,7 +16,7 @@
 // ============================================================
 // TIER 1: Supreme/Foundational (UNCHANGING)
 // ============================================================
-// export * from './lessonStructure';  // Phase 1
+export * from './lessonStructure';
 
 // ============================================================
 // TIER 2: Customizations (User selects from Admin options)
