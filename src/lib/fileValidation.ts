@@ -92,7 +92,6 @@ export const lessonFormSchema = z.object({
   // Accept any age group string from frontend
   ageGroup: z.string().min(1, 'Age group is required'),
 
-  doctrineProfile: z.string().optional(),
 
   notes: z.string()
     .max(1000, 'Notes must be less than 1000 characters')
