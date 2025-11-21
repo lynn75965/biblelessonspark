@@ -104,9 +104,6 @@ export function EnhanceLessonForm({
 
   // Initialize from viewingLesson when provided
   useEffect(() => {
-    console.log('DEBUG EnhanceLessonForm: useEffect triggered');
-    console.log('DEBUG EnhanceLessonForm: viewingLesson prop:', viewingLesson);
-    console.log('DEBUG EnhanceLessonForm: original_text value:', viewingLesson?.original_text);
     if (viewingLesson) {
       setGeneratedContent({ fullContent: viewingLesson.original_text });
       setEnhancedResult({ viewing: true });
