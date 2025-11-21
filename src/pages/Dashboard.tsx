@@ -44,6 +44,7 @@ export default function Dashboard({
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
+  const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { balance, loading: creditsLoading, refetch: refetchCredits } = useCredits();
@@ -89,6 +90,8 @@ export default function Dashboard({
 
   const handleViewLesson = (lesson: any) => {
     trackLessonViewed(lesson.id);
+    setSelectedLesson(lesson);
+    setActiveTab("enhance");
     toast({
       title: "Opening lesson",
       description: `Opening "${lesson.title}" for viewing.`,
@@ -328,7 +331,9 @@ export default function Dashboard({
               organizationId={organization?.id}
               userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
               defaultDoctrine={organization?.default_doctrine || "SBC"}
-            />
+                viewingLesson={selectedLesson}
+                onClearViewing={() => setSelectedLesson(null)}
+              />
           </TabsContent>
 
           <TabsContent value="library" className="mt-6">

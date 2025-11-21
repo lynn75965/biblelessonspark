@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,11 +9,11 @@ import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
 
 interface LessonLibraryProps {
-  onViewLesson?: (lessonId: string) => void;
+  onViewLesson?: (lesson: any) => void;
   organizationId?: string;
 }
 
-// ✅ UPDATED: Changed doctrine_profile to theological_preference
+// ? UPDATED: Changed doctrine_profile to theological_preference
 interface LessonDisplay extends Lesson {
   passage_or_topic: string;
   age_group: string;
@@ -68,7 +68,7 @@ export function LessonLibrary({
     return colors[ageGroup] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
-  // ✅ UPDATED: Changed keys to use full theological preference names
+  // ? UPDATED: Changed keys to use full theological preference names
   const getDoctrineBadgeColor = (doctrine: string) => {
     const colors = {
       southern_baptist: "bg-primary-light text-primary border-primary/20",
@@ -155,7 +155,7 @@ export function LessonLibrary({
               </SelectContent>
             </Select>
 
-            {/* Doctrine Filter - ✅ UPDATED: Values changed to full theological preference names */}
+            {/* Doctrine Filter - ? UPDATED: Values changed to full theological preference names */}
             <Select value={doctrineFilter} onValueChange={setDoctrineFilter}>
               <SelectTrigger className="w-full sm:w-[160px] text-xs sm:text-sm">
                 <SelectValue placeholder="All Doctrines" />
@@ -225,7 +225,7 @@ export function LessonLibrary({
                 {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => onViewLesson?.(lesson.id)}
+                    onClick={() => onViewLesson?.(lesson)}
                     className="flex-1"
                     size="sm"
                   >

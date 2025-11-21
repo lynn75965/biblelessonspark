@@ -28,6 +28,8 @@ interface EnhanceLessonFormProps {
   organizationId?: string;
   userPreferredAgeGroup?: string;
   defaultDoctrine?: string;
+  viewingLesson?: any;
+  onClearViewing?: () => void;
 }
 
 interface LessonContent {
@@ -57,7 +59,9 @@ interface LessonContent {
 export function EnhanceLessonForm({
   organizationId,
   userPreferredAgeGroup = getDefaultAgeGroup(),
-  defaultDoctrine = "SBC"
+  defaultDoctrine = "SBC",
+  viewingLesson,
+  onClearViewing
 }: EnhanceLessonFormProps) {
   const [enhancementType, setEnhancementType] = useState("curriculum");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -97,6 +101,14 @@ export function EnhanceLessonForm({
   const [showCustomization, setShowCustomization] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
+
+  // Initialize from viewingLesson when provided
+  useEffect(() => {
+    if (viewingLesson) {
+      setGeneratedContent({ fullContent: viewingLesson.original_text });
+      setLessonTitle(viewingLesson.title || "");
+    }
+  }, [viewingLesson]);
   const [enhancedResult, setEnhancedResult] = useState<any | null>(null);
   const [lessonTitle, setLessonTitle] = useState("");
   const { toast } = useToast();
