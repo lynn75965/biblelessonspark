@@ -905,7 +905,8 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
           </CardHeader>
           <CardContent className="space-y-4 px-4 sm:px-6">
             {generatedContent ? (
-              <>
+              generatedContent.overview ? (
+                <>
                 <div className="space-y-2">
                   <h2 className="text-lg sm:text-xl font-semibold">Overview</h2>
                   <p className="text-sm sm:text-base">{generatedContent.overview}</p>
@@ -959,6 +960,11 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                   <pre className="whitespace-pre-wrap">{generatedContent.fullContent}</pre>
                 </div>
               </>
+            ) : generatedContent.fullContent ? (
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold">Lesson Content</h2>
+                <pre className="whitespace-pre-wrap">{generatedContent.fullContent}</pre>
+              </div>
             ) : (
               <p>No lesson content generated yet.</p>
             )}
