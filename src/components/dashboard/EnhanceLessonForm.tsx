@@ -123,7 +123,7 @@ export function EnhanceLessonForm({
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return ${mins}:;
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   };
   const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
 
@@ -897,13 +897,15 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
               className="w-full sm:w-auto" 
               size="lg"
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  <span className="hidden xs:inline">Generating...</span>
-                  <span className="xs:hidden">...</span>
-                </>
-              ) : (
+              {isGenerating || generationStatus === 'timeout' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span className="hidden xs:inline">
+                      {generationStatus === 'timeout' ? `Processing... ${formatTime(elapsedSeconds)}` : `Generating... ${formatTime(elapsedSeconds)}`}
+                    </span>
+                    <span className="xs:hidden">{formatTime(elapsedSeconds)}</span>
+                  </>
+                ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
                   <span className="hidden xs:inline">
@@ -915,6 +917,24 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                 </>
               )}
             </Button>
+
+              {/* Generation Status Message */}
+              {(generationStatus === 'generating' || generationStatus === 'timeout') && (
+                <Alert className={`mt-4 ${generationStatus === 'timeout' ? 'border-amber-500 bg-amber-50' : 'border-blue-500 bg-blue-50'}`}>
+                  <Clock className="h-4 w-4" />
+                  <AlertDescription>
+                    {generationStatus === 'timeout' ? (
+                      <span>
+                        <strong>Still working!</strong> {generationMessage || 'Your lesson is being generated on the server. Check your Lesson Library in 1-2 minutes.'}
+                      </span>
+                    ) : (
+                      <span>
+                        <strong>Generating your lesson...</strong> This typically takes 2-3 minutes. Please don't close this page.
+                      </span>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
           </form>
         </CardContent>
       </Card>

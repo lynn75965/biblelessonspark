@@ -616,10 +616,13 @@ export function TeacherCustomization({
           <div className="flex items-center justify-between">
             <Button
               variant="outline"
+              type="button"
               onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
               disabled={currentStep === 0}
             >
-              <ChevronLeft className="h-4 w-4 mr-2" />
+              type="button"
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
 
@@ -652,6 +655,7 @@ export function TeacherCustomization({
             </div>
 
             <Button
+              type="button"
               onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
               disabled={currentStep === steps.length - 1}
             >
