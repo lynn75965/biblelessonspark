@@ -23,6 +23,7 @@ export type {
   LessonGenerationRequest,
   LessonContent,
   LessonGenerationResponse,
+  LessonFilters,
 } from './contracts';
 
 // ============================================================================

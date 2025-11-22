@@ -484,13 +484,13 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
           preparation: generatedContent.preparation || "",
           passage: formData.passage,
           topic: formData.topic,
-          age_group: formData.ageGroup,
+          ageGroup: formData.ageGroup,
           notes: formData.notes,
-          bible_version: formData.bibleVersion,
-          theological_preference: formData.theologicalPreference,
-          sb_confession_version: formData.sbConfessionVersion,
-          session_id: sessionId || null,
-          upload_id: uploadId || null,
+          bibleVersion: formData.bibleVersion,
+          theologicalPreference: formData.theologicalPreference,
+          sbConfessionVersion: formData.sbConfessionVersion,
+          sessionId: sessionId || null,
+          uploadId: uploadId || null,
           file_hash: fileHash || null,
         },
         organization_id: organizationId || undefined,
@@ -527,8 +527,8 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
       });
       trackEvent("lesson_copied", undefined, {
         lesson_title: lessonTitle,
-        age_group: formData.ageGroup,
-        theological_preference: formData.theologicalPreference,
+        ageGroup: formData.ageGroup,
+        theologicalPreference: formData.theologicalPreference,
       });
     } else {
       toast({
@@ -566,8 +566,8 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
         printWindow.close();
         trackEvent("lesson_printed", undefined, {
           lesson_title: lessonTitle,
-          age_group: formData.ageGroup,
-          theological_preference: formData.theologicalPreference,
+          ageGroup: formData.ageGroup,
+          theologicalPreference: formData.theologicalPreference,
         });
       }
     } else {
@@ -592,8 +592,8 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
       URL.revokeObjectURL(url);
       trackEvent("lesson_downloaded", undefined, {
         lesson_title: lessonTitle,
-        age_group: formData.ageGroup,
-        theological_preference: formData.theologicalPreference,
+        ageGroup: formData.ageGroup,
+        theologicalPreference: formData.theologicalPreference,
       });
     } else {
       toast({

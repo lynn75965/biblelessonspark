@@ -35,9 +35,9 @@ export function LessonLibrary({
 
   const displayLessons: LessonDisplay[] = lessons.map(lesson => ({
     ...lesson,
-    passage_or_topic: lesson.title || (lesson.filters?.passage_or_topic) || "Untitled Lesson",
-    age_group: lesson.filters?.age_group || 'Mixed Groups',
-    theological_preference: lesson.filters?.theological_preference || lesson.filters?.theologicalPreference || "southern_baptist",
+    passage_or_topic: lesson.title || (lesson.filters?.passageOrTopic) || "Untitled Lesson",
+    age_group: lesson.filters?.ageGroup || 'Mixed Groups',
+    theological_preference: lesson.filters?.theologicalPreference || lesson.filters?.theologicalPreference || "southern_baptist",
     created_by_name: "Teacher",
     has_content: !!lesson.original_text,
     updated_at: lesson.created_at,
