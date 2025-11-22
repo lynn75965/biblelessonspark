@@ -1,18 +1,29 @@
-﻿// supabase/functions/_shared/lessonStructure.ts
+﻿// src/constants/lessonSections.ts
 // ═══════════════════════════════════════════════════════════════════════════════
-// BACKEND SINGLE SOURCE OF TRUTH: Lesson Output Structure
+// SINGLE SOURCE OF TRUTH: Lesson Output Structure
 // ═══════════════════════════════════════════════════════════════════════════════
 // 
-// This file mirrors src/constants/lessonSections.ts for the Edge Function.
+// This file defines the 8-Section LessonSparkUSA Framework.
 // 
 // GOVERNANCE PRINCIPLE: "Maximum sophistication with minimum redundancy"
 // 
-// When updating this file, also update the frontend version to stay in sync.
+// Admin can modify:
+//   - Section word limits (minWords, maxWords)
+//   - Content rules and prohibitions
+//   - Enable/disable sections
+//   - Add new sections for future features
+//
+// The Edge Function dynamically builds prompts from this SSOT.
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const LESSON_STRUCTURE_VERSION = "2.0.0";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION INTERFACE
+// ═══════════════════════════════════════════════════════════════════════════════
+
 export interface LessonSection {
+  // BETA-ESSENTIAL (Active Now)
   id: number;
   key: string;
   name: string;
@@ -24,7 +35,19 @@ export interface LessonSection {
   contentRules: string[];
   prohibitions: string[];
   redundancyLock: string[];
+  
+  // FUTURE-READY (Defined but not enforced in Beta)
+  tier?: 'free' | 'basic' | 'standard' | 'premium' | 'enterprise';
+  featureFlag?: string;
+  creditCost?: number;
+  upsellMessage?: string;
+  outputTarget?: 'teacher' | 'student' | 'both';
+  deliveryTiming?: 'pre-lesson' | 'during-lesson' | 'post-lesson';
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// THE 8-SECTION FRAMEWORK
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export const LESSON_SECTIONS: LessonSection[] = [
   {
@@ -50,7 +73,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "No activity descriptions",
       "No scripture exposition"
     ],
-    redundancyLock: []
+    redundancyLock: [],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 2,
@@ -73,7 +101,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "Minimal commentary on passages",
       "No activities"
     ],
-    redundancyLock: []
+    redundancyLock: [],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 3,
@@ -100,7 +133,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "No student handout content",
       "This section is for TEACHER BACKGROUND only"
     ],
-    redundancyLock: []
+    redundancyLock: [],
+    tier: 'basic',
+    featureFlag: "deep_theology",
+    creditCost: 1,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 4,
@@ -123,7 +161,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "No lengthy explanations",
       "No main teaching content"
     ],
-    redundancyLock: ["theological_background"]
+    redundancyLock: ["theological_background"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 5,
@@ -150,7 +193,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "Do NOT re-explain doctrine already covered",
       "This is SPOKEN WORDS, not written essay"
     ],
-    redundancyLock: ["theological_background"]
+    redundancyLock: ["theological_background"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 6,
@@ -173,7 +221,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "No duplicate content from opening activities",
       "No new teaching - activities reinforce only"
     ],
-    redundancyLock: ["theological_background", "opening_activities"]
+    redundancyLock: ["theological_background", "opening_activities"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 7,
@@ -196,7 +249,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "Do NOT repeat transcript content from Section 5",
       "No re-teaching - this assesses understanding"
     ],
-    redundancyLock: ["theological_background", "teaching_transcript"]
+    redundancyLock: ["theological_background", "teaching_transcript"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 8,
@@ -224,7 +282,12 @@ export const LESSON_SECTIONS: LessonSection[] = [
       "Must be CREATIVELY DISTINCT from teacher materials",
       "No teacher notes or instructions"
     ],
-    redundancyLock: ["theological_background", "teaching_transcript", "discussion_assessment"]
+    redundancyLock: ["theological_background", "teaching_transcript", "discussion_assessment"],
+    tier: 'standard',
+    featureFlag: "student_handout",
+    creditCost: 1,
+    outputTarget: 'student',
+    deliveryTiming: 'during-lesson'
   }
 ];
 
@@ -241,6 +304,9 @@ export const getRequiredSections = (): LessonSection[] =>
 export const getSectionByKey = (key: string): LessonSection | undefined =>
   LESSON_SECTIONS.find(s => s.key === key);
 
+export const getSectionById = (id: number): LessonSection | undefined =>
+  LESSON_SECTIONS.find(s => s.id === id);
+
 export const getTotalMinWords = (): number =>
   getEnabledSections().reduce((sum, s) => sum + s.minWords, 0);
 
@@ -249,93 +315,3 @@ export const getTotalMaxWords = (): number =>
 
 export const getSectionCount = (): number =>
   getEnabledSections().length;
-
-// For backward compatibility
-export const TOTAL_TARGET_WORD_COUNT = getTotalMaxWords();
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// PROMPT GENERATION FOR CLAUDE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export const generateSectionPrompt = (section: LessonSection): string => {
-  const rules = section.contentRules.map(r => `    - ${r}`).join('\n');
-  const prohibitions = section.prohibitions.map(p => `    - ${p}`).join('\n');
-  const lockNote = section.redundancyLock.length > 0
-    ? `\n  REDUNDANCY LOCK: Content from sections [${section.redundancyLock.join(', ')}] must NOT be repeated here.`
-    : '';
-
-  return `
-SECTION ${section.id}: ${section.name.toUpperCase()}
-Purpose: ${section.purpose}
-Word Budget: ${section.minWords}-${section.maxWords} words
-${lockNote}
-
-MUST Include:
-${rules}
-
-MUST NOT Include:
-${prohibitions}
-`;
-};
-
-export const generateFullPromptStructure = (): string => {
-  const sections = getEnabledSections();
-  const sectionPrompts = sections.map(generateSectionPrompt).join('\n');
-
-  const totalMin = getTotalMinWords();
-  const totalMax = getTotalMaxWords();
-  const sectionCount = getSectionCount();
-
-  return `
-THE REQUIRED ${sectionCount}-SECTION LESSONSPARKUSA FORMAT
-Total Target: ${totalMin}-${totalMax} words
-Structure Version: ${LESSON_STRUCTURE_VERSION}
-
-GOVERNING PRINCIPLE: "Maximum sophistication with minimum redundancy"
-
-OUTPUT COMPRESSION RULES:
-1. If a concept appears in Section 3 (Theological Background), it must NOT be 
-   repeated in Sections 5, 7, or 8. Reference it; do not re-explain it.
-2. Each section has a word budget. Stay within it.
-3. If running long, COMPRESS content - never skip or truncate sections.
-4. Sophistication is preserved; redundancy is removed.
-5. No filler phrases.
-
-${sectionPrompts}
-
-COMPLETION CHECKPOINT - VERIFY BEFORE FINISHING:
-- All ${sectionCount} sections are present (Sections ${sections.map(s => s.id).join(', ')})
-- Each section header is clearly marked with "SECTION X: NAME"
-- No section ends mid-sentence
-- Section ${sections[sections.length - 1].id} (${sections[sections.length - 1].name}) is fully formatted
-- Total output is approximately ${totalMin}-${totalMax} words
-- No redundant content between sections
-- Student Handout is CREATIVELY DISTINCT from teacher content
-`;
-};
-
-export const generateBehaviorRules = (): string => {
-  return `
-CONTENT BEHAVIOR RULES
-
-MAINTAIN FULL SOPHISTICATION:
-- High-level exegesis appropriate to the passage
-- Age-appropriate clarity without dumbing down
-- Hermeneutical precision in theological background
-- No oversimplification of doctrine
-
-NEVER PAD FOR LENGTH:
-- No filler text
-- No sentences that exist only to increase word count
-- Every sentence must add value
-
-ERROR PREVENTION:
-- No recursive theological explanation
-- No re-explaining the same point in multiple sections
-- No excessive transitions between paragraphs
-- No duplicate bullet lists across sections
-- No academic paper style - this is a practical lesson plan
-- No overly long paragraph blocks - break up with structure
-- No re-teaching same content in both teacher and student versions
-`;
-};

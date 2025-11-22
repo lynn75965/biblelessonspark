@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+﻿import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -85,7 +85,7 @@ export function EnhanceLessonForm({
   const [isExtracting, setIsExtracting] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // ✅ FIXED: Separate passage and topic fields
+  // âœ… FIXED: Separate passage and topic fields
   const [formData, setFormData] = useState({
     passage: "",
     topic: "",
@@ -144,10 +144,10 @@ export function EnhanceLessonForm({
 
   // Verification marker
   useEffect(() => {
-    console.log("✅ VERIFIED_BUILD: EnhanceLessonForm FIXED version loaded");
-    console.log("✅ FIXED: Separate passage and topic fields");
-    console.log("✅ FIXED: Optional file upload");
-    console.log("✅ FIXED: Button enabled with passage/topic even without file");
+    console.log("âœ… VERIFIED_BUILD: EnhanceLessonForm FIXED version loaded");
+    console.log("âœ… FIXED: Separate passage and topic fields");
+    console.log("âœ… FIXED: Optional file upload");
+    console.log("âœ… FIXED: Button enabled with passage/topic even without file");
   }, []);
 
   React.useEffect(() => {
@@ -342,7 +342,7 @@ export function EnhanceLessonForm({
     }
   };
 
-  // ✅ FIXED: New validation logic
+  // âœ… FIXED: New validation logic
   const isFormValid = () => {
     // Must have user authentication
     if (!user) return false;
@@ -358,7 +358,6 @@ export function EnhanceLessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ FIXED: Only require user authentication, not file IDs
     if (!user) {
       toast({
         title: "Authentication required",
@@ -368,7 +367,6 @@ export function EnhanceLessonForm({
       return;
     }
 
-    // ✅ FIXED: Validate that user has entered passage, topic, OR uploaded file
     if (!formData.passage.trim() && !formData.topic.trim() && !extractedContent) {
       toast({
         title: "Missing input",
@@ -378,8 +376,10 @@ export function EnhanceLessonForm({
       return;
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+
     try {
-      // ✅ FIXED: Determine mode based on what user provided
       const mode = extractedContent ? "enhance" : "generate";
       const passageOrTopic = formData.passage.trim() || formData.topic.trim();
 
@@ -389,15 +389,12 @@ export function EnhanceLessonForm({
       const { data: { session } } = await (await import('@/integrations/supabase/client')).supabase.auth.getSession();
       const authToken = session?.access_token;
 
-      if (!authToken) {
-        throw new Error('Authentication required');
-      }
+      if (!authToken) throw new Error('Authentication required');
 
-      // ✅ FIXED: Build request body conditionally
       const requestBody: any = {
         passage: formData.passage.trim(),
         topic: formData.topic.trim(),
-        passageOrTopic, // Keep for backward compatibility
+        passageOrTopic,
         ageGroup: formData.ageGroup,
         notes: formData.notes,
         bibleVersion: formData.bibleVersion,
@@ -407,7 +404,6 @@ export function EnhanceLessonForm({
         sbConfessionVersion: formData.sbConfessionVersion,
       };
 
-      // Only include file-related data if file was uploaded
       if (extractedContent) {
         requestBody.extractedContent = extractedContent;
         requestBody.sessionId = sessionId;
@@ -417,7 +413,7 @@ export function EnhanceLessonForm({
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${Date.now()}`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -425,21 +421,21 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
         },
         body: JSON.stringify(requestBody),
         cache: 'no-store',
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
       const result = await response.json();
 
-      console.log('ENHANCE_STARTED', {
+      console.log('LESSON_GENERATED', {
         jobId: result?.lesson?.id,
         mode,
-        uploadId: result?.uploadId,
-        sessionId: result?.sessionId,
-        fileHash: result?.fileHash
+        wordCount: result?.output?.teacher_plan?.wordCount,
+        sectionCount: result?.output?.teacher_plan?.sectionCount
       });
 
-      // ✅ FIXED: Handle result regardless of whether file was uploaded
       if (result.success) {
         setGeneratedContent(result.output?.teacher_plan);
         setLessonTitle(result.lesson?.title || '');
@@ -450,390 +446,35 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
           fileHash: result.fileHash,
         });
 
-        console.log('ENHANCE_RESULT', {
-          jobId: result.lesson?.id,
-          mode,
-          uploadId: result.uploadId,
-          sessionId: result.sessionId,
-          fileHash: result.fileHash,
-          source: sourceFilename || 'manual_entry',
-        });
-
         toast({
           title: mode === "enhance" ? "Lesson enhanced successfully!" : "Lesson generated successfully!",
-          description: "Your comprehensive lesson content is ready.",
+          description: `Your ${result.output?.teacher_plan?.sectionCount || 8}-section lesson is ready.`,
         });
       } else {
         throw new Error(result.error || 'Failed to generate lesson');
       }
     } catch (error: any) {
-      console.error('Enhancement error:', error);
-      toast({
-        title: "Generation failed",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
+      clearTimeout(timeoutId);
+
+      if (error.name === 'AbortError') {
+        console.log('Frontend timeout - server may still be processing');
+        toast({
+          title: "Request timed out",
+          description: "Your lesson may still be generating. Check Lesson Library in 1-2 minutes.",
+          variant: "default",
+        });
+      } else {
+        console.error('Generation error:', error);
+        toast({
+          title: "Generation failed",
+          description: error.message || "Please try again",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsGenerating(false);
     }
   };
-
-  const handleSave = async () => {
-    if (!generatedContent || !user) {
-      toast({
-        title: "Missing data",
-        description: "Please generate a lesson before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const lessonData = {
-        title: lessonTitle,
-        original_text: generatedContent.fullContent || "",
-        source_type: extractedContent ? "enhanced" : "generated",
-        upload_path: sourceFilename || null,
-        filters: {
-          overview: generatedContent.overview || "",
-          objectives: generatedContent.objectives || "",
-          scripture: generatedContent.scripture || "",
-          background: generatedContent.background || "",
-          opening: generatedContent.opening || "",
-          teaching: generatedContent.teaching || "",
-          activities: generatedContent.activities || "",
-          discussion: generatedContent.discussion || "",
-          applications: generatedContent.applications || "",
-          assessment: generatedContent.assessment || "",
-          resources: generatedContent.resources || "",
-          preparation: generatedContent.preparation || "",
-          passage: formData.passage,
-          topic: formData.topic,
-          ageGroup: formData.ageGroup,
-          notes: formData.notes,
-          bibleVersion: formData.bibleVersion,
-          theologicalPreference: formData.theologicalPreference,
-          sbConfessionVersion: formData.sbConfessionVersion,
-          sessionId: sessionId || null,
-          uploadId: uploadId || null,
-          file_hash: fileHash || null,
-        },
-        organization_id: organizationId || undefined,
-      };
-
-      const result = await createLesson(lessonData);
-
-      if (result.data && !result.error) {
-        trackLessonCreated(result.data.id);
-        toast({
-          title: "Lesson saved!",
-          description: "Your lesson has been successfully saved.",
-        });
-        handleClearForm();
-      } else {
-        throw new Error(result.error?.message || "Failed to save lesson");
-      }
-    } catch (error: any) {
-      console.error("Save error:", error);
-      toast({
-        title: "Save failed",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCopy = () => {
-    if (generatedContent?.fullContent) {
-      navigator.clipboard.writeText(generatedContent.fullContent);
-      toast({
-        title: "Content copied!",
-        description: "Full lesson content copied to clipboard.",
-      });
-      trackEvent("lesson_copied", undefined, {
-        lesson_title: lessonTitle,
-        ageGroup: formData.ageGroup,
-        theologicalPreference: formData.theologicalPreference,
-      });
-    } else {
-      toast({
-        title: "No content to copy",
-        description: "Generate a lesson first.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handlePrint = () => {
-    if (generatedContent?.fullContent) {
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-          <head>
-            <title>${lessonTitle}</title>
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
-              h1 { font-size: 24px; margin-bottom: 20px; }
-              h2 { font-size: 18px; margin-top: 30px; margin-bottom: 10px; }
-              p { margin-bottom: 10px; }
-            </style>
-          </head>
-          <body>
-            <h1>${lessonTitle}</h1>
-            <pre>${generatedContent.fullContent}</pre>
-          </body>
-          </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-        trackEvent("lesson_printed", undefined, {
-          lesson_title: lessonTitle,
-          ageGroup: formData.ageGroup,
-          theologicalPreference: formData.theologicalPreference,
-        });
-      }
-    } else {
-      toast({
-        title: "No content to print",
-        description: "Generate a lesson first.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDownload = () => {
-    if (generatedContent?.fullContent) {
-      const blob = new Blob([generatedContent.fullContent], { type: "text/plain" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${sanitizeFileName(lessonTitle)}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      trackEvent("lesson_downloaded", undefined, {
-        lesson_title: lessonTitle,
-        ageGroup: formData.ageGroup,
-        theologicalPreference: formData.theologicalPreference,
-      });
-    } else {
-      toast({
-        title: "No content to download",
-        description: "Generate a lesson first.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleClearForm = () => {
-    setGeneratedContent(null);
-    setLessonTitle("");
-    setFormData(prev => ({ ...prev, passage: "", topic: "" }));
-  };
-
-  return (
-    <div className="w-full px-4 sm:px-0">
-      {/* Debug Panel */}
-      {extractJobId && extractState !== 'idle' && extractState !== 'done' && extractState !== 'failed' && (
-        <div className="fixed bottom-4 right-4 bg-background border border-border rounded-lg shadow-lg p-3 sm:p-4 max-w-[90vw] sm:max-w-md z-50 text-xs sm:text-sm">
-          <div className="font-mono space-y-1">
-            <div className="font-semibold text-foreground mb-2">Extraction Status</div>
-            <div className="text-muted-foreground">
-              <span className="text-foreground">Job:</span> {extractJobId.slice(0, 8)}...
-            </div>
-            <div className="text-muted-foreground">
-              <span className="text-foreground">State:</span> {extractState} {extractProgress > 0 && `(${extractProgress}%)`}
-            </div>
-            <div className="text-muted-foreground">
-              <span className="text-foreground">sessionId:</span> {sessionId.slice(0, 8)}...
-            </div>
-            <div className="text-muted-foreground">
-              <span className="text-foreground">uploadId:</span> {uploadId.slice(0, 8)}...
-            </div>
-            <div className="text-muted-foreground">
-              <span className="text-foreground">fileHash:</span> {fileHash.slice(0, 8)}...
-            </div>
-            <div className="text-muted-foreground break-all">
-              <span className="text-foreground">file:</span> {sourceFilename}
-            </div>
-          </div>
-        </div>
-      )}
-
-      <Card className="w-full">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-xl sm:text-2xl">Generate Lesson</CardTitle>
-          <CardDescription className="text-sm">
-            Enter a passage or topic to generate a lesson, or upload a file to enhance existing curriculum.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 sm:px-6">
-          <form onSubmit={handleSubmit} className="grid w-full gap-4">
-            {/* ✅ FIXED: Separate Passage and Topic Fields */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="passage" className="text-sm">Bible Passage <span className="text-muted-foreground">(Optional)</span></Label>
-                <Input
-                  type="text"
-                  id="passage"
-                  placeholder="e.g., Romans 12:1-2"
-                  value={formData.passage}
-                  onChange={(e) => setFormData({ ...formData, passage: e.target.value })}
-                  className="text-sm sm:text-base"
-                />
-              </div>
-              <div>
-                <Label htmlFor="topic" className="text-sm">Lesson Topic <span className="text-muted-foreground">(Optional)</span></Label>
-                <Input
-                  type="text"
-                  id="topic"
-                  placeholder="e.g., Living Sacrifices"
-                  value={formData.topic}
-                  onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-                  className="text-sm sm:text-base"
-                />
-              </div>
-            </div>
-
-            {/* ✅ FIXED: Optional File Upload Section */}
-            <div className="border-t pt-4 mt-2">
-              <Label className="text-sm font-medium mb-2 block">
-                Optional: Upload Existing Curriculum to Enhance
-              </Label>
-              <Tabs defaultValue="upload" className="w-full">
-                <TabsList className="grid grid-cols-2 w-full">
-<TabsTrigger 
-  value="upload" 
-  className="text-xs sm:text-sm"
-  onClick={() => fileInputRef.current?.click()}
->
-  <Upload className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-  <span className="hidden xs:inline">Upload File</span>
-  <span className="xs:hidden">Upload</span>
-</TabsTrigger>
-<TabsTrigger value="paste" className="text-xs sm:text-sm">
-  <FileText className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-  <span className="hidden xs:inline">Paste Text</span>
-  <span className="xs:hidden">Paste</span>
-</TabsTrigger>
-                </TabsList>
-                <TabsContent value="upload" className="space-y-2">
-                  <div className="grid gap-2">
-                    <Input
-                      id="upload"
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileSelect}
-                      accept=".txt,.pdf,.docx,.doc,.jpg"
-                      disabled={isExtracting}
-					  className="hidden"
-                    />
-                    {isExtracting && (
-                      <div className="flex items-center space-x-2">
-                        <Clock className="mr-2 h-4 w-4 animate-spin" />
-                        <span>{extractState === 'queued' ? 'Queued' : 'Processing'} ({extractProgress}%)</span>
-                        <Progress value={extractProgress} className="w-1/2" />
-                        <Button variant="ghost" size="sm" onClick={handleClearExtraction} disabled={extractState === 'done'}>
-                          Cancel
-                        </Button>
-                      </div>
-                    )}
-                    {extractError && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          {extractError.msg}
-                          <div className="flex space-x-2 mt-2">
-                            <Button size="sm" onClick={handleRetryExtraction}>
-                              Try Again
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleClearExtraction}>
-                              Clear
-                            </Button>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    {extractedContent && (
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary">
-                          File uploaded: {sourceFilename}
-                        </Badge>
-                        <Button variant="ghost" size="sm" onClick={handleClearExtraction}>
-                          Remove
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-                <TabsContent value="paste">
-                  <div className="grid gap-2">
-                    <Label htmlFor="curriculum">Curriculum Content</Label>
-                    <Textarea
-                      id="curriculum"
-                      placeholder="Paste your curriculum content here..."
-                      rows={4}
-                      value={extractedContent || ""}
-                      onChange={(e) => setExtractedContent(e.target.value)}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            {/* Rest of Form Inputs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="ageGroup" className="text-sm">Age Group</Label>
-                <Select value={formData.ageGroup} onValueChange={(value) => setFormData({ ...formData, ageGroup: value })}>
-                  <SelectTrigger id="ageGroup" className="text-sm sm:text-base">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {AGE_GROUPS.map(ageGroup => (
-                      <SelectItem key={ageGroup.id} value={ageGroup.label}>
-                        <div className="flex flex-col">
-                          <span>{ageGroup.label}</span>
-                          <span className="text-xs text-muted-foreground">{ageGroup.description}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="bibleVersion" className="text-sm">Bible Version</Label>
-                <Select value={formData.bibleVersion} onValueChange={(value) => setFormData({ ...formData, bibleVersion: value })}>
-                  <SelectTrigger id="bibleVersion" className="text-sm sm:text-base">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BIBLE_VERSIONS.map(version => (
-                      <SelectItem key={version.id} value={version.id}>
-                        {version.abbreviation} - {version.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="theologicalPreference" className="text-sm">Theological Preference</Label>
-                <Select value={formData.theologicalPreference} onValueChange={(value) => setFormData({ ...formData, theologicalPreference: value as 'southern_baptist' | 'reformed_baptist' | 'independent_baptist' })}>
-                  <SelectTrigger id="theologicalPreference" className="text-sm sm:text-base">
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
-                    <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
-                    <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
-                  </SelectContent>
                 </Select>
               </div>
             </div>
@@ -890,7 +531,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
               />
             )}
 
-            {/* ✅ FIXED: Button enabled when form is valid (passage OR topic OR file) */}
+            {/* âœ… FIXED: Button enabled when form is valid (passage OR topic OR file) */}
             <Button 
               type="submit" 
               disabled={isGenerating || generationStatus === 'timeout' || !isFormValid()} 
