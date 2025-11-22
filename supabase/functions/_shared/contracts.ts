@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LessonSparkUSA Constants - TypeScript Contracts
  * @version 1.1.0
  * @lastUpdated 2025-11-22
@@ -149,4 +149,32 @@ export interface LessonGenerationResponse {
   theologicalLens: string;
   language: LanguageKey;
   sbConfessionVersion?: SBConfessionVersionKey;
+}
+
+// ============================================================================
+// Lesson Filters Contract (stored in lessons.filters JSON column)
+// ============================================================================
+
+export interface LessonFilters {
+  ageGroup?: string;
+  bibleVersion?: string;
+  theologicalPreference?: TheologicalPreferenceKey;
+  sbConfessionVersion?: SBConfessionVersionKey;
+  sessionId?: string | null;
+  uploadId?: string | null;
+  passage?: string;
+  topic?: string;
+  notes?: string;
+  overview?: string;
+  objectives?: string;
+  scripture?: string;
+  background?: string;
+  opening?: string;
+  teaching?: string;
+  activities?: string;
+  discussion?: string;
+  applications?: string;
+  assessment?: string;
+  resources?: string;
+  preparation?: string;
 }

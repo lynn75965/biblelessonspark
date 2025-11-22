@@ -100,6 +100,31 @@ export function EnhanceLessonForm({
   const [teacherPreferences, setTeacherPreferences] = useState<TeacherPreferences>(defaultPreferences);
   const [showCustomization, setShowCustomization] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationStatus, setGenerationStatus] = useState<'idle' | 'generating' | 'timeout' | 'success' | 'error'>('idle');
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [generationMessage, setGenerationMessage] = useState('');
+
+  // Timer effect for generation progress
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (isGenerating || generationStatus === 'timeout') {
+      if (generationStatus !== 'timeout') {
+        setElapsedSeconds(0);
+      }
+      interval = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGenerating, generationStatus]);
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return ${mins}:;
+  };
   const [generatedContent, setGeneratedContent] = useState<LessonContent | null>(null);
 
   // Initialize from viewingLesson when provided
@@ -868,7 +893,7 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
             {/* ✅ FIXED: Button enabled when form is valid (passage OR topic OR file) */}
             <Button 
               type="submit" 
-              disabled={isGenerating || !isFormValid()} 
+              disabled={isGenerating || generationStatus === 'timeout' || !isFormValid()} 
               className="w-full sm:w-auto" 
               size="lg"
             >

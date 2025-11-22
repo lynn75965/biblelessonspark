@@ -1,0 +1,310 @@
+/**
+ * Teacher Preferences SSOT
+ * Single Source of Truth for all teacher customization options
+ * 
+ * Architecture: Frontend drives backend
+ * This file syncs to: supabase/functions/_shared/teacherPreferences.ts
+ */
+
+// ============================================================================
+// OPTION INTERFACES
+// ============================================================================
+
+export interface PreferenceOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export interface CheckboxOption {
+  id: string;
+  label: string;
+}
+
+// ============================================================================
+// TEACHER PROFILE OPTIONS
+// ============================================================================
+
+export const TEACHING_STYLES: PreferenceOption[] = [
+  { id: "interactive_discussion", label: "Interactive/Discussion-based", description: "Emphasizes dialogue and student participation" },
+  { id: "lecture_heavy", label: "Lecture-heavy", description: "Teacher-led instruction with structured content delivery" },
+  { id: "activity_focused", label: "Activity-focused", description: "Hands-on learning through activities and exercises" },
+  { id: "mixed", label: "Mixed approach", description: "Balanced combination of teaching methods" }
+] as const;
+
+export const CLASSROOM_MANAGEMENT_STYLES: PreferenceOption[] = [
+  { id: "formal_structured", label: "Formal structured", description: "Traditional classroom format with clear hierarchy" },
+  { id: "relaxed_interactive", label: "Relaxed interactive", description: "Casual atmosphere encouraging open participation" },
+  { id: "small_group_focused", label: "Small group focused", description: "Emphasizes breakout groups and team learning" },
+  { id: "large_group_focused", label: "Large group focused", description: "Whole-class instruction and discussion" }
+] as const;
+
+export const TECH_INTEGRATION_LEVELS: PreferenceOption[] = [
+  { id: "high", label: "High-tech (digital tools, apps)", description: "Heavy use of technology, apps, and digital resources" },
+  { id: "medium", label: "Medium-tech (basic AV)", description: "Basic audiovisual equipment and occasional digital tools" },
+  { id: "low", label: "Low-tech (traditional methods)", description: "Minimal technology, emphasis on traditional materials" }
+] as const;
+
+export const ASSESSMENT_PREFERENCES: PreferenceOption[] = [
+  { id: "formal_testing", label: "Formal testing", description: "Written tests and quizzes" },
+  { id: "informal_discussion", label: "Informal discussion", description: "Conversational assessment through dialogue" },
+  { id: "creative_projects", label: "Creative projects", description: "Artistic and creative demonstrations of learning" },
+  { id: "peer_evaluation", label: "Peer evaluation", description: "Students assess each other's understanding" }
+] as const;
+
+// ============================================================================
+// CLASS CONTEXT OPTIONS
+// ============================================================================
+
+export const CLASS_SIZES: PreferenceOption[] = [
+  { id: "small", label: "Small (5-15 people)", description: "Intimate setting allowing individual attention" },
+  { id: "medium", label: "Medium (16-30 people)", description: "Standard Sunday School class size" },
+  { id: "large", label: "Large (31-50 people)", description: "Larger group requiring structured activities" },
+  { id: "extra_large", label: "Extra Large (50+ people)", description: "Auditorium-style or large group setting" }
+] as const;
+
+export const MEETING_FREQUENCIES: PreferenceOption[] = [
+  { id: "weekly", label: "Weekly", description: "Standard Sunday or weekday recurring class" },
+  { id: "biweekly", label: "Bi-weekly", description: "Every other week meetings" },
+  { id: "monthly", label: "Monthly", description: "Once per month gatherings" },
+  { id: "intensive", label: "Intensive (multiple days)", description: "Retreat or conference style multiple sessions" }
+] as const;
+
+export const SESSION_DURATIONS: PreferenceOption[] = [
+  { id: "30min", label: "30 minutes", description: "Brief session, typically children's classes" },
+  { id: "45min", label: "45 minutes", description: "Standard Sunday School timeframe" },
+  { id: "60min", label: "60 minutes", description: "Extended class period" },
+  { id: "90min", label: "90 minutes", description: "In-depth study session" },
+  { id: "2hours", label: "2+ hours", description: "Extended study or workshop format" }
+] as const;
+
+export const PHYSICAL_SPACES: PreferenceOption[] = [
+  { id: "traditional_classroom", label: "Traditional classroom", description: "Standard room with chairs/tables" },
+  { id: "fellowship_hall", label: "Fellowship hall", description: "Larger multipurpose room" },
+  { id: "outdoor_setting", label: "Outdoor setting", description: "Outside venue or nature setting" },
+  { id: "home_environment", label: "Home environment", description: "Small group in residential setting" }
+] as const;
+
+export const SPECIAL_NEEDS_OPTIONS: CheckboxOption[] = [
+  { id: "learning_disabilities", label: "Learning disabilities" },
+  { id: "physical_limitations", label: "Physical limitations" },
+  { id: "language_barriers", label: "Language barriers" },
+  { id: "attention_challenges", label: "Attention challenges" }
+] as const;
+
+// ============================================================================
+// PEDAGOGY OPTIONS
+// ============================================================================
+
+export const LEARNING_STYLE_OPTIONS: CheckboxOption[] = [
+  { id: "visual", label: "Visual learners" },
+  { id: "auditory", label: "Auditory learners" },
+  { id: "kinesthetic", label: "Kinesthetic learners" },
+  { id: "reading_writing", label: "Reading/writing learners" }
+] as const;
+
+export const ENGAGEMENT_LEVELS: PreferenceOption[] = [
+  { id: "highly_interactive", label: "Highly interactive", description: "Maximum student participation and dialogue" },
+  { id: "moderately_interactive", label: "Moderately interactive", description: "Balanced participation opportunities" },
+  { id: "primarily_receptive", label: "Primarily receptive", description: "Mainly listening with occasional interaction" }
+] as const;
+
+export const DISCUSSION_FORMATS: PreferenceOption[] = [
+  { id: "large_group", label: "Large group", description: "Whole class discussions" },
+  { id: "small_groups", label: "Small groups", description: "Breakout groups of 3-6 people" },
+  { id: "pairs", label: "Pairs", description: "Partner discussions and activities" },
+  { id: "individual_reflection", label: "Individual reflection", description: "Personal contemplation and journaling" }
+] as const;
+
+export const ACTIVITY_COMPLEXITY_LEVELS: PreferenceOption[] = [
+  { id: "simple", label: "Simple/Basic", description: "Easy to explain and execute activities" },
+  { id: "moderate", label: "Moderate", description: "Activities requiring some preparation" },
+  { id: "advanced", label: "Advanced/Complex", description: "Multi-step activities with detailed instructions" }
+] as const;
+
+// ============================================================================
+// THEOLOGY OPTIONS
+// ============================================================================
+
+export const BIBLE_TRANSLATIONS: PreferenceOption[] = [
+  { id: "ESV", label: "ESV", description: "English Standard Version - formal equivalence" },
+  { id: "NIV", label: "NIV", description: "New International Version - dynamic equivalence" },
+  { id: "NASB", label: "NASB", description: "New American Standard Bible - literal translation" },
+  { id: "KJV", label: "KJV", description: "King James Version - traditional language" },
+  { id: "CSB", label: "CSB", description: "Christian Standard Bible - optimal equivalence" },
+  { id: "NKJV", label: "NKJV", description: "New King James Version - updated traditional" }
+] as const;
+
+export const THEOLOGICAL_EMPHASES: PreferenceOption[] = [
+  { id: "expository", label: "Expository", description: "Verse-by-verse study through Scripture" },
+  { id: "topical", label: "Topical", description: "Theme-based study across multiple passages" },
+  { id: "narrative", label: "Narrative", description: "Story-focused exploration of Scripture" },
+  { id: "character_study", label: "Character study", description: "Learning through biblical figures" }
+] as const;
+
+export const APPLICATION_FOCUSES: PreferenceOption[] = [
+  { id: "personal_growth", label: "Personal growth", description: "Individual spiritual development" },
+  { id: "community_service", label: "Community service", description: "Outward-focused ministry and service" },
+  { id: "evangelism", label: "Evangelism", description: "Sharing faith and reaching the lost" },
+  { id: "discipleship", label: "Discipleship", description: "Deepening faith and mentoring others" }
+] as const;
+
+export const DEPTH_LEVELS: PreferenceOption[] = [
+  { id: "survey_overview", label: "Survey/Overview", description: "Broad coverage of key themes" },
+  { id: "detailed_study", label: "Detailed study", description: "In-depth exploration of passages" },
+  { id: "deep_theological", label: "Deep theological exploration", description: "Advanced doctrinal and exegetical study" }
+] as const;
+
+// ============================================================================
+// RESOURCE OPTIONS
+// ============================================================================
+
+export const HANDOUT_STYLES: PreferenceOption[] = [
+  { id: "minimal_text", label: "Minimal text", description: "Outline-style with key points only" },
+  { id: "detailed_notes", label: "Detailed notes", description: "Comprehensive written content" },
+  { id: "interactive_worksheets", label: "Interactive worksheets", description: "Fill-in-the-blank and activity pages" },
+  { id: "digital_resources", label: "Digital resources", description: "Electronic materials and links" }
+] as const;
+
+export const VISUAL_AID_PREFERENCES: PreferenceOption[] = [
+  { id: "none", label: "None", description: "No visual aids needed" },
+  { id: "basic_graphics", label: "Basic graphics", description: "Simple images and charts" },
+  { id: "rich_multimedia", label: "Rich multimedia", description: "Videos, animations, and interactive media" },
+  { id: "interactive_presentations", label: "Interactive presentations", description: "Slides with audience participation" }
+] as const;
+
+export const PREPARATION_TIME_OPTIONS: PreferenceOption[] = [
+  { id: "minimal", label: "Minimal (15-30 min)", description: "Quick preparation for busy teachers" },
+  { id: "moderate", label: "Moderate (30-60 min)", description: "Standard preparation time" },
+  { id: "extensive", label: "Extensive (60+ min)", description: "Thorough preparation with extra study" }
+] as const;
+
+export const TAKEHOME_MATERIAL_OPTIONS: CheckboxOption[] = [
+  { id: "summary_sheets", label: "Summary sheets" },
+  { id: "reflection_questions", label: "Reflection questions" },
+  { id: "action_items", label: "Action items" },
+  { id: "additional_readings", label: "Additional readings" }
+] as const;
+
+// ============================================================================
+// CULTURAL CONTEXT OPTIONS
+// ============================================================================
+
+export const CULTURAL_BACKGROUNDS: PreferenceOption[] = [
+  { id: "urban", label: "Urban", description: "City or metropolitan area context" },
+  { id: "suburban", label: "Suburban", description: "Residential areas outside city centers" },
+  { id: "rural", label: "Rural", description: "Country or small-town setting" },
+  { id: "international", label: "International", description: "Multicultural or missionary context" },
+  { id: "mixed", label: "Mixed", description: "Diverse backgrounds represented" }
+] as const;
+
+export const SOCIOECONOMIC_CONTEXTS: PreferenceOption[] = [
+  { id: "blue_collar", label: "Blue collar", description: "Working-class, trade, and labor backgrounds" },
+  { id: "white_collar", label: "White collar", description: "Professional and office-based careers" },
+  { id: "mixed", label: "Mixed", description: "Diverse economic backgrounds" },
+  { id: "economically_disadvantaged", label: "Economically disadvantaged", description: "Lower income or struggling financially" }
+] as const;
+
+export const EDUCATIONAL_BACKGROUNDS: PreferenceOption[] = [
+  { id: "high_school", label: "High school", description: "High school education level" },
+  { id: "some_college", label: "Some college", description: "Partial college education" },
+  { id: "college_graduates", label: "College graduates", description: "Bachelor's degree holders" },
+  { id: "advanced_degrees", label: "Advanced degrees", description: "Master's, doctoral, or professional degrees" },
+  { id: "mixed", label: "Mixed", description: "Diverse educational levels" }
+] as const;
+
+export const SPIRITUAL_MATURITY_LEVELS: PreferenceOption[] = [
+  { id: "new_believers", label: "New believers", description: "Recently accepted Christ" },
+  { id: "growing_christians", label: "Growing Christians", description: "Developing in faith journey" },
+  { id: "mature_believers", label: "Mature believers", description: "Established, seasoned Christians" },
+  { id: "mixed", label: "Mixed levels", description: "Variety of spiritual maturity" }
+] as const;
+
+// ============================================================================
+// DEFAULT PREFERENCES
+// ============================================================================
+
+export const DEFAULT_TEACHER_PREFERENCES = {
+  // Teacher Profile
+  teachingStyle: "mixed",
+  classroomManagement: "relaxed_interactive",
+  techIntegration: "medium",
+  assessmentPreference: "informal_discussion",
+  
+  // Class Context
+  classSize: "medium",
+  meetingFrequency: "weekly",
+  sessionDuration: "60min",
+  physicalSpace: "traditional_classroom",
+  specialNeeds: [] as string[],
+  
+  // Pedagogy
+  learningStyles: ["visual", "auditory"] as string[],
+  engagementLevel: "highly_interactive",
+  discussionFormat: "small_groups",
+  activityComplexity: "moderate",
+  
+  // Theology
+  bibleTranslation: "ESV",
+  theologicalEmphasis: "expository",
+  applicationFocus: "personal_growth",
+  depthLevel: "detailed_study",
+  
+  // Resources
+  handoutStyle: "detailed_notes",
+  visualAidPreference: "basic_graphics",
+  takehomeMaterials: ["summary_sheets", "reflection_questions"] as string[],
+  preparationTime: "moderate",
+  
+  // Cultural Context
+  culturalBackground: "suburban",
+  socioeconomicContext: "mixed",
+  educationalBackground: "mixed",
+  spiritualMaturity: "mixed",
+  
+  // Custom Notes
+  additionalContext: ""
+} as const;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+export function getOptionLabel(options: readonly PreferenceOption[], id: string): string {
+  return options.find(opt => opt.id === id)?.label ?? id;
+}
+
+export function getOptionDescription(options: readonly PreferenceOption[], id: string): string | undefined {
+  return options.find(opt => opt.id === id)?.description;
+}
+
+export function getCheckboxLabel(options: readonly CheckboxOption[], id: string): string {
+  return options.find(opt => opt.id === id)?.label ?? id;
+}
+
+// ============================================================================
+// TYPE EXPORTS (for contracts.ts)
+// ============================================================================
+
+export type TeachingStyleKey = typeof TEACHING_STYLES[number]["id"];
+export type ClassroomManagementKey = typeof CLASSROOM_MANAGEMENT_STYLES[number]["id"];
+export type TechIntegrationKey = typeof TECH_INTEGRATION_LEVELS[number]["id"];
+export type AssessmentPreferenceKey = typeof ASSESSMENT_PREFERENCES[number]["id"];
+export type ClassSizeKey = typeof CLASS_SIZES[number]["id"];
+export type MeetingFrequencyKey = typeof MEETING_FREQUENCIES[number]["id"];
+export type SessionDurationKey = typeof SESSION_DURATIONS[number]["id"];
+export type PhysicalSpaceKey = typeof PHYSICAL_SPACES[number]["id"];
+export type EngagementLevelKey = typeof ENGAGEMENT_LEVELS[number]["id"];
+export type DiscussionFormatKey = typeof DISCUSSION_FORMATS[number]["id"];
+export type ActivityComplexityKey = typeof ACTIVITY_COMPLEXITY_LEVELS[number]["id"];
+export type BibleTranslationKey = typeof BIBLE_TRANSLATIONS[number]["id"];
+export type TheologicalEmphasisKey = typeof THEOLOGICAL_EMPHASES[number]["id"];
+export type ApplicationFocusKey = typeof APPLICATION_FOCUSES[number]["id"];
+export type DepthLevelKey = typeof DEPTH_LEVELS[number]["id"];
+export type HandoutStyleKey = typeof HANDOUT_STYLES[number]["id"];
+export type VisualAidPreferenceKey = typeof VISUAL_AID_PREFERENCES[number]["id"];
+export type PreparationTimeKey = typeof PREPARATION_TIME_OPTIONS[number]["id"];
+export type CulturalBackgroundKey = typeof CULTURAL_BACKGROUNDS[number]["id"];
+export type SocioeconomicContextKey = typeof SOCIOECONOMIC_CONTEXTS[number]["id"];
+export type EducationalBackgroundKey = typeof EDUCATIONAL_BACKGROUNDS[number]["id"];
+export type SpiritualMaturityKey = typeof SPIRITUAL_MATURITY_LEVELS[number]["id"];

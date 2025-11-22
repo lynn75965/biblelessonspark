@@ -12,35 +12,10 @@ import {
   isValidTheologicalPreferenceKey,
 } from '../_shared/theologicalPreferences.ts'
 import type { TheologicalPreferenceKey, SBConfessionVersionKey } from '../_shared/theologicalPreferences.ts'
+import { DEFAULT_TEACHER_PREFERENCES, getOptionLabel, CLASS_SIZES } from '../_shared/teacherPreferences.ts'
+import type { TeacherPreferences } from '../_shared/teacherPreferences.ts'
 
-interface TeacherPreferences {
-  teachingStyle: string;
-  classroomManagement: string;
-  techIntegration: string;
-  assessmentPreference: string;
-  classSize: string;
-  meetingFrequency: string;
-  sessionDuration: string;
-  physicalSpace: string;
-  specialNeeds: string[];
-  learningStyles: string[];
-  engagementLevel: string;
-  discussionFormat: string;
-  activityComplexity: string;
-  bibleTranslation: string;
-  theologicalEmphasis: string;
-  applicationFocus: string;
-  depthLevel: string;
-  handoutStyle: string;
-  visualAidPreference: string;
-  takehomeMaterials: string[];
-  preparationTime: string;
-  culturalBackground: string;
-  socioeconomicContext: string;
-  educationalBackground: string;
-  spiritualMaturity: string;
-  additionalContext: string;
-}
+
 
 interface LessonRequest {
   passage?: string;
