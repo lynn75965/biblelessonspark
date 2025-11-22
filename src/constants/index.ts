@@ -21,7 +21,7 @@ export * from './lessonStructure';
 // ============================================================
 // TIER 2: Customizations (User selects from Admin options)
 // ============================================================
-// export * from './ageGroups';              // Phase 2
+export * from './ageGroups';
 // export * from './theologicalPreferences'; // Phase 3
 // export * from './teacherPreferences';     // Phase 4
 // export * from './bibleVersions';          // Phase 5

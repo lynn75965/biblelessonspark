@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
-import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { AGE_GROUPS, getDefaultAgeGroupLabel } from "@/constants/ageGroups";
 
 interface UserProfileModalProps {
   open: boolean;
@@ -52,7 +52,7 @@ export function UserProfileModal({
         setPreferredAgeGroup(getDefaultAgeGroup());
       } else {
         setFullName(profile?.full_name || '');
-        const ageGroup = profile?.preferred_age_group as typeof AGE_GROUP_OPTIONS[number] | undefined;
+        const ageGroup = profile?.preferred_age_group as string | undefined;
         setPreferredAgeGroup(ageGroup || getDefaultAgeGroup());
       }
     } catch (error) {
@@ -161,11 +161,11 @@ export function UserProfileModal({
                   <SelectValue placeholder="Select age group" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AGE_GROUP_OPTIONS.map(group => (
-                    <SelectItem key={group} value={group}>
+                  {AGE_GROUPS.map(ageGroup => (
+                    <SelectItem key={ageGroup.id} value={ageGroup.label}>
                       <div className="flex flex-col">
-                        <span>{group}</span>
-                        <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
+                        <span>{ageGroup.label}</span>
+                        <span className="text-xs text-muted-foreground">{ageGroup.description}</span>
                       </div>
                     </SelectItem>
                   ))}

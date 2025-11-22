@@ -60,7 +60,7 @@ export function LessonLibrary({
       "College & Early Career (Ages 19-25)": "bg-cyan-100 text-cyan-800 border-cyan-200",
       "Young Adults (Ages 26-35)": "bg-teal-100 text-teal-800 border-teal-200",
       "Mid-Life Adults (Ages 36-50)": "bg-green-100 text-green-800 border-green-200",
-      "Mature Adults (Ages 51-65)": "bg-yellow-100 text-yellow-800 border-yellow-200",
+      "Experienced Adults (Ages 51-65)": "bg-yellow-100 text-yellow-800 border-yellow-200",
       "Active Seniors (Ages 66-75)": "bg-orange-100 text-orange-800 border-orange-200",
       "Senior Adults (Ages 76+)": "bg-red-100 text-red-800 border-red-200",
       "Mixed Groups": "bg-gray-100 text-gray-800 border-gray-200"
@@ -148,7 +148,7 @@ export function LessonLibrary({
                 <SelectItem value="College & Early Career (Ages 19-25)">College</SelectItem>
                 <SelectItem value="Young Adults (Ages 26-35)">Young Adults</SelectItem>
                 <SelectItem value="Mid-Life Adults (Ages 36-50)">Mid-Life</SelectItem>
-                <SelectItem value="Mature Adults (Ages 51-65)">Mature Adults</SelectItem>
+                <SelectItem value="Experienced Adults (Ages 51-65)">Experienced Adults</SelectItem>
                 <SelectItem value="Active Seniors (Ages 66-75)">Active Seniors</SelectItem>
                 <SelectItem value="Senior Adults (Ages 76+)">Seniors</SelectItem>
                 <SelectItem value="Mixed Groups">Mixed</SelectItem>

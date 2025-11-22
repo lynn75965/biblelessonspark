@@ -1,7 +1,9 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
-import { LESSON_SECTIONS, LESSON_STRUCTURE_VERSION, TOTAL_TARGET_WORD_COUNT, buildLessonStructurePrompt } from '../_shared/lessonStructure.ts'
+// DATA imports from SSOT (no logic imports)
+import { LESSON_SECTIONS, LESSON_STRUCTURE_VERSION, TOTAL_TARGET_WORD_COUNT } from '../_shared/lessonStructure.ts'
+import { getAgeGroupByLabel } from '../_shared/ageGroups.ts'
 
 interface TeacherPreferences {
   teachingStyle: string;
@@ -93,49 +95,36 @@ function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: 
   };
 }
 
-function parseAgeGroup(ageGroup: string): { category: string; ageRange: string; description: string } {
-  const ageRangeMatch = ageGroup.match(/\(Ages?\s+([\d–\-]+)\s*[+]?\)/i);
-  const ageRange = ageRangeMatch ? ageRangeMatch[1] : '';
+// LOGIC: Build lesson structure prompt from SSOT data
+// This function lives here (Edge Function) because it's LOGIC, not DATA
+function buildLessonStructurePrompt(): string {
+  return LESSON_SECTIONS.map(section => 
+    `${section.id}. ${section.name}: ${section.description}\n   Required elements: ${section.requiredElements.join(', ')}\n   Target: ~${section.targetWordCount} words`
+  ).join('\n\n');
+}
 
-  let category = 'General';
-  let description = `Tailored for ${ageGroup}`;
-
-  if (ageGroup.toLowerCase().includes('preschool')) {
-    category = 'Preschoolers';
-    description = 'Ages 3-5, requiring simple concepts, hands-on activities, and visual learning aids';
-  } else if (ageGroup.toLowerCase().includes('elementary')) {
-    category = 'Elementary';
-    description = 'Ages 6-11, needing interactive activities, basic biblical concepts, and age-appropriate applications';
-  } else if (ageGroup.toLowerCase().includes('middle school')) {
-    category = 'Middle School';
-    description = 'Ages 12-14, addressing identity questions, peer pressure, and foundational faith development';
-  } else if (ageGroup.toLowerCase().includes('high school')) {
-    category = 'High School';
-    description = 'Ages 15-18, tackling complex theological questions, life decisions, and future planning';
-  } else if (ageGroup.toLowerCase().includes('college') || ageGroup.toLowerCase().includes('career')) {
-    category = 'College & Career';
-    description = 'Ages 18-25, focusing on independence, career choices, and deep theological study';
-  } else if (ageGroup.toLowerCase().includes('young adult')) {
-    category = 'Young Adults';
-    description = 'Ages 26-35, addressing marriage, family, and establishing life priorities';
-  } else if (ageGroup.toLowerCase().includes('mid-life') || (ageGroup.toLowerCase().includes('adult') && ageRange.includes('36'))) {
-    category = 'Mid-Life Adults';
-    description = 'Ages 36-50, dealing with family responsibilities, career pressures, and spiritual maturity';
-  } else if (ageGroup.toLowerCase().includes('mature adult') || (ageGroup.toLowerCase().includes('adult') && ageRange.includes('51'))) {
-    category = 'Mature Adults';
-    description = 'Ages 51-65, focusing on wisdom sharing, legacy building, and deeper spiritual reflection';
-  } else if (ageGroup.toLowerCase().includes('active senior')) {
-    category = 'Active Seniors';
-    description = 'Ages 66-80, emphasizing continued service, life reflection, and spiritual encouragement';
-  } else if (ageGroup.toLowerCase().includes('senior')) {
-    category = 'Senior Adults';
-    description = 'Ages 70+, focusing on comfort, encouragement, and simplified but meaningful content';
-  } else if (ageGroup.toLowerCase().includes('mixed')) {
-    category = 'Mixed Groups';
-    description = 'Multi-generational, requiring adaptable content for various age levels and life stages';
+// SSOT Age Group Lookup - uses data from _shared/ageGroups.ts
+function getAgeGroupData(ageGroupLabel: string) {
+  const ageGroup = getAgeGroupByLabel(ageGroupLabel);
+  if (ageGroup) {
+    return ageGroup;
   }
-
-  return { category, ageRange, description };
+  // Fallback for unrecognized labels
+  console.warn(`Unrecognized age group label: ${ageGroupLabel}, using fallback`);
+  return {
+    id: 'unknown',
+    label: ageGroupLabel,
+    ageMin: 0,
+    ageMax: 100,
+    description: `Tailored for ${ageGroupLabel}`,
+    teachingProfile: {
+      vocabularyLevel: 'moderate' as const,
+      attentionSpan: 30,
+      preferredActivities: ['discussion', 'group activities'],
+      abstractThinking: 'developing' as const,
+      specialConsiderations: ['Adapt content to actual audience needs']
+    }
+  };
 }
 
 async function generateLessonWithAI(data: LessonRequest) {
@@ -220,7 +209,8 @@ async function generateLessonWithAI(data: LessonRequest) {
     'independent_baptist': 'Independent Baptist theological perspective, emphasizing local church autonomy, biblical authority, and conservative evangelical doctrine.'
   };
 
-  const ageGroupInfo = parseAgeGroup(data.ageGroup);
+  // Use SSOT age group lookup
+  const ageGroupInfo = getAgeGroupData(data.ageGroup);
 
   const buildCustomizationContext = (prefs: TeacherPreferences): string => {
     if (!prefs) return '';
@@ -268,10 +258,10 @@ async function generateLessonWithAI(data: LessonRequest) {
     ? `Enhance and expand the following existing curriculum content: "${data.extractedContent || passageOrTopic}". Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
     : `Generate a complete, original lesson plan based on: "${passageOrTopic}".`;
 
-  const lensDisplayName = versionLabel ? `${lens.name} – ${versionLabel}` : lens.name;
+  const lensDisplayName = versionLabel ? `${lens.name} — ${versionLabel}` : lens.name;
   const lensSubtitle = versionLabel ? `Confession: ${versionLabel}` : '';
 
-  // Build dynamic lesson structure from SSOT constants
+  // Build dynamic lesson structure from SSOT constants (using local LOGIC function)
   const lessonStructurePrompt = buildLessonStructurePrompt();
 
   const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.theologicalPreference]}
@@ -286,7 +276,7 @@ REQUIRED: At the very top of your lesson output, include:
 1. A Lens Banner showing: "Theological Lens: ${lensDisplayName}"
 ${lensSubtitle ? `   ${lensSubtitle}` : ''}
 2. A "Lens Distinctives" section with exactly these bullet points (use verbatim):
-   ${lens.label}${versionLabel ? ` – ${versionLabel}` : ''}
+   ${lens.label}${versionLabel ? ` — ${versionLabel}` : ''}
 ${lensDistinctives.map(d => `   • ${d}`).join('\n')}
 
 REQUIRED: Prefix the lesson title with "${lens.short} • " (e.g., "${lens.short} • Understanding Grace")
@@ -309,6 +299,13 @@ CONTENT QUALITY REQUIREMENTS:
 
 TARGET AUDIENCE: ${ageGroupInfo.description}
 
+AGE GROUP TEACHING PROFILE:
+- Vocabulary Level: ${ageGroupInfo.teachingProfile.vocabularyLevel}
+- Attention Span: ${ageGroupInfo.teachingProfile.attentionSpan} minutes
+- Preferred Activities: ${ageGroupInfo.teachingProfile.preferredActivities.join(', ')}
+- Abstract Thinking: ${ageGroupInfo.teachingProfile.abstractThinking}
+- Special Considerations: ${ageGroupInfo.teachingProfile.specialConsiderations.join('; ')}
+
 DENOMINATION EMPHASIS: ${doctrineContexts[data.theologicalPreference]}
 
 ${data.notes ? `ADDITIONAL REQUIREMENTS: ${data.notes}` : ''}
@@ -329,7 +326,8 @@ Return a comprehensive lesson plan that a teacher could print and use immediatel
     console.log(`Using Lesson Structure Version: ${LESSON_STRUCTURE_VERSION}`);
     console.log(`Total sections required: ${LESSON_SECTIONS.length}`);
     console.log(`Target word count: ${TOTAL_TARGET_WORD_COUNT}`);
-    
+    console.log(`Age Group: ${ageGroupInfo.label} (${ageGroupInfo.id})`);
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {

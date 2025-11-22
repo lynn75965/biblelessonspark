@@ -17,7 +17,7 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAuth } from "@/hooks/useAuth";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { validateFileUpload, lessonFormSchema, type LessonFormData, isImageFile } from "@/lib/fileValidation";
-import { AGE_GROUP_OPTIONS, AGE_GROUP_DESCRIPTIONS, getDefaultAgeGroup } from "@/lib/constants";
+import { AGE_GROUPS, getDefaultAgeGroupLabel } from "@/constants/ageGroups";
 import { BIBLE_VERSIONS, getDefaultVersion } from "@/lib/bibleTranslations";
 import { sanitizeLessonInput, sanitizeFileName } from "@/lib/inputSanitization";
 import { logFileUploadEvent, logLessonEvent } from "@/lib/auditLogger";
@@ -58,7 +58,7 @@ interface LessonContent {
 
 export function EnhanceLessonForm({
   organizationId,
-  userPreferredAgeGroup = getDefaultAgeGroup(),
+  userPreferredAgeGroup = getDefaultAgeGroupLabel(),
   defaultDoctrine = "SBC",
   viewingLesson,
   onClearViewing
@@ -769,11 +769,11 @@ const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson?ts=${D
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
-                    {AGE_GROUP_OPTIONS.map(group => (
-                      <SelectItem key={group} value={group}>
+                    {AGE_GROUPS.map(ageGroup => (
+                      <SelectItem key={ageGroup.id} value={ageGroup.label}>
                         <div className="flex flex-col">
-                          <span>{group}</span>
-                          <span className="text-xs text-muted-foreground">{AGE_GROUP_DESCRIPTIONS[group]}</span>
+                          <span>{ageGroup.label}</span>
+                          <span className="text-xs text-muted-foreground">{ageGroup.description}</span>
                         </div>
                       </SelectItem>
                     ))}
