@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
-import { AGE_GROUPS, getDefaultAgeGroupLabel } from "@/constants/ageGroups";
+import { AGE_GROUPS, getDefaultAgeGroupLabel, getDefaultAgeGroup } from "@/constants/ageGroups";
 
 interface UserProfileModalProps {
   open: boolean;
