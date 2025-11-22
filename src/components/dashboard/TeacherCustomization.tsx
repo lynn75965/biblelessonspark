@@ -551,7 +551,7 @@ export function TeacherCustomization({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={resetToDefaults}>
+              <Button type="button" variant="outline" size="sm" onClick={resetToDefaults}>
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Reset
               </Button>
@@ -589,6 +589,7 @@ export function TeacherCustomization({
                 return (
                   <Button
                     key={step.id}
+                    type="button"
                     variant={currentStep === index ? "default" : "outline"}
                     size="sm"
                     onClick={() => setCurrentStep(index)}
@@ -615,14 +616,12 @@ export function TeacherCustomization({
 
           <div className="flex items-center justify-between">
             <Button
-              variant="outline"
               type="button"
+              variant="outline"
               onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
               disabled={currentStep === 0}
             >
-              type="button"
-              >
-                <ChevronLeft className="h-4 w-4 mr-2" />
+              <ChevronLeft className="h-4 w-4 mr-2" />
               Previous
             </Button>
 
@@ -637,15 +636,15 @@ export function TeacherCustomization({
                         onChange={(e) => setProfileName(e.target.value)}
                         className="w-40"
                       />
-                      <Button size="sm" onClick={handleSaveProfile} disabled={!profileName.trim()}>
+                      <Button type="button" size="sm" onClick={handleSaveProfile} disabled={!profileName.trim()}>
                         Save
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => setShowSaveDialog(false)}>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setShowSaveDialog(false)}>
                         Cancel
                       </Button>
                     </div>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
                       <Save className="h-4 w-4 mr-2" />
                       Save Profile
                     </Button>
