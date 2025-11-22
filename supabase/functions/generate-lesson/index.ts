@@ -4,6 +4,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
 // DATA imports from SSOT (no logic imports)
 import { LESSON_SECTIONS, LESSON_STRUCTURE_VERSION, TOTAL_TARGET_WORD_COUNT } from '../_shared/lessonStructure.ts'
 import { getAgeGroupByLabel } from '../_shared/ageGroups.ts'
+import { 
+  THEOLOGICAL_PREFERENCES,
+  SB_CONFESSION_VERSIONS,
+  getTheologicalPreference,
+  getDistinctives,
+  isValidTheologicalPreferenceKey,
+} from '../_shared/theologicalPreferences.ts'
+import type { TheologicalPreferenceKey, SBConfessionVersionKey } from '../_shared/theologicalPreferences.ts'
 
 interface TeacherPreferences {
   teachingStyle: string;
@@ -133,81 +141,22 @@ async function generateLessonWithAI(data: LessonRequest) {
     throw new Error('Anthropic API key not configured');
   }
 
-  const theologicalLenses = {
-    'southern_baptist': {
-      name: 'Southern Baptist',
-      short: 'SB',
-      label: 'Southern Baptist Lens',
-      description: 'Align with the Baptist Faith & Message. Emphasize believer\'s baptism by immersion, congregational polity, local church autonomy, evangelism/missions, assurance/perseverance. Avoid pedobaptism or non-congregational governance.',
-      distinctives: [],
-      versions: {
-        'bfm_1963': {
-          label: 'BF&M 1963',
-          distinctives: [
-            'Based on the Baptist Faith & Message (1963)',
-            'Highlights "the criterion by which the Bible is to be interpreted is Jesus Christ"',
-            'Emphasizes believer\'s baptism by immersion',
-            'Affirms congregational governance & local-church autonomy',
-            'Stresses evangelism & missions'
-          ]
-        },
-        'bfm_2000': {
-          label: 'BF&M 2000',
-          distinctives: [
-            'Based on the Baptist Faith & Message (2000)',
-            'Emphasizes the Bible\'s full authority & sufficiency',
-            'Emphasizes believer\'s baptism by immersion',
-            'Affirms congregational governance & local-church autonomy',
-            'Stresses evangelism, missions, and perseverance of the believer'
-          ]
-        }
-      }
-    },
-    'reformed_baptist': {
-      name: 'Reformed Baptist',
-      short: 'RB',
-      label: 'Reformed Baptist Lens',
-      description: 'Align with the 1689 London Baptist Confession. Emphasize doctrines of grace (TULIP), elder-led congregationalism, covenantal reading distinct from paedobaptism (still credobaptist). Avoid language that conflicts with credobaptism.',
-      distinctives: [
-        'Grounded in the 1689 London Baptist Confession',
-        'Emphasizes doctrines of grace (TULIP)',
-        'Holds to elder-led congregational polity',
-        'Reads Scripture through a covenantal but credobaptist framework',
-        'Values expository teaching and doctrinal depth'
-      ]
-    },
-    'independent_baptist': {
-      name: 'Independent Baptist',
-      short: 'IB',
-      label: 'Independent Baptist Lens',
-      description: 'Emphasize independent local church governance, separation, strong personal evangelism, believer\'s baptism by immersion, congregational polity. Avoid implying denominational boards/structures.',
-      distinctives: [
-        'Stresses complete independence of the local church',
-        'Upholds believer\'s baptism by immersion',
-        'Strong focus on personal evangelism and soul-winning',
-        'Prefers traditional worship and separation from denominational control',
-        'Highlights practical holiness and daily obedience'
-      ]
-    }
-  };
 
-  let lens = theologicalLenses[data.theologicalPreference];
+  // Get theological lens from SSOT
+  const prefKey = data.theologicalPreference as TheologicalPreferenceKey;
+  const lens = getTheologicalPreference(prefKey);
+  
   let versionLabel = '';
-  let lensDistinctives: string[] = lens.distinctives || [];
-
-  if (data.theologicalPreference === 'southern_baptist') {
-    const version = data.sbConfessionVersion || 'bfm_2000';
-    if (lens.versions && lens.versions[version]) {
-      versionLabel = lens.versions[version].label;
-      lensDistinctives = lens.versions[version].distinctives;
-    }
+  let versionKey: SBConfessionVersionKey | undefined;
+  
+  if (prefKey === 'southern_baptist') {
+    versionKey = (data.sbConfessionVersion as SBConfessionVersionKey) || 'bfm_2000';
+    const version = SB_CONFESSION_VERSIONS[versionKey];
+    versionLabel = version?.label || '';
   }
+  
+  const lensDistinctives = getDistinctives(prefKey, versionKey);
 
-  const doctrineContexts = {
-    'southern_baptist': 'Southern Baptist Convention theological perspective, emphasizing biblical inerrancy, salvation by grace through faith alone, and believer\'s baptism by immersion.',
-    'reformed_baptist': 'Reformed Baptist theological perspective, grounded in the 1689 London Baptist Confession, emphasizing the doctrines of grace (TULIP), covenant theology, elder-led congregationalism, and expository preaching.',
-    'independent_baptist': 'Independent Baptist theological perspective, emphasizing local church autonomy, biblical authority, and conservative evangelical doctrine.'
-  };
 
   // Use SSOT age group lookup
   const ageGroupInfo = getAgeGroupData(data.ageGroup);
@@ -264,7 +213,7 @@ async function generateLessonWithAI(data: LessonRequest) {
   // Build dynamic lesson structure from SSOT constants (using local LOGIC function)
   const lessonStructurePrompt = buildLessonStructurePrompt();
 
-  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${doctrineContexts[data.theologicalPreference]}
+  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${lens.contextDescription}
 
 THEOLOGICAL LENS: ${lensDisplayName}
 You are generating this lesson under the ${lens.label}${versionLabel ? ` (${versionLabel})` : ''}.
@@ -306,7 +255,7 @@ AGE GROUP TEACHING PROFILE:
 - Abstract Thinking: ${ageGroupInfo.teachingProfile.abstractThinking}
 - Special Considerations: ${ageGroupInfo.teachingProfile.specialConsiderations.join('; ')}
 
-DENOMINATION EMPHASIS: ${doctrineContexts[data.theologicalPreference]}
+DENOMINATION EMPHASIS: ${lens.contextDescription}
 
 ${data.notes ? `ADDITIONAL REQUIREMENTS: ${data.notes}` : ''}
 

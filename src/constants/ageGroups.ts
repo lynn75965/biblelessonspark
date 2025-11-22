@@ -361,3 +361,6 @@ export function getDefaultAgeGroupLabel(): string {
 // ============================================================
 
 export const AGE_GROUPS_VERSION = '1.0.0';
+
+// Backward compatibility alias
+export const getDefaultAgeGroup = getDefaultAgeGroupLabel;

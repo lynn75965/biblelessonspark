@@ -1,39 +1,75 @@
 /**
- * LessonSparkUSA Constants - Single Export Point
- * 
- * This is the SINGLE SOURCE OF TRUTH for all structural constants.
- * All components should import from here, never directly from individual files.
- * 
- * GOVERNANCE:
- * - Only admin (Lynn) can modify these files
- * - Users select from options, they cannot create new ones
- * - Frontend drives backend - these constants are synced to backend via script
- * 
- * @version 1.0.0
- * @lastUpdated 2025-11-21
+ * LessonSparkUSA Constants - Barrel Export
+ * @version 1.1.0
+ * @lastUpdated 2025-11-22
  */
 
-// ============================================================
-// TIER 1: Supreme/Foundational (UNCHANGING)
-// ============================================================
-export * from './lessonStructure';
+// ============================================================================
+// TypeScript Contracts (Interfaces & Types)
+// ============================================================================
+export type {
+  LessonSection,
+  LessonStructure,
+  TeachingProfile,
+  AgeGroup,
+  TheologicalPreferenceKey,
+  SBConfessionVersionKey,
+  SBConfessionVersion,
+  TheologicalPreference,
+  PreferenceOption,
+  TeacherPreferences,
+  LanguageKey,
+  LanguageConfig,
+  LessonGenerationRequest,
+  LessonContent,
+  LessonGenerationResponse,
+} from './contracts';
 
-// ============================================================
-// TIER 2: Customizations (User selects from Admin options)
-// ============================================================
-export * from './ageGroups';
-// export * from './theologicalPreferences'; // Phase 3
-// export * from './teacherPreferences';     // Phase 4
-// export * from './bibleVersions';          // Phase 5
-// export * from './systemOptions';          // Phase 5
+// ============================================================================
+// Lesson Structure (Tier 1)
+// ============================================================================
+export {
+  LESSON_SECTIONS,
+  LESSON_STRUCTURE_VERSION,
+  TOTAL_TARGET_WORD_COUNT,
+  getLessonSectionById,
+  getLessonSectionByName,
+  getRequiredSections,
+  getOptionalSections,
+} from './lessonStructure';
 
-// ============================================================
-// CONTRACTS: TypeScript Interfaces
-// ============================================================
-export * from './contracts';
+// ============================================================================
+// Age Groups (Tier 2)
+// ============================================================================
+export {
+  AGE_GROUPS,
+  AGE_GROUPS_VERSION,
+  getAgeGroupById,
+  getAgeGroupByLabel,
+  getAgeGroupLabels,
+  getDefaultAgeGroupLabel,
+  isValidAgeGroupLabel,
+  getTeachingProfile,
+  getDefaultAgeGroup,
+} from './ageGroups';
 
-// ============================================================
-// VERSION INFO
-// ============================================================
-export const CONSTANTS_VERSION = '1.0.0';
-export const CONSTANTS_LAST_UPDATED = '2025-11-21';
+// ============================================================================
+// Theological Preferences (Tier 2)
+// ============================================================================
+export {
+  THEOLOGICAL_PREFERENCES,
+  SB_CONFESSION_VERSIONS,
+  THEOLOGICAL_PREFERENCES_VERSION,
+  getTheologicalPreferenceKeys,
+  getTheologicalPreference,
+  getDefaultTheologicalPreferenceKey,
+  getDefaultTheologicalPreference,
+  isValidTheologicalPreferenceKey,
+  getSBConfessionVersion,
+  getDefaultSBConfessionVersionKey,
+  isValidSBConfessionVersionKey,
+  getDistinctives,
+  getTheologicalDisplayLabel,
+  getTheologicalPreferenceOptions,
+  getSBConfessionVersionOptions,
+} from './theologicalPreferences';
