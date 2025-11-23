@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
   css: {
     postcss: {
       plugins: [
-        require('tailwindcss'),
-        require('autoprefixer'),
+        (async () => (await import('tailwindcss')).default)(),
+        (await import('autoprefixer')).default,
       ],
     },
   },
