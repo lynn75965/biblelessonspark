@@ -1,0 +1,672 @@
+﻿import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import {
+  User,
+  Users,
+  Clock,
+  Building2,
+  BookOpen,
+  Brain,
+  Target,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Save,
+  RotateCcw
+} from "lucide-react";
+
+// Import from SSOT
+import {
+  TEACHING_STYLES,
+  CLASSROOM_MANAGEMENT_STYLES,
+  TECH_INTEGRATION_LEVELS,
+  ASSESSMENT_PREFERENCES,
+  CLASS_SIZES,
+  MEETING_FREQUENCIES,
+  SESSION_DURATIONS,
+  PHYSICAL_SPACES,
+  SPECIAL_NEEDS_OPTIONS,
+  LEARNING_STYLE_OPTIONS,
+  ENGAGEMENT_LEVELS,
+  DISCUSSION_FORMATS,
+  ACTIVITY_COMPLEXITY_LEVELS,
+  BIBLE_TRANSLATIONS,
+  THEOLOGICAL_EMPHASES,
+  APPLICATION_FOCUSES,
+  DEPTH_LEVELS,
+  HANDOUT_STYLES,
+  VISUAL_AID_PREFERENCES,
+  PREPARATION_TIME_OPTIONS,
+  TAKEHOME_MATERIAL_OPTIONS,
+  CULTURAL_BACKGROUNDS,
+  SOCIOECONOMIC_CONTEXTS,
+  EDUCATIONAL_BACKGROUNDS,
+  SPIRITUAL_MATURITY_LEVELS,
+  DEFAULT_TEACHER_PREFERENCES,
+} from "@/constants";
+
+import type { TeacherPreferences } from "@/constants";
+
+interface TeacherCustomizationProps {
+  preferences: TeacherPreferences;
+  onPreferencesChange: (preferences: TeacherPreferences) => void;
+  onSaveProfile?: (preferences: TeacherPreferences, profileName: string) => void;
+  savedProfiles?: Array<{ name: string; preferences: TeacherPreferences }>;
+  onLoadProfile?: (preferences: TeacherPreferences) => void;
+}
+
+// Export defaultPreferences for backward compatibility
+export const defaultPreferences: TeacherPreferences = {
+  ...DEFAULT_TEACHER_PREFERENCES,
+  specialNeeds: [...DEFAULT_TEACHER_PREFERENCES.specialNeeds],
+  learningStyles: [...DEFAULT_TEACHER_PREFERENCES.learningStyles],
+  takehomeMaterials: [...DEFAULT_TEACHER_PREFERENCES.takehomeMaterials],
+};
+
+export function TeacherCustomization({
+  preferences,
+  onPreferencesChange,
+  onSaveProfile,
+  savedProfiles = [],
+  onLoadProfile
+}: TeacherCustomizationProps) {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [profileName, setProfileName] = useState("");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+
+  const steps = [
+    { id: "teacher", title: "Teaching Style", icon: User },
+    { id: "class", title: "Class Context", icon: Users },
+    { id: "pedagogy", title: "Pedagogy", icon: Brain },
+    { id: "theology", title: "Theology", icon: BookOpen },
+    { id: "resources", title: "Resources", icon: Settings },
+    { id: "culture", title: "Context", icon: Building2 }
+  ];
+
+  const updatePreference = (key: keyof TeacherPreferences, value: any) => {
+    onPreferencesChange({ ...preferences, [key]: value });
+  };
+
+  const updateArrayPreference = (key: keyof TeacherPreferences, item: string, checked: boolean) => {
+    const currentArray = (preferences[key] as string[]) || [];
+    const newArray = checked
+      ? [...currentArray, item]
+      : currentArray.filter(i => i !== item);
+    updatePreference(key, newArray);
+  };
+
+  const resetToDefaults = () => {
+    onPreferencesChange({
+      ...DEFAULT_TEACHER_PREFERENCES,
+      specialNeeds: [...DEFAULT_TEACHER_PREFERENCES.specialNeeds],
+      learningStyles: [...DEFAULT_TEACHER_PREFERENCES.learningStyles],
+      takehomeMaterials: [...DEFAULT_TEACHER_PREFERENCES.takehomeMaterials],
+    });
+  };
+
+  const handleSaveProfile = () => {
+    if (profileName.trim() && onSaveProfile) {
+      onSaveProfile(preferences, profileName.trim());
+      setProfileName("");
+      setShowSaveDialog(false);
+    }
+  };
+
+  const renderTeacherStyleStep = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Teaching Style</Label>
+          <Select value={preferences.teachingStyle} onValueChange={(value) => updatePreference("teachingStyle", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TEACHING_STYLES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Classroom Management</Label>
+          <Select value={preferences.classroomManagement} onValueChange={(value) => updatePreference("classroomManagement", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CLASSROOM_MANAGEMENT_STYLES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Technology Integration</Label>
+          <Select value={preferences.techIntegration} onValueChange={(value) => updatePreference("techIntegration", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TECH_INTEGRATION_LEVELS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Assessment Preference</Label>
+          <Select value={preferences.assessmentPreference} onValueChange={(value) => updatePreference("assessmentPreference", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ASSESSMENT_PREFERENCES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderClassContextStep = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Class Size</Label>
+          <Select value={preferences.classSize} onValueChange={(value) => updatePreference("classSize", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CLASS_SIZES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Meeting Frequency</Label>
+          <Select value={preferences.meetingFrequency} onValueChange={(value) => updatePreference("meetingFrequency", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEETING_FREQUENCIES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Session Duration</Label>
+          <Select value={preferences.sessionDuration} onValueChange={(value) => updatePreference("sessionDuration", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SESSION_DURATIONS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Physical Space</Label>
+          <Select value={preferences.physicalSpace} onValueChange={(value) => updatePreference("physicalSpace", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PHYSICAL_SPACES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Special Needs Considerations (Select all that apply)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {SPECIAL_NEEDS_OPTIONS.map((item) => (
+            <div key={item.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={item.id}
+                checked={preferences.specialNeeds.includes(item.id)}
+                onCheckedChange={(checked) => updateArrayPreference("specialNeeds", item.id, checked as boolean)}
+              />
+              <Label htmlFor={item.id} className="text-sm">{item.label}</Label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderPedagogyStep = () => (
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Learning Style Accommodation (Select all that apply)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {LEARNING_STYLE_OPTIONS.map((item) => (
+            <div key={item.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={item.id}
+                checked={preferences.learningStyles.includes(item.id)}
+                onCheckedChange={(checked) => updateArrayPreference("learningStyles", item.id, checked as boolean)}
+              />
+              <Label htmlFor={item.id} className="text-sm">{item.label}</Label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Engagement Level Desired</Label>
+          <Select value={preferences.engagementLevel} onValueChange={(value) => updatePreference("engagementLevel", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ENGAGEMENT_LEVELS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Discussion Format</Label>
+          <Select value={preferences.discussionFormat} onValueChange={(value) => updatePreference("discussionFormat", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DISCUSSION_FORMATS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Activity Complexity</Label>
+          <Select value={preferences.activityComplexity} onValueChange={(value) => updatePreference("activityComplexity", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ACTIVITY_COMPLEXITY_LEVELS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTheologyStep = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Bible Translation Preference</Label>
+          <Select value={preferences.bibleTranslation} onValueChange={(value) => updatePreference("bibleTranslation", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {BIBLE_TRANSLATIONS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Theological Emphasis</Label>
+          <Select value={preferences.theologicalEmphasis} onValueChange={(value) => updatePreference("theologicalEmphasis", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {THEOLOGICAL_EMPHASES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Application Focus</Label>
+          <Select value={preferences.applicationFocus} onValueChange={(value) => updatePreference("applicationFocus", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {APPLICATION_FOCUSES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Depth Level</Label>
+          <Select value={preferences.depthLevel} onValueChange={(value) => updatePreference("depthLevel", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DEPTH_LEVELS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderResourcesStep = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Handout Style</Label>
+          <Select value={preferences.handoutStyle} onValueChange={(value) => updatePreference("handoutStyle", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {HANDOUT_STYLES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Visual Aid Preference</Label>
+          <Select value={preferences.visualAidPreference} onValueChange={(value) => updatePreference("visualAidPreference", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VISUAL_AID_PREFERENCES.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Preparation Time Available</Label>
+          <Select value={preferences.preparationTime} onValueChange={(value) => updatePreference("preparationTime", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PREPARATION_TIME_OPTIONS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Take-home Materials (Select all that apply)</Label>
+        <div className="grid grid-cols-2 gap-3">
+          {TAKEHOME_MATERIAL_OPTIONS.map((item) => (
+            <div key={item.id} className="flex items-center space-x-2">
+              <Checkbox
+                id={item.id}
+                checked={preferences.takehomeMaterials.includes(item.id)}
+                onCheckedChange={(checked) => updateArrayPreference("takehomeMaterials", item.id, checked as boolean)}
+              />
+              <Label htmlFor={item.id} className="text-sm">{item.label}</Label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderContextStep = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Cultural Background</Label>
+          <Select value={preferences.culturalBackground} onValueChange={(value) => updatePreference("culturalBackground", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CULTURAL_BACKGROUNDS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Socioeconomic Context</Label>
+          <Select value={preferences.socioeconomicContext} onValueChange={(value) => updatePreference("socioeconomicContext", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SOCIOECONOMIC_CONTEXTS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Educational Background</Label>
+          <Select value={preferences.educationalBackground} onValueChange={(value) => updatePreference("educationalBackground", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EDUCATIONAL_BACKGROUNDS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-3">
+          <Label className="text-sm font-medium">Spiritual Maturity Range</Label>
+          <Select value={preferences.spiritualMaturity} onValueChange={(value) => updatePreference("spiritualMaturity", value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SPIRITUAL_MATURITY_LEVELS.map((option) => (
+                <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <Label htmlFor="additional-context" className="text-sm font-medium">Additional Context & Special Considerations</Label>
+        <Textarea
+          id="additional-context"
+          placeholder="Describe any unique aspects of your class, specific challenges, cultural considerations, or special circumstances that would help customize the lesson content..."
+          value={preferences.additionalContext}
+          onChange={(e) => updatePreference("additionalContext", e.target.value)}
+          className="min-h-[120px]"
+        />
+      </div>
+    </div>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 0: return renderTeacherStyleStep();
+      case 1: return renderClassContextStep();
+      case 2: return renderPedagogyStep();
+      case 3: return renderTheologyStep();
+      case 4: return renderResourcesStep();
+      case 5: return renderContextStep();
+      default: return renderTeacherStyleStep();
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Profile Management */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Teacher Customization Profile
+              </CardTitle>
+              <CardDescription>
+                Configure detailed preferences for personalized lesson generation
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={resetToDefaults}>
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+              {savedProfiles.length > 0 && (
+                <Select onValueChange={(value) => {
+                  const profile = savedProfiles.find(p => p.name === value);
+                  if (profile && onLoadProfile) {
+                    onLoadProfile(profile.preferences);
+                  }
+                }}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Load saved profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {savedProfiles.map((profile) => (
+                      <SelectItem key={profile.name} value={profile.name}>
+                        {profile.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Step Navigation */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              {steps.map((step, index) => {
+                const StepIcon = step.icon;
+                return (
+                  <Button
+                    key={step.id}
+                    type="button"
+                    variant={currentStep === index ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentStep(index)}
+                    className="flex items-center gap-2"
+                  >
+                    <StepIcon className="h-4 w-4" />
+                    <span className="hidden sm:inline">{step.title}</span>
+                  </Button>
+                );
+              })}
+            </div>
+            <Badge variant="secondary">
+              Step {currentStep + 1} of {steps.length}
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent>
+          <div className="min-h-[400px]">
+            {renderCurrentStep()}
+          </div>
+
+          <Separator className="my-6" />
+
+          <div className="flex items-center justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+              disabled={currentStep === 0}
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {onSaveProfile && (
+                <div className="flex items-center gap-2">
+                  {showSaveDialog ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Profile name"
+                        value={profileName}
+                        onChange={(e) => setProfileName(e.target.value)}
+                        className="w-40"
+                      />
+                      <Button type="button" size="sm" onClick={handleSaveProfile} disabled={!profileName.trim()}>
+                        Save
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setShowSaveDialog(false)}>
+                        Cancel
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button type="button" variant="outline" size="sm" onClick={() => setShowSaveDialog(true)}>
+                      <Save className="h-4 w-4 mr-2" />
+                      Save Profile
+                    </Button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <Button
+              type="button"
+              onClick={() => setCurrentStep(Math.min(steps.length - 1, currentStep + 1))}
+              disabled={currentStep === steps.length - 1}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export { defaultPreferences as TeacherCustomizationDefaults };
+
