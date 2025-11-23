@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, Upload, BookOpen, Loader2 } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useToast } from "@/hooks/use-toast";
@@ -24,12 +25,13 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [notes, setNotes] = useState("");
   const [theologyProfileId, setTheologyProfileId] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [teachingStyle, setTeachingStyle] = useState("");
   const [lessonLength, setLessonLength] = useState("");
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState("english");
   
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { toast } = useToast();
@@ -111,6 +113,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
         lesson_length: lessonLength,
         activity_types: activityTypes,
         language: language,
+        generate_teaser: generateTeaser,
         uploaded_file: uploadedFile,
       };
 
@@ -125,6 +128,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
       setAgeGroup("");
       setNotes("");
       setUploadedFile(null);
+      setGenerateTeaser(false);
       
     } catch (error) {
       console.error("Error generating lesson:", error);
@@ -205,6 +209,21 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             <p className="text-xs text-muted-foreground">
               Selected profile shapes AI generation to align with specific Baptist theological standards
             </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="generate-teaser"
+              checked={generateTeaser}
+              onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
+              disabled={isSubmitting}
+            />
+            <label
+              htmlFor="generate-teaser"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Generate Lesson Teaser (builds student anticipation without revealing content)
+            </label>
           </div>
 
           <TeacherCustomization
