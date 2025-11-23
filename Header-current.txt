@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -15,7 +15,6 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
-import { getTheologyProfile } from "@/constants/theologyProfiles";
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -28,12 +27,14 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
   const { isAdmin } = useAdminAccess();
   const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
 
+  // Use actual auth state if available, otherwise use prop
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
   const displayName = user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'User';
 
+  // Fetch user's theological preference
   useEffect(() => {
-    const fetchTheologyProfile = async () => {
+    const fetchTheologicalPreference = async () => {
       if (!user) {
         setTheologicalLens(null);
         return;
@@ -41,17 +42,21 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('theology_profile_id')
+        .select('theological_preference')
         .eq('id', user.id)
         .single();
 
-      if (!error && data?.theology_profile_id) {
-        const profile = getTheologyProfile(data.theology_profile_id);
-        setTheologicalLens(profile ? profile.name : null);
+      if (!error && data?.theological_preference) {
+        const lensNames: Record<string, string> = {
+          'southern_baptist': 'Southern Baptist',
+          'reformed_baptist': 'Reformed Baptist',
+          'independent_baptist': 'Independent Baptist'
+        };
+        setTheologicalLens(lensNames[data.theological_preference] || null);
       }
     };
 
-    fetchTheologyProfile();
+    fetchTheologicalPreference();
   }, [user]);
 
   const handleSignOut = async () => {
@@ -62,6 +67,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
+        {/* Logo */}
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
           <Link to="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-90 transition-opacity shrink-0" title="Return to Home">
             <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
@@ -83,10 +89,14 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
           )}
         </div>
 
+        {/* Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
           {authenticated ? (
             <>
+              {/* Notifications */}
               <NotificationBell />
+
+              {/* User Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">

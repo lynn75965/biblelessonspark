@@ -4,20 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, Download, Users, BookOpen, Filter } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Filter } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
+import { getTheologyProfile } from "@/constants/theologyProfiles";
 
 interface LessonLibraryProps {
   onViewLesson?: (lesson: any) => void;
   organizationId?: string;
 }
 
-// ? UPDATED: Changed doctrine_profile to theological_preference
 interface LessonDisplay extends Lesson {
   passage_or_topic: string;
   age_group: string;
-  theological_preference: string;
+  theology_profile_id: string;
   created_by_name: string;
   has_content: boolean;
   updated_at?: string;
@@ -29,7 +29,7 @@ export function LessonLibrary({
 }: LessonLibraryProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [ageFilter, setAgeFilter] = useState<string>("all");
-  const [doctrineFilter, setDoctrineFilter] = useState<string>("all");
+  const [profileFilter, setProfileFilter] = useState<string>("all");
 
   const { lessons, loading, deleteLesson } = useLessons();
 
@@ -37,7 +37,7 @@ export function LessonLibrary({
     ...lesson,
     passage_or_topic: lesson.title || (lesson.filters?.passageOrTopic) || "Untitled Lesson",
     age_group: lesson.filters?.ageGroup || 'Mixed Groups',
-    theological_preference: lesson.filters?.theologicalPreference || lesson.filters?.theologicalPreference || "southern_baptist",
+    theology_profile_id: lesson.filters?.theologyProfileId || "southern-baptist-bfm-2000",
     created_by_name: "Teacher",
     has_content: !!lesson.original_text,
     updated_at: lesson.created_at,
@@ -47,8 +47,8 @@ export function LessonLibrary({
     const matchesSearch = lesson.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lesson.passage_or_topic.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
-    const matchesDoctrine = doctrineFilter === "all" || lesson.theological_preference === doctrineFilter;
-    return matchesSearch && matchesAge && matchesDoctrine;
+    const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
+    return matchesSearch && matchesAge && matchesProfile;
   });
 
   const getAgeGroupBadgeColor = (ageGroup: string) => {
@@ -68,24 +68,19 @@ export function LessonLibrary({
     return colors[ageGroup] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
-  // ? UPDATED: Changed keys to use full theological preference names
-  const getDoctrineBadgeColor = (doctrine: string) => {
+  const getProfileBadgeColor = (profileId: string) => {
     const colors = {
-      southern_baptist: "bg-primary-light text-primary border-primary/20",
-      reformed_baptist: "bg-secondary-light text-secondary border-secondary/20",
-      independent_baptist: "bg-success-light text-success border-success/20"
+      "southern-baptist-bfm-2000": "bg-primary-light text-primary border-primary/20",
+      "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
+      "reformed-baptist": "bg-secondary-light text-secondary border-secondary/20",
+      "independent-baptist": "bg-success-light text-success border-success/20"
     };
-    return colors[doctrine as keyof typeof colors] || "bg-gray-100 text-gray-800 border-gray-200";
+    return colors[profileId] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
-  // Helper to get display name for theological preference
-  const getTheologicalDisplayName = (preference: string) => {
-    const names = {
-      southern_baptist: "Southern Baptist",
-      reformed_baptist: "Reformed Baptist",
-      independent_baptist: "Independent Baptist"
-    };
-    return names[preference as keyof typeof names] || preference;
+  const getProfileDisplayName = (profileId: string) => {
+    const profile = getTheologyProfile(profileId);
+    return profile ? profile.name : profileId;
   };
 
   const formatDate = (dateString: string) => {
@@ -155,16 +150,17 @@ export function LessonLibrary({
               </SelectContent>
             </Select>
 
-            {/* Doctrine Filter - ? UPDATED: Values changed to full theological preference names */}
-            <Select value={doctrineFilter} onValueChange={setDoctrineFilter}>
-              <SelectTrigger className="w-full sm:w-[160px] text-xs sm:text-sm">
-                <SelectValue placeholder="All Doctrines" />
+            {/* Theology Profile Filter */}
+            <Select value={profileFilter} onValueChange={setProfileFilter}>
+              <SelectTrigger className="w-full sm:w-[200px] text-xs sm:text-sm">
+                <SelectValue placeholder="All Profiles" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Doctrines</SelectItem>
-                <SelectItem value="southern_baptist">Southern Baptist</SelectItem>
-                <SelectItem value="reformed_baptist">Reformed Baptist</SelectItem>
-                <SelectItem value="independent_baptist">Independent Baptist</SelectItem>
+                <SelectItem value="all">All Theology Profiles</SelectItem>
+                <SelectItem value="southern-baptist-bfm-2000">Southern Baptist (BF&M 2000)</SelectItem>
+                <SelectItem value="southern-baptist-bfm-1963">Southern Baptist (BF&M 1963)</SelectItem>
+                <SelectItem value="reformed-baptist">Reformed Baptist</SelectItem>
+                <SelectItem value="independent-baptist">Independent Baptist</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -173,7 +169,7 @@ export function LessonLibrary({
           <div className="mt-3 pt-3 border-t border-border/50">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Filter className="h-3 w-3" />
-              <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus (Historical Context, Word Study, Social Impact, Spiritual Growth), class duration, group size, and teaching style
+              <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration, group size, and teaching style
             </p>
           </div>
         </CardContent>
@@ -203,8 +199,8 @@ export function LessonLibrary({
                     <span className="hidden sm:inline">{lesson.age_group}</span>
                     <span className="sm:hidden">{lesson.age_group.split(' ')[0]}</span>
                   </Badge>
-                  <Badge className={getDoctrineBadgeColor(lesson.theological_preference)} variant="secondary">
-                    {getTheologicalDisplayName(lesson.theological_preference)}
+                  <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
+                    {getProfileDisplayName(lesson.theology_profile_id)}
                   </Badge>
                   {!lesson.has_content && (
                     <Badge variant="outline" className="text-warning border-warning/20 bg-warning-light">
@@ -251,13 +247,13 @@ export function LessonLibrary({
             <BookOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">
-                {searchTerm || ageFilter !== "all" || doctrineFilter !== "all"
+                {searchTerm || ageFilter !== "all" || profileFilter !== "all"
                   ? "No lessons match your filters"
                   : "No lessons yet"
                 }
               </h3>
               <p className="text-muted-foreground max-w-md">
-                {searchTerm || ageFilter !== "all" || doctrineFilter !== "all"
+                {searchTerm || ageFilter !== "all" || profileFilter !== "all"
                   ? "Try adjusting your search terms or filters to find the lessons you're looking for."
                   : "Create your first Baptist-enhanced Bible study lesson to get started."
                 }

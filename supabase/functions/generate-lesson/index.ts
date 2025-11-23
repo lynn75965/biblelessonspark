@@ -1,9 +1,8 @@
-﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4'
-
-import { 
-  LESSON_STRUCTURE_VERSION, 
+import {
+  LESSON_STRUCTURE_VERSION,
   getEnabledSections,
   getTotalMinWords,
   getTotalMaxWords,
@@ -12,12 +11,8 @@ import {
   generateBehaviorRules
 } from '../_shared/lessonStructure.ts'
 import { getAgeGroupByLabel } from '../_shared/ageGroups.ts'
-import { 
-  SB_CONFESSION_VERSIONS,
-  getTheologicalPreference,
-  getDistinctives,
-} from '../_shared/theologicalPreferences.ts'
-import type { TheologicalPreferenceKey, SBConfessionVersionKey } from '../_shared/theologicalPreferences.ts'
+import { getTheologyProfile, isValidTheologyProfileId } from '../_shared/theologyProfiles.ts'
+import type { TheologyProfile } from '../_shared/theologyProfiles.ts'
 import type { TeacherPreferences } from '../_shared/teacherPreferences.ts'
 
 interface LessonRequest {
@@ -29,8 +24,7 @@ interface LessonRequest {
   enhancementType: 'curriculum' | 'generation' | 'enhance' | 'generate';
   extractedContent?: string;
   teacherPreferences?: TeacherPreferences;
-  theologicalPreference: 'southern_baptist' | 'reformed_baptist' | 'independent_baptist';
-  sbConfessionVersion?: 'bfm_1963' | 'bfm_2000';
+  theologyProfileId: string;
   bibleVersion?: string;
   sessionId?: string;
   uploadId?: string;
@@ -52,8 +46,9 @@ function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: 
   const userLimit = rateLimitMap.get(userId);
 
   if (!userLimit || now > userLimit.resetTime) {
-    rateLimitMap.set(userId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
-    return { allowed: true, remainingRequests: RATE_LIMIT_MAX_REQUESTS - 1, resetTime: now + RATE_LIMIT_WINDOW };
+    const resetTime = now + RATE_LIMIT_WINDOW;
+    rateLimitMap.set(userId, { count: 1, resetTime });
+    return { allowed: true, remainingRequests: RATE_LIMIT_MAX_REQUESTS - 1, resetTime };
   }
 
   if (userLimit.count >= RATE_LIMIT_MAX_REQUESTS) {
@@ -61,321 +56,245 @@ function checkRateLimit(userId: string): { allowed: boolean; remainingRequests: 
   }
 
   userLimit.count++;
-  rateLimitMap.set(userId, userLimit);
   return { allowed: true, remainingRequests: RATE_LIMIT_MAX_REQUESTS - userLimit.count, resetTime: userLimit.resetTime };
 }
 
-function getAgeGroupData(ageGroupLabel: string) {
-  const ageGroup = getAgeGroupByLabel(ageGroupLabel);
-  if (ageGroup) return ageGroup;
-  
-  console.warn(`Unrecognized age group label: ${ageGroupLabel}, using fallback`);
-  return {
-    id: 'unknown',
-    label: ageGroupLabel,
-    ageMin: 0,
-    ageMax: 100,
-    description: `Tailored for ${ageGroupLabel}`,
-    teachingProfile: {
-      vocabularyLevel: 'moderate' as const,
-      attentionSpan: 30,
-      preferredActivities: ['discussion', 'group activities'],
-      abstractThinking: 'developing' as const,
-      specialConsiderations: ['Adapt content to actual audience needs']
-    }
-  };
-}
+function buildTheologicalContext(theologyProfile: TheologyProfile): string {
+  return `
+THEOLOGICAL FRAMEWORK (${theologyProfile.name}):
+${theologyProfile.description}
 
-async function generateLessonWithAI(data: LessonRequest) {
-  const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!anthropicApiKey) throw new Error('Anthropic API key not configured');
+Key Distinctives:
+${theologyProfile.distinctives.map(d => `- ${d}`).join('\n')}
 
-  const prefKey = data.theologicalPreference as TheologicalPreferenceKey;
-  const lens = getTheologicalPreference(prefKey);
-  
-  let versionLabel = '';
-  let versionKey: SBConfessionVersionKey | undefined;
-  
-  if (prefKey === 'southern_baptist') {
-    versionKey = (data.sbConfessionVersion as SBConfessionVersionKey) || 'bfm_2000';
-    const version = SB_CONFESSION_VERSIONS[versionKey];
-    versionLabel = version?.label || '';
-  }
-  
-  const lensDistinctives = getDistinctives(prefKey, versionKey);
-  const ageGroupInfo = getAgeGroupData(data.ageGroup);
-
-  const buildCustomizationContext = (prefs: TeacherPreferences): string => {
-    if (!prefs) return '';
-    const context = [];
-    if (prefs.teachingStyle) context.push(`Teaching Style: ${prefs.teachingStyle.replace(/_/g, ' ')}`);
-    if (prefs.classroomManagement) context.push(`Classroom Management: ${prefs.classroomManagement.replace(/_/g, ' ')}`);
-    if (prefs.techIntegration) context.push(`Technology Integration: ${prefs.techIntegration}`);
-    if (prefs.classSize) context.push(`Class Size: ${prefs.classSize}`);
-    if (prefs.sessionDuration) context.push(`Session Duration: ${prefs.sessionDuration}`);
-    if (prefs.physicalSpace) context.push(`Physical Space: ${prefs.physicalSpace.replace(/_/g, ' ')}`);
-    if (prefs.learningStyles?.length > 0) context.push(`Learning Styles: ${prefs.learningStyles.join(', ')}`);
-    if (prefs.engagementLevel) context.push(`Engagement Level: ${prefs.engagementLevel.replace(/_/g, ' ')}`);
-    if (prefs.discussionFormat) context.push(`Discussion Format: ${prefs.discussionFormat.replace(/_/g, ' ')}`);
-    if (prefs.activityComplexity) context.push(`Activity Complexity: ${prefs.activityComplexity}`);
-    if (prefs.bibleTranslation) context.push(`Bible Translation: ${prefs.bibleTranslation}`);
-    if (prefs.theologicalEmphasis) context.push(`Theological Emphasis: ${prefs.theologicalEmphasis.replace(/_/g, ' ')}`);
-    if (prefs.applicationFocus) context.push(`Application Focus: ${prefs.applicationFocus.replace(/_/g, ' ')}`);
-    if (prefs.depthLevel) context.push(`Study Depth: ${prefs.depthLevel.replace(/_/g, ' ')}`);
-    if (prefs.handoutStyle) context.push(`Handout Style: ${prefs.handoutStyle.replace(/_/g, ' ')}`);
-    if (prefs.visualAidPreference) context.push(`Visual Aids: ${prefs.visualAidPreference.replace(/_/g, ' ')}`);
-    if (prefs.preparationTime) context.push(`Preparation Time: ${prefs.preparationTime}`);
-    if (prefs.culturalBackground) context.push(`Cultural Background: ${prefs.culturalBackground}`);
-    if (prefs.educationalBackground) context.push(`Educational Background: ${prefs.educationalBackground.replace(/_/g, ' ')}`);
-    if (prefs.spiritualMaturity) context.push(`Spiritual Maturity: ${prefs.spiritualMaturity.replace(/_/g, ' ')}`);
-    if (prefs.specialNeeds?.length > 0) context.push(`Special Considerations: ${prefs.specialNeeds.join(', ')}`);
-    if (prefs.additionalContext) context.push(`Additional Context: ${prefs.additionalContext}`);
-    return context.join('\n');
-  };
-
-  const customizationContext = buildCustomizationContext(data.teacherPreferences || {} as TeacherPreferences);
-  
-  const passageOrTopic = data.passage || data.topic || data.passageOrTopic;
-  const passagePart = data.passage ? `Bible Passage: ${data.passage}` : '';
-  const topicPart = data.topic ? `Topic Focus: ${data.topic}` : '';
-  const focusString = [passagePart, topicPart].filter(Boolean).join(' | ') || passageOrTopic;
-
-  const enhancementPrompt = data.enhancementType === 'curriculum' || data.enhancementType === 'enhance'
-    ? `Enhance and expand the following existing curriculum content: "${data.extractedContent}". Additional focus: ${focusString}. Build upon this foundation while maintaining its core structure and adding comprehensive depth.`
-    : `Generate a complete, original lesson plan based on: ${focusString}.`;
-
-  const lensDisplayName = versionLabel ? `${lens.name} - ${versionLabel}` : lens.name;
-
-  const sectionCount = getSectionCount();
-  const totalMinWords = getTotalMinWords();
-  const totalMaxWords = getTotalMaxWords();
-  const lessonStructurePrompt = generateFullPromptStructure();
-  const behaviorRules = generateBehaviorRules();
-
-  const systemPrompt = `You are an expert Bible curriculum developer with 20+ years of experience creating comprehensive, engaging lesson plans for ${data.ageGroup} from a ${lens.contextDescription}
-
-THEOLOGICAL LENS: ${lensDisplayName}
-You are generating this lesson under the ${lens.label}${versionLabel ? ` (${versionLabel})` : ''}.
-${lens.description}
-
-When doctrine is debated, present this lens position clearly and charitably without attacking other positions.
-
-REQUIRED OUTPUT HEADER:
-At the very top of your lesson output, include:
-1. "Theological Lens: ${lensDisplayName}"
-2. "Lens Distinctives:" with these bullet points:
-${lensDistinctives.map(d => `   - ${d}`).join('\n')}
-
-REQUIRED: Prefix the lesson title with "${lens.short} - " (e.g., "${lens.short} - Understanding Grace")
-
-TEACHER CUSTOMIZATION PROFILE:
-${customizationContext}
-
-TARGET AUDIENCE: ${ageGroupInfo.description}
-
-Teaching Profile:
-- Vocabulary Level: ${ageGroupInfo.teachingProfile.vocabularyLevel}
-- Attention Span: ${ageGroupInfo.teachingProfile.attentionSpan} minutes
-- Preferred Activities: ${ageGroupInfo.teachingProfile.preferredActivities.join(', ')}
-- Abstract Thinking: ${ageGroupInfo.teachingProfile.abstractThinking}
-- Special Considerations: ${ageGroupInfo.teachingProfile.specialConsiderations.join('; ')}
-
-Denomination Emphasis: ${lens.contextDescription}
-
-${data.notes ? `ADDITIONAL REQUIREMENTS FROM USER:\n${data.notes}` : ''}
-
-${lessonStructurePrompt}
-
-${behaviorRules}
-
-REQUIRED FOOTER:
-At the end of the lesson, include:
-"This lesson reflects the ${lens.name} lens selected in settings."
-
-Return a publication-ready lesson plan that a teacher could print and use immediately for a 45-60 minute class session.`;
-
-  const userPrompt = enhancementPrompt;
-
-  try {
-    console.log('Calling Anthropic API with Claude...');
-    console.log(`Using Lesson Structure Version: ${LESSON_STRUCTURE_VERSION}`);
-    console.log(`Total sections required: ${sectionCount}`);
-    console.log(`Target word count: ${totalMinWords}-${totalMaxWords}`);
-    console.log(`Focus string: ${focusString}`);
-    console.log(`Age Group: ${ageGroupInfo.label} (${ageGroupInfo.id})`);
-
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Anthropic API error:', error);
-      throw new Error(`Anthropic API error: ${response.status}`);
-    }
-
-    const completion = await response.json();
-    const content = completion.content[0].text;
-    const wordCount = content.split(/\s+/).length;
-
-    return {
-      fullContent: content,
-      wordCount: wordCount,
-      estimatedDuration: '45-60 minutes',
-      structureVersion: LESSON_STRUCTURE_VERSION,
-      sectionCount: sectionCount
-    };
-  } catch (error) {
-    console.error('Error calling Anthropic:', error);
-    throw error;
-  }
-}
-
-function sanitizeString(str: string): string {
-  if (!str) return '';
-  return str.replace(/[<>]/g, '').replace(/\0/g, '').trim();
-}
-
-function validateInput(data: any): LessonRequest {
-  if (!data.passage && !data.topic && !data.passageOrTopic) {
-    throw new Error('Either passage, topic, or passageOrTopic is required');
-  }
-
-  if (!data.ageGroup || typeof data.ageGroup !== 'string' || data.ageGroup.trim().length === 0) {
-    throw new Error('ageGroup is required and must be a non-empty string');
-  }
-
-  if (!data.theologicalPreference || typeof data.theologicalPreference !== 'string') {
-    throw new Error('theologicalPreference is required and must be a string');
-  }
-
-  const allowedTheologicalPreferences = ['southern_baptist', 'reformed_baptist', 'independent_baptist'];
-  if (!allowedTheologicalPreferences.includes(data.theologicalPreference)) {
-    throw new Error('Invalid theological preference. Must be one of: southern_baptist, reformed_baptist, independent_baptist');
-  }
-
-  const passageOrTopic = data.passage || data.topic || data.passageOrTopic;
-
-  return {
-    passage: data.passage ? sanitizeString(data.passage) : undefined,
-    topic: data.topic ? sanitizeString(data.topic) : undefined,
-    passageOrTopic: sanitizeString(passageOrTopic),
-    ageGroup: sanitizeString(data.ageGroup),
-    notes: data.notes ? sanitizeString(data.notes) : undefined,
-    enhancementType: data.enhancementType || 'generation',
-    extractedContent: data.extractedContent ? sanitizeString(data.extractedContent) : undefined,
-    teacherPreferences: data.teacherPreferences,
-    theologicalPreference: data.theologicalPreference,
-    sbConfessionVersion: data.sbConfessionVersion,
-    bibleVersion: data.bibleVersion,
-    sessionId: data.sessionId,
-    uploadId: data.uploadId,
-    fileHash: data.fileHash,
-    sourceFile: data.sourceFile
-  };
+CRITICAL: All content must align with these theological standards. This shapes interpretation, application, and teaching emphasis throughout the lesson.
+`;
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) throw new Error('No authorization header')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
 
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
+    }
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user) throw new Error('Invalid user token')
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Invalid token');
+    }
 
     const rateLimit = checkRateLimit(user.id);
     if (!rateLimit.allowed) {
+      const waitTime = Math.ceil((rateLimit.resetTime - Date.now()) / 1000);
       return new Response(
-        JSON.stringify({ error: 'Rate limit exceeded. Please try again later.', resetTime: rateLimit.resetTime }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-RateLimit-Remaining': '0', 'X-RateLimit-Reset': rateLimit.resetTime.toString() } }
+        JSON.stringify({ 
+          error: 'Rate limit exceeded', 
+          message: `Too many requests. Please wait ${waitTime} seconds before trying again.`,
+          resetTime: rateLimit.resetTime
+        }),
+        { 
+          status: 429,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetTime.toString()
+          }
+        }
       );
     }
 
-    const requestData = await req.json()
-    console.log('Received request:', JSON.stringify(requestData, null, 2))
+    const requestData: LessonRequest = await req.json();
+    const { 
+      passageOrTopic, 
+      ageGroup, 
+      notes, 
+      theologyProfileId,
+      bibleVersion = 'CSB',
+      teacherPreferences 
+    } = requestData;
 
-    const validatedData = validateInput(requestData)
-    console.log('Validated data:', JSON.stringify(validatedData, null, 2))
-
-    const { sessionId, uploadId, fileHash, sourceFile } = requestData;
-    const lessonContent = await generateLessonWithAI(validatedData)
-
-    const { data: lesson, error: insertError } = await supabaseClient
-      .from('lessons')
-      .insert({
-        user_id: user.id,
-        title: `Lesson: ${validatedData.passageOrTopic}`,
-        original_text: lessonContent.fullContent || validatedData.extractedContent || '',
-        source_type: validatedData.enhancementType || 'generation',
-        upload_path: sourceFile || null,
-        filters: {
-          ageGroup: validatedData.ageGroup,
-          theologicalPreference: validatedData.theologicalPreference,
-          enhancementType: validatedData.enhancementType,
-          sessionId,
-          uploadId,
-          fileHash,
-          metadata: {
-            ageGroup: validatedData.ageGroup,
-            enhancementType: validatedData.enhancementType,
-            wordCount: lessonContent.wordCount,
-            estimatedDuration: lessonContent.estimatedDuration,
-            theologicalPreference: validatedData.theologicalPreference,
-            sbConfessionVersion: validatedData.sbConfessionVersion || null,
-            bibleVersion: validatedData.bibleVersion || 'KJV',
-            structureVersion: lessonContent.structureVersion,
-            sectionCount: lessonContent.sectionCount
-          }
-        }
-      })
-      .select()
-      .single()
-
-    if (insertError) {
-      console.error('Error saving lesson:', insertError)
-      throw new Error(`Failed to save lesson: ${insertError.message}`)
+    // Validate theology profile ID
+    if (!theologyProfileId || !isValidTheologyProfileId(theologyProfileId)) {
+      throw new Error('Invalid theology profile ID');
     }
 
-    console.log('Successfully generated and saved lesson')
-    console.log(`Word count: ${lessonContent.wordCount}, Sections: ${lessonContent.sectionCount}`)
+    const theologyProfile = getTheologyProfile(theologyProfileId);
+    if (!theologyProfile) {
+      throw new Error('Theology profile not found');
+    }
+
+    const ageGroupData = getAgeGroupByLabel(ageGroup);
+    if (!ageGroupData) {
+      throw new Error(`Invalid age group: ${ageGroup}`);
+    }
+
+    const theologicalContext = buildTheologicalContext(theologyProfile);
+    const promptStructure = generateFullPromptStructure();
+    const behaviorRules = generateBehaviorRules();
+
+    const systemPrompt = `You are a Baptist Bible study lesson generator with deep theological knowledge and 40+ years of ministry experience.
+
+${theologicalContext}
+
+AGE GROUP CONTEXT:
+Target Audience: ${ageGroupData.label}
+Age Range: ${ageGroupData.ageRange}
+Cognitive Level: ${ageGroupData.cognitiveLevel}
+Teaching Focus: ${ageGroupData.teachingFocus}
+
+LESSON STRUCTURE (Version ${LESSON_STRUCTURE_VERSION}):
+You must generate a lesson with exactly ${getSectionCount()} sections:
+${promptStructure}
+
+WORD COUNT REQUIREMENTS:
+- Total lesson must be between ${getTotalMinWords()} and ${getTotalMaxWords()} words
+- Each section has specific min/max word counts (see structure above)
+- Be thorough but concise within these limits
+
+${behaviorRules}
+
+${teacherPreferences ? `
+TEACHER PREFERENCES:
+${teacherPreferences.teachingStyle ? `Teaching Style: ${teacherPreferences.teachingStyle}` : ''}
+${teacherPreferences.classDuration ? `Class Duration: ${teacherPreferences.classDuration} minutes` : ''}
+${teacherPreferences.groupSize ? `Group Size: ${teacherPreferences.groupSize}` : ''}
+${teacherPreferences.additionalNotes ? `Additional Notes: ${teacherPreferences.additionalNotes}` : ''}
+` : ''}
+
+Bible Version: ${bibleVersion}
+
+CRITICAL REMINDERS:
+1. Maintain ${theologyProfile.name} theological standards throughout
+2. Use age-appropriate language for ${ageGroupData.label}
+3. Include all ${getSectionCount()} required sections
+4. Stay within word count limits
+5. Provide practical, applicable teaching content
+`;
+
+    const userPrompt = `Generate a complete Baptist Bible study lesson for:
+
+Passage/Topic: ${passageOrTopic}
+${notes ? `Additional Notes: ${notes}` : ''}
+
+Please generate the complete lesson following the structure and requirements specified in the system prompt.`;
+
+    console.log('Calling Anthropic API...');
+    console.log('Theology Profile:', theologyProfile.name);
+    console.log('Age Group:', ageGroupData.label);
+
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        temperature: 0.7,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ]
+      })
+    });
+
+    if (!anthropicResponse.ok) {
+      const errorData = await anthropicResponse.text();
+      console.error('Anthropic API error:', errorData);
+      throw new Error(`Anthropic API error: ${anthropicResponse.status} - ${errorData}`);
+    }
+
+    const anthropicData = await anthropicResponse.json();
+    const generatedLesson = anthropicData.content[0].text;
+
+    console.log('Lesson generated successfully');
+    console.log(`Lesson length: ${generatedLesson.length} characters`);
+
+    const lessonData = {
+      user_id: user.id,
+      title: passageOrTopic,
+      original_text: generatedLesson,
+      enhanced_text: generatedLesson,
+      filters: {
+        passageOrTopic,
+        ageGroup,
+        theologyProfileId,
+        bibleVersion,
+        notes: notes || null
+      },
+      metadata: {
+        lessonStructureVersion: LESSON_STRUCTURE_VERSION,
+        generatedAt: new Date().toISOString(),
+        theologyProfile: theologyProfile.name,
+        ageGroup: ageGroupData.label,
+        wordCount: generatedLesson.split(/\s+/).length,
+        sectionCount: getSectionCount()
+      }
+    };
+
+    const { data: lesson, error: insertError } = await supabase
+      .from('lessons')
+      .insert(lessonData)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Database insert error:', insertError);
+      throw new Error(`Failed to save lesson: ${insertError.message}`);
+    }
+
+    console.log('Lesson saved to database:', lesson.id);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        output: { teacher_plan: lessonContent },
-        lesson: lesson,
-        sessionId: sessionId || '',
-        uploadId: uploadId || '',
-        fileHash: fileHash || ''
+      JSON.stringify({ 
+        success: true, 
+        lesson,
+        theologyProfile: theologyProfile.name,
+        metadata: lessonData.metadata
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-    )
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remainingRequests.toString(),
+          'X-RateLimit-Reset': rateLimit.resetTime.toString()
+        }
+      }
+    );
+
   } catch (error) {
-    console.error('Error in generate-lesson function:', error)
+    console.error('Error in generate-lesson function:', error);
     return new Response(
-      JSON.stringify({ error: error.message, success: false }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-    )
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred',
+        details: error.toString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
   }
-})
+});

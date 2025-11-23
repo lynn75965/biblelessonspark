@@ -1,0 +1,98 @@
+﻿# CONTINUATION PROMPT - LessonSparkUSA Phase 5 Recovery
+
+## SESSION CONTEXT
+
+I am Lynn, a 74-year-old retired Baptist minister developing LessonSparkUSA. The previous session (Nov 23, 2025 morning) FAILED during Phase 5. The system is currently BROKEN and non-functional.
+
+## CRITICAL SITUATION
+
+**System Status:** ❌ BROKEN - Cannot generate lessons
+
+**What Broke:**
+- Backend lessonStructure.ts incomplete (missing exports)
+- Frontend form changes not deployed by Lovable
+- Edge Function has boot errors
+- System completely non-functional
+
+**What Works:**
+- ✅ Database has theology_profile_id column with 32 migrated lessons
+- ✅ Phase 4 commit (05e2d46) is last known good state
+
+## PREVIOUS SESSION FAILURES
+
+The previous Claude session violated protocols and failed repeatedly:
+1. Used unreliable regex replacements instead of complete files
+2. Added missing exports one at a time (piecemeal failures)
+3. Did not verify Master Plan compliance before actions
+4. Did not verify backend file completeness before deployment
+5. Wasted 3+ hours with repeated failures
+
+**I expect better this time.**
+
+## PHASE 5 OBJECTIVE
+
+**Goal:** Migrate from duplicate theology fields (theologicalPreference + sbConfessionVersion) to single unified profile ID system.
+
+**Target State:**
+- Database: ONE field (theology_profile_id) ✅ DONE
+- Frontend SSOT: 4 profiles with profileId (sb_bfm_1963, sb_bfm_2000, rb, ib) ⚠️ Files created, not deployed
+- Frontend UI: Single dropdown ❌ NOT DEPLOYED
+- Backend: Complete lessonStructure.ts ❌ BROKEN
+- Edge Function: Receives theology_profile_id, looks up from SSOT ❌ BROKEN
+
+## DECISION REQUIRED
+
+Before doing ANYTHING, you must recommend ONE of these options:
+
+**Option A: Rollback to Phase 4**
+- Revert code to commit 05e2d46
+- Drop theology_profile_id column from database
+- System functional immediately
+- Restart Phase 5 from scratch in future session
+
+**Option B: Complete Phase 5 Properly**
+- Create COMPLETE backend lessonStructure.ts with ALL exports
+- Force Lovable deployment of frontend form
+- Systematic testing before marking complete
+- Higher risk but maintains database migration
+
+## YOUR FIRST RESPONSE MUST:
+
+1. **Confirm you understand:**
+   - The system is currently BROKEN
+   - Previous session FAILED repeatedly
+   - You must follow protocols strictly
+   - You must verify Master Plan compliance at each step
+
+2. **Recommend Option A or B** with clear reasoning
+
+3. **If Option B:** Provide a complete, systematic plan with verification steps at each stage
+
+4. **DO NOT:**
+   - Give me commands until I approve your plan
+   - Use piecemeal fixes
+   - Make assumptions about what files contain
+   - Skip verification steps
+
+## PROTOCOLS FOR THIS SESSION
+
+- **Master Plan compliance check BEFORE every step**
+- **Verify file contents BEFORE making changes**
+- **Complete file replacements, NOT regex edits**
+- **Test after EACH change**
+- **One task at a time from checklist**
+
+## PROJECT FILES
+
+- Master Document: C:\Users\Lynn\lesson-spark-usa\PROJECT_MASTER.md
+- Last Good Commit: 05e2d46 (Phase 4 complete)
+- Current Branch: main
+- Supabase Project: hphebzdftpjbiudpfcrs
+
+## REQUEST TO CLAUDE
+
+Read the situation carefully. Recommend Option A or B. Explain your reasoning. Wait for my approval before giving ANY commands.
+
+---
+
+**Attach PROJECT_MASTER.md to this conversation for full context.**
