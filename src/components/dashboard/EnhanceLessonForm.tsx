@@ -27,6 +27,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   
   const [teachingStyle, setTeachingStyle] = useState("");
   const [lessonLength, setLessonLength] = useState("");
@@ -54,6 +55,22 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
     
     fetchUserProfile();
   }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isSubmitting || isEnhancing) {
+      setGenerationProgress(0);
+      interval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 95) return prev;
+          return prev + 1;
+        });
+      }, 2000);
+    } else {
+      setGenerationProgress(0);
+    }
+    return () => clearInterval(interval);
+  }, [isSubmitting, isEnhancing]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -123,6 +140,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
         onLessonGenerated(result);
       }
       
+      setGenerationProgress(100);
       setBiblePassage("");
       setFocusedTopic("");
       setAgeGroup("");
@@ -151,10 +169,10 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="passage">Bible Passage or Topic *</Label>
+            <Label htmlFor="passage">Bible Passage (Optional)</Label>
             <Input
               id="passage"
-              placeholder="e.g., John 3:16-21 or 'The Love of God'"
+              placeholder="e.g., John 3:16-21"
               value={biblePassage}
               onChange={(e) => setBiblePassage(e.target.value)}
               disabled={isSubmitting}
@@ -256,7 +274,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
               <Input
                 id="file"
                 type="file"
-                accept=".pdf,.docx,.txt"
+                accept=".pdf,.docx,.txt,.jpg,.jpeg"
                 onChange={handleFileChange}
                 disabled={isSubmitting}
                 className="cursor-pointer"
@@ -274,7 +292,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
               )}
             </div>
             <p className="text-xs text-muted-foreground">
-              Upload PDF, DOCX, or TXT files (max 10MB)
+              Upload PDF, DOCX, TXT, or JPG files (max 10MB)
             </p>
           </div>
 
@@ -285,10 +303,10 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             disabled={isSubmitting || isEnhancing}
           >
             {isSubmitting || isEnhancing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Lesson...
-              </>
+              <div className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Lesson Generating... {generationProgress}%</span>
+              </div>
             ) : (
               <>
                 <BookOpen className="mr-2 h-4 w-4" />

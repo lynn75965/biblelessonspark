@@ -2,8 +2,14 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TeacherCustomizationProps {
   teachingStyle: string;
@@ -18,27 +24,30 @@ interface TeacherCustomizationProps {
 }
 
 const TEACHING_STYLES = [
-  { id: "lecture", label: "Lecture-Based" },
-  { id: "discussion", label: "Discussion-Based" },
-  { id: "interactive", label: "Interactive/Hands-On" },
-  { id: "storytelling", label: "Storytelling" },
-  { id: "socratic", label: "Socratic Method" },
+  { id: "lecture", label: "Lecture-Based", tooltip: null },
+  { id: "discussion", label: "Discussion-Based", tooltip: null },
+  { id: "interactive", label: "Interactive/Hands-On", tooltip: null },
+  { id: "storytelling", label: "Storytelling", tooltip: null },
+  { id: "socratic", label: "Socratic Method", tooltip: "Teaching through asking probing questions that lead students to discover truth themselves, rather than directly telling them answers" },
+  { id: "mixed", label: "Mixed", tooltip: null },
 ];
 
 const LESSON_LENGTHS = [
   { id: "30", label: "30 minutes" },
   { id: "45", label: "45 minutes" },
   { id: "60", label: "60 minutes" },
+  { id: "75", label: "75 minutes" },
   { id: "90", label: "90 minutes" },
 ];
 
 const ACTIVITY_TYPES = [
-  { id: "crafts", label: "Crafts" },
-  { id: "games", label: "Games" },
-  { id: "music", label: "Music/Worship" },
-  { id: "drama", label: "Drama/Role-play" },
-  { id: "discussion", label: "Small Group Discussion" },
-  { id: "memorization", label: "Scripture Memorization" },
+  { id: "written", label: "Written reflection" },
+  { id: "verbal", label: "Verbal interaction" },
+  { id: "creative", label: "Creative arts" },
+  { id: "drama", label: "Drama & role-play" },
+  { id: "games", label: "Games & movement" },
+  { id: "music", label: "Music & worship" },
+  { id: "prayer", label: "Prayer practices" },
 ];
 
 const LANGUAGES = [
@@ -100,7 +109,21 @@ export function TeacherCustomization({
               <SelectContent>
                 {TEACHING_STYLES.map((style) => (
                   <SelectItem key={style.id} value={style.id}>
-                    {style.label}
+                    <div className="flex items-center gap-2">
+                      {style.label}
+                      {style.tooltip && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3 w-3 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">
+                              <p>{style.tooltip}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
