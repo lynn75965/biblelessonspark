@@ -10,102 +10,91 @@ import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
+import { AGE_GROUPS } from "@/constants/ageGroups";
+import { TeacherCustomization } from "./TeacherCustomization";
 
 interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
 }
 
 export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps) {
-  const [passageOrTopic, setPassageOrTopic] = useState("");
+  const [biblePassage, setBiblePassage] = useState("");
+  const [focusedTopic, setFocusedTopic] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
   const [notes, setNotes] = useState("");
   const [theologyProfileId, setTheologyProfileId] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Teacher customization state
+  const [teachingStyle, setTeachingStyle] = useState("");
+  const [lessonLength, setLessonLength] = useState("");
+  const [activityTypes, setActivityTypes] = useState<string[]>([]);
+  const [language, setLanguage] = useState("English");
+  
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { toast } = useToast();
 
-  // Fetch user's theology profile on mount
   useEffect(() => {
     const fetchUserProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('theology_profile_id')
           .eq('id', user.id)
           .single();
-
+        
         if (profile?.theology_profile_id) {
           setTheologyProfileId(profile.theology_profile_id);
         }
       }
     };
-
+    
     fetchUserProfile();
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
-      const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
-      if (!validTypes.includes(file.type)) {
+      if (file.size > 10 * 1024 * 1024) {
         toast({
-          variant: "destructive",
-          title: "Invalid file type",
-          description: "Please upload a PDF, DOCX, or TXT file.",
-        });
-        return;
-      }
-
-      // Validate file size (10MB limit)
-      const maxSize = 10 * 1024 * 1024;
-      if (file.size > maxSize) {
-        toast({
-          variant: "destructive",
           title: "File too large",
-          description: "Please upload a file smaller than 10MB.",
+          description: "Please upload a file smaller than 10MB",
+          variant: "destructive",
         });
         return;
       }
-
       setUploadedFile(file);
-      toast({
-        title: "File uploaded",
-        description: `${file.name} ready to process`,
-      });
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!passageOrTopic.trim()) {
+    if (!biblePassage && !focusedTopic) {
       toast({
-        variant: "destructive",
         title: "Missing information",
-        description: "Please enter a Bible passage or topic",
+        description: "Please provide either a Bible passage or a focused topic",
+        variant: "destructive",
       });
       return;
     }
 
     if (!ageGroup) {
       toast({
-        variant: "destructive",
         title: "Missing information",
         description: "Please select an age group",
+        variant: "destructive",
       });
       return;
     }
 
     if (!theologyProfileId) {
       toast({
-        variant: "destructive",
         title: "Missing information",
         description: "Please select a theology profile",
+        variant: "destructive",
       });
       return;
     }
@@ -113,41 +102,40 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
     setIsSubmitting(true);
 
     try {
-      const result = await enhanceLesson({
-        passageOrTopic: passageOrTopic.trim(),
-        ageGroup,
-        notes: notes.trim(),
-        theologyProfileId,
-        uploadedFile: uploadedFile || undefined,
-      });
+      const enhancementData = {
+        bible_passage: biblePassage,
+        focused_topic: focusedTopic,
+        age_group: ageGroup,
+        theology_profile_id: theologyProfileId,
+        additional_notes: notes,
+        teaching_style: teachingStyle,
+        lesson_length: lessonLength,
+        activity_types: activityTypes,
+        language: language,
+        uploaded_file: uploadedFile,
+      };
 
-      if (result) {
-        toast({
-          title: "Lesson enhanced successfully!",
-          description: "Your Baptist-enhanced lesson is ready",
-        });
-        
-        // Reset form
-        setPassageOrTopic("");
-        setNotes("");
-        setUploadedFile(null);
-        
-        // Notify parent component
-        onLessonGenerated?.(result);
+      const result = await enhanceLesson(enhancementData);
+      
+      if (result && onLessonGenerated) {
+        onLessonGenerated(result);
       }
+      
+      setBiblePassage("");
+      setFocusedTopic("");
+      setAgeGroup("");
+      setNotes("");
+      setUploadedFile(null);
+      
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Enhancement failed",
-        description: error instanceof Error ? error.message : "Please try again",
-      });
+      console.error("Error generating lesson:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Card className="bg-gradient-card border-border/50">
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -159,52 +147,56 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Bible Passage or Topic */}
+          {/* Bible Passage */}
           <div className="space-y-2">
-            <Label htmlFor="passageOrTopic">
-              Bible Passage or Topic <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="passage">Bible Passage or Topic *</Label>
             <Input
-              id="passageOrTopic"
+              id="passage"
               placeholder="e.g., John 3:16-21 or 'The Love of God'"
-              value={passageOrTopic}
-              onChange={(e) => setPassageOrTopic(e.target.value)}
+              value={biblePassage}
+              onChange={(e) => setBiblePassage(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          {/* Focused Topic */}
+          <div className="space-y-2">
+            <Label htmlFor="topic">Focused Topic or Theme (Optional)</Label>
+            <Input
+              id="topic"
+              placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
+              value={focusedTopic}
+              onChange={(e) => setFocusedTopic(e.target.value)}
               disabled={isSubmitting}
             />
           </div>
 
           {/* Age Group */}
           <div className="space-y-2">
-            <Label htmlFor="ageGroup">
-              Age Group <span className="text-destructive">*</span>
-            </Label>
+            <Label htmlFor="age-group">Age Group *</Label>
             <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
-              <SelectTrigger id="ageGroup">
+              <SelectTrigger id="age-group">
                 <SelectValue placeholder="Select age group" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Preschoolers (Ages 3-5)">Preschoolers (Ages 3-5)</SelectItem>
-                <SelectItem value="Elementary Kids (Ages 6-10)">Elementary Kids (Ages 6-10)</SelectItem>
-                <SelectItem value="Preteens & Middle Schoolers (Ages 11-14)">Preteens & Middle Schoolers (Ages 11-14)</SelectItem>
-                <SelectItem value="High School Students (Ages 15-18)">High School Students (Ages 15-18)</SelectItem>
-                <SelectItem value="College & Early Career (Ages 19-25)">College & Early Career (Ages 19-25)</SelectItem>
-                <SelectItem value="Young Adults (Ages 26-35)">Young Adults (Ages 26-35)</SelectItem>
-                <SelectItem value="Mid-Life Adults (Ages 36-50)">Mid-Life Adults (Ages 36-50)</SelectItem>
-                <SelectItem value="Experienced Adults (Ages 51-65)">Experienced Adults (Ages 51-65)</SelectItem>
-                <SelectItem value="Active Seniors (Ages 66-75)">Active Seniors (Ages 66-75)</SelectItem>
-                <SelectItem value="Senior Adults (Ages 76+)">Senior Adults (Ages 76+)</SelectItem>
-                <SelectItem value="Mixed Groups">Mixed Groups</SelectItem>
+                {AGE_GROUPS.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
 
           {/* Theology Profile */}
           <div className="space-y-2">
-            <Label htmlFor="theologyProfile">
-              Baptist Theology Profile <span className="text-destructive">*</span>
-            </Label>
-            <Select value={theologyProfileId} onValueChange={setTheologyProfileId} disabled={isSubmitting}>
-              <SelectTrigger id="theologyProfile">
+            <Label htmlFor="theology-profile">Baptist Theology Profile *</Label>
+            <Select 
+              value={theologyProfileId} 
+              onValueChange={setTheologyProfileId}
+              disabled={isSubmitting}
+            >
+              <SelectTrigger id="theology-profile">
                 <SelectValue placeholder="Select theology profile" />
               </SelectTrigger>
               <SelectContent>
@@ -220,7 +212,20 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             </p>
           </div>
 
-          {/* Notes */}
+          {/* Teacher Customization */}
+          <TeacherCustomization
+            teachingStyle={teachingStyle}
+            setTeachingStyle={setTeachingStyle}
+            lessonLength={lessonLength}
+            setLessonLength={setLessonLength}
+            activityTypes={activityTypes}
+            setActivityTypes={setActivityTypes}
+            language={language}
+            setLanguage={setLanguage}
+            disabled={isSubmitting}
+          />
+
+          {/* Additional Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional Notes (Optional)</Label>
             <Textarea
@@ -233,7 +238,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             />
           </div>
 
-          {/* File Upload */}
+          {/* Upload Existing Curriculum */}
           <div className="space-y-2">
             <Label htmlFor="file">Upload Existing Curriculum (Optional)</Label>
             <div className="flex items-center gap-2">
@@ -263,9 +268,9 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
           </div>
 
           {/* Submit Button */}
-          <Button 
-            type="submit" 
-            className="w-full" 
+          <Button
+            type="submit"
+            className="w-full"
             size="lg"
             disabled={isSubmitting || isEnhancing}
           >
