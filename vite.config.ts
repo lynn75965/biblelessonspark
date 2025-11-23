@@ -17,14 +17,6 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  css: {
-    postcss: {
-      plugins: [
-        (async () => (await import('tailwindcss')).default)(),
-        (await import('autoprefixer')).default,
-      ],
-    },
-  },
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
