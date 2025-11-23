@@ -1,4 +1,4 @@
-﻿# LessonSparkUSA Master Project Document
+# LessonSparkUSA Master Project Document
 
 **Last Updated:** November 23, 2025
 **Current Phase:** Phase 5 - INCOMPLETE/FAILED
@@ -522,3 +522,100 @@ npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs
 *This document is the Single Source of Truth for project continuity.*
 *Update at the end of every session.*
 *Paste at the start of every new chat.*
+
+## PHASE 5: THEOLOGY PROFILE UNIFICATION (November 23, 2025)
+
+### Status: CODE COMPLETE - DEPLOYMENT BLOCKED
+
+**Objective:** Migrate from dual theology fields (theological_preference + sb_confession_version) to single unified theology_profile_id field, establishing proper Frontend Drives Backend SSOT architecture.
+
+### Architecture Achievements
+✅ **SSOT Established:** All constants moved to `src/constants/` (frontend authoritative)
+✅ **Frontend Drives Backend:** Build-time sync script (`scripts/sync-constants.cjs`) auto-generates backend mirrors
+✅ **Admin Governance:** Lynn edits ONE file per feature, system synchronizes automatically
+✅ **Maximum Sophistication:** Clean, automated architecture with no manual backend editing
+✅ **Long-term Endurance:** Correct foundation established, no technical debt
+
+### Code Changes Completed
+
+**Frontend SSOT Created:**
+- `src/constants/theologyProfiles.ts` - Defines 4 Baptist theology profiles with full metadata
+  - southern-baptist-bfm-2000 (Baptist Faith & Message 2000)
+  - southern-baptist-bfm-1963 (Baptist Faith & Message 1963)
+  - reformed-baptist (Reformed Baptist - Five Points of Calvinism)
+  - independent-baptist (Independent Baptist - Church autonomy emphasis)
+
+**Backend Mirrors Auto-Generated:**
+- `supabase/functions/_shared/theologyProfiles.ts` - Auto-generated with "DO NOT EDIT" header
+- `supabase/functions/_shared/ageGroups.ts` - Verified auto-sync
+- `supabase/functions/_shared/lessonStructure.ts` - Verified auto-sync
+- `supabase/functions/_shared/teacherPreferences.ts` - Verified auto-sync
+
+**Build-Time Sync Infrastructure:**
+- `scripts/sync-constants.cjs` - Reads frontend SSOT, generates backend mirrors
+- `package.json` - Added "sync-constants" script
+
+**Database Migration (COMPLETE):**
+- Added `theology_profile_id` column (TEXT, NOT NULL)
+- Migrated 3 existing users to `southern-baptist-bfm-2000` (default)
+- Added CHECK constraint for valid profile IDs
+- Dropped `theological_preference` column
+- Dropped `sb_confession_version` column
+- Migration executed via Supabase Dashboard SQL Editor
+
+**Frontend Components Updated:**
+1. `src/components/dashboard/EnhanceLessonForm.tsx` - Single theology dropdown (4 profiles)
+2. `src/components/dashboard/TeacherCustomization.tsx` - Radio button selection (4 profiles)
+3. `src/components/dashboard/LessonLibrary.tsx` - Filter and display by theology_profile_id
+4. `src/components/layout/Header.tsx` - Badge shows theology profile name
+
+**Backend Updated:**
+- `supabase/functions/generate-lesson/index.ts` - Uses theology_profile_id, builds theological context from profile metadata
+
+### Git Commits
+- **0e089bb:** Phase 5: Unified theology profile system with frontend-driven SSOT architecture
+- **d20c907:** Fix: Convert postcss.config.json to .js to avoid BOM issues
+- **1e641da:** Fix: Add explicit Vite build configuration to netlify.toml
+
+### Deployment Status: BLOCKED
+
+**Issue:** Netlify build failures due to phantom "postcss.config.json BOM error"
+- postcss.config.json does NOT exist in GitHub (verified via fresh clone)
+- postcss.config.js exists and is BOM-free (verified byte-level)
+- Netlify keeps detecting wrong frameworks (Hydrogen/Remix instead of Vite)
+- Latest fix: Explicit Vite build config in netlify.toml (commit 1e641da)
+
+**Current State:**
+- All code committed and pushed to GitHub (main branch)
+- Frontend deployment: BLOCKED (awaiting Netlify build success)
+- Edge Function deployment: READY (can deploy once frontend succeeds)
+- Database: MIGRATED (production ready)
+
+**Next Steps:**
+1. Resolve Netlify build issue (commit 1e641da pending)
+2. Deploy Edge Function: `npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs`
+3. Test single theology dropdown in production
+4. Verify lesson generation with all 4 theology profiles
+
+### Files Modified (10 total)
+1. src/constants/theologyProfiles.ts (NEW)
+2. src/components/dashboard/EnhanceLessonForm.tsx
+3. src/components/dashboard/TeacherCustomization.tsx
+4. src/components/dashboard/LessonLibrary.tsx
+5. src/components/layout/Header.tsx
+6. supabase/functions/generate-lesson/index.ts
+7. supabase/functions/_shared/theologyProfiles.ts (AUTO-GENERATED)
+8. scripts/sync-constants.cjs (NEW)
+9. package.json
+10. netlify.toml
+
+### Architecture Validation
+✅ SSOT: Frontend (`src/constants/`) is authoritative source
+✅ Frontend Drives Backend: Backend auto-generated, not manually edited
+✅ Admin Governance: Lynn changes ONE file, system syncs automatically
+✅ Maximum Sophistication, Minimum Redundancy: Clean, elegant, automated
+✅ Build for Long-term Endurance: Correct architecture from start
+
+**Phase 5 is CODE COMPLETE. Awaiting deployment resolution to test in production.**
+
+---
