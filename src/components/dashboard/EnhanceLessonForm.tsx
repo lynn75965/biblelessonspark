@@ -26,7 +26,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Teacher customization state
   const [teachingStyle, setTeachingStyle] = useState("");
   const [lessonLength, setLessonLength] = useState("");
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
@@ -147,7 +146,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Bible Passage */}
           <div className="space-y-2">
             <Label htmlFor="passage">Bible Passage or Topic *</Label>
             <Input
@@ -159,7 +157,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             />
           </div>
 
-          {/* Focused Topic */}
           <div className="space-y-2">
             <Label htmlFor="topic">Focused Topic or Theme (Optional)</Label>
             <Input
@@ -171,7 +168,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             />
           </div>
 
-          {/* Age Group */}
           <div className="space-y-2">
             <Label htmlFor="age-group">Age Group *</Label>
             <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
@@ -181,14 +177,13 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
               <SelectContent>
                 {AGE_GROUPS.map((group) => (
                   <SelectItem key={group.id} value={group.id}>
-                    {group.name}
+                    {group.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Theology Profile */}
           <div className="space-y-2">
             <Label htmlFor="theology-profile">Baptist Theology Profile *</Label>
             <Select 
@@ -212,7 +207,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             </p>
           </div>
 
-          {/* Teacher Customization */}
           <TeacherCustomization
             teachingStyle={teachingStyle}
             setTeachingStyle={setTeachingStyle}
@@ -225,7 +219,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             disabled={isSubmitting}
           />
 
-          {/* Additional Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Additional Notes (Optional)</Label>
             <Textarea
@@ -238,7 +231,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             />
           </div>
 
-          {/* Upload Existing Curriculum */}
           <div className="space-y-2">
             <Label htmlFor="file">Upload Existing Curriculum (Optional)</Label>
             <div className="flex items-center gap-2">
@@ -267,7 +259,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             </p>
           </div>
 
-          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full"
