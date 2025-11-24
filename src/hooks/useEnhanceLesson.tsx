@@ -9,10 +9,12 @@ export const useEnhanceLesson = () => {
 
   const enhanceLesson = async (enhancementData: LessonEnhancement) => {
     setIsGenerating(true);
-    
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         throw new Error("User not authenticated");
       }
@@ -44,6 +46,6 @@ export const useEnhanceLesson = () => {
 
   return {
     enhanceLesson,
-    isGenerating,
+    isEnhancing: isGenerating,
   };
 };
