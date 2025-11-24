@@ -358,6 +358,45 @@ export function EnhanceLessonForm({
           </Button>
         </form>
       </CardContent>
-    </Card>
+{/* Display Generated or Viewing Lesson */}
+      {(generatedLesson || viewingLesson) && (
+        <Card className="mt-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                {viewingLesson ? viewingLesson.title : generatedLesson?.lesson?.title || "Generated Lesson"}
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  if (viewingLesson && onClearViewing) {
+                    onClearViewing();
+                  } else {
+                    setGeneratedLesson(null);
+                  }
+                }}
+              >
+                Close
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="prose prose-sm max-w-none dark:prose-invert">
+              <div 
+                className="whitespace-pre-wrap font-mono text-sm bg-muted p-4 rounded-lg overflow-auto max-h-[600px]"
+                dangerouslySetInnerHTML={{ 
+                  __html: (viewingLesson?.original_text || generatedLesson?.lesson?.original_text || "")
+                    .replace(/## /g, '<h2 class="text-lg font-bold mt-4 mb-2">')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n---\n/g, '<hr class="my-4">')
+                    .replace(/\n/g, '<br>')
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
   );
 }
