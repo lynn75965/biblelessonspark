@@ -39,6 +39,7 @@ export function EnhanceLessonForm({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
 
   const [teachingStyle, setTeachingStyle] = useState("");
@@ -169,8 +170,11 @@ export function EnhanceLessonForm({
 
       const result = await enhanceLesson(enhancementData);
 
-      if (result && onLessonGenerated) {
-        onLessonGenerated(result);
+      if (result) {
+        setGeneratedLesson(result);
+        if (onLessonGenerated) {
+          onLessonGenerated(result);
+        }
       }
 
       setGenerationProgress(100);
