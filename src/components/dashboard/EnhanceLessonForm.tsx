@@ -33,6 +33,13 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [lessonLength, setLessonLength] = useState("");
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
   const [language, setLanguage] = useState("english");
+  const [classSetting, setClassSetting] = useState("");
+  const [learningEnvironment, setLearningEnvironment] = useState("");
+  const [studentExperience, setStudentExperience] = useState("");
+  const [culturalContext, setCulturalContext] = useState("");
+  const [specialNeeds, setSpecialNeeds] = useState("");
+  const [lessonSequence, setLessonSequence] = useState("");
+  const [assessmentStyle, setAssessmentStyle] = useState("");
   
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { toast } = useToast();
@@ -130,6 +137,13 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
         lesson_length: lessonLength,
         activity_types: activityTypes,
         language: language,
+        class_setting: classSetting,
+        learning_environment: learningEnvironment,
+        student_experience: studentExperience,
+        cultural_context: culturalContext,
+        special_needs: specialNeeds,
+        lesson_sequence: lessonSequence,
+        assessment_style: assessmentStyle,
         generate_teaser: generateTeaser,
         uploaded_file: uploadedFile,
       };
@@ -253,6 +267,20 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             setActivityTypes={setActivityTypes}
             language={language}
             setLanguage={setLanguage}
+            classSetting={classSetting}
+            setClassSetting={setClassSetting}
+            learningEnvironment={learningEnvironment}
+            setLearningEnvironment={setLearningEnvironment}
+            studentExperience={studentExperience}
+            setStudentExperience={setStudentExperience}
+            culturalContext={culturalContext}
+            setCulturalContext={setCulturalContext}
+            specialNeeds={specialNeeds}
+            setSpecialNeeds={setSpecialNeeds}
+            lessonSequence={lessonSequence}
+            setLessonSequence={setLessonSequence}
+            assessmentStyle={assessmentStyle}
+            setAssessmentStyle={setAssessmentStyle}
             disabled={isSubmitting}
           />
 
