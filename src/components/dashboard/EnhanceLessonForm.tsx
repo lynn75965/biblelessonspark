@@ -385,6 +385,22 @@ export function EnhanceLessonForm({
             </div>
           </CardHeader>
           <CardContent>
+            {/* Teaser Section - Display prominently if present */}
+            {(viewingLesson?.metadata?.teaser || generatedLesson?.lesson?.metadata?.teaser) && (
+              <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-primary">Student Teaser (Pre-Lesson)</h3>
+                </div>
+                <p className="text-sm italic">
+                  {viewingLesson?.metadata?.teaser || generatedLesson?.lesson?.metadata?.teaser}
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Share this with students via text, email, or social media days before class to build anticipation.
+                </p>
+              </div>
+            )}
+
             <div className="prose prose-sm max-w-none dark:prose-invert">
               <div
                 className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto max-h-[600px]"
