@@ -2,7 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
-import { LESSON_STRUCTURE_VERSION, LESSON_SECTIONS, getEnabledSections, getTotalMinWords, getTotalMaxWords } from '../_shared/lessonStructure.ts';
+import { LESSON_STRUCTURE_VERSION, LESSON_SECTIONS, TOTAL_TARGET_WORD_COUNT } from '../_shared/lessonStructure.ts';
 import { AGE_GROUPS } from '../_shared/ageGroups.ts';
 import { THEOLOGY_PROFILES } from '../_shared/theologyProfiles.ts';
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
@@ -38,62 +38,6 @@ function logTiming(label: string, startTime: number) {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   console.log(`[TIMING] ${label}: ${elapsed}s`);
   return Date.now();
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// DYNAMIC PROMPT BUILDER - Reads from SSOT
-// ═══════════════════════════════════════════════════════════════════════════════
-function buildSectionsPrompt(): string {
-  const sections = getEnabledSections();
-  
-  return sections.map(section => {
-    const rules = section.contentRules.map(r => `    ✓ ${r}`).join('\n');
-    const prohibitions = section.prohibitions.map(p => `    ✗ ${p}`).join('\n');
-    const redundancyNote = section.redundancyLock.length > 0 
-      ? `\n    🔒 REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
-      : '';
-    
-    return `
-## Section ${section.id}: ${section.name}
-**Word Target:** ${section.minWords}-${section.maxWords} words
-**Purpose:** ${section.purpose}
-
-**MUST INCLUDE:**
-${rules}
-
-**PROHIBITED:**
-${prohibitions}${redundancyNote}
-`;
-  }).join('\n---\n');
-}
-
-function buildCompressionRules(): string {
-  return `
-═══════════════════════════════════════════════════════════════════════════════
-OUTPUT COMPRESSION RULES (CRITICAL - Preventing Timeouts)
-═══════════════════════════════════════════════════════════════════════════════
-
-RULE 1: REDUNDANCY PREVENTION BY ARCHITECTURE
-- Section 3 (Theological Background) contains ALL deep theology
-- Sections 4, 5, 6, 7, 8 must REFERENCE Section 3, never REPEAT it
-- If you explained a concept in Section 3, do NOT explain it again
-
-RULE 2: WORD BUDGET ENFORCEMENT
-- Each section has min/max word limits - RESPECT THEM
-- Total lesson target: ${getTotalMinWords()}-${getTotalMaxWords()} words
-- Going over budget causes timeouts and failures
-
-RULE 3: SECTION PURPOSE INTEGRITY
-- Each section has ONE purpose - fulfill it, nothing more
-- Teacher transcript (Section 5) = SPOKEN WORDS only
-- Student handout (Section 8) = FRESH content, not copied from teacher sections
-
-RULE 4: NO PADDING, NO FILLER
-- Every sentence must add value
-- No "As we discussed earlier..." 
-- No "This is important because..."
-- No transitional fluff between sections
-`;
 }
 
 serve(async (req) => {
@@ -172,19 +116,18 @@ serve(async (req) => {
       throw new Error(`Age group not found: ${age_group}`);
     }
 
-    const enabledSections = getEnabledSections();
-
-    console.log('Generating lesson:', {
+    console.log('Generating lesson for:', {
       user: user.id,
       theology: theologyProfile.name,
       ageGroup: ageGroupData.label,
       passage: bible_passage,
-      topic: focused_topic,
-      sectionCount: enabledSections.length,
-      wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}`
+      topic: focused_topic
     });
 
-    // Build customization directives
+    const sectionsPrompt = LESSON_SECTIONS.map((section, index) => 
+      `${index + 1}. ${section.name} (~${section.targetWordCount} words): ${section.description}`
+    ).join('\n');
+
     const customizationDirectives = buildCustomizationDirectives({
       teaching_style,
       learning_style,
@@ -201,58 +144,34 @@ serve(async (req) => {
       education_experience
     });
 
-    // Build the system prompt from SSOT
-    const systemPrompt = `You are a Baptist Bible study lesson generator using the 8-Section LessonSparkUSA Framework.
+    const systemPrompt = `You are a Baptist Bible study lesson generator. Generate a complete ${TOTAL_TARGET_WORD_COUNT}-word lesson.
 
-═══════════════════════════════════════════════════════════════════════════════
-THEOLOGY PROFILE: ${theologyProfile.name}
-═══════════════════════════════════════════════════════════════════════════════
+THEOLOGY: ${theologyProfile.name}
 ${theologyProfile.description}
-
 Distinctives:
 ${theologyProfile.distinctives.map(d => `• ${d}`).join('\n')}
+${theologyProfile.hermeneutics ? `Hermeneutics: ${theologyProfile.hermeneutics}` : ''}
+${theologyProfile.applicationEmphasis ? `Application Focus: ${theologyProfile.applicationEmphasis}` : ''}
 
-Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical interpretation'}
-Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
-
-═══════════════════════════════════════════════════════════════════════════════
 AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageMax})
-═══════════════════════════════════════════════════════════════════════════════
-Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
-Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
+Vocabulary: ${ageGroupData.teachingProfile.vocabularyLevel} | Depth: ${ageGroupData.teachingProfile.conceptualDepth}
 ${customizationDirectives}
-${buildCompressionRules()}
-═══════════════════════════════════════════════════════════════════════════════
-THE 8-SECTION FRAMEWORK (Structure Version ${LESSON_STRUCTURE_VERSION})
-═══════════════════════════════════════════════════════════════════════════════
-${buildSectionsPrompt()}
-═══════════════════════════════════════════════════════════════════════════════
-OUTPUT FORMAT
-═══════════════════════════════════════════════════════════════════════════════
-Use Markdown formatting:
-- ## for section headers
-- **bold** for key terms
-- Bullet points for lists
-- --- for section dividers
+REQUIRED SECTIONS (${LESSON_SECTIONS.length} total, ~${TOTAL_TARGET_WORD_COUNT} words):
+${sectionsPrompt}
 
-BEFORE COMPLETING OUTPUT, VERIFY:
-✓ All ${enabledSections.length} sections are present and complete
-✓ No section ends mid-sentence
-✓ Section 8 (Student Handout) is fully formatted
-✓ Total output is ${getTotalMinWords()}-${getTotalMaxWords()} words
-✓ Redundancy locks respected - no repeated theology
-`;
+OUTPUT FORMAT: Use Markdown formatting. Use ## for section headers, bullet points for lists, **bold** for key terms, and --- for section dividers.
+
+OUTPUT: Generate all ${LESSON_SECTIONS.length} sections. Include both Teacher Lesson Plan and Student Handout. Maintain ${theologyProfile.name} theological standards throughout. FOLLOW ALL CUSTOMIZATION DIRECTIVES above.`;
 
     const lessonInput = bible_passage || focused_topic || 'General Bible Study';
 
     const userPrompt = bible_passage 
-      ? `Generate a complete ${enabledSections.length}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}`
-      : `Generate a complete ${enabledSections.length}-section Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}`;
+      ? `Bible Passage: ${bible_passage}${additional_notes ? `\nNotes: ${additional_notes}` : ''}`
+      : `Topic: ${focused_topic}${additional_notes ? `\nNotes: ${additional_notes}` : ''}`;
 
     checkpoint = logTiming('Prompt built', checkpoint);
-    console.log(`System prompt: ${systemPrompt.length} chars (~${Math.round(systemPrompt.length / 4)} tokens)`);
+    console.log(`System prompt length: ${systemPrompt.length} chars (~${Math.round(systemPrompt.length / 4)} tokens)`);
 
-    // AbortController with 120-second timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.log('[TIMEOUT] Aborting Anthropic request after 120 seconds');
@@ -270,7 +189,7 @@ BEFORE COMPLETING OUTPUT, VERIFY:
         signal: controller.signal,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 8000,
+          max_tokens: 6000,
           temperature: 0.6,
           system: systemPrompt,
           messages: [{ role: 'user', content: userPrompt }]
@@ -325,7 +244,7 @@ BEFORE COMPLETING OUTPUT, VERIFY:
           theologyProfile: theologyProfile.name,
           ageGroup: ageGroupData.label,
           wordCount: wordCount,
-          sectionCount: enabledSections.length,
+          sectionCount: LESSON_SECTIONS.length,
           generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
           anthropicUsage: anthropicData.usage
         }
@@ -344,7 +263,7 @@ BEFORE COMPLETING OUTPUT, VERIFY:
 
       checkpoint = logTiming('Database insert', checkpoint);
       logTiming('TOTAL FUNCTION TIME', functionStartTime);
-      console.log('Lesson saved:', lesson.id);
+      console.log('Lesson saved to database:', lesson.id);
 
       return new Response(
         JSON.stringify({ success: true, lesson, metadata: lessonData.metadata }),
@@ -355,14 +274,14 @@ BEFORE COMPLETING OUTPUT, VERIFY:
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
         console.error('Anthropic API timeout after 120 seconds');
-        throw new Error('Lesson generation timed out. Please try again.');
+        throw new Error('Lesson generation timed out. Please try again with a shorter lesson or simpler topic.');
       }
       throw fetchError;
     }
 
   } catch (error) {
     logTiming('ERROR occurred at', functionStartTime);
-    console.error('Error in generate-lesson:', error);
+    console.error('Error in generate-lesson function:', error);
     return new Response(
       JSON.stringify({ error: error.message || 'An unexpected error occurred', details: error.toString() }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

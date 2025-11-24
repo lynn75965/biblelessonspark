@@ -1,8 +1,8 @@
 ﻿# LessonSparkUSA Master Project Document
 
 **Last Updated:** November 24, 2025
-**Current Phase:** Phase 5 - 95% Complete (Deployment Ready)
-**Next Action:** Deploy optimized Edge Function
+**Current Phase:** Phase 5 - Complete (8-Section Framework Deployed)
+**Next Action:** Test lesson generation, then Phase 6 (Teaser)
 **Project Owner:** Lynn (Admin)
 **Tech Stack:** React/TypeScript (Lovable.dev), Supabase Edge Functions, PostgreSQL, Stripe, Claude/Anthropic API, GitHub, Netlify, PowerShell
 
@@ -16,7 +16,7 @@
 - Frontend drives backend (frontend is source of truth)
 - Freshness: Dynamic, non-repetitive output
 - Tiered architecture:
-  - Tier 1: Lesson Plan structure (supreme/foundational, UNCHANGING)
+  - Tier 1: Lesson Plan structure (supreme/foundational)
   - Tier 2: Customizations (theological preferences, user preferences)
 - All actions support potential export from Lovable.dev
 - Keep logic in Supabase Edge Functions (portable) and local repository
@@ -32,7 +32,7 @@
 | **Admin controls boundaries** | Lynn manages all constants files; only admin can add/remove/modify options |
 | **Users select, not create** | Dropdowns populated from constants; no free-form structural input |
 | **Frontend is SSOT** | Constants live in src/constants/; synced to backend via script |
-| **Claude creative within bounds** | AI generates fresh content but MUST follow Tier 1 structure and Tier 2 parameters |
+| **Claude creative within bounds** | AI generates fresh content but MUST follow structure and parameters |
 | **Export-ready architecture** | All logic portable; no Lovable-specific dependencies |
 
 ---
@@ -49,27 +49,64 @@
 - SSOT governs *what options exist* (frontend constants define dropdown choices)
 - This file defines *how Claude interprets* those options (behavioral logic)
 - Customization directives are instructions for Claude, not structural definitions
-- Similar architectural pattern to the Edge Function itself
 
 **Boundary Rules:**
 - DO NOT add new customization OPTIONS in this file
 - New options must be added to frontend constants FIRST
 - This file only adds interpretation logic for existing options
-- Does not violate "frontend drives backend" because frontend remains authoritative for structure
+
+---
+
+## 8-SECTION LESSONSPARK FRAMEWORK (Version 2.0.0)
+
+**Governance Principle:** "Maximum sophistication with minimum redundancy"
+
+### Section Structure
+
+| # | Section Name | Words | Purpose | Redundancy Lock |
+|---|--------------|-------|---------|-----------------|
+| 1 | Lens + Lesson Overview | 150-250 | Frame the lesson | None |
+| 2 | Learning Objectives + Key Scriptures | 150-250 | Measurable outcomes | None |
+| 3 | Theological Background (Deep-Dive) | 450-600 | **ALL theology here** | None |
+| 4 | Opening Activities | 120-200 | Hooks, warm-ups | Section 3 |
+| 5 | Main Teaching Content (Transcript) | 450-600 | Spoken classroom delivery | Section 3 |
+| 6 | Interactive Activities | 150-250 | Reinforcement activities | Sections 3, 4 |
+| 7 | Discussion & Assessment | 200-300 | Comprehension checks | Sections 3, 5 |
+| 8 | Student Handout (Standalone) | 250-400 | Fresh student takeaway | Sections 3, 5, 7 |
+
+**Total Word Target:** 1,920 - 2,850 words
+
+### Redundancy Prevention Architecture
+
+- Section 3 contains ALL deep theology — never repeated elsewhere
+- Sections 4-8 have `redundancyLock` arrays preventing content duplication
+- Each section has explicit `prohibitions` defining what CANNOT appear
+- Edge Function dynamically builds prompts from SSOT
+
+### Admin Control Points (in lessonStructure.ts)
+```typescript
+// Per section, admin controls:
+minWords: number;        // Word floor
+maxWords: number;        // Word ceiling
+contentRules: string[];  // What MUST appear
+prohibitions: string[];  // What CANNOT appear
+redundancyLock: string[];// Prevents duplication from listed sections
+enabled: boolean;        // Turn sections on/off
+```
 
 ---
 
 ## TIERED ARCHITECTURE
 
-### Tier 1 — Supreme/Foundational (UNCHANGING)
-- **12-Section Lesson Structure** (~2000 words total)
-- Section names, order, descriptions, required elements, word budgets
+### Tier 1 — Supreme/Foundational
+- **8-Section Lesson Structure** (~2,400 words average)
+- Section names, order, descriptions, word budgets
 - Redundancy locks prevent content duplication
-- These NEVER change based on user input
+- Admin-controlled via SSOT
 
 ### Tier 2 — Customizations (User Selects from Admin Options)
 - **Age Groups** (11 options with teaching profiles)
-- **Theology Profiles** (4 Baptist traditions with full distinctives)
+- **Theology Profiles** (4 Baptist traditions with 10 distinctives each)
 - **16 Teacher Customization Fields** (all with explicit directives)
 
 ### Tier 3 — Perpetual Freshness
@@ -82,58 +119,41 @@
 ## PHASE STATUS
 
 ### PHASE 1-4: COMPLETE
-- Foundation, Stability, User Experience, Expansion all complete
-- 12-section framework operational
+- Foundation, Stability, User Experience, Expansion complete
 - SSOT architecture established
 
-### PHASE 5: UI CUSTOMIZATION (95% COMPLETE)
+### PHASE 5: 8-SECTION FRAMEWORK - COMPLETE
+- Reduced from 12 sections (~5000 words) to 8 sections (~2400 words)
+- Implemented redundancy locks
+- Enhanced theology profiles (10 distinctives each)
+- Customization directives system (16 fields with explicit instructions)
+- 120-second timeout with AbortController
+- Timing diagnostics in logs
 
-**Completed:**
-1. Expanded customization: 4 fields to 16 fields
-2. Theology Profile migration (dual fields to single profile ID)
-3. Database schema compliance
-4. Word count optimization (2700 to 2000)
-5. CORS fixes and syntax cleanup
-
-**Optimizations Deployed (Nov 24, 2025):**
-
-| Optimization | Change | Impact |
-|--------------|--------|--------|
-| max_tokens | 16,000 to 6,000 | Faster generation |
-| temperature | 0.7 to 0.6 | More focused output |
-| API timeout | None to 120 seconds | Prevents hanging |
-| Timing diagnostics | Basic to Detailed | Pinpoints slow steps |
-| Theology profiles | 3 to 10 distinctives each | Full theological guidance |
-| Customization directives | Labels only to Explicit instructions | 16 fields actually affect output |
-| Output format | Plain text to Markdown | Print-ready formatting |
-
-**Expected Result:** Generation time reduced from 1:15+ (failing) to ~55-65 seconds (success)
-
-### PHASE 6: TEASER GENERATION (PLANNED)
-- New "Generate Teaser" button (post-lesson generation)
-- 10 teaser approaches x 4 formats
-- Separate Edge Function (~30 seconds)
-- Must be BLIND to lesson content
+### PHASE 6: TEASER GENERATION (NEXT)
+- Add Section 9: Student Primer / Teaser
+- Pre-lesson motivational message
+- `deliveryTiming: 'pre-lesson'` already supported in interface
+- Separate generation or combined — TBD
 
 ### PHASE 7: PRINT-READY OUTPUT (PLANNED)
-- Section parser for consistent formatting
 - PDF export capability
 - DOCX export capability
-- Print stylesheet for clean output
+- Section parser for consistent formatting
 
 ---
 
 ## SSOT FILE LOCATIONS
 
 ### Frontend (Authoritative)
+- `src/constants/lessonStructure.ts` - 8-section framework (v2.0.0)
 - `src/constants/theologyProfiles.ts` - 4 Baptist traditions
 - `src/constants/ageGroups.ts` - 11 age groups
-- `src/constants/lessonStructure.ts` - 12 sections
 
 ### Backend (Auto-generated mirrors)
+- `supabase/functions/_shared/lessonStructure.ts`
 - `supabase/functions/_shared/theologyProfiles.ts`
 - `supabase/functions/_shared/ageGroups.ts`
-- `supabase/functions/_shared/lessonStructure.ts`
 - `supabase/functions/_shared/customizationDirectives.ts` (backend-only behavioral)
 
 ### Sync Command
@@ -143,59 +163,23 @@ npm run sync-constants
 
 ---
 
-## THEOLOGY PROFILES (ENHANCED)
+## THEOLOGY PROFILES
 
 | Profile ID | Name | Distinctives |
 |------------|------|--------------|
-| southern-baptist-bfm-2000 | Southern Baptist (BF&M 2000) | 10 distinctives + hermeneutics + application focus |
-| southern-baptist-bfm-1963 | Southern Baptist (BF&M 1963) | 10 distinctives + hermeneutics + application focus |
-| reformed-baptist | Reformed Baptist | 10 distinctives + hermeneutics + application focus |
-| independent-baptist | Independent Baptist | 10 distinctives + hermeneutics + application focus |
-
-**Key Differences: BF&M 1963 vs 2000**
-- **1963:** "Biblical authority" - record of revelation; "Christ is the criterion" hermeneutic
-- **2000:** "Biblical inerrancy" - totally true and trustworthy; complementarian roles explicit
-
----
-
-## CUSTOMIZATION FIELDS (16 Total)
-
-All fields now have **explicit directives** that Claude must follow:
-
-| Field | Options | Directive Impact |
-|-------|---------|------------------|
-| Teaching Style | 6 | Structures content delivery method |
-| Learning Style | 5 | Includes visual/auditory/kinesthetic elements |
-| Lesson Length | 5 | Adjusts content density and activity count |
-| Group Size | 5 | Designs activities for group dynamics |
-| Learning Environment | 6 | Adapts for classroom/home/virtual/outdoor |
-| Student Experience | 4 | Adjusts theological depth and terminology |
-| Cultural Context | 5 | Uses appropriate illustrations |
-| Special Needs | 5 | Modifies language and accessibility |
-| Lesson Sequence | 5 | Standalone vs series vs retreat format |
-| Assessment Style | 6 | Includes appropriate evaluation methods |
-| Activity Types | 7 | Includes selected activity categories |
-| Language | 3 | Full lesson in selected language |
-| Education Experience | 9 | Vocabulary and concept complexity |
-| Bible Passage | Free text | Primary content source |
-| Focused Topic | Free text | Alternative to passage |
-| Additional Notes | Free text | Teacher-specific requests |
+| southern-baptist-bfm-2000 | Southern Baptist (BF&M 2000) | 10 distinctives + hermeneutics |
+| southern-baptist-bfm-1963 | Southern Baptist (BF&M 1963) | 10 distinctives + hermeneutics |
+| reformed-baptist | Reformed Baptist | 10 distinctives + hermeneutics |
+| independent-baptist | Independent Baptist | 10 distinctives + hermeneutics |
 
 ---
 
 ## DEBUGGING RESOURCES
 
-### Supabase Dashboard
-- Project: hphebzdftpjbiudpfcrs
-- Functions: https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/functions/generate-lesson
-- Logs: https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/functions/generate-lesson/logs
-
-### GitHub
-- Repository: https://github.com/lynn75965/lesson-spark-usa
-
-### Netlify
-- Site: lesson-spark-usa
-- Domain: lessonsparkusa.com
+- **Supabase Project:** hphebzdftpjbiudpfcrs
+- **Supabase Logs:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/functions/generate-lesson/logs
+- **GitHub:** https://github.com/lynn75965/lesson-spark-usa
+- **Live Site:** https://lessonsparkusa.com
 
 ---
 
@@ -206,27 +190,33 @@ All fields now have **explicit directives** that Claude must follow:
 3. **Frontend drives backend** - UI defines the contract
 4. **SSOT is sacred** - One definition, many consumers
 5. **Test with:** John 3:16, Elementary Kids, Southern Baptist BF&M 2000
-6. **Deploy in stages** - Verify each change before adding more
 
 ---
 
 ## SESSION LOG
 
 ### November 24, 2025
-- Analyzed Edge Function for timeout causes
-- Created optimized Edge Function (max_tokens, temperature, timeout, logging)
-- Enhanced theology profiles (3 to 10 distinctives + hermeneutics + application focus)
-- Built customization directives system (16 fields now have explicit instructions)
-- Added Markdown output formatting
+
+**Morning Session:**
+- Deployed optimized Edge Function (12-section) — worked but wrong architecture
+- Discovered conflict: lessonStructure.ts (12-section) vs lessonSections.ts (8-section)
+- Confirmed 8-section framework from Nov 22 was correct but never synced
+
+**Resolution:**
+- Replaced lessonStructure.ts with 8-section content
+- Archived lessonSections.ts (consolidated to single file)
+- Created new Edge Function with dynamic prompt builder
+- Reads redundancyLock, prohibitions, contentRules from SSOT
+- Synced to backend
 - Documented Architectural Ruling #1 (backend behavioral files)
-- Deployed all optimizations
 
-**Files deployed:**
-- `optimized-generate-lesson-index.ts` to `supabase/functions/generate-lesson/index.ts`
-- `customizationDirectives.ts` to `supabase/functions/_shared/customizationDirectives.ts`
-- `theologyProfiles-ENHANCED.ts` to `src/constants/theologyProfiles.ts`
+**Files Changed:**
+- `src/constants/lessonStructure.ts` — Now 8-section (v2.0.0)
+- `supabase/functions/_shared/lessonStructure.ts` — Synced
+- `supabase/functions/generate-lesson/index.ts` — New dynamic prompt builder
+- `PROJECT_MASTER.md` — Updated
 
-**Status:** Phase 5 deployment complete. Ready for testing.
+**Status:** Ready for testing
 
 ---
 
@@ -234,4 +224,3 @@ All fields now have **explicit directives** that Claude must follow:
 
 *This document is the Single Source of Truth for project continuity.*
 *Update at the end of every session.*
-*Paste at the start of every new chat.*

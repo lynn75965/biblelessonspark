@@ -9,149 +9,326 @@
  * 2. Run: npm run sync-constants
  * 3. Commit both files (frontend source + backend mirror)
  * 
- * Generated: 2025-11-24T15:09:55.570Z
+ * Generated: 2025-11-24T16:33:58.157Z
  * Generator: scripts/sync-constants.cjs
  * Architecture: Frontend Drives Backend (Master Vision Principle)
  */
 
-/**
- * LessonSparkUSA Constants - Lesson Structure
- *
- * SINGLE SOURCE OF TRUTH for the 12-section lesson structure.
- * This is Tier 1 (Supreme/Foundational) - UNCHANGING.
- *
- * GOVERNANCE: Only admin can modify these constants.
- * Changes here affect every lesson generated.
- *
- * @version 1.0.0
- * @lastUpdated 2025-11-21
- */
+﻿// src/constants/lessonStructure.ts
+// ═══════════════════════════════════════════════════════════════════════════════
+// SINGLE SOURCE OF TRUTH: Lesson Output Structure
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// SINGLE SOURCE OF TRUTH: 8-Section LessonSparkUSA Framework.
+// 
+// GOVERNANCE PRINCIPLE: "Maximum sophistication with minimum redundancy"
+// 
+// Admin can modify:
+//   - Section word limits (minWords, maxWords)
+//   - Content rules and prohibitions
+//   - Enable/disable sections
+//   - Add new sections for future features
+//
+// The Edge Function dynamically builds prompts from this SSOT.
+// ═══════════════════════════════════════════════════════════════════════════════
 
-import type { LessonSection, LessonStructure } from './contracts';
+export const LESSON_STRUCTURE_VERSION = "2.0.0";
 
-// ============================================================
-// LESSON STRUCTURE VERSION
-// ============================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// SECTION INTERFACE
+// ═══════════════════════════════════════════════════════════════════════════════
 
-export const LESSON_STRUCTURE_VERSION = '1.0.0';
+export interface LessonSection {
+  // BETA-ESSENTIAL (Active Now)
+  id: number;
+  key: string;
+  name: string;
+  enabled: boolean;
+  required: boolean;
+  minWords: number;
+  maxWords: number;
+  purpose: string;
+  contentRules: string[];
+  prohibitions: string[];
+  redundancyLock: string[];
+  
+  // FUTURE-READY (Defined but not enforced in Beta)
+  tier?: 'free' | 'basic' | 'standard' | 'premium' | 'enterprise';
+  featureFlag?: string;
+  creditCost?: number;
+  upsellMessage?: string;
+  outputTarget?: 'teacher' | 'student' | 'both';
+  deliveryTiming?: 'pre-lesson' | 'during-lesson' | 'post-lesson';
+}
 
-// ============================================================
-// THE 12-SECTION LESSON STRUCTURE
-// ============================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// THE 8-SECTION FRAMEWORK
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export const LESSON_SECTIONS: LessonSection[] = [
   {
     id: 1,
-    name: "Lesson Overview",
-    description: "Brief summary of the lesson's main theme and purpose",
+    key: "lens_overview",
+    name: "Lens + Lesson Overview",
+    enabled: true,
     required: true,
-    targetWordCount: 150,
-    requiredElements: ["Main theme statement", "Key takeaway", "Target audience consideration"]
+    minWords: 150,
+    maxWords: 250,
+    purpose: "Frame the lesson with theological lens and high-level summary",
+    contentRules: [
+      "Theological profile identification",
+      "Lesson title",
+      "Lesson summary (2-3 sentences)",
+      "Main theme statement",
+      "Key takeaway for students (1 sentence)",
+      "Brief audience insight note"
+    ],
+    prohibitions: [
+      "No detailed theology - that belongs in Section 3",
+      "No teaching content or classroom dialogue",
+      "No activity descriptions",
+      "No scripture exposition"
+    ],
+    redundancyLock: [],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 2,
-    name: "Learning Objectives",
-    description: "Clear, measurable goals for what students will learn",
+    key: "objectives_scripture",
+    name: "Learning Objectives + Key Scriptures",
+    enabled: true,
     required: true,
-    targetWordCount: 100,
-    requiredElements: ["3-5 specific objectives", "Action verbs", "Measurable outcomes"]
+    minWords: 150,
+    maxWords: 250,
+    purpose: "Define measurable outcomes and identify scripture references",
+    contentRules: [
+      "3-5 bulleted measurable learning objectives",
+      "Primary scripture passage with full reference",
+      "1-2 supporting passages (if applicable)",
+      "Teacher preparation checklist"
+    ],
+    prohibitions: [
+      "No theological explanation - that belongs in Section 3",
+      "No teaching narrative",
+      "Minimal commentary on passages",
+      "No activities"
+    ],
+    redundancyLock: [],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 3,
-    name: "Key Scripture Passages",
-    description: "Primary and supporting Bible verses for the lesson",
+    key: "theological_background",
+    name: "Theological Background (Deep-Dive)",
+    enabled: true,
     required: true,
-    targetWordCount: 200,
-    requiredElements: ["Primary passage with full text", "Supporting verses", "Context notes"]
+    minWords: 450,
+    maxWords: 600,
+    purpose: "ALL deep theology lives here - prevents redundancy in other sections",
+    contentRules: [
+      "Interpretive background for the passage",
+      "Doctrinal framing aligned with theological profile",
+      "Literary context (genre, structure, author purpose)",
+      "Historical context (time, place, audience)",
+      "Key Greek/Hebrew word insights (age-appropriate)",
+      "Theological significance and doctrinal connections",
+      "Age-appropriate depth notes for the teacher",
+      "Cross-references to related passages"
+    ],
+    prohibitions: [
+      "No activity descriptions",
+      "No classroom dialogue or transitions",
+      "No student handout content",
+      "This section is for TEACHER BACKGROUND only"
+    ],
+    redundancyLock: [],
+    tier: 'basic',
+    featureFlag: "deep_theology",
+    creditCost: 1,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 4,
-    name: "Theological Background",
-    description: "Doctrinal context and historical background",
+    key: "opening_activities",
+    name: "Opening Activities",
+    enabled: true,
     required: true,
-    targetWordCount: 300,
-    requiredElements: ["Historical context", "Theological significance", "Denominational perspective"]
+    minWords: 120,
+    maxWords: 200,
+    purpose: "Attention-getting introduction and warm-up engagement",
+    contentRules: [
+      "1-2 age-appropriate opening activities",
+      "Attention-getting hook or provocative question",
+      "Warm-up discussion prompt",
+      "Clear transition phrase into main teaching",
+      "Time estimate for each activity"
+    ],
+    prohibitions: [
+      "No deep theology - reference Section 3 as needed",
+      "No lengthy explanations",
+      "No main teaching content"
+    ],
+    redundancyLock: ["theological_background"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 5,
-    name: "Opening Activities",
-    description: "Engaging activities to introduce the lesson topic",
+    key: "teaching_transcript",
+    name: "Main Teaching Content (Teacher Transcript)",
+    enabled: true,
     required: true,
-    targetWordCount: 200,
-    requiredElements: ["Icebreaker or hook", "Connection to main theme", "Time estimate"]
+    minWords: 450,
+    maxWords: 600,
+    purpose: "Spoken classroom delivery script - what the teacher actually SAYS",
+    contentRules: [
+      "Written as natural spoken dialogue",
+      "Identify passage and topic clearly at the start",
+      "Include verbal transitions between points",
+      "Include pacing cues (pause, wait for responses)",
+      "Include classroom engagement lines",
+      "Age-appropriate vocabulary and sentence structure",
+      "Clear teaching flow: intro - main points - conclusion",
+      "End with a memorable statement or challenge"
+    ],
+    prohibitions: [
+      "Do NOT repeat theological explanations from Section 3",
+      "Do NOT write academic-style paragraphs",
+      "Do NOT re-explain doctrine already covered",
+      "This is SPOKEN WORDS, not written essay"
+    ],
+    redundancyLock: ["theological_background"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 6,
-    name: "Main Teaching Content",
-    description: "Core biblical teaching and exposition",
+    key: "interactive_activities",
+    name: "Interactive Activities",
+    enabled: true,
     required: true,
-    targetWordCount: 500,
-    requiredElements: ["Verse-by-verse or thematic exposition", "Key points", "Illustrations"]
+    minWords: 150,
+    maxWords: 250,
+    purpose: "Hands-on reinforcement activities during the lesson",
+    contentRules: [
+      "1-3 activities that reinforce the main point",
+      "Clear step-by-step instructions",
+      "Materials needed (if any)",
+      "Time estimate for each activity",
+      "Adaptation notes for different class sizes"
+    ],
+    prohibitions: [
+      "No theological re-explanation",
+      "No duplicate content from opening activities",
+      "No new teaching - activities reinforce only"
+    ],
+    redundancyLock: ["theological_background", "opening_activities"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 7,
-    name: "Interactive Activities",
-    description: "Hands-on activities to reinforce learning",
+    key: "discussion_assessment",
+    name: "Discussion & Assessment",
+    enabled: true,
     required: true,
-    targetWordCount: 250,
-    requiredElements: ["Age-appropriate activities", "Materials needed", "Instructions"]
+    minWords: 200,
+    maxWords: 300,
+    purpose: "Comprehension checks and spiritual application assessment",
+    contentRules: [
+      "3-5 discussion questions (recall to application)",
+      "Informal comprehension check suggestions",
+      "Behavioral or spiritual indicators of understanding",
+      "Closing reflection prompt",
+      "Connection to weekly challenge"
+    ],
+    prohibitions: [
+      "Do NOT repeat theology from Section 3",
+      "Do NOT repeat transcript content from Section 5",
+      "No re-teaching - this assesses understanding"
+    ],
+    redundancyLock: ["theological_background", "teaching_transcript"],
+    tier: 'free',
+    featureFlag: "core_lesson",
+    creditCost: 0,
+    outputTarget: 'teacher',
+    deliveryTiming: 'during-lesson'
   },
   {
     id: 8,
-    name: "Discussion Questions",
-    description: "Thought-provoking questions for group discussion",
+    key: "student_handout",
+    name: "Student Handout (Standalone)",
+    enabled: true,
     required: true,
-    targetWordCount: 150,
-    requiredElements: ["5-7 questions", "Mix of factual and application", "Follow-up prompts"]
-  },
-  {
-    id: 9,
-    name: "Life Applications",
-    description: "Practical ways to apply the lesson to daily life",
-    required: true,
-    targetWordCount: 200,
-    requiredElements: ["Real-world scenarios", "Personal challenges", "Weekly action steps"]
-  },
-  {
-    id: 10,
-    name: "Assessment Methods",
-    description: "Ways to evaluate student understanding",
-    required: true,
-    targetWordCount: 150,
-    requiredElements: ["Informal assessment ideas", "Review questions", "Observable outcomes"]
-  },
-  {
-    id: 11,
-    name: "Student Handout",
-    description: "Reproducible handout for students to take home",
-    required: true,
-    targetWordCount: 300,
-    requiredElements: ["Key points summary", "Scripture references", "Take-home questions", "Space for notes"]
-  },
-  {
-    id: 12,
-    name: "Teacher Preparation Notes",
-    description: "Guidance for teacher preparation and delivery",
-    required: true,
-    targetWordCount: 200,
-    requiredElements: ["Preparation checklist", "Materials list", "Teaching tips", "Prayer focus"]
+    minWords: 250,
+    maxWords: 400,
+    purpose: "Fresh, student-focused standalone takeaway document",
+    contentRules: [
+      "Lesson title (student-friendly version)",
+      "Key idea (1-2 sentences in student language)",
+      "Memory verse with reference",
+      "3-5 big points (bullet points, student vocabulary)",
+      "Gospel connection (age-appropriate)",
+      "2-3 reflection questions for personal use",
+      "Weekly challenge or action step",
+      "Prayer prompt or written prayer"
+    ],
+    prohibitions: [
+      "Do NOT copy long theology from Section 3",
+      "Do NOT copy teacher transcript from Section 5",
+      "Do NOT use teacher-focused language",
+      "Must be CREATIVELY DISTINCT from teacher materials",
+      "No teacher notes or instructions"
+    ],
+    redundancyLock: ["theological_background", "teaching_transcript", "discussion_assessment"],
+    tier: 'standard',
+    featureFlag: "student_handout",
+    creditCost: 1,
+    outputTarget: 'student',
+    deliveryTiming: 'during-lesson'
   }
 ];
 
-// ============================================================
-// STRUCTURE WRAPPER
-// ============================================================
+// ═══════════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
 
-export const LESSON_STRUCTURE: LessonStructure = {
-  version: LESSON_STRUCTURE_VERSION,
-  sections: LESSON_SECTIONS
-};
+export const getEnabledSections = (): LessonSection[] =>
+  LESSON_SECTIONS.filter(s => s.enabled);
 
-// ============================================================
-// COMPUTED VALUES
-// ============================================================
+export const getRequiredSections = (): LessonSection[] =>
+  LESSON_SECTIONS.filter(s => s.enabled && s.required);
 
-export const TOTAL_TARGET_WORD_COUNT = LESSON_SECTIONS.reduce(
-  (sum, section) => sum + section.targetWordCount,
-  0
-);
+export const getSectionByKey = (key: string): LessonSection | undefined =>
+  LESSON_SECTIONS.find(s => s.key === key);
+
+export const getSectionById = (id: number): LessonSection | undefined =>
+  LESSON_SECTIONS.find(s => s.id === id);
+
+export const getTotalMinWords = (): number =>
+  getEnabledSections().reduce((sum, s) => sum + s.minWords, 0);
+
+export const getTotalMaxWords = (): number =>
+  getEnabledSections().reduce((sum, s) => sum + s.maxWords, 0);
+
+export const getSectionCount = (): number =>
+  getEnabledSections().length;
+

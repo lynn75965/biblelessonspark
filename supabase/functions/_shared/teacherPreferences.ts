@@ -9,7 +9,7 @@
  * 2. Run: npm run sync-constants
  * 3. Commit both files (frontend source + backend mirror)
  * 
- * Generated: 2025-11-24T15:09:55.572Z
+ * Generated: 2025-11-24T16:33:58.159Z
  * Generator: scripts/sync-constants.cjs
  * Architecture: Frontend Drives Backend (Master Vision Principle)
  */
