@@ -9,61 +9,126 @@
  * 2. Run: npm run sync-constants
  * 3. Commit both files (frontend source + backend mirror)
  * 
- * Generated: 2025-11-23T17:27:23.162Z
+ * Generated: 2025-11-24T15:09:55.573Z
  * Generator: scripts/sync-constants.cjs
  * Architecture: Frontend Drives Backend (Master Vision Principle)
  */
 
-/**
+﻿/**
  * Theology Profiles - Single Source of Truth (SSOT)
+ * 
+ * ENHANCED VERSION - Comprehensive distinctives for proper theological guidance
+ * 
+ * Location: src/constants/theologyProfiles.ts (frontend authoritative)
+ * Mirror: supabase/functions/_shared/theologyProfiles.ts (auto-generated)
+ * 
+ * After editing this file, run: npm run sync-constants
  */
 
 export interface TheologyProfile {
   id: string;
   name: string;
   description: string;
-  confessionVersion: '1963' | '2000';
+  confessionVersion: '1963' | '2000' | 'none';
   theologicalTradition: 'southern-baptist' | 'reformed-baptist' | 'independent-baptist';
   distinctives: string[];
+  hermeneutics: string;
+  applicationEmphasis: string;
 }
 
 export const THEOLOGY_PROFILES: TheologyProfile[] = [
   {
     id: 'southern-baptist-bfm-2000',
     name: 'Southern Baptist (BF&M 2000)',
-    description: 'Baptist Faith & Message 2000',
+    description: 'Baptist Faith & Message 2000 - The current doctrinal statement of the Southern Baptist Convention, adopted June 14, 2000.',
     confessionVersion: '2000',
     theologicalTradition: 'southern-baptist',
-    distinctives: ['Biblical inerrancy', 'Complementarian roles', 'Cooperative Program']
+    distinctives: [
+      'Biblical inerrancy - Scripture is totally true and trustworthy in all it affirms',
+      'Salvation by grace alone through faith alone in Christ alone',
+      'Believer\'s baptism by immersion as testimony of faith',
+      'Congregational church governance under Christ\'s lordship',
+      'Priesthood of all believers with direct access to God',
+      'Complementarian view of gender roles in home and church',
+      'Autonomy of the local church cooperating voluntarily through associations',
+      'Religious liberty and separation of church and state',
+      'Personal evangelism and global missions as Great Commission mandate',
+      'Conservative interpretation of Scripture on marriage and family'
+    ],
+    hermeneutics: 'Grammatical-historical interpretation with Christocentric focus. Scripture interprets Scripture. Apply the plain meaning of the text.',
+    applicationEmphasis: 'Personal salvation, baptism, church membership, tithing, evangelism, missions, and godly family life.'
   },
   {
     id: 'southern-baptist-bfm-1963',
     name: 'Southern Baptist (BF&M 1963)',
-    description: 'Baptist Faith & Message 1963',
+    description: 'Baptist Faith & Message 1963 - The doctrinal statement adopted by the Southern Baptist Convention in 1963, maintaining traditional Baptist principles.',
     confessionVersion: '1963',
     theologicalTradition: 'southern-baptist',
-    distinctives: ['Biblical authority', 'Soul liberty', 'Evangelical cooperation']
+    distinctives: [
+      'Biblical authority - the Bible is the record of God\'s revelation and the rule of faith and practice',
+      'Salvation by grace through faith in Jesus Christ as Lord and Savior',
+      'Believer\'s baptism by immersion as act of obedience',
+      'Congregational church governance with Christ as head',
+      'Priesthood of all believers - every Christian has direct access to God',
+      'Soul competency - each person accountable directly to God',
+      'Autonomy of the local church in fellowship with other Baptist churches',
+      'Religious liberty for all persons',
+      'Cooperation in evangelism, missions, and Christian education',
+      'Traditional family values rooted in Scripture'
+    ],
+    hermeneutics: 'Grammatical-historical interpretation. The Bible is its own best interpreter. Christ is the criterion by which Scripture is to be interpreted.',
+    applicationEmphasis: 'Personal salvation, believer\'s baptism, faithful church membership, soul-winning, missions, and Christian education.'
   },
   {
     id: 'reformed-baptist',
     name: 'Reformed Baptist',
-    description: 'Reformed Baptist tradition',
-    confessionVersion: '2000',
+    description: 'Reformed Baptist tradition rooted in the 1689 London Baptist Confession, combining Baptist distinctives with Reformed soteriology.',
+    confessionVersion: 'none',
     theologicalTradition: 'reformed-baptist',
-    distinctives: ['Five Points of Calvinism', 'Covenant theology', 'Doctrines of grace']
+    distinctives: [
+      'Doctrines of Grace (Five Points of Calvinism) - Total depravity, Unconditional election, Limited atonement, Irresistible grace, Perseverance of the saints',
+      'Covenant theology - God\'s redemptive plan unfolds through biblical covenants',
+      'Believer\'s baptism by immersion (rejecting infant baptism)',
+      'Congregational governance with elder leadership',
+      'Regulative principle of worship - worship only as Scripture commands',
+      'God\'s absolute sovereignty in salvation and all things',
+      'Expository preaching as central to worship',
+      'Church discipline and meaningful membership',
+      'Law and Gospel distinction in biblical interpretation',
+      'Already/not-yet eschatology with focus on Christ\'s return'
+    ],
+    hermeneutics: 'Covenantal hermeneutic reading Scripture as unified redemptive history. Law-Gospel distinction. Scripture alone as final authority.',
+    applicationEmphasis: 'God\'s sovereignty, human responsibility, expository preaching, church membership, personal holiness, and patient trust in God\'s purposes.'
   },
   {
     id: 'independent-baptist',
     name: 'Independent Baptist',
-    description: 'Independent Baptist tradition',
-    confessionVersion: '2000',
+    description: 'Independent Baptist tradition emphasizing local church autonomy, separation from worldliness, and fundamental Bible doctrine.',
+    confessionVersion: 'none',
     theologicalTradition: 'independent-baptist',
-    distinctives: ['Church independence', 'Separation', 'Fundamentalist identity']
+    distinctives: [
+      'Absolute authority and literal interpretation of the King James Bible',
+      'Complete autonomy and independence of the local church',
+      'Biblical separation from worldliness, apostasy, and compromise',
+      'Salvation by grace through faith with eternal security',
+      'Believer\'s baptism by immersion as first act of obedience',
+      'Premillennial, pretribulational view of end times',
+      'Strong emphasis on personal evangelism and soul-winning',
+      'Standards of personal holiness and modest dress',
+      'Traditional worship with hymns and gospel songs',
+      'Pastoral authority under Scripture with congregational affirmation'
+    ],
+    hermeneutics: 'Literal, dispensational interpretation. The Bible means what it says. Clear distinction between Israel and the Church.',
+    applicationEmphasis: 'Soul-winning, personal standards, separation from the world, faithful church attendance, tithing, and KJV Scripture memorization.'
   }
 ];
 
 export function getTheologyProfile(profileId: string): TheologyProfile | undefined {
   return THEOLOGY_PROFILES.find(profile => profile.id === profileId);
+}
+
+export function getProfilesByTradition(tradition: TheologyProfile['theologicalTradition']): TheologyProfile[] {
+  return THEOLOGY_PROFILES.filter(profile => profile.theologicalTradition === tradition);
 }
 
 export default THEOLOGY_PROFILES;

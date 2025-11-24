@@ -1,0 +1,316 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+
+// Import ONLY the constants that actually exist
+import { LESSON_STRUCTURE_VERSION, LESSON_SECTIONS, TOTAL_TARGET_WORD_COUNT } from '../_shared/lessonStructure.ts';
+import { AGE_GROUPS } from '../_shared/ageGroups.ts';
+import { THEOLOGY_PROFILES } from '../_shared/theologyProfiles.ts';
+
+interface LessonRequest {
+  bible_passage?: string;
+  focused_topic?: string;
+  age_group: string;
+  theology_profile_id: string;
+  additional_notes?: string;
+  teaching_style?: string;
+  lesson_length?: string;
+  activity_types?: string[];
+  language?: string;
+  class_setting?: string;
+  learning_environment?: string;
+  student_experience?: string;
+  cultural_context?: string;
+  special_needs?: string;
+  lesson_sequence?: string;
+  assessment_style?: string;
+  learning_style?: string;
+  education_experience?: string;
+}
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { 
+      status: 200,
+      headers: corsHeaders 
+    });
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+
+    if (!anthropicApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not configured');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      throw new Error('Invalid token');
+    }
+
+    // Parse request
+    const requestData: LessonRequest = await req.json();
+    const {
+      bible_passage,
+      focused_topic,
+      age_group,
+      theology_profile_id,
+      additional_notes,
+      teaching_style,
+      lesson_length,
+      activity_types,
+      language = 'english',
+      class_setting,
+      learning_environment,
+      student_experience,
+      cultural_context,
+      special_needs,
+      lesson_sequence,
+      assessment_style,
+      learning_style,
+      education_experience,
+    } = requestData;
+
+    // Validate required fields
+    if (!bible_passage && !focused_topic) {
+      throw new Error('Either bible_passage or focused_topic is required');
+    }
+    if (!age_group) {
+      throw new Error('age_group is required');
+    }
+    if (!theology_profile_id) {
+      throw new Error('theology_profile_id is required');
+    }
+
+    // Find theology profile
+    const theologyProfile = THEOLOGY_PROFILES.find(p => p.id === theology_profile_id);
+    if (!theologyProfile) {
+      throw new Error(`Theology profile not found: ${theology_profile_id}`);
+    }
+
+    // Find age group
+    const ageGroupData = AGE_GROUPS.find(ag => ag.id === age_group);
+    if (!ageGroupData) {
+      throw new Error(`Age group not found: ${age_group}`);
+    }
+
+    console.log('Generating lesson for:', {
+      user: user.id,
+      theology: theologyProfile.name,
+      ageGroup: ageGroupData.label,
+      passage: bible_passage,
+      topic: focused_topic
+    });
+
+    // Build lesson structure prompt
+    const sectionsPrompt = LESSON_SECTIONS.map((section, index) => {
+      return `
+${index + 1}. ${section.name} (Target: ~${section.targetWordCount} words)
+   ${section.description}
+   Required Elements: ${section.requiredElements.join(', ')}`;
+    }).join('\n');
+
+    // Build customization context
+    const customizations = [];
+    if (teaching_style) customizations.push(`Teaching Style: ${teaching_style}`);
+    if (learning_style) customizations.push(`Learning Style: ${learning_style}`);
+    if (lesson_length) customizations.push(`Lesson Length: ${lesson_length} minutes`);
+    if (class_setting) customizations.push(`Group Size: ${class_setting}`);
+    if (learning_environment) customizations.push(`Learning Environment: ${learning_environment}`);
+    if (student_experience) customizations.push(`Student Experience: ${student_experience}`);
+    if (education_experience) customizations.push(`Education Experience: ${education_experience}`);
+    if (cultural_context) customizations.push(`Cultural Context: ${cultural_context}`);
+    if (special_needs) customizations.push(`Special Needs: ${special_needs}`);
+    if (lesson_sequence) customizations.push(`Lesson Sequence: ${lesson_sequence}`);
+    if (assessment_style) customizations.push(`Assessment Style: ${assessment_style}`);
+    if (language) customizations.push(`Language: ${language}`);
+    if (activity_types && activity_types.length > 0) {
+      customizations.push(`Activity Types: ${activity_types.join(', ')}`);
+    }
+
+    const customizationContext = customizations.length > 0 
+      ? `\nTEACHER CUSTOMIZATION:\n${customizations.join('\n')}\n` 
+      : '';
+
+    // Build teaser prompt if requested
+    const teaserPrompt = ''; // Teaser generation moved to separate feature
+
+
+    // Build system prompt
+    const systemPrompt = `You are a Baptist Bible study lesson generator with deep theological knowledge and 40+ years of ministry experience.
+
+THEOLOGICAL FRAMEWORK (${theologyProfile.name}):
+${theologyProfile.description}
+
+Key Distinctives:
+${theologyProfile.distinctives.map(d => `- ${d}`).join('\n')}
+
+CRITICAL: All content must align with these theological standards.
+
+AGE GROUP CONTEXT:
+Target Audience: ${ageGroupData.label}
+Age Range: ${ageGroupData.ageMin}-${ageGroupData.ageMax}
+Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
+Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
+Attention Span: ${ageGroupData.teachingProfile.attentionSpan}
+
+LESSON STRUCTURE (${LESSON_SECTIONS.length} sections):
+${sectionsPrompt}
+
+Total Target Word Count: ~${TOTAL_TARGET_WORD_COUNT} words
+
+${customizationContext}${teaserPrompt}
+
+CRITICAL REMINDERS:
+1. Maintain ${theologyProfile.name} theological standards throughout
+2. Use age-appropriate language for ${ageGroupData.label}
+3. Include all ${LESSON_SECTIONS.length} required sections
+4. Provide practical, applicable teaching content
+5. Generate separate "Teacher Lesson Plan" and "Student Handout" documents
+`;
+
+    const lessonInput = bible_passage || focused_topic || 'General Bible Study';
+
+    const userPrompt = `Generate a complete Baptist Bible study lesson for:
+
+${bible_passage ? `Bible Passage: ${bible_passage}` : ''}
+${focused_topic ? `Focused Topic: ${focused_topic}` : ''}
+${additional_notes ? `Additional Notes: ${additional_notes}` : ''}
+
+Please generate the complete lesson following the structure and requirements specified in the system prompt.`;
+
+    console.log('Calling Anthropic API...');
+
+    // Call Anthropic API
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        temperature: 0.7,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ]
+      })
+    });
+
+    if (!anthropicResponse.ok) {
+      const errorData = await anthropicResponse.text();
+      console.error('Anthropic API error:', errorData);
+      throw new Error(`Anthropic API error: ${anthropicResponse.status}`);
+    }
+
+    const anthropicData = await anthropicResponse.json();
+    const generatedLesson = anthropicData.content[0].text;
+
+    console.log('Lesson generated successfully');
+    console.log(`Lesson length: ${generatedLesson.length} characters`);
+
+    // Save to database
+    const lessonData = {
+      user_id: user.id,
+      title: lessonInput,
+      original_text: generatedLesson,
+      filters: {
+        bible_passage,
+        focused_topic,
+        age_group,
+        theology_profile_id,
+        teaching_style,
+        lesson_length,
+        activity_types,
+        language,
+        class_setting,
+        learning_environment,
+        student_experience,
+        cultural_context,
+        special_needs,
+        lesson_sequence,
+        assessment_style,
+        learning_style,
+        education_experience,
+        additional_notes: additional_notes || null
+      },
+      metadata: {
+        lessonStructureVersion: LESSON_STRUCTURE_VERSION,
+        generatedAt: new Date().toISOString(),
+        theologyProfile: theologyProfile.name,
+        ageGroup: ageGroupData.label,
+        wordCount: generatedLesson.split(/\s+/).length,
+        sectionCount: LESSON_SECTIONS.length,
+      }
+    };
+
+    const { data: lesson, error: insertError } = await supabase
+      .from('lessons')
+      .insert(lessonData)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Database insert error:', insertError);
+      throw new Error(`Failed to save lesson: ${insertError.message}`);
+    }
+
+    console.log('Lesson saved to database:', lesson.id);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        lesson,
+        metadata: lessonData.metadata
+      }),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+  } catch (error) {
+    console.error('Error in generate-lesson function:', error);
+    return new Response(
+      JSON.stringify({
+        error: error.message || 'An unexpected error occurred',
+        details: error.toString()
+      }),
+      {
+        status: 500,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        }
+      }
+    );
+  }
+});
