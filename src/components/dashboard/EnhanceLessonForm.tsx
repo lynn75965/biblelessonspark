@@ -86,9 +86,10 @@ export function EnhanceLessonForm({
       interval = setInterval(() => {
         setGenerationProgress((prev) => {
           if (prev >= 95) return prev;
-          return prev + 1;
+          // Increment faster: reach ~90% in ~80 seconds
+          return prev + 1.2;
         });
-      }, 2000);
+      }, 1000);
     } else {
       setGenerationProgress(0);
     }
