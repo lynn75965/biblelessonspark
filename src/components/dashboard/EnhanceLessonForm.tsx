@@ -39,7 +39,7 @@ export function EnhanceLessonForm({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generatedLesson, setGeneratedLesson] = useState<any>(null);
 
   const [teachingStyle, setTeachingStyle] = useState("");
   const [lessonLength, setLessonLength] = useState("");
