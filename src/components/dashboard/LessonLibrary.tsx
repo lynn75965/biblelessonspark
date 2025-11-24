@@ -23,36 +23,40 @@ interface LessonDisplay extends Lesson {
   updated_at?: string;
 }
 
-export function LessonLibrary({ 
-  onViewLesson,
-  organizationId 
-}: LessonLibraryProps) {
+export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [profileFilter, setProfileFilter] = useState<string>("all");
 
   const { lessons, loading, deleteLesson } = useLessons();
 
-  const displayLessons: LessonDisplay[] = lessons.map(lesson => ({
-    ...lesson,
-    passage_or_topic: lesson.title || (lesson.filters?.passageOrTopic) || "Untitled Lesson",
-    age_group: lesson.filters?.ageGroup || 'Mixed Groups',
-    theology_profile_id: lesson.filters?.theologyProfileId || "southern-baptist-bfm-2000",
-    created_by_name: "Teacher",
-    has_content: !!lesson.original_text,
-    updated_at: lesson.created_at,
-  }));
+  const displayLessons: LessonDisplay[] = lessons.map((lesson) => {
+    // Check metadata first (new format), then filters (legacy), then default
+    const metadata = lesson.metadata as Record<string, any> | null;
+    const filters = lesson.filters as Record<string, any> | null;
 
-  const filteredLessons = displayLessons.filter(lesson => {
-    const matchesSearch = lesson.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lesson.passage_or_topic.toLowerCase().includes(searchTerm.toLowerCase());
+    return {
+      ...lesson,
+      passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
+      age_group: metadata?.ageGroup || filters?.ageGroup || "Mixed Groups",
+      theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || "southern-baptist-bfm-2000",
+      created_by_name: "Teacher",
+      has_content: !!lesson.original_text,
+      updated_at: lesson.created_at,
+    };
+  });
+
+  const filteredLessons = displayLessons.filter((lesson) => {
+    const matchesSearch =
+      lesson.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lesson.passage_or_topic.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
     const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
     return matchesSearch && matchesAge && matchesProfile;
   });
 
   const getAgeGroupBadgeColor = (ageGroup: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       "Preschoolers (Ages 3-5)": "bg-pink-100 text-pink-800 border-pink-200",
       "Elementary Kids (Ages 6-10)": "bg-blue-100 text-blue-800 border-blue-200",
       "Preteens & Middle Schoolers (Ages 11-14)": "bg-purple-100 text-purple-800 border-purple-200",
@@ -63,17 +67,17 @@ export function LessonLibrary({
       "Experienced Adults (Ages 51-65)": "bg-yellow-100 text-yellow-800 border-yellow-200",
       "Active Seniors (Ages 66-75)": "bg-orange-100 text-orange-800 border-orange-200",
       "Senior Adults (Ages 76+)": "bg-red-100 text-red-800 border-red-200",
-      "Mixed Groups": "bg-gray-100 text-gray-800 border-gray-200"
+      "Mixed Groups": "bg-gray-100 text-gray-800 border-gray-200",
     };
     return colors[ageGroup] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
   const getProfileBadgeColor = (profileId: string) => {
-    const colors = {
+    const colors: Record<string, string> = {
       "southern-baptist-bfm-2000": "bg-primary-light text-primary border-primary/20",
       "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
       "reformed-baptist": "bg-secondary-light text-secondary border-secondary/20",
-      "independent-baptist": "bg-success-light text-success border-success/20"
+      "independent-baptist": "bg-success-light text-success border-success/20",
     };
     return colors[profileId] || "bg-gray-100 text-gray-800 border-gray-200";
   };
@@ -84,10 +88,10 @@ export function LessonLibrary({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
@@ -111,9 +115,7 @@ export function LessonLibrary({
       <Card className="bg-gradient-card border-border/50">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">Lesson Library</CardTitle>
-          <CardDescription>
-            Browse and manage your Baptist Bible study lessons
-          </CardDescription>
+          <CardDescription>Browse and manage your Baptist Bible study lessons</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Search Bar */}
@@ -169,7 +171,8 @@ export function LessonLibrary({
           <div className="mt-3 pt-3 border-t border-border/50">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Filter className="h-3 w-3" />
-              <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration, group size, and teaching style
+              <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration,
+              group size, and teaching style
             </p>
           </div>
         </CardContent>
@@ -197,7 +200,7 @@ export function LessonLibrary({
                   <Badge className={`${getAgeGroupBadgeColor(lesson.age_group)} text-xs`} variant="secondary">
                     <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                     <span className="hidden sm:inline">{lesson.age_group}</span>
-                    <span className="sm:hidden">{lesson.age_group.split(' ')[0]}</span>
+                    <span className="sm:hidden">{lesson.age_group.split(" ")[0]}</span>
                   </Badge>
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}
@@ -220,11 +223,7 @@ export function LessonLibrary({
 
                 {/* Action Buttons */}
                 <div className="flex gap-2">
-                  <Button
-                    onClick={() => onViewLesson?.(lesson)}
-                    className="flex-1"
-                    size="sm"
-                  >
+                  <Button onClick={() => onViewLesson?.(lesson)} className="flex-1" size="sm">
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>
@@ -249,14 +248,12 @@ export function LessonLibrary({
               <h3 className="text-lg font-semibold">
                 {searchTerm || ageFilter !== "all" || profileFilter !== "all"
                   ? "No lessons match your filters"
-                  : "No lessons yet"
-                }
+                  : "No lessons yet"}
               </h3>
               <p className="text-muted-foreground max-w-md">
                 {searchTerm || ageFilter !== "all" || profileFilter !== "all"
                   ? "Try adjusting your search terms or filters to find the lessons you're looking for."
-                  : "Create your first Baptist-enhanced Bible study lesson to get started."
-                }
+                  : "Create your first Baptist-enhanced Bible study lesson to get started."}
               </p>
             </div>
           </CardContent>
