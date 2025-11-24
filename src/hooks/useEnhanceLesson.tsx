@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LessonEnhancement } from "@/types/lesson";
 
 export const useEnhanceLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  const enhanceLesson = async (enhancementData: LessonEnhancement) => {
+  const enhanceLesson = async (enhancementData: Record<string, any>) => {
     setIsGenerating(true);
 
     try {
