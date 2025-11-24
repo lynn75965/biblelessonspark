@@ -23,7 +23,6 @@ export const LESSON_STRUCTURE_VERSION = "2.1.0";
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface LessonSection {
-  // BETA-ESSENTIAL (Active Now)
   id: number;
   key: string;
   name: string;
@@ -35,8 +34,6 @@ export interface LessonSection {
   contentRules: string[];
   prohibitions: string[];
   redundancyLock: string[];
-
-  // FUTURE-READY (Defined but not enforced in Beta)
   tier?: "free" | "basic" | "standard" | "premium" | "enterprise";
   featureFlag?: string;
   creditCost?: number;
