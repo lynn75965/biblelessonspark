@@ -16,9 +16,21 @@ import { TeacherCustomization } from "./TeacherCustomization";
 
 interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
+  organizationId?: string;
+  userPreferredAgeGroup?: string;
+  defaultDoctrine?: string;
+  viewingLesson?: any;
+  onClearViewing?: () => void;
 }
 
-export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps) {
+export function EnhanceLessonForm({
+  onLessonGenerated,
+  organizationId,
+  userPreferredAgeGroup,
+  defaultDoctrine,
+  viewingLesson,
+  onClearViewing,
+}: EnhanceLessonFormProps) {
   const [biblePassage, setBiblePassage] = useState("");
   const [focusedTopic, setFocusedTopic] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
@@ -28,7 +40,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  
+
   const [teachingStyle, setTeachingStyle] = useState("");
   const [lessonLength, setLessonLength] = useState("");
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
@@ -42,26 +54,28 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [assessmentStyle, setAssessmentStyle] = useState("");
   const [learningStyle, setLearningStyle] = useState("");
   const [educationExperience, setEducationExperience] = useState("");
-  
+
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('theology_profile_id')
-          .eq('id', user.id)
+          .from("profiles")
+          .select("theology_profile_id")
+          .eq("id", user.id)
           .single();
-        
+
         if (profile?.theology_profile_id) {
           setTheologyProfileId(profile.theology_profile_id);
         }
       }
     };
-    
+
     fetchUserProfile();
   }, []);
 
@@ -70,7 +84,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
     if (isSubmitting || isEnhancing) {
       setGenerationProgress(0);
       interval = setInterval(() => {
-        setGenerationProgress(prev => {
+        setGenerationProgress((prev) => {
           if (prev >= 95) return prev;
           return prev + 1;
         });
@@ -98,7 +112,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!biblePassage && !focusedTopic) {
       toast({
         title: "Missing information",
@@ -153,11 +167,11 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
       };
 
       const result = await enhanceLesson(enhancementData);
-      
+
       if (result && onLessonGenerated) {
         onLessonGenerated(result);
       }
-      
+
       setGenerationProgress(100);
       setBiblePassage("");
       setFocusedTopic("");
@@ -165,7 +179,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
       setNotes("");
       setUploadedFile(null);
       setGenerateTeaser(false);
-      
     } catch (error) {
       console.error("Error generating lesson:", error);
     } finally {
@@ -180,9 +193,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
           <Sparkles className="h-5 w-5 text-primary" />
           Create Baptist-Enhanced Lesson
         </CardTitle>
-        <CardDescription>
-          Generate a theologically-sound Bible study lesson tailored to your class
-        </CardDescription>
+        <CardDescription>Generate a theologically-sound Bible study lesson tailored to your class</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -226,11 +237,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
 
           <div className="space-y-2">
             <Label htmlFor="theology-profile">Baptist Theology Profile *</Label>
-            <Select 
-              value={theologyProfileId} 
-              onValueChange={setTheologyProfileId}
-              disabled={isSubmitting}
-            >
+            <Select value={theologyProfileId} onValueChange={setTheologyProfileId} disabled={isSubmitting}>
               <SelectTrigger id="theology-profile">
                 <SelectValue placeholder="Select theology profile" />
               </SelectTrigger>
@@ -312,9 +319,7 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
                 </Button>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Upload PDF, DOCX, TXT, or JPG files (max 10MB)
-            </p>
+            <p className="text-xs text-muted-foreground">Upload PDF, DOCX, TXT, or JPG files (max 10MB)</p>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -328,16 +333,12 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
               htmlFor="generate-teaser"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Generate Lesson Teaser (days before lesson build student anticipation without revealing content - suitable for post, text, email, or card)
+              Generate Lesson Teaser (days before lesson build student anticipation without revealing content - suitable
+              for post, text, email, or card)
             </label>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            size="lg"
-            disabled={isSubmitting || isEnhancing}
-          >
+          <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isEnhancing}>
             {isSubmitting || isEnhancing ? (
               <div className="flex items-center gap-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
