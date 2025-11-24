@@ -40,6 +40,8 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
   const [specialNeeds, setSpecialNeeds] = useState("");
   const [lessonSequence, setLessonSequence] = useState("");
   const [assessmentStyle, setAssessmentStyle] = useState("");
+  const [learningStyle, setLearningStyle] = useState("");
+  const [educationExperience, setEducationExperience] = useState("");
   
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { toast } = useToast();
@@ -144,6 +146,8 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
         special_needs: specialNeeds,
         lesson_sequence: lessonSequence,
         assessment_style: assessmentStyle,
+        learning_style: learningStyle,
+        education_experience: educationExperience,
         generate_teaser: generateTeaser,
         uploaded_file: uploadedFile,
       };
@@ -243,21 +247,6 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="generate-teaser"
-              checked={generateTeaser}
-              onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
-              disabled={isSubmitting}
-            />
-            <label
-              htmlFor="generate-teaser"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              Generate Lesson Teaser (builds student anticipation without revealing content)
-            </label>
-          </div>
-
           <TeacherCustomization
             teachingStyle={teachingStyle}
             setTeachingStyle={setTeachingStyle}
@@ -281,6 +270,10 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             setLessonSequence={setLessonSequence}
             assessmentStyle={assessmentStyle}
             setAssessmentStyle={setAssessmentStyle}
+            learningStyle={learningStyle}
+            setLearningStyle={setLearningStyle}
+            educationExperience={educationExperience}
+            setEducationExperience={setEducationExperience}
             disabled={isSubmitting}
           />
 
@@ -322,6 +315,21 @@ export function EnhanceLessonForm({ onLessonGenerated }: EnhanceLessonFormProps)
             <p className="text-xs text-muted-foreground">
               Upload PDF, DOCX, TXT, or JPG files (max 10MB)
             </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="generate-teaser"
+              checked={generateTeaser}
+              onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
+              disabled={isSubmitting}
+            />
+            <label
+              htmlFor="generate-teaser"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Generate Lesson Teaser (days before lesson build student anticipation without revealing content - suitable for post, text, email, or card)
+            </label>
           </div>
 
           <Button

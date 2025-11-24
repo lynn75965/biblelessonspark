@@ -34,6 +34,10 @@ interface TeacherCustomizationProps {
   setLessonSequence: (value: string) => void;
   assessmentStyle: string;
   setAssessmentStyle: (value: string) => void;
+  learningStyle: string;
+  setLearningStyle: (value: string) => void;
+  educationExperience: string;
+  setEducationExperience: (value: string) => void;
   disabled?: boolean;
 }
 
@@ -44,6 +48,14 @@ const TEACHING_STYLES = [
   { id: "storytelling", label: "Storytelling", tooltip: null },
   { id: "socratic", label: "Socratic Method", tooltip: "Teaching through asking probing questions that lead students to discover truth themselves, rather than directly telling them answers" },
   { id: "mixed", label: "Mixed", tooltip: null },
+];
+
+const LEARNING_STYLES = [
+  { id: "visual", label: "Visual Learners" },
+  { id: "auditory", label: "Auditory Learners" },
+  { id: "kinesthetic", label: "Kinesthetic/Hands-On" },
+  { id: "reading-writing", label: "Reading/Writing" },
+  { id: "mixed", label: "Mixed Learning Styles" },
 ];
 
 const LESSON_LENGTHS = [
@@ -70,7 +82,7 @@ const LANGUAGES = [
   { id: "french", label: "French" },
 ];
 
-const CLASS_SETTINGS = [
+const GROUP_SIZES = [
   { id: "small-group", label: "Small Group (3-12)" },
   { id: "large-group", label: "Large Group (13+)" },
   { id: "one-on-one", label: "One-on-One" },
@@ -132,6 +144,18 @@ const ASSESSMENT_STYLES = [
   { id: "observation", label: "Observation Only" },
 ];
 
+const EDUCATION_EXPERIENCES = [
+  { id: "elementary", label: "Elementary Education" },
+  { id: "middle", label: "Middle School" },
+  { id: "high-school", label: "High School" },
+  { id: "some-college", label: "Some College" },
+  { id: "associates", label: "Associate's Degree" },
+  { id: "bachelors", label: "Bachelor's Degree" },
+  { id: "masters", label: "Master's Degree" },
+  { id: "doctorate", label: "Doctoral/Advanced Degree" },
+  { id: "mixed", label: "Mixed Education Levels" },
+];
+
 export function TeacherCustomization({
   teachingStyle,
   setTeachingStyle,
@@ -155,6 +179,10 @@ export function TeacherCustomization({
   setLessonSequence,
   assessmentStyle,
   setAssessmentStyle,
+  learningStyle,
+  setLearningStyle,
+  educationExperience,
+  setEducationExperience,
   disabled = false,
 }: TeacherCustomizationProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -200,21 +228,23 @@ export function TeacherCustomization({
                 <SelectContent>
                   {TEACHING_STYLES.map((style) => (
                     <SelectItem key={style.id} value={style.id}>
-                      <div className="flex items-center gap-2">
-                        {style.label}
-                        {style.tooltip && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3 w-3 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                <p>{style.tooltip}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
+                      {style.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="learning-style">Learning Style</Label>
+              <Select value={learningStyle} onValueChange={setLearningStyle} disabled={disabled}>
+                <SelectTrigger id="learning-style">
+                  <SelectValue placeholder="Select learning style" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LEARNING_STYLES.map((style) => (
+                    <SelectItem key={style.id} value={style.id}>
+                      {style.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -238,13 +268,13 @@ export function TeacherCustomization({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="class-setting">Class Setting</Label>
+              <Label htmlFor="group-size">Group Size</Label>
               <Select value={classSetting} onValueChange={setClassSetting} disabled={disabled}>
-                <SelectTrigger id="class-setting">
-                  <SelectValue placeholder="Select class setting" />
+                <SelectTrigger id="group-size">
+                  <SelectValue placeholder="Select group size" />
                 </SelectTrigger>
                 <SelectContent>
-                  {CLASS_SETTINGS.map((setting) => (
+                  {GROUP_SIZES.map((setting) => (
                     <SelectItem key={setting.id} value={setting.id}>
                       {setting.label}
                     </SelectItem>
@@ -279,6 +309,22 @@ export function TeacherCustomization({
                   {STUDENT_EXPERIENCE_LEVELS.map((level) => (
                     <SelectItem key={level.id} value={level.id}>
                       {level.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="education-experience">Education Experience</Label>
+              <Select value={educationExperience} onValueChange={setEducationExperience} disabled={disabled}>
+                <SelectTrigger id="education-experience">
+                  <SelectValue placeholder="Select education level" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EDUCATION_EXPERIENCES.map((edu) => (
+                    <SelectItem key={edu.id} value={edu.id}>
+                      {edu.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
