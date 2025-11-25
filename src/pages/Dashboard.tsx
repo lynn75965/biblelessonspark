@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackButton } from "@/components/BetaFeedbackButton";
+import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredits } from "@/hooks/useCredits";
 import { useLessons } from "@/hooks/useLessons";
@@ -42,6 +43,8 @@ export default function Dashboard({
   setupComplete = true
 }: DashboardProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
+  const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
+  const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
@@ -328,10 +331,14 @@ export default function Dashboard({
           </TabsList>
 
           <TabsContent value="enhance" className="mt-6">
-            <EnhanceLessonForm 
-              organizationId={organization?.id}
-              userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
-              defaultDoctrine={organization?.default_doctrine || "SBC"}
+            <EnhanceLessonForm
+                onLessonGenerated={(lesson) => {
+                  setLastGeneratedLessonId(lesson?.id || null);
+                  setShowBetaFeedbackModal(true);
+                }}
+                organizationId={organization?.id}
+                userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
+                defaultDoctrine={organization?.default_doctrine || "SBC"}
                 viewingLesson={selectedLesson}
                 onClearViewing={() => setSelectedLesson(null)}
               />
@@ -499,7 +506,12 @@ export default function Dashboard({
         onOpenChange={setShowProfileModal}
         onProfileUpdated={handleProfileUpdated}
       />
+      {/* Beta Feedback Modal - pops up after lesson generation */}
+      <BetaFeedbackModal 
+        open={showBetaFeedbackModal} 
+        onOpenChange={setShowBetaFeedbackModal}
+        lessonId={lastGeneratedLessonId}
+      />
     </div>
   );
 }
-
