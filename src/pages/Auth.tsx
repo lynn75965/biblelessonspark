@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useInvites } from '@/hooks/useInvites';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
+import Footer from '@/components/Footer';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();

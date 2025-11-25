@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { TeacherCustomization } from "./TeacherCustomization";
+import { LessonExportButtons } from "./LessonExportButtons";
 
 interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
@@ -22,6 +23,16 @@ interface EnhanceLessonFormProps {
   viewingLesson?: any;
   onClearViewing?: () => void;
 }
+
+const extractLessonTitle = (content: string): string | null => {
+  if (!content) return null;
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
+    if (match) return match[1].replace(/[""\*]/g, "").trim();
+  }
+  return null;
+};
 
 export function EnhanceLessonForm({
   onLessonGenerated,
@@ -86,7 +97,10 @@ export function EnhanceLessonForm({
       setGenerationProgress(0);
       interval = setInterval(() => {
         setGenerationProgress((prev) => {
-          if (prev >= 95) return prev;
+          // Slow down as we approach 99%
+          if (prev >= 99) return 99;
+          if (prev >= 96) return prev + 0.3; // Very slow final increment
+          if (prev >= 90) return prev + 0.8;
           return prev + 1.2;
         });
       }, 1000);
@@ -189,6 +203,9 @@ export function EnhanceLessonForm({
       setIsSubmitting(false);
     }
   };
+
+  const currentLesson = viewingLesson || generatedLesson?.lesson;
+  const displayTitle = currentLesson ? (extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson") : "Generated Lesson";
 
   return (
     <>
@@ -361,55 +378,64 @@ export function EnhanceLessonForm({
       </Card>
 
       {/* Display Generated or Viewing Lesson */}
-      {(generatedLesson || viewingLesson) && (
+      {currentLesson && (
         <Card className="mt-6">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary" />
-                {viewingLesson ? viewingLesson.title : generatedLesson?.lesson?.title || "Generated Lesson"}
+                {displayTitle}
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (viewingLesson && onClearViewing) {
-                    onClearViewing();
-                  } else {
-                    setGeneratedLesson(null);
-                  }
-                }}
-              >
-                Close
-              </Button>
+              <div className="flex items-center gap-2">
+                <LessonExportButtons
+                  lesson={{
+                    title: currentLesson.title || "Generated Lesson",
+                    original_text: currentLesson.original_text || "",
+                    metadata: currentLesson.metadata,
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (viewingLesson && onClearViewing) {
+                      onClearViewing();
+                    } else {
+                      setGeneratedLesson(null);
+                    }
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {/* Teaser Section - Display prominently if present */}
-            {(viewingLesson?.metadata?.teaser || generatedLesson?.lesson?.metadata?.teaser) && (
-              <div className="mb-6 p-4 bg-primary/10 border border-primary/20 rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
+            {currentLesson.metadata?.teaser && (
+              <div className="mb-3 p-2.5 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-primary">Student Teaser (Pre-Lesson)</h3>
+                  <h3 className="font-semibold text-primary text-sm">Student Teaser (Pre-Lesson)</h3>
                 </div>
-                <p className="text-sm italic">
-                  {viewingLesson?.metadata?.teaser || generatedLesson?.lesson?.metadata?.teaser}
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
+                <p className="text-sm italic leading-tight">{currentLesson.metadata.teaser}</p>
+                <p className="text-xs text-muted-foreground mt-1">
                   Share this with students via text, email, or social media days before class to build anticipation.
                 </p>
               </div>
             )}
 
-            <div className="prose prose-sm max-w-none dark:prose-invert">
+            <div className="prose-sm max-w-none">
               <div
-                className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto max-h-[600px]"
+                className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
+                style={{ lineHeight: '1.3' }}
                 dangerouslySetInnerHTML={{
-                  __html: (viewingLesson?.original_text || generatedLesson?.lesson?.original_text || "")
-                    .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-lg font-bold mt-4 mb-2">$1</h2>')
+                  __html: (currentLesson.original_text || "")
+                    .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                    .replace(/\n---\n/g, '<hr class="my-4">')
-                    .replace(/• /g, "• ")
+                    .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+                    .replace(/•/g, "•")
+                    .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
               />

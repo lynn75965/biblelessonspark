@@ -1,10 +1,10 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Filter } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
@@ -15,6 +15,8 @@ interface LessonLibraryProps {
 }
 
 interface LessonDisplay extends Lesson {
+  ai_lesson_title: string | null;
+  bible_passage: string | null;
   passage_or_topic: string;
   age_group: string;
   theology_profile_id: string;
@@ -23,20 +25,46 @@ interface LessonDisplay extends Lesson {
   updated_at?: string;
 }
 
+const extractLessonTitle = (content: string): string | null => {
+  if (!content) return null;
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
+    if (match) return match[1].replace(/[""\*]/g, "").trim();
+  }
+  return null;
+};
+
+const extractPrimaryScripture = (content: string): string | null => {
+  if (!content) return null;
+  const lines = content.split("\n");
+  for (const line of lines) {
+    const match = line.match(/^(?:\*\*)?Primary Scripture:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
+    if (match) return match[1].replace(/[""\*]/g, "").trim();
+  }
+  return null;
+};
+
 export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchPassage, setSearchPassage] = useState("");
+  const [searchTitle, setSearchTitle] = useState("");
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [profileFilter, setProfileFilter] = useState<string>("all");
 
   const { lessons, loading, deleteLesson } = useLessons();
 
   const displayLessons: LessonDisplay[] = lessons.map((lesson) => {
-    // Check metadata first (new format), then filters (legacy), then default
     const metadata = lesson.metadata as Record<string, any> | null;
     const filters = lesson.filters as Record<string, any> | null;
+    
+    const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
+    const aiGeneratedScripture = extractPrimaryScripture(lesson.original_text || "");
+    const userInputPassage = filters?.bible_passage || null;
 
     return {
       ...lesson,
+      ai_lesson_title: aiGeneratedTitle,
+      bible_passage: userInputPassage || aiGeneratedScripture,
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
       age_group: metadata?.ageGroup || filters?.ageGroup || "Mixed Groups",
       theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || "southern-baptist-bfm-2000",
@@ -47,12 +75,11 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
   });
 
   const filteredLessons = displayLessons.filter((lesson) => {
-    const matchesSearch =
-      lesson.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lesson.passage_or_topic.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesPassage = !searchPassage || lesson.bible_passage?.toLowerCase().includes(searchPassage.toLowerCase());
+    const matchesTitle = !searchTitle || lesson.ai_lesson_title?.toLowerCase().includes(searchTitle.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
     const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
-    return matchesSearch && matchesAge && matchesProfile;
+    return matchesPassage && matchesTitle && matchesAge && matchesProfile;
   });
 
   const getAgeGroupBadgeColor = (ageGroup: string) => {
@@ -117,23 +144,34 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
           <CardTitle className="text-xl">Lesson Library</CardTitle>
           <CardDescription>Browse and manage your Baptist Bible study lessons</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search lessons by title or topic..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        <CardContent>
+          {/* Single Row with All Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            {/* Bible Passage Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Bible Passage"
+                value={searchPassage}
+                onChange={(e) => setSearchPassage(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-          {/* Filters Row */}
-          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Title Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Lesson Title"
+                value={searchTitle}
+                onChange={(e) => setSearchTitle(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
             {/* Age Group Filter */}
             <Select value={ageFilter} onValueChange={setAgeFilter}>
-              <SelectTrigger className="w-full sm:w-[140px] text-xs sm:text-sm">
+              <SelectTrigger>
                 <SelectValue placeholder="All Ages" />
               </SelectTrigger>
               <SelectContent>
@@ -154,8 +192,8 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
 
             {/* Theology Profile Filter */}
             <Select value={profileFilter} onValueChange={setProfileFilter}>
-              <SelectTrigger className="w-full sm:w-[200px] text-xs sm:text-sm">
-                <SelectValue placeholder="All Profiles" />
+              <SelectTrigger>
+                <SelectValue placeholder="All Theology Profiles" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Theology Profiles</SelectItem>
@@ -165,15 +203,6 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                 <SelectItem value="independent-baptist">Independent Baptist</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          {/* Advanced Filters Hint */}
-          <div className="mt-3 pt-3 border-t border-border/50">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Filter className="h-3 w-3" />
-              <strong>Coming in Pro:</strong> Advanced filters for Bible knowledge level, study focus, class duration,
-              group size, and teaching style
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -187,11 +216,13 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base sm:text-lg mb-1 line-clamp-2 group-hover:text-primary transition-colors">
-                      {lesson.title || lesson.passage_or_topic}
+                      {lesson.ai_lesson_title || lesson.title || lesson.passage_or_topic}
                     </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm line-clamp-1">
-                      {lesson.passage_or_topic}
-                    </CardDescription>
+                    {lesson.bible_passage && (
+                      <CardDescription className="text-xs sm:text-sm line-clamp-1">
+                        Bible Passage: {lesson.bible_passage}
+                      </CardDescription>
+                    )}
                   </div>
                 </div>
 
@@ -246,12 +277,12 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
             <BookOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">
-                {searchTerm || ageFilter !== "all" || profileFilter !== "all"
+                {searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all"
                   ? "No lessons match your filters"
                   : "No lessons yet"}
               </h3>
               <p className="text-muted-foreground max-w-md">
-                {searchTerm || ageFilter !== "all" || profileFilter !== "all"
+                {searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all"
                   ? "Try adjusting your search terms or filters to find the lessons you're looking for."
                   : "Create your first Baptist-enhanced Bible study lesson to get started."}
               </p>
