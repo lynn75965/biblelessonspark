@@ -9,7 +9,7 @@ import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
@@ -543,5 +543,6 @@ DO NOT include word counts in section headers or anywhere in the output.
     });
   }
 });
+
 
 
