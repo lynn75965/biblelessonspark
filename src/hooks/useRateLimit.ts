@@ -23,6 +23,21 @@ export function useRateLimit() {
   const checkRateLimit = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // Admin is exempt from rate limits
+      const ADMIN_UUID = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762';
+      if (user?.id === ADMIN_UUID) {
+        setStatus({
+          isLoading: false,
+          isLimitReached: false,
+          lessonsUsed: 0,
+          lessonsAllowed: 999,
+          hoursUntilReset: null,
+          errorMessage: null,
+        });
+        return;
+      }
+
       if (!user) {
         setStatus(prev => ({ ...prev, isLoading: false }));
         return;
