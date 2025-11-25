@@ -19,6 +19,10 @@ import Docs from "./pages/Docs";
 import Help from "./pages/Help";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
+import BetaSignup from "./pages/BetaSignup";
+import AdminBetaMetrics from "./pages/AdminBetaMetrics";
+import BetaSignup from "./pages/BetaSignup";
+import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
 import Cookie from "./pages/legal/Cookie";
@@ -75,7 +79,27 @@ const App = () => (
             <Route path="/community" element={<Community />} />
             <Route path="/legal/privacy" element={<Privacy />} />
             <Route path="/legal/terms" element={<Terms />} />
-            <Route path="/legal/cookie" element={<Cookie />} />
+            <Route path="/legal/cookie" element={<Cookie />} />            <Route path="/admin/beta-metrics" element={
+              <ProtectedRoute>
+                <AdminBetaMetrics />
+              </ProtectedRoute>
+            } />
+            <Route path="/beta-signup" element={
+              <ProtectedRoute>
+                <BetaSignup />
+              </ProtectedRoute>
+            } />            <Route path="/admin/beta-metrics" element={
+              <ProtectedRoute>
+                <AdminBetaMetrics />
+              </ProtectedRoute>
+            } />
+            <Route path="/beta-signup" element={
+              <ProtectedRoute>
+                <BetaSignup />
+              </ProtectedRoute>
+            } />
+
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -86,5 +110,8 @@ const App = () => (
 );
 
 export default App;
+
+
+
 
 

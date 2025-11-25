@@ -23,6 +23,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { BetaFeedbackButton } from "@/components/BetaFeedbackButton";
 import { useAuth } from "@/hooks/useAuth";
 import { useCredits } from "@/hooks/useCredits";
 import { useLessons } from "@/hooks/useLessons";
@@ -501,3 +502,4 @@ export default function Dashboard({
     </div>
   );
 }
+
