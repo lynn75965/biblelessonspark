@@ -334,7 +334,12 @@ export default function Dashboard({
             <EnhanceLessonForm
                 onLessonGenerated={(lesson) => {
                   setLastGeneratedLessonId(lesson?.id || null);
-                  setShowBetaFeedbackModal(true);
+                  // Show toast reminder instead of immediate modal
+                  toast({
+                    title: "Lesson Generated! ??",
+                    description: "Take your time reviewing. Click the ? Rate This Lesson button when ready to share feedback.",
+                    duration: 8000,
+                  });
                 }}
                 organizationId={organization?.id}
                 userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
@@ -515,3 +520,5 @@ export default function Dashboard({
     </div>
   );
 }
+
+

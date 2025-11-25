@@ -1,4 +1,4 @@
-ï»¿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles, BookOpen, Loader2 } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,7 @@ import { LessonExportButtons } from "./LessonExportButtons";
 
 interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
+  onRequestFeedback?: () => void;
   organizationId?: string;
   userPreferredAgeGroup?: string;
   defaultDoctrine?: string;
@@ -36,6 +37,7 @@ const extractLessonTitle = (content: string): string | null => {
 
 export function EnhanceLessonForm({
   onLessonGenerated,
+  onRequestFeedback,
   organizationId,
   userPreferredAgeGroup,
   defaultDoctrine,
@@ -387,8 +389,19 @@ export function EnhanceLessonForm({
                 {displayTitle}
               </CardTitle>
               <div className="flex items-center gap-2">
-                <LessonExportButtons
-                  lesson={{
+                {onRequestFeedback && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRequestFeedback}
+                    className="gap-2 border-yellow-400 text-yellow-600 hover:bg-yellow-50"
+                  >
+                    <Star className="h-4 w-4 fill-yellow-400" />
+                    Rate This Lesson
+                  </Button>
+                  )}
+                  <LessonExportButtons
+                    lesson={{
                     title: currentLesson.title || "Generated Lesson",
                     original_text: currentLesson.original_text || "",
                     metadata: currentLesson.metadata,
@@ -434,7 +447,7 @@ export function EnhanceLessonForm({
                     .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
-                    .replace(/â€¢/g, "â€¢")
+                    .replace(/•/g, "•")
                     .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
@@ -446,3 +459,4 @@ export function EnhanceLessonForm({
     </>
   );
 }
+
