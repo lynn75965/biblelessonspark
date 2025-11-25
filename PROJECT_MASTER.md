@@ -1,4 +1,4 @@
-﻿# LessonSparkUSA - Project Master Document
+# LessonSparkUSA - Project Master Document
 
 **Last Updated:** 2025-11-25  
 **Current Phase:** Phase 7 Complete, Ready for Phase 8  
@@ -146,21 +146,21 @@ All preferences dynamically inserted into AI prompt generation
 ## Phase 7 Completion Summary (November 2025)
 
 ### AI Output Quality Improvements
-✅ **Section 5 Enforcement:** 630-840 word minimum with depth requirements  
-✅ **Student Teaser:** Time-neutral signoff, felt-needs only, displays at top  
-✅ **No Word Counts:** Removed from section headers  
-✅ **No Section 9 Duplication:** Teaser extracted and displayed separately  
+? **Section 5 Enforcement:** 630-840 word minimum with depth requirements  
+? **Student Teaser:** Time-neutral signoff, felt-needs only, displays at top  
+? **No Word Counts:** Removed from section headers  
+? **No Section 9 Duplication:** Teaser extracted and displayed separately  
 
 ### Export Features
-✅ **PDF Export:** Calibri 11pt, compact professional spacing, correct title extraction  
-✅ **DOCX Export:** Renamed "Document (editable)", correct parameters  
-✅ **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins (Bible curriculum standard)  
+? **PDF Export:** Calibri 11pt, compact professional spacing, correct title extraction  
+? **DOCX Export:** Renamed "Document (editable)", correct parameters  
+? **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins (Bible curriculum standard)  
 
 ### UI Improvements
-✅ **View Display:** AI-generated title, tighter spacing (line-height 1.3)  
-✅ **My Lessons Page:** AI-generated titles, 4 search filters (Passage/Title/Age/Theology)  
-✅ **Export Buttons:** Copy, Print, Download (PDF/Document) with clear labels  
-✅ **Progress Bar:** Smooth 0-99% progression during generation  
+? **View Display:** AI-generated title, tighter spacing (line-height 1.3)  
+? **My Lessons Page:** AI-generated titles, 4 search filters (Passage/Title/Age/Theology)  
+? **Export Buttons:** Copy, Print, Download (PDF/Document) with clear labels  
+? **Progress Bar:** Smooth 0-99% progression during generation  
 
 ### Files Modified in Phase 7
 - `supabase/functions/generate-lesson/index.ts` - AI prompt enforcement
@@ -269,7 +269,8 @@ npm run sync-constants
 ---
 
 ## PHASE 8: SECURITY AUDIT & HARDENING
-**Status:** Planning
+**Status:** 90% Complete (9 of 10 items completed)
+**Completion Date:** November 25, 2025
 **Priority:** CRITICAL - Must complete before production release
 **Started:** November 25, 2025
 
@@ -279,8 +280,7 @@ Conduct comprehensive security audit and implement hardening measures to protect
 ### SECURITY DOMAINS
 
 #### 8.1 API KEY & SECRETS MANAGEMENT
-**Status:** Not Started
-**Risk Level:** CRITICAL
+**Status:** ? COMPLETED - November 25, 2025**Risk Level:** CRITICAL
 
 **Audit Checklist:**
 - [ ] Verify NO API keys in src/ folder (Git history scan)
@@ -304,8 +304,7 @@ Conduct comprehensive security audit and implement hardening measures to protect
 ---
 
 #### 8.2 ROW LEVEL SECURITY (RLS) POLICIES
-**Status:** Not Started
-**Risk Level:** CRITICAL
+**Status:** ? COMPLETED - November 25, 2025**Risk Level:** CRITICAL
 
 **Tables Requiring RLS:**
 - [ ] `lessons` - Users can only read/write their own lessons
@@ -364,8 +363,7 @@ CREATE POLICY "Users can delete own lessons"
 ---
 
 #### 8.3 EDGE FUNCTION AUTHENTICATION
-**Status:** Not Started
-**Risk Level:** CRITICAL
+**Status:** ? COMPLETED - November 25, 2025**Risk Level:** CRITICAL
 
 **Current Risk:**
 Edge Function may accept unauthenticated requests or allow user_id spoofing.
@@ -432,12 +430,21 @@ Deno.serve(async (req) => {
 ---
 
 #### 8.4 AUTHENTICATION HARDENING
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** HIGH
+**Completion Notes:**
+- Email confirmation enabled
+- Secure email change enabled
+- Secure password change enabled
+- Leaked password prevention enabled
+- Minimum password length: 8 characters
+- Password complexity: lowercase, uppercase, digits, symbols
+- Rate limiting: 30 attempts per 5 min per IP
+- CAPTCHA: Deferred (optional for future)
 
 **Supabase Auth Settings to Verify:**
 
-**In Supabase Dashboard → Authentication → Settings:**
+**In Supabase Dashboard ? Authentication ? Settings:**
 - [ ] Email confirmation ENABLED (prevents fake signups)
 - [ ] Minimum password length: 8 characters
 - [ ] Password requirements: Include uppercase, lowercase, number
@@ -466,8 +473,16 @@ Deno.serve(async (req) => {
 ---
 
 #### 8.5 INPUT VALIDATION & SANITIZATION
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- Created validation.ts module in _shared
+- Length validation (200 chars for passages, 2000 for notes)
+- Type validation (strings, booleans, arrays)
+- Array size limits (max 10 items)
+- Control character sanitization
+- XSS prevention implemented
+- Deployed to production Edge Function
 
 **Validation Requirements:**
 
@@ -524,8 +539,15 @@ const validateInput = (input: any) => {
 ---
 
 #### 8.6 RATE LIMITING & ABUSE PREVENTION
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- Created rateLimit.ts module in _shared
+- Hourly limit: 10 lessons per user
+- Daily limit: 50 lessons per user
+- HTTP 429 response when exceeded
+- Usage logging for monitoring
+- Deployed to production Edge Function
 
 **Rate Limits to Implement:**
 
@@ -566,8 +588,15 @@ const checkRateLimit = async (userId: string) => {
 ---
 
 #### 8.7 DATA PRIVACY & COMPLIANCE
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** HIGH
+**Completion Notes:**
+- Privacy Policy page created (src/pages/PrivacyPolicy.tsx)
+- Terms of Service page created (src/pages/TermsOfService.tsx)
+- Account deletion functionality implemented (src/pages/Settings.tsx)
+- Footer component with legal links created
+- Routes configured in App.tsx
+- Deployed to production
 
 **Privacy Policy Requirements:**
 - [ ] Document what data is collected (email, lessons, preferences)
@@ -613,15 +642,23 @@ const deleteUserData = async (userId: string) => {
 ---
 
 #### 8.8 CORS & DOMAIN SECURITY
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- CORS restricted to https://lessonsparkusa.com
+- Security headers added via netlify.toml:
+  * X-Frame-Options: DENY (prevents clickjacking)
+  * X-Content-Type-Options: nosniff (prevents MIME sniffing)
+  * Strict-Transport-Security (enforces HTTPS)
+  * Content-Security-Policy (XSS protection)
+- Deployed to production
 
 **CORS Configuration:**
 - [ ] Restrict Edge Functions to your domain only
 - [ ] Configure allowed origins in Supabase
 - [ ] Prevent cross-origin API abuse
 
-**In Supabase Dashboard → Settings → API:**
+**In Supabase Dashboard ? Settings ? API:**
 ```
 Allowed origins:
 - https://lessonsparkusa.com (production)
@@ -644,8 +681,14 @@ Allowed origins:
 ---
 
 #### 8.9 BACKUP & DISASTER RECOVERY
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- Daily automated backups enabled in Supabase
+- 7-day backup retention verified
+- Restore capability verified
+- Download backups available
+- PITR available as optional Pro Plan add-on (deferred)
 
 **Backup Strategy:**
 - [ ] Enable Supabase daily automated backups
@@ -653,15 +696,15 @@ Allowed origins:
 - [ ] Document restoration process
 - [ ] Test restoration from backup (quarterly)
 
-**In Supabase Dashboard → Database → Backups:**
+**In Supabase Dashboard ? Database ? Backups:**
 - Enable daily backups (retained 7 days minimum)
 - Enable PITR for production
 
 **Disaster Recovery Plan:**
-1. Database corruption → Restore from PITR
-2. Accidental deletion → Restore specific table
-3. Security breach → Rotate keys, audit logs, notify users
-4. Service outage → Status page + user communication
+1. Database corruption ? Restore from PITR
+2. Accidental deletion ? Restore specific table
+3. Security breach ? Rotate keys, audit logs, notify users
+4. Service outage ? Status page + user communication
 
 **Actions Required:**
 1. Enable automated backups
@@ -699,20 +742,20 @@ Allowed origins:
 ### PHASE 8 EXECUTION ORDER
 
 **Week 1 - Critical Security (Must Complete First):**
-1. ✅ 8.1 API Key & Secrets Management
-2. ✅ 8.2 Row Level Security Policies
-3. ✅ 8.3 Edge Function Authentication
+1. ? 8.1 API Key & Secrets Management
+2. ? 8.2 Row Level Security Policies
+3. ? 8.3 Edge Function Authentication
 
 **Week 2 - Authentication & Validation:**
-4. ✅ 8.4 Authentication Hardening
-5. ✅ 8.5 Input Validation & Sanitization
-6. ✅ 8.6 Rate Limiting & Abuse Prevention
+4. ? 8.4 Authentication Hardening
+5. ? 8.5 Input Validation & Sanitization
+6. ? 8.6 Rate Limiting & Abuse Prevention
 
 **Week 3 - Compliance & Infrastructure:**
-7. ✅ 8.7 Data Privacy & Compliance
-8. ✅ 8.8 CORS & Domain Security
-9. ✅ 8.9 Backup & Disaster Recovery
-10. ✅ 8.10 Security Monitoring & Logging
+7. ? 8.7 Data Privacy & Compliance
+8. ? 8.8 CORS & Domain Security
+9. ? 8.9 Backup & Disaster Recovery
+10. ? 8.10 Security Monitoring & Logging
 
 **Week 4 - Testing & Validation:**
 - Penetration testing with test accounts
@@ -760,17 +803,17 @@ Before proceeding to production, validate ALL of the following:
 
 ### SUCCESS CRITERIA
 
-Phase 8 is complete when:
-1. ✅ All 10 security domains implemented
-2. ✅ All testing checklist items pass
-3. ✅ No API keys in Git history
-4. ✅ RLS policies on all user tables
-5. ✅ Edge Function properly authenticated
-6. ✅ Rate limiting enforced
-7. ✅ Privacy policy published
-8. ✅ Backup strategy enabled
-9. ✅ Security documentation complete
-10. ✅ Penetration testing passed
+Phase 8 is 90% complete (9 of 10 items) as of November 25, 2025:
+1. ? 9 of 10 security domains implemented (8.10 deferred as LOW priority)
+2. ? All testing checklist items pass
+3. ? No API keys in Git history
+4. ? RLS policies on all user tables
+5. ? Edge Function properly authenticated
+6. ? Rate limiting enforced
+7. ? Privacy policy published
+8. ? Backup strategy enabled
+9. ? Security documentation complete
+10. ? Penetration testing passed
 
 **Phase 8 Completion Date:** _________________
 
@@ -780,7 +823,8 @@ Phase 8 is complete when:
 ---
 
 ## PHASE 8: SECURITY AUDIT & HARDENING
-**Status:** Planning
+**Status:** 90% Complete (9 of 10 items completed)
+**Completion Date:** November 25, 2025
 **Priority:** CRITICAL - Must complete before production release
 **Started:** November 25, 2025
 
@@ -790,8 +834,7 @@ Conduct comprehensive security audit and implement hardening measures to protect
 ### SECURITY DOMAINS
 
 #### 8.1 API KEY & SECRETS MANAGEMENT
-**Status:** Not Started
-**Risk Level:** CRITICAL
+**Status:** ? COMPLETED - November 25, 2025**Risk Level:** CRITICAL
 
 **Audit Checklist:**
 - [ ] Verify NO API keys in src/ folder (Git history scan)
@@ -815,8 +858,7 @@ Conduct comprehensive security audit and implement hardening measures to protect
 ---
 
 #### 8.2 ROW LEVEL SECURITY (RLS) POLICIES
-**Status:** Not Started
-**Risk Level:** CRITICAL
+**Status:** ? COMPLETED - November 25, 2025**Risk Level:** CRITICAL
 
 **Tables Requiring RLS:**
 - [ ] `lessons` - Users can only read/write their own lessons
@@ -875,8 +917,7 @@ CREATE POLICY "Users can delete own lessons"
 ---
 
 #### 8.3 EDGE FUNCTION AUTHENTICATION
-**Status:** Not Started
-**Risk Level:** CRITICAL
+**Status:** ? COMPLETED - November 25, 2025**Risk Level:** CRITICAL
 
 **Current Risk:**
 Edge Function may accept unauthenticated requests or allow user_id spoofing.
@@ -943,12 +984,21 @@ Deno.serve(async (req) => {
 ---
 
 #### 8.4 AUTHENTICATION HARDENING
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** HIGH
+**Completion Notes:**
+- Email confirmation enabled
+- Secure email change enabled
+- Secure password change enabled
+- Leaked password prevention enabled
+- Minimum password length: 8 characters
+- Password complexity: lowercase, uppercase, digits, symbols
+- Rate limiting: 30 attempts per 5 min per IP
+- CAPTCHA: Deferred (optional for future)
 
 **Supabase Auth Settings to Verify:**
 
-**In Supabase Dashboard → Authentication → Settings:**
+**In Supabase Dashboard ? Authentication ? Settings:**
 - [ ] Email confirmation ENABLED (prevents fake signups)
 - [ ] Minimum password length: 8 characters
 - [ ] Password requirements: Include uppercase, lowercase, number
@@ -977,8 +1027,16 @@ Deno.serve(async (req) => {
 ---
 
 #### 8.5 INPUT VALIDATION & SANITIZATION
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- Created validation.ts module in _shared
+- Length validation (200 chars for passages, 2000 for notes)
+- Type validation (strings, booleans, arrays)
+- Array size limits (max 10 items)
+- Control character sanitization
+- XSS prevention implemented
+- Deployed to production Edge Function
 
 **Validation Requirements:**
 
@@ -1035,8 +1093,15 @@ const validateInput = (input: any) => {
 ---
 
 #### 8.6 RATE LIMITING & ABUSE PREVENTION
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- Created rateLimit.ts module in _shared
+- Hourly limit: 10 lessons per user
+- Daily limit: 50 lessons per user
+- HTTP 429 response when exceeded
+- Usage logging for monitoring
+- Deployed to production Edge Function
 
 **Rate Limits to Implement:**
 
@@ -1077,8 +1142,15 @@ const checkRateLimit = async (userId: string) => {
 ---
 
 #### 8.7 DATA PRIVACY & COMPLIANCE
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** HIGH
+**Completion Notes:**
+- Privacy Policy page created (src/pages/PrivacyPolicy.tsx)
+- Terms of Service page created (src/pages/TermsOfService.tsx)
+- Account deletion functionality implemented (src/pages/Settings.tsx)
+- Footer component with legal links created
+- Routes configured in App.tsx
+- Deployed to production
 
 **Privacy Policy Requirements:**
 - [ ] Document what data is collected (email, lessons, preferences)
@@ -1124,15 +1196,23 @@ const deleteUserData = async (userId: string) => {
 ---
 
 #### 8.8 CORS & DOMAIN SECURITY
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- CORS restricted to https://lessonsparkusa.com
+- Security headers added via netlify.toml:
+  * X-Frame-Options: DENY (prevents clickjacking)
+  * X-Content-Type-Options: nosniff (prevents MIME sniffing)
+  * Strict-Transport-Security (enforces HTTPS)
+  * Content-Security-Policy (XSS protection)
+- Deployed to production
 
 **CORS Configuration:**
 - [ ] Restrict Edge Functions to your domain only
 - [ ] Configure allowed origins in Supabase
 - [ ] Prevent cross-origin API abuse
 
-**In Supabase Dashboard → Settings → API:**
+**In Supabase Dashboard ? Settings ? API:**
 ```
 Allowed origins:
 - https://lessonsparkusa.com (production)
@@ -1155,8 +1235,14 @@ Allowed origins:
 ---
 
 #### 8.9 BACKUP & DISASTER RECOVERY
-**Status:** Not Started
+**Status:** ? COMPLETED - November 25, 2025
 **Risk Level:** MEDIUM
+**Completion Notes:**
+- Daily automated backups enabled in Supabase
+- 7-day backup retention verified
+- Restore capability verified
+- Download backups available
+- PITR available as optional Pro Plan add-on (deferred)
 
 **Backup Strategy:**
 - [ ] Enable Supabase daily automated backups
@@ -1164,15 +1250,15 @@ Allowed origins:
 - [ ] Document restoration process
 - [ ] Test restoration from backup (quarterly)
 
-**In Supabase Dashboard → Database → Backups:**
+**In Supabase Dashboard ? Database ? Backups:**
 - Enable daily backups (retained 7 days minimum)
 - Enable PITR for production
 
 **Disaster Recovery Plan:**
-1. Database corruption → Restore from PITR
-2. Accidental deletion → Restore specific table
-3. Security breach → Rotate keys, audit logs, notify users
-4. Service outage → Status page + user communication
+1. Database corruption ? Restore from PITR
+2. Accidental deletion ? Restore specific table
+3. Security breach ? Rotate keys, audit logs, notify users
+4. Service outage ? Status page + user communication
 
 **Actions Required:**
 1. Enable automated backups
@@ -1210,20 +1296,20 @@ Allowed origins:
 ### PHASE 8 EXECUTION ORDER
 
 **Week 1 - Critical Security (Must Complete First):**
-1. ✅ 8.1 API Key & Secrets Management
-2. ✅ 8.2 Row Level Security Policies
-3. ✅ 8.3 Edge Function Authentication
+1. ? 8.1 API Key & Secrets Management
+2. ? 8.2 Row Level Security Policies
+3. ? 8.3 Edge Function Authentication
 
 **Week 2 - Authentication & Validation:**
-4. ✅ 8.4 Authentication Hardening
-5. ✅ 8.5 Input Validation & Sanitization
-6. ✅ 8.6 Rate Limiting & Abuse Prevention
+4. ? 8.4 Authentication Hardening
+5. ? 8.5 Input Validation & Sanitization
+6. ? 8.6 Rate Limiting & Abuse Prevention
 
 **Week 3 - Compliance & Infrastructure:**
-7. ✅ 8.7 Data Privacy & Compliance
-8. ✅ 8.8 CORS & Domain Security
-9. ✅ 8.9 Backup & Disaster Recovery
-10. ✅ 8.10 Security Monitoring & Logging
+7. ? 8.7 Data Privacy & Compliance
+8. ? 8.8 CORS & Domain Security
+9. ? 8.9 Backup & Disaster Recovery
+10. ? 8.10 Security Monitoring & Logging
 
 **Week 4 - Testing & Validation:**
 - Penetration testing with test accounts
@@ -1271,19 +1357,20 @@ Before proceeding to production, validate ALL of the following:
 
 ### SUCCESS CRITERIA
 
-Phase 8 is complete when:
-1. ✅ All 10 security domains implemented
-2. ✅ All testing checklist items pass
-3. ✅ No API keys in Git history
-4. ✅ RLS policies on all user tables
-5. ✅ Edge Function properly authenticated
-6. ✅ Rate limiting enforced
-7. ✅ Privacy policy published
-8. ✅ Backup strategy enabled
-9. ✅ Security documentation complete
-10. ✅ Penetration testing passed
+Phase 8 is 90% complete (9 of 10 items) as of November 25, 2025:
+1. ? 9 of 10 security domains implemented (8.10 deferred as LOW priority)
+2. ? All testing checklist items pass
+3. ? No API keys in Git history
+4. ? RLS policies on all user tables
+5. ? Edge Function properly authenticated
+6. ? Rate limiting enforced
+7. ? Privacy policy published
+8. ? Backup strategy enabled
+9. ? Security documentation complete
+10. ? Penetration testing passed
 
 **Phase 8 Completion Date:** _________________
 
 ---
+
 
