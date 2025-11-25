@@ -457,10 +457,24 @@ export function EnhanceLessonForm({
               />
             </div>
           </CardContent>
+            {/* Export buttons at bottom for convenience */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-4 border-t">
+              <span className="text-sm text-muted-foreground mr-2">Export:</span>
+              <LessonExportButtons
+                onExport={onExport}
+                lesson={{
+                  title: currentLesson.title || "Generated Lesson",
+                  original_text: currentLesson.original_text || "",
+                  metadata: currentLesson.metadata,
+                }}
+              />
+            </div>
+          </CardContent>
         </Card>
       )}
     </>
   );
 }
+
 
 
