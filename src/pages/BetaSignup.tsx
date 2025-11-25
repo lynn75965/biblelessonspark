@@ -198,10 +198,10 @@ const BetaSignup = () => {
                     <SelectValue placeholder="Select theological perspective" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sbc">Southern Baptist Convention (SBC)</SelectItem>
-                    <SelectItem value="cbf">Cooperative Baptist Fellowship (CBF)</SelectItem>
-                    <SelectItem value="moderate">Moderate Baptist</SelectItem>
-                    <SelectItem value="conservative">Conservative Baptist</SelectItem>
+                    <SelectItem value="sbc_1963">Southern Baptist Convention (SBC BF&M 1963)</SelectItem>
+                    <SelectItem value="sbc_2000">Southern Baptist Convention (SBC BF&M 2000)</SelectItem>
+                    <SelectItem value="reformed">Reformed Baptist</SelectItem>
+                    <SelectItem value="independent">Independent Baptist</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -286,3 +286,4 @@ const BetaSignup = () => {
 };
 
 export default BetaSignup;
+
