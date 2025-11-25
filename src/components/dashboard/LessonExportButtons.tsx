@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Copy, Printer, Download, FileText, FileType, ChevronDown, Check, Loader2 } from "lucide-react";
@@ -60,6 +60,7 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     setExporting("pdf");
     try {
       await exportToPdf({ title: lesson.title, content: lesson.original_text, teaserContent: lesson.metadata?.teaser || undefined, metadata: { passage: lesson.title, ageGroup: lesson.metadata?.ageGroup, theology: lesson.metadata?.theologyProfile } });
+      if (onExport) onExport();
       toast({ title: "PDF exported", description: "Your lesson has been downloaded." });
     } catch (error) {
       toast({ title: "Export failed", description: "Unable to export PDF.", variant: "destructive" });
@@ -70,6 +71,7 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     setExporting("docx");
     try {
       await exportToDocx({ title: lesson.title, content: lesson.original_text, teaserContent: lesson.metadata?.teaser || undefined, metadata: { passage: lesson.title, ageGroup: lesson.metadata?.ageGroup, theology: lesson.metadata?.theologyProfile } });
+      if (onExport) onExport();
       toast({ title: "Document exported", description: "Your lesson has been downloaded." });
     } catch (error) {
       toast({ title: "Export failed", description: "Unable to export document.", variant: "destructive" });

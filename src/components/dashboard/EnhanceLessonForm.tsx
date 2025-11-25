@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ï»¿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -450,14 +450,13 @@ export function EnhanceLessonForm({
                     .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
-                    .replace(/•/g, "•")
+                    .replace(/â€¢/g, "â€¢")
                     .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
               />
             </div>
-          </CardContent>
-            {/* Export buttons at bottom for convenience */}
+          {/* Export buttons at bottom for convenience */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-4 border-t">
               <span className="text-sm text-muted-foreground mr-2">Export:</span>
               <LessonExportButtons
