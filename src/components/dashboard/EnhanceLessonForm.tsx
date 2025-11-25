@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, BookOpen, Loader2, Star } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
+import { useRateLimit } from "@/hooks/useRateLimit";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
@@ -72,6 +73,7 @@ export function EnhanceLessonForm({
   const [educationExperience, setEducationExperience] = useState("");
 
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
+  const { isLimitReached, lessonsUsed, lessonsAllowed, hoursUntilReset, errorMessage: rateLimitError, refreshRateLimit } = useRateLimit();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -192,6 +194,7 @@ export function EnhanceLessonForm({
         if (onLessonGenerated) {
           onLessonGenerated(result);
         }
+        refreshRateLimit();
       }
 
       setGenerationProgress(100);
@@ -364,7 +367,16 @@ export function EnhanceLessonForm({
               </label>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isEnhancing}>
+            {/* Rate Limit Indicator */}
+            <div className={`text-sm text-center p-2 rounded-lg mb-3 ${isLimitReached ? "bg-destructive/10 text-destructive" : "bg-muted"}`}>
+              {isLimitReached ? (
+                <span>Limit reached - resets in {hoursUntilReset} hour{hoursUntilReset === 1 ? "" : "s"}</span>
+              ) : (
+                <span>{lessonsUsed} of {lessonsAllowed} lessons used {hoursUntilReset ? `(resets in ${hoursUntilReset} hours)` : "(24-hour period)"}</span>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isEnhancing || isLimitReached}>
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
