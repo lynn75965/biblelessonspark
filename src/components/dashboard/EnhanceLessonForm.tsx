@@ -17,6 +17,7 @@ import { LessonExportButtons } from "./LessonExportButtons";
 
 interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
+  onExport?: () => void;
   onRequestFeedback?: () => void;
   organizationId?: string;
   userPreferredAgeGroup?: string;
@@ -37,6 +38,7 @@ const extractLessonTitle = (content: string): string | null => {
 
 export function EnhanceLessonForm({
   onLessonGenerated,
+  onExport,
   onRequestFeedback,
   organizationId,
   userPreferredAgeGroup,
@@ -401,6 +403,7 @@ export function EnhanceLessonForm({
                   </Button>
                   )}
                   <LessonExportButtons
+                    onExport={onExport}
                     lesson={{
                     title: currentLesson.title || "Generated Lesson",
                     original_text: currentLesson.original_text || "",
@@ -459,4 +462,5 @@ export function EnhanceLessonForm({
     </>
   );
 }
+
 

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Copy, Printer, Download, FileText, FileType, ChevronDown, Check, Loader2 } from "lucide-react";
@@ -13,7 +13,7 @@ interface LessonData {
   metadata?: { teaser?: string | null; ageGroup?: string; theologyProfile?: string; } | null;
 }
 
-export function LessonExportButtons({ lesson, disabled = false }: { lesson: LessonData; disabled?: boolean }) {
+export function LessonExportButtons({ lesson, disabled = false, onExport }: { lesson: LessonData; disabled?: boolean; onExport?: () => void }) {
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const { toast } = useToast();
@@ -21,10 +21,11 @@ export function LessonExportButtons({ lesson, disabled = false }: { lesson: Less
   const handleCopy = async () => {
     try {
       let textContent = `${lesson.title}\n${"=".repeat(50)}\n\n`;
-      if (lesson.metadata?.teaser) textContent += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n${"─".repeat(50)}\n\n`;
+      if (lesson.metadata?.teaser) textContent += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n${"-".repeat(50)}\n\n`;
       textContent += lesson.original_text;
       await navigator.clipboard.writeText(textContent);
       setCopied(true);
+      if (onExport) onExport();
       toast({ title: "Copied to clipboard", description: "Lesson content has been copied to your clipboard." });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
@@ -52,6 +53,7 @@ export function LessonExportButtons({ lesson, disabled = false }: { lesson: Less
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.onload = () => printWindow.print();
+    if (onExport) onExport();
   };
 
   const handleExportPdf = async () => {
@@ -103,3 +105,5 @@ export function LessonExportButtons({ lesson, disabled = false }: { lesson: Less
     </div>
   );
 }
+
+
