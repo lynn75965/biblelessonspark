@@ -1382,6 +1382,30 @@ Phase 8 is 90% complete (9 of 10 items) as of November 25, 2025:
 **STATUS: ✅ COMPLETE (November 25, 2025)**
 
 **SECURITY: ✅ VERIFIED** - RLS policies active on beta_testers (4 policies) and beta_feedback (3 policies). Users can only access their own data. Admin has full read access.
+
+### Rate Limiting Feature (November 25, 2025)
+**STATUS: ✅ COMPLETE**
+
+**Components:**
+- `src/hooks/useRateLimit.ts` - Rate limit checking hook
+- `app_settings` table - Admin-configurable operational settings
+- Usage indicator in EnhanceLessonForm.tsx
+
+**Behavior:**
+- Beta testers: 5 lessons per 24-hour period
+- Admin (UUID: b8708e6b-eeef-4ff5-9f0b-57d808ef8762): Exempt (unlimited)
+- Display: "X of 5 lessons used (resets in Y hours)"
+- At limit: Red banner, Generate button disabled
+
+**Admin Configuration (No Deployment Required):**
+- Supabase → Table Editor → `app_settings`
+- `beta_lesson_limit`: Number of lessons allowed (default: 5)
+- `beta_limit_hours`: Time period in hours (default: 24)
+
+**Architecture Compliance:**
+- ✅ SSOT: Settings in one table
+- ✅ Frontend Drives Backend: Frontend reads settings, makes decisions
+- ✅ Operational Settings in Database: Admin configures without deployment
 **Status:** Planning
 **Target Duration:** 3-4 weeks
 **Start Date:** November 25, 2025
@@ -1676,6 +1700,30 @@ Phase 9 is complete when:
 **STATUS: ✅ COMPLETE (November 25, 2025)**
 
 **SECURITY: ✅ VERIFIED** - RLS policies active on beta_testers (4 policies) and beta_feedback (3 policies). Users can only access their own data. Admin has full read access.
+
+### Rate Limiting Feature (November 25, 2025)
+**STATUS: ✅ COMPLETE**
+
+**Components:**
+- `src/hooks/useRateLimit.ts` - Rate limit checking hook
+- `app_settings` table - Admin-configurable operational settings
+- Usage indicator in EnhanceLessonForm.tsx
+
+**Behavior:**
+- Beta testers: 5 lessons per 24-hour period
+- Admin (UUID: b8708e6b-eeef-4ff5-9f0b-57d808ef8762): Exempt (unlimited)
+- Display: "X of 5 lessons used (resets in Y hours)"
+- At limit: Red banner, Generate button disabled
+
+**Admin Configuration (No Deployment Required):**
+- Supabase → Table Editor → `app_settings`
+- `beta_lesson_limit`: Number of lessons allowed (default: 5)
+- `beta_limit_hours`: Time period in hours (default: 24)
+
+**Architecture Compliance:**
+- ✅ SSOT: Settings in one table
+- ✅ Frontend Drives Backend: Frontend reads settings, makes decisions
+- ✅ Operational Settings in Database: Admin configures without deployment
 
 **Week 1: Setup & Recruitment**
 - Days 1-2: Create feedback system
