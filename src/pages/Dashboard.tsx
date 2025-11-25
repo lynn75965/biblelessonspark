@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
@@ -7,17 +7,17 @@ import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
-import LanguageSelector from "@/components/settings/LanguageSelector"; // NEW: Added Language Selector
+import LanguageSelector from "@/components/settings/LanguageSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BookOpen, 
-  Sparkles, 
-  Users, 
-  BarChart3, 
-  MessageSquare, 
+import {
+  BookOpen,
+  Sparkles,
+  Users,
+  BarChart3,
+  MessageSquare,
   Settings,
   CheckCircle2,
   TrendingUp
@@ -38,7 +38,7 @@ interface DashboardProps {
   setupComplete?: boolean;
 }
 
-export default function Dashboard({ 
+export default function Dashboard({
   organizationName = "Demo Baptist Church",
   setupComplete = true
 }: DashboardProps) {
@@ -58,18 +58,17 @@ export default function Dashboard({
   const { organization, loading: orgLoading, hasOrganization } = useOrganization();
   const [userProfile, setUserProfile] = useState<any>(null);
 
-  // Load user profile
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user) return;
-      
+
       try {
       const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
         .from('profiles')
         .select('preferred_age_group')
         .eq('id', user.id)
         .single();
-        
+
         setUserProfile(profile);
       } catch (error) {
         console.error('Error loading user profile:', error);
@@ -79,11 +78,10 @@ export default function Dashboard({
     loadUserProfile();
   }, [user]);
 
-  // Calculate real stats from data
   const stats = {
     lessonsCreated: lessons.length,
-    aiGenerations: lessons.length * 3, // Approximate based on lessons
-    membersActive: 8, // This would come from members table
+    aiGenerations: lessons.length * 3,
+    membersActive: 8,
     setupProgress: 6
   };
 
@@ -108,75 +106,56 @@ export default function Dashboard({
   };
 
   const handleOrgSetupComplete = () => {
-    // Organization setup completed, will automatically refresh organization data
   };
 
   const handleProfileUpdated = async () => {
-    // Reload user profile data
     if (!user) return;
-    
+
     try {
     const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
       .from('profiles')
       .select('preferred_age_group, org_setup_dismissed')
       .eq('id', user.id)
       .single();
-      
+
       setUserProfile(profile);
     } catch (error) {
       console.error('Error loading user profile:', error);
     }
   };
 
-  // Get user's name from auth
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-  
-  // Get organization name - use actual organization data if available
   const currentOrgName = organization?.name || "Personal Workspace";
   const isIndividualUser = !organization;
 
-  // Show organization setup only on first visit (can be skipped)
   const [showOrgSetup, setShowOrgSetup] = useState(false);
-  
+
   useEffect(() => {
-    // Skip on SSR
     if (typeof window === 'undefined') return;
-    
-    // Wait until both loading states are resolved
     if (orgLoading || adminLoading) return;
-    
-    // Admins bypass the modal entirely
     if (isAdmin) return;
-    
-    // Check localStorage for quick client-side check
+
     const localSeen = localStorage.getItem('org-setup-seen') === 'true';
     if (localSeen) return;
-    
-    // Check database for persistent dismissal (from userProfile state)
+
     const dismissed = userProfile?.org_setup_dismissed === true;
     if (dismissed) {
-      // Sync to localStorage for faster future checks
       localStorage.setItem('org-setup-seen', 'true');
       return;
     }
-    
-    // If user already has an organization, don't show
+
     if (hasOrganization) return;
-    
-    // All checks passed - show the modal
+
     setShowOrgSetup(true);
   }, [orgLoading, adminLoading, hasOrganization, isAdmin, userProfile?.org_setup_dismissed]);
 
   const handleOrgSetupCompleteInternal = async () => {
     try {
-      // Set localStorage for quick client check
       localStorage.setItem('org-setup-seen', 'true');
-      
       setShowOrgSetup(false);
       handleOrgSetupComplete();
     } catch (error) {
       console.error('Error saving org setup completion:', error);
-      // Still close modal even if database update fails
       setShowOrgSetup(false);
       handleOrgSetupComplete();
     }
@@ -184,27 +163,23 @@ export default function Dashboard({
 
   const handleOrgSetupDismiss = async () => {
     try {
-      // Set localStorage for quick client check
       localStorage.setItem('org-setup-seen', 'true');
-      
       setShowOrgSetup(false);
     } catch (error) {
       console.error('Error saving org setup dismissal:', error);
-      // Still close modal even if database update fails
       setShowOrgSetup(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
-        isAuthenticated 
+      <Header
+        isAuthenticated
         organizationName={currentOrgName}
       />
 
-      {/* Organization Setup Modal */}
       {showOrgSetup && (
-        <OrganizationSetup 
+        <OrganizationSetup
           open={showOrgSetup}
           onComplete={handleOrgSetupCompleteInternal}
           onDismiss={handleOrgSetupDismiss}
@@ -212,7 +187,6 @@ export default function Dashboard({
       )}
 
       <main className="container py-4 sm:py-6 px-4 sm:px-6">
-        {/* Welcome Header with Credits */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">
@@ -225,7 +199,6 @@ export default function Dashboard({
           <CreditsDisplay balance={balance} loading={creditsLoading} />
         </div>
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card className="bg-gradient-card">
             <CardContent className="p-3 sm:p-4">
@@ -301,7 +274,6 @@ export default function Dashboard({
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className={`grid w-full ${isIndividualUser ? 'grid-cols-3' : (isAdmin ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-3')}`}>
             <TabsTrigger value="enhance">
@@ -318,10 +290,10 @@ export default function Dashboard({
                   <Users className="h-4 w-4" />
                   Members
                 </TabsTrigger>
-            <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4" />
-              Beta Analytics
-            </TabsTrigger>
+                <TabsTrigger value="analytics">
+                  <BarChart3 className="h-4 w-4" />
+                  Beta Analytics
+                </TabsTrigger>
               </>
             )}
             <TabsTrigger value="settings">
@@ -354,7 +326,7 @@ export default function Dashboard({
           </TabsContent>
 
           <TabsContent value="library" className="mt-6">
-            <LessonLibrary 
+            <LessonLibrary
               onCreateNew={handleCreateLesson}
               onViewLesson={handleViewLesson}
             />
@@ -393,7 +365,6 @@ export default function Dashboard({
 
           <TabsContent value="settings" className="mt-6">
             <div className="grid md:grid-cols-2 gap-6">
-              {/* NEW: Language Selector Card - Added at the top of settings */}
               <Card className="bg-gradient-card md:col-span-2">
                 <CardHeader>
                   <CardTitle>Language Preferences</CardTitle>
@@ -422,8 +393,8 @@ export default function Dashboard({
                           {organization?.default_doctrine || "SBC"}
                         </Badge>
                       </div>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full"
                         onClick={() => setShowOrgSettingsModal(true)}
                       >
@@ -461,16 +432,16 @@ export default function Dashboard({
                         <Badge variant="outline">Individual User</Badge>
                       </div>
                     )}
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={() => setShowProfileModal(true)}
                     >
                       Update Profile
                     </Button>
                     {isIndividualUser && (
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         className="w-full"
                         onClick={() => setShowOrgSetup(true)}
                       >
@@ -485,7 +456,6 @@ export default function Dashboard({
         </Tabs>
       </main>
 
-      {/* Floating Feedback Button */}
       <Button
         variant="hero"
         size="lg"
@@ -496,35 +466,27 @@ export default function Dashboard({
         Give Feedback
       </Button>
 
-
-      {/* Beta Feedback Dialog */}
-      <BetaFeedbackForm 
-        open={showFeedbackDialog} 
+      <BetaFeedbackForm
+        open={showFeedbackDialog}
         onOpenChange={setShowFeedbackDialog}
       />
 
-      {/* Organization Settings Modal */}
       <OrganizationSettingsModal
         open={showOrgSettingsModal}
         onOpenChange={setShowOrgSettingsModal}
       />
 
-      {/* User Profile Modal */}
       <UserProfileModal
         open={showProfileModal}
         onOpenChange={setShowProfileModal}
         onProfileUpdated={handleProfileUpdated}
       />
-      {/* Beta Feedback Modal - pops up after lesson generation */}
-      <BetaFeedbackModal 
-        open={showBetaFeedbackModal} 
+
+      <BetaFeedbackModal
+        open={showBetaFeedbackModal}
         onOpenChange={setShowBetaFeedbackModal}
         lessonId={lastGeneratedLessonId}
       />
     </div>
   );
 }
-
-
-
-
