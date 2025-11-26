@@ -2,17 +2,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
-import { PricingSection } from "@/components/landing/PricingSection";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { BaptistIdentitySection } from "@/components/landing/BaptistIdentitySection";
+import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
-import { SetupChecklist } from "@/components/setup/SetupChecklist";
+import { PricingSection } from "@/components/landing/PricingSection";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Mail, Heart, Shield, Users } from "lucide-react";
+import { BookOpen, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { SITE } from "@/config/site";
@@ -22,7 +22,6 @@ const Index = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showRequestDialog, setShowRequestDialog] = useState(false);
-  const [showSetupDialog, setShowSetupDialog] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -59,105 +58,22 @@ const Index = () => {
       <Header onAuthClick={handleSignIn} />
 
       <main>
+        {/* 1. Hero Section */}
         <HeroSection onRequestAccess={handleRequestAccess} onSignIn={handleSignIn} />
 
+        {/* 2. Baptist Identity - Moved up for immediate trust */}
+        <BaptistIdentitySection />
+
+        {/* 3. How It Works - Simple 3-step process */}
+        <HowItWorksSection />
+
+        {/* 4. Features - Reduced to 4 key features */}
         <section id="features">
           <FeaturesSection />
         </section>
 
+        {/* 5. Pricing - After value is established */}
         <PricingSection />
-
-        {/* Setup Preview Section */}
-        <section className="py-10 sm:py-16 lg:py-20 bg-muted/20">
-          <div className="container px-4 sm:px-6">
-            <div className="text-center space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold px-2">
-                <span className="gradient-text">Setup Made Simple</span>
-              </h2>
-              <p className="text-sm sm:text-base lg:text-xl text-muted-foreground max-w-2xl mx-auto px-4">
-                Our comprehensive setup guide walks you through every step with verification buttons to ensure
-                everything works perfectly before you start using LessonSpark USA.
-              </p>
-            </div>
-
-            <div className="max-w-4xl mx-auto">
-              <Card className="bg-gradient-card shadow-glow border-primary/20">
-                <CardHeader className="text-center p-4 sm:p-6">
-                  <CardTitle className="flex items-center justify-center gap-2 text-base sm:text-lg lg:text-xl">
-                    <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Interactive Setup Checklist
-                  </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Click below to see our step-by-step setup process
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="text-center p-4 sm:p-6 pt-0">
-                  <Button
-                    variant="hero"
-                    size="lg"
-                    className="min-h-[44px] w-full sm:w-auto text-sm sm:text-base"
-                    onClick={() => setShowSetupDialog(true)}
-                  >
-                    Preview Setup Guide
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* Trust Section */}
-        <section className="py-10 sm:py-16 lg:py-20">
-          <div className="container px-4 sm:px-6">
-            <div className="text-center space-y-3 sm:space-y-4 mb-6 sm:mb-8">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold px-2">
-                Built for <span className="gradient-text">Baptist Churches</span>
-              </h2>
-              <p className="text-sm sm:text-base lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">
-                We understand Baptist theology, traditions, and the unique needs of your ministry. LessonSpark USA is
-                designed by Baptists, for Baptists.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              <Card className="text-center bg-gradient-card">
-                <CardHeader className="p-4 sm:p-6">
-                  <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-primary flex items-center justify-center mb-3 sm:mb-4">
-                    <Heart className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                  </div>
-                  <CardTitle className="text-base sm:text-lg mb-2">Baptist Heritage</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Respects Baptist autonomy, theology, and traditional practices while embracing helpful technology.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="text-center bg-gradient-card">
-                <CardHeader className="p-4 sm:p-6">
-                  <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-secondary flex items-center justify-center mb-3 sm:mb-4">
-                    <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                  </div>
-                  <CardTitle className="text-base sm:text-lg mb-2">Doctrinally Sound</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Select and be confident your lesson will express the sound doctrine of your congregation.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-
-              <Card className="text-center bg-gradient-card">
-                <CardHeader className="p-4 sm:p-6">
-                  <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-primary flex items-center justify-center mb-3 sm:mb-4">
-                    <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                  </div>
-                  <CardTitle className="text-base sm:text-lg mb-2">Community Focused</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Built with input from Baptist teachers and pastors who understand your daily ministry challenges.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            </div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}
@@ -254,7 +170,7 @@ const Index = () => {
 
           <div className="border-t mt-6 sm:mt-8 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
             <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-              Â© 2024 LessonSpark USA. All rights reserved.
+              © 2024 LessonSpark USA. All rights reserved.
             </p>
             <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
               <Mail className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
@@ -338,18 +254,6 @@ const Index = () => {
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSetupDialog} onOpenChange={setShowSetupDialog}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>LessonSpark USA Setup Guide</DialogTitle>
-            <DialogDescription>
-              Complete setup checklist with step-by-step instructions and verification
-            </DialogDescription>
-          </DialogHeader>
-          <SetupChecklist isModal onClose={() => setShowSetupDialog(false)} />
         </DialogContent>
       </Dialog>
     </div>

@@ -1,98 +1,88 @@
-﻿# CONTINUATION PROMPT - LessonSparkUSA Phase 5 Recovery
+﻿# LESSONSPARK USA - CONTINUATION PROMPT
+**Date:** November 25, 2025
+**Last Commit:** After rate limiting docs update
 
-## SESSION CONTEXT
+## PROJECT OVERVIEW
+LessonSparkUSA is a Baptist Bible study lesson generator platform built with:
+- Frontend: React/TypeScript on Lovable.dev
+- Backend: Supabase (PostgreSQL)
+- AI: Claude API via Supabase Edge Functions
+- Deployment: Netlify (auto-deploy from GitHub main branch)
 
-I am Lynn, a 74-year-old retired Baptist minister developing LessonSparkUSA. The previous session (Nov 23, 2025 morning) FAILED during Phase 5. The system is currently BROKEN and non-functional.
+## ARCHITECTURE PRINCIPLES (NEVER VIOLATE)
+1. **SSOT (Single Source of Truth)** - One authoritative source for each data type
+2. **Frontend Drives Backend** - UI defines what users see, backend mirrors/follows
+3. **Admin Controls SSOT** - Admin changes frontend constants, system follows
+4. **Business Logic in TypeScript** - Not in database triggers/functions
+5. **Operational Settings in Database** - Rate limits, feature flags (admin configures without deployment)
 
-## CRITICAL SITUATION
+## CLAUDE DEBUGGING PROTOCOL (5 RULES)
+1. Root-cause diagnosis BEFORE proposing solutions
+2. Complete solutions over piecemeal fixes
+3. Verify file changes before proceeding
+4. Explicit permission required for code changes
+5. Copy-paste ready PowerShell commands
 
-**System Status:** ❌ BROKEN - Cannot generate lessons
+## FILE UPDATE PROCESS
+1. Present complete file contents
+2. Provide PowerShell Set-Content command
+3. Await user confirmation before next step
+4. Build and test after changes
 
-**What Broke:**
-- Backend lessonStructure.ts incomplete (missing exports)
-- Frontend form changes not deployed by Lovable
-- Edge Function has boot errors
-- System completely non-functional
+## COMPLETED PHASES
+- Phase 1-7: Core Platform
+- Phase 8: Theology Profiles
+- Phase 9: Beta Feedback System (November 25, 2025)
+  - Beta signup page (/beta-signup)
+  - Feedback modal with 5-star rating
+  - Auto-popup 3 sec after export (Copy, Print, PDF, DOCX)
+  - Export buttons at TOP and BOTTOM of generated lesson
+  - RLS security verified (7 policies total)
+- Rate Limiting Feature (November 25, 2025)
+  - 5 lessons per 24 hours for beta testers
+  - Admin exempt from limits
+  - Usage indicator: "X of 5 lessons used (resets in Y hours)"
+  - Settings in app_settings table (admin configurable via Supabase)
 
-**What Works:**
-- ✅ Database has theology_profile_id column with 32 migrated lessons
-- ✅ Phase 4 commit (05e2d46) is last known good state
+## KEY DATABASE TABLES
+- lessons: User-generated lessons
+- profiles: User profiles with theology_profile_id
+- beta_testers: Beta program signups (4 RLS policies)
+- beta_feedback: User feedback (3 RLS policies)
+- app_settings: Admin-configurable operational settings
+  - beta_lesson_limit = 5
+  - beta_limit_hours = 24
 
-## PREVIOUS SESSION FAILURES
+## KEY FILES
+- PROJECT_MASTER.md: Master documentation
+- src/constants/theologyProfiles.ts: Frontend SSOT for theology
+- src/constants/ageGroups.ts: Frontend SSOT for age groups
+- src/hooks/useRateLimit.ts: Rate limiting logic (admin exempt)
+- src/hooks/useEnhanceLesson.ts: Lesson generation hook
+- src/components/dashboard/EnhanceLessonForm.tsx: Main lesson form
+- src/components/dashboard/LessonExportButtons.tsx: Export with onExport callback
+- src/components/BetaFeedbackModal.tsx: Feedback collection modal
+- src/pages/Dashboard.tsx: Main dashboard with 3-sec feedback trigger
 
-The previous Claude session violated protocols and failed repeatedly:
-1. Used unreliable regex replacements instead of complete files
-2. Added missing exports one at a time (piecemeal failures)
-3. Did not verify Master Plan compliance before actions
-4. Did not verify backend file completeness before deployment
-5. Wasted 3+ hours with repeated failures
+## ADMIN UUID
+b8708e6b-eeef-4ff5-9f0b-57d808ef8762
 
-**I expect better this time.**
+## LOCAL PATHS
+- Project root: C:\Users\Lynn\lesson-spark-usa
+- Master doc: C:\Users\Lynn\lesson-spark-usa\PROJECT_MASTER.md
 
-## PHASE 5 OBJECTIVE
+## PRODUCTION URLS
+- Site: https://lessonsparkusa.com
+- Supabase: https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs
+- Netlify: https://app.netlify.com/sites/lessonsparkusa/deploys
+- GitHub: https://github.com/lynn75965/lesson-spark-usa
 
-**Goal:** Migrate from duplicate theology fields (theologicalPreference + sbConfessionVersion) to single unified profile ID system.
+## USER PROFILE
+Lynn is a 74-year-old retired Baptist minister with PhD from Southwestern Baptist Theological Seminary. Non-programmer who needs complete, copy-paste ready solutions. Christian values guide all work.
 
-**Target State:**
-- Database: ONE field (theology_profile_id) ✅ DONE
-- Frontend SSOT: 4 profiles with profileId (sb_bfm_1963, sb_bfm_2000, rb, ib) ⚠️ Files created, not deployed
-- Frontend UI: Single dropdown ❌ NOT DEPLOYED
-- Backend: Complete lessonStructure.ts ❌ BROKEN
-- Edge Function: Receives theology_profile_id, looks up from SSOT ❌ BROKEN
-
-## DECISION REQUIRED
-
-Before doing ANYTHING, you must recommend ONE of these options:
-
-**Option A: Rollback to Phase 4**
-- Revert code to commit 05e2d46
-- Drop theology_profile_id column from database
-- System functional immediately
-- Restart Phase 5 from scratch in future session
-
-**Option B: Complete Phase 5 Properly**
-- Create COMPLETE backend lessonStructure.ts with ALL exports
-- Force Lovable deployment of frontend form
-- Systematic testing before marking complete
-- Higher risk but maintains database migration
-
-## YOUR FIRST RESPONSE MUST:
-
-1. **Confirm you understand:**
-   - The system is currently BROKEN
-   - Previous session FAILED repeatedly
-   - You must follow protocols strictly
-   - You must verify Master Plan compliance at each step
-
-2. **Recommend Option A or B** with clear reasoning
-
-3. **If Option B:** Provide a complete, systematic plan with verification steps at each stage
-
-4. **DO NOT:**
-   - Give me commands until I approve your plan
-   - Use piecemeal fixes
-   - Make assumptions about what files contain
-   - Skip verification steps
-
-## PROTOCOLS FOR THIS SESSION
-
-- **Master Plan compliance check BEFORE every step**
-- **Verify file contents BEFORE making changes**
-- **Complete file replacements, NOT regex edits**
-- **Test after EACH change**
-- **One task at a time from checklist**
-
-## PROJECT FILES
-
-- Master Document: C:\Users\Lynn\lesson-spark-usa\PROJECT_MASTER.md
-- Last Good Commit: 05e2d46 (Phase 4 complete)
-- Current Branch: main
-- Supabase Project: hphebzdftpjbiudpfcrs
-
-## REQUEST TO CLAUDE
-
-Read the situation carefully. Recommend Option A or B. Explain your reasoning. Wait for my approval before giving ANY commands.
-
----
-
-**Attach PROJECT_MASTER.md to this conversation for full context.**
+## INSTRUCTIONS FOR NEW CLAUDE SESSION
+1. Read PROJECT_MASTER.md FIRST before any work
+2. Follow Claude Debugging Protocol strictly
+3. Ask permission before making code changes
+4. Provide copy-paste ready PowerShell commands
+5. Verify all changes before proceeding

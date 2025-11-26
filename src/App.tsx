@@ -21,8 +21,6 @@ import Training from "./pages/Training";
 import Community from "./pages/Community";
 import BetaSignup from "./pages/BetaSignup";
 import AdminBetaMetrics from "./pages/AdminBetaMetrics";
-import BetaSignup from "./pages/BetaSignup";
-import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
 import Cookie from "./pages/legal/Cookie";
@@ -41,29 +39,29 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin" 
+            <Route
+              path="/admin"
               element={
                 <ProtectedRoute>
                   <Admin />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/account" 
+            <Route
+              path="/account"
               element={
                 <ProtectedRoute>
                   <Account />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route path="/setup" element={<Setup />} />
             <Route path="/setup/checklist" element={<SetupChecklist />} />
@@ -79,7 +77,8 @@ const App = () => (
             <Route path="/community" element={<Community />} />
             <Route path="/legal/privacy" element={<Privacy />} />
             <Route path="/legal/terms" element={<Terms />} />
-            <Route path="/legal/cookie" element={<Cookie />} />            <Route path="/admin/beta-metrics" element={
+            <Route path="/legal/cookie" element={<Cookie />} />
+            <Route path="/admin/beta-metrics" element={
               <ProtectedRoute>
                 <AdminBetaMetrics />
               </ProtectedRoute>
@@ -88,18 +87,7 @@ const App = () => (
               <ProtectedRoute>
                 <BetaSignup />
               </ProtectedRoute>
-            } />            <Route path="/admin/beta-metrics" element={
-              <ProtectedRoute>
-                <AdminBetaMetrics />
-              </ProtectedRoute>
             } />
-            <Route path="/beta-signup" element={
-              <ProtectedRoute>
-                <BetaSignup />
-              </ProtectedRoute>
-            } />
-
-
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -110,8 +98,3 @@ const App = () => (
 );
 
 export default App;
-
-
-
-
-

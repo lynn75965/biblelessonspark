@@ -1,126 +1,92 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Users, Sparkles, Shield, Clock, Heart, Brain, Target, FileText } from "lucide-react";
+import { Sparkles, Users, BookOpen, Clock } from "lucide-react";
+
 export function FeaturesSection() {
-  const features = [{
-    icon: <Sparkles className="h-6 w-6" />,
-    title: "Smart Enhancement",
-    description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned content.",
-    benefits: ["Custom activities", "Discussion prompts", "Modern applications"],
-    category: "Core Feature"
-  }, {
-    icon: <Users className="h-6 w-6" />,
-    title: "Multi-Age Support",
-    description: "Tailored content for Children, Youth, Adults, and Seniors with appropriate language and concepts.",
-    benefits: ["Age-specific tone", "Appropriate complexity", "Developmental focus"],
-    category: "Flexibility"
-  }, {
-    icon: <BookOpen className="h-6 w-6" />,
-    title: "Doctrinal Alignment",
-    description: "Choose from SBC, Reformed Baptist, or Independent Baptist theological perspectives.",
-    benefits: ["SBC alignment", "Reformed Baptist", "Independent Baptist"],
-    category: "Theology"
-  }, {
-    icon: <Shield className="h-6 w-6" />,
-    title: "Multi-Tenant Security",
-    description: "Each church organization has secure, isolated access to their own lessons and data.",
-    benefits: ["Data isolation", "Secure access", "Organization control"],
-    category: "Security"
-  }, {
-    icon: <Clock className="h-6 w-6" />,
-    title: "Time-Saving Workflow",
-    description: "Transform hours of lesson prep into minutes while maintaining quality and biblical accuracy.",
-    benefits: ["Quick generation", "Easy editing", "Print-ready format"],
-    category: "Efficiency"
-  }, {
-    icon: <Heart className="h-6 w-6" />,
-    title: "Baptist Heritage",
-    description: "Built specifically for Baptist churches with understanding of our unique traditions and practices.",
-    benefits: ["Baptist terminology", "Traditional practices", "Heritage respect"],
-    category: "Cultural Fit"
-  }, {
-    icon: <Brain className="h-6 w-6" />,
-    title: "Intelligent Prompts",
-    description: "Discussion questions that encourage deep thinking and personal application of scripture.",
-    benefits: ["Thought-provoking", "Personal application", "Group discussion"],
-    category: "Pedagogy"
-  }, {
-    icon: <Target className="h-6 w-6" />,
-    title: "Modern Applications",
-    description: "Connect ancient truths to contemporary life with relevant, practical applications.",
-    benefits: ["Current relevance", "Practical examples", "Life application"],
-    category: "Relevance"
-  }, {
-    icon: <FileText className="h-6 w-6" />,
-    title: "Export & Print",
-    description: "Beautiful, print-ready lesson formats that work great on paper or digital devices.",
-    benefits: ["PDF export", "Print optimized", "Digital friendly"],
-    category: "Output"
-  }];
-  const getCategoryColor = (category: string) => {
-    const colors = {
-      "Core Feature": "bg-primary text-primary-foreground",
-      "Flexibility": "bg-secondary text-secondary-foreground",
-      "Theology": "bg-success text-success-foreground",
-      "Security": "bg-warning text-warning-foreground",
-      "Efficiency": "bg-purple-500 text-white",
-      "Cultural Fit": "bg-pink-500 text-white",
-      "Pedagogy": "bg-blue-500 text-white",
-      "Relevance": "bg-green-500 text-white",
-      "Output": "bg-orange-500 text-white"
-    };
-    return colors[category as keyof typeof colors] || "bg-muted text-muted-foreground";
-  };
-  return <section className="py-10 sm:py-16 lg:py-20 bg-muted/30">
+  const features = [
+    {
+      icon: <Sparkles className="h-6 w-6" />,
+      title: "Smart Enhancement",
+      description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned content.",
+      benefits: ["Custom activities", "Discussion prompts", "Modern applications"],
+      gradient: "bg-gradient-primary"
+    },
+    {
+      icon: <Users className="h-6 w-6" />,
+      title: "Multi-Age Support",
+      description: "Tailored content for Children, Youth, Adults, and Seniors with appropriate language and concepts.",
+      benefits: ["Age-specific tone", "Appropriate complexity", "Developmental focus"],
+      gradient: "bg-gradient-secondary"
+    },
+    {
+      icon: <BookOpen className="h-6 w-6" />,
+      title: "Doctrinal Alignment",
+      description: "Choose from SBC (BF&M 2000 or 1963), Reformed Baptist, or Independent Baptist theological perspectives.",
+      benefits: ["SBC alignment", "Reformed Baptist", "Independent Baptist"],
+      gradient: "bg-gradient-primary"
+    },
+    {
+      icon: <Clock className="h-6 w-6" />,
+      title: "Time-Saving Workflow",
+      description: "Transform hours of lesson prep into minutes while maintaining quality and biblical accuracy.",
+      benefits: ["Under 8 minutes", "Print-ready format", "Easy editing"],
+      gradient: "bg-gradient-secondary"
+    }
+  ];
+
+  return (
+    <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
       <div className="container px-4 sm:px-6">
-        <div className="text-center space-y-3 sm:space-y-4 mb-6 sm:mb-8">
+        <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-10">
           <Badge variant="outline" className="px-3 py-1 text-xs sm:text-sm">
             Features
           </Badge>
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold px-2">
             Everything You Need for{" "}
-            <span className="gradient-text block sm:inline">Exceptional Bible Studies</span>
+            <span className="gradient-text">Exceptional Bible Studies</span>
           </h2>
-          <p className="text-sm sm:text-base lg:text-xl text-muted-foreground max-w-3xl mx-auto px-4">LessonSpark USA equips any teacher to make every lesson specifically applicable to the class, assuring Baptist theology honoring God's Word will engage every age group.</p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-          {features.map((feature, index) => <Card key={index} className="group hover:shadow-glow transition-all duration-normal border-border/50 hover:border-primary/20 bg-gradient-card">
-              <CardHeader className="p-4 sm:p-6">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary text-white group-hover:scale-110 transition-transform duration-normal shrink-0">
-                    {feature.icon}
-                  </div>
-                  <Badge className={`${getCategoryColor(feature.category)} text-[10px] sm:text-xs px-2 py-0.5`} variant="secondary">
-                    {feature.category}
-                  </Badge>
-                </div>
-                <CardTitle className="text-base sm:text-lg">{feature.title}</CardTitle>
-                <CardDescription className="text-sm text-muted-foreground">
-                  {feature.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0">
-                <div className="space-y-1.5 sm:space-y-2">
-                  <p className="text-xs sm:text-sm font-medium text-foreground">Key Benefits:</p>
-                  <ul className="space-y-1">
-                    {feature.benefits.map((benefit, idx) => <li key={idx} className="flex items-start gap-2 text-xs sm:text-sm text-muted-foreground">
-                        <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0 mt-1.5" />
-                        <span>{benefit}</span>
-                      </li>)}
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>)}
-        </div>
-
-        {/* CTA Section */}
-        <div className="text-center mt-6 sm:mt-8 space-y-2 sm:space-y-4 px-4">
-          <h3 className="text-xl sm:text-2xl font-bold">Ready to Transform Your Lesson Prep?</h3>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl mx-auto">
-            Join the private beta and see how LessonSpark USA can revolutionize your Bible study preparation.
+          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
+            LessonSpark USA equips any teacher to make every lesson specifically applicable to the class, 
+            honoring God's Word and engaging every age group.
           </p>
         </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
+          {features.map((feature, index) => (
+            <Card 
+              key={index} 
+              className="group hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/20 bg-gradient-card"
+            >
+              <CardHeader className="p-4 sm:p-6 pb-2 sm:pb-3">
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className={`flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-lg ${feature.gradient} text-white group-hover:scale-110 transition-transform duration-300 shrink-0`}>
+                    {feature.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-base sm:text-lg mb-1">{feature.title}</CardTitle>
+                    <CardDescription className="text-xs sm:text-sm text-muted-foreground">
+                      {feature.description}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 pt-2 sm:pt-3">
+                <ul className="flex flex-wrap gap-2">
+                  {feature.benefits.map((benefit, idx) => (
+                    <li 
+                      key={idx} 
+                      className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md"
+                    >
+                      <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
-    </section>;
+    </section>
+  );
 }
