@@ -1,5 +1,6 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -172,7 +173,7 @@ export default function Dashboard({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header
         isAuthenticated
         organizationName={currentOrgName}
@@ -186,7 +187,7 @@ export default function Dashboard({
         />
       )}
 
-      <main className="container py-4 sm:py-6 px-4 sm:px-6">
+      <main className="container py-4 sm:py-6 px-4 sm:px-6 flex-1">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">
@@ -455,6 +456,9 @@ export default function Dashboard({
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Footer - SSOT Component */}
+      <Footer />
 
       <Button
         variant="hero"

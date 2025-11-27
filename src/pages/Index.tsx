@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { BaptistIdentitySection } from "@/components/landing/BaptistIdentitySection";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
@@ -12,10 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { FOOTER_LINKS } from "@/config/footerLinks";
-import { SITE } from "@/config/site";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -54,10 +52,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header onAuthClick={handleSignIn} />
 
-      <main>
+      <main className="flex-1">
         {/* 1. Hero Section */}
         <HeroSection onRequestAccess={handleRequestAccess} onSignIn={handleSignIn} />
 
@@ -76,109 +74,8 @@ const Index = () => {
         <PricingSection />
       </main>
 
-      {/* Footer */}
-      <footer className="bg-muted py-8 sm:py-10 lg:py-12">
-        <div className="container px-4 sm:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {/* Brand */}
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
-                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <span className="text-lg sm:text-xl font-bold gradient-text">LessonSpark USA</span>
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground">Baptist Bible Study Enhancement Platform</p>
-            </div>
-
-            {/* Product */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="font-semibold text-sm sm:text-base">Product</h4>
-              <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                <li>
-                  <a href={FOOTER_LINKS.product.features} className="hover:text-primary transition-colors">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.product.pricing} className="hover:text-primary transition-colors">
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.product.setup} className="hover:text-primary transition-colors">
-                    Setup Guide
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.product.docs} className="hover:text-primary transition-colors">
-                    Documentation
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Support */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="font-semibold text-sm sm:text-base">Support</h4>
-              <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                <li>
-                  <a href={FOOTER_LINKS.support.help} className="hover:text-primary transition-colors">
-                    Help Center
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.support.contact} className="hover:text-primary transition-colors">
-                    Contact Us
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.support.training} className="hover:text-primary transition-colors">
-                    Training
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.support.community} className="hover:text-primary transition-colors">
-                    Community
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            {/* Legal */}
-            <div className="space-y-3 sm:space-y-4">
-              <h4 className="font-semibold text-sm sm:text-base">Legal</h4>
-              <ul className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground">
-                <li>
-                  <a href={FOOTER_LINKS.legal.privacy} className="hover:text-primary transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.legal.terms} className="hover:text-primary transition-colors">
-                    Terms of Service
-                  </a>
-                </li>
-                <li>
-                  <a href={FOOTER_LINKS.legal.cookie} className="hover:text-primary transition-colors">
-                    Cookie Policy
-                  </a>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t mt-6 sm:mt-8 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-            <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
-              © 2024 LessonSpark USA. All rights reserved.
-            </p>
-            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-              <Mail className="h-3 w-3 sm:h-4 sm:w-4 shrink-0" />
-              <span className="truncate">{SITE.supportEmail}</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Footer - SSOT Component */}
+      <Footer />
 
       {/* Request Access Dialog */}
       <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>

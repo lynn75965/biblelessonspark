@@ -7,7 +7,7 @@ export const FOOTER_LINKS = {
   },
   support: {
     help: "/help",
-    contact: "mailto:support@lessonspark.com",
+    contact: "mailto:support@lessonsparkusa.com",
     training: "/training",
     community: "/community"
   },
