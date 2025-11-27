@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -193,7 +194,7 @@ const Docs = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-b from-primary/5 to-background border-b">
         <div className="container max-w-5xl py-12">
@@ -214,7 +215,7 @@ const Docs = () => {
         </div>
       </div>
 
-      <div className="container max-w-5xl py-12 space-y-16">
+      <div className="container max-w-5xl py-12 space-y-16 flex-1">
         
         {/* Getting Started */}
         <section id="getting-started">

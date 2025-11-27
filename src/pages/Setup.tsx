@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { BookOpen, Mail } from "lucide-react";
 import { SITE } from "@/config/site";
@@ -6,9 +7,9 @@ import { SITE } from "@/config/site";
 const Setup = () => {
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       
-      <div className="container max-w-3xl py-12 sm:py-16 px-4">
+      <div className="container max-w-3xl py-12 sm:py-16 px-4 flex-1">
         <div className="text-center space-y-6 sm:space-y-8">
           <div className="inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-gradient-primary">
             <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
@@ -45,3 +46,4 @@ const Setup = () => {
 };
 
 export default Setup;
+

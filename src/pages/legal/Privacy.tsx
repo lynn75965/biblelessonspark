@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Shield, Mail } from "lucide-react";
 import { SITE } from "@/config/site";
@@ -6,9 +7,9 @@ import { SITE } from "@/config/site";
 const Privacy = () => {
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       
-      <div className="container max-w-4xl py-16">
+      <div className="container max-w-4xl py-16 flex-1">
         <div className="space-y-8">
           <div className="text-center space-y-4">
             <div className="inline-flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-primary">
@@ -62,3 +63,4 @@ const Privacy = () => {
 };
 
 export default Privacy;
+
