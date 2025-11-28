@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ï»¿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -103,9 +103,8 @@ export function EnhanceLessonForm({
       setGenerationProgress(0);
       interval = setInterval(() => {
         setGenerationProgress((prev) => {
-          // Slow down as we approach 99%
           if (prev >= 99) return 99;
-          if (prev >= 96) return prev + 0.3; // Very slow final increment
+          if (prev >= 96) return prev + 0.3;
           if (prev >= 90) return prev + 0.8;
           return prev + 1.2;
         });
@@ -226,107 +225,12 @@ export function EnhanceLessonForm({
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="passage">Bible Passage (Optional)</Label>
-              <Input
-                id="passage"
-                placeholder="e.g., John 3:16-21"
-                value={biblePassage}
-                onChange={(e) => setBiblePassage(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="topic">Focused Topic or Theme (Optional)</Label>
-              <Input
-                id="topic"
-                placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
-                value={focusedTopic}
-                onChange={(e) => setFocusedTopic(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="age-group">Age Group *</Label>
-              <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
-                <SelectTrigger id="age-group">
-                  <SelectValue placeholder="Select age group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGE_GROUPS.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="theology-profile">Baptist Theology Profile *</Label>
-              <Select value={theologyProfileId} onValueChange={setTheologyProfileId} disabled={isSubmitting}>
-                <SelectTrigger id="theology-profile">
-                  <SelectValue placeholder="Select theology profile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {THEOLOGY_PROFILES.map((profile) => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Selected profile shapes AI generation to align with specific Baptist theological standards
-              </p>
-            </div>
-
-            <TeacherCustomization
-              teachingStyle={teachingStyle}
-              setTeachingStyle={setTeachingStyle}
-              lessonLength={lessonLength}
-              setLessonLength={setLessonLength}
-              activityTypes={activityTypes}
-              setActivityTypes={setActivityTypes}
-              language={language}
-              setLanguage={setLanguage}
-              classSetting={classSetting}
-              setClassSetting={setClassSetting}
-              learningEnvironment={learningEnvironment}
-              setLearningEnvironment={setLearningEnvironment}
-              studentExperience={studentExperience}
-              setStudentExperience={setStudentExperience}
-              culturalContext={culturalContext}
-              setCulturalContext={setCulturalContext}
-              specialNeeds={specialNeeds}
-              setSpecialNeeds={setSpecialNeeds}
-              lessonSequence={lessonSequence}
-              setLessonSequence={setLessonSequence}
-              assessmentStyle={assessmentStyle}
-              setAssessmentStyle={setAssessmentStyle}
-              learningStyle={learningStyle}
-              setLearningStyle={setLearningStyle}
-              educationExperience={educationExperience}
-              setEducationExperience={setEducationExperience}
-              disabled={isSubmitting}
-            />
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                placeholder="Any specific focus areas, cultural context, or teaching preferences..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                disabled={isSubmitting}
-                rows={4}
-              />
-            </div>
-
+            {/* 1. Upload Existing Curriculum - MOVED TO TOP */}
             <div className="space-y-2">
               <Label htmlFor="file">Upload Existing Curriculum (Optional)</Label>
+              <p className="text-sm text-muted-foreground">
+                Upload any bible study curriculum (pdf, text, docx, jpg or jpeg files or images. &lt;10mb). We'll enhance it with deeper Baptist theological insights.
+              </p>
               <div className="flex items-center gap-2">
                 <Input
                   id="file"
@@ -348,23 +252,149 @@ export function EnhanceLessonForm({
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">Upload PDF, DOCX, TXT, or JPG files (max 10MB)</p>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="generate-teaser"
-                checked={generateTeaser}
-                onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
+            {/* 2. Bible Passage */}
+            <div className="space-y-2">
+              <Label htmlFor="passage">Bible Passage (Optional)</Label>
+              <p className="text-sm text-muted-foreground">
+                Enter the primary Scripture reference for your lesson (e.g., John 3:16-21). Leave blank if included in uploaded curriculum.
+              </p>
+              <Input
+                id="passage"
+                placeholder="e.g., John 3:16-21"
+                value={biblePassage}
+                onChange={(e) => setBiblePassage(e.target.value)}
                 disabled={isSubmitting}
               />
-              <label
-                htmlFor="generate-teaser"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Generate Lesson Teaser (days before lesson build student anticipation without revealing content -
-                suitable for post, text, email, or card)
-              </label>
+            </div>
+
+            {/* 3. Focused Topic or Theme */}
+            <div className="space-y-2">
+              <Label htmlFor="topic">Focused Topic or Theme (Optional)</Label>
+              <p className="text-sm text-muted-foreground">
+                Enter general terms and your primary thought will be conveyed throughout the lesson.
+              </p>
+              <Input
+                id="topic"
+                placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
+                value={focusedTopic}
+                onChange={(e) => setFocusedTopic(e.target.value)}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* 4. Age Group */}
+            <div className="space-y-2">
+              <Label htmlFor="age-group">Age Group *</Label>
+              <p className="text-sm text-muted-foreground">
+                Everything will be age appropriate -- subject matter, vocabulary, activities, timing sequences, interests, illustrations -- everything.
+              </p>
+              <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
+                <SelectTrigger id="age-group">
+                  <SelectValue placeholder="Select age group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AGE_GROUPS.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 5. Baptist Theology Profile */}
+            <div className="space-y-2">
+              <Label htmlFor="theology-profile">Baptist Theology Profile *</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose your church's theological tradition. This ensures doctrinal alignment with your congregation.
+              </p>
+              <Select value={theologyProfileId} onValueChange={setTheologyProfileId} disabled={isSubmitting}>
+                <SelectTrigger id="theology-profile">
+                  <SelectValue placeholder="Select theology profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {THEOLOGY_PROFILES.map((profile) => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 6. Lesson Customization */}
+            <div className="space-y-2">
+              <p className="text-sm text-muted-foreground">
+                Personalize your lesson with your own teaching style, your own class description and we will generate a lesson built just for you and those you teach.
+              </p>
+              <TeacherCustomization
+                teachingStyle={teachingStyle}
+                setTeachingStyle={setTeachingStyle}
+                lessonLength={lessonLength}
+                setLessonLength={setLessonLength}
+                activityTypes={activityTypes}
+                setActivityTypes={setActivityTypes}
+                language={language}
+                setLanguage={setLanguage}
+                classSetting={classSetting}
+                setClassSetting={setClassSetting}
+                learningEnvironment={learningEnvironment}
+                setLearningEnvironment={setLearningEnvironment}
+                studentExperience={studentExperience}
+                setStudentExperience={setStudentExperience}
+                culturalContext={culturalContext}
+                setCulturalContext={setCulturalContext}
+                specialNeeds={specialNeeds}
+                setSpecialNeeds={setSpecialNeeds}
+                lessonSequence={lessonSequence}
+                setLessonSequence={setLessonSequence}
+                assessmentStyle={assessmentStyle}
+                setAssessmentStyle={setAssessmentStyle}
+                learningStyle={learningStyle}
+                setLearningStyle={setLearningStyle}
+                educationExperience={educationExperience}
+                setEducationExperience={setEducationExperience}
+                disabled={isSubmitting}
+              />
+            </div>
+
+            {/* 7. Additional Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes">Additional Notes (Optional)</Label>
+              <p className="text-sm text-muted-foreground">
+                Add specific requests -- describe your focus or primary thought -- we'll deliver it clearly and plainly throughout the lesson
+              </p>
+              <Textarea
+                id="notes"
+                placeholder="Any specific focus areas, cultural context, or teaching preferences..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={isSubmitting}
+                rows={4}
+              />
+            </div>
+
+            {/* 8. Generate Lesson Teaser */}
+            <div className="space-y-2">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="generate-teaser"
+                  checked={generateTeaser}
+                  onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
+                  disabled={isSubmitting}
+                />
+                <label
+                  htmlFor="generate-teaser"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Generate Lesson Teaser
+                </label>
+              </div>
+              <p className="text-sm text-muted-foreground ml-6">
+                Send days before you teach; build anticipation and expectation to hear God speak into their lives. (perfect for emails, texts, or social media)
+              </p>
             </div>
 
             {/* Rate Limit Indicator */}
@@ -413,10 +443,10 @@ export function EnhanceLessonForm({
                     <Star className="h-4 w-4 fill-yellow-400" />
                     Rate This Lesson
                   </Button>
-                  )}
-                  <LessonExportButtons
-                    onExport={onExport}
-                    lesson={{
+                )}
+                <LessonExportButtons
+                  onExport={onExport}
+                  lesson={{
                     title: currentLesson.title || "Generated Lesson",
                     original_text: currentLesson.original_text || "",
                     metadata: currentLesson.metadata,
@@ -462,13 +492,13 @@ export function EnhanceLessonForm({
                     .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
-                    .replace(/•/g, "•")
+                    .replace(/â€¢/g, "â€¢")
                     .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
               />
             </div>
-          {/* Export buttons at bottom for convenience */}
+            {/* Export buttons at bottom for convenience */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-4 border-t">
               <span className="text-sm text-muted-foreground mr-2">Export:</span>
               <LessonExportButtons
@@ -486,6 +516,3 @@ export function EnhanceLessonForm({
     </>
   );
 }
-
-
-
