@@ -5,10 +5,8 @@ import { Cookie as CookieIcon, Mail } from "lucide-react";
 import { SITE } from "@/config/site";
 
 const Cookie = () => {
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      
       <div className="container max-w-4xl py-16 flex-1">
         <div className="space-y-8">
           <div className="text-center space-y-4">
@@ -58,9 +56,11 @@ const Cookie = () => {
           </div>
         </div>
       </div>
+
+      {/* Footer - SSOT Component */}
+      <Footer />
     </div>
   );
 };
 
 export default Cookie;
-

@@ -3,14 +3,14 @@ import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BookOpen, 
-  Mail, 
-  Sparkles, 
-  Users, 
-  Clock, 
-  FileText, 
-  Download, 
+import {
+  BookOpen,
+  Mail,
+  Sparkles,
+  Users,
+  Clock,
+  FileText,
+  Download,
   HelpCircle,
   ChevronRight,
   CheckCircle,
@@ -216,7 +216,7 @@ const Docs = () => {
       </div>
 
       <div className="container max-w-5xl py-12 space-y-16 flex-1">
-        
+
         {/* Getting Started */}
         <section id="getting-started">
           <div className="flex items-center gap-3 mb-6">
@@ -225,7 +225,7 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">Getting Started</h2>
           </div>
-          
+
           <div className="grid gap-4 sm:grid-cols-3">
             <Card>
               <CardHeader className="pb-3">
@@ -238,7 +238,7 @@ const Docs = () => {
                 Sign up with your email address. You will receive a confirmation email to verify your account.
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -250,7 +250,7 @@ const Docs = () => {
                 Choose your theological lens (SBC, Reformed Baptist, etc.), preferred language, and default age group.
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
@@ -273,7 +273,7 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">How to Generate a Lesson</h2>
           </div>
-          
+
           <Card>
             <CardContent className="pt-6">
               <div className="space-y-6">
@@ -286,7 +286,7 @@ const Docs = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">2</div>
                   <div>
@@ -296,7 +296,7 @@ const Docs = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">3</div>
                   <div>
@@ -306,7 +306,7 @@ const Docs = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex gap-4">
                   <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">4</div>
                   <div>
@@ -329,11 +329,11 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">The 8-Section Lesson Format</h2>
           </div>
-          
+
           <p className="text-muted-foreground mb-6">
             Every lesson follows our proven 8-section structure, designed to give teachers everything they need while eliminating redundancy. Total lesson length: 2,000-2,800 words.
           </p>
-          
+
           <div className="grid gap-3">
             {lessonSections.map((section) => (
               <Card key={section.number} className="overflow-hidden">
@@ -362,11 +362,11 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">Age Group Profiles</h2>
           </div>
-          
+
           <p className="text-muted-foreground mb-6">
             Each age group generates content tailored to cognitive development, attention span, vocabulary level, and appropriate activities.
           </p>
-          
+
           <Accordion type="single" collapsible className="w-full">
             {ageGroups.map((group, index) => (
               <AccordionItem key={index} value={`age-${index}`}>
@@ -393,11 +393,11 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">Theological Lenses</h2>
           </div>
-          
+
           <p className="text-muted-foreground mb-6">
             Your theological lens invisibly guides every lesson to align with your tradition's distinctives. The theology is woven naturally into the content.
           </p>
-          
+
           <div className="grid gap-4 sm:grid-cols-2">
             {theologyProfiles.map((profile, index) => (
               <Card key={index}>
@@ -423,7 +423,7 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">Exporting Your Lessons</h2>
           </div>
-          
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Card>
               <CardHeader>
@@ -445,7 +445,7 @@ const Docs = () => {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg">DOCX Export</CardTitle>
@@ -477,7 +477,7 @@ const Docs = () => {
             </div>
             <h2 className="text-2xl font-bold">Frequently Asked Questions</h2>
           </div>
-          
+
           <Accordion type="single" collapsible className="w-full">
             {faqs.map((faq, index) => (
               <AccordionItem key={index} value={`faq-${index}`}>
@@ -515,6 +515,9 @@ const Docs = () => {
         </section>
 
       </div>
+
+      {/* Footer - SSOT Component */}
+      <Footer />
     </div>
   );
 };
