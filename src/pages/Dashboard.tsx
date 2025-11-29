@@ -34,6 +34,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationSetup } from "@/components/organization/OrganizationSetup";
+import { getEffectiveRole, canAccessTab, canAccessFeature, ROLES } from "@/constants/accessControl";
 
 interface DashboardProps {
   organizationName?: string;
@@ -61,6 +62,10 @@ export default function Dashboard({
   const { organization, loading: orgLoading, hasOrganization } = useOrganization();
   const [userProfile, setUserProfile] = useState<any>(null);
 
+  // SSOT: Determine user's effective role and access permissions
+  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userProfile?.organization_role);
+  const hasOrgContext = hasOrganization;
+
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user) return;
@@ -68,7 +73,7 @@ export default function Dashboard({
       try {
       const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
         .from('profiles')
-        .select('preferred_age_group')
+        .select('preferred_age_group, organization_role')
         .eq('id', user.id)
         .single();
 
@@ -121,7 +126,7 @@ export default function Dashboard({
     try {
     const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
       .from('profiles')
-      .select('preferred_age_group, org_setup_dismissed')
+      .select('preferred_age_group, org_setup_dismissed, organization_role')
       .eq('id', user.id)
       .single();
 
@@ -178,6 +183,21 @@ export default function Dashboard({
     }
   };
 
+  // SSOT: Calculate grid columns based on visible tabs
+  const visibleTabCount = [
+    canAccessTab(effectiveRole, 'enhance', hasOrgContext),
+    canAccessTab(effectiveRole, 'library', hasOrgContext),
+    canAccessTab(effectiveRole, 'members', hasOrgContext),
+    canAccessTab(effectiveRole, 'analytics', hasOrgContext),
+    canAccessTab(effectiveRole, 'settings', hasOrgContext),
+  ].filter(Boolean).length;
+
+  const getGridCols = () => {
+    if (visibleTabCount <= 3) return 'grid-cols-3';
+    if (visibleTabCount === 4) return 'grid-cols-2 md:grid-cols-4';
+    return 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5';
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header
@@ -206,7 +226,8 @@ export default function Dashboard({
           <CreditsDisplay balance={balance} loading={creditsLoading} />
         </div>
 
-        <div className={`grid ${isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} gap-3 sm:gap-4 mb-6 sm:mb-8`}>
+        {/* Stats Cards - SSOT access control */}
+        <div className={`grid ${canAccessFeature(effectiveRole, 'privateBetaCard', hasOrgContext) ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} gap-3 sm:gap-4 mb-6 sm:mb-8`}>
           <Card className="bg-gradient-card">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -266,8 +287,8 @@ export default function Dashboard({
             </Card>
           )}
 
-          {/* Private Beta Card - Admin Only */}
-          {isAdmin && (
+          {/* Private Beta Card - SSOT access control */}
+          {canAccessFeature(effectiveRole, 'privateBetaCard', hasOrgContext) && (
             <Card 
               className="bg-gradient-card cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => setShowBetaHubModal(true)}
@@ -287,32 +308,39 @@ export default function Dashboard({
           )}
         </div>
 
+        {/* Tabs - SSOT access control */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${isIndividualUser ? 'grid-cols-3' : (isAdmin ? 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-3')}`}>
-            <TabsTrigger value="enhance">
-              <Sparkles className="h-4 w-4" />
-              Enhance Lesson
-            </TabsTrigger>
-            <TabsTrigger value="library">
-              <BookOpen className="h-4 w-4" />
-              My Lessons
-            </TabsTrigger>
-            {!isIndividualUser && isAdmin && (
-              <>
-                <TabsTrigger value="members">
-                  <Users className="h-4 w-4" />
-                  Members
-                </TabsTrigger>
-                <TabsTrigger value="analytics">
-                  <BarChart3 className="h-4 w-4" />
-                  Beta Analytics
-                </TabsTrigger>
-              </>
+          <TabsList className={`grid w-full ${getGridCols()}`}>
+            {canAccessTab(effectiveRole, 'enhance', hasOrgContext) && (
+              <TabsTrigger value="enhance">
+                <Sparkles className="h-4 w-4" />
+                Enhance Lesson
+              </TabsTrigger>
             )}
-            <TabsTrigger value="settings">
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
+            {canAccessTab(effectiveRole, 'library', hasOrgContext) && (
+              <TabsTrigger value="library">
+                <BookOpen className="h-4 w-4" />
+                My Lessons
+              </TabsTrigger>
+            )}
+            {canAccessTab(effectiveRole, 'members', hasOrgContext) && (
+              <TabsTrigger value="members">
+                <Users className="h-4 w-4" />
+                Members
+              </TabsTrigger>
+            )}
+            {canAccessTab(effectiveRole, 'analytics', hasOrgContext) && (
+              <TabsTrigger value="analytics">
+                <BarChart3 className="h-4 w-4" />
+                Beta Analytics
+              </TabsTrigger>
+            )}
+            {canAccessTab(effectiveRole, 'settings', hasOrgContext) && (
+              <TabsTrigger value="settings">
+                <Settings className="h-4 w-4" />
+                Settings
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="enhance" className="mt-6">
@@ -345,35 +373,37 @@ export default function Dashboard({
             />
           </TabsContent>
 
-          {!isIndividualUser && isAdmin && (
-            <>
-              <TabsContent value="members" className="mt-6">
-                <Card className="bg-gradient-card">
-                  <CardHeader>
-                    <CardTitle>Organization Members</CardTitle>
-                    <CardDescription>
-                      Manage teachers and administrators for {currentOrgName}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">Member Management Coming Soon</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Invite teachers, manage roles, and view member activity.
-                      </p>
-                      <Button variant="outline">
-                        Preview Member Features
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+          {/* Members Tab - SSOT access control */}
+          {canAccessTab(effectiveRole, 'members', hasOrgContext) && (
+            <TabsContent value="members" className="mt-6">
+              <Card className="bg-gradient-card">
+                <CardHeader>
+                  <CardTitle>Organization Members</CardTitle>
+                  <CardDescription>
+                    Manage teachers and administrators for {currentOrgName}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">Member Management Coming Soon</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Invite teachers, manage roles, and view member activity.
+                    </p>
+                    <Button variant="outline">
+                      Preview Member Features
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
 
-              <TabsContent value="analytics" className="mt-6">
-                <BetaAnalyticsDashboard />
-              </TabsContent>
-            </>
+          {/* Analytics Tab - SSOT access control */}
+          {canAccessTab(effectiveRole, 'analytics', hasOrgContext) && (
+            <TabsContent value="analytics" className="mt-6">
+              <BetaAnalyticsDashboard />
+            </TabsContent>
           )}
 
           <TabsContent value="settings" className="mt-6">
@@ -504,13 +534,15 @@ export default function Dashboard({
         lessonId={lastGeneratedLessonId}
       />
 
-      {/* Beta Hub Modal - Admin Only */}
-      <BetaHubModal
-        open={showBetaHubModal}
-        onOpenChange={setShowBetaHubModal}
-        lessonsCreated={stats.lessonsCreated}
-        onNavigateToAnalytics={handleNavigateToAnalytics}
-      />
+      {/* Beta Hub Modal - SSOT access control */}
+      {canAccessFeature(effectiveRole, 'betaHubModal', hasOrgContext) && (
+        <BetaHubModal
+          open={showBetaHubModal}
+          onOpenChange={setShowBetaHubModal}
+          lessonsCreated={stats.lessonsCreated}
+          onNavigateToAnalytics={handleNavigateToAnalytics}
+        />
+      )}
     </div>
   );
 }

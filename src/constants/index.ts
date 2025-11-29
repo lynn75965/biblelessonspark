@@ -138,3 +138,22 @@ export {
   getOptionDescription,
   getCheckboxLabel,
 } from './teacherPreferences';
+
+// ============================================================================
+// Access Control (SSOT for role-based visibility)
+// ============================================================================
+export {
+  ROLES,
+  TAB_ACCESS,
+  FEATURE_ACCESS,
+  REQUIRES_ORG_CONTEXT,
+  canAccessTab,
+  canAccessFeature,
+  getEffectiveRole,
+} from './accessControl';
+
+export type {
+  Role,
+  TabKey,
+  FeatureKey,
+} from './accessControl';
