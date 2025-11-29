@@ -1,4 +1,100 @@
-# LessonSparkUSA - Project Master Document
+﻿# LessonSparkUSA - Project Master Document
+
+---
+
+## ⚠️ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
+
+> **THIS SECTION IS MANDATORY READING BEFORE ANY ROLE-RELATED CHANGES**
+
+### Overview
+
+LessonSparkUSA uses TWO distinct role systems that serve different purposes. These are intentionally separate and must remain synchronized through documented mapping.
+
+### Database Roles (user_roles.role - app_role enum)
+
+**Purpose:** Capability-based permissions (what a user CAN do)
+
+| Role | Description |
+|------|-------------|
+| admin | Platform administrator - full system access |
+| teacher | Standard user - create/manage own lessons |
+| moderator | Future: content moderation capabilities |
+
+**Location:** user_roles table, column role (type: app_role enum)
+
+### Frontend Roles (accessControl.ts - ROLES constant)
+
+**Purpose:** Access scope (what a user CAN SEE)
+
+| Role | Description |
+|------|-------------|
+| platformAdmin | Lynn - sees all platform data, all users, all analytics |
+| orgLeader | Organization admin - sees org-scoped data [FUTURE] |
+| orgMember | Org teacher - sees own lessons within org context [FUTURE] |
+| individual | Personal workspace - sees only own lessons |
+
+**Location:** src/constants/accessControl.ts
+
+### Role Mapping (Database to Frontend)
+
+The getEffectiveRole() function in accessControl.ts performs this mapping:
+
+| Database Role | Context | Frontend Role |
+|---------------|---------|---------------|
+| admin | any | platformAdmin |
+| teacher/moderator | hasOrganization + org admin | orgLeader |
+| teacher/moderator | hasOrganization + org member | orgMember |
+| teacher/moderator | no organization | individual |
+
+### Why Two Systems?
+
+1. **Separation of Concerns:**
+   - Database roles = security/capability (enforced by RLS)
+   - Frontend roles = UI visibility (enforced by React components)
+
+2. **Flexibility:**
+   - A teacher in database can be orgLeader OR orgMember OR individual depending on context
+   - An admin is always platformAdmin regardless of context
+
+3. **Future-Proofing:**
+   - Organization features will use context, not new database roles
+   - Adding org context does not require database migration
+
+### SSOT Compliance
+
+| System | SSOT Location | Sync Method |
+|--------|---------------|-------------|
+| Database roles | app_role enum in PostgreSQL | Manual migration |
+| Frontend roles | src/constants/accessControl.ts | Code changes |
+| Role mapping | getEffectiveRole() in accessControl.ts | Code changes |
+
+### MODIFICATION RULES
+
+1. **To add a new DATABASE role:**
+   - Add to app_role enum via SQL migration
+   - Update getEffectiveRole() mapping
+   - Update this documentation
+
+2. **To add a new FRONTEND role:**
+   - Add to ROLES constant in accessControl.ts
+   - Update TAB_ACCESS and FEATURE_ACCESS
+   - Update getEffectiveRole() mapping
+   - Update this documentation
+
+3. **NEVER:**
+   - Assume database role = frontend role
+   - Change one system without updating the mapping
+   - Skip updating this documentation
+
+### Related Files
+
+- src/constants/accessControl.ts - Frontend role definitions and mapping
+- src/integrations/supabase/types.ts - Generated types including app_role
+- Database: user_roles table, app_role enum
+- Database: has_role() function for RLS checks
+
+---
+
 
 **Last Updated:** 2025-11-28  
 **Current Phase:** Phase 7 Complete, Ready for Phase 8  
@@ -2031,3 +2127,5 @@ All org features will follow established SSOT principles:
 - Audit trail for org leader actions
 
 ---
+
+
