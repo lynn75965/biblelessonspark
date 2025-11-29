@@ -1,6 +1,5 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { Footer } from "@/components/layout/Footer";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
@@ -9,6 +8,7 @@ import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
+import { BetaHubModal } from "@/components/dashboard/BetaHubModal";
 import LanguageSelector from "@/components/settings/LanguageSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,7 @@ export default function Dashboard({
 }: DashboardProps) {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
+  const [showBetaHubModal, setShowBetaHubModal] = useState(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -105,6 +106,10 @@ export default function Dashboard({
   const handleFeedback = () => {
     trackFeatureUsed('feedback_button_clicked');
     setShowFeedbackDialog(true);
+  };
+
+  const handleNavigateToAnalytics = () => {
+    setActiveTab("analytics");
   };
 
   const handleOrgSetupComplete = () => {
@@ -201,7 +206,7 @@ export default function Dashboard({
           <CreditsDisplay balance={balance} loading={creditsLoading} />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <div className={`grid ${isAdmin ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-2 md:grid-cols-3'} gap-3 sm:gap-4 mb-6 sm:mb-8`}>
           <Card className="bg-gradient-card">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -261,19 +266,25 @@ export default function Dashboard({
             </Card>
           )}
 
-          <Card className="bg-gradient-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning">
-                  <TrendingUp className="h-5 w-5 text-white" />
+          {/* Private Beta Card - Admin Only */}
+          {isAdmin && (
+            <Card 
+              className="bg-gradient-card cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setShowBetaHubModal(true)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">Private Beta</p>
+                    <p className="text-xs text-muted-foreground">Click to Manage</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">Private Beta</p>
-                  <p className="text-xs text-muted-foreground">Status</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -491,6 +502,14 @@ export default function Dashboard({
         open={showBetaFeedbackModal}
         onOpenChange={setShowBetaFeedbackModal}
         lessonId={lastGeneratedLessonId}
+      />
+
+      {/* Beta Hub Modal - Admin Only */}
+      <BetaHubModal
+        open={showBetaHubModal}
+        onOpenChange={setShowBetaHubModal}
+        lessonsCreated={stats.lessonsCreated}
+        onNavigateToAnalytics={handleNavigateToAnalytics}
       />
     </div>
   );
