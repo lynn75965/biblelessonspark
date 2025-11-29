@@ -47,7 +47,12 @@ export function UserManagement() {
         throw error;
       }
 
-      setUsers(data || []);
+      // Map user_role back to role for component compatibility
+      const mappedUsers = (data || []).map(u => ({
+        ...u,
+        role: u.user_role || 'teacher'
+      }));
+      setUsers(mappedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -461,3 +466,4 @@ export function UserManagement() {
     </div>
   );
 }
+
