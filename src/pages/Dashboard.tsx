@@ -61,6 +61,7 @@ export default function Dashboard({
   const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { organization, loading: orgLoading, hasOrganization } = useOrganization();
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [totalPlatformUsers, setTotalPlatformUsers] = useState<number>(0);
 
   // SSOT: Determine user's effective role and access permissions
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userProfile?.organization_role);
@@ -85,6 +86,25 @@ export default function Dashboard({
 
     loadUserProfile();
   }, [user]);
+
+  // Fetch platform stats for admin
+  useEffect(() => {
+    const loadPlatformStats = async () => {
+      if (!isAdmin) return;
+
+      try {
+        const { count } = await (await import('@/integrations/supabase/client')).supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
+        setTotalPlatformUsers(count || 0);
+      } catch (error) {
+        console.error('Error loading platform stats:', error);
+      }
+    };
+
+    loadPlatformStats();
+  }, [isAdmin]);
 
   const stats = {
     lessonsCreated: lessons.length,
@@ -271,7 +291,7 @@ export default function Dashboard({
               </CardContent>
             </Card>
           )}
-          {isIndividualUser && (
+          {isIndividualUser && !canAccessFeature(effectiveRole, 'platformStatsCard', hasOrgContext) && (
             <Card className="bg-gradient-card">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -281,6 +301,21 @@ export default function Dashboard({
                   <div>
                     <p className="text-2xl font-bold">Personal</p>
                     <p className="text-xs text-muted-foreground">Workspace</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {canAccessFeature(effectiveRole, 'platformStatsCard', hasOrgContext) && (
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+                    <Users className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold">{totalPlatformUsers}</p>
+                    <p className="text-xs text-muted-foreground">Platform Users</p>
                   </div>
                 </div>
               </CardContent>
@@ -540,9 +575,12 @@ export default function Dashboard({
           open={showBetaHubModal}
           onOpenChange={setShowBetaHubModal}
           lessonsCreated={stats.lessonsCreated}
+          totalPlatformUsers={totalPlatformUsers}
           onNavigateToAnalytics={handleNavigateToAnalytics}
         />
       )}
     </div>
   );
 }
+
+

@@ -39,6 +39,7 @@ export type TabKey = keyof typeof TAB_ACCESS;
 export const FEATURE_ACCESS = {
   betaHubModal: [ROLES.platformAdmin], // Admin-only management
   privateBetaCard: [ROLES.platformAdmin], // Dashboard stat card
+  platformStatsCard: [ROLES.platformAdmin], // Shows total platform users instead of Personal/Workspace
   orgSettings: [ROLES.platformAdmin, ROLES.orgLeader], // Org configuration
   memberManagement: [ROLES.platformAdmin, ROLES.orgLeader], // Add/remove members
   sharedFocus: [ROLES.orgLeader], // Set church-wide passage/theme [FUTURE]
@@ -111,3 +112,4 @@ export const getEffectiveRole = (
   
   return ROLES.individual;
 };
+

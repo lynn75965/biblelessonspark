@@ -25,6 +25,7 @@ interface BetaHubModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   lessonsCreated: number;
+  totalPlatformUsers: number;
   onNavigateToAnalytics: () => void;
 }
 
@@ -32,12 +33,12 @@ export function BetaHubModal({
   open, 
   onOpenChange, 
   lessonsCreated,
+  totalPlatformUsers,
   onNavigateToAnalytics 
 }: BetaHubModalProps) {
   const { user } = useAuth();
   const [feedbackCount, setFeedbackCount] = useState(0);
   const [averageRating, setAverageRating] = useState<number | null>(null);
-  const [totalUsers, setTotalUsers] = useState(0);
   const [totalLessons, setTotalLessons] = useState(0);
   const [recentFeedback, setRecentFeedback] = useState<FeedbackEntry[]>([]);
   const [betaTesters, setBetaTesters] = useState<BetaTester[]>([]);
@@ -70,13 +71,6 @@ export function BetaHubModal({
         .limit(3);
       
       setRecentFeedback(fbData || []);
-
-      // Get total users count
-      const { count: userCount } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true });
-      
-      setTotalUsers(userCount || 0);
 
       // Get total lessons count
       const { count: lessonCount } = await supabase
@@ -137,7 +131,7 @@ export function BetaHubModal({
             <Card className="bg-gradient-card">
               <CardContent className="p-3 text-center">
                 <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
-                <p className="text-xl font-bold">{totalUsers}</p>
+                <p className="text-xl font-bold">{totalPlatformUsers}</p>
                 <p className="text-xs text-muted-foreground">Total Users</p>
               </CardContent>
             </Card>
@@ -294,3 +288,4 @@ export function BetaHubModal({
     </Dialog>
   );
 }
+
