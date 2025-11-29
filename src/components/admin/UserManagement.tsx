@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,28 +39,15 @@ export function UserManagement() {
 
   const fetchUsers = async () => {
     try {
-      // Fetch profiles WITH their roles from user_roles table (authoritative source)
+      // Use admin function that bypasses RLS
       const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          user_roles (
-            role
-          )
-        `)
-        .order('created_at', { ascending: false });
+        .rpc('get_all_users_for_admin');
 
       if (error) {
         throw error;
       }
 
-      // Map to include role from user_roles (primary), fallback to profiles.role (deprecated)
-      const usersWithRoles = (data || []).map(profile => ({
-        ...profile,
-        role: profile.user_roles?.[0]?.role || profile.role || 'teacher',
-      }));
-
-      setUsers(usersWithRoles);
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
