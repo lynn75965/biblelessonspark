@@ -18,7 +18,7 @@ export function HowItWorksSection() {
       number: "STEP 3",
       icon: <FileText className="h-6 w-6 sm:h-7 sm:w-7 text-white" />,
       title: "Teach with Confidence",
-      description: "Get a complete, print-ready lesson with activities, discussion questions, and applications in under 8 minutes."
+      description: "Download your print-ready complete teaching transcript, teaching plan and student handout in less than 80 seconds."
     }
   ];
 
