@@ -27,8 +27,8 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             {/* Main headline */}
             <div className="space-y-3 sm:space-y-4">
               <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                <span className="gradient-text">In Less Than 8 Minutes</span>{" "}
-                <span className="block sm:inline">Transform Any Curriculum Into Just What Your Class Needs This Week</span>
+                <span className="gradient-text">In Less Than 7 Minutes</span>{" "}
+                <span className="block sm:inline">Compose A Bible Study With The Way You Teach, What You Teach, To Whom You Teach</span>
               </h1>
               
               <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
