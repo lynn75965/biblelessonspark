@@ -6,7 +6,11 @@ export function HowItWorksSection() {
       number: "STEP 1",
       icon: <Upload className="h-6 w-6 sm:h-7 sm:w-7 text-white" />,
       title: "Upload Your Lesson",
-      description: "Start with any curriculum onhand or simply provide a scripture or theme to study."
+      description: (
+        <>
+          Start with any <strong>curriculum</strong> onhand OR simply provide a <strong>scripture or theme</strong> to study.
+        </>
+      )
     },
     {
       number: "STEP 2", 
