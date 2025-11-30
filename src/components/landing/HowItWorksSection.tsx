@@ -8,7 +8,7 @@ export function HowItWorksSection() {
       title: "Upload Your Lesson",
       description: (
         <>
-          Start with any <strong>curriculum</strong> onhand <strong>OR</strong> simply provide a <strong>scripture or theme</strong> you plan to teach your class.
+          Start with any <strong>curriculum</strong> onhand <strong>OR</strong> simply provide a <strong>scripture or theme</strong> <strong className="gradient-text">you plan to teach your class.</strong>
         </>
       )
     },
