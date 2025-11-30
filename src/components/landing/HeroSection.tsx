@@ -27,8 +27,8 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             {/* Main headline */}
             <div className="space-y-3 sm:space-y-4">
               <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-                <span className="gradient-text">Transform your lesson prep</span>{" "}
-                <span className="block sm:inline">in three simple steps</span>
+                <span className="gradient-text">Use 3 Simple Steps</span>{" "}
+                <span className="block sm:inline">To Transform Your Lesson Prep</span>
               </h1>
               
               <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
