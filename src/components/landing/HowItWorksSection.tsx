@@ -16,7 +16,11 @@ export function HowItWorksSection() {
       number: "STEP 2", 
       icon: <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-white" />,
       title: "Customize for Your Class",
-      description: "Select specific descriptions of your teaching style and your class members -- the way you teach, the way they learn."
+      description: (
+        <>
+          Select specific descriptions of your teaching style and your class members -- <strong>the way you teach, the way they learn.</strong>
+        </>
+      )
     },
     {
       number: "STEP 3",
