@@ -33,7 +33,7 @@ export function HowItWorksSection() {
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold px-2">
             How It <span className="gradient-text">Works</span>
           </h2>
-          <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
+          <p className="text-sm sm:text-base lg:text-lg text-primary font-bold max-w-2xl mx-auto px-4">
             Transform your lesson prep in three simple steps
           </p>
         </div>
