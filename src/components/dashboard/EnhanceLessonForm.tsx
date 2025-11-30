@@ -1,4 +1,4 @@
-ï»¿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -133,10 +133,10 @@ export function EnhanceLessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!biblePassage && !focusedTopic) {
+    if (!biblePassage && !focusedTopic && !uploadedFile) {
       toast({
         title: "Missing information",
-        description: "Please provide either a Bible passage or a focused topic",
+        description: "Please provide a Bible passage, focused topic, or upload a curriculum file",
         variant: "destructive",
       });
       return;
@@ -492,7 +492,7 @@ export function EnhanceLessonForm({
                     .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
-                    .replace(/â€¢/g, "â€¢")
+                    .replace(/•/g, "•")
                     .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
