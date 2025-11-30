@@ -32,7 +32,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               </h1>
               
               <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-                You know your class. Curriculum writers know the material. Upload any Bible curriculum (or Bible passage or theme) and make it speak to the needs of your people everytime. God called you to teach people, not lessons.
+                You know your class. Curriculum writers know the material. Upload any Bible curriculum (or Bible passage or theme) and watch it speak to the needs of your people everytime. God called you to teach people, not lessons.
               </p>
             </div>
 
