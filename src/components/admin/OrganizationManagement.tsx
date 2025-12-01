@@ -14,7 +14,7 @@ import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil } from "lucide-re
 
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
-import { ORGANIZATION_VALIDATION } from "@/constants/validation";
+import { ORGANIZATION_VALIDATION, DENOMINATION_OPTIONS } from "@/constants/validation";
 
 interface Organization {
   id: string;
@@ -42,17 +42,6 @@ const ORG_STATUS = {
   APPROVED: ORGANIZATION_VALIDATION.STATUS_VALUES[1],
   REJECTED: ORGANIZATION_VALIDATION.STATUS_VALUES[2],
 } as const;
-
-// Denomination options (SSOT)
-const DENOMINATION_OPTIONS = [
-  "Southern Baptist Convention",
-  "Independent Baptist",
-  "Reformed Baptist",
-  "General Baptist",
-  "Missionary Baptist",
-  "Primitive Baptist",
-  "Other Baptist",
-] as const;
 
 export function OrganizationManagement() {
   const { toast } = useToast();
@@ -357,47 +346,6 @@ export function OrganizationManagement() {
     );
   };
 
-  // Shared form fields component
-  const OrgFormFields = () => (
-    <div className="space-y-4 py-4">
-      <div className="space-y-2">
-        <Label htmlFor="org-name">Organization Name *</Label>
-        <Input
-          id="org-name"
-          placeholder="First Baptist Church of..."
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          maxLength={ORGANIZATION_VALIDATION.NAME_MAX_LENGTH}
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="org-denomination">Denomination *</Label>
-        <select
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          value={formData.denomination}
-          onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
-        >
-          <option value="">Select denomination...</option>
-          {DENOMINATION_OPTIONS.map((denom) => (
-            <option key={denom} value={denom}>
-              {denom}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="org-description">Description</Label>
-        <Textarea
-          id="org-description"
-          placeholder="Brief description of the organization..."
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          rows={3}
-        />
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -435,7 +383,42 @@ export function OrganizationManagement() {
                       Add a new church organization to the platform
                     </DialogDescription>
                   </DialogHeader>
-                  <OrgFormFields />
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="create-org-name">Organization Name *</Label>
+                      <Input
+                        id="create-org-name"
+                        placeholder="First Baptist Church of..."
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        maxLength={ORGANIZATION_VALIDATION.NAME_MAX_LENGTH}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="create-org-denom">Denomination *</Label>
+                      <select
+                        id="create-org-denom"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={formData.denomination}
+                        onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
+                      >
+                        <option value="">Select denomination...</option>
+                        {DENOMINATION_OPTIONS.map((denom) => (
+                          <option key={denom} value={denom}>{denom}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="create-org-desc">Description</Label>
+                      <Textarea
+                        id="create-org-desc"
+                        placeholder="Brief description of the organization..."
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        rows={3}
+                      />
+                    </div>
+                  </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                       Cancel
@@ -517,7 +500,6 @@ export function OrganizationManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {/* Edit button - always available */}
                         <Button
                           size="sm"
                           variant="outline"
@@ -584,7 +566,42 @@ export function OrganizationManagement() {
               Update organization details
             </DialogDescription>
           </DialogHeader>
-          <OrgFormFields />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-org-name">Organization Name *</Label>
+              <Input
+                id="edit-org-name"
+                placeholder="First Baptist Church of..."
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                maxLength={ORGANIZATION_VALIDATION.NAME_MAX_LENGTH}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-org-denom">Denomination *</Label>
+              <select
+                id="edit-org-denom"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                value={formData.denomination}
+                onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
+              >
+                <option value="">Select denomination...</option>
+                {DENOMINATION_OPTIONS.map((denom) => (
+                  <option key={denom} value={denom}>{denom}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-org-desc">Description</Label>
+              <Textarea
+                id="edit-org-desc"
+                placeholder="Brief description of the organization..."
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+              />
+            </div>
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
               Cancel
@@ -607,19 +624,20 @@ export function OrganizationManagement() {
           </DialogHeader>
           <div className="py-4">
             <Label htmlFor="leader-select">Select User</Label>
-            <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-              <SelectTrigger className="mt-2">
-                <SelectValue placeholder="Choose a user..." />
-              </SelectTrigger>
-              <SelectContent className="z-[9999]" side="bottom" align="start">
-                {getAvailableUsers().map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.full_name || "Unnamed User"}
-                    {user.organization_role === ORG_ROLES.leader && " (Current Leader)"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              id="leader-select"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring mt-2"
+              value={selectedUserId}
+              onChange={(e) => setSelectedUserId(e.target.value)}
+            >
+              <option value="">Choose a user...</option>
+              {getAvailableUsers().map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.full_name || "Unnamed User"}
+                  {user.organization_role === ORG_ROLES.leader ? " (Current Leader)" : ""}
+                </option>
+              ))}
+            </select>
           </div>
           <DialogFooter>
             <Button

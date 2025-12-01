@@ -22,3 +22,17 @@ export type OrganizationStatus = typeof ORGANIZATION_VALIDATION.STATUS_VALUES[nu
 
 // Re-export ORG_ROLES from accessControl for validation use
 export { ORG_ROLES } from './accessControl';
+
+// Denomination options for organizations (SSOT)
+export const DENOMINATION_OPTIONS = [
+  "Southern Baptist Convention",
+  "National Baptist",
+  "Independent Baptist",
+  "Reformed Baptist",
+  "General Baptist",
+  "Missionary Baptist",
+  "Primitive Baptist",
+  "Other Baptist",
+] as const;
+
+export type DenominationType = typeof DENOMINATION_OPTIONS[number];
