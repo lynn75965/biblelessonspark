@@ -65,7 +65,7 @@ export default function Dashboard({
   const [totalPlatformUsers, setTotalPlatformUsers] = useState<number>(0);
 
   // SSOT: Determine user's effective role and access permissions
-  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userProfile?.organization_role);
+  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, useruserProfile?.organization_role);
   const hasOrgContext = hasOrganization;
 
   useEffect(() => {
@@ -410,12 +410,12 @@ export default function Dashboard({
           </TabsContent>
 
           {/* Members Tab - SSOT access control */}
-          {canAccessTab(effectiveRole, 'members', hasOrgContext) && profile?.organization_id && (
+          {canAccessTab(effectiveRole, 'members', hasOrgContext) && userProfile?.organization_id && (
             <TabsContent value="members" className="mt-6">
               <OrgMemberManagement
-                organizationId={profile.organization_id}
+                organizationId={userProfile.organization_id}
                 organizationName={currentOrgName || "Organization"}
-                isLeader={profile?.organization_role === ORG_ROLES.leader || profile?.organization_role === ORG_ROLES.coLeader || isAdmin}
+                isLeader={userProfile?.organization_role === ORG_ROLES.leader || userProfile?.organization_role === ORG_ROLES.coLeader || isAdmin}
               />
             </TabsContent>
           )}
