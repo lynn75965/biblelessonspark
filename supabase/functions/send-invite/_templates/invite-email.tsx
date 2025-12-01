@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Button,
   Container,
@@ -32,12 +32,12 @@ export const InviteEmail = ({
           Hello,
         </Text>
         <Text style={text}>
-          <strong>{inviterName}</strong> has invited you to join <strong>LessonSpark USA</strong>, 
-          the Baptist Bible Study Enhancement Platform powered by AI.
+          <strong>{inviterName}</strong> has invited you to join <strong>LessonSpark USA</strong>,
+          a Baptist Bible Study Enhancement Platform designed to help volunteer Sunday School teachers.
         </Text>
         <Text style={text}>
-          LessonSpark USA helps Baptist churches and teachers enhance their Bible study lessons 
-          with AI-powered tools, making lesson preparation faster and more effective.
+          LessonSpark USA helps Baptist churches and teachers create theologically-sound, 
+          age-appropriate Bible study lessons, making lesson preparation easier and more effective.
         </Text>
         <Section style={buttonContainer}>
           <Button href={inviteUrl} style={button}>
@@ -51,7 +51,7 @@ export const InviteEmail = ({
           {inviteUrl}
         </Text>
         <Text style={footer}>
-          This invitation was sent to <strong>{recipientEmail}</strong>. 
+          This invitation was sent to <strong>{recipientEmail}</strong>.
           If you weren't expecting this invitation, you can safely ignore this email.
         </Text>
         <Text style={footer}>
