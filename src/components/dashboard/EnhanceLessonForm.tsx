@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -146,7 +146,7 @@ export function EnhanceLessonForm({
         throw new Error('Authentication required');
       }
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseUrl = "https://hphebzdftpjbiudpfcrs.supabase.co";
       const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
         method: 'POST',
         headers: {
@@ -316,7 +316,7 @@ export function EnhanceLessonForm({
               )}
               {extractedContent && (
                 <div className="text-sm text-green-600">
-                  ✓ File content extracted ({extractedContent.length} characters)
+                  ? File content extracted ({extractedContent.length} characters)
                 </div>
               )}
             </div>
