@@ -75,7 +75,7 @@ export default function Dashboard({
       try {
       const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
         .from('profiles')
-        .select('preferred_age_group, organization_role')
+        .select('preferred_age_group, organization_role, organization_id')
         .eq('id', user.id)
         .single();
 
@@ -147,7 +147,7 @@ export default function Dashboard({
     try {
     const { data: profile } = await (await import('@/integrations/supabase/client')).supabase
       .from('profiles')
-      .select('preferred_age_group, org_setup_dismissed, organization_role')
+      .select('preferred_age_group, org_setup_dismissed, organization_role, organization_id')
       .eq('id', user.id)
       .single();
 
@@ -325,7 +325,7 @@ export default function Dashboard({
 
           {/* Private Beta Card - SSOT access control */}
           {canAccessFeature(effectiveRole, 'privateBetaCard', hasOrgContext) && (
-            <Card 
+            <Card
               className="bg-gradient-card cursor-pointer hover:shadow-md transition-shadow"
               onClick={() => setShowBetaHubModal(true)}
             >
@@ -410,15 +410,19 @@ export default function Dashboard({
           </TabsContent>
 
           {/* Members Tab - SSOT access control */}
-          {canAccessTab(effectiveRole, 'members', hasOrgContext) && userProfile?.organization_id && (
-            <TabsContent value="members" className="mt-6">
+          <TabsContent value="members" className="mt-6">
+            {canAccessTab(effectiveRole, 'members', hasOrgContext) && userProfile?.organization_id ? (
               <OrgMemberManagement
                 organizationId={userProfile.organization_id}
                 organizationName={currentOrgName || "Organization"}
                 isLeader={userProfile?.organization_role === ORG_ROLES.leader || userProfile?.organization_role === ORG_ROLES.coLeader || isAdmin}
               />
-            </TabsContent>
-          )}
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Loading organization data...
+              </div>
+            )}
+          </TabsContent>
 
           {/* Analytics Tab - SSOT access control */}
           {canAccessTab(effectiveRole, 'analytics', hasOrgContext) && (
@@ -568,5 +572,3 @@ export default function Dashboard({
     </div>
   );
 }
-
-
