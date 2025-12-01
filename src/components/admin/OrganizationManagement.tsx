@@ -379,7 +379,7 @@ export function OrganizationManagement() {
           <SelectTrigger>
             <SelectValue placeholder="Select denomination..." />
           </SelectTrigger>
-          <SelectContent className="z-[200]" position="popper" sideOffset={5}>
+          <SelectContent className="z-[9999]" side="bottom" align="start">
             {DENOMINATION_OPTIONS.map((denom) => (
               <SelectItem key={denom} value={denom}>
                 {denom}
@@ -614,7 +614,7 @@ export function OrganizationManagement() {
               <SelectTrigger className="mt-2">
                 <SelectValue placeholder="Choose a user..." />
               </SelectTrigger>
-              <SelectContent className="z-[200]" position="popper" sideOffset={5}>
+              <SelectContent className="z-[9999]" side="bottom" align="start">
                 {getAvailableUsers().map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.full_name || "Unnamed User"}
