@@ -2324,3 +2324,65 @@ Tables affected:
 - 751df3e: Fix send-invite SERVICE_ROLE_KEY
 - 89cf36e: Update admin password
 
+
+
+## Phase 11 Session - December 1, 2025
+
+### Task B2: Members Tab & Invite System ✅ COMPLETE
+
+**Issues Fixed:**
+1. **is_admin() function** - Added missing `AND role = 'admin'` filter (was returning true for any user in user_roles)
+2. **Dashboard.tsx** - Added `organization_id` to profile queries (lines 72, 136)
+3. **Dashboard.tsx** - Fixed Members TabsContent rendering logic
+4. **send-invite Edge Function** - Removed duplicate `serve(handler)` syntax error
+5. **useInvites.tsx** - Properly extracts error messages from Edge Function 400 responses
+
+**Git Commits:**
+- `2fb705a` - Dashboard organization_id fix
+- `5aa8fe7` - send-invite duplicate serve() fix
+- `d15ce37` - Error message extraction fix
+
+**Verification:**
+- Members tab loads correctly showing org members
+- Pending invites display properly
+- Invite validation errors show specific messages (e.g., "User with this email already exists")
+- Org Leader authorization working in Edge Function
+
+---
+
+## Phase 11: COMPLETE ✅
+
+**Summary:** Phase 11 completed all high-priority security hardening and organization role activation.
+
+| Task | Status | Description |
+|------|--------|-------------|
+| Task A: Search Path Security | ✅ COMPLETE | Fixed search_path for all Edge Functions |
+| Task B: Org Leader Role Activation | ✅ COMPLETE | accessControl.ts fully activated, no [FUTURE] markers |
+| Task B2: Members Tab & Invite System | ✅ COMPLETE | Fixed is_admin(), Dashboard queries, send-invite, error display |
+| Task C: Failed Access Logging | ⏸️ DEFERRED | Moved to Technical Debt (low priority) |
+
+---
+
+## Remaining Technical Debt (Updated 2025-12-01)
+
+### Task C: Failed Access Logging (Deferred from Phase 11)
+**Risk Level:** LOW
+**Priority:** Future enhancement (nice-to-have)
+**Discovered:** Phase 11 planning
+
+#### Issue Description
+RLS policies silently filter rows - they don't throw catchable errors. True "denied RLS access" logging at the database level would require workarounds that add overhead to every query.
+
+#### Why Deferred
+1. Edge Function logs already capture 401/403/400 errors with details
+2. RLS silent filtering is by design - no practical way to log denials
+3. Current Supabase Dashboard provides adequate security visibility
+4. Implementation complexity outweighs security benefit
+5. Low risk - security is enforced, just not logged at row level
+
+#### If Implemented Later
+- Create `security_access_log` table
+- Add trigger functions for explicit security events
+- Enhance Edge Functions with additional audit logging
+- Consider Supabase Log Drain for centralized logging
+
