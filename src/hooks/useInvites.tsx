@@ -1,25 +1,38 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+// SSOT Import
+import { ORG_ROLES } from '@/constants/accessControl';
+
 interface Invite {
+  id: string;
   email: string;
   token: string;
   created_at: string;
   claimed_at: string | null;
   claimed_by: string | null;
   created_by: string;
+  organization_id: string | null;
+}
+
+interface SendInviteOptions {
+  email: string;
+  role?: string;
+  organization_id?: string;
 }
 
 export function useInvites() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const sendInvite = async (email: string, role: string = 'teacher'): Promise<boolean> => {
+  const sendInvite = async (options: SendInviteOptions): Promise<boolean> => {
+    const { email, role = 'teacher', organization_id } = options;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-invite', {
-        body: { email, role },
+        body: { email, role, organization_id },
       });
 
       if (error) {
@@ -27,6 +40,15 @@ export function useInvites() {
         toast({
           title: 'Failed to send invite',
           description: error.message || 'Please try again later.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      if (data?.error) {
+        toast({
+          title: 'Failed to send invite',
+          description: data.error,
           variant: 'destructive',
         });
         return false;
@@ -47,6 +69,107 @@ export function useInvites() {
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Legacy support: string email parameter
+  const sendInviteLegacy = async (email: string, role: string = 'teacher'): Promise<boolean> => {
+    return sendInvite({ email, role });
+  };
+
+  const getInviteByToken = async (token: string): Promise<Invite | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('*')
+        .eq('token', token)
+        .is('claimed_at', null)
+        .single();
+
+      if (error) {
+        console.error('Error fetching invite:', error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching invite:', error);
+      return null;
+    }
+  };
+
+  const claimInvite = async (token: string): Promise<boolean> => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error('No authenticated user');
+        return false;
+      }
+
+      // Get the invite details first
+      const { data: invite, error: fetchError } = await supabase
+        .from('invites')
+        .select('*')
+        .eq('token', token)
+        .is('claimed_at', null)
+        .single();
+
+      if (fetchError || !invite) {
+        console.error('Error fetching invite to claim:', fetchError);
+        return false;
+      }
+
+      // Mark invite as claimed
+      const { error: claimError } = await supabase
+        .from('invites')
+        .update({
+          claimed_at: new Date().toISOString(),
+          claimed_by: user.id,
+        })
+        .eq('id', invite.id);
+
+      if (claimError) {
+        console.error('Error claiming invite:', claimError);
+        return false;
+      }
+
+      // If invite has organization_id, add user to organization
+      if (invite.organization_id) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            organization_id: invite.organization_id,
+            organization_role: ORG_ROLES.member, // New members join as 'member'
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          console.error('Error joining organization:', profileError);
+          // Don't fail the whole claim, just log the error
+          toast({
+            title: 'Partial success',
+            description: 'Account created but failed to join organization. Contact your organization leader.',
+            variant: 'destructive',
+          });
+        } else {
+          // Get org name for toast
+          const { data: org } = await supabase
+            .from('organizations')
+            .select('name')
+            .eq('id', invite.organization_id)
+            .single();
+
+          toast({
+            title: 'Welcome to the team!',
+            description: `You've joined ${org?.name || 'the organization'}.`,
+          });
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error claiming invite:', error);
+      return false;
     }
   };
 
@@ -82,19 +205,51 @@ export function useInvites() {
     }
   };
 
-  const revokeInvite = async (token: string): Promise<boolean> => {
+  const getOrgInvites = async (organizationId: string): Promise<Invite[]> => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('*')
+        .eq('organization_id', organizationId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching org invites:', error);
+        toast({
+          title: 'Failed to load invites',
+          description: error.message,
+          variant: 'destructive',
+        });
+        return [];
+      }
+
+      return data || [];
+    } catch (error: any) {
+      console.error('Error fetching org invites:', error);
+      toast({
+        title: 'Error',
+        description: 'An unexpected error occurred while loading invites.',
+        variant: 'destructive',
+      });
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelInvite = async (inviteId: string): Promise<boolean> => {
     setLoading(true);
     try {
       const { error } = await supabase
         .from('invites')
         .delete()
-        .eq('token', token)
-        .is('claimed_by', null);
+        .eq('id', inviteId);
 
       if (error) {
-        console.error('Error revoking invite:', error);
+        console.error('Error canceling invite:', error);
         toast({
-          title: 'Failed to revoke invite',
+          title: 'Failed to cancel invite',
           description: error.message,
           variant: 'destructive',
         });
@@ -102,15 +257,15 @@ export function useInvites() {
       }
 
       toast({
-        title: 'Invite revoked',
-        description: 'The invitation has been cancelled.',
+        title: 'Invite canceled',
+        description: 'The invitation has been canceled.',
       });
       return true;
     } catch (error: any) {
-      console.error('Error revoking invite:', error);
+      console.error('Error canceling invite:', error);
       toast({
         title: 'Error',
-        description: 'An unexpected error occurred while revoking the invite.',
+        description: 'An unexpected error occurred.',
         variant: 'destructive',
       });
       return false;
@@ -119,70 +274,22 @@ export function useInvites() {
     }
   };
 
-  const claimInvite = async (token: string): Promise<boolean> => {
-    setLoading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign up first to claim this invite.',
-          variant: 'destructive',
-        });
-        return false;
-      }
-
-      const { error } = await supabase
-        .from('invites')
-        .update({ 
-          claimed_by: user.id, 
-          claimed_at: new Date().toISOString() 
-        })
-        .eq('token', token)
-        .is('claimed_by', null);
-
-      if (error) {
-        console.error('Error claiming invite:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error: any) {
-      console.error('Error claiming invite:', error);
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getInviteByToken = async (token: string): Promise<Invite | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .is('claimed_by', null)
-        .single();
-
-      if (error) {
-        console.error('Error fetching invite:', error);
-        return null;
-      }
-
-      return data;
-    } catch (error: any) {
-      console.error('Error fetching invite:', error);
-      return null;
-    }
+  const resendInvite = async (invite: Invite): Promise<boolean> => {
+    return sendInvite({ 
+      email: invite.email, 
+      organization_id: invite.organization_id || undefined 
+    });
   };
 
   return {
     loading,
     sendInvite,
-    getMyInvites,
-    revokeInvite,
-    claimInvite,
+    sendInviteLegacy,
     getInviteByToken,
+    claimInvite,
+    getMyInvites,
+    getOrgInvites,
+    cancelInvite,
+    resendInvite,
   };
 }

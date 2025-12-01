@@ -14,31 +14,52 @@ import * as React from 'npm:react@18.3.1';
 interface InviteEmailProps {
   inviterName: string;
   inviteUrl: string;
-  recipientEmail: string;
+  recipientEmail?: string;
+  organizationName?: string;
 }
 
 export const InviteEmail = ({
   inviterName,
   inviteUrl,
   recipientEmail,
+  organizationName,
 }: InviteEmailProps) => (
   <Html>
     <Head />
-    <Preview>You've been invited to join LessonSpark USA</Preview>
+    <Preview>
+      {organizationName 
+        ? `You've been invited to join ${organizationName} on LessonSpark USA`
+        : "You've been invited to join LessonSpark USA"
+      }
+    </Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>You're Invited! 📖</Heading>
         <Text style={text}>
           Hello,
         </Text>
+        {organizationName ? (
+          <Text style={text}>
+            <strong>{inviterName}</strong> has invited you to join{' '}
+            <strong>{organizationName}</strong> on <strong>LessonSpark USA</strong>,
+            a Baptist Bible Study Enhancement Platform designed to help volunteer Sunday School teachers.
+          </Text>
+        ) : (
+          <Text style={text}>
+            <strong>{inviterName}</strong> has invited you to join <strong>LessonSpark USA</strong>,
+            a Baptist Bible Study Enhancement Platform designed to help volunteer Sunday School teachers.
+          </Text>
+        )}
         <Text style={text}>
-          <strong>{inviterName}</strong> has invited you to join <strong>LessonSpark USA</strong>,
-          a Baptist Bible Study Enhancement Platform designed to help volunteer Sunday School teachers.
-        </Text>
-        <Text style={text}>
-          LessonSpark USA helps Baptist churches and teachers create theologically-sound, 
+          LessonSpark USA helps Baptist churches and teachers create theologically-sound,
           age-appropriate Bible study lessons, making lesson preparation easier and more effective.
         </Text>
+        {organizationName && (
+          <Text style={text}>
+            Once you sign up, you'll automatically be added to <strong>{organizationName}</strong> 
+            and can start collaborating with your fellow teachers right away.
+          </Text>
+        )}
         <Section style={buttonContainer}>
           <Button href={inviteUrl} style={button}>
             Accept Invitation & Sign Up
@@ -51,47 +72,40 @@ export const InviteEmail = ({
           {inviteUrl}
         </Text>
         <Text style={footer}>
-          This invitation was sent to <strong>{recipientEmail}</strong>.
-          If you weren't expecting this invitation, you can safely ignore this email.
-        </Text>
-        <Text style={footer}>
-          © {new Date().getFullYear()} LessonSpark USA. All rights reserved.
+          If you did not expect this invitation, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
   </Html>
 );
 
-export default InviteEmail;
-
 const main = {
   backgroundColor: '#f6f9fc',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
 };
 
 const container = {
   backgroundColor: '#ffffff',
   margin: '0 auto',
-  padding: '20px 0 48px',
-  marginBottom: '64px',
+  padding: '40px 20px',
+  borderRadius: '8px',
+  maxWidth: '560px',
 };
 
 const h1 = {
-  color: '#333',
-  fontSize: '32px',
-  fontWeight: 'bold',
-  margin: '40px 0',
-  padding: '0',
+  color: '#1a1a1a',
+  fontSize: '24px',
+  fontWeight: '600',
+  lineHeight: '40px',
+  margin: '0 0 20px',
   textAlign: 'center' as const,
 };
 
 const text = {
-  color: '#333',
+  color: '#444',
   fontSize: '16px',
   lineHeight: '26px',
-  margin: '16px 0',
-  padding: '0 40px',
+  margin: '0 0 16px',
 };
 
 const buttonContainer = {
@@ -100,30 +114,28 @@ const buttonContainer = {
 };
 
 const button = {
-  backgroundColor: '#5469d4',
-  borderRadius: '8px',
+  backgroundColor: '#2563eb',
+  borderRadius: '6px',
   color: '#fff',
   fontSize: '16px',
-  fontWeight: 'bold',
+  fontWeight: '600',
   textDecoration: 'none',
   textAlign: 'center' as const,
-  display: 'inline-block',
-  padding: '12px 32px',
+  padding: '12px 24px',
 };
 
 const link = {
-  color: '#5469d4',
+  color: '#2563eb',
   fontSize: '14px',
-  textDecoration: 'underline',
-  margin: '16px 0',
-  padding: '0 40px',
+  lineHeight: '24px',
   wordBreak: 'break-all' as const,
 };
 
 const footer = {
-  color: '#8898aa',
+  color: '#898989',
   fontSize: '12px',
-  lineHeight: '16px',
-  margin: '16px 0',
-  padding: '0 40px',
+  lineHeight: '22px',
+  marginTop: '32px',
 };
+
+export default InviteEmail;

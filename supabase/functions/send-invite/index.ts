@@ -15,6 +15,7 @@ const corsHeaders = {
 interface InviteRequest {
   email: string;
   role?: string;
+  organization_id?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -38,7 +39,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
+
     if (authError || !user) {
       console.error("Auth error:", authError);
       return new Response(
@@ -47,19 +48,50 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { data: hasAdminRole, error: roleError } = await supabaseClient
-      .rpc("has_role", { _user_id: user.id, _role: 'admin' });
+    const { email, role = "teacher", organization_id }: InviteRequest = await req.json();
 
-    if (roleError || !hasAdminRole) {
-      console.error("Admin verification error:", roleError, "User:", user.id);
+    // Check authorization: Admin OR Org Leader
+    const { data: hasAdminRole } = await supabaseClient
+      .rpc("has_role", { _user_id: user.id, _role: "admin" });
+
+    let isOrgLeader = false;
+    let userOrgId: string | null = null;
+
+    if (!hasAdminRole) {
+      // Check if user is org leader
+      const { data: profile } = await supabaseClient
+        .from("profiles")
+        .select("organization_id, organization_role")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.organization_role === "leader" || profile?.organization_role === "co-leader") {
+        isOrgLeader = true;
+        userOrgId = profile.organization_id;
+      }
+    }
+
+    // Authorization check
+    if (!hasAdminRole && !isOrgLeader) {
       return new Response(
-        JSON.stringify({ error: "Only administrators can send invites" }),
+        JSON.stringify({ error: "Only administrators or organization leaders can send invites" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { email, role = "teacher" }: InviteRequest = await req.json();
+    // Org Leaders can only invite to their own org
+    let finalOrgId = organization_id;
+    if (isOrgLeader && !hasAdminRole) {
+      if (organization_id && organization_id !== userOrgId) {
+        return new Response(
+          JSON.stringify({ error: "You can only invite members to your own organization" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      finalOrgId = userOrgId;
+    }
 
+    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
       return new Response(
@@ -68,9 +100,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check if user already exists
     const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
-    
+
     if (existingUser) {
       return new Response(
         JSON.stringify({ error: "User with this email already exists" }),
@@ -78,31 +111,32 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check for existing pending invite
     const { data: existingInvite } = await supabaseClient
       .from("invites")
-      .select("id, claimed_by")
+      .select("id")
       .eq("email", email.toLowerCase())
-      .is("claimed_by", null)
+      .is("claimed_at", null)
       .single();
 
     if (existingInvite) {
       return new Response(
-        JSON.stringify({ error: "An unclaimed invite already exists for this email" }),
+        JSON.stringify({ error: "An invite has already been sent to this email" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const { data: inviterProfile } = await supabaseClient
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
+    // Generate invite token
+    const inviteToken = crypto.randomUUID();
 
+    // Create invite record
     const { data: invite, error: inviteError } = await supabaseClient
       .from("invites")
       .insert({
         email: email.toLowerCase(),
+        token: inviteToken,
         created_by: user.id,
+        organization_id: finalOrgId || null,
       })
       .select()
       .single();
@@ -115,50 +149,69 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Invite created:", invite);
+    // Get organization name if org invite
+    let orgName = null;
+    if (finalOrgId) {
+      const { data: org } = await supabaseClient
+        .from("organizations")
+        .select("name")
+        .eq("id", finalOrgId)
+        .single();
+      orgName = org?.name;
+    }
 
-    const signupUrl = `https://lessonsparkusa.com/auth?invite=${invite.token}`;
+    // Get inviter name
+    const { data: inviterProfile } = await supabaseClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
 
-    const html = await renderAsync(
+    const inviterName = inviterProfile?.full_name || "A LessonSpark USA administrator";
+
+    // Build invite URL
+    const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
+    const inviteUrl = `${baseUrl}/signup?invite=${inviteToken}`;
+
+    // Render email
+    const emailHtml = await renderAsync(
       React.createElement(InviteEmail, {
-        inviterName: inviterProfile?.full_name || "LessonSpark USA Team",
-        inviteUrl: signupUrl,
-        recipientEmail: email,
+        inviteUrl,
+        inviterName,
+        organizationName: orgName,
       })
     );
 
+    // Send email
     const { error: emailError } = await resend.emails.send({
-      from: "LessonSpark USA <support@lessonsparkusa.com>",
-      to: [email],
-      subject: "You're invited to join LessonSpark USA",
-      html,
+      from: "LessonSpark USA <noreply@lessonsparkusa.com>",
+      to: email,
+      subject: orgName 
+        ? `You've been invited to join ${orgName} on LessonSpark USA`
+        : "You've been invited to LessonSpark USA",
+      html: emailHtml,
     });
 
     if (emailError) {
       console.error("Error sending email:", emailError);
-    } else {
-      console.log("Invitation email sent to:", email);
+      // Don't fail - invite is created, email can be resent
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Invitation sent successfully",
-        token: invite.token
+      JSON.stringify({ 
+        success: true, 
+        message: `Invite sent to ${email}`,
+        invite_id: invite.id,
+        organization_id: finalOrgId,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
-    console.error("Error in send-invite function:", error);
+
+  } catch (error) {
+    console.error("Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: "An unexpected error occurred" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 };
