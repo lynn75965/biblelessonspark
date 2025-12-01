@@ -65,7 +65,7 @@ export default function Dashboard({
   const [totalPlatformUsers, setTotalPlatformUsers] = useState<number>(0);
 
   // SSOT: Determine user's effective role and access permissions
-  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, useruserProfile?.organization_role);
+  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userProfile?.organization_role);
   const hasOrgContext = hasOrganization;
 
   useEffect(() => {
