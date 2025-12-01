@@ -372,21 +372,18 @@ export function OrganizationManagement() {
       </div>
       <div className="space-y-2">
         <Label htmlFor="org-denomination">Denomination *</Label>
-        <Select
+        <select
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={formData.denomination}
-          onValueChange={(value) => setFormData({ ...formData, denomination: value })}
+          onChange={(e) => setFormData({ ...formData, denomination: e.target.value })}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select denomination..." />
-          </SelectTrigger>
-          <SelectContent className="z-[9999]" side="bottom" align="start">
-            {DENOMINATION_OPTIONS.map((denom) => (
-              <SelectItem key={denom} value={denom}>
-                {denom}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+          <option value="">Select denomination...</option>
+          {DENOMINATION_OPTIONS.map((denom) => (
+            <option key={denom} value={denom}>
+              {denom}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="space-y-2">
         <Label htmlFor="org-description">Description</Label>
