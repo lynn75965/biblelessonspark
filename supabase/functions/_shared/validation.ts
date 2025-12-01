@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Enhanced input validation for Edge Function
  * Prevents injection attacks, oversized inputs, and malformed data
  */
-
 export interface LessonRequest {
   bible_passage?: string;
   focused_topic?: string;
+  extracted_content?: string;
   age_group: string;
   theology_profile_id: string;
   additional_notes?: string;
@@ -30,9 +30,9 @@ export interface LessonRequest {
  * @throws Error if validation fails
  */
 export function validateLessonRequest(data: any): LessonRequest {
-  // Required field validation
-  if (!data.bible_passage && !data.focused_topic) {
-    throw new Error('Either bible_passage or focused_topic is required');
+  // Required field validation - now accepts extracted_content as alternative
+  if (!data.bible_passage && !data.focused_topic && !data.extracted_content) {
+    throw new Error('Either bible_passage, focused_topic, or extracted_content is required');
   }
 
   if (!data.age_group || typeof data.age_group !== 'string') {
@@ -54,6 +54,11 @@ export function validateLessonRequest(data: any): LessonRequest {
 
   if (data.additional_notes && data.additional_notes.length > 2000) {
     throw new Error('additional_notes must be 2000 characters or less');
+  }
+
+  // extracted_content can be large (up to 50000 chars for full curriculum documents)
+  if (data.extracted_content && data.extracted_content.length > 50000) {
+    throw new Error('extracted_content must be 50000 characters or less');
   }
 
   // String sanitization (remove potential XSS/injection attempts)
@@ -87,6 +92,7 @@ export function validateLessonRequest(data: any): LessonRequest {
   return {
     bible_passage: sanitizeString(data.bible_passage),
     focused_topic: sanitizeString(data.focused_topic),
+    extracted_content: sanitizeString(data.extracted_content),
     age_group: sanitizeString(data.age_group) || '',
     theology_profile_id: sanitizeString(data.theology_profile_id) || '',
     additional_notes: sanitizeString(data.additional_notes),

@@ -1,4 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+ï»¿import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
@@ -165,7 +165,7 @@ REQUIRED SIGNOFF:
 
 EXAMPLES:
 ? WRONG TEASER: "Discover what makes you unique - made in God's image"
-? RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meet—you might be surprised by what we uncover."
+? RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meetâ€”you might be surprised by what we uncover."
 
 ? WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
 ? RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
@@ -221,6 +221,7 @@ serve(async (req) => {
     const {
       bible_passage,
       focused_topic,
+      extracted_content,
       age_group,
       theology_profile_id,
       additional_notes,
@@ -240,8 +241,8 @@ serve(async (req) => {
       generate_teaser = false
     } = validatedData;
 
-    if (!bible_passage && !focused_topic) {
-      throw new Error('Either bible_passage or focused_topic is required');
+    if (!bible_passage && !focused_topic && !extracted_content) {
+      throw new Error('Either bible_passage, focused_topic, or extracted_content is required');
     }
 
     if (!age_group) {
@@ -271,6 +272,8 @@ serve(async (req) => {
       ageGroup: ageGroupData.label,
       passage: bible_passage,
       topic: focused_topic,
+      hasExtractedContent: !!extracted_content,
+      extractedContentLength: extracted_content?.length || 0,
       sectionCount: totalSections,
       includeTeaser: generate_teaser,
       wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${generate_teaser ? ' (+50-100 for teaser)' : ''}`
@@ -300,7 +303,7 @@ THEOLOGY PROFILE: ${theologyProfile.name}
 ${theologyProfile.description}
 
 Distinctives:
-${theologyProfile.distinctives.map((d) => `• ${d}`).join('\n')}
+${theologyProfile.distinctives.map((d) => `â€¢ ${d}`).join('\n')}
 
 Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical interpretation'}
 Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
@@ -354,7 +357,7 @@ ${generate_teaser ? '? Teaser appears more than once in the output' : ''}
 ? Any section ends mid-sentence or incomplete
 ? Word counts appear in section headers
 
-IF ANY CHECKBOX IS UNCHECKED: 
+IF ANY CHECKBOX IS UNCHECKED:
 GO BACK and fix that section NOW before outputting.
 
 ONLY output the lesson when ALL checkboxes are marked ?
@@ -391,15 +394,45 @@ Use Markdown formatting:
 DO NOT include word counts in section headers or anywhere in the output.
 `;
 
-    const lessonInput = bible_passage || focused_topic || 'General Bible Study';
+    // Build lesson input title for display
+    const lessonInput = bible_passage || focused_topic || (extracted_content ? 'Curriculum Enhancement' : 'General Bible Study');
 
-    const userPrompt = bible_passage
-      ? `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${generate_teaser ? '\n\nIMPORTANT: Generate a Student Teaser (50-100 words) and place it at the TOP of the lesson under "**STUDENT TEASER**" followed by "---". Do NOT repeat the teaser content anywhere else. The teaser must build anticipation through FELT NEEDS ONLY, with ZERO revelation of passage, topic, or theological content. MUST end with a compelling, time-neutral signoff.' : ''}`
-      : `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${generate_teaser ? '\n\nIMPORTANT: Generate a Student Teaser (50-100 words) and place it at the TOP of the lesson under "**STUDENT TEASER**" followed by "---". Do NOT repeat the teaser content anywhere else. The teaser must build anticipation through FELT NEEDS ONLY, with ZERO revelation of passage, topic, or theological content. MUST end with a compelling, time-neutral signoff.' : ''}`;
+    // Build user prompt based on input type
+    let userPrompt: string;
+    const teaserInstruction = generate_teaser 
+      ? '\n\nIMPORTANT: Generate a Student Teaser (50-100 words) and place it at the TOP of the lesson under "**STUDENT TEASER**" followed by "---". Do NOT repeat the teaser content anywhere else. The teaser must build anticipation through FELT NEEDS ONLY, with ZERO revelation of passage, topic, or theological content. MUST end with a compelling, time-neutral signoff.'
+      : '';
+
+    if (extracted_content) {
+      // Curriculum enhancement mode - use extracted content as the source
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson by ENHANCING the following curriculum content with deeper Baptist theological insights.
+
+EXISTING CURRICULUM TO ENHANCE:
+---
+${extracted_content}
+---
+
+${bible_passage ? `Bible Passage Focus: ${bible_passage}` : ''}
+${focused_topic ? `Topic Focus: ${focused_topic}` : ''}
+${additional_notes ? `Teacher Notes: ${additional_notes}` : ''}
+
+INSTRUCTIONS:
+1. Use the existing curriculum as your foundation
+2. Identify the Bible passage(s) and main themes from the content
+3. Enhance with deeper Baptist theological analysis
+4. Restructure into the ${totalSections}-section framework
+5. Add theological depth aligned with ${theologyProfile.name}
+6. Adapt language and activities for ${ageGroupData.label}${teaserInstruction}`;
+    } else if (bible_passage) {
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${teaserInstruction}`;
+    } else {
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${teaserInstruction}`;
+    }
 
     checkpoint = logTiming('Prompt built', checkpoint);
 
     console.log(`System prompt: ${systemPrompt.length} chars (~${Math.round(systemPrompt.length / 4)} tokens)`);
+    console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -447,7 +480,7 @@ DO NOT include word counts in section headers or anywhere in the output.
         if (teaserMatch) {
           teaserContent = teaserMatch[1].trim();
           console.log(`Teaser extracted: ${teaserContent.split(/\s+/).length} words`);
-          
+
           // Remove the teaser section from the lesson text so it doesn't appear twice
           generatedLesson = generatedLesson.replace(/\*\*STUDENT TEASER\*\*\s*[\s\S]*?---\s*/, '');
         } else {
@@ -464,6 +497,7 @@ DO NOT include word counts in section headers or anywhere in the output.
         filters: {
           bible_passage,
           focused_topic,
+          extracted_content: extracted_content ? `[${extracted_content.length} chars]` : null,
           age_group,
           theology_profile_id,
           teaching_style,
@@ -492,7 +526,9 @@ DO NOT include word counts in section headers or anywhere in the output.
           includesTeaser: generate_teaser && teaserContent !== null,
           teaser: teaserContent,
           generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
-          anthropicUsage: anthropicData.usage
+          anthropicUsage: anthropicData.usage,
+          wasEnhancement: !!extracted_content,
+          extractedContentLength: extracted_content?.length || 0
         }
       };
 
@@ -543,6 +579,3 @@ DO NOT include word counts in section headers or anywhere in the output.
     });
   }
 });
-
-
-
