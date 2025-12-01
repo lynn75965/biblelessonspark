@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Plus, Check, X, UserCog, RefreshCw } from "lucide-react";
+import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil } from "lucide-react";
 
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
@@ -38,10 +38,21 @@ interface UserProfile {
 
 // Status constants derived from SSOT
 const ORG_STATUS = {
-  PENDING: ORGANIZATION_VALIDATION.STATUS_VALUES[0],   // 'pending'
-  APPROVED: ORGANIZATION_VALIDATION.STATUS_VALUES[1],  // 'approved'
-  REJECTED: ORGANIZATION_VALIDATION.STATUS_VALUES[2],  // 'rejected'
+  PENDING: ORGANIZATION_VALIDATION.STATUS_VALUES[0],
+  APPROVED: ORGANIZATION_VALIDATION.STATUS_VALUES[1],
+  REJECTED: ORGANIZATION_VALIDATION.STATUS_VALUES[2],
 } as const;
+
+// Denomination options (SSOT)
+const DENOMINATION_OPTIONS = [
+  "Southern Baptist Convention",
+  "Independent Baptist",
+  "Reformed Baptist",
+  "General Baptist",
+  "Missionary Baptist",
+  "Primitive Baptist",
+  "Other Baptist",
+] as const;
 
 export function OrganizationManagement() {
   const { toast } = useToast();
@@ -49,11 +60,12 @@ export function OrganizationManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [assignLeaderDialogOpen, setAssignLeaderDialogOpen] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null);
   
-  // Create form state
-  const [newOrg, setNewOrg] = useState({
+  // Create/Edit form state
+  const [formData, setFormData] = useState({
     name: "",
     denomination: "",
     description: "",
@@ -61,6 +73,10 @@ export function OrganizationManagement() {
 
   // Assign leader state
   const [selectedUserId, setSelectedUserId] = useState("");
+
+  const resetForm = () => {
+    setFormData({ name: "", denomination: "", description: "" });
+  };
 
   const fetchOrganizations = async () => {
     setLoading(true);
@@ -104,7 +120,7 @@ export function OrganizationManagement() {
   }, []);
 
   const handleCreateOrganization = async () => {
-    if (!newOrg.name.trim()) {
+    if (!formData.name.trim()) {
       toast({
         title: "Validation Error",
         description: "Organization name is required",
@@ -113,10 +129,19 @@ export function OrganizationManagement() {
       return;
     }
 
-    if (newOrg.name.length < ORGANIZATION_VALIDATION.NAME_MIN_LENGTH) {
+    if (formData.name.length < ORGANIZATION_VALIDATION.NAME_MIN_LENGTH) {
       toast({
         title: "Validation Error",
         description: `Name must be at least ${ORGANIZATION_VALIDATION.NAME_MIN_LENGTH} characters`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.denomination) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a denomination",
         variant: "destructive",
       });
       return;
@@ -127,10 +152,10 @@ export function OrganizationManagement() {
       if (!user) throw new Error("Not authenticated");
 
       const { error } = await supabase.from("organizations").insert({
-        name: newOrg.name.trim(),
-        denomination: newOrg.denomination.trim() || null,
-        description: newOrg.description.trim() || null,
-        status: ORG_STATUS.APPROVED,  // SSOT reference
+        name: formData.name.trim(),
+        denomination: formData.denomination,
+        description: formData.description.trim() || null,
+        status: ORG_STATUS.APPROVED,
         created_by: user.id,
         approved_by: user.id,
         approved_at: new Date().toISOString(),
@@ -144,7 +169,7 @@ export function OrganizationManagement() {
       });
 
       setCreateDialogOpen(false);
-      setNewOrg({ name: "", denomination: "", description: "" });
+      resetForm();
       fetchOrganizations();
     } catch (error) {
       console.error("Error creating organization:", error);
@@ -156,6 +181,59 @@ export function OrganizationManagement() {
     }
   };
 
+  const handleEditOrganization = async () => {
+    if (!selectedOrg) return;
+
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Organization name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("organizations")
+        .update({
+          name: formData.name.trim(),
+          denomination: formData.denomination || null,
+          description: formData.description.trim() || null,
+        })
+        .eq("id", selectedOrg.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Organization updated successfully",
+      });
+
+      setEditDialogOpen(false);
+      setSelectedOrg(null);
+      resetForm();
+      fetchOrganizations();
+    } catch (error) {
+      console.error("Error updating organization:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update organization",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openEditDialog = (org: Organization) => {
+    setSelectedOrg(org);
+    setFormData({
+      name: org.name,
+      denomination: org.denomination || "",
+      description: org.description || "",
+    });
+    setEditDialogOpen(true);
+  };
+
   const handleApproveOrg = async (orgId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -164,7 +242,7 @@ export function OrganizationManagement() {
       const { error } = await supabase
         .from("organizations")
         .update({
-          status: ORG_STATUS.APPROVED,  // SSOT reference
+          status: ORG_STATUS.APPROVED,
           approved_by: user.id,
           approved_at: new Date().toISOString(),
         })
@@ -192,7 +270,7 @@ export function OrganizationManagement() {
     try {
       const { error } = await supabase
         .from("organizations")
-        .update({ status: ORG_STATUS.REJECTED })  // SSOT reference
+        .update({ status: ORG_STATUS.REJECTED })
         .eq("id", orgId);
 
       if (error) throw error;
@@ -228,7 +306,7 @@ export function OrganizationManagement() {
         .from("profiles")
         .update({
           organization_id: selectedOrg.id,
-          organization_role: ORG_ROLES.leader,  // SSOT reference
+          organization_role: ORG_ROLES.leader,
         })
         .eq("id", selectedUserId);
 
@@ -268,17 +346,60 @@ export function OrganizationManagement() {
 
   const getOrgLeader = (orgId: string) => {
     const leader = users.find(
-      (u) => u.organization_id === orgId && u.organization_role === ORG_ROLES.leader  // SSOT reference
+      (u) => u.organization_id === orgId && u.organization_role === ORG_ROLES.leader
     );
     return leader?.full_name || "Not assigned";
   };
 
   const getAvailableUsers = () => {
-    // Users without an organization or in the selected org
     return users.filter(
       (u) => !u.organization_id || u.organization_id === selectedOrg?.id
     );
   };
+
+  // Shared form fields component
+  const OrgFormFields = () => (
+    <div className="space-y-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="org-name">Organization Name *</Label>
+        <Input
+          id="org-name"
+          placeholder="First Baptist Church of..."
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          maxLength={ORGANIZATION_VALIDATION.NAME_MAX_LENGTH}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="org-denomination">Denomination *</Label>
+        <Select
+          value={formData.denomination}
+          onValueChange={(value) => setFormData({ ...formData, denomination: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select denomination..." />
+          </SelectTrigger>
+          <SelectContent>
+            {DENOMINATION_OPTIONS.map((denom) => (
+              <SelectItem key={denom} value={denom}>
+                {denom}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="org-description">Description</Label>
+        <Textarea
+          id="org-description"
+          placeholder="Brief description of the organization..."
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={3}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -300,7 +421,10 @@ export function OrganizationManagement() {
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+              <Dialog open={createDialogOpen} onOpenChange={(open) => {
+                setCreateDialogOpen(open);
+                if (!open) resetForm();
+              }}>
                 <DialogTrigger asChild>
                   <Button size="sm">
                     <Plus className="h-4 w-4 mr-2" />
@@ -314,37 +438,7 @@ export function OrganizationManagement() {
                       Add a new church organization to the platform
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="org-name">Organization Name *</Label>
-                      <Input
-                        id="org-name"
-                        placeholder="First Baptist Church of..."
-                        value={newOrg.name}
-                        onChange={(e) => setNewOrg({ ...newOrg, name: e.target.value })}
-                        maxLength={ORGANIZATION_VALIDATION.NAME_MAX_LENGTH}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="org-denomination">Denomination</Label>
-                      <Input
-                        id="org-denomination"
-                        placeholder="Southern Baptist Convention"
-                        value={newOrg.denomination}
-                        onChange={(e) => setNewOrg({ ...newOrg, denomination: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="org-description">Description</Label>
-                      <Textarea
-                        id="org-description"
-                        placeholder="Brief description of the organization..."
-                        value={newOrg.description}
-                        onChange={(e) => setNewOrg({ ...newOrg, description: e.target.value })}
-                        rows={3}
-                      />
-                    </div>
-                  </div>
+                  <OrgFormFields />
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
                       Cancel
@@ -426,6 +520,15 @@ export function OrganizationManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {/* Edit button - always available */}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditDialog(org)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        
                         {org.status === ORG_STATUS.PENDING && (
                           <>
                             <Button
@@ -468,6 +571,33 @@ export function OrganizationManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Organization Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(open) => {
+        setEditDialogOpen(open);
+        if (!open) {
+          setSelectedOrg(null);
+          resetForm();
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Organization</DialogTitle>
+            <DialogDescription>
+              Update organization details
+            </DialogDescription>
+          </DialogHeader>
+          <OrgFormFields />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditOrganization}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Assign Leader Dialog */}
       <Dialog open={assignLeaderDialogOpen} onOpenChange={setAssignLeaderDialogOpen}>
