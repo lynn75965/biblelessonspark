@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+ï»¿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -53,6 +53,8 @@ export function EnhanceLessonForm({
   const [notes, setNotes] = useState("");
   const [theologyProfileId, setTheologyProfileId] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [extractedContent, setExtractedContent] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
@@ -115,25 +117,77 @@ export function EnhanceLessonForm({
     return () => clearInterval(interval);
   }, [isSubmitting, isEnhancing]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // FIXED: handleFileChange now extracts content from uploaded file
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "File too large",
-          description: "Please upload a file smaller than 10MB",
-          variant: "destructive",
-        });
-        return;
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please upload a file smaller than 10MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploadedFile(file);
+    setIsExtracting(true);
+    setExtractedContent(null);
+
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('file', file);
+
+      const { data: { session } } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+
+      if (!authToken) {
+        throw new Error('Authentication required');
       }
-      setUploadedFile(file);
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Extraction failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.extractedText) {
+        setExtractedContent(result.extractedText);
+        toast({
+          title: "File processed successfully",
+          description: `Extracted ${result.extractedText.length} characters from ${file.name}`,
+        });
+      } else {
+        throw new Error(result.error || 'Failed to extract content');
+      }
+    } catch (error: any) {
+      console.error('File extraction error:', error);
+      setUploadedFile(null);
+      setExtractedContent(null);
+      toast({
+        title: "File processing failed",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtracting(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!biblePassage && !focusedTopic && !uploadedFile) {
+    if (!biblePassage && !focusedTopic && !extractedContent) {
       toast({
         title: "Missing information",
         description: "Please provide a Bible passage, focused topic, or upload a curriculum file",
@@ -184,6 +238,7 @@ export function EnhanceLessonForm({
         education_experience: educationExperience,
         generate_teaser: generateTeaser,
         uploaded_file: uploadedFile,
+        extracted_content: extractedContent,
       };
 
       const result = await enhanceLesson(enhancementData);
@@ -202,6 +257,7 @@ export function EnhanceLessonForm({
       setAgeGroup("");
       setNotes("");
       setUploadedFile(null);
+      setExtractedContent(null);
       setGenerateTeaser(false);
     } catch (error) {
       console.error("Error generating lesson:", error);
@@ -237,7 +293,7 @@ export function EnhanceLessonForm({
                   type="file"
                   accept=".pdf,.docx,.txt,.jpg,.jpeg"
                   onChange={handleFileChange}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isExtracting}
                   className="cursor-pointer"
                 />
                 {uploadedFile && (
@@ -245,13 +301,24 @@ export function EnhanceLessonForm({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setUploadedFile(null)}
-                    disabled={isSubmitting}
+                    onClick={() => { setUploadedFile(null); setExtractedContent(null); }}
+                    disabled={isSubmitting || isExtracting}
                   >
                     Clear
                   </Button>
                 )}
               </div>
+              {isExtracting && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Extracting content from file...</span>
+                </div>
+              )}
+              {extractedContent && (
+                <div className="text-sm text-green-600">
+                  âœ“ File content extracted ({extractedContent.length} characters)
+                </div>
+              )}
             </div>
 
             {/* 2. Bible Passage */}
@@ -406,11 +473,16 @@ export function EnhanceLessonForm({
               )}
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isEnhancing || isLimitReached}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isEnhancing || isLimitReached || isExtracting}>
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>Lesson Generating... {Math.round(generationProgress)}%</span>
+                </div>
+              ) : isExtracting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Extracting file content...</span>
                 </div>
               ) : (
                 <>
@@ -492,7 +564,7 @@ export function EnhanceLessonForm({
                     .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
-                    .replace(/•/g, "•")
+                    .replace(/\x95/g, "\x95")
                     .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
