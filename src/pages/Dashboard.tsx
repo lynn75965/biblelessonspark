@@ -34,7 +34,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationSetup } from "@/components/organization/OrganizationSetup";
-import { getEffectiveRole, canAccessTab, canAccessFeature, ROLES } from "@/constants/accessControl";
+import { getEffectiveRole, canAccessTab, canAccessFeature, ROLES, ORG_ROLES } from "@/constants/accessControl";
 
 interface DashboardProps {
   organizationName?: string;
