@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { Resend } from "npm:resend@2.0.0";
 import React from "npm:react@18.3.1";
@@ -18,13 +18,11 @@ interface InviteRequest {
 }
 
 const handler = async (req: Request): Promise<Response> => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get authorization header
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(
@@ -33,19 +31,14 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+    
     if (authError || !user) {
       console.error("Auth error:", authError);
       return new Response(
@@ -54,7 +47,6 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Verify user is admin using new role system
     const { data: hasAdminRole, error: roleError } = await supabaseClient
       .rpc("has_role", { _user_id: user.id, _role: 'admin' });
 
@@ -66,10 +58,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Parse request body
     const { email, role = "teacher" }: InviteRequest = await req.json();
 
-    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
       return new Response(
@@ -78,21 +68,16 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check if user already exists
-    const { data: existingProfile } = await supabaseClient
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
-
-    if (existingProfile) {
+    const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
+    const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    
+    if (existingUser) {
       return new Response(
         JSON.stringify({ error: "User with this email already exists" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Check if invite already exists and is unclaimed
     const { data: existingInvite } = await supabaseClient
       .from("invites")
       .select("id, claimed_by")
@@ -107,14 +92,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Get inviter info
     const { data: inviterProfile } = await supabaseClient
       .from("profiles")
       .select("full_name")
       .eq("id", user.id)
       .single();
 
-    // Create invite
     const { data: invite, error: inviteError } = await supabaseClient
       .from("invites")
       .insert({
@@ -134,10 +117,8 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Invite created:", invite);
 
-    // Generate signup URL with token
-    const signupUrl = `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app")}/auth?invite=${invite.token}`;
+    const signupUrl = `https://lessonsparkusa.com/auth?invite=${invite.token}`;
 
-    // Render email template
     const html = await renderAsync(
       React.createElement(InviteEmail, {
         inviterName: inviterProfile?.full_name || "LessonSpark USA Team",
@@ -146,7 +127,6 @@ const handler = async (req: Request): Promise<Response> => {
       })
     );
 
-    // Send email via Resend
     const { error: emailError } = await resend.emails.send({
       from: "LessonSpark USA <support@lessonsparkusa.com>",
       to: [email],
@@ -156,16 +136,15 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailError) {
       console.error("Error sending email:", emailError);
-      // Don't fail the request if email fails - invite is still created
     } else {
       console.log("Invitation email sent to:", email);
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: "Invitation sent successfully",
-        token: invite.token 
+        token: invite.token
       }),
       {
         status: 200,
