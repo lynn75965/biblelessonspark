@@ -202,7 +202,7 @@ export function UserManagement() {
                       <br />
                       <strong>Email:</strong> eckeberger@gmail.com
                       <br />
-                      <strong>Password:</strong> 3527Raguet
+                      <strong>Password:</strong> 3527Raguet#
                       <br />
                       <strong>Role:</strong> Administrator
                     </DialogDescription>
