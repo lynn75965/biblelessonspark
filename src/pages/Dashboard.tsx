@@ -34,6 +34,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationSetup } from "@/components/organization/OrganizationSetup";
+import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { getEffectiveRole, canAccessTab, canAccessFeature, ROLES, ORG_ROLES } from "@/constants/accessControl";
 
 interface DashboardProps {
@@ -409,28 +410,13 @@ export default function Dashboard({
           </TabsContent>
 
           {/* Members Tab - SSOT access control */}
-          {canAccessTab(effectiveRole, 'members', hasOrgContext) && (
+          {canAccessTab(effectiveRole, 'members', hasOrgContext) && profile?.organization_id && (
             <TabsContent value="members" className="mt-6">
-              <Card className="bg-gradient-card">
-                <CardHeader>
-                  <CardTitle>Organization Members</CardTitle>
-                  <CardDescription>
-                    Manage teachers and administrators for {currentOrgName}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Member Management Coming Soon</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Invite teachers, manage roles, and view member activity.
-                    </p>
-                    <Button variant="outline">
-                      Preview Member Features
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <OrgMemberManagement
+                organizationId={profile.organization_id}
+                organizationName={currentOrgName || "Organization"}
+                isLeader={profile?.organization_role === ORG_ROLES.leader || profile?.organization_role === ORG_ROLES.coLeader || isAdmin}
+              />
             </TabsContent>
           )}
 

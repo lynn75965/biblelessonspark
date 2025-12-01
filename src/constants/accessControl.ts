@@ -64,6 +64,7 @@ export const FEATURE_ACCESS = {
   // Platform Admin only
   betaHubModal: [ROLES.platformAdmin],
   privateBetaCard: [ROLES.platformAdmin],
+  platformStatsCard: [ROLES.platformAdmin],
   platformAnalytics: [ROLES.platformAdmin],
   createOrganization: [ROLES.platformAdmin],
   approveOrgRequests: [ROLES.platformAdmin],
