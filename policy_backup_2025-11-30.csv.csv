@@ -1,0 +1,103 @@
+policy_backup_sql
+"CREATE POLICY ""Admins can view audit logs"" ON public.admin_audit AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Service role can insert audit logs"" ON public.admin_audit AS PERMISSIVE FOR INSERT TO public WITH CHECK (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""Admin can insert settings"" ON public.app_settings AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid));"
+"CREATE POLICY ""Admin can update settings"" ON public.app_settings AS PERMISSIVE FOR UPDATE TO public USING ((auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid));"
+"CREATE POLICY ""Authenticated users can read settings"" ON public.app_settings AS PERMISSIVE FOR SELECT TO authenticated USING (true);"
+"CREATE POLICY ""Admin can view all feedback"" ON public.beta_feedback AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid));"
+"CREATE POLICY ""Users can insert their own feedback"" ON public.beta_feedback AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view their own feedback"" ON public.beta_feedback AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Admin can view all beta testers"" ON public.beta_testers AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid));"
+"CREATE POLICY ""Users can insert their own beta tester record"" ON public.beta_testers AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can update their own beta tester record"" ON public.beta_testers AS PERMISSIVE FOR UPDATE TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view their own beta tester record"" ON public.beta_testers AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Service role can manage credits"" ON public.credits_ledger AS PERMISSIVE FOR ALL TO public USING (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""Users can view own credits"" ON public.credits_ledger AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Admins can view all events"" ON public.events AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Users can insert own events"" ON public.events AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own events"" ON public.events AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Admins can view all feedback"" ON public.feedback AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Users can create own feedback"" ON public.feedback AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own feedback"" ON public.feedback AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Admins can view all invites"" ON public.invites AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Users can create invites"" ON public.invites AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = created_by));"
+"CREATE POLICY ""Users can update invites they created"" ON public.invites AS PERMISSIVE FOR UPDATE TO public USING ((auth.uid() = created_by));"
+"CREATE POLICY ""Users can view invites they created"" ON public.invites AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = created_by));"
+"CREATE POLICY ""admins can insert invites"" ON public.invites AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'admin'::app_role)))));"
+"CREATE POLICY ""admins can select invites"" ON public.invites AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'admin'::app_role)))));"
+"CREATE POLICY ""admins can update invite claim"" ON public.invites AS PERMISSIVE FOR UPDATE TO authenticated USING ((EXISTS ( SELECT 1
+   FROM user_roles ur
+  WHERE ((ur.user_id = auth.uid()) AND (ur.role = 'admin'::app_role))))) WITH CHECK (true);"
+"CREATE POLICY ""anon can read invite by token"" ON public.invites AS PERMISSIVE FOR SELECT TO anon USING (((claimed_by IS NULL) AND (now() < expires_at)));"
+"CREATE POLICY ""invites select anon"" ON public.invites AS PERMISSIVE FOR SELECT TO anon USING ((claimed_by IS NULL));"
+"CREATE POLICY ""invites_insert_auth_only"" ON public.invites AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK (true);"
+"CREATE POLICY ""invites_select_public"" ON public.invites AS PERMISSIVE FOR SELECT TO anon, authenticated USING (((claimed_by IS NULL) AND (expires_at > now())));"
+"CREATE POLICY ""invites_update_auth_only"" ON public.invites AS PERMISSIVE FOR UPDATE TO authenticated USING (true) WITH CHECK (true);"
+"CREATE POLICY ""public can read invite by token when unclaimed"" ON public.invites AS PERMISSIVE FOR SELECT TO anon USING ((claimed_by IS NULL));"
+"CREATE POLICY ""public_can_read_unclaimed_invite"" ON public.invites AS PERMISSIVE FOR SELECT TO anon, authenticated USING ((claimed_by IS NULL));"
+"CREATE POLICY ""service can insert invites"" ON public.invites AS PERMISSIVE FOR INSERT TO service_role WITH CHECK (true);"
+"CREATE POLICY ""service can update invites"" ON public.invites AS PERMISSIVE FOR UPDATE TO service_role USING (true) WITH CHECK (true);"
+"CREATE POLICY ""Admins can view all lessons"" ON public.lessons AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Org members can view org lessons"" ON public.lessons AS PERMISSIVE FOR SELECT TO public USING ((organization_id IN ( SELECT organization_members.organization_id
+   FROM organization_members
+  WHERE (organization_members.user_id = auth.uid()))));"
+"CREATE POLICY ""Users can create own lessons"" ON public.lessons AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can delete own lessons"" ON public.lessons AS PERMISSIVE FOR DELETE TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can update own lessons"" ON public.lessons AS PERMISSIVE FOR UPDATE TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own lessons"" ON public.lessons AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""lessons_delete_own"" ON public.lessons AS PERMISSIVE FOR DELETE TO authenticated USING ((user_id = auth.uid()));"
+"CREATE POLICY ""lessons_insert_own"" ON public.lessons AS PERMISSIVE FOR INSERT TO authenticated WITH CHECK ((user_id = auth.uid()));"
+"CREATE POLICY ""lessons_select_own"" ON public.lessons AS PERMISSIVE FOR SELECT TO authenticated USING ((user_id = auth.uid()));"
+"CREATE POLICY ""lessons_update_own"" ON public.lessons AS PERMISSIVE FOR UPDATE TO authenticated USING ((user_id = auth.uid())) WITH CHECK ((user_id = auth.uid()));"
+"CREATE POLICY ""Service role can insert notifications"" ON public.notifications AS PERMISSIVE FOR INSERT TO public WITH CHECK (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""Users can update own notifications"" ON public.notifications AS PERMISSIVE FOR UPDATE TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own notifications"" ON public.notifications AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Admins can view all organization contacts"" ON public.organization_contacts AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Organization admins can view org contacts"" ON public.organization_contacts AS PERMISSIVE FOR SELECT TO public USING ((EXISTS ( SELECT 1
+   FROM organization_members
+  WHERE ((organization_members.organization_id = organization_contacts.organization_id) AND (organization_members.user_id = auth.uid()) AND (organization_members.role = ANY (ARRAY['owner'::text, 'admin'::text]))))));"
+"CREATE POLICY ""Organization owners can manage contacts"" ON public.organization_contacts AS PERMISSIVE FOR ALL TO public USING ((has_role(auth.uid(), 'admin'::app_role) OR (EXISTS ( SELECT 1
+   FROM organization_members
+  WHERE ((organization_members.organization_id = organization_contacts.organization_id) AND (organization_members.user_id = auth.uid()) AND (organization_members.role = 'owner'::text))))));"
+"CREATE POLICY ""Admins can view all org members"" ON public.organization_members AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Org admins can add members"" ON public.organization_members AS PERMISSIVE FOR INSERT TO public WITH CHECK ((organization_id IN ( SELECT om.organization_id
+   FROM organization_members om
+  WHERE ((om.user_id = auth.uid()) AND (om.role = ANY (ARRAY['owner'::text, 'admin'::text]))))));"
+"CREATE POLICY ""Org owners can remove members"" ON public.organization_members AS PERMISSIVE FOR DELETE TO public USING ((EXISTS ( SELECT 1
+   FROM organization_members om
+  WHERE ((om.organization_id = organization_members.organization_id) AND (om.user_id = auth.uid()) AND (om.role = 'owner'::text)))));"
+"CREATE POLICY ""Org owners can update roles"" ON public.organization_members AS PERMISSIVE FOR UPDATE TO public USING ((EXISTS ( SELECT 1
+   FROM organization_members om
+  WHERE ((om.organization_id = organization_members.organization_id) AND (om.user_id = auth.uid()) AND (om.role = 'owner'::text)))));"
+"CREATE POLICY ""Users can join as member"" ON public.organization_members AS PERMISSIVE FOR INSERT TO public WITH CHECK (((user_id = auth.uid()) AND (role = 'member'::text)));"
+"CREATE POLICY ""Users can view own org members"" ON public.organization_members AS PERMISSIVE FOR SELECT TO public USING ((organization_id = get_user_organization_id(auth.uid())));"
+"CREATE POLICY ""Admins can view all organizations"" ON public.organizations AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Org owners can update org"" ON public.organizations AS PERMISSIVE FOR UPDATE TO public USING ((EXISTS ( SELECT 1
+   FROM organization_members
+  WHERE ((organization_members.organization_id = organizations.id) AND (organization_members.user_id = auth.uid()) AND (organization_members.role = 'owner'::text)))));"
+"CREATE POLICY ""Users can create organizations"" ON public.organizations AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = created_by));"
+"CREATE POLICY ""Users can view own organization"" ON public.organizations AS PERMISSIVE FOR SELECT TO public USING ((id IN ( SELECT organization_members.organization_id
+   FROM organization_members
+  WHERE (organization_members.user_id = auth.uid()))));"
+"CREATE POLICY ""Users can create own outputs"" ON public.outputs AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own outputs"" ON public.outputs AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Admins can view all profiles"" ON public.profiles AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Users can update own profile"" ON public.profiles AS PERMISSIVE FOR UPDATE TO public USING ((auth.uid() = id));"
+"CREATE POLICY ""Users can view own profile"" ON public.profiles AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = id));"
+"CREATE POLICY ""lsu_read_own_profile"" ON public.profiles AS PERMISSIVE FOR SELECT TO authenticated USING ((id = auth.uid()));"
+"CREATE POLICY ""Service role can manage rate limits"" ON public.rate_limits AS PERMISSIVE FOR ALL TO public USING (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""Users can create own refinements"" ON public.refinements AS PERMISSIVE FOR INSERT TO public WITH CHECK ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own refinements"" ON public.refinements AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can update own setup progress"" ON public.setup_progress AS PERMISSIVE FOR ALL TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Users can view own setup progress"" ON public.setup_progress AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"
+"CREATE POLICY ""Service role can manage stripe events"" ON public.stripe_events AS PERMISSIVE FOR ALL TO public USING (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""Plans are publicly readable"" ON public.subscription_plans AS PERMISSIVE FOR SELECT TO anon, authenticated USING (true);"
+"CREATE POLICY ""Admins can view all roles"" ON public.user_roles AS PERMISSIVE FOR SELECT TO public USING (has_role(auth.uid(), 'admin'::app_role));"
+"CREATE POLICY ""Service role can manage roles"" ON public.user_roles AS PERMISSIVE FOR ALL TO public USING (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""lsu_read_own_role"" ON public.user_roles AS PERMISSIVE FOR SELECT TO authenticated USING ((user_id = auth.uid()));"
+"CREATE POLICY ""Service role can manage subscriptions"" ON public.user_subscriptions AS PERMISSIVE FOR ALL TO public USING (((auth.jwt() ->> 'role'::text) = 'service_role'::text));"
+"CREATE POLICY ""Users can view own subscriptions"" ON public.user_subscriptions AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));"

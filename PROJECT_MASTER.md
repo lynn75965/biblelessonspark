@@ -2129,3 +2129,198 @@ All org features will follow established SSOT principles:
 ---
 
 
+
+## Phase 10: RLS Policy Standardization (2025-11-30)
+
+### Summary
+Comprehensive security refactor replacing all `{public}` role RLS policies with proper `{authenticated}` role policies aligned with frontend SSOT.
+
+### Problem Identified
+- Lovable.dev scaffolding created 80 RLS policies using `{public}` role instead of `{authenticated}`
+- Policy names were correct ("Users can...") but role assignment was wrong
+- `{public}` role grants access to EVERYONE including unauthenticated visitors
+
+### Solution Implemented
+- Dropped all 80 existing policies
+- Created 66 new SSOT-aligned policies across 22 tables
+- All policies now use `authenticated` or `service_role` (except 1 legitimate `anon` for invite claims)
+
+### Policy Pattern Applied
+
+| Policy Type | Role | Purpose |
+|-------------|------|---------|
+| `admin_full_access` | authenticated | Lynn's UUID gets ALL operations |
+| `users_*_own` | authenticated | Users access their own data only |
+| `service_role_access` | service_role | Backend Edge Functions |
+| `anon_claim_by_token` | anon | Invite claim links only (invites table) |
+
+### Tables Updated (22 total)
+admin_audit, app_settings, beta_feedback, beta_testers, credits_ledger, events, feedback, invites, lessons, notifications, organization_contacts, organization_members, organizations, outputs, profiles, rate_limits, refinements, setup_progress, stripe_events, subscription_plans, user_roles, user_subscriptions
+
+### Files Created
+- `policy_backup_2025-11-30.csv` - Backup of original 80 policies (rollback capability)
+- `rls_master_cleanup_phase10.sql` - Master cleanup script
+
+### Deferred Items (per SSOT [FUTURE] markers)
+The following were intentionally NOT implemented because accessControl.ts marks orgLeader and orgMember as [FUTURE]:
+
+| Feature | Current State | Future Implementation |
+|---------|---------------|----------------------|
+| orgLeader role policies | No RLS policies created | Add when role is activated |
+| orgMember role policies | No RLS policies created | Add when role is activated |
+| Organization lesson sharing | Individual owns only | Add org-scoped SELECT when ready |
+| Org invite creation | Admin only | Add orgLeader INSERT when ready |
+| Organization management | Admin only | Add orgLeader CRUD when ready |
+
+**Activation Trigger:** When ready to enable Org Leader functionality, update accessControl.ts to remove [FUTURE] markers, then create corresponding RLS policies.
+
+### Verification Completed
+- No `{public}` role policies remain (0 rows)
+- Admin login works
+- User lessons visible
+- Lesson generation works
+
+### SSOT Conformance
+- Frontend Drives Backend - RLS enforces accessControl.ts definitions
+- Admin Has All Control - platformAdmin UUID has ALL operations
+- Individual = Own Data - user_id/id = auth.uid() pattern
+- Org Roles Deferred - No premature org policies created
+
+## Remaining Technical Debt (As of 2025-11-30)
+
+### Function Search Path Security (Deferred from Phase 10)
+
+**Risk Level:** LOW
+**Priority:** Phase 11 or later
+**Discovered:** Lovable.dev security scan, evaluated 2025-11-30
+
+#### Issue Description
+14 database functions in the public schema either lack explicit `search_path` settings or use `public` schema. This is a theoretical security risk where an attacker with CREATE privileges could potentially hijack function calls.
+
+#### Why Deferred
+1. Risk is theoretical - attacker would need database CREATE privileges
+2. Functions work correctly in production
+3. Fixing requires recreating all 14 functions with updated definitions
+4. Low priority compared to RLS policy fixes (which were critical)
+5. Database functions are not part of frontend SSOT - lower architectural priority
+
+#### Functions Requiring Attention
+
+| Function | Current Status | Purpose |
+|----------|----------------|---------|
+| `handle_new_user` | No search_path set | Trigger for new user creation |
+| `handle_updated_at` | No search_path set | Trigger for timestamp updates |
+| `allocate_monthly_credits` | Uses public schema | Monthly credit allocation |
+| `cleanup_old_rate_limits` | Uses public schema | Rate limit maintenance |
+| `deduct_credits` | Uses public schema | Credit deduction operations |
+| `get_all_users_for_admin` | Uses public schema | Admin user listing |
+| `get_credits_balance` | Uses public schema | Credit balance lookup |
+| `get_user_organization` | Uses public schema | Org membership lookup |
+| `get_user_organization_id` | Uses public schema | Org ID lookup |
+| `has_role` | Uses public schema | Role checking |
+| `is_admin` | Uses public schema | Admin verification |
+| `log_profile_role_changes` | Uses public schema | Audit logging trigger |
+| `log_security_event` | Uses public schema | Security event logging |
+| `update_updated_at_column` | Uses public schema | Timestamp trigger |
+
+#### Recommended Fix (When Addressed)
+For each function, add explicit search_path setting:
+```sql
+ALTER FUNCTION function_name(...) SET search_path = public, pg_temp;
+```
+
+Or recreate with SECURITY DEFINER and explicit search_path:
+```sql
+CREATE OR REPLACE FUNCTION function_name(...)
+RETURNS ... 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $`$
+  -- function body
+$`$;
+```
+
+#### Acceptance Criteria for Closure
+- [ ] All 14 functions have explicit search_path set
+- [ ] Functions tested and verified working
+- [ ] No regression in lesson generation or user operations
+
+## Phase 11: Planned Implementation (Ready to Execute)
+
+### Overview
+Phase 11 continues security hardening and activates organization roles per SSOT.
+
+### Planned Tasks
+
+#### Task A: Function Search Path Security Hardening
+**Status:** Ready to execute
+**Priority:** Medium
+**Scope:** 14 database functions need explicit search_path settings
+
+Functions to update:
+- handle_new_user, handle_updated_at (no search_path)
+- allocate_monthly_credits, cleanup_old_rate_limits, deduct_credits
+- get_all_users_for_admin, get_credits_balance, get_user_organization
+- get_user_organization_id, has_role, is_admin
+- log_profile_role_changes, log_security_event, update_updated_at_column
+
+#### Task B: Org Leader Role Activation
+**Status:** Requires business decisions during implementation
+**Priority:** High
+**Scope:** 
+- Update accessControl.ts to remove [FUTURE] markers from orgLeader
+- Define orgLeader permissions in frontend SSOT
+- Create corresponding RLS policies
+- Update organization-related tables with org-scoped policies
+
+Tables affected:
+- organizations (orgLeader CRUD for own org)
+- organization_members (orgLeader manage members)
+- organization_contacts (orgLeader manage contacts)
+- invites (orgLeader create org invites)
+- lessons (org sharing - orgLeader/orgMember view org lessons)
+
+#### Task C: Failed Access Logging
+**Status:** Ready to execute
+**Priority:** Low (nice-to-have)
+**Scope:** 
+- Create trigger functions to log denied RLS access attempts
+- Create security_access_log table
+- Implement monitoring for security events
+
+### Prerequisites Completed
+- Phase 10 RLS Policy Standardization complete
+- All {public} role policies eliminated
+- SSOT-aligned policy pattern established
+- Backup and rollback capability in place
+
+## Phase 11 Session - November 30, 2025
+
+### Task A: Search Path Security Hardening ✅ COMPLETE
+- Fixed search_path security warnings for all Edge Functions
+
+### File Extraction Pipeline ✅ COMPLETE
+- Created extract-lesson Edge Function (TXT, PDF, DOCX, JPG, JPEG, PNG support)
+- Claude Vision API integration for image OCR
+- Updated validation.ts: extracted_content field (50,000 char limit)
+- Updated generate-lesson: Curriculum Enhancement Mode
+- Fixed EnhanceLessonForm.tsx: Hardcoded Supabase URL
+
+### Send-Invite Fix ✅ COMPLETE
+- Changed ANON_KEY to SERVICE_ROLE_KEY
+- Fixed signup URL to lessonsparkusa.com
+- Updated email template (removed AI references)
+
+### Setup-Lynn-Admin Fix ✅ COMPLETE
+- Updated password to meet Supabase requirements (3527Raguet#)
+- Fixed in UserManagement.tsx and Edge Function
+- Redeployed setup-lynn-admin
+
+### Git Commits
+- 42ab691: Fix Supabase URL for extract-lesson
+- 5a44a25: Add extract-lesson Edge Function
+- 69217c6: Add extracted_content to generate-lesson
+- 751df3e: Fix send-invite SERVICE_ROLE_KEY
+- 89cf36e: Update admin password
+

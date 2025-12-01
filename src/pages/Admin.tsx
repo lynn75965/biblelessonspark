@@ -7,9 +7,10 @@ import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDash
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp } from "lucide-react";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp , Building2} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
+import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { useToast } from "@/hooks/use-toast";
 import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 
@@ -154,10 +155,14 @@ export default function Admin() {
 
         {/* Admin Tabs */}
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7">
             <TabsTrigger value="users">
               <Users className="h-4 w-4 mr-2" />
               User Management
+            </TabsTrigger>
+            <TabsTrigger value="organizations">
+              <Building2 className="h-4 w-4 mr-2" />
+              Organizations
             </TabsTrigger>
             <TabsTrigger value="beta">
               <Rocket className="h-4 w-4 mr-2" />
@@ -183,6 +188,10 @@ export default function Admin() {
 
           <TabsContent value="users" className="mt-6">
             <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="organizations" className="mt-6">
+            <OrganizationManagement />
           </TabsContent>
 
           <TabsContent value="beta" className="mt-6">

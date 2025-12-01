@@ -26,7 +26,7 @@ serve(async (req) => {
 
   try {
     const email = 'eckeberger@gmail.com';
-    const password = '3527Raguet';
+    const password = '3527Raguet#';
     const fullName = 'Lynn Eckeberger';
     const profileId = 'd060b78e-0924-4dc6-9715-c2a47a6a2834';
 
