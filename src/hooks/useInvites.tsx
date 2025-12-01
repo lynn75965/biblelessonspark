@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,7 +28,7 @@ export function useInvites() {
 
   const sendInvite = async (options: SendInviteOptions): Promise<boolean> => {
     const { email, role = 'teacher', organization_id } = options;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('send-invite', {
@@ -37,9 +37,26 @@ export function useInvites() {
 
       if (error) {
         console.error('Error sending invite:', error);
+        
+        // Extract error message from Edge Function response
+        // supabase.functions.invoke puts non-2xx response body in error.context
+        let errorMessage = 'Please try again later.';
+        
+        if (error.context) {
+          try {
+            // error.context is the Response object for non-2xx status codes
+            const responseBody = await error.context.json();
+            errorMessage = responseBody.error || responseBody.message || errorMessage;
+          } catch {
+            errorMessage = error.message || errorMessage;
+          }
+        } else {
+          errorMessage = error.message || errorMessage;
+        }
+        
         toast({
           title: 'Failed to send invite',
-          description: error.message || 'Please try again later.',
+          description: errorMessage,
           variant: 'destructive',
         });
         return false;
@@ -145,7 +162,6 @@ export function useInvites() {
 
         if (profileError) {
           console.error('Error joining organization:', profileError);
-          // Don't fail the whole claim, just log the error
           toast({
             title: 'Partial success',
             description: 'Account created but failed to join organization. Contact your organization leader.',
@@ -275,9 +291,9 @@ export function useInvites() {
   };
 
   const resendInvite = async (invite: Invite): Promise<boolean> => {
-    return sendInvite({ 
-      email: invite.email, 
-      organization_id: invite.organization_id || undefined 
+    return sendInvite({
+      email: invite.email,
+      organization_id: invite.organization_id || undefined
     });
   };
 
