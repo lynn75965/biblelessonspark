@@ -212,16 +212,7 @@ export function EnhanceLessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // DEBUG: Log state values at submit time
-    console.log("DEBUG handleSubmit:", {
-      inputMode,
-      pastedContentLength: pastedContent.length,
-      pastedContentTrimmed: pastedContent.trim().substring(0, 50),
-      extractedContentLength: extractedContent?.length || 0,
-    });
-
-    const effectiveContent = getEffectiveContent();
-    console.log("DEBUG effectiveContent:", effectiveContent ? effectiveContent.substring(0, 50) + "..." : "NULL");
+        const effectiveContent = getEffectiveContent();
 
     if (!biblePassage && !focusedTopic && !effectiveContent) {
       toast({
