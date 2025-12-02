@@ -1,4 +1,15 @@
-﻿import { useState, useEffect } from "react";
+﻿/**
+ * EnhanceLessonForm Component
+ * Main form for generating Baptist-enhanced Bible study lessons
+ * 
+ * Updated: December 2025
+ * - Integrated useTeacherProfiles hook for profile management
+ * - Auto-loads default profile on form open
+ * - Passes profile management props to TeacherCustomization
+ * - Lesson X of Y for Part of Series (not saved in profile)
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,13 +20,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, BookOpen, Loader2, Star, FileText, Type } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
+import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
+import { TeacherPreferences, DEFAULT_TEACHER_PREFERENCES } from "@/constants/teacherPreferences";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
 
 interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
@@ -28,6 +45,10 @@ interface EnhanceLessonFormProps {
   onClearViewing?: () => void;
 }
 
+// ============================================================================
+// HELPERS
+// ============================================================================
+
 const extractLessonTitle = (content: string): string | null => {
   if (!content) return null;
   const lines = content.split("\n");
@@ -37,6 +58,10 @@ const extractLessonTitle = (content: string): string | null => {
   }
   return null;
 };
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export function EnhanceLessonForm({
   onLessonGenerated,
@@ -48,6 +73,10 @@ export function EnhanceLessonForm({
   viewingLesson,
   onClearViewing,
 }: EnhanceLessonFormProps) {
+  // ============================================================================
+  // CORE FORM STATE
+  // ============================================================================
+  
   const [biblePassage, setBiblePassage] = useState("");
   const [focusedTopic, setFocusedTopic] = useState("");
   const [ageGroup, setAgeGroup] = useState("");
@@ -63,26 +92,133 @@ export function EnhanceLessonForm({
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
 
+  // ============================================================================
+  // TEACHER CUSTOMIZATION STATE (13 profile fields)
+  // ============================================================================
+
   const [teachingStyle, setTeachingStyle] = useState("");
+  const [learningStyle, setLearningStyle] = useState("");
   const [lessonLength, setLessonLength] = useState("");
-  const [activityTypes, setActivityTypes] = useState<string[]>([]);
-  const [language, setLanguage] = useState("english");
   const [classSetting, setClassSetting] = useState("");
   const [learningEnvironment, setLearningEnvironment] = useState("");
   const [studentExperience, setStudentExperience] = useState("");
+  const [educationExperience, setEducationExperience] = useState("");
   const [culturalContext, setCulturalContext] = useState("");
   const [specialNeeds, setSpecialNeeds] = useState("");
   const [lessonSequence, setLessonSequence] = useState("");
   const [assessmentStyle, setAssessmentStyle] = useState("");
-  const [learningStyle, setLearningStyle] = useState("");
-  const [educationExperience, setEducationExperience] = useState("");
+  const [language, setLanguage] = useState("english");
+  const [activityTypes, setActivityTypes] = useState<string[]>([]);
+
+  // Part of Series position (NOT saved in profile)
+  const [lessonNumber, setLessonNumber] = useState(1);
+  const [totalLessons, setTotalLessons] = useState(3);
+
+  // Currently loaded profile ID
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
+
+  // ============================================================================
+  // HOOKS
+  // ============================================================================
 
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { isLimitReached, lessonsUsed, lessonsAllowed, hoursUntilReset, errorMessage: rateLimitError, refreshRateLimit } = useRateLimit();
   const { toast } = useToast();
+  
+  // Teacher Profiles Hook
+  const {
+    profiles,
+    defaultProfile,
+    isLoading: isLoadingProfiles,
+    isSaving: isSavingProfile,
+    createProfile,
+    updateProfile,
+    deleteProfile,
+    refreshProfiles,
+  } = useTeacherProfiles();
 
   // Generate accept attribute from SSOT constant
   const fileAcceptTypes = ALLOWED_FILE_TYPES.join(',');
+
+  // ============================================================================
+  // PROFILE MANAGEMENT
+  // ============================================================================
+
+  // Load a profile's preferences into form fields
+  const loadProfileIntoForm = useCallback((profile: TeacherPreferenceProfile) => {
+    const prefs = profile.preferences;
+    setTeachingStyle(prefs.teachingStyle || "");
+    setLearningStyle(prefs.learningStyle || "");
+    setLessonLength(prefs.lessonLength || "");
+    setClassSetting(prefs.groupSize || "");
+    setLearningEnvironment(prefs.learningEnvironment || "");
+    setStudentExperience(prefs.studentExperience || "");
+    setEducationExperience(prefs.educationExperience || "");
+    setCulturalContext(prefs.culturalContext || "");
+    setSpecialNeeds(prefs.specialNeeds || "");
+    setLessonSequence(prefs.lessonSequence || "");
+    setAssessmentStyle(prefs.assessmentStyle || "");
+    setLanguage(prefs.language || "english");
+    setActivityTypes(prefs.activityTypes || []);
+    setCurrentProfileId(profile.id);
+    
+    // Reset series position when loading profile
+    setLessonNumber(1);
+    setTotalLessons(3);
+  }, []);
+
+  // Auto-load default profile on mount
+  useEffect(() => {
+    if (defaultProfile && !currentProfileId) {
+      loadProfileIntoForm(defaultProfile);
+    }
+  }, [defaultProfile, currentProfileId, loadProfileIntoForm]);
+
+  // Handle profile load from dropdown
+  const handleLoadProfile = useCallback((profile: TeacherPreferenceProfile) => {
+    loadProfileIntoForm(profile);
+    toast({
+      title: "Profile loaded",
+      description: `"${profile.profile_name}" preferences applied`,
+    });
+  }, [loadProfileIntoForm, toast]);
+
+  // Handle save profile
+  const handleSaveProfile = useCallback(
+    async (name: string, preferences: TeacherPreferences, isDefault: boolean) => {
+      const result = await createProfile(name, preferences, isDefault);
+      if (result) {
+        setCurrentProfileId(result.id);
+      }
+      return result;
+    },
+    [createProfile]
+  );
+
+  // Handle update profile
+  const handleUpdateProfile = useCallback(
+    async (id: string, name: string, preferences: TeacherPreferences, isDefault: boolean) => {
+      const success = await updateProfile(id, name, preferences, isDefault);
+      return success;
+    },
+    [updateProfile]
+  );
+
+  // Handle delete profile
+  const handleDeleteProfile = useCallback(
+    async (id: string) => {
+      const success = await deleteProfile(id);
+      if (success && currentProfileId === id) {
+        setCurrentProfileId(null);
+      }
+      return success;
+    },
+    [deleteProfile, currentProfileId]
+  );
+
+  // ============================================================================
+  // USER PROFILE FETCH
+  // ============================================================================
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -105,6 +241,10 @@ export function EnhanceLessonForm({
     fetchUserProfile();
   }, []);
 
+  // ============================================================================
+  // PROGRESS TIMER
+  // ============================================================================
+
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (isSubmitting || isEnhancing) {
@@ -122,6 +262,10 @@ export function EnhanceLessonForm({
     }
     return () => clearInterval(interval);
   }, [isSubmitting, isEnhancing]);
+
+  // ============================================================================
+  // FILE HANDLING
+  // ============================================================================
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -209,10 +353,14 @@ export function EnhanceLessonForm({
     return null;
   };
 
+  // ============================================================================
+  // FORM SUBMISSION
+  // ============================================================================
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-        const effectiveContent = getEffectiveContent();
+    const effectiveContent = getEffectiveContent();
 
     if (!biblePassage && !focusedTopic && !effectiveContent) {
       toast({
@@ -251,18 +399,20 @@ export function EnhanceLessonForm({
         theology_profile_id: theologyProfileId,
         additional_notes: notes,
         teaching_style: teachingStyle,
+        learning_style: learningStyle,
         lesson_length: lessonLength,
-        activity_types: activityTypes,
-        language: language,
         class_setting: classSetting,
         learning_environment: learningEnvironment,
         student_experience: studentExperience,
+        education_experience: educationExperience,
         cultural_context: culturalContext,
         special_needs: specialNeeds,
         lesson_sequence: lessonSequence,
+        lesson_number: lessonSequence === "part_of_series" ? lessonNumber : null,
+        total_lessons: lessonSequence === "part_of_series" ? totalLessons : null,
         assessment_style: assessmentStyle,
-        learning_style: learningStyle,
-        education_experience: educationExperience,
+        language: language,
+        activity_types: activityTypes,
         generate_teaser: generateTeaser,
         uploaded_file: inputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
@@ -287,12 +437,19 @@ export function EnhanceLessonForm({
       setExtractedContent(null);
       setPastedContent("");
       setGenerateTeaser(false);
+      
+      // Reset series position but keep profile loaded
+      setLessonNumber(1);
     } catch (error) {
       console.error("Error generating lesson:", error);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
 
   const currentLesson = viewingLesson || generatedLesson?.lesson;
   const displayTitle = currentLesson ? (extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson") : "Generated Lesson";
@@ -495,18 +652,18 @@ export function EnhanceLessonForm({
               <TeacherCustomization
                 teachingStyle={teachingStyle}
                 setTeachingStyle={setTeachingStyle}
+                learningStyle={learningStyle}
+                setLearningStyle={setLearningStyle}
                 lessonLength={lessonLength}
                 setLessonLength={setLessonLength}
-                activityTypes={activityTypes}
-                setActivityTypes={setActivityTypes}
-                language={language}
-                setLanguage={setLanguage}
                 classSetting={classSetting}
                 setClassSetting={setClassSetting}
                 learningEnvironment={learningEnvironment}
                 setLearningEnvironment={setLearningEnvironment}
                 studentExperience={studentExperience}
                 setStudentExperience={setStudentExperience}
+                educationExperience={educationExperience}
+                setEducationExperience={setEducationExperience}
                 culturalContext={culturalContext}
                 setCulturalContext={setCulturalContext}
                 specialNeeds={specialNeeds}
@@ -515,10 +672,21 @@ export function EnhanceLessonForm({
                 setLessonSequence={setLessonSequence}
                 assessmentStyle={assessmentStyle}
                 setAssessmentStyle={setAssessmentStyle}
-                learningStyle={learningStyle}
-                setLearningStyle={setLearningStyle}
-                educationExperience={educationExperience}
-                setEducationExperience={setEducationExperience}
+                language={language}
+                setLanguage={setLanguage}
+                activityTypes={activityTypes}
+                setActivityTypes={setActivityTypes}
+                lessonNumber={lessonNumber}
+                setLessonNumber={setLessonNumber}
+                totalLessons={totalLessons}
+                setTotalLessons={setTotalLessons}
+                profiles={profiles}
+                currentProfileId={currentProfileId}
+                onSaveProfile={handleSaveProfile}
+                onUpdateProfile={handleUpdateProfile}
+                onLoadProfile={handleLoadProfile}
+                onDeleteProfile={handleDeleteProfile}
+                isSavingProfile={isSavingProfile}
                 disabled={isSubmitting}
               />
             </div>

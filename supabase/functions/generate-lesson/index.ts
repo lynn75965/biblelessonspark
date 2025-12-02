@@ -274,6 +274,7 @@ serve(async (req) => {
       topic: focused_topic,
       hasExtractedContent: !!extracted_content,
       extractedContentLength: extracted_content?.length || 0,
+      extractedContentPreview: extracted_content?.substring(0, 500) || 'NONE',
       sectionCount: totalSections,
       includeTeaser: generate_teaser,
       wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${generate_teaser ? ' (+50-100 for teaser)' : ''}`

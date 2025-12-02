@@ -1,31 +1,78 @@
+﻿/**
+ * TeacherCustomization Component
+ * Renders the 13 teacher preference fields with profile management
+ * 
+ * Architecture: Imports all options from SSOT (teacherPreferences.ts)
+ * Features:
+ *   - Smart Collapse: Expanded if user has profiles, collapsed for new users
+ *   - Profile dropdown to load saved profiles
+ *   - Save This Profile button with modal
+ *   - Part of Series: Shows Lesson X of Y inputs
+ */
+
+import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronDown, ChevronUp, Info } from "lucide-react";
-import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { ChevronDown, ChevronUp, Info, Save, Trash2, Loader2 } from "lucide-react";
+
+// SSOT Imports
+import {
+  TEACHING_STYLES,
+  LEARNING_STYLES,
+  LESSON_LENGTHS,
+  GROUP_SIZES,
+  LEARNING_ENVIRONMENTS,
+  STUDENT_EXPERIENCE_LEVELS,
+  EDUCATION_EXPERIENCES,
+  CULTURAL_CONTEXTS,
+  SPECIAL_NEEDS_OPTIONS,
+  LESSON_SEQUENCE_OPTIONS,
+  ASSESSMENT_STYLES,
+  LANGUAGE_OPTIONS,
+  ACTIVITY_TYPE_OPTIONS,
+  TeacherPreferences,
+} from "@/constants/teacherPreferences";
+
+import { TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
+
+// ============================================================================
+// PROPS INTERFACE
+// ============================================================================
 
 interface TeacherCustomizationProps {
+  // Field values and setters (13 profile fields)
   teachingStyle: string;
   setTeachingStyle: (value: string) => void;
+  learningStyle: string;
+  setLearningStyle: (value: string) => void;
   lessonLength: string;
   setLessonLength: (value: string) => void;
-  activityTypes: string[];
-  setActivityTypes: (value: string[]) => void;
-  language: string;
-  setLanguage: (value: string) => void;
   classSetting: string;
   setClassSetting: (value: string) => void;
   learningEnvironment: string;
   setLearningEnvironment: (value: string) => void;
   studentExperience: string;
   setStudentExperience: (value: string) => void;
+  educationExperience: string;
+  setEducationExperience: (value: string) => void;
   culturalContext: string;
   setCulturalContext: (value: string) => void;
   specialNeeds: string;
@@ -34,143 +81,48 @@ interface TeacherCustomizationProps {
   setLessonSequence: (value: string) => void;
   assessmentStyle: string;
   setAssessmentStyle: (value: string) => void;
-  learningStyle: string;
-  setLearningStyle: (value: string) => void;
-  educationExperience: string;
-  setEducationExperience: (value: string) => void;
+  language: string;
+  setLanguage: (value: string) => void;
+  activityTypes: string[];
+  setActivityTypes: (value: string[]) => void;
+
+  // Part of Series position (NOT saved in profile)
+  lessonNumber: number;
+  setLessonNumber: (value: number) => void;
+  totalLessons: number;
+  setTotalLessons: (value: number) => void;
+
+  // Profile management
+  profiles: TeacherPreferenceProfile[];
+  currentProfileId: string | null;
+  onSaveProfile: (name: string, preferences: TeacherPreferences, isDefault: boolean) => Promise<TeacherPreferenceProfile | null>;
+  onUpdateProfile: (id: string, name: string, preferences: TeacherPreferences, isDefault: boolean) => Promise<boolean>;
+  onLoadProfile: (profile: TeacherPreferenceProfile) => void;
+  onDeleteProfile: (id: string) => Promise<boolean>;
+  isSavingProfile: boolean;
+
   disabled?: boolean;
 }
 
-const TEACHING_STYLES = [
-  { id: "lecture", label: "Lecture-Based", tooltip: null },
-  { id: "discussion", label: "Discussion-Based", tooltip: null },
-  { id: "interactive", label: "Interactive/Hands-On", tooltip: null },
-  { id: "storytelling", label: "Storytelling", tooltip: null },
-  { id: "socratic", label: "Socratic Method", tooltip: "Teaching through asking probing questions that lead students to discover truth themselves, rather than directly telling them answers" },
-  { id: "mixed", label: "Mixed", tooltip: null },
-];
-
-const LEARNING_STYLES = [
-  { id: "visual", label: "Visual Learners" },
-  { id: "auditory", label: "Auditory Learners" },
-  { id: "kinesthetic", label: "Kinesthetic/Hands-On" },
-  { id: "reading-writing", label: "Reading/Writing" },
-  { id: "mixed", label: "Mixed Learning Styles" },
-];
-
-const LESSON_LENGTHS = [
-  { id: "30", label: "30 minutes" },
-  { id: "45", label: "45 minutes" },
-  { id: "60", label: "60 minutes" },
-  { id: "75", label: "75 minutes" },
-  { id: "90", label: "90 minutes" },
-];
-
-const ACTIVITY_TYPES = [
-  { id: "written", label: "Written reflection" },
-  { id: "verbal", label: "Verbal interaction" },
-  { id: "creative", label: "Creative arts" },
-  { id: "drama", label: "Drama & role-play" },
-  { id: "games", label: "Games & movement" },
-  { id: "music", label: "Music & worship" },
-  { id: "prayer", label: "Prayer practices" },
-];
-
-const LANGUAGES = [
-  { id: "english", label: "English" },
-  { id: "spanish", label: "Spanish" },
-  { id: "french", label: "French" },
-];
-
-const GROUP_SIZES = [
-  { id: "small-group", label: "Small Group (3-12)" },
-  { id: "large-group", label: "Large Group (13+)" },
-  { id: "one-on-one", label: "One-on-One" },
-  { id: "family", label: "Family Setting" },
-  { id: "mixed", label: "Mixed Groups" },
-];
-
-const LEARNING_ENVIRONMENTS = [
-  { id: "classroom", label: "Church Classroom" },
-  { id: "fellowship-hall", label: "Fellowship Hall" },
-  { id: "home", label: "Home Setting" },
-  { id: "outdoor", label: "Outdoor/Nature" },
-  { id: "virtual", label: "Virtual/Online" },
-  { id: "mixed", label: "Mixed Environments" },
-];
-
-const STUDENT_EXPERIENCE_LEVELS = [
-  { id: "new-believers", label: "New Believers" },
-  { id: "growing", label: "Growing Christians" },
-  { id: "mature", label: "Mature Christians" },
-  { id: "seekers", label: "Seekers/Non-Believers" },
-  { id: "mixed", label: "Mixed Experience Levels" },
-];
-
-const CULTURAL_CONTEXTS = [
-  { id: "urban", label: "Urban" },
-  { id: "suburban", label: "Suburban" },
-  { id: "rural", label: "Rural" },
-  { id: "international", label: "International" },
-  { id: "multicultural", label: "Multicultural" },
-  { id: "mixed", label: "Mixed Contexts" },
-];
-
-const SPECIAL_NEEDS = [
-  { id: "none", label: "None" },
-  { id: "learning-disabilities", label: "Learning Disabilities" },
-  { id: "visual-impaired", label: "Visual Impairment" },
-  { id: "hearing-impaired", label: "Hearing Impairment" },
-  { id: "esl", label: "ESL/English Learners" },
-  { id: "mobility", label: "Mobility Challenges" },
-  { id: "mixed", label: "Mixed Needs" },
-];
-
-const LESSON_SEQUENCES = [
-  { id: "single", label: "Single Lesson" },
-  { id: "series", label: "Multi-Week Series" },
-  { id: "workshop", label: "Workshop/Seminar" },
-  { id: "retreat", label: "Retreat Session" },
-  { id: "vbs", label: "VBS/Camp" },
-];
-
-const ASSESSMENT_STYLES = [
-  { id: "discussion", label: "Informal Discussion" },
-  { id: "written", label: "Written Reflection" },
-  { id: "quiz", label: "Quiz/Test" },
-  { id: "questionnaire", label: "Questionnaire" },
-  { id: "presentation", label: "Student Presentation" },
-  { id: "project", label: "Group Project" },
-  { id: "observation", label: "Observation Only" },
-];
-
-const EDUCATION_EXPERIENCES = [
-  { id: "elementary", label: "Elementary Education" },
-  { id: "middle", label: "Middle School" },
-  { id: "high-school", label: "High School" },
-  { id: "some-college", label: "Some College" },
-  { id: "associates", label: "Associate's Degree" },
-  { id: "bachelors", label: "Bachelor's Degree" },
-  { id: "masters", label: "Master's Degree" },
-  { id: "doctorate", label: "Doctoral/Advanced Degree" },
-  { id: "mixed", label: "Mixed Education Levels" },
-];
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export function TeacherCustomization({
   teachingStyle,
   setTeachingStyle,
+  learningStyle,
+  setLearningStyle,
   lessonLength,
   setLessonLength,
-  activityTypes,
-  setActivityTypes,
-  language,
-  setLanguage,
   classSetting,
   setClassSetting,
   learningEnvironment,
   setLearningEnvironment,
   studentExperience,
   setStudentExperience,
+  educationExperience,
+  setEducationExperience,
   culturalContext,
   setCulturalContext,
   specialNeeds,
@@ -179,25 +131,142 @@ export function TeacherCustomization({
   setLessonSequence,
   assessmentStyle,
   setAssessmentStyle,
-  learningStyle,
-  setLearningStyle,
-  educationExperience,
-  setEducationExperience,
+  language,
+  setLanguage,
+  activityTypes,
+  setActivityTypes,
+  lessonNumber,
+  setLessonNumber,
+  totalLessons,
+  setTotalLessons,
+  profiles,
+  currentProfileId,
+  onSaveProfile,
+  onUpdateProfile,
+  onLoadProfile,
+  onDeleteProfile,
+  isSavingProfile,
   disabled = false,
 }: TeacherCustomizationProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Smart Collapse: Expanded if user has profiles
+  const [isExpanded, setIsExpanded] = useState(profiles.length > 0);
+
+  // Save modal state
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveProfileName, setSaveProfileName] = useState("");
+  const [saveAsDefault, setSaveAsDefault] = useState(false);
+  const [isUpdatingExisting, setIsUpdatingExisting] = useState(false);
+
+  // Delete confirmation state
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // Update expansion when profiles load
+  useEffect(() => {
+    if (profiles.length > 0) {
+      setIsExpanded(true);
+    }
+  }, [profiles.length]);
+
+  // ============================================================================
+  // HANDLERS
+  // ============================================================================
 
   const handleActivityToggle = (activityId: string, checked: boolean) => {
     if (checked) {
       setActivityTypes([...activityTypes, activityId]);
     } else {
-      setActivityTypes(activityTypes.filter(id => id !== activityId));
+      setActivityTypes(activityTypes.filter((id) => id !== activityId));
     }
   };
 
+  const handleProfileSelect = (profileId: string) => {
+    const profile = profiles.find((p) => p.id === profileId);
+    if (profile) {
+      onLoadProfile(profile);
+    }
+  };
+
+  const getCurrentPreferences = (): TeacherPreferences => ({
+    teachingStyle,
+    learningStyle,
+    lessonLength,
+    groupSize: classSetting,
+    learningEnvironment,
+    studentExperience,
+    educationExperience,
+    culturalContext,
+    specialNeeds,
+    lessonSequence,
+    assessmentStyle,
+    language,
+    activityTypes,
+  });
+
+  const handleOpenSaveModal = () => {
+    // If currently viewing a profile, pre-fill for update
+    if (currentProfileId) {
+      const currentProfile = profiles.find((p) => p.id === currentProfileId);
+      if (currentProfile) {
+        setSaveProfileName(currentProfile.profile_name);
+        setSaveAsDefault(currentProfile.is_default);
+        setIsUpdatingExisting(true);
+      }
+    } else {
+      setSaveProfileName("");
+      setSaveAsDefault(profiles.length === 0); // First profile defaults to default
+      setIsUpdatingExisting(false);
+    }
+    setShowSaveModal(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const preferences = getCurrentPreferences();
+
+    if (isUpdatingExisting && currentProfileId) {
+      const success = await onUpdateProfile(currentProfileId, saveProfileName, preferences, saveAsDefault);
+      if (success) {
+        setShowSaveModal(false);
+      }
+    } else {
+      const result = await onSaveProfile(saveProfileName, preferences, saveAsDefault);
+      if (result) {
+        setShowSaveModal(false);
+      }
+    }
+  };
+
+  const handleDeleteProfile = async (id: string) => {
+    const success = await onDeleteProfile(id);
+    if (success) {
+      setDeleteConfirmId(null);
+    }
+  };
+
+  const handleLessonNumberChange = (value: string) => {
+    const num = parseInt(value, 10);
+    if (num >= 1 && num <= totalLessons) {
+      setLessonNumber(num);
+    }
+  };
+
+  const handleTotalLessonsChange = (value: string) => {
+    const num = parseInt(value, 10);
+    if (num >= 2 && num <= 7) {
+      setTotalLessons(num);
+      // Adjust lesson number if it exceeds new total
+      if (lessonNumber > num) {
+        setLessonNumber(num);
+      }
+    }
+  };
+
+  // ============================================================================
+  // RENDER
+  // ============================================================================
+
   return (
     <Card className="w-full">
-      <CardHeader 
+      <CardHeader
         className="cursor-pointer hover:bg-accent/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -218,7 +287,68 @@ export function TeacherCustomization({
 
       {isExpanded && (
         <CardContent className="space-y-6 pt-6">
+          {/* Profile Management Row */}
+          <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
+            {profiles.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="profile-select" className="text-sm whitespace-nowrap">
+                  Load Profile:
+                </Label>
+                <Select
+                  value={currentProfileId || ""}
+                  onValueChange={handleProfileSelect}
+                  disabled={disabled || isSavingProfile}
+                >
+                  <SelectTrigger id="profile-select" className="w-[200px]">
+                    <SelectValue placeholder="Select a profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {profiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.profile_name}
+                        {profile.is_default && " ★"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {currentProfileId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setDeleteConfirmId(currentProfileId)}
+                    disabled={disabled || isSavingProfile}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+
+            <div className="flex-1" />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleOpenSaveModal}
+              disabled={disabled || isSavingProfile}
+              className="gap-2"
+            >
+              {isSavingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save This Profile
+            </Button>
+          </div>
+
+          {/* 13 Profile Fields - 2 Column Grid */}
           <div className="grid grid-cols-2 gap-4">
+            {/* Teaching Style */}
             <div className="space-y-2">
               <Label htmlFor="teaching-style">Teaching Style</Label>
               <Select value={teachingStyle} onValueChange={setTeachingStyle} disabled={disabled}>
@@ -228,13 +358,28 @@ export function TeacherCustomization({
                 <SelectContent>
                   {TEACHING_STYLES.map((style) => (
                     <SelectItem key={style.id} value={style.id}>
-                      {style.label}
+                      <div className="flex items-center gap-2">
+                        {style.label}
+                        {style.tooltip && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-[250px]">
+                                <p>{style.tooltip}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Learning Style */}
             <div className="space-y-2">
               <Label htmlFor="learning-style">Learning Style</Label>
               <Select value={learningStyle} onValueChange={setLearningStyle} disabled={disabled}>
@@ -251,6 +396,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Lesson Length */}
             <div className="space-y-2">
               <Label htmlFor="lesson-length">Lesson Length</Label>
               <Select value={lessonLength} onValueChange={setLessonLength} disabled={disabled}>
@@ -267,6 +413,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Group Size */}
             <div className="space-y-2">
               <Label htmlFor="group-size">Group Size</Label>
               <Select value={classSetting} onValueChange={setClassSetting} disabled={disabled}>
@@ -274,15 +421,16 @@ export function TeacherCustomization({
                   <SelectValue placeholder="Select group size" />
                 </SelectTrigger>
                 <SelectContent>
-                  {GROUP_SIZES.map((setting) => (
-                    <SelectItem key={setting.id} value={setting.id}>
-                      {setting.label}
+                  {GROUP_SIZES.map((size) => (
+                    <SelectItem key={size.id} value={size.id}>
+                      {size.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* Learning Environment */}
             <div className="space-y-2">
               <Label htmlFor="learning-environment">Learning Environment</Label>
               <Select value={learningEnvironment} onValueChange={setLearningEnvironment} disabled={disabled}>
@@ -299,6 +447,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Student Experience Level */}
             <div className="space-y-2">
               <Label htmlFor="student-experience">Student Experience Level</Label>
               <Select value={studentExperience} onValueChange={setStudentExperience} disabled={disabled}>
@@ -315,6 +464,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Education Experience */}
             <div className="space-y-2">
               <Label htmlFor="education-experience">Education Experience</Label>
               <Select value={educationExperience} onValueChange={setEducationExperience} disabled={disabled}>
@@ -331,6 +481,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Cultural Context */}
             <div className="space-y-2">
               <Label htmlFor="cultural-context">Cultural Context</Label>
               <Select value={culturalContext} onValueChange={setCulturalContext} disabled={disabled}>
@@ -347,6 +498,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Special Needs */}
             <div className="space-y-2">
               <Label htmlFor="special-needs">Special Needs</Label>
               <Select value={specialNeeds} onValueChange={setSpecialNeeds} disabled={disabled}>
@@ -354,7 +506,7 @@ export function TeacherCustomization({
                   <SelectValue placeholder="Select special needs" />
                 </SelectTrigger>
                 <SelectContent>
-                  {SPECIAL_NEEDS.map((need) => (
+                  {SPECIAL_NEEDS_OPTIONS.map((need) => (
                     <SelectItem key={need.id} value={need.id}>
                       {need.label}
                     </SelectItem>
@@ -363,6 +515,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Lesson Sequence */}
             <div className="space-y-2">
               <Label htmlFor="lesson-sequence">Lesson Sequence</Label>
               <Select value={lessonSequence} onValueChange={setLessonSequence} disabled={disabled}>
@@ -370,7 +523,7 @@ export function TeacherCustomization({
                   <SelectValue placeholder="Select lesson sequence" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LESSON_SEQUENCES.map((seq) => (
+                  {LESSON_SEQUENCE_OPTIONS.map((seq) => (
                     <SelectItem key={seq.id} value={seq.id}>
                       {seq.label}
                     </SelectItem>
@@ -379,6 +532,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Assessment Style */}
             <div className="space-y-2">
               <Label htmlFor="assessment-style">Assessment Style</Label>
               <Select value={assessmentStyle} onValueChange={setAssessmentStyle} disabled={disabled}>
@@ -395,6 +549,7 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Language */}
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
               <Select value={language} onValueChange={setLanguage} disabled={disabled}>
@@ -402,7 +557,7 @@ export function TeacherCustomization({
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LANGUAGES.map((lang) => (
+                  {LANGUAGE_OPTIONS.map((lang) => (
                     <SelectItem key={lang.id} value={lang.id}>
                       {lang.label}
                     </SelectItem>
@@ -412,17 +567,49 @@ export function TeacherCustomization({
             </div>
           </div>
 
+          {/* Part of Series: Lesson X of Y */}
+          {lessonSequence === "part_of_series" && (
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <Label className="text-sm font-medium mb-3 block">Series Position</Label>
+              <div className="flex items-center gap-3">
+                <span className="text-sm">Lesson</span>
+                <Input
+                  type="number"
+                  min={1}
+                  max={totalLessons}
+                  value={lessonNumber}
+                  onChange={(e) => handleLessonNumberChange(e.target.value)}
+                  disabled={disabled}
+                  className="w-16 text-center"
+                />
+                <span className="text-sm">of</span>
+                <Input
+                  type="number"
+                  min={2}
+                  max={7}
+                  value={totalLessons}
+                  onChange={(e) => handleTotalLessonsChange(e.target.value)}
+                  disabled={disabled}
+                  className="w-16 text-center"
+                />
+                <span className="text-sm text-muted-foreground">(max 7 lessons per series)</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Each lesson in the series uses 1 credit. Position is not saved in your profile.
+              </p>
+            </div>
+          )}
+
+          {/* Activity Types */}
           <div className="space-y-2">
             <Label>Activity Types</Label>
             <div className="grid grid-cols-2 gap-3">
-              {ACTIVITY_TYPES.map((activity) => (
+              {ACTIVITY_TYPE_OPTIONS.map((activity) => (
                 <div key={activity.id} className="flex items-center space-x-2">
                   <Checkbox
                     id={activity.id}
                     checked={activityTypes.includes(activity.id)}
-                    onCheckedChange={(checked) => 
-                      handleActivityToggle(activity.id, checked as boolean)
-                    }
+                    onCheckedChange={(checked) => handleActivityToggle(activity.id, checked as boolean)}
                     disabled={disabled}
                   />
                   <label
@@ -437,6 +624,119 @@ export function TeacherCustomization({
           </div>
         </CardContent>
       )}
+
+      {/* Save Profile Modal */}
+      <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {isUpdatingExisting ? "Update Profile" : "Save Profile"}
+            </DialogTitle>
+            <DialogDescription>
+              {isUpdatingExisting
+                ? "Update this profile with your current customization settings."
+                : "Save your current customization settings as a reusable profile."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Profile Name</Label>
+              <Input
+                id="profile-name"
+                placeholder="e.g., Sunday Adult Class"
+                value={saveProfileName}
+                onChange={(e) => setSaveProfileName(e.target.value)}
+                maxLength={50}
+              />
+              <p className="text-xs text-muted-foreground">
+                Maximum 50 characters. {profiles.length}/7 profiles used.
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="set-as-default"
+                checked={saveAsDefault}
+                onCheckedChange={(checked) => setSaveAsDefault(checked as boolean)}
+              />
+              <label
+                htmlFor="set-as-default"
+                className="text-sm font-medium leading-none"
+              >
+                Set as default profile (auto-loads when opening form)
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowSaveModal(false)}
+              disabled={isSavingProfile}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveProfile}
+              disabled={!saveProfileName.trim() || isSavingProfile}
+            >
+              {isSavingProfile ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : isUpdatingExisting ? (
+                "Update Profile"
+              ) : (
+                "Save Profile"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Profile?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete "
+              {profiles.find((p) => p.id === deleteConfirmId)?.profile_name}"? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeleteConfirmId(null)}
+              disabled={isSavingProfile}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => deleteConfirmId && handleDeleteProfile(deleteConfirmId)}
+              disabled={isSavingProfile}
+            >
+              {isSavingProfile ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Profile"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
