@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -6,13 +6,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles, BookOpen, Loader2, Star } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, FileText, Type } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
+import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 
@@ -54,6 +55,8 @@ export function EnhanceLessonForm({
   const [theologyProfileId, setTheologyProfileId] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
+  const [pastedContent, setPastedContent] = useState<string>("");
+  const [inputMode, setInputMode] = useState<"file" | "paste">("file");
   const [isExtracting, setIsExtracting] = useState(false);
   const [generateTeaser, setGenerateTeaser] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,6 +80,9 @@ export function EnhanceLessonForm({
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { isLimitReached, lessonsUsed, lessonsAllowed, hoursUntilReset, errorMessage: rateLimitError, refreshRateLimit } = useRateLimit();
   const { toast } = useToast();
+
+  // Generate accept attribute from SSOT constant
+  const fileAcceptTypes = ALLOWED_FILE_TYPES.join(',');
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -117,7 +123,6 @@ export function EnhanceLessonForm({
     return () => clearInterval(interval);
   }, [isSubmitting, isEnhancing]);
 
-  // FIXED: handleFileChange now extracts content from uploaded file
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -184,13 +189,35 @@ export function EnhanceLessonForm({
     }
   };
 
+  const handleInputModeChange = (mode: "file" | "paste") => {
+    setInputMode(mode);
+    if (mode === "paste") {
+      setUploadedFile(null);
+      setExtractedContent(null);
+    } else {
+      setPastedContent("");
+    }
+  };
+
+  const getEffectiveContent = (): string | null => {
+    if (inputMode === "paste" && pastedContent.trim()) {
+      return pastedContent.trim();
+    }
+    if (inputMode === "file" && extractedContent) {
+      return extractedContent;
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!biblePassage && !focusedTopic && !extractedContent) {
+    const effectiveContent = getEffectiveContent();
+
+    if (!biblePassage && !focusedTopic && !effectiveContent) {
       toast({
         title: "Missing information",
-        description: "Please provide a Bible passage, focused topic, or upload a curriculum file",
+        description: "Please provide a Bible passage, focused topic, or curriculum content (upload or paste)",
         variant: "destructive",
       });
       return;
@@ -237,8 +264,8 @@ export function EnhanceLessonForm({
         learning_style: learningStyle,
         education_experience: educationExperience,
         generate_teaser: generateTeaser,
-        uploaded_file: uploadedFile,
-        extracted_content: extractedContent,
+        uploaded_file: inputMode === "file" ? uploadedFile : null,
+        extracted_content: effectiveContent,
       };
 
       const result = await enhanceLesson(enhancementData);
@@ -258,6 +285,7 @@ export function EnhanceLessonForm({
       setNotes("");
       setUploadedFile(null);
       setExtractedContent(null);
+      setPastedContent("");
       setGenerateTeaser(false);
     } catch (error) {
       console.error("Error generating lesson:", error);
@@ -281,42 +309,110 @@ export function EnhanceLessonForm({
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 1. Upload Existing Curriculum - MOVED TO TOP */}
-            <div className="space-y-2">
-              <Label htmlFor="file">Upload Existing Curriculum (Optional)</Label>
+            {/* 1. Upload or Paste Existing Curriculum */}
+            <div className="space-y-3">
+              <Label>Upload or Paste Existing Curriculum (Optional)</Label>
               <p className="text-sm text-muted-foreground">
-                Upload any bible study curriculum (pdf, text, docx, jpg or jpeg files or images. &lt;10mb). We'll enhance it with deeper Baptist theological insights.
+                Provide curriculum content to enhance with deeper Baptist theological insights. Choose one method:
               </p>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="file"
-                  type="file"
-                  accept=".pdf,.docx,.txt,.jpg,.jpeg"
-                  onChange={handleFileChange}
+              
+              {/* Toggle between file upload and paste */}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant={inputMode === "file" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleInputModeChange("file")}
                   disabled={isSubmitting || isExtracting}
-                  className="cursor-pointer"
-                />
-                {uploadedFile && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { setUploadedFile(null); setExtractedContent(null); }}
-                    disabled={isSubmitting || isExtracting}
-                  >
-                    Clear
-                  </Button>
-                )}
+                  className="flex items-center gap-2"
+                >
+                  <FileText className="h-4 w-4" />
+                  Upload File
+                </Button>
+                <Button
+                  type="button"
+                  variant={inputMode === "paste" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleInputModeChange("paste")}
+                  disabled={isSubmitting || isExtracting}
+                  className="flex items-center gap-2"
+                >
+                  <Type className="h-4 w-4" />
+                  Paste Text
+                </Button>
               </div>
-              {isExtracting && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Extracting content from file...</span>
+
+              {/* File Upload Mode */}
+              {inputMode === "file" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Supports PDF, TXT, JPG, JPEG, PNG (&lt;10MB). For Word docs, save as PDF first.
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="file"
+                      type="file"
+                      accept={fileAcceptTypes}
+                      onChange={handleFileChange}
+                      disabled={isSubmitting || isExtracting}
+                      className="cursor-pointer"
+                    />
+                    {uploadedFile && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => { setUploadedFile(null); setExtractedContent(null); }}
+                        disabled={isSubmitting || isExtracting}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                  {isExtracting && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Extracting content from file (this may take 60-90 seconds for PDFs)...</span>
+                    </div>
+                  )}
+                  {extractedContent && (
+                    <div className="text-sm text-green-600">
+                      ✓ File content extracted ({extractedContent.length} characters)
+                    </div>
+                  )}
                 </div>
               )}
-              {extractedContent && (
-                <div className="text-sm text-green-600">
-                  ? File content extracted ({extractedContent.length} characters)
+
+              {/* Paste Text Mode */}
+              {inputMode === "paste" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Copy and paste your lesson text directly. Faster than file upload!
+                  </p>
+                  <Textarea
+                    placeholder="Paste your existing lesson content here..."
+                    value={pastedContent}
+                    onChange={(e) => setPastedContent(e.target.value)}
+                    disabled={isSubmitting}
+                    rows={6}
+                    className="font-mono text-sm"
+                  />
+                  {pastedContent.trim() && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-green-600">
+                        ✓ {pastedContent.length} characters entered
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPastedContent("")}
+                        disabled={isSubmitting}
+                      >
+                        Clear
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

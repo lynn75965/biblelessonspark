@@ -1,18 +1,15 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 
-// File validation constants
-export const ALLOWED_FILE_TYPES = ['.pdf', '.docx', '.doc', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
+// File validation constants - SSOT for allowed file types
+// Supported: PDF, TXT, JPG, JPEG, PNG (DOCX removed - Claude API limitation)
+export const ALLOWED_FILE_TYPES = ['.pdf', '.txt', '.jpg', '.jpeg', '.png'] as const;
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ALLOWED_MIME_TYPES = [
   'application/pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/msword',
   'text/plain',
   'image/jpeg',
   'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp'
+  'image/png'
 ] as const;
 
 export interface FileValidationResult {
@@ -34,7 +31,7 @@ export function validateFileUpload(file: File): FileValidationResult {
   if (!ALLOWED_MIME_TYPES.includes(file.type as any)) {
     return {
       isValid: false,
-      error: `File type not allowed. Please upload documents (PDF, DOC, TXT) or images (JPG, PNG, GIF) of curriculum materials.`
+      error: `File type not allowed. Please upload PDF, TXT, or images (JPG, PNG). For Word docs, save as PDF first.`
     };
   }
 
@@ -43,7 +40,7 @@ export function validateFileUpload(file: File): FileValidationResult {
   if (!ALLOWED_FILE_TYPES.includes(fileExtension as any)) {
     return {
       isValid: false,
-      error: `File extension not allowed. Please upload documents (PDF, DOC, TXT) or images (JPG, PNG, GIF) of curriculum materials.`
+      error: `File extension not allowed. Please upload PDF, TXT, or images (JPG, PNG). For Word docs, save as PDF first.`
     };
   }
 
@@ -92,7 +89,6 @@ export const lessonFormSchema = z.object({
   // Accept any age group string from frontend
   ageGroup: z.string().min(1, 'Age group is required'),
 
-
   notes: z.string()
     .max(1000, 'Notes must be less than 1000 characters')
     .optional()
@@ -106,7 +102,7 @@ export type LessonFormData = z.infer<typeof lessonFormSchema>;
 
 // Helper function to check if file is an image
 export function isImageFile(file: File): boolean {
-  return file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp'].some(ext =>
+  return file.type.startsWith('image/') || ['.jpg', '.jpeg', '.png'].some(ext =>
     file.name.toLowerCase().endsWith(ext)
   );
 }
