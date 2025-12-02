@@ -2386,3 +2386,133 @@ RLS policies silently filter rows - they don't throw catchable errors. True "den
 - Enhance Edge Functions with additional audit logging
 - Consider Supabase Log Drain for centralized logging
 
+
+---
+
+## Phase 12 Session - December 2, 2025
+
+### PDF Extraction Bug Fix ✅ COMPLETE
+
+**Problem Discovered:**
+Uploaded PDF curriculum content was not being incorporated into generated lessons. Investigation revealed:
+1. Extraction function returned binary garbage instead of actual text
+2. Root cause: Naive PDF parsing attempted to read raw bytes as text
+3. `extractedContentPreview` showed `D:20251015093815 PDFium PDFium �o��b...` instead of actual content
+
+**Diagnostic Process:**
+1. Added `extractedContentPreview` logging to generate-lesson function
+2. Traced data flow: Frontend → extract-lesson → generate-lesson
+3. Confirmed frontend correctly passed `extracted_content` to backend
+4. Identified extract-lesson as the failure point
+
+**Solution Implemented:**
+- Replaced naive PDF byte parsing with Claude API document extraction
+- Model: `claude-sonnet-4-20250514` (same as lesson generation)
+- Uses `type: "document"` with `media_type: "application/pdf"` and base64 encoding
+
+**DOCX Support Removed:**
+- Claude API `document` type does NOT support DOCX files
+- Only PDF is supported for document extraction via API
+- Users instructed to save Word documents as PDF before upload
+
+### Updated File Support
+
+| File Type | Method | Expected Time |
+|-----------|--------|---------------|
+| **PDF** | Claude Sonnet 4 document API | 60-90 seconds |
+| **TXT** | Direct file read | <1 second |
+| **JPG/JPEG/PNG** | Claude Sonnet 4 vision API | 15-30 seconds |
+| **DOCX** | ❌ REMOVED | Not supported by Claude API |
+
+### Extraction Limits
+
+| Limit | Value | Location |
+|-------|-------|----------|
+| File upload size | 10 MB | Frontend validation |
+| Extracted content | 50,000 characters | validation.ts |
+
+### Files Modified
+
+| File | Change |
+|------|--------|
+| `supabase/functions/extract-lesson/index.ts` | Complete rewrite - Claude API for PDF/images |
+| `supabase/functions/generate-lesson/index.ts` | Added extractedContentPreview logging |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Updated file accept to remove .docx |
+
+### Verified Working
+- Luke Bible Study 1.pdf: Extracted 10,613 characters
+- Generated lesson correctly references Luke, podcasts, investigation theme, Theophilus
+- Curriculum enhancement mode produces theologically-enhanced versions of uploaded content
+
+### UX Consideration
+PDF extraction takes 60-90 seconds due to Claude API processing. This is inherent to the API, not optimizable through code. For beta launch, users should be informed of expected wait time.
+
+### Git Commits (to be added after commit)
+- TBD: PDF extraction fix using Claude Sonnet 4
+
+---
+
+## Supported File Types Reference (Updated 2025-12-02)
+
+### Curriculum Upload (extract-lesson)
+- **PDF** ✅ - Claude Sonnet 4 document API
+- **TXT** ✅ - Direct read
+- **JPG/JPEG/PNG** ✅ - Claude Sonnet 4 vision API
+- **DOCX** ❌ - Not supported (save as PDF)
+
+### Export Formats (lesson export)
+- **PDF** ✅
+- **DOCX** ✅
+- **Print** ✅
+
+
+---
+
+## Phase 12 Session: December 2, 2025 - Text Paste Input Option
+
+### Session Focus
+Added text paste alternative to file upload for faster curriculum input, removed DOCX support per Claude API limitation.
+
+### Changes Made
+
+**1. SSOT Update - fileValidation.ts**
+- Removed DOCX/DOC from `ALLOWED_FILE_TYPES`
+- Updated `ALLOWED_MIME_TYPES` to remove Word document MIME types
+- New supported formats: PDF, TXT, JPG, JPEG, PNG
+- Updated error messages to guide users: "For Word docs, save as PDF first"
+
+**2. EnhanceLessonForm.tsx - Text Paste Feature**
+- Added `inputMode` state: "file" | "paste"
+- Added `pastedContent` state for textarea input
+- Added toggle buttons: "Upload File" / "Paste Text"
+- Modes are mutually exclusive (switching clears the other)
+- `accept` attribute generated dynamically from SSOT: `ALLOWED_FILE_TYPES.join(',')`
+- `getEffectiveContent()` returns pasted text or extracted content
+- Pasted content goes directly to `extracted_content` in API call (skips extraction)
+
+**3. SSOT Compliance**
+- `ALLOWED_FILE_TYPES` defined in `src/lib/fileValidation.ts` (SSOT)
+- `EnhanceLessonForm.tsx` imports from SSOT
+- File accept attribute not hardcoded - derived from constant
+
+### Files Modified
+- `src/lib/fileValidation.ts` - SSOT for allowed file types
+- `src/components/dashboard/EnhanceLessonForm.tsx` - UI and logic
+
+### Testing Verified
+- Paste Text mode: 4879 characters pasted, lesson generated successfully
+- inputMode correctly set to "paste"
+- extractedContentLength: 0 (extraction correctly skipped)
+- Lesson generation: ~2 minutes (expected for full 8-section generation)
+
+### User Experience Impact
+- **Paste Text**: Instant submission (no extraction delay)
+- **Upload File**: 60-90 seconds extraction for PDFs
+- Teachers with digital content can copy-paste for faster workflow
+- Fallback available if specific PDF is problematic
+
+### Commits
+- `51ba201` - Add text paste option for curriculum input, remove DOCX support (SSOT-compliant)
+- `3845f47` - Debug: Add logging to diagnose paste text validation issue
+- `960b231` - Remove debug logging - paste text feature verified working
+
