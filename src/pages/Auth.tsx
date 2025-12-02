@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -113,7 +113,7 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
-      // Sanitize inputs
+      // Sanitize inputs on submit (not during typing)
       const sanitizedEmail = sanitizeEmail(formData.email);
       const sanitizedFullName = sanitizeText(formData.fullName);
       
@@ -167,10 +167,9 @@ export default function Auth() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // Basic input sanitization on change
-    const sanitizedValue = field === 'email' ? value.toLowerCase().trim() : 
-                          field === 'fullName' ? sanitizeText(value) : value;
-    setFormData(prev => ({ ...prev, [field]: sanitizedValue }));
+    // Only lowercase email during typing - all other sanitization happens on submit
+    const processedValue = field === 'email' ? value.toLowerCase() : value;
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
 
   return (
