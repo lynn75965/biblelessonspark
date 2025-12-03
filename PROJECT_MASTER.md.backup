@@ -95,7 +95,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-03 (Deployment architecture updated)  
+**Last Updated:** 2025-12-02  
 **Current Phase:** Phase 12 In Progress  
 **Repository:** C:\Users\Lynn\lesson-spark-usa  
 **Framework Version:** 2.1.1
@@ -104,7 +104,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ## Project Overview
 
-LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunteer teachers in Baptist churches. Built with React/TypeScript, Supabase backend, and Claude AI integration.
+LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunteer teachers in Baptist churches. Built with React/TypeScript on Lovable.dev, Supabase backend, and Claude AI integration.
 
 **Developer:** Lynn - retired Baptist minister with PhD from SWBTS, 55 years ministry experience, non-programmer solopreneur  
 **Target Users:** Volunteer teachers in Baptist churches  
@@ -128,11 +128,10 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 ## Current Architecture
 
 ### Frontend
-- **Development:** Local (VS Code, Notepad++, or preferred editor)
+- **Platform:** Lovable.dev (automatic GitHub deployment)
 - **Stack:** React, TypeScript, Vite
 - **UI:** Shadcn/ui components, Tailwind CSS
 - **State:** React hooks, Supabase client
-- **Deployment:** Netlify (auto-deploy from GitHub)
 
 ### Backend
 - **Database:** Supabase PostgreSQL
@@ -144,8 +143,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 - Stripe (payment processing)
 - Anthropic Claude API (lesson generation)
 - Canva (design export)
-- Netlify (frontend hosting - current)
-- Cloudflare Pages (planned migration post-beta)
+- Vercel (potential deployment target)
 
 ---
 
@@ -290,18 +288,10 @@ All preferences dynamically inserted into AI prompt generation.
 4. Build and test after changes
 
 ### Deployment Process
-
-**Current Flow:** Local → GitHub → Netlify (auto-deploy)
-
 ```bash
-# Frontend (Local Development)
-npm run dev              # Local preview at localhost:5173
-npm run build            # Build for production
-
-# Deploy to Production
-git add -A
-git commit -m "message"
-git push                 # Triggers Netlify auto-deploy
+# Frontend
+npm run build
+npm run dev
 
 # Backend (Edge Functions)
 npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs
@@ -309,8 +299,6 @@ npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs
 # Constants Sync
 npm run sync-constants
 ```
-
-**Note:** Lovable.dev was disconnected from GitHub on December 1, 2025 to prevent overwrites. All development now happens locally.
 
 ---
 
@@ -862,102 +850,6 @@ Organizations (churches) will have the capability to coordinate Bible study acro
 
 ---
 
-## Future Roadmap: Infrastructure Migration
-
-**Status:** Planned (Post-Beta)  
-**Priority:** MEDIUM - Prepare for growth  
-**Target:** January 2026 (after beta completion)
-
-### Current State
-- **Frontend Hosting:** Netlify (working, adequate for beta)
-- **Development:** Local (Lovable.dev disconnected December 1, 2025)
-- **Deployment:** Local → GitHub → Netlify auto-deploy
-
-### Planned Migration: Netlify → Cloudflare Pages
-
-**Why Cloudflare Pages:**
-
-| Factor | Netlify (Current) | Cloudflare Pages (Planned) |
-|--------|-------------------|---------------------------|
-| Bandwidth (Free) | 100GB/month | Unlimited |
-| Bandwidth (Paid) | 1TB at $19/mo | Unlimited |
-| Edge Locations | Multiple | 300+ worldwide |
-| Cost at Scale | Increases with traffic | Predictable/flat |
-| Performance (TTFB) | ~352ms | ~280ms |
-
-**Migration Tasks:**
-
-1. Create Cloudflare account and connect GitHub repository
-2. Configure build settings (command: `npm run build`, output: `dist`)
-3. Update DNS/nameservers at domain registrar
-4. Verify site functionality and Supabase connections
-5. Remove site from Netlify
-6. Update PROJECT_MASTER.md
-
-**Timeline:** Complete migration before public launch to ensure stable infrastructure for growth.
-
----
-
-
-## Beta Program Documentation
-
-**Status:** Active  
-**Phase:** Private Beta  
-**Start Date:** November 2025  
-**Duration:** 3-4 weeks
-
-### Program Parameters
-
-| Parameter | Value |
-|-----------|-------|
-| Tester Capacity | 20 beta testers |
-| Commitment | 3-5 lessons generated |
-| Time Investment | 2-3 hours total |
-| Tester Benefits | Lifetime 75% discount, early access to all features, direct influence on development, community with other Bible teachers |
-
-### Performance Targets
-
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Lesson Generation Time | ~76 seconds | Documented in beta materials; timeout = important feedback |
-| Lesson Output | 8 sections | 2,100-2,790 words total |
-
-### Beta Resources
-
-| Resource | URL/Location |
-|----------|--------------|
-| Production Site | https://lessonsparkusa.com |
-| Beta Signup Form | https://forms.gle/rqKwbHyH1s9nsCik9 |
-| Facebook Group | "LessonSparkUSA Beta Testers" (Private) |
-| User Documentation | https://lessonsparkusa.com/docs |
-| Help Center | https://lessonsparkusa.com/help |
-| Training Videos | https://lessonsparkusa.com/training |
-
-### Feedback Collection Methods
-
-1. **In-App Feedback Modal** - Appears after lesson generation (recommended)
-2. **Dashboard Feedback Button** - Available anytime
-3. **Facebook Group** - Community discussion and screenshots
-4. **Direct Contact** - lynn@lessonsparkusa.com | 214.893.5179
-
-### Beta Testing Focus Areas
-
-- Theological accuracy of generated content
-- Age-appropriateness for selected groups
-- Teacher customization reflection in output
-- Export quality (PDF/DOCX)
-- Interface usability for non-technical users
-- Generation time consistency
-
-### Beta Documentation Files
-
-| File | Purpose | Location |
-|------|---------|----------|
-| BETA_INVITATION_EMAIL.txt | Recruitment email template | Project root |
-| BETA_ONBOARDING_GUIDE.md | Tester instructions | Project root |
-
----
-
 ## Supported File Types Reference
 
 ### Curriculum Upload (extract-lesson)
@@ -1064,15 +956,6 @@ ALTER FUNCTION function_name(...) SET search_path = public, pg_temp;
 | Username | resend |
 | Password | Your API key (re_...) |
 | Sender email | Requires verified domain in Resend |
-
-## Post-Beta (Before Public Launch)
-
-| Task | Priority | Status |
-|------|----------|--------|
-| Migrate hosting from Netlify to Cloudflare Pages | MEDIUM | ⏳ Planned |
-| Verify DNS propagation complete | MEDIUM | ⏳ After migration |
-| Remove Lovable.dev project (optional cleanup) | LOW | ⏳ Pending |
-| Revoke Lovable.dev GitHub access | LOW | ⏳ Pending |
 
 ---
 

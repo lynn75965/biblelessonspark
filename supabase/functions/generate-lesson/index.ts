@@ -1,4 +1,4 @@
-﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
@@ -180,6 +180,146 @@ REMEMBER:
 `;
 }
 
+// ============================================================================
+// PROMPT CACHING: Build static content that's identical for ALL requests
+// This content is cached by Anthropic and reused across all users
+// Cache hit = 90% cost reduction on input tokens
+// ============================================================================
+function buildBaseSystemPrompt(): string {
+  const requiredSections = getRequiredSections();
+  const totalSections = requiredSections.length;
+
+  return `You are a Baptist Bible study lesson generator using the LessonSparkUSA Framework.
+
+${buildCompressionRules()}
+-------------------------------------------------------------------------------
+THE ${totalSections}-SECTION FRAMEWORK (Structure Version ${LESSON_STRUCTURE_VERSION})
+-------------------------------------------------------------------------------
+${buildSectionsPrompt()}
+-------------------------------------------------------------------------------
+MANDATORY PRE-RELEASE SELF-EVALUATION
+-------------------------------------------------------------------------------
+
+?? STOP - Before outputting your completed lesson, perform this evaluation:
+
+SECTION-BY-SECTION VERIFICATION:
+? Section 1: 150-250 words? All required elements present?
+? Section 2: 150-250 words? Objectives measurable?
+? Section 3: 450-600 words? Deep theology complete?
+? Section 4: 120-200 words? Engaging opening created?
+? Section 5: MINIMUM 630 words? (COUNT CAREFULLY) Deep explanations included?
+? Section 6: 150-250 words? Clear activity instructions?
+? Section 7: 200-300 words? Assessment questions included?
+? Section 8: 250-400 words? Student-focused and distinct from teacher content?
+
+QUALITY VERIFICATION:
+? Section 5 contains explanations, not just assertions?
+? Theological concepts unpacked with WHY and HOW?
+? Teacher has substance to answer follow-up questions?
+? No redundancy between sections?
+? Every sentence adds value?
+? No filler or padding?
+? NO word count metadata in section headers?
+
+CRITICAL FAILURES - If ANY of these are true, DO NOT OUTPUT:
+? Section 5 is under 630 words
+? Sections repeat theology already covered in Section 3
+? Any section ends mid-sentence or incomplete
+? Word counts appear in section headers
+
+IF ANY CHECKBOX IS UNCHECKED:
+GO BACK and fix that section NOW before outputting.
+
+ONLY output the lesson when ALL checkboxes are marked ?
+-------------------------------------------------------------------------------
+OUTPUT FORMAT
+-------------------------------------------------------------------------------
+
+Use Markdown formatting:
+- ## for section headers
+- **bold** for key terms
+- Bullet points for lists
+- --- for section dividers
+
+DO NOT include word counts in section headers or anywhere in the output.
+`;
+}
+
+// ============================================================================
+// Build theology profile prompt - cached per theology tradition
+// Users with same theology (e.g., BF&M 2000) share this cache
+// ============================================================================
+function buildTheologyPrompt(theologyProfile: any): string {
+  return `
+-------------------------------------------------------------------------------
+THEOLOGY PROFILE: ${theologyProfile.name}
+-------------------------------------------------------------------------------
+${theologyProfile.description}
+
+Distinctives:
+${theologyProfile.distinctives.map((d: string) => `• ${d}`).join('\n')}
+
+Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical interpretation'}
+Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
+`;
+}
+
+// ============================================================================
+// Build dynamic content - NOT cached (varies per request)
+// Includes: age group, teacher customization, teaser instructions
+// ============================================================================
+function buildDynamicPrompt(
+  ageGroupData: any,
+  customizationDirectives: string,
+  generate_teaser: boolean
+): string {
+  let prompt = `
+-------------------------------------------------------------------------------
+AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageMax})
+-------------------------------------------------------------------------------
+Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
+Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
+${customizationDirectives}
+`;
+
+  // Add teaser instructions if requested
+  if (generate_teaser) {
+    prompt += buildTeaserInstructions(true);
+    prompt += `
+-------------------------------------------------------------------------------
+TEASER VERIFICATION (Additional checks when teaser is requested)
+-------------------------------------------------------------------------------
+? Student Teaser: 50-100 words? NO passage/topic/theology revealed? Compelling signoff included?
+? Student teaser reveals ZERO lesson content? Ends with compelling time-neutral signoff?
+? Teaser appears ONCE at the beginning, not repeated later?
+? Teaser mentions passage, topic, or theological concepts = CRITICAL FAILURE
+? Teaser lacks compelling signoff or uses day-specific language = CRITICAL FAILURE
+? Teaser appears more than once in the output = CRITICAL FAILURE
+
+REQUIRED OUTPUT STRUCTURE:
+
+**STUDENT TEASER**
+[teaser content here - 50-100 words]
+
+---
+
+## Section 1: Lens + Lesson Overview
+[content here]
+
+---
+
+## Section 2: Learning Objectives + Key Scriptures
+[content here]
+
+[...and so on]
+
+IMPORTANT: The teaser appears ONCE at the beginning. Do NOT repeat it anywhere else.
+`;
+  }
+
+  return prompt;
+}
+
 serve(async (req) => {
   const functionStartTime = Date.now();
 
@@ -296,104 +436,18 @@ serve(async (req) => {
       education_experience
     });
 
-    const systemPrompt = `You are a Baptist Bible study lesson generator using the LessonSparkUSA Framework.
+    // ========================================================================
+    // PROMPT CACHING IMPLEMENTATION
+    // ========================================================================
+    // Structure prompts for optimal caching:
+    // 1. Base system prompt (CACHED - same for ALL users)
+    // 2. Theology profile (CACHED - same for all users of same tradition)
+    // 3. Dynamic content (NOT cached - varies per request)
+    // ========================================================================
 
--------------------------------------------------------------------------------
-THEOLOGY PROFILE: ${theologyProfile.name}
--------------------------------------------------------------------------------
-${theologyProfile.description}
-
-Distinctives:
-${theologyProfile.distinctives.map((d) => `• ${d}`).join('\n')}
-
-Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical interpretation'}
-Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
-
--------------------------------------------------------------------------------
-AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageMax})
--------------------------------------------------------------------------------
-Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
-Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
-${customizationDirectives}
-${buildTeaserInstructions(generate_teaser)}
-${buildCompressionRules(generate_teaser)}
--------------------------------------------------------------------------------
-THE ${totalSections}-SECTION FRAMEWORK (Structure Version ${LESSON_STRUCTURE_VERSION})
--------------------------------------------------------------------------------
-${buildSectionsPrompt(generate_teaser)}
--------------------------------------------------------------------------------
-MANDATORY PRE-RELEASE SELF-EVALUATION
--------------------------------------------------------------------------------
-
-?? STOP - Before outputting your completed lesson, perform this evaluation:
-
-SECTION-BY-SECTION VERIFICATION:
-? Section 1: 150-250 words? All required elements present?
-? Section 2: 150-250 words? Objectives measurable?
-? Section 3: 450-600 words? Deep theology complete?
-? Section 4: 120-200 words? Engaging opening created?
-? Section 5: MINIMUM 630 words? (COUNT CAREFULLY) Deep explanations included?
-? Section 6: 150-250 words? Clear activity instructions?
-? Section 7: 200-300 words? Assessment questions included?
-? Section 8: 250-400 words? Student-focused and distinct from teacher content?
-${generate_teaser ? '? Student Teaser: 50-100 words? NO passage/topic/theology revealed? Compelling signoff included?' : ''}
-
-QUALITY VERIFICATION:
-? Section 5 contains explanations, not just assertions?
-? Theological concepts unpacked with WHY and HOW?
-? Teacher has substance to answer follow-up questions?
-${generate_teaser ? '? Student teaser reveals ZERO lesson content? Ends with compelling time-neutral signoff?' : ''}
-${generate_teaser ? '? Teaser appears ONCE at the beginning, not repeated later?' : ''}
-? No redundancy between sections?
-? Every sentence adds value?
-? No filler or padding?
-? NO word count metadata in section headers?
-
-CRITICAL FAILURES - If ANY of these are true, DO NOT OUTPUT:
-? Section 5 is under 630 words
-${generate_teaser ? '? Teaser mentions passage, topic, or theological concepts' : ''}
-${generate_teaser ? '? Teaser lacks compelling signoff or uses day-specific language' : ''}
-${generate_teaser ? '? Teaser appears more than once in the output' : ''}
-? Sections repeat theology already covered in Section 3
-? Any section ends mid-sentence or incomplete
-? Word counts appear in section headers
-
-IF ANY CHECKBOX IS UNCHECKED:
-GO BACK and fix that section NOW before outputting.
-
-ONLY output the lesson when ALL checkboxes are marked ?
--------------------------------------------------------------------------------
-OUTPUT FORMAT
--------------------------------------------------------------------------------
-${generate_teaser ? `
-REQUIRED OUTPUT STRUCTURE:
-
-**STUDENT TEASER**
-[teaser content here - 50-100 words]
-
----
-
-## Section 1: Lens + Lesson Overview
-[content here]
-
----
-
-## Section 2: Learning Objectives + Key Scriptures
-[content here]
-
-[...and so on]
-
-IMPORTANT: The teaser appears ONCE at the beginning. Do NOT repeat it anywhere else.
-` : ''}
-
-Use Markdown formatting:
-- ## for section headers
-- **bold** for key terms
-- Bullet points for lists
-- --- for section dividers
-
-DO NOT include word counts in section headers or anywhere in the output.
-`;
+    const baseSystemPrompt = buildBaseSystemPrompt();
+    const theologyPrompt = buildTheologyPrompt(theologyProfile);
+    const dynamicPrompt = buildDynamicPrompt(ageGroupData, customizationDirectives, generate_teaser);
 
     // Build lesson input title for display
     const lessonInput = bible_passage || focused_topic || (extracted_content ? 'Curriculum Enhancement' : 'General Bible Study');
@@ -432,8 +486,17 @@ INSTRUCTIONS:
 
     checkpoint = logTiming('Prompt built', checkpoint);
 
-    console.log(`System prompt: ${systemPrompt.length} chars (~${Math.round(systemPrompt.length / 4)} tokens)`);
-    console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);
+    // Log token estimates for each prompt section
+    const baseTokens = Math.round(baseSystemPrompt.length / 4);
+    const theologyTokens = Math.round(theologyPrompt.length / 4);
+    const dynamicTokens = Math.round(dynamicPrompt.length / 4);
+    const userTokens = Math.round(userPrompt.length / 4);
+
+    console.log(`[CACHE] Base system prompt: ${baseSystemPrompt.length} chars (~${baseTokens} tokens) - CACHED`);
+    console.log(`[CACHE] Theology prompt: ${theologyPrompt.length} chars (~${theologyTokens} tokens) - CACHED per tradition`);
+    console.log(`[CACHE] Dynamic prompt: ${dynamicPrompt.length} chars (~${dynamicTokens} tokens) - NOT cached`);
+    console.log(`[CACHE] User prompt: ${userPrompt.length} chars (~${userTokens} tokens) - NOT cached`);
+    console.log(`[CACHE] Cacheable tokens: ~${baseTokens + theologyTokens} of ~${baseTokens + theologyTokens + dynamicTokens + userTokens} total`);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
@@ -442,19 +505,44 @@ INSTRUCTIONS:
     }, 120000);
 
     try {
+      // ======================================================================
+      // ANTHROPIC API CALL WITH PROMPT CACHING
+      // ======================================================================
+      // System prompt is now an ARRAY of content blocks with cache_control
+      // Cache breakpoints are set on stable content for reuse across requests
+      // ======================================================================
+
       const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-api-key': anthropicApiKey,
           'anthropic-version': '2023-06-01'
+          // Note: No beta header needed - prompt caching is now GA
         },
         signal: controller.signal,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 8000,
           temperature: 0.6,
-          system: systemPrompt,
+          // System prompt as array with cache_control for caching
+          system: [
+            {
+              type: 'text',
+              text: baseSystemPrompt,
+              cache_control: { type: 'ephemeral' }  // Cache breakpoint 1: Base framework
+            },
+            {
+              type: 'text',
+              text: theologyPrompt,
+              cache_control: { type: 'ephemeral' }  // Cache breakpoint 2: Theology profile
+            },
+            {
+              type: 'text',
+              text: dynamicPrompt
+              // No cache_control - this varies per request
+            }
+          ],
           messages: [{ role: 'user', content: userPrompt }]
         })
       });
@@ -473,7 +561,25 @@ INSTRUCTIONS:
       const wordCount = generatedLesson.split(/\s+/).length;
 
       console.log(`Lesson generated: ${generatedLesson.length} chars, ${wordCount} words`);
-      console.log(`Anthropic usage: ${JSON.stringify(anthropicData.usage)}`);
+      
+      // ======================================================================
+      // LOG CACHE PERFORMANCE
+      // ======================================================================
+      // cache_creation_input_tokens: Tokens written to cache (costs 1.25x)
+      // cache_read_input_tokens: Tokens read from cache (costs 0.1x)
+      // input_tokens: Non-cached input tokens (costs 1x)
+      // ======================================================================
+      const usage = anthropicData.usage;
+      console.log(`[CACHE] Anthropic usage: ${JSON.stringify(usage)}`);
+      
+      if (usage.cache_read_input_tokens && usage.cache_read_input_tokens > 0) {
+        const cacheHitRate = (usage.cache_read_input_tokens / (usage.cache_read_input_tokens + usage.input_tokens + (usage.cache_creation_input_tokens || 0))) * 100;
+        console.log(`[CACHE] Cache HIT! Read ${usage.cache_read_input_tokens} tokens from cache (${cacheHitRate.toFixed(1)}% hit rate)`);
+      } else if (usage.cache_creation_input_tokens && usage.cache_creation_input_tokens > 0) {
+        console.log(`[CACHE] Cache WRITE: Created cache with ${usage.cache_creation_input_tokens} tokens`);
+      } else {
+        console.log(`[CACHE] No caching activity detected`);
+      }
 
       let teaserContent: string | null = null;
       if (generate_teaser) {
@@ -529,7 +635,15 @@ INSTRUCTIONS:
           generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
           anthropicUsage: anthropicData.usage,
           wasEnhancement: !!extracted_content,
-          extractedContentLength: extracted_content?.length || 0
+          extractedContentLength: extracted_content?.length || 0,
+          // New: Track cache performance
+          cacheStats: {
+            cacheCreationTokens: usage.cache_creation_input_tokens || 0,
+            cacheReadTokens: usage.cache_read_input_tokens || 0,
+            uncachedInputTokens: usage.input_tokens || 0,
+            outputTokens: usage.output_tokens || 0,
+            cacheHit: (usage.cache_read_input_tokens || 0) > 0
+          }
         }
       };
 
