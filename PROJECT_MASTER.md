@@ -2516,3 +2516,155 @@ Added text paste alternative to file upload for faster curriculum input, removed
 - `3845f47` - Debug: Add logging to diagnose paste text validation issue
 - `960b231` - Remove debug logging - paste text feature verified working
 
+
+---
+
+## Phase 12 Session: December 2, 2025 - Teacher Preference Profiles
+
+### Session Focus
+Implemented "Save This Profile" feature allowing teachers to save and reuse customization settings across multiple teaching contexts (e.g., "Sunday Adult Class", "Wednesday Youth"). Also fixed signup bugs.
+
+---
+
+### Feature 1: Teacher Preference Profiles System
+
+**Purpose:** Allow teachers to save up to 7 named profiles with their customization preferences for quick switching between teaching contexts.
+
+#### Database: `teacher_preference_profiles` Table
+```sql
+CREATE TABLE teacher_preference_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  profile_name TEXT NOT NULL,  -- max 50 chars, unique per user
+  is_default BOOLEAN DEFAULT false,
+  preferences JSONB NOT NULL,  -- stores 13 fields, no content validation
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+**Constraints:**
+- Max 7 profiles per user (trigger-enforced)
+- Only one default profile per user (auto-enforced by trigger)
+- Profile names 1-50 characters, unique per user
+- RLS: Users can only access their own profiles
+
+#### SSOT Update: `teacherPreferences.ts`
+
+Updated to 13 fields (removed 13+ unused fields):
+
+| # | Field | Options |
+|---|-------|---------|
+| 1 | Teaching Style | 7 options (incl. Socratic Method with tooltip) |
+| 2 | Learning Style | 4 options |
+| 3 | Lesson Length | 6 options (added 15 minutes) |
+| 4 | Group Size | 5 options |
+| 5 | Learning Environment | 4 options |
+| 6 | Student Experience Level | 4 options |
+| 7 | Education Experience | 4 options |
+| 8 | Cultural Context | 3 options |
+| 9 | Special Needs | 6 options |
+| 10 | Lesson Sequence | 2 options: Single Lesson, Part of Series |
+| 11 | Assessment Style | 4 options |
+| 12 | Language | 3 options: English, Spanish, French |
+| 13 | Activity Types | 7 checkboxes |
+
+**Removed Fields:** classroomManagement, techIntegration, meetingFrequency, engagementLevel, discussionFormat, activityComplexity, bibleTranslation, theologicalEmphasis, applicationFocus, depthLevel, handoutStyle, visualAidPreference, takehomeMaterials, preparationTime, socioeconomicContext, additionalContext
+
+#### New Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/hooks/useTeacherProfiles.ts` | CRUD operations for profiles |
+
+#### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/constants/teacherPreferences.ts` | 13 fields, added Lesson Sequence/Language/Activity Types |
+| `src/components/dashboard/TeacherCustomization.tsx` | Profile dropdown, save modal, delete confirmation, Part of Series UI |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Integrates profile hook, auto-loads default profile |
+
+#### Smart Collapse Behavior
+- **New users (no profiles):** Section collapsed
+- **Users with saved profiles:** Section expanded, default profile auto-loaded
+
+#### Part of Series Feature
+- When "Part of Series" selected, shows "Lesson X of Y" inputs
+- Validation: X ≤ Y, max 7 lessons in a series
+- **Position NOT saved in profile** (lesson-specific, resets each time)
+
+#### SSOT Compliance Verified
+✅ All field definitions in `teacherPreferences.ts`
+✅ Database stores JSONB with no content validation
+✅ Frontend drives backend behavior
+✅ RLS policies enforce user isolation
+
+---
+
+### Bug Fix 1: Spaces Not Allowed in Full Name
+
+**Problem:** Users couldn't type "Pastor Lynn" - space was immediately removed
+**Root Cause:** `handleInputChange()` called `sanitizeText()` on every keystroke, which included `.trim()`
+**Solution:** Removed real-time sanitization; `sanitizeText()` only called on form submit
+
+**File Modified:** `src/pages/Auth.tsx`
+
+---
+
+### Bug Fix 2: Database Error Saving New User
+
+**Problem:** "Sign up failed - Database error saving new user"
+**Root Cause:** `profiles.theology_profile_id` column was NOT NULL without a default value. The `handle_new_user` trigger only sets `id` and `full_name`.
+**Solution:** 
+```sql
+ALTER TABLE public.profiles 
+ALTER COLUMN theology_profile_id DROP NOT NULL;
+```
+
+**Location:** Supabase SQL Editor (production database)
+
+---
+
+### Enhancement: Password Visibility Toggle
+
+**Feature:** Added eye icon to show/hide password on both Sign In and Sign Up forms
+**Implementation:** 
+- Added `showSignInPassword` and `showSignUpPassword` state
+- Eye/EyeOff icons from lucide-react
+- Clickable toggle button with `tabIndex={-1}` to skip tab navigation
+
+**File Modified:** `src/pages/Auth.tsx`
+
+---
+
+### Configuration Change: Email Verification Disabled
+
+**Change:** Disabled "Confirm email" in Supabase Authentication settings
+**Reason:** Resend SMTP not fully configured; blocking beta signups
+**Location:** Supabase Dashboard → Authentication → Providers → Email → Confirm email: OFF
+**Future:** Configure Resend SMTP for production email verification
+
+---
+
+### Files Modified This Session
+
+| File | Change Type |
+|------|-------------|
+| `src/constants/teacherPreferences.ts` | Major update - 13 fields, SSOT cleanup |
+| `src/hooks/useTeacherProfiles.ts` | **New file** - profile CRUD hook |
+| `src/components/dashboard/TeacherCustomization.tsx` | Major update - profile UI |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Major update - profile integration |
+| `src/pages/Auth.tsx` | Bug fix + enhancement |
+| Database: `teacher_preference_profiles` | **New table** |
+| Database: `profiles.theology_profile_id` | Made nullable |
+
+---
+
+### Git Commits
+- `[hash]` - Add teacher preference profiles with Smart Collapse
+- `[hash]` - Fix: Allow spaces in Full Name field during sign up
+- `[hash]` - Add password visibility toggle to auth forms
+
+---
+
