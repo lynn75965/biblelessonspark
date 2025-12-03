@@ -109,6 +109,7 @@ export const STUDENT_EXPERIENCE_LEVELS: PreferenceOption[] = [
 // ============================================================================
 
 export const EDUCATION_EXPERIENCES: PreferenceOption[] = [
+  { id: "preschool", label: "Preschool", description: "Early childhood education" },
   { id: "elementary", label: "Elementary Education", description: "Elementary school level" },
   { id: "middle", label: "Middle School", description: "Middle school level" },
   { id: "high-school", label: "High School", description: "High school level" },

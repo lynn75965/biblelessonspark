@@ -1,4 +1,15 @@
-﻿import { useState } from "react";
+/**
+ * LessonLibrary Component
+ * Browse and manage saved Baptist Bible study lessons
+ * 
+ * SSOT Compliance:
+ * - AGE_GROUPS imported from @/constants/ageGroups
+ * - THEOLOGY_PROFILES imported from @/constants/theologyProfiles
+ * - Filter dropdowns generated dynamically from constants
+ * - Badge colors derived from constant indices (auto-scales with new entries)
+ */
+
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Trash2, Search, BookOpen, Users } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
-import { getTheologyProfile } from "@/constants/theologyProfiles";
+import { AGE_GROUPS } from "@/constants/ageGroups";
+import { THEOLOGY_PROFILES, getTheologyProfile } from "@/constants/theologyProfiles";
+
+// ============================================================================
+// INTERFACES
+// ============================================================================
 
 interface LessonLibraryProps {
   onViewLesson?: (lesson: any) => void;
@@ -24,6 +40,38 @@ interface LessonDisplay extends Lesson {
   has_content: boolean;
   updated_at?: string;
 }
+
+// ============================================================================
+// SSOT-DERIVED BADGE COLORS
+// Colors assigned by index position - automatically scales with new SSOT entries
+// ============================================================================
+
+const AGE_GROUP_BADGE_COLORS = [
+  "bg-pink-100 text-pink-800 border-pink-200",      // Index 0: Preschoolers
+  "bg-blue-100 text-blue-800 border-blue-200",      // Index 1: Elementary
+  "bg-purple-100 text-purple-800 border-purple-200", // Index 2: Preteens
+  "bg-indigo-100 text-indigo-800 border-indigo-200", // Index 3: High School
+  "bg-cyan-100 text-cyan-800 border-cyan-200",      // Index 4: College
+  "bg-teal-100 text-teal-800 border-teal-200",      // Index 5: Young Adults
+  "bg-green-100 text-green-800 border-green-200",   // Index 6: Mid-Life
+  "bg-yellow-100 text-yellow-800 border-yellow-200", // Index 7: Experienced
+  "bg-orange-100 text-orange-800 border-orange-200", // Index 8: Active Seniors
+  "bg-red-100 text-red-800 border-red-200",         // Index 9: Senior Adults
+  "bg-gray-100 text-gray-800 border-gray-200",      // Index 10+: Mixed/Fallback
+];
+
+const THEOLOGY_BADGE_COLORS = [
+  "bg-primary-light text-primary border-primary/20",     // Index 0: SBC BF&M 2000
+  "bg-primary-light text-primary border-primary/20",     // Index 1: SBC BF&M 1963
+  "bg-secondary-light text-secondary border-secondary/20", // Index 2: Reformed
+  "bg-success-light text-success border-success/20",     // Index 3: Independent
+];
+
+const DEFAULT_BADGE_COLOR = "bg-gray-100 text-gray-800 border-gray-200";
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
 
 const extractLessonTitle = (content: string): string | null => {
   if (!content) return null;
@@ -45,6 +93,10 @@ const extractPrimaryScripture = (content: string): string | null => {
   return null;
 };
 
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
 export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
   const [searchPassage, setSearchPassage] = useState("");
   const [searchTitle, setSearchTitle] = useState("");
@@ -53,10 +105,11 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
 
   const { lessons, loading, deleteLesson } = useLessons();
 
+  // Transform lessons for display
   const displayLessons: LessonDisplay[] = lessons.map((lesson) => {
     const metadata = lesson.metadata as Record<string, any> | null;
     const filters = lesson.filters as Record<string, any> | null;
-    
+
     const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
     const aiGeneratedScripture = extractPrimaryScripture(lesson.original_text || "");
     const userInputPassage = filters?.bible_passage || null;
@@ -66,14 +119,15 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
       ai_lesson_title: aiGeneratedTitle,
       bible_passage: userInputPassage || aiGeneratedScripture,
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
-      age_group: metadata?.ageGroup || filters?.ageGroup || "Mixed Groups",
-      theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || "southern-baptist-bfm-2000",
+      age_group: metadata?.ageGroup || filters?.ageGroup || AGE_GROUPS[AGE_GROUPS.length - 1].value,
+      theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || THEOLOGY_PROFILES[0].id,
       created_by_name: "Teacher",
       has_content: !!lesson.original_text,
       updated_at: lesson.created_at,
     };
   });
 
+  // Filter lessons based on search and filters
   const filteredLessons = displayLessons.filter((lesson) => {
     const matchesPassage = !searchPassage || lesson.bible_passage?.toLowerCase().includes(searchPassage.toLowerCase());
     const matchesTitle = !searchTitle || lesson.ai_lesson_title?.toLowerCase().includes(searchTitle.toLowerCase());
@@ -82,39 +136,42 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
     return matchesPassage && matchesTitle && matchesAge && matchesProfile;
   });
 
-  const getAgeGroupBadgeColor = (ageGroup: string) => {
-    const colors: Record<string, string> = {
-      "Preschoolers (Ages 3-5)": "bg-pink-100 text-pink-800 border-pink-200",
-      "Elementary Kids (Ages 6-10)": "bg-blue-100 text-blue-800 border-blue-200",
-      "Preteens & Middle Schoolers (Ages 11-14)": "bg-purple-100 text-purple-800 border-purple-200",
-      "High School Students (Ages 15-18)": "bg-indigo-100 text-indigo-800 border-indigo-200",
-      "College & Early Career (Ages 19-25)": "bg-cyan-100 text-cyan-800 border-cyan-200",
-      "Young Adults (Ages 26-35)": "bg-teal-100 text-teal-800 border-teal-200",
-      "Mid-Life Adults (Ages 36-50)": "bg-green-100 text-green-800 border-green-200",
-      "Experienced Adults (Ages 51-65)": "bg-yellow-100 text-yellow-800 border-yellow-200",
-      "Active Seniors (Ages 66-75)": "bg-orange-100 text-orange-800 border-orange-200",
-      "Senior Adults (Ages 76+)": "bg-red-100 text-red-800 border-red-200",
-      "Mixed Groups": "bg-gray-100 text-gray-800 border-gray-200",
-    };
-    return colors[ageGroup] || "bg-gray-100 text-gray-800 border-gray-200";
+  // SSOT: Get badge color by finding index in AGE_GROUPS constant
+  const getAgeGroupBadgeColor = (ageGroup: string): string => {
+    const index = AGE_GROUPS.findIndex((ag) => ag.value === ageGroup);
+    if (index >= 0 && index < AGE_GROUP_BADGE_COLORS.length) {
+      return AGE_GROUP_BADGE_COLORS[index];
+    }
+    return DEFAULT_BADGE_COLOR;
   };
 
-  const getProfileBadgeColor = (profileId: string) => {
-    const colors: Record<string, string> = {
-      "southern-baptist-bfm-2000": "bg-primary-light text-primary border-primary/20",
-      "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
-      "reformed-baptist": "bg-secondary-light text-secondary border-secondary/20",
-      "independent-baptist": "bg-success-light text-success border-success/20",
-    };
-    return colors[profileId] || "bg-gray-100 text-gray-800 border-gray-200";
+  // SSOT: Get badge color by finding index in THEOLOGY_PROFILES constant
+  const getProfileBadgeColor = (profileId: string): string => {
+    const index = THEOLOGY_PROFILES.findIndex((tp) => tp.id === profileId);
+    if (index >= 0 && index < THEOLOGY_BADGE_COLORS.length) {
+      return THEOLOGY_BADGE_COLORS[index];
+    }
+    return DEFAULT_BADGE_COLOR;
   };
 
-  const getProfileDisplayName = (profileId: string) => {
+  // SSOT: Get display name from theology profile constant
+  const getProfileDisplayName = (profileId: string): string => {
     const profile = getTheologyProfile(profileId);
     return profile ? profile.name : profileId;
   };
 
-  const formatDate = (dateString: string) => {
+  // SSOT: Get short label for age group (for mobile display)
+  const getAgeGroupShortLabel = (ageGroup: string): string => {
+    const ag = AGE_GROUPS.find((a) => a.value === ageGroup);
+    // Extract first word or use a short version
+    if (ag) {
+      const firstWord = ag.label.split(" ")[0];
+      return firstWord;
+    }
+    return ageGroup.split(" ")[0];
+  };
+
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -128,6 +185,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
     }
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -141,7 +199,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
       {/* Search and Filters */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl">Lesson Library</CardTitle>
+          <CardTitle className="text-xl">My Lesson Library</CardTitle>
           <CardDescription>Browse and manage your Baptist Bible study lessons</CardDescription>
         </CardHeader>
         <CardContent>
@@ -169,38 +227,33 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
               />
             </div>
 
-            {/* Age Group Filter */}
+            {/* Age Group Filter - SSOT: Generated from AGE_GROUPS constant */}
             <Select value={ageFilter} onValueChange={setAgeFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Ages" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Ages</SelectItem>
-                <SelectItem value="Preschoolers (Ages 3-5)">Preschoolers</SelectItem>
-                <SelectItem value="Elementary Kids (Ages 6-10)">Elementary</SelectItem>
-                <SelectItem value="Preteens & Middle Schoolers (Ages 11-14)">Preteens</SelectItem>
-                <SelectItem value="High School Students (Ages 15-18)">High School</SelectItem>
-                <SelectItem value="College & Early Career (Ages 19-25)">College</SelectItem>
-                <SelectItem value="Young Adults (Ages 26-35)">Young Adults</SelectItem>
-                <SelectItem value="Mid-Life Adults (Ages 36-50)">Mid-Life</SelectItem>
-                <SelectItem value="Experienced Adults (Ages 51-65)">Experienced Adults</SelectItem>
-                <SelectItem value="Active Seniors (Ages 66-75)">Active Seniors</SelectItem>
-                <SelectItem value="Senior Adults (Ages 76+)">Seniors</SelectItem>
-                <SelectItem value="Mixed Groups">Mixed</SelectItem>
+                {AGE_GROUPS.map((ageGroup) => (
+                  <SelectItem key={ageGroup.value} value={ageGroup.value}>
+                    {ageGroup.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            {/* Theology Profile Filter */}
+            {/* Theology Profile Filter - SSOT: Generated from THEOLOGY_PROFILES constant */}
             <Select value={profileFilter} onValueChange={setProfileFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Theology Profiles" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Theology Profiles</SelectItem>
-                <SelectItem value="southern-baptist-bfm-2000">Southern Baptist (BF&M 2000)</SelectItem>
-                <SelectItem value="southern-baptist-bfm-1963">Southern Baptist (BF&M 1963)</SelectItem>
-                <SelectItem value="reformed-baptist">Reformed Baptist</SelectItem>
-                <SelectItem value="independent-baptist">Independent Baptist</SelectItem>
+                {THEOLOGY_PROFILES.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -226,12 +279,12 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                   </div>
                 </div>
 
-                {/* Badges */}
+                {/* Badges - SSOT: Colors derived from constant indices */}
                 <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
                   <Badge className={`${getAgeGroupBadgeColor(lesson.age_group)} text-xs`} variant="secondary">
                     <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                     <span className="hidden sm:inline">{lesson.age_group}</span>
-                    <span className="sm:hidden">{lesson.age_group.split(" ")[0]}</span>
+                    <span className="sm:hidden">{getAgeGroupShortLabel(lesson.age_group)}</span>
                   </Badge>
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}

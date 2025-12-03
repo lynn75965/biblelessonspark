@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
@@ -125,7 +125,7 @@ export default function Dashboard({
     setActiveTab("enhance");
     toast({
       title: "Opening lesson",
-      description: `Opening "${lesson.title}" for viewing.`,
+      description: `Opening "${lesson.ai_lesson_title || lesson.title}" for viewing.`,
     });
   };
 
@@ -356,7 +356,7 @@ export default function Dashboard({
             {canAccessTab(effectiveRole, 'library', hasOrgContext) && (
               <TabsTrigger value="library">
                 <BookOpen className="h-4 w-4" />
-                My Lessons
+                My Lesson Library
               </TabsTrigger>
             )}
             {canAccessTab(effectiveRole, 'members', hasOrgContext) && (
@@ -398,7 +398,10 @@ export default function Dashboard({
                 userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
                 defaultDoctrine={organization?.default_doctrine || "SBC"}
                 viewingLesson={selectedLesson}
-                onClearViewing={() => setSelectedLesson(null)}
+                onClearViewing={() => {
+                  setSelectedLesson(null);
+                  setActiveTab("library");
+                }}
               />
           </TabsContent>
 

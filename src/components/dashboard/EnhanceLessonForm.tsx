@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
@@ -511,17 +511,49 @@ export function EnhanceLessonForm({
     <>
       {/* Main Form Container */}
       <div className="w-full space-y-4">
-        {/* Page Header */}
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-2">
-            <Sparkles className="h-6 w-6 text-sky-500" />
-            Create Baptist-Enhanced <GoldAccent>Lesson</GoldAccent>
-          </h1>
-          <p className="text-slate-600 mt-1">
-            Generate a theologically-sound Bible study lesson tailored to your class
-          </p>
-        </div>
+        {/* ================================================================ */}
+        {/* VIEWER MODE: When viewing a saved lesson from Library */}
+        {/* ================================================================ */}
+        {viewingLesson ? (
+          <>
+            {/* Viewer Header */}
+            <div className="mb-6">
+              <Button
+                variant="outline"
+                onClick={() => onClearViewing?.()}
+                className="mb-4 gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to My Lesson Library
+              </Button>
+              <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                <BookOpen className="h-6 w-6 text-sky-500" />
+                {displayTitle}
+              </h1>
+              <p className="text-slate-600 mt-1">
+                Viewing saved lesson from your library
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Page Header - Create Mode */}
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-2">
+                <Sparkles className="h-6 w-6 text-sky-500" />
+                Create Baptist-Enhanced <GoldAccent>Lesson</GoldAccent>
+              </h1>
+              <p className="text-slate-600 mt-1">
+                Generate a theologically-sound Bible study lesson tailored to your class
+              </p>
+            </div>
+          </>
+        )}
 
+        {/* ================================================================ */}
+        {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
+        {/* ================================================================ */}
+        {!viewingLesson && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ================================================================ */}
           {/* STEP 1: What Lesson Are You Teaching? */}
@@ -893,15 +925,21 @@ export function EnhanceLessonForm({
                 </>
               )}
             </Button>
+
+            {/* Generation Warning */}
+            <p className="text-xs text-center text-amber-600">
+              ⚠️ Must remain on this page until lesson is fully generated
+            </p>
           </div>
         </form>
+        )}
       </div>
 
       {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}
       {/* ================================================================ */}
       {currentLesson && (
-        <Card className="mt-6">
+        <Card className={viewingLesson ? "" : "mt-6"}>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
@@ -929,7 +967,7 @@ export function EnhanceLessonForm({
                   }}
                 />
                 <Button
-                  variant="outline"
+                  variant={viewingLesson ? "default" : "outline"}
                   size="sm"
                   onClick={() => {
                     if (viewingLesson && onClearViewing) {
@@ -938,8 +976,16 @@ export function EnhanceLessonForm({
                       setGeneratedLesson(null);
                     }
                   }}
+                  className={viewingLesson ? "gap-2" : ""}
                 >
-                  Close
+                  {viewingLesson ? (
+                    <>
+                      <ArrowLeft className="h-4 w-4" />
+                      Back to Library
+                    </>
+                  ) : (
+                    "Close"
+                  )}
                 </Button>
               </div>
             </div>
