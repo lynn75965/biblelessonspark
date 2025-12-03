@@ -95,7 +95,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-03 (Deployment architecture updated)  
+**Last Updated:** 2025-12-03  
 **Current Phase:** Phase 12 In Progress  
 **Repository:** C:\Users\Lynn\lesson-spark-usa  
 **Framework Version:** 2.1.1
@@ -104,7 +104,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ## Project Overview
 
-LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunteer teachers in Baptist churches. Built with React/TypeScript, Supabase backend, and Claude AI integration.
+LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunteer teachers in Baptist churches. Built with React/TypeScript on Lovable.dev, Supabase backend, and Claude AI integration.
 
 **Developer:** Lynn - retired Baptist minister with PhD from SWBTS, 55 years ministry experience, non-programmer solopreneur  
 **Target Users:** Volunteer teachers in Baptist churches  
@@ -128,11 +128,10 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 ## Current Architecture
 
 ### Frontend
-- **Development:** Local (VS Code, Notepad++, or preferred editor)
+- **Platform:** Lovable.dev (automatic GitHub deployment)
 - **Stack:** React, TypeScript, Vite
 - **UI:** Shadcn/ui components, Tailwind CSS
 - **State:** React hooks, Supabase client
-- **Deployment:** Netlify (auto-deploy from GitHub)
 
 ### Backend
 - **Database:** Supabase PostgreSQL
@@ -144,8 +143,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 - Stripe (payment processing)
 - Anthropic Claude API (lesson generation)
 - Canva (design export)
-- Netlify (frontend hosting - current)
-- Cloudflare Pages (planned migration post-beta)
+- Vercel (potential deployment target)
 
 ---
 
@@ -290,18 +288,10 @@ All preferences dynamically inserted into AI prompt generation.
 4. Build and test after changes
 
 ### Deployment Process
-
-**Current Flow:** Local → GitHub → Netlify (auto-deploy)
-
 ```bash
-# Frontend (Local Development)
-npm run dev              # Local preview at localhost:5173
-npm run build            # Build for production
-
-# Deploy to Production
-git add -A
-git commit -m "message"
-git push                 # Triggers Netlify auto-deploy
+# Frontend
+npm run build
+npm run dev
 
 # Backend (Edge Functions)
 npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs
@@ -309,8 +299,6 @@ npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs
 # Constants Sync
 npm run sync-constants
 ```
-
-**Note:** Lovable.dev was disconnected from GitHub on December 1, 2025 to prevent overwrites. All development now happens locally.
 
 ---
 
@@ -862,102 +850,6 @@ Organizations (churches) will have the capability to coordinate Bible study acro
 
 ---
 
-## Future Roadmap: Infrastructure Migration
-
-**Status:** Planned (Post-Beta)  
-**Priority:** MEDIUM - Prepare for growth  
-**Target:** January 2026 (after beta completion)
-
-### Current State
-- **Frontend Hosting:** Netlify (working, adequate for beta)
-- **Development:** Local (Lovable.dev disconnected December 1, 2025)
-- **Deployment:** Local → GitHub → Netlify auto-deploy
-
-### Planned Migration: Netlify → Cloudflare Pages
-
-**Why Cloudflare Pages:**
-
-| Factor | Netlify (Current) | Cloudflare Pages (Planned) |
-|--------|-------------------|---------------------------|
-| Bandwidth (Free) | 100GB/month | Unlimited |
-| Bandwidth (Paid) | 1TB at $19/mo | Unlimited |
-| Edge Locations | Multiple | 300+ worldwide |
-| Cost at Scale | Increases with traffic | Predictable/flat |
-| Performance (TTFB) | ~352ms | ~280ms |
-
-**Migration Tasks:**
-
-1. Create Cloudflare account and connect GitHub repository
-2. Configure build settings (command: `npm run build`, output: `dist`)
-3. Update DNS/nameservers at domain registrar
-4. Verify site functionality and Supabase connections
-5. Remove site from Netlify
-6. Update PROJECT_MASTER.md
-
-**Timeline:** Complete migration before public launch to ensure stable infrastructure for growth.
-
----
-
-
-## Beta Program Documentation
-
-**Status:** Active  
-**Phase:** Private Beta  
-**Start Date:** November 2025  
-**Duration:** 3-4 weeks
-
-### Program Parameters
-
-| Parameter | Value |
-|-----------|-------|
-| Tester Capacity | 20 beta testers |
-| Commitment | 3-5 lessons generated |
-| Time Investment | 2-3 hours total |
-| Tester Benefits | Lifetime 75% discount, early access to all features, direct influence on development, community with other Bible teachers |
-
-### Performance Targets
-
-| Metric | Target | Notes |
-|--------|--------|-------|
-| Lesson Generation Time | ~76 seconds | Documented in beta materials; timeout = important feedback |
-| Lesson Output | 8 sections | 2,100-2,790 words total |
-
-### Beta Resources
-
-| Resource | URL/Location |
-|----------|--------------|
-| Production Site | https://lessonsparkusa.com |
-| Beta Signup Form | https://forms.gle/rqKwbHyH1s9nsCik9 |
-| Facebook Group | "LessonSparkUSA Beta Testers" (Private) |
-| User Documentation | https://lessonsparkusa.com/docs |
-| Help Center | https://lessonsparkusa.com/help |
-| Training Videos | https://lessonsparkusa.com/training |
-
-### Feedback Collection Methods
-
-1. **In-App Feedback Modal** - Appears after lesson generation (recommended)
-2. **Dashboard Feedback Button** - Available anytime
-3. **Facebook Group** - Community discussion and screenshots
-4. **Direct Contact** - lynn@lessonsparkusa.com | 214.893.5179
-
-### Beta Testing Focus Areas
-
-- Theological accuracy of generated content
-- Age-appropriateness for selected groups
-- Teacher customization reflection in output
-- Export quality (PDF/DOCX)
-- Interface usability for non-technical users
-- Generation time consistency
-
-### Beta Documentation Files
-
-| File | Purpose | Location |
-|------|---------|----------|
-| BETA_INVITATION_EMAIL.txt | Recruitment email template | Project root |
-| BETA_ONBOARDING_GUIDE.md | Tester instructions | Project root |
-
----
-
 ## Supported File Types Reference
 
 ### Curriculum Upload (extract-lesson)
@@ -1040,6 +932,131 @@ Organizations (churches) will have the capability to coordinate Bible study acro
 ALTER FUNCTION function_name(...) SET search_path = public, pg_temp;
 ```
 
+
+---
+
+## Claude API Cost Management
+
+### Pricing Structure (Claude Sonnet 4)
+
+| Token Type | Cost per Million | Notes |
+|------------|------------------|-------|
+| Input tokens | $3.00 | Prompt sent to Claude |
+| Output tokens | $15.00 | Lesson content generated |
+| Cached input (write) | $3.75 | First request creates cache (+25%) |
+| Cached input (read) | $0.30 | Subsequent requests use cache (-90%) |
+
+### Prompt Caching Implementation
+
+**Status:** ✅ Implemented December 3, 2025  
+**Location:** `supabase/functions/generate-lesson/index.ts`
+
+**Cache Structure:**
+```
+┌─────────────────────────────────────────┐
+│ BLOCK 1: Base System Prompt             │
+│ (Framework, sections, rules, checklist) │
+│ cache_control: { type: 'ephemeral' }    │ ← CACHED (same for ALL users)
+├─────────────────────────────────────────┤
+│ BLOCK 2: Theology Profile               │
+│ (BF&M 2000, BF&M 1963, etc.)            │
+│ cache_control: { type: 'ephemeral' }    │ ← CACHED (per theology tradition)
+├─────────────────────────────────────────┤
+│ BLOCK 3: Dynamic Content                │
+│ (Age group, teacher prefs, teaser)      │
+│ NO cache_control                        │ ← NOT cached (varies per request)
+└─────────────────────────────────────────┘
+```
+
+**Cache Behavior:**
+- TTL: 5 minutes (refreshes on each use)
+- Cache hits require same theology profile within 5-minute window
+- Teacher customization profiles do NOT cache (vary per user)
+- Output tokens are never cached (always full price)
+
+### Per-Lesson Cost Breakdown
+
+| Component | Tokens | Without Caching | With Caching (Hit) |
+|-----------|--------|-----------------|-------------------|
+| Cached Input (base + theology) | ~3,000 | $0.009 | $0.0009 |
+| Non-Cached Input (dynamic + user) | ~1,500 | $0.0045 | $0.0045 |
+| Output (lesson content) | ~3,500 | $0.0525 | $0.0525 |
+| **TOTAL per lesson** | ~8,000 | **~$0.066** | **~$0.058** |
+
+**Per-lesson savings with caching: ~12-15%**
+
+### Monthly Cost Projections
+
+| Users | Lessons/User/Month | Total Lessons | Without Caching | With Caching |
+|------:|:------------------:|:-------------:|----------------:|-------------:|
+| 10 | 5 | 50 | $3.30 | $2.90 |
+| 25 | 5 | 125 | $8.25 | $7.25 |
+| 50 | 5 | 250 | $16.50 | $14.50 |
+| 100 | 5 | 500 | $33.00 | $29.00 |
+| 200 | 5 | 1,000 | $66.00 | $58.00 |
+| 500 | 5 | 2,500 | $165.00 | $145.00 |
+| 750 | 5 | 3,750 | $247.50 | $217.50 |
+
+### Budget Configuration
+
+**Monthly Budget Ceiling:** $200  
+**Platform:** Anthropic Console (console.anthropic.com)  
+**Billing:** Prepaid credits with auto-reload
+
+**Recommended Settings:**
+- Initial credits: $50-100
+- Auto-reload threshold: $20
+- Spending alert: $150/month
+
+### Budget Capacity
+
+| Scenario | Max Lessons/Month | Max Users (at 5 lessons each) |
+|----------|------------------:|------------------------------:|
+| Without Caching | ~3,000 | ~600 users |
+| With Caching | ~3,450 | ~690 users |
+
+### Growth Projections
+
+| Phase | Users | Lessons/Month | Est. Cost | Within Budget? |
+|-------|------:|:-------------:|----------:|:--------------:|
+| Beta (Current) | 20 | 100 | $5.80 | ✅ Yes |
+| Early Launch | 50 | 250 | $14.50 | ✅ Yes |
+| Growing | 100 | 500 | $29.00 | ✅ Yes |
+| Established | 250 | 1,250 | $72.50 | ✅ Yes |
+| Thriving | 500 | 2,500 | $145.00 | ✅ Yes |
+| **Budget Ceiling** | **~690** | **~3,450** | **~$200** | ⚠️ Limit |
+
+### Cost Monitoring
+
+**Log Location:** Supabase Dashboard → Functions → generate-lesson → Logs
+
+**Cache Performance Indicators:**
+```
+[CACHE] Cache WRITE: Created cache with XXXX tokens    ← First request
+[CACHE] Cache HIT! Read XXXX tokens from cache         ← Subsequent requests
+```
+
+**Metadata Tracking:** Each lesson stores cache stats in `metadata.cacheStats`:
+- `cacheCreationTokens` - Tokens written to cache
+- `cacheReadTokens` - Tokens read from cache
+- `uncachedInputTokens` - Non-cached input tokens
+- `cacheHit` - Boolean indicating cache hit
+
+### Cost Optimization Notes
+
+1. **Output tokens dominate cost** - 5x more expensive than input; caching doesn't affect output
+2. **Curriculum Enhancement mode costs more** - Pasted curriculum increases input tokens 2-3x
+3. **Cache hits require traffic** - Same theology profile within 5 minutes gets cache benefit
+4. **Monitor weekly** - Check Anthropic Console dashboard for actual vs. projected costs
+
+### Scaling Triggers
+
+| Trigger | Action |
+|---------|--------|
+| Approaching 3,000 lessons/month | Review rate limits, consider tiered pricing |
+| Consistent $150+/month | Evaluate subscription pricing to cover costs |
+| 1,000+ active users | Implement usage-based pricing or tiered plans |
+
 ---
 
 # ACTION ITEMS
@@ -1064,15 +1081,6 @@ ALTER FUNCTION function_name(...) SET search_path = public, pg_temp;
 | Username | resend |
 | Password | Your API key (re_...) |
 | Sender email | Requires verified domain in Resend |
-
-## Post-Beta (Before Public Launch)
-
-| Task | Priority | Status |
-|------|----------|--------|
-| Migrate hosting from Netlify to Cloudflare Pages | MEDIUM | ⏳ Planned |
-| Verify DNS propagation complete | MEDIUM | ⏳ After migration |
-| Remove Lovable.dev project (optional cleanup) | LOW | ⏳ Pending |
-| Revoke Lovable.dev GitHub access | LOW | ⏳ Pending |
 
 ---
 
