@@ -1,12 +1,13 @@
-﻿/**
+/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
- * 
+ *
  * Updated: December 2025
- * - Integrated useTeacherProfiles hook for profile management
- * - Auto-loads default profile on form open
- * - Passes profile management props to TeacherCustomization
- * - Lesson X of Y for Part of Series (not saved in profile)
+ * - Redesigned with 3-step card layout
+ * - Step 1: What Lesson Are You Teaching? (radio selection for content input)
+ * - Step 2: Who Are You Teaching? (age group + theology side-by-side)
+ * - Step 3: Personalize Your Lesson (TeacherCustomization - collapsible)
+ * - Brand colors matching landing page (gold accents, teal buttons/badges)
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -17,7 +18,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Sparkles, BookOpen, Loader2, Star, FileText, Type } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
@@ -26,7 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
-import { TeacherPreferences, DEFAULT_TEACHER_PREFERENCES } from "@/constants/teacherPreferences";
+import { TeacherPreferences } from "@/constants/teacherPreferences";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 
@@ -44,6 +46,22 @@ interface EnhanceLessonFormProps {
   viewingLesson?: any;
   onClearViewing?: () => void;
 }
+
+// ============================================================================
+// BRAND STYLING COMPONENTS
+// ============================================================================
+
+// Gold accent text for headers (matches landing page)
+const GoldAccent = ({ children }: { children: React.ReactNode }) => (
+  <span className="text-amber-500">{children}</span>
+);
+
+// Step badge component (teal pill matching landing page "How It Works")
+const StepBadge = ({ number }: { number: number }) => (
+  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500 text-white">
+    STEP {number}
+  </span>
+);
 
 // ============================================================================
 // HELPERS
@@ -74,26 +92,27 @@ export function EnhanceLessonForm({
   onClearViewing,
 }: EnhanceLessonFormProps) {
   // ============================================================================
-  // CORE FORM STATE
+  // STEP 1: LESSON CONTENT STATE
   // ============================================================================
-  
+
+  const [contentInputType, setContentInputType] = useState<"curriculum" | "passage" | "topic">("passage");
   const [biblePassage, setBiblePassage] = useState("");
   const [focusedTopic, setFocusedTopic] = useState("");
-  const [ageGroup, setAgeGroup] = useState("");
-  const [notes, setNotes] = useState("");
-  const [theologyProfileId, setTheologyProfileId] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
   const [pastedContent, setPastedContent] = useState<string>("");
-  const [inputMode, setInputMode] = useState<"file" | "paste">("file");
+  const [curriculumInputMode, setCurriculumInputMode] = useState<"file" | "paste">("file");
   const [isExtracting, setIsExtracting] = useState(false);
-  const [generateTeaser, setGenerateTeaser] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generationProgress, setGenerationProgress] = useState(0);
-  const [generatedLesson, setGeneratedLesson] = useState<any>(null);
 
   // ============================================================================
-  // TEACHER CUSTOMIZATION STATE (13 profile fields)
+  // STEP 2: AUDIENCE STATE
+  // ============================================================================
+
+  const [ageGroup, setAgeGroup] = useState("");
+  const [theologyProfileId, setTheologyProfileId] = useState("");
+
+  // ============================================================================
+  // STEP 3: CUSTOMIZATION STATE (13 profile fields)
   // ============================================================================
 
   const [teachingStyle, setTeachingStyle] = useState("");
@@ -118,13 +137,30 @@ export function EnhanceLessonForm({
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
 
   // ============================================================================
+  // ADDITIONAL FORM STATE
+  // ============================================================================
+
+  const [notes, setNotes] = useState("");
+  const [generateTeaser, setGenerateTeaser] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generatedLesson, setGeneratedLesson] = useState<any>(null);
+
+  // ============================================================================
   // HOOKS
   // ============================================================================
 
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
-  const { isLimitReached, lessonsUsed, lessonsAllowed, hoursUntilReset, errorMessage: rateLimitError, refreshRateLimit } = useRateLimit();
+  const {
+    isLimitReached,
+    lessonsUsed,
+    lessonsAllowed,
+    hoursUntilReset,
+    errorMessage: rateLimitError,
+    refreshRateLimit,
+  } = useRateLimit();
   const { toast } = useToast();
-  
+
   // Teacher Profiles Hook
   const {
     profiles,
@@ -138,7 +174,7 @@ export function EnhanceLessonForm({
   } = useTeacherProfiles();
 
   // Generate accept attribute from SSOT constant
-  const fileAcceptTypes = ALLOWED_FILE_TYPES.join(',');
+  const fileAcceptTypes = ALLOWED_FILE_TYPES.join(",");
 
   // ============================================================================
   // PROFILE MANAGEMENT
@@ -161,7 +197,7 @@ export function EnhanceLessonForm({
     setLanguage(prefs.language || "english");
     setActivityTypes(prefs.activityTypes || []);
     setCurrentProfileId(profile.id);
-    
+
     // Reset series position when loading profile
     setLessonNumber(1);
     setTotalLessons(3);
@@ -175,13 +211,16 @@ export function EnhanceLessonForm({
   }, [defaultProfile, currentProfileId, loadProfileIntoForm]);
 
   // Handle profile load from dropdown
-  const handleLoadProfile = useCallback((profile: TeacherPreferenceProfile) => {
-    loadProfileIntoForm(profile);
-    toast({
-      title: "Profile loaded",
-      description: `"${profile.profile_name}" preferences applied`,
-    });
-  }, [loadProfileIntoForm, toast]);
+  const handleLoadProfile = useCallback(
+    (profile: TeacherPreferenceProfile) => {
+      loadProfileIntoForm(profile);
+      toast({
+        title: "Profile loaded",
+        description: `"${profile.profile_name}" preferences applied`,
+      });
+    },
+    [loadProfileIntoForm, toast]
+  );
 
   // Handle save profile
   const handleSaveProfile = useCallback(
@@ -217,7 +256,7 @@ export function EnhanceLessonForm({
   );
 
   // ============================================================================
-  // USER PROFILE FETCH
+  // USER PROFILE FETCH (for default theology)
   // ============================================================================
 
   useEffect(() => {
@@ -286,20 +325,22 @@ export function EnhanceLessonForm({
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('file', file);
+      formDataToSend.append("file", file);
 
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const authToken = session?.access_token;
 
       if (!authToken) {
-        throw new Error('Authentication required');
+        throw new Error("Authentication required");
       }
 
       const supabaseUrl = "https://hphebzdftpjbiudpfcrs.supabase.co";
       const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${authToken}`,
+          Authorization: `Bearer ${authToken}`,
         },
         body: formDataToSend,
       });
@@ -317,10 +358,10 @@ export function EnhanceLessonForm({
           description: `Extracted ${result.extractedText.length} characters from ${file.name}`,
         });
       } else {
-        throw new Error(result.error || 'Failed to extract content');
+        throw new Error(result.error || "Failed to extract content");
       }
     } catch (error: any) {
-      console.error('File extraction error:', error);
+      console.error("File extraction error:", error);
       setUploadedFile(null);
       setExtractedContent(null);
       toast({
@@ -333,8 +374,8 @@ export function EnhanceLessonForm({
     }
   };
 
-  const handleInputModeChange = (mode: "file" | "paste") => {
-    setInputMode(mode);
+  const handleCurriculumModeChange = (mode: "file" | "paste") => {
+    setCurriculumInputMode(mode);
     if (mode === "paste") {
       setUploadedFile(null);
       setExtractedContent(null);
@@ -344,13 +385,20 @@ export function EnhanceLessonForm({
   };
 
   const getEffectiveContent = (): string | null => {
-    if (inputMode === "paste" && pastedContent.trim()) {
+    if (contentInputType !== "curriculum") return null;
+    if (curriculumInputMode === "paste" && pastedContent.trim()) {
       return pastedContent.trim();
     }
-    if (inputMode === "file" && extractedContent) {
+    if (curriculumInputMode === "file" && extractedContent) {
       return extractedContent;
     }
     return null;
+  };
+
+  const clearCurriculumContent = () => {
+    setUploadedFile(null);
+    setExtractedContent(null);
+    setPastedContent("");
   };
 
   // ============================================================================
@@ -361,11 +409,13 @@ export function EnhanceLessonForm({
     e.preventDefault();
 
     const effectiveContent = getEffectiveContent();
+    const effectivePassage = contentInputType === "passage" ? biblePassage : "";
+    const effectiveTopic = contentInputType === "topic" ? focusedTopic : "";
 
-    if (!biblePassage && !focusedTopic && !effectiveContent) {
+    if (!effectivePassage && !effectiveTopic && !effectiveContent) {
       toast({
         title: "Missing information",
-        description: "Please provide a Bible passage, focused topic, or curriculum content (upload or paste)",
+        description: "Please provide a Bible passage, focused topic, or curriculum content",
         variant: "destructive",
       });
       return;
@@ -393,8 +443,8 @@ export function EnhanceLessonForm({
 
     try {
       const enhancementData = {
-        bible_passage: biblePassage,
-        focused_topic: focusedTopic,
+        bible_passage: effectivePassage,
+        focused_topic: effectiveTopic,
         age_group: ageGroup,
         theology_profile_id: theologyProfileId,
         additional_notes: notes,
@@ -414,7 +464,7 @@ export function EnhanceLessonForm({
         language: language,
         activity_types: activityTypes,
         generate_teaser: generateTeaser,
-        uploaded_file: inputMode === "file" ? uploadedFile : null,
+        uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
       };
 
@@ -437,7 +487,8 @@ export function EnhanceLessonForm({
       setExtractedContent(null);
       setPastedContent("");
       setGenerateTeaser(false);
-      
+      setContentInputType("passage");
+
       // Reset series position but keep profile loaded
       setLessonNumber(1);
     } catch (error) {
@@ -452,296 +503,383 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const currentLesson = viewingLesson || generatedLesson?.lesson;
-  const displayTitle = currentLesson ? (extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson") : "Generated Lesson";
+  const displayTitle = currentLesson
+    ? extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson"
+    : "Generated Lesson";
 
   return (
     <>
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Create Baptist-Enhanced Lesson
-          </CardTitle>
-          <CardDescription>Generate a theologically-sound Bible study lesson tailored to your class</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* 1. Upload or Paste Existing Curriculum */}
-            <div className="space-y-3">
-              <Label>Upload or Paste Existing Curriculum (Optional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Provide curriculum content to enhance with deeper Baptist theological insights. Choose one method:
-              </p>
-              
-              {/* Toggle between file upload and paste */}
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={inputMode === "file" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleInputModeChange("file")}
-                  disabled={isSubmitting || isExtracting}
-                  className="flex items-center gap-2"
-                >
-                  <FileText className="h-4 w-4" />
-                  Upload File
-                </Button>
-                <Button
-                  type="button"
-                  variant={inputMode === "paste" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => handleInputModeChange("paste")}
-                  disabled={isSubmitting || isExtracting}
-                  className="flex items-center gap-2"
-                >
-                  <Type className="h-4 w-4" />
-                  Paste Text
-                </Button>
-              </div>
+      {/* Main Form Container */}
+      <div className="w-full space-y-4">
+        {/* Page Header */}
+        <div className="text-center mb-6">
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-2">
+            <Sparkles className="h-6 w-6 text-sky-500" />
+            Create Baptist-Enhanced <GoldAccent>Lesson</GoldAccent>
+          </h1>
+          <p className="text-slate-600 mt-1">
+            Generate a theologically-sound Bible study lesson tailored to your class
+          </p>
+        </div>
 
-              {/* File Upload Mode */}
-              {inputMode === "file" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Supports PDF, TXT, JPG, JPEG, PNG (&lt;10MB). For Word docs, save as PDF first.
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      id="file"
-                      type="file"
-                      accept={fileAcceptTypes}
-                      onChange={handleFileChange}
-                      disabled={isSubmitting || isExtracting}
-                      className="cursor-pointer"
-                    />
-                    {uploadedFile && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setUploadedFile(null); setExtractedContent(null); }}
-                        disabled={isSubmitting || isExtracting}
-                      >
-                        Clear
-                      </Button>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ================================================================ */}
+          {/* STEP 1: What Lesson Are You Teaching? */}
+          {/* ================================================================ */}
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <StepBadge number={1} />
+              </div>
+              <CardTitle className="text-lg text-slate-800">
+                What <GoldAccent>Lesson</GoldAccent> Are You Teaching?
+              </CardTitle>
+              <CardDescription>Choose one way to describe your lesson content</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Radio selection for content type */}
+              <RadioGroup
+                value={contentInputType}
+                onValueChange={(value) =>
+                  setContentInputType(value as "curriculum" | "passage" | "topic")
+                }
+                className="space-y-3"
+                disabled={isSubmitting || isExtracting}
+              >
+                {/* Option 1: Upload/Paste Curriculum */}
+                <div className="flex items-start space-x-3">
+                  <RadioGroupItem value="curriculum" id="content-curriculum" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="content-curriculum" className="font-medium cursor-pointer">
+                      Upload or paste existing curriculum
+                    </Label>
+                    {contentInputType === "curriculum" && (
+                      <div className="mt-3 pl-0 space-y-3">
+                        {/* Toggle between file upload and paste */}
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={curriculumInputMode === "file" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleCurriculumModeChange("file")}
+                            disabled={isSubmitting || isExtracting}
+                            className="flex items-center gap-2"
+                          >
+                            <Upload className="h-4 w-4" />
+                            Upload File
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={curriculumInputMode === "paste" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleCurriculumModeChange("paste")}
+                            disabled={isSubmitting || isExtracting}
+                            className="flex items-center gap-2"
+                          >
+                            <Type className="h-4 w-4" />
+                            Paste Text
+                          </Button>
+                        </div>
+
+                        {/* File Upload Mode */}
+                        {curriculumInputMode === "file" && (
+                          <div className="space-y-2">
+                            <p className="text-xs text-muted-foreground">
+                              Supports PDF, TXT, JPG, JPEG, PNG (&lt;10MB). For Word docs, save as
+                              PDF first.
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="file"
+                                accept={fileAcceptTypes}
+                                onChange={handleFileChange}
+                                disabled={isSubmitting || isExtracting}
+                                className="cursor-pointer"
+                              />
+                              {uploadedFile && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={clearCurriculumContent}
+                                  disabled={isSubmitting || isExtracting}
+                                >
+                                  Clear
+                                </Button>
+                              )}
+                            </div>
+                            {isExtracting && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Extracting content (may take 60-90 seconds for PDFs)...</span>
+                              </div>
+                            )}
+                            {extractedContent && (
+                              <div className="text-sm text-green-600">
+                                ✓ File content extracted ({extractedContent.length} characters)
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Paste Text Mode */}
+                        {curriculumInputMode === "paste" && (
+                          <div className="space-y-2">
+                            <Textarea
+                              placeholder="Paste your existing lesson content here..."
+                              value={pastedContent}
+                              onChange={(e) => setPastedContent(e.target.value)}
+                              disabled={isSubmitting}
+                              rows={5}
+                              className="font-mono text-sm"
+                            />
+                            {pastedContent.trim() && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-green-600">
+                                  ✓ {pastedContent.length} characters entered
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setPastedContent("")}
+                                  disabled={isSubmitting}
+                                >
+                                  Clear
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
-                  {isExtracting && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Extracting content from file (this may take 60-90 seconds for PDFs)...</span>
-                    </div>
-                  )}
-                  {extractedContent && (
-                    <div className="text-sm text-green-600">
-                      ✓ File content extracted ({extractedContent.length} characters)
-                    </div>
-                  )}
                 </div>
-              )}
 
-              {/* Paste Text Mode */}
-              {inputMode === "paste" && (
+                {/* Option 2: Bible Passage */}
+                <div className="flex items-start space-x-3">
+                  <RadioGroupItem value="passage" id="content-passage" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="content-passage" className="font-medium cursor-pointer">
+                      Start from a Bible passage
+                    </Label>
+                    {contentInputType === "passage" && (
+                      <div className="mt-2">
+                        <Input
+                          placeholder="e.g., John 3:16-21"
+                          value={biblePassage}
+                          onChange={(e) => setBiblePassage(e.target.value)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Option 3: Topic/Theme */}
+                <div className="flex items-start space-x-3">
+                  <RadioGroupItem value="topic" id="content-topic" className="mt-1" />
+                  <div className="flex-1">
+                    <Label htmlFor="content-topic" className="font-medium cursor-pointer">
+                      Start from a topic or theme
+                    </Label>
+                    {contentInputType === "topic" && (
+                      <div className="mt-2">
+                        <Input
+                          placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
+                          value={focusedTopic}
+                          onChange={(e) => setFocusedTopic(e.target.value)}
+                          disabled={isSubmitting}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </RadioGroup>
+            </CardContent>
+          </Card>
+
+          {/* ================================================================ */}
+          {/* STEP 2: Who Are You Teaching? */}
+          {/* ================================================================ */}
+          <Card className="border shadow-sm">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2 mb-1">
+                <StepBadge number={2} />
+              </div>
+              <CardTitle className="text-lg text-slate-800">
+                Who Are You <GoldAccent>Teaching</GoldAccent>?
+              </CardTitle>
+              <CardDescription>Select your audience and theological tradition</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Age Group */}
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    Copy and paste your lesson text directly. Faster than file upload!
-                  </p>
-                  <Textarea
-                    placeholder="Paste your existing lesson content here..."
-                    value={pastedContent}
-                    onChange={(e) => setPastedContent(e.target.value)}
-                    disabled={isSubmitting}
-                    rows={6}
-                    className="font-mono text-sm"
-                  />
-                  {pastedContent.trim() && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-green-600">
-                        ✓ {pastedContent.length} characters entered
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setPastedContent("")}
-                        disabled={isSubmitting}
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  )}
+                  <Label htmlFor="age-group">
+                    Age Group <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
+                    <SelectTrigger id="age-group">
+                      <SelectValue placeholder="Select age group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {AGE_GROUPS.map((group) => (
+                        <SelectItem key={group.id} value={group.id}>
+                          {group.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </div>
 
-            {/* 2. Bible Passage */}
-            <div className="space-y-2">
-              <Label htmlFor="passage">Bible Passage (Optional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Enter the primary Scripture reference for your lesson (e.g., John 3:16-21). Leave blank if included in uploaded curriculum.
-              </p>
-              <Input
-                id="passage"
-                placeholder="e.g., John 3:16-21"
-                value={biblePassage}
-                onChange={(e) => setBiblePassage(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
+                {/* Theology Profile */}
+                <div className="space-y-2">
+                  <Label htmlFor="theology-profile">
+                    Baptist Theology Profile <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={theologyProfileId}
+                    onValueChange={setTheologyProfileId}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger id="theology-profile">
+                      <SelectValue placeholder="Select theology profile" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {THEOLOGY_PROFILES.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-            {/* 3. Focused Topic or Theme */}
-            <div className="space-y-2">
-              <Label htmlFor="topic">Focused Topic or Theme (Optional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Enter general terms and your primary thought will be conveyed throughout the lesson.
-              </p>
-              <Input
-                id="topic"
-                placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
-                value={focusedTopic}
-                onChange={(e) => setFocusedTopic(e.target.value)}
-                disabled={isSubmitting}
-              />
-            </div>
+          {/* ================================================================ */}
+          {/* STEP 3: Personalize Your Lesson (TeacherCustomization) */}
+          {/* ================================================================ */}
+          <TeacherCustomization
+            teachingStyle={teachingStyle}
+            setTeachingStyle={setTeachingStyle}
+            learningStyle={learningStyle}
+            setLearningStyle={setLearningStyle}
+            lessonLength={lessonLength}
+            setLessonLength={setLessonLength}
+            classSetting={classSetting}
+            setClassSetting={setClassSetting}
+            learningEnvironment={learningEnvironment}
+            setLearningEnvironment={setLearningEnvironment}
+            studentExperience={studentExperience}
+            setStudentExperience={setStudentExperience}
+            educationExperience={educationExperience}
+            setEducationExperience={setEducationExperience}
+            culturalContext={culturalContext}
+            setCulturalContext={setCulturalContext}
+            specialNeeds={specialNeeds}
+            setSpecialNeeds={setSpecialNeeds}
+            lessonSequence={lessonSequence}
+            setLessonSequence={setLessonSequence}
+            assessmentStyle={assessmentStyle}
+            setAssessmentStyle={setAssessmentStyle}
+            language={language}
+            setLanguage={setLanguage}
+            activityTypes={activityTypes}
+            setActivityTypes={setActivityTypes}
+            lessonNumber={lessonNumber}
+            setLessonNumber={setLessonNumber}
+            totalLessons={totalLessons}
+            setTotalLessons={setTotalLessons}
+            profiles={profiles}
+            currentProfileId={currentProfileId}
+            onSaveProfile={handleSaveProfile}
+            onUpdateProfile={handleUpdateProfile}
+            onLoadProfile={handleLoadProfile}
+            onDeleteProfile={handleDeleteProfile}
+            isSavingProfile={isSavingProfile}
+            disabled={isSubmitting}
+          />
 
-            {/* 4. Age Group */}
-            <div className="space-y-2">
-              <Label htmlFor="age-group">Age Group *</Label>
-              <p className="text-sm text-muted-foreground">
-                Everything will be age appropriate -- subject matter, vocabulary, activities, timing sequences, interests, illustrations -- everything.
-              </p>
-              <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
-                <SelectTrigger id="age-group">
-                  <SelectValue placeholder="Select age group" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AGE_GROUPS.map((group) => (
-                    <SelectItem key={group.id} value={group.id}>
-                      {group.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* ================================================================ */}
+          {/* ADDITIONAL OPTIONS (Notes + Teaser) */}
+          {/* ================================================================ */}
+          <Card className="border shadow-sm">
+            <CardContent className="pt-6 space-y-4">
+              {/* Additional Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Additional Notes</Label>
+                <p className="text-sm text-muted-foreground">
+                  Add specific requests — describe your focus or primary thought
+                </p>
+                <Textarea
+                  id="notes"
+                  placeholder="Any specific focus areas, cultural context, or teaching preferences..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  disabled={isSubmitting}
+                  rows={3}
+                />
+              </div>
 
-            {/* 5. Baptist Theology Profile */}
-            <div className="space-y-2">
-              <Label htmlFor="theology-profile">Baptist Theology Profile *</Label>
-              <p className="text-sm text-muted-foreground">
-                Choose your church's theological tradition. This ensures doctrinal alignment with your congregation.
-              </p>
-              <Select value={theologyProfileId} onValueChange={setTheologyProfileId} disabled={isSubmitting}>
-                <SelectTrigger id="theology-profile">
-                  <SelectValue placeholder="Select theology profile" />
-                </SelectTrigger>
-                <SelectContent>
-                  {THEOLOGY_PROFILES.map((profile) => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* 6. Lesson Customization */}
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                Personalize your lesson with your own teaching style, your own class description and we will generate a lesson built just for you and those you teach.
-              </p>
-              <TeacherCustomization
-                teachingStyle={teachingStyle}
-                setTeachingStyle={setTeachingStyle}
-                learningStyle={learningStyle}
-                setLearningStyle={setLearningStyle}
-                lessonLength={lessonLength}
-                setLessonLength={setLessonLength}
-                classSetting={classSetting}
-                setClassSetting={setClassSetting}
-                learningEnvironment={learningEnvironment}
-                setLearningEnvironment={setLearningEnvironment}
-                studentExperience={studentExperience}
-                setStudentExperience={setStudentExperience}
-                educationExperience={educationExperience}
-                setEducationExperience={setEducationExperience}
-                culturalContext={culturalContext}
-                setCulturalContext={setCulturalContext}
-                specialNeeds={specialNeeds}
-                setSpecialNeeds={setSpecialNeeds}
-                lessonSequence={lessonSequence}
-                setLessonSequence={setLessonSequence}
-                assessmentStyle={assessmentStyle}
-                setAssessmentStyle={setAssessmentStyle}
-                language={language}
-                setLanguage={setLanguage}
-                activityTypes={activityTypes}
-                setActivityTypes={setActivityTypes}
-                lessonNumber={lessonNumber}
-                setLessonNumber={setLessonNumber}
-                totalLessons={totalLessons}
-                setTotalLessons={setTotalLessons}
-                profiles={profiles}
-                currentProfileId={currentProfileId}
-                onSaveProfile={handleSaveProfile}
-                onUpdateProfile={handleUpdateProfile}
-                onLoadProfile={handleLoadProfile}
-                onDeleteProfile={handleDeleteProfile}
-                isSavingProfile={isSavingProfile}
-                disabled={isSubmitting}
-              />
-            </div>
-
-            {/* 7. Additional Notes */}
-            <div className="space-y-2">
-              <Label htmlFor="notes">Additional Notes (Optional)</Label>
-              <p className="text-sm text-muted-foreground">
-                Add specific requests -- describe your focus or primary thought -- we'll deliver it clearly and plainly throughout the lesson
-              </p>
-              <Textarea
-                id="notes"
-                placeholder="Any specific focus areas, cultural context, or teaching preferences..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                disabled={isSubmitting}
-                rows={4}
-              />
-            </div>
-
-            {/* 8. Generate Lesson Teaser */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
+              {/* Generate Lesson Teaser */}
+              <div className="flex items-start space-x-2">
                 <Checkbox
                   id="generate-teaser"
                   checked={generateTeaser}
                   onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
                   disabled={isSubmitting}
                 />
-                <label
-                  htmlFor="generate-teaser"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Generate Lesson Teaser
-                </label>
+                <div className="space-y-1">
+                  <label
+                    htmlFor="generate-teaser"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Generate Lesson Teaser
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Build anticipation before you teach (perfect for emails, texts, or social media)
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-muted-foreground ml-6">
-                Send days before you teach; build anticipation and expectation to hear God speak into their lives. (perfect for emails, texts, or social media)
-              </p>
-            </div>
+            </CardContent>
+          </Card>
 
+          {/* ================================================================ */}
+          {/* SUBMIT SECTION */}
+          {/* ================================================================ */}
+          <div className="space-y-3">
             {/* Rate Limit Indicator */}
-            <div className={`text-sm text-center p-2 rounded-lg mb-3 ${isLimitReached ? "bg-destructive/10 text-destructive" : "bg-muted"}`}>
+            <div
+              className={`text-sm text-center p-2 rounded-lg ${
+                isLimitReached ? "bg-destructive/10 text-destructive" : "bg-muted"
+              }`}
+            >
               {isLimitReached ? (
-                <span>Limit reached - resets in {hoursUntilReset} hour{hoursUntilReset === 1 ? "" : "s"}</span>
+                <span>
+                  Limit reached — resets in {hoursUntilReset} hour
+                  {hoursUntilReset === 1 ? "" : "s"}
+                </span>
               ) : (
-                <span>{lessonsUsed} of {lessonsAllowed} lessons used {hoursUntilReset ? `(resets in ${hoursUntilReset} hours)` : "(24-hour period)"}</span>
+                <span>
+                  {lessonsUsed} of {lessonsAllowed} lessons used (24-hour period)
+                </span>
               )}
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || isEnhancing || isLimitReached || isExtracting}>
+            {/* Generate Button */}
+            <Button
+              type="submit"
+              className="w-full bg-sky-500 hover:bg-sky-600"
+              size="lg"
+              disabled={isSubmitting || isEnhancing || isLimitReached || isExtracting}
+            >
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Lesson Generating... {Math.round(generationProgress)}%</span>
+                  <span>Generating Lesson... {Math.round(generationProgress)}%</span>
                 </div>
               ) : isExtracting ? (
                 <div className="flex items-center gap-2">
@@ -750,22 +888,24 @@ export function EnhanceLessonForm({
                 </div>
               ) : (
                 <>
-                  <BookOpen className="mr-2 h-4 w-4" />
+                  <Sparkles className="mr-2 h-4 w-4" />
                   Generate Lesson
                 </>
               )}
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </form>
+      </div>
 
-      {/* Display Generated or Viewing Lesson */}
+      {/* ================================================================ */}
+      {/* GENERATED LESSON DISPLAY */}
+      {/* ================================================================ */}
       {currentLesson && (
         <Card className="mt-6">
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-primary" />
+                <BookOpen className="h-5 w-5 text-sky-500" />
                 {displayTitle}
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -805,36 +945,46 @@ export function EnhanceLessonForm({
             </div>
           </CardHeader>
           <CardContent>
-            {/* Teaser Section - Display prominently if present */}
+            {/* Teaser Section */}
             {currentLesson.metadata?.teaser && (
-              <div className="mb-3 p-2.5 bg-primary/10 border border-primary/20 rounded-lg">
+              <div className="mb-3 p-2.5 bg-sky-50 border border-sky-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold text-primary text-sm">Student Teaser (Pre-Lesson)</h3>
+                  <Sparkles className="h-4 w-4 text-sky-500" />
+                  <h3 className="font-semibold text-sky-700 text-sm">
+                    Student Teaser (Pre-Lesson)
+                  </h3>
                 </div>
                 <p className="text-sm italic leading-tight">{currentLesson.metadata.teaser}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Share this with students via text, email, or social media days before class to build anticipation.
+                  Share with students via text, email, or social media before class.
                 </p>
               </div>
             )}
 
+            {/* Lesson Content */}
             <div className="prose-sm max-w-none">
               <div
                 className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
-                style={{ lineHeight: '1.3' }}
+                style={{ lineHeight: "1.3" }}
                 dangerouslySetInnerHTML={{
                   __html: (currentLesson.original_text || "")
-                    .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
+                    .replace(
+                      /## (.*?)(?=\n|$)/g,
+                      '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>'
+                    )
                     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                    .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+                    .replace(
+                      /\n---\n/g,
+                      '<hr class="my-1.5 border-t border-muted-foreground/20">'
+                    )
                     .replace(/\x95/g, "\x95")
                     .replace(/\n\n/g, "<br><br>")
                     .replace(/\n/g, "<br>"),
                 }}
               />
             </div>
-            {/* Export buttons at bottom for convenience */}
+
+            {/* Export buttons at bottom */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-4 border-t">
               <span className="text-sm text-muted-foreground mr-2">Export:</span>
               <LessonExportButtons

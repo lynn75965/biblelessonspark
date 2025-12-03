@@ -1,14 +1,15 @@
-﻿/**
+/**
  * Teacher Preferences SSOT
  * Single Source of Truth for all teacher customization options
  *
  * Architecture: Frontend drives backend
  * This file syncs to: supabase/functions/_shared/teacherPreferences.ts
- * 
+ *
  * UPDATED: December 2025
  * - Reduced to 13 active profile fields
  * - Added: lessonSequence, language, activityTypes
- * - Removed unused fields for cleaner architecture
+ * - Added: 15 minutes to LESSON_LENGTHS
+ * - Lesson Sequence moved to last position in UI
  */
 
 // ============================================================================
@@ -54,9 +55,11 @@ export const LEARNING_STYLES: PreferenceOption[] = [
 
 // ============================================================================
 // LESSON LENGTH OPTIONS
+// Updated: Added 15 minutes option for short devotionals/preschool
 // ============================================================================
 
 export const LESSON_LENGTHS: PreferenceOption[] = [
+  { id: "15", label: "15 minutes", description: "Very brief session, preschool or quick devotional" },
   { id: "30", label: "30 minutes", description: "Brief session, typically children's classes" },
   { id: "45", label: "45 minutes", description: "Standard Sunday School timeframe" },
   { id: "60", label: "60 minutes", description: "Extended class period" },
@@ -145,15 +148,6 @@ export const SPECIAL_NEEDS_OPTIONS: PreferenceOption[] = [
 ] as const;
 
 // ============================================================================
-// LESSON SEQUENCE OPTIONS
-// ============================================================================
-
-export const LESSON_SEQUENCE_OPTIONS: PreferenceOption[] = [
-  { id: "single_lesson", label: "Single Lesson", description: "Complete standalone lesson with all 8 sections" },
-  { id: "part_of_series", label: "Part of Series", description: "One lesson in a connected series (7 max)" },
-] as const;
-
-// ============================================================================
 // ASSESSMENT STYLE OPTIONS
 // ============================================================================
 
@@ -175,6 +169,16 @@ export const LANGUAGE_OPTIONS: PreferenceOption[] = [
   { id: "english", label: "English", description: "Generate lesson in English" },
   { id: "spanish", label: "Spanish", description: "Generate lesson in Spanish" },
   { id: "french", label: "French", description: "Generate lesson in French" },
+] as const;
+
+// ============================================================================
+// LESSON SEQUENCE OPTIONS
+// Note: This appears LAST in the UI grid so "Part of Series" inputs flow naturally
+// ============================================================================
+
+export const LESSON_SEQUENCE_OPTIONS: PreferenceOption[] = [
+  { id: "single_lesson", label: "Single Lesson", description: "Complete standalone lesson with all 8 sections" },
+  { id: "part_of_series", label: "Part of Series", description: "One lesson in a connected series (7 max)" },
 ] as const;
 
 // ============================================================================
@@ -203,18 +207,18 @@ export interface TeacherPreferences {
   lessonLength: string;
   groupSize: string;
   learningEnvironment: string;
-  
+
   // Student context
   studentExperience: string;
   educationExperience: string;
   culturalContext: string;
   specialNeeds: string;
-  
+
   // Lesson format
-  lessonSequence: string;
   assessmentStyle: string;
   language: string;
-  
+  lessonSequence: string;
+
   // Activity preferences (multi-select)
   activityTypes: string[];
 }
@@ -234,9 +238,9 @@ export const DEFAULT_TEACHER_PREFERENCES: TeacherPreferences = {
   educationExperience: "",
   culturalContext: "",
   specialNeeds: "",
-  lessonSequence: "",
   assessmentStyle: "",
   language: "english",
+  lessonSequence: "",
   activityTypes: [],
 } as const;
 
@@ -273,7 +277,7 @@ export type StudentExperienceKey = typeof STUDENT_EXPERIENCE_LEVELS[number]["id"
 export type EducationExperienceKey = typeof EDUCATION_EXPERIENCES[number]["id"];
 export type CulturalContextKey = typeof CULTURAL_CONTEXTS[number]["id"];
 export type SpecialNeedsKey = typeof SPECIAL_NEEDS_OPTIONS[number]["id"];
-export type LessonSequenceKey = typeof LESSON_SEQUENCE_OPTIONS[number]["id"];
 export type AssessmentStyleKey = typeof ASSESSMENT_STYLES[number]["id"];
 export type LanguageKey = typeof LANGUAGE_OPTIONS[number]["id"];
+export type LessonSequenceKey = typeof LESSON_SEQUENCE_OPTIONS[number]["id"];
 export type ActivityTypeKey = typeof ACTIVITY_TYPE_OPTIONS[number]["id"];

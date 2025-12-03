@@ -1,13 +1,19 @@
-﻿/**
+/**
  * TeacherCustomization Component
  * Renders the 13 teacher preference fields with profile management
- * 
+ *
  * Architecture: Imports all options from SSOT (teacherPreferences.ts)
  * Features:
+ *   - Step badge styling matching landing page brand
  *   - Smart Collapse: Expanded if user has profiles, collapsed for new users
  *   - Profile dropdown to load saved profiles
  *   - Save This Profile button with modal
- *   - Part of Series: Shows Lesson X of Y inputs
+ *   - Part of Series: Shows Lesson X of Y inputs (appears LAST in grid)
+ *
+ * Updated: December 2025
+ *   - Gold accent on header text
+ *   - Teal step badge
+ *   - Lesson Sequence moved to last position
  */
 
 import { useState, useEffect } from "react";
@@ -52,6 +58,22 @@ import {
 } from "@/constants/teacherPreferences";
 
 import { TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
+
+// ============================================================================
+// BRAND STYLING COMPONENTS
+// ============================================================================
+
+// Gold accent text for headers (matches landing page)
+const GoldAccent = ({ children }: { children: React.ReactNode }) => (
+  <span className="text-amber-500">{children}</span>
+);
+
+// Step badge component (teal pill matching landing page "How It Works")
+const StepBadge = ({ number }: { number: number }) => (
+  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500 text-white">
+    STEP {number}
+  </span>
+);
 
 // ============================================================================
 // PROPS INTERFACE
@@ -196,9 +218,9 @@ export function TeacherCustomization({
     educationExperience,
     culturalContext,
     specialNeeds,
-    lessonSequence,
     assessmentStyle,
     language,
+    lessonSequence,
     activityTypes,
   });
 
@@ -265,16 +287,21 @@ export function TeacherCustomization({
   // ============================================================================
 
   return (
-    <Card className="w-full">
+    <Card className="w-full border shadow-sm">
       <CardHeader
-        className="cursor-pointer hover:bg-accent/50 transition-colors"
+        className="cursor-pointer hover:bg-accent/50 transition-colors pb-3"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Lesson Customization (Optional)</CardTitle>
+            <div className="flex items-center gap-2 mb-1">
+              <StepBadge number={3} />
+            </div>
+            <CardTitle className="text-lg text-slate-800">
+              <GoldAccent>Personalize</GoldAccent> Your Lesson
+            </CardTitle>
             <CardDescription>
-              Personalize your lesson beyond what any published curriculum can provide
+              Optional customizations that make your lesson unique
             </CardDescription>
           </div>
           {isExpanded ? (
@@ -286,7 +313,7 @@ export function TeacherCustomization({
       </CardHeader>
 
       {isExpanded && (
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="space-y-6 pt-4">
           {/* Profile Management Row */}
           <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
             {profiles.length > 0 && (
@@ -346,7 +373,7 @@ export function TeacherCustomization({
             </Button>
           </div>
 
-          {/* 13 Profile Fields - 2 Column Grid */}
+          {/* 12 Profile Fields - 2 Column Grid (Lesson Sequence moved to end) */}
           <div className="grid grid-cols-2 gap-4">
             {/* Teaching Style */}
             <div className="space-y-2">
@@ -515,23 +542,6 @@ export function TeacherCustomization({
               </Select>
             </div>
 
-            {/* Lesson Sequence */}
-            <div className="space-y-2">
-              <Label htmlFor="lesson-sequence">Lesson Sequence</Label>
-              <Select value={lessonSequence} onValueChange={setLessonSequence} disabled={disabled}>
-                <SelectTrigger id="lesson-sequence">
-                  <SelectValue placeholder="Select lesson sequence" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LESSON_SEQUENCE_OPTIONS.map((seq) => (
-                    <SelectItem key={seq.id} value={seq.id}>
-                      {seq.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Assessment Style */}
             <div className="space-y-2">
               <Label htmlFor="assessment-style">Assessment Style</Label>
@@ -565,9 +575,26 @@ export function TeacherCustomization({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Lesson Sequence (LAST in grid) */}
+            <div className="space-y-2">
+              <Label htmlFor="lesson-sequence">Lesson Sequence</Label>
+              <Select value={lessonSequence} onValueChange={setLessonSequence} disabled={disabled}>
+                <SelectTrigger id="lesson-sequence">
+                  <SelectValue placeholder="Select lesson sequence" />
+                </SelectTrigger>
+                <SelectContent>
+                  {LESSON_SEQUENCE_OPTIONS.map((seq) => (
+                    <SelectItem key={seq.id} value={seq.id}>
+                      {seq.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Part of Series: Lesson X of Y */}
+          {/* Part of Series: Lesson X of Y (appears right after grid when selected) */}
           {lessonSequence === "part_of_series" && (
             <div className="p-4 bg-muted/50 rounded-lg border">
               <Label className="text-sm font-medium mb-3 block">Series Position</Label>
@@ -600,7 +627,7 @@ export function TeacherCustomization({
             </div>
           )}
 
-          {/* Activity Types */}
+          {/* Activity Types (checkboxes at end) */}
           <div className="space-y-2">
             <Label>Activity Types</Label>
             <div className="grid grid-cols-2 gap-3">
