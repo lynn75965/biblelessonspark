@@ -9,6 +9,7 @@
  * - Step 3: Personalize Your Lesson (TeacherCustomization - collapsible)
  * - Brand colors matching landing page (gold accents, teal buttons/badges)
  * - Bible Version selection with copyright-aware guardrails
+ * - Mobile responsiveness fixes (December 4, 2025)
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -520,7 +521,7 @@ export function EnhanceLessonForm({
         {/* ================================================================ */}
         {viewingLesson ? (
           <>
-            {/* Viewer Header */}
+            {/* Viewer Header - MOBILE FIX: flex-wrap + flex-shrink-0 on icon */}
             <div className="mb-6">
               <Button
                 variant="outline"
@@ -530,9 +531,9 @@ export function EnhanceLessonForm({
                 <ArrowLeft className="h-4 w-4" />
                 Back to My Lesson Library
               </Button>
-              <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                <BookOpen className="h-6 w-6 text-sky-500" />
-                {displayTitle}
+              <h1 className="text-2xl font-bold text-slate-800 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <BookOpen className="h-6 w-6 text-sky-500 flex-shrink-0" />
+                <span className="break-words">{displayTitle}</span>
               </h1>
               <p className="text-slate-600 mt-1">
                 Viewing saved lesson from your library
@@ -541,11 +542,11 @@ export function EnhanceLessonForm({
           </>
         ) : (
           <>
-            {/* Page Header - Create Mode */}
+            {/* Page Header - Create Mode - MOBILE FIX: flex-wrap + span wrapper */}
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-slate-800 flex items-center justify-center gap-2">
-                <Sparkles className="h-6 w-6 text-sky-500" />
-                Create Baptist-Enhanced <GoldAccent>Lesson</GoldAccent>
+              <h1 className="text-2xl font-bold text-slate-800 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                <Sparkles className="h-6 w-6 text-sky-500 flex-shrink-0" />
+                <span>Create Baptist-Enhanced <GoldAccent>Lesson</GoldAccent></span>
               </h1>
               <p className="text-slate-600 mt-1">
                 Generate a theologically-sound Bible study lesson tailored to your class
@@ -617,20 +618,20 @@ export function EnhanceLessonForm({
                           </Button>
                         </div>
 
-                        {/* File Upload Mode */}
+                        {/* File Upload Mode - MOBILE FIX: flex-col on mobile */}
                         {curriculumInputMode === "file" && (
                           <div className="space-y-2">
                             <p className="text-xs text-muted-foreground">
                               Supports PDF, TXT, JPG, JPEG, PNG (&lt;10MB). For Word docs, save as
                               PDF first.
                             </p>
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                               <Input
                                 type="file"
                                 accept={fileAcceptTypes}
                                 onChange={handleFileChange}
                                 disabled={isSubmitting || isExtracting}
-                                className="cursor-pointer"
+                                className="cursor-pointer flex-1 min-w-0"
                               />
                               {uploadedFile && (
                                 <Button
@@ -644,10 +645,11 @@ export function EnhanceLessonForm({
                                 </Button>
                               )}
                             </div>
+                            {/* MOBILE FIX: break-words on extraction message */}
                             {isExtracting && (
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Extracting content (may take 60-90 seconds for PDFs)...</span>
+                                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                                <span className="break-words">Extracting content (may take 60-90 seconds for PDFs)...</span>
                               </div>
                             )}
                             {extractedContent && (
@@ -669,8 +671,9 @@ export function EnhanceLessonForm({
                               rows={5}
                               className="font-mono text-sm"
                             />
+                            {/* MOBILE FIX: flex-wrap on pasted content row */}
                             {pastedContent.trim() && (
-                              <div className="flex items-center justify-between">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm text-green-600">
                                   ✓ {pastedContent.length} characters entered
                                 </span>
@@ -991,11 +994,12 @@ export function EnhanceLessonForm({
         <Card className={viewingLesson ? "" : "mt-6"}>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-sky-500" />
-                {displayTitle}
+              <CardTitle className="flex flex-wrap items-center gap-2">
+                <BookOpen className="h-5 w-5 text-sky-500 flex-shrink-0" />
+                <span className="break-words">{displayTitle}</span>
               </CardTitle>
-              <div className="flex items-center gap-2">
+              {/* MOBILE FIX: flex-wrap on button container */}
+              <div className="flex flex-wrap items-center gap-2">
                 {onRequestFeedback && (
                   <Button
                     variant="outline"
