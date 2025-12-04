@@ -25,7 +25,7 @@ import { useRateLimit } from "@/hooks/useRateLimit";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { getTheologyProfileOptions, getDefaultTheologyProfile } from "@/constants/theologyProfiles";
+import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
@@ -786,6 +786,12 @@ export function EnhanceLessonForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* Profile Summary - helps user understand their selection */}
+                  {theologyProfileId && (
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
+                      {getTheologyProfile(theologyProfileId)?.summary}
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -830,6 +836,7 @@ export function EnhanceLessonForm({
             onSaveProfile={handleSaveProfile}
             onUpdateProfile={handleUpdateProfile}
             onLoadProfile={handleLoadProfile}
+            onClearProfile={() => setCurrentProfileId(null)}
             onDeleteProfile={handleDeleteProfile}
             isSavingProfile={isSavingProfile}
             disabled={isSubmitting}
