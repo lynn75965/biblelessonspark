@@ -319,8 +319,7 @@ THEOLOGY PROFILE: ${theologyProfile.name}
 ${theologyProfile.description}
 
 Distinctives:
-${theologyProfile.distinctives.map((d) => `• ${d}`).join('\n')}
-
+${(theologyProfile.distinctives || []).map((d) => `• ${d}`).join('\n')}
 Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical interpretation'}
 Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
 
