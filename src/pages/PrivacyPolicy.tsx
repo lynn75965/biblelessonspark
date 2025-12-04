@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
         <Button
           variant="ghost"
           onClick={() => navigate(-1)}
@@ -17,12 +17,12 @@ export default function PrivacyPolicy() {
           Back
         </Button>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Privacy Policy</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Privacy Policy</h1>
         <p className="text-sm text-gray-600 mb-8">Last Updated: November 25, 2025</p>
 
         <div className="prose prose-blue max-w-none space-y-6">
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Introduction</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Introduction</h2>
             <p className="text-gray-700">
               LessonSparkUSA ("we", "our", or "us") is committed to protecting your privacy. 
               This Privacy Policy explains how we collect, use, disclose, and safeguard your 
@@ -31,23 +31,23 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Information We Collect</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Information We Collect</h2>
             
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">Account Information</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">Account Information</h3>
             <ul className="list-disc pl-6 text-gray-700 space-y-1">
               <li>Email address (required for account creation)</li>
               <li>Password (encrypted and never stored in plain text)</li>
               <li>Account preferences and settings</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-gray-800 mb-2 mt-4">Generated Content</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 mt-4">Generated Content</h3>
             <ul className="list-disc pl-6 text-gray-700 space-y-1">
               <li>Bible study lessons you generate</li>
               <li>Customization preferences (age group, theology profile, teaching style)</li>
               <li>Bible passages and topics you submit</li>
             </ul>
 
-            <h3 className="text-xl font-semibold text-gray-800 mb-2 mt-4">Usage Information</h3>
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 mt-4">Usage Information</h3>
             <ul className="list-disc pl-6 text-gray-700 space-y-1">
               <li>Lesson generation timestamps</li>
               <li>Feature usage patterns</li>
@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">How We Use Your Information</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">How We Use Your Information</h2>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Service Delivery:</strong> Generate personalized Bible study lessons</li>
               <li><strong>Account Management:</strong> Maintain your account and preferences</li>
@@ -67,7 +67,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Data Storage and Security</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Data Storage and Security</h2>
             <p className="text-gray-700 mb-3">
               Your data is stored securely using industry-standard encryption:
             </p>
@@ -80,7 +80,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Third-Party Services</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Third-Party Services</h2>
             <p className="text-gray-700 mb-2">We use the following third-party services:</p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Supabase:</strong> Database and authentication services (hosted in US)</li>
@@ -94,7 +94,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Your Rights</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Your Rights</h2>
             <p className="text-gray-700 mb-2">You have the right to:</p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Access:</strong> Request a copy of your data</li>
@@ -106,7 +106,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Data Retention</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Data Retention</h2>
             <p className="text-gray-700">
               We retain your data for as long as your account is active. When you delete your account, 
               we permanently delete all your personal information and generated lessons within 30 days. 
@@ -115,7 +115,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Children's Privacy</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Children's Privacy</h2>
             <p className="text-gray-700">
               LessonSparkUSA is intended for use by adults (teachers, ministry leaders). We do not 
               knowingly collect personal information from children under 13. If you believe a child 
@@ -124,7 +124,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Changes to This Policy</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Changes to This Policy</h2>
             <p className="text-gray-700">
               We may update this Privacy Policy from time to time. We will notify you of significant 
               changes by email or through a prominent notice on our platform. Your continued use of 
@@ -133,7 +133,7 @@ export default function PrivacyPolicy() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-3">Contact Us</h2>
+            <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Contact Us</h2>
             <p className="text-gray-700">
               If you have questions about this Privacy Policy or wish to exercise your rights, 
               please contact us at:
