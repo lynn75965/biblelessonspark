@@ -4,17 +4,17 @@
  * 
  * SSOT Compliance (December 2025):
  * - Doctrinal Alignment card dynamically pulls from theologyProfiles.ts
- * - Shows all 10 Baptist theology profiles
+ * - Shows all 10 Baptist theology profiles with tap/click popovers
+ * - Uses Popover (not Tooltip) for mobile compatibility
  */
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Sparkles, Users, BookOpen, Clock } from "lucide-react";
 import { getTheologyProfileOptions } from "@/constants/theologyProfiles";
 
@@ -92,30 +92,29 @@ export function FeaturesSection() {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-2 sm:pt-3">
                 {feature.isTheology ? (
-                  // SSOT: Theology profiles with interactive tooltips
-                  <TooltipProvider delayDuration={200}>
-                    <ul className="flex flex-wrap gap-2">
-                      {theologyProfiles.map((profile) => (
-                        <Tooltip key={profile.id}>
-                          <TooltipTrigger asChild>
-                            <li 
-                              className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md cursor-help hover:bg-primary/10 hover:text-primary transition-colors"
-                            >
-                              <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
-                              <span>{profile.shortName}</span>
-                            </li>
-                          </TooltipTrigger>
-                          <TooltipContent 
-                            side="top" 
-                            className="max-w-xs sm:max-w-sm p-3 text-left"
+                  // SSOT: Theology profiles with tap/click popovers (works on mobile)
+                  <ul className="flex flex-wrap gap-2">
+                    {theologyProfiles.map((profile) => (
+                      <Popover key={profile.id}>
+                        <PopoverTrigger asChild>
+                          <li 
+                            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
                           >
-                            <p className="font-semibold text-sm mb-1">{profile.name}</p>
-                            <p className="text-xs text-muted-foreground leading-relaxed">{profile.summary}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </ul>
-                  </TooltipProvider>
+                            <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
+                            <span>{profile.shortName}</span>
+                          </li>
+                        </PopoverTrigger>
+                        <PopoverContent 
+                          side="top" 
+                          className="w-72 sm:w-80 p-3"
+                          align="center"
+                        >
+                          <p className="font-semibold text-sm mb-1.5">{profile.name}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{profile.summary}</p>
+                        </PopoverContent>
+                      </Popover>
+                    ))}
+                  </ul>
                 ) : (
                   // Standard benefits list
                   <ul className="flex flex-wrap gap-2">
