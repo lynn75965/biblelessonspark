@@ -120,6 +120,7 @@ interface TeacherCustomizationProps {
   onSaveProfile: (name: string, preferences: TeacherPreferences, isDefault: boolean) => Promise<TeacherPreferenceProfile | null>;
   onUpdateProfile: (id: string, name: string, preferences: TeacherPreferences, isDefault: boolean) => Promise<boolean>;
   onLoadProfile: (profile: TeacherPreferenceProfile) => void;
+  onClearProfile: () => void;
   onDeleteProfile: (id: string) => Promise<boolean>;
   isSavingProfile: boolean;
 
@@ -166,6 +167,7 @@ export function TeacherCustomization({
   onSaveProfile,
   onUpdateProfile,
   onLoadProfile,
+  onClearProfile,
   onDeleteProfile,
   isSavingProfile,
   disabled = false,
@@ -202,6 +204,10 @@ export function TeacherCustomization({
   };
 
   const handleProfileSelect = (profileId: string) => {
+    if (profileId === "__none__") {
+      onClearProfile();
+      return;
+    }
     const profile = profiles.find((p) => p.id === profileId);
     if (profile) {
       onLoadProfile(profile);
@@ -322,7 +328,7 @@ export function TeacherCustomization({
                   Load Profile:
                 </Label>
                 <Select
-                  value={currentProfileId || ""}
+                  value={currentProfileId || "__none__"}
                   onValueChange={handleProfileSelect}
                   disabled={disabled || isSavingProfile}
                 >
@@ -330,6 +336,9 @@ export function TeacherCustomization({
                     <SelectValue placeholder="Select a profile" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__" className="text-muted-foreground">
+                      — None —
+                    </SelectItem>
                     {profiles.map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
                         {profile.profile_name}
