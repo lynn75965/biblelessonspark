@@ -117,7 +117,6 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
 
   // Transform lessons for display
   const displayLessons: LessonDisplay[] = lessons.map((lesson) => {
-    const metadata = lesson.metadata as Record<string, any> | null;
     const filters = lesson.filters as Record<string, any> | null;
 
     const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
@@ -129,8 +128,9 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
       ai_lesson_title: aiGeneratedTitle,
       bible_passage: userInputPassage || aiGeneratedScripture,
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
-      age_group: metadata?.ageGroup || filters?.ageGroup || AGE_GROUPS[AGE_GROUPS.length - 1].id,
-      theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || getDefaultTheologyProfile().id,
+      // SSOT: Use snake_case keys from filters (database stores IDs there, not display names)
+      age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
+      theology_profile_id: filters?.theology_profile_id || getDefaultTheologyProfile().id,
       created_by_name: "Teacher",
       has_content: !!lesson.original_text,
       updated_at: lesson.created_at,
