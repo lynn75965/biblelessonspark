@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Enhanced input validation for Edge Function
  * Prevents injection attacks, oversized inputs, and malformed data
  */
@@ -8,6 +8,7 @@ export interface LessonRequest {
   extracted_content?: string;
   age_group: string;
   theology_profile_id: string;
+  bible_version_id?: string;
   additional_notes?: string;
   teaching_style?: string;
   lesson_length?: string;
@@ -41,6 +42,11 @@ export function validateLessonRequest(data: any): LessonRequest {
 
   if (!data.theology_profile_id || typeof data.theology_profile_id !== 'string') {
     throw new Error('theology_profile_id is required and must be a string');
+  }
+
+  // bible_version_id is optional (defaults to KJV in Edge Function)
+  if (data.bible_version_id && typeof data.bible_version_id !== 'string') {
+    throw new Error('bible_version_id must be a string');
   }
 
   // Length validations (prevent oversized inputs)
@@ -95,6 +101,7 @@ export function validateLessonRequest(data: any): LessonRequest {
     extracted_content: sanitizeString(data.extracted_content),
     age_group: sanitizeString(data.age_group) || '',
     theology_profile_id: sanitizeString(data.theology_profile_id) || '',
+    bible_version_id: sanitizeString(data.bible_version_id),
     additional_notes: sanitizeString(data.additional_notes),
     teaching_style: sanitizeString(data.teaching_style),
     lesson_length: sanitizeString(data.lesson_length),

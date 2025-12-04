@@ -5,9 +5,10 @@
  * Updated: December 2025
  * - Redesigned with 3-step card layout
  * - Step 1: What Lesson Are You Teaching? (radio selection for content input)
- * - Step 2: Who Are You Teaching? (age group + theology side-by-side)
+ * - Step 2: Who Are You Teaching? (age group + theology + Bible version)
  * - Step 3: Personalize Your Lesson (TeacherCustomization - collapsible)
  * - Brand colors matching landing page (gold accents, teal buttons/badges)
+ * - Bible Version selection with copyright-aware guardrails
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -27,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
+import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
 import { TeacherCustomization } from "./TeacherCustomization";
@@ -110,6 +112,7 @@ export function EnhanceLessonForm({
 
   const [ageGroup, setAgeGroup] = useState("");
   const [theologyProfileId, setTheologyProfileId] = useState(getDefaultTheologyProfile().id);
+  const [bibleVersionId, setBibleVersionId] = useState(getDefaultBibleVersion().id);
 
   // ============================================================================
   // STEP 3: CUSTOMIZATION STATE (13 profile fields)
@@ -447,6 +450,7 @@ export function EnhanceLessonForm({
         focused_topic: effectiveTopic,
         age_group: ageGroup,
         theology_profile_id: theologyProfileId,
+        bible_version_id: bibleVersionId,
         additional_notes: notes,
         teaching_style: teachingStyle,
         learning_style: learningStyle,
@@ -742,7 +746,7 @@ export function EnhanceLessonForm({
               <CardTitle className="text-lg text-slate-800">
                 Who Are You <GoldAccent>Teaching</GoldAccent>?
               </CardTitle>
-              <CardDescription>Select your audience and theological tradition</CardDescription>
+              <CardDescription>Select your audience, theological tradition, and Bible version</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -799,6 +803,38 @@ export function EnhanceLessonForm({
                     </p>
                   )}
                 </div>
+              </div>
+
+              {/* Bible Version - Full width below the 2-column grid */}
+              <div className="space-y-2 mt-4">
+                <Label htmlFor="bible-version">
+                  Bible Version <span className="text-red-500">*</span>
+                </Label>
+                <Select
+                  value={bibleVersionId}
+                  onValueChange={setBibleVersionId}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="bible-version">
+                    <SelectValue placeholder="Select Bible version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getBibleVersionOptions().map((version) => (
+                      <SelectItem key={version.id} value={version.id}>
+                        {version.name} ({version.abbreviation})
+                        {version.copyrightStatus === 'public_domain' && (
+                          <span className="ml-2 text-xs text-green-600">• Direct quotes</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Version Description - helps user understand copyright implications */}
+                {bibleVersionId && (
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
+                    {getBibleVersion(bibleVersionId)?.description}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

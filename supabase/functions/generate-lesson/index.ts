@@ -1,9 +1,10 @@
-﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
 import { AGE_GROUPS } from '../_shared/ageGroups.ts';
 import { THEOLOGY_PROFILES, generateTheologicalGuardrails } from '../_shared/theologyProfiles.ts';
+import { BIBLE_VERSIONS, generateCopyrightGuardrails, getDefaultBibleVersion } from '../_shared/bibleVersions.ts';
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
@@ -24,18 +25,18 @@ function buildSectionsPrompt(includeTeaser: boolean = false) {
   const sections = [...getRequiredSections()];
 
   return sections.map((section) => {
-    const rules = section.contentRules.map((r) => `    ? ${r}`).join('\n');
-    const prohibitions = section.prohibitions.map((p) => `    ? ${p}`).join('\n');
+    const rules = section.contentRules.map((r) => `    • ${r}`).join('\n');
+    const prohibitions = section.prohibitions.map((p) => `    • ${p}`).join('\n');
     const redundancyNote = section.redundancyLock.length > 0
-      ? `\n    ?? REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
+      ? `\n    ⚠️ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
       : '';
-    const optionalNote = section.optional ? '\n    ? OPTIONAL SECTION - Only include when requested' : '';
+    const optionalNote = section.optional ? '\n    • OPTIONAL SECTION - Only include when requested' : '';
 
     let enforcementNote = '';
     if (section.id === 5) {
       enforcementNote = `
 
-?? CRITICAL ENFORCEMENT FOR THIS SECTION:
+⚠️ CRITICAL ENFORCEMENT FOR THIS SECTION:
 1. MANDATORY MINIMUM: ${section.minWords} words (COUNT CAREFULLY)
 2. Every sentence must ADD NEW INSIGHT or DEPTH
 3. If explaining a concept, give the WHY and HOW, not just the WHAT
@@ -43,14 +44,14 @@ function buildSectionsPrompt(includeTeaser: boolean = false) {
 5. Connect abstract theology to concrete life application
 6. Give teachers substance to answer student questions confidently
 
-? FORBIDDEN - These do NOT count toward word target:
+🚫 FORBIDDEN - These do NOT count toward word target:
 - Repetition of content from other sections
 - Transitional phrases ("As we discussed...", "Moving on...")
 - Padding sentences that add no value
 - Circular reasoning or restating the same point
 - Generic statements without specific application
 
-? REQUIRED - Every sentence must do ONE of these:
+✅ REQUIRED - Every sentence must do ONE of these:
 - Unpack a theological concept with depth
 - Explain WHY something matters (not just that it does)
 - Give concrete examples or applications
@@ -58,7 +59,7 @@ function buildSectionsPrompt(includeTeaser: boolean = false) {
 - Draw from Section 3's depth and make it spoken/teachable
 - Bridge abstract truth to student's real-world experience
 
-?? QUALITY CHECK: Before finishing this section, ask yourself:
+⚠️ QUALITY CHECK: Before finishing this section, ask yourself:
 "Could a volunteer teacher use this to answer student questions with confidence?"
 If no, add more depth and explanation.`;
     }
@@ -127,8 +128,8 @@ function buildTeaserInstructions(includeTeaser: boolean): string {
   const teaserSection = getTeaserSection();
   if (!teaserSection) return '';
 
-  const rules = teaserSection.contentRules.map((r) => `    ? ${r}`).join('\n');
-  const prohibitions = teaserSection.prohibitions.map((p) => `    ? ${p}`).join('\n');
+  const rules = teaserSection.contentRules.map((r) => `    • ${r}`).join('\n');
+  const prohibitions = teaserSection.prohibitions.map((p) => `    • ${p}`).join('\n');
 
   return `
 -------------------------------------------------------------------------------
@@ -154,7 +155,7 @@ ${rules}
 **PROHIBITED:**
 ${prohibitions}
 
-?? CRITICAL TEASER ENFORCEMENT:
+⚠️ CRITICAL TEASER ENFORCEMENT:
 This section is ONLY about FELT NEEDS. You must create curiosity WITHOUT revealing ANY lesson content.
 
 REQUIRED SIGNOFF:
@@ -164,11 +165,11 @@ REQUIRED SIGNOFF:
 - Create urgency through curiosity, not promotional language
 
 EXAMPLES:
-? WRONG TEASER: "Discover what makes you unique - made in God's image"
-? RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meet—you might be surprised by what we uncover."
+❌ WRONG TEASER: "Discover what makes you unique - made in God's image"
+✅ RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meet—you might be surprised by what we uncover."
 
-? WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
-? RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
+❌ WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
+✅ RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
 
 REMEMBER:
 - DO NOT reference the Bible passage in ANY way
@@ -224,6 +225,7 @@ serve(async (req) => {
       extracted_content,
       age_group,
       theology_profile_id,
+      bible_version_id,
       additional_notes,
       teaching_style,
       lesson_length,
@@ -263,12 +265,22 @@ serve(async (req) => {
       throw new Error(`Age group not found: ${age_group}`);
     }
 
+    // Get Bible version - default to KJV if not specified
+    const effectiveBibleVersionId = bible_version_id || getDefaultBibleVersion().id;
+    const bibleVersion = BIBLE_VERSIONS.find((v) => v.id === effectiveBibleVersionId);
+    if (!bibleVersion) {
+      throw new Error(`Bible version not found: ${effectiveBibleVersionId}`);
+    }
+
     const requiredSections = getRequiredSections();
     const totalSections = requiredSections.length;
 
     console.log('Generating lesson:', {
       user: user.id,
       theology: theologyProfile.name,
+      bibleVersion: bibleVersion.name,
+      copyrightStatus: bibleVersion.copyrightStatus,
+      quoteType: bibleVersion.quoteType,
       ageGroup: ageGroupData.label,
       passage: bible_passage,
       topic: focused_topic,
@@ -296,6 +308,9 @@ serve(async (req) => {
       education_experience
     });
 
+    // Build copyright guardrails based on Bible version
+    const copyrightGuardrails = generateCopyrightGuardrails(bibleVersion.id);
+
     const systemPrompt = `You are a Baptist Bible study lesson generator using the LessonSparkUSA Framework.
 
 -------------------------------------------------------------------------------
@@ -310,6 +325,8 @@ Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical
 Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
 
 ${generateTheologicalGuardrails(theology_profile_id)}
+
+${copyrightGuardrails}
 
 -------------------------------------------------------------------------------
 AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageMax})
@@ -327,43 +344,49 @@ ${buildSectionsPrompt(generate_teaser)}
 MANDATORY PRE-RELEASE SELF-EVALUATION
 -------------------------------------------------------------------------------
 
-?? STOP - Before outputting your completed lesson, perform this evaluation:
+⚠️ STOP - Before outputting your completed lesson, perform this evaluation:
 
 SECTION-BY-SECTION VERIFICATION:
-? Section 1: 150-250 words? All required elements present?
-? Section 2: 150-250 words? Objectives measurable?
-? Section 3: 450-600 words? Deep theology complete?
-? Section 4: 120-200 words? Engaging opening created?
-? Section 5: MINIMUM 630 words? (COUNT CAREFULLY) Deep explanations included?
-? Section 6: 150-250 words? Clear activity instructions?
-? Section 7: 200-300 words? Assessment questions included?
-? Section 8: 250-400 words? Student-focused and distinct from teacher content?
-${generate_teaser ? '? Student Teaser: 50-100 words? NO passage/topic/theology revealed? Compelling signoff included?' : ''}
+✓ Section 1: 150-250 words? All required elements present?
+✓ Section 2: 150-250 words? Objectives measurable?
+✓ Section 3: 450-600 words? Deep theology complete?
+✓ Section 4: 120-200 words? Engaging opening created?
+✓ Section 5: MINIMUM 630 words? (COUNT CAREFULLY) Deep explanations included?
+✓ Section 6: 150-250 words? Clear activity instructions?
+✓ Section 7: 200-300 words? Assessment questions included?
+✓ Section 8: 250-400 words? Student-focused and distinct from teacher content?
+${generate_teaser ? '✓ Student Teaser: 50-100 words? NO passage/topic/theology revealed? Compelling signoff included?' : ''}
 
 QUALITY VERIFICATION:
-? Section 5 contains explanations, not just assertions?
-? Theological concepts unpacked with WHY and HOW?
-? Teacher has substance to answer follow-up questions?
-${generate_teaser ? '? Student teaser reveals ZERO lesson content? Ends with compelling time-neutral signoff?' : ''}
-${generate_teaser ? '? Teaser appears ONCE at the beginning, not repeated later?' : ''}
-? No redundancy between sections?
-? Every sentence adds value?
-? No filler or padding?
-? NO word count metadata in section headers?
+✓ Section 5 contains explanations, not just assertions?
+✓ Theological concepts unpacked with WHY and HOW?
+✓ Teacher has substance to answer follow-up questions?
+${generate_teaser ? '✓ Student teaser reveals ZERO lesson content? Ends with compelling time-neutral signoff?' : ''}
+${generate_teaser ? '✓ Teaser appears ONCE at the beginning, not repeated later?' : ''}
+✓ No redundancy between sections?
+✓ Every sentence adds value?
+✓ No filler or padding?
+✓ NO word count metadata in section headers?
+
+COPYRIGHT VERIFICATION:
+✓ Bible version copyright rules followed?
+✓ ${bibleVersion.copyrightStatus === 'public_domain' ? 'Direct quotations properly formatted with verse references?' : `No verbatim Scripture quotations from copyrighted ${bibleVersion.abbreviation}?`}
+✓ ${bibleVersion.copyrightStatus === 'public_domain' ? 'N/A - Public domain' : 'All Scripture content paraphrased with verse references?'}
 
 CRITICAL FAILURES - If ANY of these are true, DO NOT OUTPUT:
-? Section 5 is under 630 words
-${generate_teaser ? '? Teaser mentions passage, topic, or theological concepts' : ''}
-${generate_teaser ? '? Teaser lacks compelling signoff or uses day-specific language' : ''}
-${generate_teaser ? '? Teaser appears more than once in the output' : ''}
-? Sections repeat theology already covered in Section 3
-? Any section ends mid-sentence or incomplete
-? Word counts appear in section headers
+❌ Section 5 is under 630 words
+${generate_teaser ? '❌ Teaser mentions passage, topic, or theological concepts' : ''}
+${generate_teaser ? '❌ Teaser lacks compelling signoff or uses day-specific language' : ''}
+${generate_teaser ? '❌ Teaser appears more than once in the output' : ''}
+❌ Sections repeat theology already covered in Section 3
+❌ Any section ends mid-sentence or incomplete
+❌ Word counts appear in section headers
+${bibleVersion.copyrightStatus === 'copyrighted' ? `❌ Direct quotations from copyrighted ${bibleVersion.abbreviation} appear in lesson` : ''}
 
 IF ANY CHECKBOX IS UNCHECKED:
 GO BACK and fix that section NOW before outputting.
 
-ONLY output the lesson when ALL checkboxes are marked ?
+ONLY output the lesson when ALL checkboxes are marked ✓
 -------------------------------------------------------------------------------
 OUTPUT FORMAT
 -------------------------------------------------------------------------------
@@ -402,9 +425,12 @@ DO NOT include word counts in section headers or anywhere in the output.
 
     // Build user prompt based on input type
     let userPrompt: string;
-    const teaserInstruction = generate_teaser 
+    const teaserInstruction = generate_teaser
       ? '\n\nIMPORTANT: Generate a Student Teaser (50-100 words) and place it at the TOP of the lesson under "**STUDENT TEASER**" followed by "---". Do NOT repeat the teaser content anywhere else. The teaser must build anticipation through FELT NEEDS ONLY, with ZERO revelation of passage, topic, or theological content. MUST end with a compelling, time-neutral signoff.'
       : '';
+
+    // Add Bible version instruction to user prompt
+    const bibleVersionInstruction = `\n\nBIBLE VERSION: ${bibleVersion.name} (${bibleVersion.abbreviation}) - ${bibleVersion.copyrightStatus === 'public_domain' ? 'You may quote directly.' : 'PARAPHRASE ONLY - do not quote directly.'}`;
 
     if (extracted_content) {
       // Curriculum enhancement mode - use extracted content as the source
@@ -425,11 +451,11 @@ INSTRUCTIONS:
 3. Enhance with deeper Baptist theological analysis
 4. Restructure into the ${totalSections}-section framework
 5. Add theological depth aligned with ${theologyProfile.name}
-6. Adapt language and activities for ${ageGroupData.label}${teaserInstruction}`;
+6. Adapt language and activities for ${ageGroupData.label}${bibleVersionInstruction}${teaserInstruction}`;
     } else if (bible_passage) {
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${teaserInstruction}`;
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
     } else {
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${teaserInstruction}`;
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
     }
 
     checkpoint = logTiming('Prompt built', checkpoint);
@@ -503,6 +529,7 @@ INSTRUCTIONS:
           extracted_content: extracted_content ? `[${extracted_content.length} chars]` : null,
           age_group,
           theology_profile_id,
+          bible_version_id: bibleVersion.id,
           teaching_style,
           lesson_length,
           activity_types,
@@ -523,6 +550,9 @@ INSTRUCTIONS:
           lessonStructureVersion: LESSON_STRUCTURE_VERSION,
           generatedAt: new Date().toISOString(),
           theologyProfile: theologyProfile.name,
+          bibleVersion: bibleVersion.name,
+          bibleVersionAbbreviation: bibleVersion.abbreviation,
+          copyrightStatus: bibleVersion.copyrightStatus,
           ageGroup: ageGroupData.label,
           wordCount: wordCount,
           sectionCount: totalSections,
