@@ -9,6 +9,12 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Sparkles, Users, BookOpen, Clock } from "lucide-react";
 import { getTheologyProfileOptions } from "@/constants/theologyProfiles";
 
@@ -35,8 +41,7 @@ export function FeaturesSection() {
       icon: <BookOpen className="h-6 w-6" />,
       title: "Doctrinal Alignment",
       description: `Choose from ${theologyProfiles.length} Baptist theological perspectives, each with specific guardrails to ensure doctrinally appropriate content.`,
-      // SSOT: Dynamically generate benefits from theology profiles
-      benefits: theologyProfiles.map(profile => profile.shortName),
+      benefits: [], // Rendered separately with tooltips
       gradient: "bg-gradient-primary",
       isTheology: true
     },
@@ -86,17 +91,45 @@ export function FeaturesSection() {
                 </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-2 sm:pt-3">
-                <ul className="flex flex-wrap gap-2">
-                  {feature.benefits.map((benefit, idx) => (
-                    <li 
-                      key={idx} 
-                      className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md"
-                    >
-                      <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
-                      <span>{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
+                {feature.isTheology ? (
+                  // SSOT: Theology profiles with interactive tooltips
+                  <TooltipProvider delayDuration={200}>
+                    <ul className="flex flex-wrap gap-2">
+                      {theologyProfiles.map((profile) => (
+                        <Tooltip key={profile.id}>
+                          <TooltipTrigger asChild>
+                            <li 
+                              className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md cursor-help hover:bg-primary/10 hover:text-primary transition-colors"
+                            >
+                              <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
+                              <span>{profile.shortName}</span>
+                            </li>
+                          </TooltipTrigger>
+                          <TooltipContent 
+                            side="top" 
+                            className="max-w-xs sm:max-w-sm p-3 text-left"
+                          >
+                            <p className="font-semibold text-sm mb-1">{profile.name}</p>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{profile.summary}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </ul>
+                  </TooltipProvider>
+                ) : (
+                  // Standard benefits list
+                  <ul className="flex flex-wrap gap-2">
+                    {feature.benefits.map((benefit, idx) => (
+                      <li 
+                        key={idx} 
+                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md"
+                      >
+                        <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </CardContent>
             </Card>
           ))}
