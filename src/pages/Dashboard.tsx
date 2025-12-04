@@ -213,10 +213,13 @@ export default function Dashboard({
     canAccessTab(effectiveRole, 'settings', hasOrgContext),
   ].filter(Boolean).length;
 
+  // MOBILE FIX: Simplified grid that works better on mobile
   const getGridCols = () => {
-    if (visibleTabCount <= 3) return 'grid-cols-3';
-    if (visibleTabCount === 4) return 'grid-cols-2 md:grid-cols-4';
-    return 'grid-cols-2 md:grid-cols-4 lg:grid-cols-5';
+    if (visibleTabCount <= 2) return 'grid-cols-2';
+    if (visibleTabCount === 3) return 'grid-cols-3';
+    if (visibleTabCount === 4) return 'grid-cols-4';
+    // For 5 tabs: use flex with horizontal scroll on mobile instead of grid
+    return 'grid-cols-5';
   };
 
   return (
@@ -345,41 +348,43 @@ export default function Dashboard({
         </div>
 
         {/* Tabs - SSOT access control */}
+        {/* MOBILE FIX: Use flex with overflow-x-auto for horizontal scroll on mobile */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${getGridCols()}`}>
+          <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             {canAccessTab(effectiveRole, 'enhance', hasOrgContext) && (
-              <TabsTrigger value="enhance">
-                <Sparkles className="h-4 w-4" />
-                Enhance Lesson
+              <TabsTrigger value="enhance" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+                <Sparkles className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Enhance Lesson</span>
               </TabsTrigger>
             )}
             {canAccessTab(effectiveRole, 'library', hasOrgContext) && (
-              <TabsTrigger value="library">
-                <BookOpen className="h-4 w-4" />
-                My Lesson Library
+              <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+                <BookOpen className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">My Lesson Library</span>
               </TabsTrigger>
             )}
             {canAccessTab(effectiveRole, 'members', hasOrgContext) && (
-              <TabsTrigger value="members">
-                <Users className="h-4 w-4" />
-                Members
+              <TabsTrigger value="members" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+                <Users className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Members</span>
               </TabsTrigger>
             )}
             {canAccessTab(effectiveRole, 'analytics', hasOrgContext) && (
-              <TabsTrigger value="analytics">
-                <BarChart3 className="h-4 w-4" />
-                Beta Analytics
+              <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+                <BarChart3 className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Beta Analytics</span>
               </TabsTrigger>
             )}
             {canAccessTab(effectiveRole, 'settings', hasOrgContext) && (
-              <TabsTrigger value="settings">
-                <Settings className="h-4 w-4" />
-                Settings
+              <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+                <Settings className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Settings</span>
               </TabsTrigger>
             )}
           </TabsList>
 
-          <TabsContent value="enhance" className="mt-6">
+          {/* MOBILE FIX: Add relative z-0 to ensure content stays below tabs */}
+          <TabsContent value="enhance" className="mt-6 relative z-0">
             <EnhanceLessonForm
                 onLessonGenerated={(lesson) => {
                   setLastGeneratedLessonId(lesson?.id || null);
@@ -405,7 +410,7 @@ export default function Dashboard({
               />
           </TabsContent>
 
-          <TabsContent value="library" className="mt-6">
+          <TabsContent value="library" className="mt-6 relative z-0">
             <LessonLibrary
               onCreateNew={handleCreateLesson}
               onViewLesson={handleViewLesson}
@@ -413,7 +418,7 @@ export default function Dashboard({
           </TabsContent>
 
           {/* Members Tab - SSOT access control */}
-          <TabsContent value="members" className="mt-6">
+          <TabsContent value="members" className="mt-6 relative z-0">
             {canAccessTab(effectiveRole, 'members', hasOrgContext) && userProfile?.organization_id ? (
               <OrgMemberManagement
                 organizationId={userProfile.organization_id}
@@ -429,12 +434,12 @@ export default function Dashboard({
 
           {/* Analytics Tab - SSOT access control */}
           {canAccessTab(effectiveRole, 'analytics', hasOrgContext) && (
-            <TabsContent value="analytics" className="mt-6">
+            <TabsContent value="analytics" className="mt-6 relative z-0">
               <BetaAnalyticsDashboard />
             </TabsContent>
           )}
 
-          <TabsContent value="settings" className="mt-6">
+          <TabsContent value="settings" className="mt-6 relative z-0">
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="bg-gradient-card md:col-span-2">
                 <CardHeader>
