@@ -25,7 +25,7 @@ import { useRateLimit } from "@/hooks/useRateLimit";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { THEOLOGY_PROFILES } from "@/constants/theologyProfiles";
+import { getTheologyProfileOptions, getDefaultTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
@@ -109,7 +109,7 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const [ageGroup, setAgeGroup] = useState("");
-  const [theologyProfileId, setTheologyProfileId] = useState("");
+  const [theologyProfileId, setTheologyProfileId] = useState(getDefaultTheologyProfile().id);
 
   // ============================================================================
   // STEP 3: CUSTOMIZATION STATE (13 profile fields)
@@ -779,7 +779,7 @@ export function EnhanceLessonForm({
                       <SelectValue placeholder="Select theology profile" />
                     </SelectTrigger>
                     <SelectContent>
-                      {THEOLOGY_PROFILES.map((profile) => (
+                      {getTheologyProfileOptions().map((profile) => (
                         <SelectItem key={profile.id} value={profile.id}>
                           {profile.name}
                         </SelectItem>

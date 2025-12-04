@@ -4,9 +4,11 @@
  * 
  * SSOT Compliance:
  * - AGE_GROUPS imported from @/constants/ageGroups
- * - THEOLOGY_PROFILES imported from @/constants/theologyProfiles
+ * - getTheologyProfileOptions() used for dropdown (respects displayOrder)
+ * - getDefaultTheologyProfile() used for fallback default
+ * - getTheologyProfile() used for display name lookup
  * - Filter dropdowns generated dynamically from constants
- * - Badge colors derived from constant indices (auto-scales with new entries)
+ * - Badge colors keyed by ID (order-independent, fully SSOT-compliant)
  */
 
 import { useState } from "react";
@@ -19,7 +21,7 @@ import { Eye, Trash2, Search, BookOpen, Users } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
 import { AGE_GROUPS } from "@/constants/ageGroups";
-import { THEOLOGY_PROFILES, getTheologyProfile } from "@/constants/theologyProfiles";
+import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile } from "@/constants/theologyProfiles";
 
 // ============================================================================
 // INTERFACES
@@ -43,29 +45,37 @@ interface LessonDisplay extends Lesson {
 
 // ============================================================================
 // SSOT-DERIVED BADGE COLORS
-// Colors assigned by index position - automatically scales with new SSOT entries
+// Colors keyed by profile ID - fully SSOT compliant, order-independent
 // ============================================================================
 
-const AGE_GROUP_BADGE_COLORS = [
-  "bg-pink-100 text-pink-800 border-pink-200",      // Index 0: Preschoolers
-  "bg-blue-100 text-blue-800 border-blue-200",      // Index 1: Elementary
-  "bg-purple-100 text-purple-800 border-purple-200", // Index 2: Preteens
-  "bg-indigo-100 text-indigo-800 border-indigo-200", // Index 3: High School
-  "bg-cyan-100 text-cyan-800 border-cyan-200",      // Index 4: College
-  "bg-teal-100 text-teal-800 border-teal-200",      // Index 5: Young Adults
-  "bg-green-100 text-green-800 border-green-200",   // Index 6: Mid-Life
-  "bg-yellow-100 text-yellow-800 border-yellow-200", // Index 7: Experienced
-  "bg-orange-100 text-orange-800 border-orange-200", // Index 8: Active Seniors
-  "bg-red-100 text-red-800 border-red-200",         // Index 9: Senior Adults
-  "bg-gray-100 text-gray-800 border-gray-200",      // Index 10+: Mixed/Fallback
-];
+// Age group badge colors keyed by ID (from AGE_GROUPS constant in @/constants/ageGroups.ts)
+const AGE_GROUP_BADGE_COLOR_MAP: Record<string, string> = {
+  "preschool": "bg-pink-100 text-pink-800 border-pink-200",
+  "elementary": "bg-blue-100 text-blue-800 border-blue-200",
+  "preteen": "bg-purple-100 text-purple-800 border-purple-200",
+  "highschool": "bg-indigo-100 text-indigo-800 border-indigo-200",
+  "college": "bg-cyan-100 text-cyan-800 border-cyan-200",
+  "youngadult": "bg-teal-100 text-teal-800 border-teal-200",
+  "midlife": "bg-green-100 text-green-800 border-green-200",
+  "experienced": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "activesenior": "bg-orange-100 text-orange-800 border-orange-200",
+  "senior": "bg-red-100 text-red-800 border-red-200",
+  "mixed": "bg-gray-100 text-gray-800 border-gray-200",
+};
 
-const THEOLOGY_BADGE_COLORS = [
-  "bg-primary-light text-primary border-primary/20",     // Index 0: SBC BF&M 2000
-  "bg-primary-light text-primary border-primary/20",     // Index 1: SBC BF&M 1963
-  "bg-secondary-light text-secondary border-secondary/20", // Index 2: Reformed
-  "bg-success-light text-success border-success/20",     // Index 3: Independent
-];
+// Theology profile badge colors keyed by profile ID (from THEOLOGY_PROFILES constant)
+const THEOLOGY_BADGE_COLOR_MAP: Record<string, string> = {
+  "baptist-core-beliefs": "bg-amber-100 text-amber-800 border-amber-200",
+  "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
+  "southern-baptist-bfm-2000": "bg-primary-light text-primary border-primary/20",
+  "national-baptist-convention": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "independent-baptist": "bg-blue-100 text-blue-800 border-blue-200",
+  "missionary-baptist": "bg-cyan-100 text-cyan-800 border-cyan-200",
+  "general-baptist": "bg-teal-100 text-teal-800 border-teal-200",
+  "free-will-baptist": "bg-violet-100 text-violet-800 border-violet-200",
+  "primitive-baptist": "bg-rose-100 text-rose-800 border-rose-200",
+  "reformed-baptist": "bg-secondary-light text-secondary border-secondary/20",
+};
 
 const DEFAULT_BADGE_COLOR = "bg-gray-100 text-gray-800 border-gray-200";
 
@@ -119,8 +129,8 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
       ai_lesson_title: aiGeneratedTitle,
       bible_passage: userInputPassage || aiGeneratedScripture,
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
-      age_group: metadata?.ageGroup || filters?.ageGroup || AGE_GROUPS[AGE_GROUPS.length - 1].value,
-      theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || THEOLOGY_PROFILES[0].id,
+      age_group: metadata?.ageGroup || filters?.ageGroup || AGE_GROUPS[AGE_GROUPS.length - 1].id,
+      theology_profile_id: metadata?.theologyProfileId || filters?.theologyProfileId || getDefaultTheologyProfile().id,
       created_by_name: "Teacher",
       has_content: !!lesson.original_text,
       updated_at: lesson.created_at,
@@ -136,22 +146,14 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
     return matchesPassage && matchesTitle && matchesAge && matchesProfile;
   });
 
-  // SSOT: Get badge color by finding index in AGE_GROUPS constant
+  // SSOT: Get badge color by profile ID (order-independent)
   const getAgeGroupBadgeColor = (ageGroup: string): string => {
-    const index = AGE_GROUPS.findIndex((ag) => ag.value === ageGroup);
-    if (index >= 0 && index < AGE_GROUP_BADGE_COLORS.length) {
-      return AGE_GROUP_BADGE_COLORS[index];
-    }
-    return DEFAULT_BADGE_COLOR;
+    return AGE_GROUP_BADGE_COLOR_MAP[ageGroup] || DEFAULT_BADGE_COLOR;
   };
 
-  // SSOT: Get badge color by finding index in THEOLOGY_PROFILES constant
+  // SSOT: Get badge color by profile ID (order-independent)
   const getProfileBadgeColor = (profileId: string): string => {
-    const index = THEOLOGY_PROFILES.findIndex((tp) => tp.id === profileId);
-    if (index >= 0 && index < THEOLOGY_BADGE_COLORS.length) {
-      return THEOLOGY_BADGE_COLORS[index];
-    }
-    return DEFAULT_BADGE_COLOR;
+    return THEOLOGY_BADGE_COLOR_MAP[profileId] || DEFAULT_BADGE_COLOR;
   };
 
   // SSOT: Get display name from theology profile constant
@@ -162,7 +164,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
 
   // SSOT: Get short label for age group (for mobile display)
   const getAgeGroupShortLabel = (ageGroup: string): string => {
-    const ag = AGE_GROUPS.find((a) => a.value === ageGroup);
+    const ag = AGE_GROUPS.find((a) => a.id === ageGroup);
     // Extract first word or use a short version
     if (ag) {
       const firstWord = ag.label.split(" ")[0];
@@ -235,21 +237,21 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
               <SelectContent>
                 <SelectItem value="all">All Ages</SelectItem>
                 {AGE_GROUPS.map((ageGroup) => (
-                  <SelectItem key={ageGroup.value} value={ageGroup.value}>
+                  <SelectItem key={ageGroup.id} value={ageGroup.id}>
                     {ageGroup.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
 
-            {/* Theology Profile Filter - SSOT: Generated from THEOLOGY_PROFILES constant */}
+            {/* Theology Profile Filter - SSOT: Generated from getTheologyProfileOptions() */}
             <Select value={profileFilter} onValueChange={setProfileFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Theology Profiles" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Theology Profiles</SelectItem>
-                {THEOLOGY_PROFILES.map((profile) => (
+                {getTheologyProfileOptions().map((profile) => (
                   <SelectItem key={profile.id} value={profile.id}>
                     {profile.name}
                   </SelectItem>
