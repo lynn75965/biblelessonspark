@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -13,6 +13,8 @@ import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { useToast } from "@/hooks/use-toast";
 import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
+
+// Mobile responsiveness fixes (December 4, 2025)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -139,67 +141,68 @@ export default function Admin() {
         organizationName="LessonSpark USA"
       />
 
-      <main className="container py-6">
+      <main className="container py-6 px-4 sm:px-6">
         {/* Admin Header */}
         <div className="flex items-center gap-4 mb-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-primary">
-            <Shield className="h-6 w-6 text-white" />
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary flex-shrink-0">
+            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">Admin Panel</h1>
-            <p className="text-muted-foreground">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold truncate">Admin Panel</h1>
+            <p className="text-sm sm:text-base text-muted-foreground truncate">
               System administration and user management
             </p>
           </div>
         </div>
 
-        {/* Admin Tabs */}
+        {/* Admin Tabs - MOBILE FIX: Use flex with horizontal scroll */}
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-7">
-            <TabsTrigger value="users">
-              <Users className="h-4 w-4 mr-2" />
-              User Management
+          <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
+            <TabsTrigger value="users" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Users className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">User Management</span>
             </TabsTrigger>
-            <TabsTrigger value="organizations">
-              <Building2 className="h-4 w-4 mr-2" />
-              Organizations
+            <TabsTrigger value="organizations" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Building2 className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Organizations</span>
             </TabsTrigger>
-            <TabsTrigger value="beta">
-              <Rocket className="h-4 w-4 mr-2" />
-              Beta Program
+            <TabsTrigger value="beta" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Rocket className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Beta Program</span>
             </TabsTrigger>
-            <TabsTrigger value="pricing">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Pricing & Plans
+            <TabsTrigger value="pricing" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <DollarSign className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Pricing & Plans</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              System Analytics
+            <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <BarChart3 className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">System Analytics</span>
             </TabsTrigger>
-            <TabsTrigger value="settings">
-              <Settings className="h-4 w-4 mr-2" />
-              System Settings
+            <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Settings className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">System Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="security">
-              <Shield className="h-4 w-4 mr-2" />
-              Security
+            <TabsTrigger value="security" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Shield className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="users" className="mt-6">
+          {/* MOBILE FIX: Add relative z-0 to all TabsContent */}
+          <TabsContent value="users" className="mt-6 relative z-0">
             <UserManagement />
           </TabsContent>
 
-          <TabsContent value="organizations" className="mt-6">
+          <TabsContent value="organizations" className="mt-6 relative z-0">
             <OrganizationManagement />
           </TabsContent>
 
-          <TabsContent value="beta" className="mt-6">
+          <TabsContent value="beta" className="mt-6 relative z-0">
             <div className="space-y-6">
               {/* Beta Program Header */}
               <Card className="bg-gradient-card">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
                       <CardTitle className="flex items-center gap-2">
                         <Rocket className="h-5 w-5 text-primary" />
@@ -210,7 +213,7 @@ export default function Admin() {
                       </CardDescription>
                     </div>
                     {isBetaMode() && (
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{PROGRAM_CONFIG.beta.currentPhase}</Badge>
                         <Badge variant="secondary">Target: {PROGRAM_CONFIG.beta.targetLaunch}</Badge>
                       </div>
@@ -267,11 +270,11 @@ export default function Admin() {
             </div>
           </TabsContent>
 
-          <TabsContent value="pricing" className="mt-6">
+          <TabsContent value="pricing" className="mt-6 relative z-0">
             <PricingPlansManager />
           </TabsContent>
 
-          <TabsContent value="analytics" className="mt-6">
+          <TabsContent value="analytics" className="mt-6 relative z-0">
             <Card className="bg-gradient-card">
               <CardHeader>
                 <CardTitle>System Analytics</CardTitle>
@@ -291,7 +294,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-6">
+          <TabsContent value="settings" className="mt-6 relative z-0">
             <Card className="bg-gradient-card">
               <CardHeader>
                 <CardTitle>System Settings</CardTitle>
@@ -311,7 +314,7 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="security" className="mt-6">
+          <TabsContent value="security" className="mt-6 relative z-0">
             <Card className="bg-gradient-card">
               <CardHeader>
                 <CardTitle>Security Center</CardTitle>
