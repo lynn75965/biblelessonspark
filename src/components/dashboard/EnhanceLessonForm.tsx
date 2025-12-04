@@ -935,6 +935,13 @@ export function EnhanceLessonForm({
           {/* SUBMIT SECTION */}
           {/* ================================================================ */}
           <div className="space-y-3">
+            {/* Mobile Warning - Only visible on small screens */}
+            <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-xs text-amber-800 text-center">
+                <span className="font-semibold">📱 Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+              </p>
+            </div>
+
             {/* Rate Limit Indicator */}
             <div
               className={`text-sm text-center p-2 rounded-lg ${
