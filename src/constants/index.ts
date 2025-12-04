@@ -1,7 +1,10 @@
 /**
  * LessonSparkUSA Constants - Barrel Export
- * @version 1.2.0
- * @lastUpdated 2025-11-22
+ * @version 1.3.0
+ * @lastUpdated 2025-12-04
+ * 
+ * SSOT Update: Removed legacy theologicalPreferences.ts exports.
+ * All theology profile exports now come from theologyProfiles.ts (10 profiles).
  */
 // ============================================================================
 // TypeScript Contracts (Interfaces & Types)
@@ -51,25 +54,21 @@ export {
   getDefaultAgeGroup,
 } from './ageGroups';
 // ============================================================================
-// Theological Preferences (Tier 2)
+// Theology Profiles (Tier 2) - SSOT for all Baptist theology profiles
 // ============================================================================
+export type {
+  TheologyProfile,
+} from './theologyProfiles';
+
 export {
-  THEOLOGICAL_PREFERENCES,
-  SB_CONFESSION_VERSIONS,
-  THEOLOGICAL_PREFERENCES_VERSION,
-  getTheologicalPreferenceKeys,
-  getTheologicalPreference,
-  getDefaultTheologicalPreferenceKey,
-  getDefaultTheologicalPreference,
-  isValidTheologicalPreferenceKey,
-  getSBConfessionVersion,
-  getDefaultSBConfessionVersionKey,
-  isValidSBConfessionVersionKey,
-  getDistinctives,
-  getTheologicalDisplayLabel,
-  getTheologicalPreferenceOptions,
-  getSBConfessionVersionOptions,
-} from './theologicalPreferences';
+  THEOLOGY_PROFILES,
+  THEOLOGY_PROFILE_OPTIONS,
+  getTheologyProfile,
+  getDefaultTheologyProfile,
+  getTheologyProfilesSorted,
+  getTheologyProfileOptions,
+  generateTheologicalGuardrails,
+} from './theologyProfiles';
 // ============================================================================
 // Teacher Preferences (Tier 3)
 // ============================================================================

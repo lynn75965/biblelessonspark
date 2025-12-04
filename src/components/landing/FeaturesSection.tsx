@@ -1,8 +1,21 @@
+/**
+ * FeaturesSection Component
+ * Landing page features showcase
+ * 
+ * SSOT Compliance (December 2025):
+ * - Doctrinal Alignment card dynamically pulls from theologyProfiles.ts
+ * - Shows all 10 Baptist theology profiles
+ */
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Users, BookOpen, Clock } from "lucide-react";
+import { getTheologyProfileOptions } from "@/constants/theologyProfiles";
 
 export function FeaturesSection() {
+  // SSOT: Get all theology profiles dynamically
+  const theologyProfiles = getTheologyProfileOptions();
+
   const features = [
     {
       icon: <Sparkles className="h-6 w-6" />,
@@ -21,9 +34,11 @@ export function FeaturesSection() {
     {
       icon: <BookOpen className="h-6 w-6" />,
       title: "Doctrinal Alignment",
-      description: "Choose from SBC (BF&M 2000 or 1963), Reformed Baptist, or Independent Baptist theological perspectives.",
-      benefits: ["SBC alignment", "Reformed Baptist", "Independent Baptist"],
-      gradient: "bg-gradient-primary"
+      description: `Choose from ${theologyProfiles.length} Baptist theological perspectives, each with specific guardrails to ensure doctrinally appropriate content.`,
+      // SSOT: Dynamically generate benefits from theology profiles
+      benefits: theologyProfiles.map(profile => profile.shortName),
+      gradient: "bg-gradient-primary",
+      isTheology: true
     },
     {
       icon: <Clock className="h-6 w-6" />,
