@@ -14,6 +14,7 @@
  *   - Gold accent on header text
  *   - Teal step badge
  *   - Lesson Sequence moved to last position
+ *   - Mobile responsiveness fixes (December 4, 2025)
  */
 
 import { useState, useEffect } from "react";
@@ -332,7 +333,7 @@ export function TeacherCustomization({
                   onValueChange={handleProfileSelect}
                   disabled={disabled || isSavingProfile}
                 >
-                  <SelectTrigger id="profile-select" className="w-[200px]">
+                  <SelectTrigger id="profile-select" className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Select a profile" />
                   </SelectTrigger>
                   <SelectContent>
@@ -382,8 +383,8 @@ export function TeacherCustomization({
             </Button>
           </div>
 
-          {/* 12 Profile Fields - 2 Column Grid (Lesson Sequence moved to end) */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* 12 Profile Fields - Responsive Grid (1 col mobile, 2 col desktop) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Teaching Style */}
             <div className="space-y-2">
               <Label htmlFor="teaching-style">Teaching Style</Label>
@@ -639,7 +640,7 @@ export function TeacherCustomization({
           {/* Activity Types (checkboxes at end) */}
           <div className="space-y-2">
             <Label>Activity Types</Label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {ACTIVITY_TYPE_OPTIONS.map((activity) => (
                 <div key={activity.id} className="flex items-center space-x-2">
                   <Checkbox
