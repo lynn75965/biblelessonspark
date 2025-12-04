@@ -4,10 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
+import { GuardrailViolationsPanel } from "@/components/admin/GuardrailViolationsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp , Building2} from "lucide-react";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -174,6 +175,10 @@ export default function Admin() {
               <DollarSign className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Pricing & Plans</span>
             </TabsTrigger>
+            <TabsTrigger value="guardrails" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <ShieldAlert className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Guardrails</span>
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">System Analytics</span>
@@ -272,6 +277,10 @@ export default function Admin() {
 
           <TabsContent value="pricing" className="mt-6 relative z-0">
             <PricingPlansManager />
+          </TabsContent>
+
+          <TabsContent value="guardrails" className="mt-6 relative z-0">
+            <GuardrailViolationsPanel />
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6 relative z-0">
