@@ -1010,8 +1010,8 @@ export function EnhanceLessonForm({
             {/* Lesson Content */}
             <div className="prose-sm max-w-none">
               <div
-                className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
-                style={{ lineHeight: "1.3" }}
+                className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px] md:[&::-webkit-scrollbar]:w-4 md:[&::-webkit-scrollbar-track]:bg-gray-200 md:[&::-webkit-scrollbar-track]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-sky-400 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:border-2 md:[&::-webkit-scrollbar-thumb]:border-gray-200 hover:md:[&::-webkit-scrollbar-thumb]:bg-sky-500"
+                style={{ lineHeight: "1.3", scrollbarWidth: "thick", scrollbarColor: "#38bdf8 #e5e7eb" }}
                 dangerouslySetInnerHTML={{
                   __html: (currentLesson.original_text || "")
                     .replace(
