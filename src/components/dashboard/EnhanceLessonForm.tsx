@@ -26,7 +26,7 @@ import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacher
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
-import { AGE_GROUPS } from "@/constants/ageGroups";
+import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
 import { TeacherCustomization } from "./TeacherCustomization";
@@ -763,6 +763,12 @@ export function EnhanceLessonForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  {/* Age Group Description - helps user understand their selection */}
+                  {ageGroup && (
+                    <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
+                      {getAgeGroupById(ageGroup)?.description}
+                    </p>
+                  )}
                 </div>
 
                 {/* Theology Profile */}
