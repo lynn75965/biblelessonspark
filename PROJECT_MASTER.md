@@ -95,10 +95,10 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-04  
-**Current Phase:** Phase 12.4 Complete  
-**Repository:** C:\Users\Lynn\lesson-spark-usa  
-**Framework Version:** 2.1.1
+**Last Updated:** 2025-12-04
+**Current Phase:** Phase 12.5 Complete
+**Repository:** C:\Users\Lynn\lesson-spark-usa
+**Framework Version:** 2.1.2
 
 ---
 
@@ -106,8 +106,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunteer teachers in Baptist churches. Built with React/TypeScript on Lovable.dev, Supabase backend, and Claude AI integration.
 
-**Developer:** Lynn - retired Baptist minister with PhD from SWBTS, 55 years ministry experience, non-programmer solopreneur  
-**Target Users:** Volunteer teachers in Baptist churches  
+**Developer:** Lynn - retired Baptist minister with PhD from SWBTS, 55 years ministry experience, non-programmer solopreneur
+**Target Users:** Volunteer teachers in Baptist churches
 **Core Value:** Generate theologically-sound, age-appropriate Bible study lessons aligned with Baptist beliefs and distinctives as practiced in local Baptist congregations
 
 ---
@@ -156,11 +156,13 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 - `src/constants/ageGroups.ts` - Age group definitions (MASTER)
 - `src/constants/theologyProfiles.ts` - Theology profiles with guardrails (MASTER)
 - `src/constants/teacherPreferences.ts` - Teacher customization (MASTER)
+- `src/constants/bibleVersions.ts` - Bible versions with copyright status (MASTER)
 
 **Backend mirrors sync automatically:**
 - `supabase/functions/_shared/lessonStructure.ts` (MIRROR)
 - `supabase/functions/_shared/ageGroups.ts` (MIRROR)
 - `supabase/functions/_shared/theologyProfiles.ts` (MIRROR)
+- `supabase/functions/_shared/bibleVersions.ts` (MIRROR)
 
 **Sync Process:**
 ```bash
@@ -175,7 +177,7 @@ npm run sync-constants
 
 ---
 
-## Current Lesson Structure (Version 2.1.1)
+## Current Lesson Structure (Version 2.1.2)
 
 ### Required Sections (8 sections)
 1. **Lens + Lesson Overview** (150-250 words)
@@ -201,13 +203,97 @@ npm run sync-constants
 
 ---
 
+## Bible Versions (7 Versions with Copyright Guardrails)
+
+### Available Bible Versions
+
+| # | ID | Name | Abbreviation | Copyright Status |
+|---|-----|------|--------------|------------------|
+| 1 | `kjv` | King James Version | KJV | Public Domain |
+| 2 | `nkjv` | New King James Version | NKJV | Copyrighted |
+| 3 | `nasb` | New American Standard Bible | NASB | Copyrighted |
+| 4 | `esv` | English Standard Version | ESV | Copyrighted |
+| 5 | `niv` | New International Version | NIV | Copyrighted |
+| 6 | `csb` | Christian Standard Bible | CSB | Copyrighted |
+| 7 | `web` | World English Bible | WEB | Public Domain |
+
+### Copyright Guardrails System
+
+| Copyright Status | AI Behavior |
+|------------------|-------------|
+| **Public Domain** (KJV, WEB) | Direct Scripture quotation permitted |
+| **Copyrighted** (NKJV, NASB, ESV, NIV, CSB) | Paraphrase only with verse references |
+
+### SSOT Location: `src/constants/bibleVersions.ts`
+
+**Structure:**
+```typescript
+interface BibleVersion {
+  id: string;
+  name: string;
+  abbreviation: string;
+  copyrightStatus: 'public_domain' | 'copyrighted';
+  description: string;
+  displayOrder: number;
+  isDefault: boolean;
+}
+```
+
+### Helper Functions (SSOT-compliant)
+
+| Function | Purpose |
+|----------|---------|
+| `getBibleVersion(id)` | Get single version by ID |
+| `getDefaultBibleVersion()` | Returns KJV (default) |
+| `getBibleVersionsSorted()` | Returns versions in displayOrder |
+| `generateCopyrightGuardrails(versionId)` | Generates copyright rules for AI prompt |
+
+### Copyright Guardrails Integration
+
+The Edge Function injects copyright guardrails into every lesson generation:
+
+**Public Domain Example (KJV):**
+```
+## SCRIPTURE QUOTATION GUIDELINES
+Bible Version: King James Version (KJV)
+Copyright Status: Public Domain
+
+You MAY directly quote Scripture passages from the KJV.
+Always include verse references (e.g., John 3:16).
+```
+
+**Copyrighted Example (NIV):**
+```
+## SCRIPTURE QUOTATION GUIDELINES
+Bible Version: New International Version (NIV)
+Copyright Status: Copyrighted
+
+You must PARAPHRASE all Scripture content.
+DO NOT directly quote from the NIV.
+Always include verse references (e.g., John 3:16) so readers can look up passages.
+Use phrases like "In this passage, Paul teaches that..." or "The verse tells us..."
+```
+
+### Lesson Metadata
+
+Generated lessons include Bible version metadata:
+```typescript
+metadata: {
+  bibleVersion: "New International Version",
+  bibleVersionAbbreviation: "NIV",
+  copyrightStatus: "copyrighted"
+}
+```
+
+---
+
 ## Theology Profiles (10 Profiles with Guardrails)
 
 ### Available Profiles
 
 | # | Profile ID | Display Name | Default |
 |---|------------|--------------|---------|
-| 1 | `baptist-core-beliefs` | Baptist Core Beliefs | ✅ YES |
+| 1 | `baptist-core-beliefs` | Baptist Core Beliefs | YES |
 | 2 | `southern-baptist-bfm-1963` | Southern Baptist (BF&M 1963) | |
 | 3 | `southern-baptist-bfm-2000` | Southern Baptist (BF&M 2000) | |
 | 4 | `national-baptist-convention` | National Baptist Convention (USA) | |
@@ -249,8 +335,8 @@ Each profile in `theologyProfiles.ts` contains:
 | `preferredTerminology` | Substitution map |
 | `requiredTerminology` | Terms that MUST appear (Reformed/Primitive only) |
 | `guardrails` | Content prohibition rules |
-| `securityDoctrine` | 'eternal' | 'conditional' | 'perseverance' |
-| `tulipStance` | 'anti' | 'pro' |
+| `securityDoctrine` | 'eternal' or 'conditional' or 'perseverance' |
+| `tulipStance` | 'anti' or 'pro' |
 
 ### Helper Functions (SSOT-compliant)
 
@@ -261,83 +347,6 @@ Each profile in `theologyProfiles.ts` contains:
 | `getTheologyProfilesSorted()` | Returns profiles in displayOrder |
 | `getTheologyProfileOptions()` | User-facing subset for dropdowns |
 | `generateTheologicalGuardrails(profileId)` | Generates complete guardrails block for AI prompt |
-
-### Theological Guardrails Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    FRONTEND (Master)                            │
-│  src/constants/theologyProfiles.ts                              │
-│  ├── THEOLOGY_PROFILES[] (10 profiles)                          │
-│  ├── getTheologyProfile(id)                                     │
-│  ├── getDefaultTheologyProfile()                                │
-│  ├── getTheologyProfilesSorted()                                │
-│  ├── getTheologyProfileOptions()                                │
-│  └── generateTheologicalGuardrails(profileId)                   │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ Copy (sync)
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    BACKEND (Mirror)                             │
-│  supabase/functions/_shared/theologyProfiles.ts                 │
-│  (identical copy of frontend file)                              │
-└─────────────────────────────────────────────────────────────────┘
-                              │
-                              │ Import
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    EDGE FUNCTION                                │
-│  supabase/functions/generate-lesson/index.ts                    │
-│  ├── buildTheologyPrompt(profile)                               │
-│  │   └── generateTheologicalGuardrails(profile.id)              │
-│  └── Anthropic API call with guardrails in system prompt        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Example Guardrails Output (SBC BF&M 2000)
-
-```
-## THEOLOGICAL GUARDRAILS — MANDATORY COMPLIANCE
-
-**Selected Theology Profile:** Southern Baptist (BF&M 2000)
-
-[Full theological lens content...]
-
----
-
-### TERMINOLOGY RULES
-
-**PROHIBITED TERMINOLOGY (DO NOT USE):**
-- "Total Depravity"
-- "Unconditional Election"
-- "Limited Atonement"
-- "Irresistible Grace"
-- "TULIP"
-- "the elect" (in Calvinist sense)
-- "regeneration precedes faith"
-- "meticulous sovereignty"
-
-**REQUIRED SUBSTITUTIONS:**
-- Instead of "Total Depravity" → use "fallen humanity / sinful nature"
-- Instead of "Unconditional Election" → use "election consistent with foreknowledge"
-- Instead of "Limited Atonement" → use "Christ died for all"
-- Instead of "Irresistible Grace" → use "the Spirit draws and convicts"
-
-### CONTENT PROHIBITIONS
-The generated lesson MUST NOT contain content that:
-- Presents the five points of Calvinism as Baptist doctrine
-- Uses language implying God selects some for damnation
-- Suggests humans have no role in responding to the Gospel
-
-### FINAL VERIFICATION
-Before outputting the lesson, verify:
-1. No prohibited terminology appears in any section
-2. Required substitutions are applied consistently
-3. No TULIP/Calvinist terminology is present
-4. Security doctrine reflects: Eternal Security (once saved, always saved)
-5. Content aligns with the theological lens described above
-```
 
 ---
 
@@ -429,21 +438,23 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 12.4 Complete  
-**Overall Completion:** ~99%  
+**Current Phase:** Phase 12.5 Complete
+**Overall Completion:** ~99%
 **Production Readiness:** Beta (Active testing with theological guardrails)
 
 ### Phase 12 Summary
-- ✅ Teacher Preference Profiles - Complete
-- ✅ Auth Bug Fixes - Complete
-- ✅ UI Improvements (Create Lesson 3-step cards) - Complete
-- ✅ Prompt Caching Implementation - Complete
-- ✅ 10 Theology Profiles with Guardrails - Complete
-- ✅ SSOT Compliance Audit & Fixes - Complete
-- ✅ Filter Matching Bug Fix - Complete
-- ✅ Edge Function Guardrails Integration - Complete
-- ⏳ Email SMTP Configuration - Pending
-- ⏳ Beta Tester Onboarding - In Progress
+- Teacher Preference Profiles - Complete
+- Auth Bug Fixes - Complete
+- UI Improvements (Create Lesson 3-step cards) - Complete
+- Prompt Caching Implementation - Complete
+- 10 Theology Profiles with Guardrails - Complete
+- SSOT Compliance Audit & Fixes - Complete
+- Filter Matching Bug Fix - Complete
+- Edge Function Guardrails Integration - Complete
+- Bible Version Selection with Copyright Guardrails - Complete
+- Security Advisor Clean (0 errors, 0 warnings) - Complete
+- Email SMTP Configuration - Pending
+- Beta Tester Onboarding - In Progress
 
 ### Pending Configuration
 - Configure Resend SMTP in Supabase for email verification
@@ -458,6 +469,7 @@ npm run sync-constants
 - `src/constants/ageGroups.ts`
 - `src/constants/theologyProfiles.ts` - **10 profiles with guardrails**
 - `src/constants/teacherPreferences.ts`
+- `src/constants/bibleVersions.ts` - **7 versions with copyright guardrails**
 - `src/constants/accessControl.ts`
 - `src/lib/fileValidation.ts`
 
@@ -465,9 +477,11 @@ npm run sync-constants
 - `supabase/functions/_shared/lessonStructure.ts`
 - `supabase/functions/_shared/ageGroups.ts`
 - `supabase/functions/_shared/theologyProfiles.ts` - **Includes generateTheologicalGuardrails()**
+- `supabase/functions/_shared/bibleVersions.ts` - **Includes generateCopyrightGuardrails()**
+- `supabase/functions/_shared/validation.ts` - **Includes bible_version_id validation**
 
 ### Core Components
-- `src/components/dashboard/EnhanceLessonForm.tsx` - Profile/age summaries, 3-step cards
+- `src/components/dashboard/EnhanceLessonForm.tsx` - Profile/age summaries, Bible version dropdown, 3-step cards
 - `src/components/dashboard/LessonLibrary.tsx` - SSOT badge colors, snake_case filters
 - `src/components/dashboard/LessonExportButtons.tsx`
 - `src/components/dashboard/TeacherCustomization.tsx` - "None" option, profile management
@@ -478,7 +492,7 @@ npm run sync-constants
 - `src/hooks/useInvites.tsx`
 
 ### Edge Functions
-- `supabase/functions/generate-lesson/index.ts` - **Theological guardrails integration**
+- `supabase/functions/generate-lesson/index.ts` - **Theological + Copyright guardrails integration**
 - `supabase/functions/extract-lesson/index.ts`
 - `supabase/functions/send-invite/index.ts`
 - `supabase/functions/setup-lynn-admin/index.ts`
@@ -486,14 +500,14 @@ npm run sync-constants
 ### Utilities
 - `src/utils/exportToPdf.ts`
 - `src/utils/exportToDocx.ts`
-- `scripts/sync-constants.cjs`
+- `scripts/sync-constants.cjs` - **Syncs 5 constants files including bibleVersions.ts**
 
 ---
 
 ## Contact & Support
 
-**Developer:** Lynn (Nacogdoches, Texas)  
-**Repository Path:** C:\Users\Lynn\lesson-spark-usa  
+**Developer:** Lynn (Nacogdoches, Texas)
+**Repository Path:** C:\Users\Lynn\lesson-spark-usa
 **Documentation:** This file (PROJECT_MASTER.md)
 
 ---
@@ -504,6 +518,7 @@ npm run sync-constants
 - **Project ID:** hphebzdftpjbiudpfcrs
 - **Functions:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/functions
 - **Logs:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/logs
+- **Security Advisor:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/advisors/security
 
 ### GitHub
 - **Repository:** https://github.com/lynn75965/lesson-spark-usa
@@ -518,46 +533,46 @@ npm run sync-constants
 
 ---
 
-## Phase 7: AI Output & Export (November 2025) ✅ COMPLETE
+## Phase 7: AI Output & Export (November 2025) - COMPLETE
 
 ### AI Output Quality Improvements
-- **Section 5 Enforcement:** 630-840 word minimum with depth requirements  
-- **Student Teaser:** Time-neutral signoff, felt-needs only, displays at top  
-- **No Word Counts:** Removed from section headers  
-- **No Section 9 Duplication:** Teaser extracted and displayed separately  
+- **Section 5 Enforcement:** 630-840 word minimum with depth requirements
+- **Student Teaser:** Time-neutral signoff, felt-needs only, displays at top
+- **No Word Counts:** Removed from section headers
+- **No Section 9 Duplication:** Teaser extracted and displayed separately
 
 ### Export Features
-- **PDF Export:** Calibri 11pt, compact professional spacing, correct title extraction  
-- **DOCX Export:** Renamed "Document (editable)", correct parameters  
-- **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins  
+- **PDF Export:** Calibri 11pt, compact professional spacing, correct title extraction
+- **DOCX Export:** Renamed "Document (editable)", correct parameters
+- **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins
 
 ### UI Improvements
-- **View Display:** AI-generated title, tighter spacing (line-height 1.3)  
-- **My Lessons Page:** AI-generated titles, 4 search filters  
-- **Export Buttons:** Copy, Print, Download (PDF/Document) with clear labels  
-- **Progress Bar:** Smooth 0-99% progression during generation  
+- **View Display:** AI-generated title, tighter spacing (line-height 1.3)
+- **My Lessons Page:** AI-generated titles, 4 search filters
+- **Export Buttons:** Copy, Print, Download (PDF/Document) with clear labels
+- **Progress Bar:** Smooth 0-99% progression during generation
 
 ---
 
-## Phase 8: Security Audit & Hardening (November 25, 2025) ✅ 90% COMPLETE
+## Phase 8: Security Audit & Hardening (November 25, 2025) - 90% COMPLETE
 
 **Status:** 9 of 10 security domains completed
 
 ### Security Domains Completed
-- 8.1 API Key & Secrets Management ✅
-- 8.2 Row Level Security (RLS) Policies ✅
-- 8.3 Edge Function Authentication ✅
-- 8.4 Authentication Hardening ✅
-- 8.5 Input Validation & Sanitization ✅
-- 8.6 Rate Limiting & Abuse Prevention ✅
-- 8.7 Data Privacy & Compliance ✅
-- 8.8 CORS & Domain Security ✅
-- 8.9 Backup & Disaster Recovery ✅
-- 8.10 Security Monitoring & Logging ⏸️ DEFERRED
+- 8.1 API Key & Secrets Management
+- 8.2 Row Level Security (RLS) Policies
+- 8.3 Edge Function Authentication
+- 8.4 Authentication Hardening
+- 8.5 Input Validation & Sanitization
+- 8.6 Rate Limiting & Abuse Prevention
+- 8.7 Data Privacy & Compliance
+- 8.8 CORS & Domain Security
+- 8.9 Backup & Disaster Recovery
+- 8.10 Security Monitoring & Logging - DEFERRED
 
 ---
 
-## Phase 9: Beta Testing & User Feedback (November 25, 2025) ✅ COMPLETE
+## Phase 9: Beta Testing & User Feedback (November 25, 2025) - COMPLETE
 
 ### Rate Limiting Feature
 - Beta testers: 5 lessons per 24-hour period
@@ -567,7 +582,7 @@ npm run sync-constants
 
 ---
 
-## Phase 10: RLS Policy Standardization (November 30, 2025) ✅ COMPLETE
+## Phase 10: RLS Policy Standardization (November 30, 2025) - COMPLETE
 
 - Dropped all 80 existing `{public}` role policies
 - Created 66 new SSOT-aligned policies across 22 tables
@@ -575,7 +590,7 @@ npm run sync-constants
 
 ---
 
-## Phase 11: Org Leader Activation (November 30 - December 1, 2025) ✅ COMPLETE
+## Phase 11: Org Leader Activation (November 30 - December 1, 2025) - COMPLETE
 
 - Search Path Security Hardening
 - File Extraction Pipeline (PDF, TXT, JPG, PNG)
@@ -583,32 +598,32 @@ npm run sync-constants
 
 ---
 
-## Phase 12: Teacher Profiles & UX Improvements (December 2-4, 2025) ✅ COMPLETE
+## Phase 12: Teacher Profiles & UX Improvements (December 2-4, 2025) - COMPLETE
 
-### Session 1: PDF Extraction Bug Fix ✅
+### Session 1: PDF Extraction Bug Fix
 - Replaced naive PDF parsing with Claude API document extraction
 
-### Session 2: Text Paste Input Option ✅
+### Session 2: Text Paste Input Option
 - Added text paste alternative to file upload
 
-### Session 3: Teacher Preference Profiles System ✅
+### Session 3: Teacher Preference Profiles System
 - Up to 7 named profiles per user
 - Smart Collapse behavior
 - Part of Series feature
 
-### Session 4: UI Redesign ✅
+### Session 4: UI Redesign
 - 3-step card layout for Create Lesson page
 - Brand styling with gold accents, teal badges
 
-### Session 5: Prompt Caching Implementation ✅
+### Session 5: Prompt Caching Implementation
 - 50-70% cost reduction potential
 
-### Session 6: My Lesson Library Improvements ✅
+### Session 6: My Lesson Library Improvements
 - Renamed to "My Lesson Library"
 - Focused viewer mode
 - Scrollbar accessibility
 
-### Session 7: Theological Guardrails & SSOT Compliance ✅
+### Session 7: Theological Guardrails & SSOT Compliance
 
 **10 Theology Profiles with Complete Guardrails:**
 - Prohibited terminology lists
@@ -629,7 +644,7 @@ npm run sync-constants
 **UI Enhancements:**
 - Theology profile summary display
 - Age group description display
-- "— None —" option in Load Profile dropdown
+- "-- None --" option in Load Profile dropdown
 
 **Git Commits (Session 7):**
 - `596ef7a` - 10 theology profiles with guardrails
@@ -639,13 +654,58 @@ npm run sync-constants
 - `d09754b` - "None" option in Load Profile
 - `c5346a6` - Filter matching fix (snake_case)
 
+### Session 8: Bible Version Selection with Copyright Guardrails
+
+**7 Bible Versions Implemented:**
+
+| Version | Copyright | AI Behavior |
+|---------|-----------|-------------|
+| KJV | Public Domain | Direct quotation |
+| WEB | Public Domain | Direct quotation |
+| NKJV | Copyrighted | Paraphrase only |
+| NASB | Copyrighted | Paraphrase only |
+| ESV | Copyrighted | Paraphrase only |
+| NIV | Copyrighted | Paraphrase only |
+| CSB | Copyrighted | Paraphrase only |
+
+**SSOT Implementation:**
+- Frontend master: `src/constants/bibleVersions.ts`
+- Backend mirror: `supabase/functions/_shared/bibleVersions.ts`
+- Sync script updated: `scripts/sync-constants.cjs`
+
+**Copyright Guardrails:**
+- `generateCopyrightGuardrails(versionId)` function
+- Public domain: AI quotes directly
+- Copyrighted: AI paraphrases with verse references
+- Guardrails injected into system prompt
+
+**UI Integration:**
+- Bible Version dropdown in Step 2 (EnhanceLessonForm.tsx)
+- Copyright description displays below dropdown
+- Default: KJV (public domain)
+
+**Security Fixes:**
+- RLS enabled on `bible_versions` table
+- Policies created for authenticated read access
+- Function search_path hardened (4 functions)
+- Security Advisor: **0 errors, 0 warnings, 0 suggestions**
+
+**Validation Updates:**
+- `validation.ts` updated with `bible_version_id` field
+- Edge Function accepts optional `bible_version_id` parameter
+- Lesson metadata includes Bible version info
+
+**Git Commits (Session 8):**
+- `4eb76fa` - Add Bible Version selection with copyright guardrails (SSOT)
+- `bf44211` - Fix: Guard against undefined distinctives in theology profiles
+
 ---
 
 # SUPPLEMENTARY DOCUMENTATION
 
 ---
 
-## Footer Component - SSOT Implementation ✅
+## Footer Component - SSOT Implementation
 
 **Source File:** `src/components/layout/Footer.tsx`
 
@@ -669,15 +729,15 @@ Used on: Landing Page, Dashboard, Documentation, Help Center, Training, Communit
 ## Supported File Types
 
 ### Curriculum Upload
-- **PDF** ✅ - Claude Sonnet 4 document API (60-90 seconds)
-- **TXT** ✅ - Direct read (<1 second)
-- **JPG/JPEG/PNG** ✅ - Claude Sonnet 4 vision API (15-30 seconds)
-- **DOCX** ❌ - Not supported (save as PDF)
+- **PDF** - Claude Sonnet 4 document API (60-90 seconds)
+- **TXT** - Direct read (less than 1 second)
+- **JPG/JPEG/PNG** - Claude Sonnet 4 vision API (15-30 seconds)
+- **DOCX** - Not supported (save as PDF)
 
 ### Export Formats
-- **PDF** ✅
-- **DOCX** ✅
-- **Print** ✅
+- **PDF** - Supported
+- **DOCX** - Supported
+- **Print** - Supported
 
 ---
 
@@ -685,7 +745,6 @@ Used on: Landing Page, Dashboard, Documentation, Help Center, Training, Communit
 
 - Security Monitoring & Logging (LOW priority)
 - Failed Access Logging (LOW priority)
-- Function Search Path Security (LOW priority)
 
 ---
 
@@ -695,9 +754,10 @@ Used on: Landing Page, Dashboard, Documentation, Help Center, Training, Communit
 
 | Task | Priority | Status |
 |------|----------|--------|
-| Configure Resend SMTP in Supabase | HIGH | ⏳ Pending |
-| Re-enable email confirmation | HIGH | ⏳ After SMTP |
-| Test theological guardrails across all 10 profiles | MEDIUM | ⏳ Pending |
+| Configure Resend SMTP in Supabase | HIGH | Pending |
+| Re-enable email confirmation | HIGH | After SMTP |
+| Test Bible version copyright guardrails (public domain vs copyrighted) | MEDIUM | Pending |
+| Test theological guardrails across all 10 profiles | MEDIUM | Pending |
 
 ---
 
