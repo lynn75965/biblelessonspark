@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-03  
-**Current Phase:** Phase 12 In Progress  
+**Last Updated:** 2025-12-04  
+**Current Phase:** Phase 12.4 Complete  
 **Repository:** C:\Users\Lynn\lesson-spark-usa  
 **Framework Version:** 2.1.1
 
@@ -154,7 +154,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 **All data definitions originate from frontend constants:**
 - `src/constants/lessonStructure.ts` - Lesson framework (MASTER)
 - `src/constants/ageGroups.ts` - Age group definitions (MASTER)
-- `src/constants/theologyProfiles.ts` - Theology profiles (MASTER)
+- `src/constants/theologyProfiles.ts` - Theology profiles with guardrails (MASTER)
 - `src/constants/teacherPreferences.ts` - Teacher customization (MASTER)
 
 **Backend mirrors sync automatically:**
@@ -201,23 +201,147 @@ npm run sync-constants
 
 ---
 
-## Theology Profiles
+## Theology Profiles (10 Profiles with Guardrails)
 
 ### Available Profiles
-1. **Southern Baptist (BF&M 2000)** - Primary profile
-2. **Southern Baptist (BF&M 1963)** - Conservative alternative
-3. **Reformed Baptist** - Calvinist emphasis
-4. **Independent Baptist** - Autonomous church governance
 
-### Profile Components
-- Description
-- Distinctives (key beliefs)
-- Hermeneutics approach
-- Application emphasis
+| # | Profile ID | Display Name | Default |
+|---|------------|--------------|---------|
+| 1 | `baptist-core-beliefs` | Baptist Core Beliefs | ✅ YES |
+| 2 | `southern-baptist-bfm-1963` | Southern Baptist (BF&M 1963) | |
+| 3 | `southern-baptist-bfm-2000` | Southern Baptist (BF&M 2000) | |
+| 4 | `national-baptist-convention` | National Baptist Convention (USA) | |
+| 5 | `independent-baptist` | Independent Baptist | |
+| 6 | `missionary-baptist` | Missionary Baptist | |
+| 7 | `general-baptist` | General Baptist | |
+| 8 | `free-will-baptist` | Free Will Baptist | |
+| 9 | `primitive-baptist` | Primitive Baptist | |
+| 10 | `reformed-baptist` | Reformed Baptist | |
+
+### Theological Stance Categories
+
+| Category | Profiles |
+|----------|----------|
+| **Anti-TULIP** (8) | Baptist Core, SBC 1963, SBC 2000, National, Independent, Missionary, General, Free Will |
+| **Pro-TULIP** (2) | Reformed Baptist, Primitive Baptist |
+
+### Security Doctrine Categories
+
+| Doctrine | Profiles |
+|----------|----------|
+| **Eternal Security** | Baptist Core, SBC 1963, SBC 2000, National, Independent, Missionary, General |
+| **Conditional Security** | Free Will Baptist |
+| **Perseverance of Saints** | Reformed Baptist, Primitive Baptist |
+
+### Profile Structure (SSOT)
+
+Each profile in `theologyProfiles.ts` contains:
+
+| Field | Purpose |
+|-------|---------|
+| `id` | Database identifier |
+| `name` / `shortName` | Display names |
+| `displayOrder` | Controls dropdown sequence (1-10) |
+| `isDefault` | Boolean flag (only Baptist Core Beliefs = true) |
+| `summary` | USER-FACING description shown in UI |
+| `filterContent` | BACKEND ONLY - full theological lens for AI prompt |
+| `avoidTerminology` | Array of prohibited terms |
+| `preferredTerminology` | Substitution map |
+| `requiredTerminology` | Terms that MUST appear (Reformed/Primitive only) |
+| `guardrails` | Content prohibition rules |
+| `securityDoctrine` | 'eternal' | 'conditional' | 'perseverance' |
+| `tulipStance` | 'anti' | 'pro' |
+
+### Helper Functions (SSOT-compliant)
+
+| Function | Purpose |
+|----------|---------|
+| `getTheologyProfile(id)` | Get single profile by ID |
+| `getDefaultTheologyProfile()` | Returns Baptist Core Beliefs |
+| `getTheologyProfilesSorted()` | Returns profiles in displayOrder |
+| `getTheologyProfileOptions()` | User-facing subset for dropdowns |
+| `generateTheologicalGuardrails(profileId)` | Generates complete guardrails block for AI prompt |
+
+### Theological Guardrails Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Master)                            │
+│  src/constants/theologyProfiles.ts                              │
+│  ├── THEOLOGY_PROFILES[] (10 profiles)                          │
+│  ├── getTheologyProfile(id)                                     │
+│  ├── getDefaultTheologyProfile()                                │
+│  ├── getTheologyProfilesSorted()                                │
+│  ├── getTheologyProfileOptions()                                │
+│  └── generateTheologicalGuardrails(profileId)                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Copy (sync)
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    BACKEND (Mirror)                             │
+│  supabase/functions/_shared/theologyProfiles.ts                 │
+│  (identical copy of frontend file)                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ Import
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    EDGE FUNCTION                                │
+│  supabase/functions/generate-lesson/index.ts                    │
+│  ├── buildTheologyPrompt(profile)                               │
+│  │   └── generateTheologicalGuardrails(profile.id)              │
+│  └── Anthropic API call with guardrails in system prompt        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Example Guardrails Output (SBC BF&M 2000)
+
+```
+## THEOLOGICAL GUARDRAILS — MANDATORY COMPLIANCE
+
+**Selected Theology Profile:** Southern Baptist (BF&M 2000)
+
+[Full theological lens content...]
 
 ---
 
-## Age Groups (10 groups)
+### TERMINOLOGY RULES
+
+**PROHIBITED TERMINOLOGY (DO NOT USE):**
+- "Total Depravity"
+- "Unconditional Election"
+- "Limited Atonement"
+- "Irresistible Grace"
+- "TULIP"
+- "the elect" (in Calvinist sense)
+- "regeneration precedes faith"
+- "meticulous sovereignty"
+
+**REQUIRED SUBSTITUTIONS:**
+- Instead of "Total Depravity" → use "fallen humanity / sinful nature"
+- Instead of "Unconditional Election" → use "election consistent with foreknowledge"
+- Instead of "Limited Atonement" → use "Christ died for all"
+- Instead of "Irresistible Grace" → use "the Spirit draws and convicts"
+
+### CONTENT PROHIBITIONS
+The generated lesson MUST NOT contain content that:
+- Presents the five points of Calvinism as Baptist doctrine
+- Uses language implying God selects some for damnation
+- Suggests humans have no role in responding to the Gospel
+
+### FINAL VERIFICATION
+Before outputting the lesson, verify:
+1. No prohibited terminology appears in any section
+2. Required substitutions are applied consistently
+3. No TULIP/Calvinist terminology is present
+4. Security doctrine reflects: Eternal Security (once saved, always saved)
+5. Content aligns with the theological lens described above
+```
+
+---
+
+## Age Groups (11 groups)
 
 1. Preschoolers (Ages 3-5)
 2. Elementary Kids (Ages 6-10)
@@ -229,8 +353,9 @@ npm run sync-constants
 8. Experienced Adults (Ages 51-65)
 9. Active Seniors (Ages 66-75)
 10. Senior Adults (Ages 76+)
+11. Mixed Groups (Multi-generational)
 
-Each includes: vocabulary level, conceptual depth, teaching profile
+Each includes: vocabulary level, conceptual depth, teaching profile, description
 
 ---
 
@@ -246,7 +371,7 @@ Each includes: vocabulary level, conceptual depth, teaching profile
 | 4 | Group Size | 5 options |
 | 5 | Learning Environment | 4 options |
 | 6 | Student Experience Level | 4 options |
-| 7 | Education Experience | 4 options |
+| 7 | Education Experience | 5 options (incl. Preschool) |
 | 8 | Cultural Context | 3 options |
 | 9 | Special Needs | 6 options |
 | 10 | Lesson Sequence | 2 options: Single Lesson, Part of Series |
@@ -261,7 +386,7 @@ All preferences dynamically inserted into AI prompt generation.
 ## Known Issues & Limitations
 
 ### AI Output Quality (Non-Deterministic)
-- **Section 5 Word Count:** Target 630-840, occasionally generates 500-600 words (LLM non-determinism)
+- **Section 5 Word Count:** Target 630-840, occasionally generates 500-600 words
 - **Teaser Quality:** Occasionally reveals content despite 11 prohibitions
 - **Solution Deferred:** Post-generation validation not yet implemented
 
@@ -304,13 +429,19 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 12 In Progress  
-**Overall Completion:** ~98%  
-**Production Readiness:** Beta (Active testing)
+**Current Phase:** Phase 12.4 Complete  
+**Overall Completion:** ~99%  
+**Production Readiness:** Beta (Active testing with theological guardrails)
 
-### Current Focus (Phase 12)
+### Phase 12 Summary
 - ✅ Teacher Preference Profiles - Complete
 - ✅ Auth Bug Fixes - Complete
+- ✅ UI Improvements (Create Lesson 3-step cards) - Complete
+- ✅ Prompt Caching Implementation - Complete
+- ✅ 10 Theology Profiles with Guardrails - Complete
+- ✅ SSOT Compliance Audit & Fixes - Complete
+- ✅ Filter Matching Bug Fix - Complete
+- ✅ Edge Function Guardrails Integration - Complete
 - ⏳ Email SMTP Configuration - Pending
 - ⏳ Beta Tester Onboarding - In Progress
 
@@ -325,7 +456,7 @@ npm run sync-constants
 ### Frontend Constants (MASTER)
 - `src/constants/lessonStructure.ts`
 - `src/constants/ageGroups.ts`
-- `src/constants/theologyProfiles.ts`
+- `src/constants/theologyProfiles.ts` - **10 profiles with guardrails**
 - `src/constants/teacherPreferences.ts`
 - `src/constants/accessControl.ts`
 - `src/lib/fileValidation.ts`
@@ -333,13 +464,13 @@ npm run sync-constants
 ### Backend Mirrors (AUTO-GENERATED)
 - `supabase/functions/_shared/lessonStructure.ts`
 - `supabase/functions/_shared/ageGroups.ts`
-- `supabase/functions/_shared/theologyProfiles.ts`
+- `supabase/functions/_shared/theologyProfiles.ts` - **Includes generateTheologicalGuardrails()**
 
 ### Core Components
-- `src/components/dashboard/EnhanceLessonForm.tsx`
-- `src/components/dashboard/LessonLibrary.tsx`
+- `src/components/dashboard/EnhanceLessonForm.tsx` - Profile/age summaries, 3-step cards
+- `src/components/dashboard/LessonLibrary.tsx` - SSOT badge colors, snake_case filters
 - `src/components/dashboard/LessonExportButtons.tsx`
-- `src/components/dashboard/TeacherCustomization.tsx`
+- `src/components/dashboard/TeacherCustomization.tsx` - "None" option, profile management
 
 ### Hooks
 - `src/hooks/useTeacherProfiles.ts`
@@ -347,7 +478,7 @@ npm run sync-constants
 - `src/hooks/useInvites.tsx`
 
 ### Edge Functions
-- `supabase/functions/generate-lesson/index.ts`
+- `supabase/functions/generate-lesson/index.ts` - **Theological guardrails integration**
 - `supabase/functions/extract-lesson/index.ts`
 - `supabase/functions/send-invite/index.ts`
 - `supabase/functions/setup-lynn-admin/index.ts`
@@ -398,379 +529,115 @@ npm run sync-constants
 ### Export Features
 - **PDF Export:** Calibri 11pt, compact professional spacing, correct title extraction  
 - **DOCX Export:** Renamed "Document (editable)", correct parameters  
-- **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins (Bible curriculum standard)  
+- **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins  
 
 ### UI Improvements
 - **View Display:** AI-generated title, tighter spacing (line-height 1.3)  
-- **My Lessons Page:** AI-generated titles, 4 search filters (Passage/Title/Age/Theology)  
+- **My Lessons Page:** AI-generated titles, 4 search filters  
 - **Export Buttons:** Copy, Print, Download (PDF/Document) with clear labels  
 - **Progress Bar:** Smooth 0-99% progression during generation  
-
-### Files Modified
-- `supabase/functions/generate-lesson/index.ts` - AI prompt enforcement
-- `src/components/dashboard/EnhanceLessonForm.tsx` - View display, progress bar
-- `src/components/dashboard/LessonExportButtons.tsx` - Button labels
-- `src/components/dashboard/LessonLibrary.tsx` - Title extraction, search filters
-- `src/utils/exportToPdf.ts` - Calibri, spacing, title extraction
-- `src/utils/exportToDocx.ts` - Parameters, title extraction
-- `src/constants/lessonStructure.ts` - EXPORT_FORMATTING constant
 
 ---
 
 ## Phase 8: Security Audit & Hardening (November 25, 2025) ✅ 90% COMPLETE
 
-**Status:** 9 of 10 security domains completed  
-**Priority:** CRITICAL - Required before production release
+**Status:** 9 of 10 security domains completed
 
 ### Security Domains Completed
-
-#### 8.1 API Key & Secrets Management ✅
-- No API keys in src/ folder
-- .env files properly gitignored
-- Anthropic API key only in Supabase Edge Function secrets
-- service_role key never used in frontend
-
-#### 8.2 Row Level Security (RLS) Policies ✅
-- RLS enabled on all user-data tables
-- SELECT/INSERT/UPDATE/DELETE policies created
-- User isolation verified with test accounts
-
-#### 8.3 Edge Function Authentication ✅
-- JWT verification implemented
-- user_id from verified token only (no spoofing)
-- 401 responses for missing/invalid tokens
-
-#### 8.4 Authentication Hardening ✅
-- Email confirmation: **TEMPORARILY DISABLED** (pending SMTP config)
-- Secure email/password change enabled
-- Leaked password prevention enabled
-- Minimum password: 8 characters with complexity
-- Rate limiting: 30 attempts per 5 min per IP
-- CAPTCHA: Deferred (optional for future)
-
-#### 8.5 Input Validation & Sanitization ✅
-- validation.ts module in _shared
-- Length validation (200 chars passages, 2000 notes)
-- Type validation, array size limits
-- Control character sanitization
-- XSS prevention implemented
-
-#### 8.6 Rate Limiting & Abuse Prevention ✅
-- rateLimit.ts module in _shared
-- Hourly limit: 10 lessons per user
-- Daily limit: 50 lessons per user
-- HTTP 429 response when exceeded
-
-#### 8.7 Data Privacy & Compliance ✅
-- Privacy Policy page created
-- Terms of Service page created
-- Account deletion functionality implemented
-- Footer component with legal links
-
-#### 8.8 CORS & Domain Security ✅
-- CORS restricted to https://lessonsparkusa.com
-- Security headers via netlify.toml:
-  - X-Frame-Options: DENY
-  - X-Content-Type-Options: nosniff
-  - Strict-Transport-Security
-  - Content-Security-Policy
-
-#### 8.9 Backup & Disaster Recovery ✅
-- Daily automated backups enabled
-- 7-day backup retention verified
-- PITR available as Pro Plan add-on (deferred)
-
-#### 8.10 Security Monitoring & Logging ⏸️ DEFERRED
-- Risk Level: LOW
-- Moved to Technical Debt
+- 8.1 API Key & Secrets Management ✅
+- 8.2 Row Level Security (RLS) Policies ✅
+- 8.3 Edge Function Authentication ✅
+- 8.4 Authentication Hardening ✅
+- 8.5 Input Validation & Sanitization ✅
+- 8.6 Rate Limiting & Abuse Prevention ✅
+- 8.7 Data Privacy & Compliance ✅
+- 8.8 CORS & Domain Security ✅
+- 8.9 Backup & Disaster Recovery ✅
+- 8.10 Security Monitoring & Logging ⏸️ DEFERRED
 
 ---
 
 ## Phase 9: Beta Testing & User Feedback (November 25, 2025) ✅ COMPLETE
 
-### Rate Limiting Feature ✅
-**Components:**
-- `src/hooks/useRateLimit.ts` - Rate limit checking hook
-- `app_settings` table - Admin-configurable operational settings
-- Usage indicator in EnhanceLessonForm.tsx
-
-**Behavior:**
+### Rate Limiting Feature
 - Beta testers: 5 lessons per 24-hour period
-- Admin (UUID: b8708e6b-eeef-4ff5-9f0b-57d808ef8762): Exempt (unlimited)
+- Admin exempt (unlimited)
 - Display: "X of 5 lessons used (resets in Y hours)"
 - At limit: Red banner, Generate button disabled
-
-**Admin Configuration (No Deployment Required):**
-- Supabase → Table Editor → `app_settings`
-- `beta_lesson_limit`: Number of lessons allowed (default: 5)
-- `beta_limit_hours`: Time period in hours (default: 24)
-
-### Beta Infrastructure Ready
-- RLS policies active on beta_testers (4 policies) and beta_feedback (3 policies)
-- Users can only access their own data
-- Admin has full read access
-
-### Beta Testing Tasks (Planning Phase)
-- Recruit 10-20 beta testers from Texas Baptist network
-- In-app feedback system ready
-- Weekly check-in survey templates prepared
-- Bug tracking via GitHub Issues or Supabase
 
 ---
 
 ## Phase 10: RLS Policy Standardization (November 30, 2025) ✅ COMPLETE
 
-### Summary
-Comprehensive security refactor replacing all `{public}` role RLS policies with proper `{authenticated}` role policies aligned with frontend SSOT.
-
-### Problem Identified
-- Lovable.dev scaffolding created 80 RLS policies using `{public}` role instead of `{authenticated}`
-- Policy names were correct ("Users can...") but role assignment was wrong
-- `{public}` role grants access to EVERYONE including unauthenticated visitors
-
-### Solution Implemented
-- Dropped all 80 existing policies
+- Dropped all 80 existing `{public}` role policies
 - Created 66 new SSOT-aligned policies across 22 tables
-- All policies now use `authenticated` or `service_role` (except 1 legitimate `anon` for invite claims)
-
-### Policy Pattern Applied
-
-| Policy Type | Role | Purpose |
-|-------------|------|---------|
-| `admin_full_access` | authenticated | Lynn's UUID gets ALL operations |
-| `users_*_own` | authenticated | Users access their own data only |
-| `service_role_access` | service_role | Backend Edge Functions |
-| `anon_claim_by_token` | anon | Invite claim links only (invites table) |
-
-### Tables Updated (22 total)
-admin_audit, app_settings, beta_feedback, beta_testers, credits_ledger, events, feedback, invites, lessons, notifications, organization_contacts, organization_members, organizations, outputs, profiles, rate_limits, refinements, setup_progress, stripe_events, subscription_plans, user_roles, user_subscriptions
-
-### Files Created
-- `policy_backup_2025-11-30.csv` - Backup of original 80 policies
-- `rls_master_cleanup_phase10.sql` - Master cleanup script
-
-### SSOT Conformance
-- Frontend Drives Backend - RLS enforces accessControl.ts definitions
-- Admin Has All Control - platformAdmin UUID has ALL operations
-- Individual = Own Data - user_id/id = auth.uid() pattern
-- Org Roles Active - orgLeader policies now implemented
+- All policies now use `authenticated` or `service_role`
 
 ---
 
 ## Phase 11: Org Leader Activation (November 30 - December 1, 2025) ✅ COMPLETE
 
-### Task A: Search Path Security Hardening ✅
-- Fixed search_path security warnings for all Edge Functions
-
-### Task B: File Extraction Pipeline ✅
-- Created extract-lesson Edge Function
-- Supported formats: TXT, PDF, JPG, JPEG, PNG
-- Claude Vision API integration for image OCR
-- Updated validation.ts: extracted_content field (50,000 char limit)
-- Updated generate-lesson: Curriculum Enhancement Mode
-
-### Task B2: Members Tab & Invite System ✅
-
-**Issues Fixed:**
-1. **is_admin() function** - Added missing `AND role = 'admin'` filter
-2. **Dashboard.tsx** - Added `organization_id` to profile queries
-3. **Dashboard.tsx** - Fixed Members TabsContent rendering logic
-4. **send-invite Edge Function** - Removed duplicate `serve(handler)` syntax error
-5. **useInvites.tsx** - Properly extracts error messages from Edge Function 400 responses
-
-**Verification:**
-- Members tab loads correctly showing org members
-- Pending invites display properly
-- Invite validation errors show specific messages
-- Org Leader authorization working in Edge Function
-
-### Git Commits
-- `42ab691` - Fix Supabase URL for extract-lesson
-- `5a44a25` - Add extract-lesson Edge Function
-- `69217c6` - Add extracted_content to generate-lesson
-- `751df3e` - Fix send-invite SERVICE_ROLE_KEY
-- `89cf36e` - Update admin password
-- `2fb705a` - Dashboard organization_id fix
-- `5aa8fe7` - send-invite duplicate serve() fix
-- `d15ce37` - Error message extraction fix
+- Search Path Security Hardening
+- File Extraction Pipeline (PDF, TXT, JPG, PNG)
+- Members Tab & Invite System
 
 ---
 
-## Phase 12: Teacher Profiles & UX Improvements (December 2, 2025) 🔄 IN PROGRESS
+## Phase 12: Teacher Profiles & UX Improvements (December 2-4, 2025) ✅ COMPLETE
 
 ### Session 1: PDF Extraction Bug Fix ✅
-
-**Problem:** Uploaded PDF curriculum content was not being incorporated into generated lessons.
-
-**Root Cause:** Naive PDF parsing attempted to read raw bytes as text, returning binary garbage.
-
-**Solution:** Replaced with Claude API document extraction using `claude-sonnet-4-20250514`.
-
-**DOCX Support Removed:** Claude API `document` type does NOT support DOCX files. Users instructed to save Word documents as PDF before upload.
-
-#### Updated File Support
-
-| File Type | Method | Expected Time |
-|-----------|--------|---------------|
-| **PDF** | Claude Sonnet 4 document API | 60-90 seconds |
-| **TXT** | Direct file read | <1 second |
-| **JPG/JPEG/PNG** | Claude Sonnet 4 vision API | 15-30 seconds |
-| **DOCX** | ❌ REMOVED | Not supported by Claude API |
-
----
+- Replaced naive PDF parsing with Claude API document extraction
 
 ### Session 2: Text Paste Input Option ✅
-
-**Feature:** Added text paste alternative to file upload for faster curriculum input.
-
-**Changes Made:**
-
-1. **SSOT Update - fileValidation.ts**
-   - Removed DOCX/DOC from `ALLOWED_FILE_TYPES`
-   - New supported formats: PDF, TXT, JPG, JPEG, PNG
-   - Updated error messages: "For Word docs, save as PDF first"
-
-2. **EnhanceLessonForm.tsx - Text Paste Feature**
-   - Added `inputMode` state: "file" | "paste"
-   - Toggle buttons: "Upload File" / "Paste Text"
-   - Modes are mutually exclusive
-   - Pasted content goes directly to `extracted_content` (skips extraction)
-
-**User Experience Impact:**
-- **Paste Text**: Instant submission (no extraction delay)
-- **Upload File**: 60-90 seconds extraction for PDFs
-- Teachers with digital content can copy-paste for faster workflow
-
-**Git Commits:**
-- `51ba201` - Add text paste option for curriculum input, remove DOCX support (SSOT-compliant)
-- `3845f47` - Debug: Add logging to diagnose paste text validation issue
-- `960b231` - Remove debug logging - paste text feature verified working
-
----
+- Added text paste alternative to file upload
 
 ### Session 3: Teacher Preference Profiles System ✅
+- Up to 7 named profiles per user
+- Smart Collapse behavior
+- Part of Series feature
 
-**Purpose:** Allow teachers to save up to 7 named profiles with their customization preferences for quick switching between teaching contexts (e.g., "Sunday Adult Class", "Wednesday Youth").
+### Session 4: UI Redesign ✅
+- 3-step card layout for Create Lesson page
+- Brand styling with gold accents, teal badges
 
-#### Database: `teacher_preference_profiles` Table
-```sql
-CREATE TABLE teacher_preference_profiles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  profile_name TEXT NOT NULL,  -- max 50 chars, unique per user
-  is_default BOOLEAN DEFAULT false,
-  preferences JSONB NOT NULL,  -- stores 13 fields, no content validation
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
+### Session 5: Prompt Caching Implementation ✅
+- 50-70% cost reduction potential
 
-**Constraints:**
-- Max 7 profiles per user (trigger-enforced)
-- Only one default profile per user (auto-enforced by trigger)
-- Profile names 1-50 characters, unique per user
-- RLS: Users can only access their own profiles
+### Session 6: My Lesson Library Improvements ✅
+- Renamed to "My Lesson Library"
+- Focused viewer mode
+- Scrollbar accessibility
 
-#### New Files Created
+### Session 7: Theological Guardrails & SSOT Compliance ✅
 
-| File | Purpose |
-|------|---------|
-| `src/hooks/useTeacherProfiles.ts` | CRUD operations for profiles |
+**10 Theology Profiles with Complete Guardrails:**
+- Prohibited terminology lists
+- Required substitutions
+- Required terminology (Reformed/Primitive only)
+- Content prohibition rules
+- Security doctrine classification
+- TULIP stance classification
 
-#### Files Modified
+**Edge Function Integration:**
+- `generateTheologicalGuardrails()` integrated into lesson generation
+- Guardrails injected into every AI prompt
 
-| File | Changes |
-|------|---------|
-| `src/constants/teacherPreferences.ts` | 13 fields, added Lesson Sequence/Language/Activity Types |
-| `src/components/dashboard/TeacherCustomization.tsx` | Profile dropdown, save modal, delete confirmation, Part of Series UI |
-| `src/components/dashboard/EnhanceLessonForm.tsx` | Integrates profile hook, auto-loads default profile |
+**SSOT Compliance Fixes:**
+- Filter matching fixed (snake_case keys)
+- Badge colors keyed by ID (order-independent)
 
-#### Smart Collapse Behavior
-- **New users (no profiles):** Section collapsed
-- **Users with saved profiles:** Section expanded, default profile auto-loaded
+**UI Enhancements:**
+- Theology profile summary display
+- Age group description display
+- "— None —" option in Load Profile dropdown
 
-#### Part of Series Feature
-- When "Part of Series" selected, shows "Lesson X of Y" inputs
-- Validation: X ≤ Y, max 7 lessons in a series
-- **Position NOT saved in profile** (lesson-specific, resets each time)
-
-#### SSOT Compliance Verified
-✅ All field definitions in `teacherPreferences.ts`  
-✅ Database stores JSONB with no content validation  
-✅ Frontend drives backend behavior  
-✅ RLS policies enforce user isolation
-
----
-
-### Session 3: Auth.tsx Bug Fixes ✅
-
-#### Bug Fix 1: Spaces Not Allowed in Full Name
-
-**Problem:** Users couldn't type "Pastor Lynn" - space was immediately removed  
-**Root Cause:** `handleInputChange()` called `sanitizeText()` on every keystroke, which included `.trim()`  
-**Solution:** Removed real-time sanitization; `sanitizeText()` only called on form submit
-
-**File Modified:** `src/pages/Auth.tsx`
-
----
-
-#### Bug Fix 2: Database Error Saving New User
-
-**Problem:** "Sign up failed - Database error saving new user"  
-**Root Cause:** `profiles.theology_profile_id` column was NOT NULL without a default value. The `handle_new_user` trigger only sets `id` and `full_name`.  
-**Solution:** 
-```sql
-ALTER TABLE public.profiles 
-ALTER COLUMN theology_profile_id DROP NOT NULL;
-```
-
-**Location:** Supabase SQL Editor (production database)
-
----
-
-#### Enhancement: Password Visibility Toggle ✅
-
-**Feature:** Added eye icon to show/hide password on both Sign In and Sign Up forms  
-**Implementation:** 
-- Added `showSignInPassword` and `showSignUpPassword` state
-- Eye/EyeOff icons from lucide-react
-- Clickable toggle button with `tabIndex={-1}` to skip tab navigation
-
-**File Modified:** `src/pages/Auth.tsx`
-
----
-
-### Configuration Change: Email Verification Disabled ⚠️
-
-**Change:** Disabled "Confirm email" in Supabase Authentication settings  
-**Reason:** Resend SMTP not fully configured; was blocking beta signups  
-**Location:** Supabase Dashboard → Authentication → Providers → Email → Confirm email: OFF  
-**Future:** Configure Resend SMTP for production email verification
-
----
-
-### Files Modified This Session
-
-| File | Change Type |
-|------|-------------|
-| `src/constants/teacherPreferences.ts` | Major update - 13 fields, SSOT cleanup |
-| `src/hooks/useTeacherProfiles.ts` | **New file** - profile CRUD hook |
-| `src/components/dashboard/TeacherCustomization.tsx` | Major update - profile UI |
-| `src/components/dashboard/EnhanceLessonForm.tsx` | Major update - profile integration |
-| `src/pages/Auth.tsx` | Bug fix + enhancement |
-| `src/lib/fileValidation.ts` | SSOT for allowed file types |
-| Database: `teacher_preference_profiles` | **New table** |
-| Database: `profiles.theology_profile_id` | Made nullable |
-
----
-
-### Git Commits (Phase 12 - Teacher Profiles Session)
-
-> **TODO:** Replace placeholders with actual commit hashes from `git log`
-
-- `[PLACEHOLDER]` - Add teacher preference profiles with Smart Collapse
-- `[PLACEHOLDER]` - Fix: Allow spaces in Full Name field during sign up
-- `[PLACEHOLDER]` - Add password visibility toggle to auth forms
+**Git Commits (Session 7):**
+- `596ef7a` - 10 theology profiles with guardrails
+- `70d6fc7` - Fix component file paths
+- `1e97861` - Theology profile summary display
+- `a8011df` - Age group description display
+- `d09754b` - "None" option in Load Profile
+- `c5346a6` - Filter matching fix (snake_case)
 
 ---
 
@@ -778,309 +645,59 @@ ALTER COLUMN theology_profile_id DROP NOT NULL;
 
 ---
 
-## Footer Component - SSOT Implementation (November 28, 2025) ✅
-
-**Status:** COMPLETE  
-**Principle:** Single Source of Truth (SSOT) - One reusable component across all pages
-
-### Overview
-Created centralized Footer component to replace inline footer code, ensuring consistency across all user-facing pages.
-
-### Component Architecture
+## Footer Component - SSOT Implementation ✅
 
 **Source File:** `src/components/layout/Footer.tsx`
 
-**Data Sources (SSOT):**
-
-| Data | Source File | Description |
-|------|-------------|-------------|
-| Footer Links | `src/config/footerLinks.ts` | Product, Support, Legal link arrays |
-| Support Email | `src/config/site.ts` → `SITE.supportEmail` | Centralized email address |
-| Branding | Component internal | Logo, description, copyright |
-
-### Pages With Footer Component
-
-| Page | File | Status |
-|------|------|--------|
-| Landing Page | `src/pages/Index.tsx` | ✅ |
-| Dashboard | `src/pages/Dashboard.tsx` | ✅ |
-| Documentation | `src/pages/Docs.tsx` | ✅ |
-| Help Center | `src/pages/Help.tsx` | ✅ |
-| Training | `src/pages/Training.tsx` | ✅ |
-| Community | `src/pages/Community.tsx` | ✅ |
-| Setup Guide | `src/pages/Setup.tsx` | ✅ |
-| Privacy Policy | `src/pages/legal/Privacy.tsx` | ✅ |
-| Terms of Service | `src/pages/legal/Terms.tsx` | ✅ |
-| Cookie Policy | `src/pages/legal/Cookie.tsx` | ✅ |
+Used on: Landing Page, Dashboard, Documentation, Help Center, Training, Community, Setup Guide, Privacy Policy, Terms of Service, Cookie Policy
 
 ---
 
 ## Future Roadmap: Organization Leader Features
 
-**Status:** Planning (Post-Beta)  
-**Priority:** HIGH - Core to multi-user value proposition  
 **Target Phase:** Phase 13+
 
-### Overview
-Organizations (churches) will have the capability to coordinate Bible study across all age groups with centralized leadership and oversight.
-
-### Access Model Architecture
-
-| Role | Scope | Capabilities |
-|------|-------|--------------|
-| **Platform Admin** | ALL platform activity | See all users, all orgs, all lessons, platform analytics |
-| **Org Leader** | Their organization only | Manage org members, view org activity, set shared focus |
-| **Org Member** | Their own lessons within org | Create lessons, follow org guidelines |
-| **Individual User** | Their own lessons only | Full autonomy, no org context |
-
-### Planned Org Leader Capabilities
-
-1. **Member Management** - Add/remove teachers, assign roles, view activity
-2. **Shared Focus/Theme Coordination** - Set church-wide Scripture passage/theme
-3. **Org Analytics Dashboard** - Usage reports by age group, engagement metrics
-4. **Curriculum Coordination** - Sequential lesson planning, cross-age alignment
-5. **Quality Oversight** - Review lessons before use (optional)
-
-### Implementation Phases (Future)
-
-- **Phase 13A:** Org Structure - Leader role assignment, member management UI
-- **Phase 13B:** Shared Focus - Passage/theme setting, auto-populate forms
-- **Phase 13C:** Org Analytics - Dashboard, activity reports, exports
-- **Phase 13D:** Curriculum Coordination - Series mode, alignment tools
+### Planned Capabilities
+1. Member Management
+2. Shared Focus/Theme Coordination
+3. Org Analytics Dashboard
+4. Curriculum Coordination
+5. Quality Oversight
 
 ---
 
-## Supported File Types Reference
+## Supported File Types
 
-### Curriculum Upload (extract-lesson)
+### Curriculum Upload
 - **PDF** ✅ - Claude Sonnet 4 document API (60-90 seconds)
 - **TXT** ✅ - Direct read (<1 second)
 - **JPG/JPEG/PNG** ✅ - Claude Sonnet 4 vision API (15-30 seconds)
 - **DOCX** ❌ - Not supported (save as PDF)
 
-### Export Formats (lesson export)
+### Export Formats
 - **PDF** ✅
 - **DOCX** ✅
 - **Print** ✅
-
-### Extraction Limits
-
-| Limit | Value | Location |
-|-------|-------|----------|
-| File upload size | 10 MB | Frontend validation |
-| Extracted content | 50,000 characters | validation.ts |
 
 ---
 
 ## Technical Debt Backlog
 
-### Security Monitoring & Logging (Deferred from Phase 8.10)
-
-**Risk Level:** LOW  
-**Priority:** Future enhancement
-
-**Scope:**
-- Log all authentication attempts (success/failure)
-- Log all API calls to Edge Functions
-- Log rate limit violations
-- Create monitoring dashboard
-- Set up alerting rules
-
----
-
-### Failed Access Logging (Deferred from Phase 11)
-
-**Risk Level:** LOW  
-**Priority:** Future enhancement (nice-to-have)
-
-**Issue:** RLS policies silently filter rows - they don't throw catchable errors. True "denied RLS access" logging would require workarounds that add overhead.
-
-**Why Deferred:**
-- Edge Function logs already capture 401/403/400 errors
-- RLS silent filtering is by design
-- Implementation complexity outweighs security benefit
-- Security is enforced, just not logged at row level
-
-**If Implemented Later:**
-- Create `security_access_log` table
-- Add trigger functions for explicit security events
-- Consider Supabase Log Drain for centralized logging
-
----
-
-### Function Search Path Security (Deferred from Phase 10)
-
-**Risk Level:** LOW  
-**Priority:** Phase 14 or later
-
-**Issue:** 14 database functions lack explicit `search_path` settings. Theoretical risk where attacker with CREATE privileges could hijack function calls.
-
-**Why Deferred:**
-- Risk is theoretical - requires database CREATE privileges
-- Functions work correctly in production
-- Low priority compared to other tasks
-
-**Functions Requiring Attention:**
-- handle_new_user, handle_updated_at
-- allocate_monthly_credits, cleanup_old_rate_limits, deduct_credits
-- get_all_users_for_admin, get_credits_balance, get_user_organization
-- get_user_organization_id, has_role, is_admin
-- log_profile_role_changes, log_security_event, update_updated_at_column
-
-**Recommended Fix:**
-```sql
-ALTER FUNCTION function_name(...) SET search_path = public, pg_temp;
-```
-
-
----
-
-## Claude API Cost Management
-
-### Pricing Structure (Claude Sonnet 4)
-
-| Token Type | Cost per Million | Notes |
-|------------|------------------|-------|
-| Input tokens | $3.00 | Prompt sent to Claude |
-| Output tokens | $15.00 | Lesson content generated |
-| Cached input (write) | $3.75 | First request creates cache (+25%) |
-| Cached input (read) | $0.30 | Subsequent requests use cache (-90%) |
-
-### Prompt Caching Implementation
-
-**Status:** ✅ Implemented December 3, 2025  
-**Location:** `supabase/functions/generate-lesson/index.ts`
-
-**Cache Structure:**
-```
-┌─────────────────────────────────────────┐
-│ BLOCK 1: Base System Prompt             │
-│ (Framework, sections, rules, checklist) │
-│ cache_control: { type: 'ephemeral' }    │ ← CACHED (same for ALL users)
-├─────────────────────────────────────────┤
-│ BLOCK 2: Theology Profile               │
-│ (BF&M 2000, BF&M 1963, etc.)            │
-│ cache_control: { type: 'ephemeral' }    │ ← CACHED (per theology tradition)
-├─────────────────────────────────────────┤
-│ BLOCK 3: Dynamic Content                │
-│ (Age group, teacher prefs, teaser)      │
-│ NO cache_control                        │ ← NOT cached (varies per request)
-└─────────────────────────────────────────┘
-```
-
-**Cache Behavior:**
-- TTL: 5 minutes (refreshes on each use)
-- Cache hits require same theology profile within 5-minute window
-- Teacher customization profiles do NOT cache (vary per user)
-- Output tokens are never cached (always full price)
-
-### Per-Lesson Cost Breakdown
-
-| Component | Tokens | Without Caching | With Caching (Hit) |
-|-----------|--------|-----------------|-------------------|
-| Cached Input (base + theology) | ~3,000 | $0.009 | $0.0009 |
-| Non-Cached Input (dynamic + user) | ~1,500 | $0.0045 | $0.0045 |
-| Output (lesson content) | ~3,500 | $0.0525 | $0.0525 |
-| **TOTAL per lesson** | ~8,000 | **~$0.066** | **~$0.058** |
-
-**Per-lesson savings with caching: ~12-15%**
-
-### Monthly Cost Projections
-
-| Users | Lessons/User/Month | Total Lessons | Without Caching | With Caching |
-|------:|:------------------:|:-------------:|----------------:|-------------:|
-| 10 | 5 | 50 | $3.30 | $2.90 |
-| 25 | 5 | 125 | $8.25 | $7.25 |
-| 50 | 5 | 250 | $16.50 | $14.50 |
-| 100 | 5 | 500 | $33.00 | $29.00 |
-| 200 | 5 | 1,000 | $66.00 | $58.00 |
-| 500 | 5 | 2,500 | $165.00 | $145.00 |
-| 750 | 5 | 3,750 | $247.50 | $217.50 |
-
-### Budget Configuration
-
-**Monthly Budget Ceiling:** $200  
-**Platform:** Anthropic Console (console.anthropic.com)  
-**Billing:** Prepaid credits with auto-reload
-
-**Recommended Settings:**
-- Initial credits: $50-100
-- Auto-reload threshold: $20
-- Spending alert: $150/month
-
-### Budget Capacity
-
-| Scenario | Max Lessons/Month | Max Users (at 5 lessons each) |
-|----------|------------------:|------------------------------:|
-| Without Caching | ~3,000 | ~600 users |
-| With Caching | ~3,450 | ~690 users |
-
-### Growth Projections
-
-| Phase | Users | Lessons/Month | Est. Cost | Within Budget? |
-|-------|------:|:-------------:|----------:|:--------------:|
-| Beta (Current) | 20 | 100 | $5.80 | ✅ Yes |
-| Early Launch | 50 | 250 | $14.50 | ✅ Yes |
-| Growing | 100 | 500 | $29.00 | ✅ Yes |
-| Established | 250 | 1,250 | $72.50 | ✅ Yes |
-| Thriving | 500 | 2,500 | $145.00 | ✅ Yes |
-| **Budget Ceiling** | **~690** | **~3,450** | **~$200** | ⚠️ Limit |
-
-### Cost Monitoring
-
-**Log Location:** Supabase Dashboard → Functions → generate-lesson → Logs
-
-**Cache Performance Indicators:**
-```
-[CACHE] Cache WRITE: Created cache with XXXX tokens    ← First request
-[CACHE] Cache HIT! Read XXXX tokens from cache         ← Subsequent requests
-```
-
-**Metadata Tracking:** Each lesson stores cache stats in `metadata.cacheStats`:
-- `cacheCreationTokens` - Tokens written to cache
-- `cacheReadTokens` - Tokens read from cache
-- `uncachedInputTokens` - Non-cached input tokens
-- `cacheHit` - Boolean indicating cache hit
-
-### Cost Optimization Notes
-
-1. **Output tokens dominate cost** - 5x more expensive than input; caching doesn't affect output
-2. **Curriculum Enhancement mode costs more** - Pasted curriculum increases input tokens 2-3x
-3. **Cache hits require traffic** - Same theology profile within 5 minutes gets cache benefit
-4. **Monitor weekly** - Check Anthropic Console dashboard for actual vs. projected costs
-
-### Scaling Triggers
-
-| Trigger | Action |
-|---------|--------|
-| Approaching 3,000 lessons/month | Review rate limits, consider tiered pricing |
-| Consistent $150+/month | Evaluate subscription pricing to cover costs |
-| 1,000+ active users | Implement usage-based pricing or tiered plans |
+- Security Monitoring & Logging (LOW priority)
+- Failed Access Logging (LOW priority)
+- Function Search Path Security (LOW priority)
 
 ---
 
 # ACTION ITEMS
 
-## Immediate (Before Next Beta Tester)
+## Immediate
 
 | Task | Priority | Status |
 |------|----------|--------|
 | Configure Resend SMTP in Supabase | HIGH | ⏳ Pending |
 | Re-enable email confirmation | HIGH | ⏳ After SMTP |
-| Test teacher profile save/load/delete | MEDIUM | ⏳ Pending |
-| Add actual Git commit hashes to this doc | LOW | ⏳ Pending |
-
-## Resend SMTP Configuration Details
-
-**Location:** Supabase Dashboard → Authentication → SMTP Settings
-
-| Setting | Value |
-|---------|-------|
-| Host | smtp.resend.com |
-| Port | 465 |
-| Username | resend |
-| Password | Your API key (re_...) |
-| Sender email | Requires verified domain in Resend |
+| Test theological guardrails across all 10 profiles | MEDIUM | ⏳ Pending |
 
 ---
 
