@@ -143,6 +143,18 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
     const matchesTitle = !searchTitle || lesson.ai_lesson_title?.toLowerCase().includes(searchTitle.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
     const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
+    
+    // DEBUG: Log filter comparisons (remove after fixing)
+    console.log("Filter Debug:", {
+      lessonId: lesson.id,
+      ageFilter,
+      lessonAgeGroup: lesson.age_group,
+      matchesAge,
+      profileFilter,
+      lessonProfileId: lesson.theology_profile_id,
+      matchesProfile
+    });
+    
     return matchesPassage && matchesTitle && matchesAge && matchesProfile;
   });
 
