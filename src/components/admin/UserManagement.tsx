@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -113,7 +113,7 @@ export function UserManagement() {
       return;
     }
 
-    const success = await sendInvite(inviteEmail);
+    const success = await sendInvite({ email: inviteEmail });
     if (success) {
       setInviteDialogOpen(false);
       setInviteEmail("");
