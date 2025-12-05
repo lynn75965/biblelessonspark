@@ -977,3 +977,47 @@ Used on: Landing Page, Dashboard, Documentation, Help Center, Training, Communit
 ---
 
 *End of Document*
+
+### Session 11: Email Infrastructure & Invite System Fixes (December 5, 2025)
+
+**Google Workspace Setup:**
+- Configured Google Workspace for support@lessonsparkusa.com
+- MX records added in Namecheap pointing to Google servers
+- Professional email now receiving and sending from branded domain
+
+**Resend SMTP Configuration:**
+- Verified Resend domain status: lessonsparkusa.com ?
+- Resend API key refreshed and configured in Supabase SMTP settings
+- Supabase Auth emails (password reset, verification) working via Resend
+
+**Invite System Bug Fix:**
+- Fixed UserManagement.tsx line 116: Changed sendInvite(inviteEmail) to sendInvite({ email: inviteEmail })
+- Root cause: Function expected object { email: string } but received string directly
+- This caused "Invalid email address" error for all invite attempts
+
+**SSOT Routes Implementation:**
+- Created src/constants/routes.ts (MASTER) - All application route definitions
+- Created supabase/functions/_shared/routes.ts (MIRROR) - Backend copy for Edge Functions
+- Added uildInviteUrl() helper function for consistent invite URL generation
+- Updated send-invite Edge Function to use SSOT uildInviteUrl() instead of hardcoded /signup path
+- Invite links now correctly point to /auth?invite= route
+
+**Git Commits (Session 11):**
+- 9fd5554 - Fix: Pass email as object to sendInvite function
+- [latest] - SSOT: Add routes.ts constants with frontend master and backend mirror for invite URLs
+
+**UNRESOLVED:**
+- End-to-end testing of invite flow not completed (invite link ? /auth page ? account creation)
+- Need to verify Auth.tsx properly handles ?invite= query parameter and claims invite after signup
+
+
+---
+
+## SSOT Files Update (December 5, 2025)
+
+Added to Single Source of Truth Architecture:
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/routes.ts | supabase/functions/_shared/routes.ts | Application routes and URL builders |
+

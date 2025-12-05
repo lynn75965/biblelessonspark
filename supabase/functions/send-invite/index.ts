@@ -5,6 +5,9 @@ import React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { InviteEmail } from "./_templates/invite-email.tsx";
 
+// SSOT Import - Routes defined in frontend, mirrored to backend
+import { buildInviteUrl } from "../_shared/routes.ts";
+
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
@@ -50,9 +53,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const { email, role = "teacher", organization_id }: InviteRequest = await req.json();
 
+    // Check if user is admin
     const { data: hasAdminRole } = await supabaseClient
       .rpc("has_role", { _user_id: user.id, _role: "admin" });
 
+    // Check if user is org leader
     let isOrgLeader = false;
     let userOrgId: string | null = null;
 
@@ -69,6 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
+    // Authorization check
     if (!hasAdminRole && !isOrgLeader) {
       return new Response(
         JSON.stringify({ error: "Only administrators or organization leaders can send invites" }),
@@ -76,6 +82,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Org leaders can only invite to their own org
     let finalOrgId = organization_id;
     if (isOrgLeader && !hasAdminRole) {
       if (organization_id && organization_id !== userOrgId) {
@@ -87,6 +94,7 @@ const handler = async (req: Request): Promise<Response> => {
       finalOrgId = userOrgId;
     }
 
+    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !emailRegex.test(email)) {
       return new Response(
@@ -95,6 +103,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check for existing user
     const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
@@ -105,6 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Check for existing unclaimed invite
     const { data: existingInvite } = await supabaseClient
       .from("invites")
       .select("id")
@@ -119,8 +129,10 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Create invite token
     const inviteToken = crypto.randomUUID();
 
+    // Insert invite record
     const { data: invite, error: inviteError } = await supabaseClient
       .from("invites")
       .insert({
@@ -140,6 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Get organization name if applicable
     let orgName = null;
     if (finalOrgId) {
       const { data: org } = await supabaseClient
@@ -150,6 +163,7 @@ const handler = async (req: Request): Promise<Response> => {
       orgName = org?.name;
     }
 
+    // Get inviter name
     const { data: inviterProfile } = await supabaseClient
       .from("profiles")
       .select("full_name")
@@ -158,9 +172,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     const inviterName = inviterProfile?.full_name || "A LessonSpark USA administrator";
 
+    // Build invite URL using SSOT helper function
     const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
-    const inviteUrl = `${baseUrl}/signup?invite=${inviteToken}`;
+    const inviteUrl = buildInviteUrl(baseUrl, inviteToken);
 
+    // Render email template
     const emailHtml = await renderAsync(
       React.createElement(InviteEmail, {
         inviteUrl,
@@ -169,23 +185,25 @@ const handler = async (req: Request): Promise<Response> => {
       })
     );
 
+    // Send email via Resend
     const { error: emailError } = await resend.emails.send({
       from: "LessonSpark USA <noreply@lessonsparkusa.com>",
       to: email,
       subject: orgName
-        ? `You've been invited to join ${orgName} on LessonSpark USA`
+        ? \You've been invited to join \ on LessonSpark USA\
         : "You've been invited to LessonSpark USA",
       html: emailHtml,
     });
 
     if (emailError) {
       console.error("Error sending email:", emailError);
+      // Note: We don't return error here - invite was created, email just failed
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Invite sent to ${email}`,
+        message: \Invite sent to \\,
         invite_id: invite.id,
         organization_id: finalOrgId,
       }),
