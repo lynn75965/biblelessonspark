@@ -5,29 +5,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Mail, User, Lock, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, Mail, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useInvites } from '@/hooks/useInvites';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
+import { SITE } from '@/config/site';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('invite');
-  
+
   const [activeTab, setActiveTab] = useState('signin');
   const [isLoading, setIsLoading] = useState(false);
   const [inviterName, setInviterName] = useState<string>('');
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
   });
-  
+
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const { getInviteByToken, claimInvite } = useInvites();
@@ -41,21 +44,21 @@ export default function Auth() {
         if (invite) {
           setFormData(prev => ({ ...prev, email: invite.email }));
           setActiveTab('signup');
-          
+
           // Get inviter name
           const { data: inviterProfile } = await supabase
             .from('profiles')
             .select('full_name')
             .eq('id', invite.created_by)
             .single();
-          
+
           if (inviterProfile) {
             setInviterName(inviterProfile.full_name || 'LessonSpark USA');
           }
-          
+
           toast({
             title: "You've been invited!",
-            description: `${inviterProfile?.full_name || 'Someone'} has invited you to join LessonSpark USA.`,
+            description: `${inviterProfile?.full_name || 'Someone'} has invited you to join {SITE.name}.`,
           });
         } else {
           toast({
@@ -85,7 +88,7 @@ export default function Auth() {
       // Sanitize email input
       const sanitizedEmail = sanitizeEmail(formData.email);
       const { error } = await signIn(sanitizedEmail, formData.password);
-      
+
       if (error) {
         toast({
           title: "Sign in failed",
@@ -118,9 +121,9 @@ export default function Auth() {
       // Sanitize inputs on submit (not during typing)
       const sanitizedEmail = sanitizeEmail(formData.email);
       const sanitizedFullName = sanitizeText(formData.fullName);
-      
+
       const { error } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
-      
+
       if (error) {
         if (error.message.includes('User already registered')) {
           toast({
@@ -141,7 +144,7 @@ export default function Auth() {
         if (inviteToken) {
           await claimInvite(inviteToken);
         }
-        
+
         // Trigger verification email
         try {
           const { data: userData } = await supabase.auth.getUser();
@@ -151,10 +154,52 @@ export default function Auth() {
         } catch (emailError) {
           console.error('Failed to send verification email:', emailError);
         }
-        
+
         toast({
           title: "Account created!",
           description: "Please check your email to verify your account.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const sanitizedEmail = sanitizeEmail(formData.email);
+      const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to send reset email. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        setResetEmailSent(true);
+        toast({
+          title: "Reset email sent!",
+          description: "Check your inbox for password reset instructions.",
         });
       }
     } catch (error) {
@@ -174,6 +219,96 @@ export default function Auth() {
     setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
 
+  // Forgot Password View
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+        <div className="w-full max-w-md px-4 sm:px-0">
+          {/* Header */}
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
+                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </div>
+              <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+            </div>
+          </div>
+
+          <Card className="bg-gradient-card shadow-glow">
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Reset Your Password</CardTitle>
+              <CardDescription className="text-sm">
+                {resetEmailSent 
+                  ? "Check your email for reset instructions"
+                  : "Enter your email to receive a password reset link"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6">
+              {resetEmailSent ? (
+                <div className="space-y-4 text-center">
+                  <div className="flex justify-center">
+                    <Mail className="h-12 w-12 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    We've sent a password reset link to <strong>{formData.email}</strong>. 
+                    Please check your inbox and spam folder.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setShowForgotPassword(false);
+                      setResetEmailSent(false);
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Sign In
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email" className="text-sm">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                      <Input
+                        id="reset-email"
+                        type="email"
+                        placeholder="your.email@church.org"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="pl-9 sm:pl-10 text-sm sm:text-base"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    variant="hero"
+                    size="lg"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setShowForgotPassword(false)}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Sign In
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
       <div className="w-full max-w-md px-4 sm:px-0">
@@ -183,11 +318,11 @@ export default function Auth() {
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
               <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <span className="text-xl sm:text-2xl font-bold gradient-text">LessonSpark USA</span>
+            <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold mb-2">Welcome to LessonSpark USA</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">Welcome to {SITE.name}</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Baptist Bible Study Enhancement Platform
+            {SITE.tagline}
           </p>
         </div>
 
@@ -197,8 +332,8 @@ export default function Auth() {
               {inviteToken ? `Invitation from ${inviterName}` : 'Access Your Account'}
             </CardTitle>
             <CardDescription className="text-sm">
-              {inviteToken 
-                ? 'Complete your sign up to join LessonSpark USA' 
+              {inviteToken
+                ? 'Complete your sign up to join {SITE.name}'
                 : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>
@@ -227,7 +362,16 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-sm">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password" className="text-sm">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-xs text-primary hover:underline"
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
@@ -253,9 +397,9 @@ export default function Auth() {
                       </button>
                     </div>
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full text-sm sm:text-base" 
+                  <Button
+                    type="submit"
+                    className="w-full text-sm sm:text-base"
                     variant="hero"
                     size="lg"
                     disabled={isLoading}
@@ -327,9 +471,9 @@ export default function Auth() {
                       </button>
                     </div>
                   </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full text-sm sm:text-base" 
+                  <Button
+                    type="submit"
+                    className="w-full text-sm sm:text-base"
                     variant="hero"
                     size="lg"
                     disabled={isLoading}
