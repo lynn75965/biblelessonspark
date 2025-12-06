@@ -1,4 +1,4 @@
-import { Sparkles, Mail } from "lucide-react";
+﻿import { Sparkles, Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { SITE } from "@/config/site";
 

@@ -1,4 +1,5 @@
-import { useState } from "react";
+﻿import { useState } from "react";
+import { SITE } from '@/config/site';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { SITE } from '@/config/site';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const BetaSignup = () => {
@@ -272,7 +274,7 @@ const BetaSignup = () => {
             <div className="mt-6 text-center text-sm text-gray-600">
               <p>Questions? Contact Lynn Eckeberger at</p>
               <p className="font-semibold">
-                <a href="mailto:lynn@lessonsparkusa.com" className="text-blue-600 hover:underline">
+                <a href={`mailto:${SITE.supportEmail}`} className="text-blue-600 hover:underline">
                   lynn@lessonsparkusa.com
                 </a>
                 {" "}| 214.893.5179
