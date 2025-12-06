@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -7,29 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BookOpen, CheckCircle2 } from 'lucide-react';
-
-const THEOLOGICAL_LENSES = [
-  {
-    value: 'southern_baptist',
-    label: 'Southern Baptist',
-    description: 'Traditional Southern Baptist perspective with emphasis on biblical inerrancy',
-  },
-  {
-    value: 'reformed',
-    label: 'Reformed Baptist',
-    description: 'Reformed theology with emphasis on Calvinistic doctrines',
-  },
-  {
-    value: 'evangelical',
-    label: 'Evangelical',
-    description: 'Broader evangelical perspective emphasizing personal conversion',
-  },
-  {
-    value: 'moderate',
-    label: 'Moderate Baptist',
-    description: 'Moderate Baptist perspective with balanced approach',
-  },
-];
+import { getTheologyProfilesSorted } from '@/constants/theologyProfiles';
 
 export default function PreferencesLens() {
   const { user } = useAuth();
@@ -37,6 +15,9 @@ export default function PreferencesLens() {
   const [selected, setSelected] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Get all 10 theology profiles from SSOT
+  const theologyProfiles = getTheologyProfilesSorted();
 
   useEffect(() => {
     loadCurrentPreference();
@@ -48,13 +29,13 @@ export default function PreferencesLens() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('theological_preference')
+        .select('theology_profile_id')
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
-      if (data?.theological_preference) {
-        setSelected(data.theological_preference);
+      if (data?.theology_profile_id) {
+        setSelected(data.theology_profile_id);
       }
     } catch (error) {
       console.error('Error loading preference:', error);
@@ -70,7 +51,7 @@ export default function PreferencesLens() {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ theological_preference: selected })
+        .update({ theology_profile_id: selected })
         .eq('id', user.id);
 
       if (error) throw error;
@@ -113,29 +94,29 @@ export default function PreferencesLens() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {THEOLOGICAL_LENSES.map((lens) => (
+            {theologyProfiles.map((profile) => (
               <button
-                key={lens.value}
-                onClick={() => setSelected(lens.value)}
+                key={profile.id}
+                onClick={() => setSelected(profile.id)}
                 className={`w-full text-left p-4 border-2 rounded-lg transition-all ${
-                  selected === lens.value
+                  selected === profile.id
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/50'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <div className={`mt-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
-                    selected === lens.value
+                    selected === profile.id
                       ? 'border-primary bg-primary'
                       : 'border-muted-foreground'
                   }`}>
-                    {selected === lens.value && (
+                    {selected === profile.id && (
                       <CheckCircle2 className="h-4 w-4 text-white" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg mb-1">{lens.label}</h3>
-                    <p className="text-sm text-muted-foreground">{lens.description}</p>
+                    <h3 className="font-semibold text-lg mb-1">{profile.name}</h3>
+                    <p className="text-sm text-muted-foreground">{profile.summary}</p>
                   </div>
                 </div>
               </button>
