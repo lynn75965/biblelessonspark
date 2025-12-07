@@ -41,13 +41,21 @@ export default function Auth() {
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
 
-  // Handle password reset mode
+  // Handle password reset mode - must check BEFORE auth redirect
   useEffect(() => {
     const resetParam = searchParams.get('reset');
     if (resetParam === 'true') {
       setIsResetMode(true);
     }
   }, [searchParams]);
+
+  // Prevent redirect to dashboard if in reset mode
+  useEffect(() => {
+    const resetParam = searchParams.get('reset');
+    if (user && resetParam !== 'true' && !inviteToken) {
+      navigate('/dashboard');
+    }
+  }, [user, searchParams, navigate, inviteToken]);
 
   // Handle invite token
   useEffect(() => {
@@ -86,11 +94,7 @@ export default function Auth() {
   }, [inviteToken, getInviteByToken, toast]);
 
   // Redirect if already authenticated
-  useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
+  // Auth redirect handled above with reset mode check
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
