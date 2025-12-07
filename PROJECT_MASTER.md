@@ -659,6 +659,7 @@ npm run sync-constants
 
 | Item | Priority | Status |
 |------|----------|--------|
+| SSOT Compliance Audit (see below) | HIGH | Post-Beta |
 | Security Monitoring & Logging | LOW | Deferred |
 | Failed Access Logging | LOW | Deferred |
 | Frontend warning toast for guardrail violations | MEDIUM | Pending |
@@ -668,6 +669,80 @@ npm run sync-constants
 
 ---
 
+## SSOT Compliance Audit (December 7, 2025)
+
+**Status:** DOCUMENTED - Do NOT fix during beta (risk of disruption)
+
+### Finding 1: Backend Files Without Frontend MASTER
+
+These files exist in `supabase/functions/_shared/` but have no frontend source in `src/constants/`:
+
+| Backend File | Risk Level | Action Needed |
+|--------------|------------|---------------|
+| customizationDirectives.ts | MEDIUM | Investigate: Move to frontend or delete |
+| rateLimit.ts | HIGH | Investigate: Actively used by generate-lesson |
+| theologicalPreferences.ts | MEDIUM | Delete after verifying no imports |
+
+**Violation:** These files originated in backend, violating "frontend drives backend" principle.
+
+### Finding 2: Frontend Files NOT in Sync Script
+
+These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
+
+| Frontend File | Backend Exists? | Risk Level | Action Needed |
+|---------------|-----------------|------------|---------------|
+| contracts.ts | Yes | MEDIUM | Add to sync after comparing versions |
+| validation.ts | Yes | HIGH | Compare versions before syncing |
+| routes.ts | Yes | MEDIUM | Add to sync after comparing versions |
+| programConfig.ts | No | LOW | Determine if backend mirror needed |
+
+**Violation:** Backend versions may have diverged from frontend. Sync would overwrite.
+
+### Finding 3: Hardcoded Values in Edge Functions
+
+| File | Hardcoded Value | Should Import From |
+|------|-----------------|-------------------|
+| setup-lynn-admin/index.ts | validRoles = ['admin', 'teacher', 'moderator'] | accessControl.ts |
+
+**Violation:** Role definitions defined in backend, not imported from SSOT.
+
+### Current Sync Script Coverage
+
+**Files in sync-constants.cjs (7 files):**
+- ageGroups.ts
+- bibleVersions.ts
+- generationMetrics.ts
+- lessonStructure.ts
+- lessonTiers.ts
+- teacherPreferences.ts
+- theologyProfiles.ts
+
+**Files NOT in sync (need investigation):**
+- contracts.ts
+- validation.ts
+- routes.ts
+- programConfig.ts (may not need backend mirror)
+
+### Post-Beta Remediation Plan
+
+| Step | Action | Risk Mitigation |
+|------|--------|-----------------|
+| 1 | Compare frontend/backend validation.ts line-by-line | Document differences |
+| 2 | Compare frontend/backend routes.ts line-by-line | Document differences |
+| 3 | Compare frontend/backend contracts.ts line-by-line | Document differences |
+| 4 | Check all Edge Function imports for theologicalPreferences.ts | Grep for imports |
+| 5 | Decide: Move rateLimit.ts to frontend or document exception | Architectural decision |
+| 6 | Decide: Move customizationDirectives.ts to frontend or delete | Architectural decision |
+| 7 | Add verified files to sync-constants.cjs | One at a time with testing |
+| 8 | Remove theologicalPreferences.ts if no imports found | After verification |
+| 9 | Refactor hardcoded arrays to use SSOT imports | Edge Function updates |
+
+### Why NOT Fix During Beta
+
+1. **rateLimit.ts** - Actively controls lesson limits. Breaking this disrupts all users.
+2. **validation.ts** - Backend may have validation logic not in frontend. Overwriting breaks Edge Function.
+3. **System is working** - These are architectural issues, not functional bugs.
+4. **Risk vs. Reward** - High risk of disruption, zero user-facing benefit.
 ## Contact & Support
 
 **Developer:** Lynn (Nacogdoches, Texas)
