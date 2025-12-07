@@ -1,8 +1,8 @@
-# LessonSparkUSA - Project Master Document
+﻿# LessonSparkUSA - Project Master Document
 
 ---
 
-## ⚠️ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
+## âš ï¸ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
 
 > **THIS SECTION IS MANDATORY READING BEFORE ANY ROLE-RELATED CHANGES**
 
@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-04
-**Current Phase:** Phase 12.6 Complete
+**Last Updated:** 2025-12-06
+**Current Phase:** Phase 12.7 Complete
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
 
@@ -541,7 +541,7 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 12.6 Complete
+**Current Phase:** Phase 12.7 Complete
 **Overall Completion:** ~99%
 **Production Readiness:** Beta (Active testing with theological guardrails)
 
@@ -968,11 +968,87 @@ Used on: Landing Page, Dashboard, Documentation, Help Center, Training, Communit
 
 | Task | Priority | Status |
 |------|----------|--------|
-| Configure Resend SMTP in Supabase | HIGH | Pending |
-| Re-enable email confirmation | HIGH | After SMTP |
+| Configure Resend SMTP in Supabase | HIGH | ✅ Complete |
+| Re-enable email confirmation | MEDIUM | Optional for beta |
 | Test Bible version copyright guardrails (public domain vs copyrighted) | MEDIUM | Pending |
 | Test theological guardrails across all 10 profiles | MEDIUM | Pending |
 | Implement frontend warning toast for guardrail violations | MEDIUM | Pending |
+
+---
+
+
+### Session 12: Auth Improvements & SSOT Compliance (December 6, 2025)
+
+**PreferencesLens SSOT Fix:**
+- Fixed `/preferences/lens` page to use SSOT instead of hardcoded theology profiles
+- Changed from 4 incorrect hardcoded options to all 10 SSOT theology profiles
+- Imports `getTheologyProfilesSorted()` from `@/constants/theologyProfiles`
+- Uses unified `theology_profile_id` database field (from Phase 5 migration)
+- Commit: `d7652b6`
+
+**Email Support Button Fixes:**
+- Fixed broken mailto href syntax across 9 files (missing opening brace)
+- Updated hardcoded emails to use SSOT: `SITE.supportEmail`
+- Files fixed: Help.tsx, Docs.tsx, Setup.tsx, Training.tsx, Community.tsx, Cookie.tsx, Privacy.tsx, Terms.tsx, Footer.tsx, BetaSignup.tsx
+- Commit: `ad9a9b9`
+
+**Site Config SSOT Expansion:**
+- Expanded `src/config/site.ts` with branding constants:
+  - `SITE.name` = "LessonSpark USA"
+  - `SITE.tagline` = "Baptist Bible Study Enhancement Platform"
+  - `SITE.supportEmail` = "support@lessonsparkusa.com"
+  - `SITE.url` = "https://lessonsparkusa.com"
+- Updated Auth.tsx to use SITE constants (no hardcoded branding)
+- Commit: `56a5fa8`
+
+**Password Validation SSOT:**
+- Added to `src/constants/validation.ts`:
+  - `PASSWORD_VALIDATION` constants (min 8 chars, require upper/lower/number)
+  - `PASSWORD_REQUIREMENTS_TEXT` array for UI display
+  - `validatePassword()` function with error messages
+- Password requirements now displayed on signup form and reset form
+- Ensures beta testers create production-ready passwords from start
+- Commit: `277839f`
+
+**Forgot Password Feature:**
+- Added "Forgot Password?" link on Auth page sign-in form
+- Implements `supabase.auth.resetPasswordForEmail()` flow
+- Sends reset email via Resend SMTP
+- Email contains verification link redirecting to `/auth?reset=true`
+
+**Password Reset Completion Flow:**
+- Auth.tsx detects `?reset=true` URL parameter
+- Shows "Set New Password" form with requirements displayed
+- Uses SSOT `validatePassword()` for consistent validation
+- Calls `supabase.auth.updateUser({ password })` to complete reset
+- Fixed redirect priority: reset mode now takes precedence over auth redirect
+- Commit: `4023dd2`
+
+**Email Infrastructure Verified:**
+- Google Workspace: Receiving at support@lessonsparkusa.com ✅
+- Resend SMTP: Configured in Supabase ✅
+- SPF: PASS ✅
+- DKIM: PASS ✅
+- DMARC: PASS ✅
+- Gmail warning: Expected for new sending domains (reputation builds over time)
+
+**Git Commits (Session 12):**
+- `d7652b6` - SSOT: PreferencesLens now uses getTheologyProfilesSorted() for all 10 theology profiles
+- `ad9a9b9` - Fix: mailto href syntax - add missing opening brace
+- `56a5fa8` - SSOT: Expand site.ts config, Auth.tsx uses SITE constants, add Forgot Password feature
+- `277839f` - SSOT: Add password validation constants, reset password completion flow, display requirements on signup
+- `4023dd2` - Fix: Reset password mode now takes priority over auth redirect
+
+---
+
+## SSOT Files Update (December 6, 2025)
+
+Added/Updated in Single Source of Truth Architecture:
+
+| Frontend (MASTER) | Purpose |
+|-------------------|---------|
+| src/config/site.ts | Site branding (name, tagline, supportEmail, url) |
+| src/constants/validation.ts | Password validation rules and requirements |
 
 ---
 
@@ -1020,4 +1096,5 @@ Added to Single Source of Truth Architecture:
 | Frontend (MASTER) | Backend (MIRROR) | Purpose |
 |-------------------|------------------|---------|
 | src/constants/routes.ts | supabase/functions/_shared/routes.ts | Application routes and URL builders |
+
 
