@@ -2,9 +2,8 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/ageGroups.ts
- * Generated: 2025-12-04T17:10:25.622Z
+ * Generated: 2025-12-07T19:42:04.676Z
  */
-
 /**
  * LessonSparkUSA Constants - Age Groups
  *

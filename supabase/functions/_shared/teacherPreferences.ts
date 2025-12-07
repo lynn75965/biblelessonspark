@@ -2,9 +2,8 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/teacherPreferences.ts
- * Generated: 2025-12-04T17:10:25.626Z
+ * Generated: 2025-12-07T19:42:04.692Z
  */
-
 /**
  * Teacher Preferences SSOT
  * Single Source of Truth for all teacher customization options

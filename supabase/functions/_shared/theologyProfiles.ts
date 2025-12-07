@@ -1,4 +1,10 @@
 /**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/theologyProfiles.ts
+ * Generated: 2025-12-07T19:42:04.695Z
+ */
+/**
  * THEOLOGY PROFILES - Single Source of Truth (SSOT)
  * 
  * This file defines all Baptist theology profiles for LessonSparkUSA.
