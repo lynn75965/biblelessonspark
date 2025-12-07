@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
 import { SITE } from '@/config/site';
+import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -25,6 +26,10 @@ export default function Auth() {
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -35,6 +40,14 @@ export default function Auth() {
   const { toast } = useToast();
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
+
+  // Handle password reset mode
+  useEffect(() => {
+    const resetParam = searchParams.get('reset');
+    if (resetParam === 'true') {
+      setIsResetMode(true);
+    }
+  }, [searchParams]);
 
   // Handle invite token
   useEffect(() => {
@@ -121,6 +134,17 @@ export default function Auth() {
       // Sanitize inputs on submit (not during typing)
       const sanitizedEmail = sanitizeEmail(formData.email);
       const sanitizedFullName = sanitizeText(formData.fullName);
+
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.valid) {
+        toast({
+          title: "Password requirements not met",
+          description: passwordValidation.errors[0],
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
 
       const { error } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
 
@@ -213,11 +237,159 @@ export default function Auth() {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "Password required",
+        description: "Please enter and confirm your new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const validation = validatePassword(newPassword);
+    if (!validation.valid) {
+      toast({
+        title: "Password requirements not met",
+        description: validation.errors[0],
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to reset password. Please try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Password updated!",
+          description: "Your password has been successfully reset.",
+        });
+        setIsResetMode(false);
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     // Only lowercase email during typing - all other sanitization happens on submit
     const processedValue = field === 'email' ? value.toLowerCase() : value;
     setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
+
+  // Reset Password Completion View
+  if (isResetMode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+        <div className="w-full max-w-md px-4 sm:px-0">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
+                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </div>
+              <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+            </div>
+          </div>
+
+          <Card className="bg-gradient-card shadow-glow">
+            <CardHeader className="px-4 sm:px-6">
+              <CardTitle className="text-lg sm:text-xl">Set New Password</CardTitle>
+              <CardDescription className="text-sm">
+                Enter your new password below
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6">
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password" className="text-sm">New Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Enter new password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-9 sm:pl-10 pr-10 text-sm sm:text-base"
+                      minLength={8}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password" className="text-sm">Confirm Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                    <Input
+                      id="confirm-password"
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-9 sm:pl-10 text-sm sm:text-base"
+                      minLength={8}
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                  <p className="font-medium mb-1">Password requirements:</p>
+                  <ul className="space-y-0.5">
+                    {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
+                      <li key={i}>• {req}</li>
+                    ))}
+                  </ul>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  variant="hero"
+                  size="lg"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Updating...' : 'Update Password'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   // Forgot Password View
   if (showForgotPassword) {
@@ -454,7 +626,7 @@ export default function Auth() {
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-9 sm:pl-10 pr-10 text-sm sm:text-base"
-                        minLength={6}
+                        minLength={8}
                         required
                       />
                       <button

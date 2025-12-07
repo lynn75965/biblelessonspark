@@ -36,3 +36,49 @@ export const DENOMINATION_OPTIONS = [
 ] as const;
 
 export type DenominationType = typeof DENOMINATION_OPTIONS[number];
+// =============================================================================
+// PASSWORD VALIDATION CONSTANTS
+// SSOT Reference: Phase 12 - Beta User Authentication
+// =============================================================================
+export const PASSWORD_VALIDATION = {
+  MIN_LENGTH: 8,
+  MAX_LENGTH: 128,
+  REQUIRE_UPPERCASE: true,
+  REQUIRE_LOWERCASE: true,
+  REQUIRE_NUMBER: true,
+  REQUIRE_SPECIAL: false,
+  SPECIAL_CHARS: '!@#$%^&*()_+-=[]{}|;:,.<>?',
+} as const;
+
+export const PASSWORD_REQUIREMENTS_TEXT = [
+  `At least ${PASSWORD_VALIDATION.MIN_LENGTH} characters`,
+  'At least one uppercase letter (A-Z)',
+  'At least one lowercase letter (a-z)',
+  'At least one number (0-9)',
+] as const;
+
+export function validatePassword(password: string): { valid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (password.length < PASSWORD_VALIDATION.MIN_LENGTH) {
+    errors.push(`Password must be at least ${PASSWORD_VALIDATION.MIN_LENGTH} characters`);
+  }
+  
+  if (PASSWORD_VALIDATION.REQUIRE_UPPERCASE && !/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+  
+  if (PASSWORD_VALIDATION.REQUIRE_LOWERCASE && !/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+  
+  if (PASSWORD_VALIDATION.REQUIRE_NUMBER && !/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+  
+  if (PASSWORD_VALIDATION.REQUIRE_SPECIAL && !new RegExp(`[${PASSWORD_VALIDATION.SPECIAL_CHARS.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}]`).test(password)) {
+    errors.push('Password must contain at least one special character');
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
