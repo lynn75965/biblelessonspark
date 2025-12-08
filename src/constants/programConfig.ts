@@ -31,7 +31,9 @@ export const PROGRAM_CONFIG = {
 
     // UI Configuration for beta period
     ui: {
-      headerButtonText: "Join Beta",
+      headerButtonText: "Sign In",
+      showJoinBetaButton: true,
+      joinBetaButtonText: "Join Beta",
       authDefaultTab: "signup" as "signin" | "signup",
       showOrganizationSignup: false,
       showPricing: false,
@@ -50,6 +52,8 @@ export const PROGRAM_CONFIG = {
     // UI Configuration for production
     ui: {
       headerButtonText: "Sign In",
+      showJoinBetaButton: false,
+      joinBetaButtonText: "",
       authDefaultTab: "signin" as "signin" | "signup",
       showOrganizationSignup: true,
       showPricing: true,

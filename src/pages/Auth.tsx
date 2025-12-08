@@ -22,8 +22,8 @@ export default function Auth() {
   
   // Get UI config from SSOT
   const uiConfig = getUIConfig();
-
-  const [activeTab, setActiveTab] = useState(uiConfig.authDefaultTab);
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'signin' || tabFromUrl === 'signup' ? tabFromUrl : uiConfig.authDefaultTab);
   const [isLoading, setIsLoading] = useState(false);
   const [inviterName, setInviterName] = useState<string>('');
   const [showSignInPassword, setShowSignInPassword] = useState(false);

@@ -132,7 +132,16 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
               </DropdownMenu>
             </>
           ) : (
-            <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={onAuthClick || (() => window.location.href = '/auth')}>{uiConfig.headerButtonText}</Button>
+            <>
+              {uiConfig.showJoinBetaButton && (
+                <Button variant="ghost" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-2 sm:px-3" onClick={() => window.location.href = '/auth?tab=signin'}>
+                  Sign In
+                </Button>
+              )}
+              <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={() => window.location.href = uiConfig.showJoinBetaButton ? '/auth?tab=signup' : '/auth'}>
+                {uiConfig.showJoinBetaButton ? uiConfig.joinBetaButtonText : uiConfig.headerButtonText}
+              </Button>
+            </>
           )}
         </div>
       </div>
