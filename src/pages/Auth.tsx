@@ -15,6 +15,7 @@ import Footer from '@/components/Footer';
 import { SITE } from '@/config/site';
 import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
 import { getUIConfig } from '@/constants/programConfig';
+import { LegalModal } from '@/components/LegalModal';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -29,6 +30,7 @@ export default function Auth() {
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [legalModal, setLegalModal] = useState<'terms' | 'privacy' | null>(null);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -675,7 +677,7 @@ export default function Auth() {
                     {isLoading ? 'Creating Account...' : 'Create Account'}
                   </Button>
                   <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-                    By signing up, you agree to our terms of service and privacy policy
+                    By signing up, you agree to our <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">terms of service</button> and <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">privacy policy</button>
                   </p>
                 </form>
               </TabsContent>
@@ -690,6 +692,12 @@ export default function Auth() {
           </Button>
         </div>
       </div>
+      {/* Legal Modal */}
+      <LegalModal
+        open={legalModal !== null}
+        onClose={() => setLegalModal(null)}
+        type={legalModal || 'terms'}
+      />
     </div>
   );
 }
