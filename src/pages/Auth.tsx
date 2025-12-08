@@ -687,9 +687,7 @@ export default function Auth() {
 
         {/* Back to Home */}
         <div className="text-center mt-4 sm:mt-6">
-          <Button variant="ghost" onClick={() => navigate('/')} size="sm" className="text-xs sm:text-sm">
-            ? Back to Home
-          </Button>
+          <Button variant="ghost" onClick={() => navigate('/')} size="sm" className="text-xs sm:text-sm"><ArrowLeft className="h-4 w-4 mr-2" />Back to Home</Button>
         </div>
       </div>
       {/* Legal Modal */}
