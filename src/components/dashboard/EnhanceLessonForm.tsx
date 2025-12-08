@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ArrowDown } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
@@ -551,10 +551,10 @@ export function EnhanceLessonForm({
               <p className="text-slate-600 mt-1">
                 Generate a theologically-sound Bible study lesson tailored to your class
               </p>
-              <div className="mt-4 flex items-center justify-center gap-2 text-sky-600 font-semibold animate-pulse">
-                <span>?</span>
+              <div className="mt-4 flex items-center justify-center gap-2 text-sky-600 font-semibold">
+                <ArrowDown className="h-5 w-5 animate-bounce" />
                 <span>Complete the 3 simple steps below to build your lesson</span>
-                <span>?</span>
+                <ArrowDown className="h-5 w-5 animate-bounce" />
               </div>
             </div>
           </>
