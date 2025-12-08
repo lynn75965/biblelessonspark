@@ -21,8 +21,8 @@ import Training from "./pages/Training";
 import Community from "./pages/Community";
 import BetaSignup from "./pages/BetaSignup";
 import AdminBetaMetrics from "./pages/AdminBetaMetrics";
-import Privacy from "./pages/legal/Privacy";
-import Terms from "./pages/legal/Terms";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Cookie from "./pages/legal/Cookie";
 import NotFound from "./pages/NotFound";
 
@@ -75,8 +75,8 @@ const App = () => (
             <Route path="/help" element={<Help />} />
             <Route path="/training" element={<Training />} />
             <Route path="/community" element={<Community />} />
-            <Route path="/legal/privacy" element={<Privacy />} />
-            <Route path="/legal/terms" element={<Terms />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/legal/cookie" element={<Cookie />} />
             <Route path="/admin/beta-metrics" element={
               <ProtectedRoute>

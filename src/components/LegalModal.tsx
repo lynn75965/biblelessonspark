@@ -1,6 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FOOTER_LINKS } from "@/config/footerLinks";
 
 interface LegalModalProps {
   open: boolean;
@@ -19,7 +20,7 @@ const LEGAL_SUMMARIES = {
       "We can suspend accounts that violate these terms",
       "This service is provided as-is without warranty",
     ],
-    fullPath: "/terms-of-service",
+    fullPath: FOOTER_LINKS.legal.terms,
   },
   privacy: {
     title: "Privacy Policy",
@@ -31,7 +32,7 @@ const LEGAL_SUMMARIES = {
       "You can request deletion of your data",
       "We may share data if required by law",
     ],
-    fullPath: "/privacy-policy",
+    fullPath: FOOTER_LINKS.legal.privacy,
   },
 };
 

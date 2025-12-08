@@ -12,8 +12,8 @@ export const FOOTER_LINKS = {
     community: "/community"
   },
   legal: {
-    privacy: "/legal/privacy",
-    terms: "/legal/terms",
+    privacy: "/privacy-policy",
+    terms: "/terms-of-service",
     cookie: "/legal/cookie"
   }
 };
