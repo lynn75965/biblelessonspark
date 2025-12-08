@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Copy, Printer, Download, FileText, FileType, ChevronDown, Check, Loader2 } from "lucide-react";
@@ -84,7 +84,7 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
         {copied ? <Check className="h-4 w-4 mr-1.5" /> : <Copy className="h-4 w-4 mr-1.5" />}
         {copied ? "Copied!" : "Copy"}
       </Button>
-      <Button variant="outline" size="sm" onClick={handlePrint} disabled={disabled}>
+      <Button variant="outline" size="sm" onClick={handlePrint} disabled={disabled} title={EXPORT_FORMATTING.printTooltip}>
         <Printer className="h-4 w-4 mr-1.5" />Print
       </Button>
       <DropdownMenu>

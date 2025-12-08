@@ -1,4 +1,4 @@
-﻿// src/constants/lessonStructure.ts
+// src/constants/lessonStructure.ts
 export const LESSON_STRUCTURE_VERSION = "2.1.1";
 
 export const EXPORT_FORMATTING = {
@@ -7,6 +7,7 @@ export const EXPORT_FORMATTING = {
   documentTitleSource: "Lesson Title",
   footerText: "LessonSparkUSA",
   teaserLabel: "STUDENT TEASER",
+  printTooltip: "Opens in new tab. Close that tab to return here.",
 };
 
 export interface LessonSection {
