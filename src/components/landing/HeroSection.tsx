@@ -32,7 +32,13 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               </h1>
               
               <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
-                You know your class. Curriculum writers know the material. Upload any Bible curriculum (or enter a Bible passage or theme) and watch it speak to the needs of your people everytime. God called you to teach people, not lessons.
+                Teach the way God equipped you to teach. Start with any curriculum or Bible passage and produce unique lessons rooted in Baptist distinctives and shaped for your teaching personality and your class's learning style.
+              </p>
+              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0">
+                3 Steps, 3 Minutes, and a personal ready-to-teach lesson appears, focused on your class making real-life application.
+              </p>
+              <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto lg:mx-0 font-semibold">
+                God called you to teach people, not lessons.
               </p>
             </div>
 
