@@ -37,6 +37,7 @@ export const PROGRAM_CONFIG = {
       authDefaultTab: "signup" as "signin" | "signup",
       showOrganizationSignup: false,
       showPricing: false,
+      showCreditsBlock: false,
     }
   },
 
@@ -57,6 +58,7 @@ export const PROGRAM_CONFIG = {
       authDefaultTab: "signin" as "signin" | "signup",
       showOrganizationSignup: true,
       showPricing: true,
+      showCreditsBlock: true,
     }
   }
 };

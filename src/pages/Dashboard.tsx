@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { getUIConfig } from "@/constants/programConfig";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -57,6 +58,7 @@ export default function Dashboard({
   const { toast } = useToast();
   const { user } = useAuth();
   const { balance, loading: creditsLoading, refetch: refetchCredits } = useCredits();
+  const uiConfig = getUIConfig();
   const { isAdmin, loading: adminLoading } = useAdminAccess();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackEvent, trackFeatureUsed, trackLessonViewed } = useAnalytics();
@@ -247,7 +249,7 @@ export default function Dashboard({
               {isIndividualUser ? "Your Personal Bible Study Enhancement Platform" : `Bible Study Enhancement Platform for ${currentOrgName}`}
             </p>
           </div>
-          <CreditsDisplay balance={balance} loading={creditsLoading} />
+          {uiConfig.showCreditsBlock && <CreditsDisplay balance={balance} loading={creditsLoading} />}
         </div>
 
         {/* Stats Cards - SSOT access control */}
