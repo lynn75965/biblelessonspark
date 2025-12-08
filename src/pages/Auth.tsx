@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,12 +14,16 @@ import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
 import { SITE } from '@/config/site';
 import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
+import { getUIConfig } from '@/constants/programConfig';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('invite');
+  
+  // Get UI config from SSOT
+  const uiConfig = getUIConfig();
 
-  const [activeTab, setActiveTab] = useState('signin');
+  const [activeTab, setActiveTab] = useState(uiConfig.authDefaultTab);
   const [isLoading, setIsLoading] = useState(false);
   const [inviterName, setInviterName] = useState<string>('');
   const [showSignInPassword, setShowSignInPassword] = useState(false);
@@ -79,7 +83,7 @@ export default function Auth() {
 
           toast({
             title: "You've been invited!",
-            description: `${inviterProfile?.full_name || 'Someone'} has invited you to join {SITE.name}.`,
+            description: `${inviterProfile?.full_name || 'Someone'} has invited you to join ${SITE.name}.`,
           });
         } else {
           toast({
@@ -243,7 +247,7 @@ export default function Auth() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!newPassword || !confirmPassword) {
       toast({
         title: "Password required",
@@ -374,7 +378,7 @@ export default function Auth() {
                   <p className="font-medium mb-1">Password requirements:</p>
                   <ul className="space-y-0.5">
                     {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                      <li key={i}>• {req}</li>
+                      <li key={i}>� {req}</li>
                     ))}
                   </ul>
                 </div>
@@ -414,7 +418,7 @@ export default function Auth() {
             <CardHeader className="px-4 sm:px-6">
               <CardTitle className="text-lg sm:text-xl">Reset Your Password</CardTitle>
               <CardDescription className="text-sm">
-                {resetEmailSent 
+                {resetEmailSent
                   ? "Check your email for reset instructions"
                   : "Enter your email to receive a password reset link"}
               </CardDescription>
@@ -426,7 +430,7 @@ export default function Auth() {
                     <Mail className="h-12 w-12 text-primary" />
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    We've sent a password reset link to <strong>{formData.email}</strong>. 
+                    We've sent a password reset link to <strong>{formData.email}</strong>.
                     Please check your inbox and spam folder.
                   </p>
                   <Button
@@ -509,7 +513,7 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-sm">
               {inviteToken
-                ? 'Complete your sign up to join {SITE.name}'
+                ? `Complete your sign up to join ${SITE.name}`
                 : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>
@@ -668,7 +672,7 @@ export default function Auth() {
         {/* Back to Home */}
         <div className="text-center mt-4 sm:mt-6">
           <Button variant="ghost" onClick={() => navigate('/')} size="sm" className="text-xs sm:text-sm">
-            ← Back to Home
+            ? Back to Home
           </Button>
         </div>
       </div>
