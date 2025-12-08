@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
+import { getUIConfig } from "@/constants/programConfig";
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -31,6 +32,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
   const displayName = user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'User';
+  const uiConfig = getUIConfig();
 
   useEffect(() => {
     const fetchTheologyProfile = async () => {
@@ -130,9 +132,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
               </DropdownMenu>
             </>
           ) : (
-            <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={onAuthClick || (() => window.location.href = '/auth')}>
-              Sign In
-            </Button>
+            <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={onAuthClick || (() => window.location.href = '/auth')}>{uiConfig.headerButtonText}</Button>
           )}
         </div>
       </div>
