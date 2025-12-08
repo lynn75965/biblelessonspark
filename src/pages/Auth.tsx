@@ -574,7 +574,14 @@ export default function Auth() {
                         ) : (
                           <Eye className="h-4 w-4" />
                         )}
-                      </button>
+                      </button>                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Password requirements:</p>
+                      <ul className="space-y-0.5">
+                        {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
+                          <li key={i}>• {req}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                   <Button
@@ -648,7 +655,14 @@ export default function Auth() {
                         ) : (
                           <Eye className="h-4 w-4" />
                         )}
-                      </button>
+                      </button>                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Password requirements:</p>
+                      <ul className="space-y-0.5">
+                        {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
+                          <li key={i}>• {req}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                   <Button
