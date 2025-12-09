@@ -11,4 +11,6 @@ export const FORM_STYLING = {
   // Input field max-widths
   inputMaxWidth: "max-w-lg",
   inputFullWidth: "w-full",
+  // Bible passage input: narrower width + hide datalist dropdown arrow
+  biblePassageInput: "max-w-md [&::-webkit-calendar-picker-indicator]:hidden",
 } as const;

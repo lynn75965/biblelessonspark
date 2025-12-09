@@ -712,6 +712,7 @@ export function EnhanceLessonForm({
                     {contentInputType === "passage" && (
                       <div className="mt-2">
                         <Input
+                          className={FORM_STYLING.biblePassageInput}
                           placeholder="e.g., John 3:16-21"
                           value={biblePassage}
                           onChange={(e) => setBiblePassage(e.target.value)}
