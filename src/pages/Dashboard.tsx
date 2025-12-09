@@ -408,21 +408,7 @@ export default function Dashboard({
                   });
                 }}
                 onExport={() => {
-                    toast({
-                      title: "Thanks!",
-                      description: "Please help us improve with a 3 minute feedback survey.",
-                      duration: 10000,
-                      action: (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => setShowBetaFeedbackModal(true)}
-                          className="ml-2"
-                        >
-                          Give Feedback
-                        </Button>
-                      ),
-                    });
+                    setShowBetaFeedbackModal(true);
                   }}
                 organizationId={organization?.id}
                 userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
@@ -605,4 +591,5 @@ export default function Dashboard({
     </div>
   );
 }
+
 

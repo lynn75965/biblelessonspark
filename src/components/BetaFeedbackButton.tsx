@@ -1,23 +1,20 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
-import { BetaFeedbackModal } from "./BetaFeedbackModal";
 
-export const BetaFeedbackButton = () => {
-  const [open, setOpen] = useState(false);
+interface BetaFeedbackButtonProps {
+  onClick: () => void;
+}
 
+export const BetaFeedbackButton = ({ onClick }: BetaFeedbackButtonProps) => {
   return (
-    <>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen(true)}
-        className="gap-2"
-      >
-        <MessageSquare className="w-4 h-4" />
-        Beta Feedback
-      </Button>
-      <BetaFeedbackModal open={open} onOpenChange={setOpen} />
-    </>
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="gap-2"
+    >
+      <MessageSquare className="w-4 h-4" />
+      Give Feedback
+    </Button>
   );
 };
