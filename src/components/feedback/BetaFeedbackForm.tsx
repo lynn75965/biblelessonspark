@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // BetaFeedbackForm.tsx (Database-Driven)
 // ============================================================================
 // Reads questions dynamically from feedback_questions table
@@ -226,7 +226,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
     
     return (
       <div className="space-y-2 mt-2">
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-6 sm:grid-cols-11 gap-1 sm:gap-2 justify-items-center">
           {Array.from({ length: maxValue - minValue + 1 }, (_, i) => minValue + i).map((score) => (
             <button
               key={score}
@@ -429,3 +429,4 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
 }
 
 export default BetaFeedbackForm;
+
