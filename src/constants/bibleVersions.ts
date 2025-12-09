@@ -40,7 +40,7 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     copyrightHolder: null,
     copyrightNotice: null,
     displayOrder: 1,
-    isDefault: true,
+    isDefault: false,
     description: 'The classic 1611 translation. Public domain - may be quoted freely.'
   },
   {
@@ -80,7 +80,7 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     copyrightHolder: 'Lockman Foundation',
     copyrightNotice: 'Scripture quotations taken from the (NASB®) New American Standard Bible®, Copyright © 1960, 1971, 1977, 1995, 2020 by The Lockman Foundation. Used by permission. All rights reserved. lockman.org',
     displayOrder: 4,
-    isDefault: false,
+    isDefault: true,
     description: 'Literal word-for-word translation. Copyrighted - lessons will paraphrase rather than quote directly.'
   },
   {
@@ -133,7 +133,7 @@ export function getBibleVersion(id: string): BibleVersion | undefined {
 }
 
 /**
- * Get the default Bible version (KJV)
+ * Get the default Bible version (NASB)
  */
 export function getDefaultBibleVersion(): BibleVersion {
   const defaultVersion = BIBLE_VERSIONS.find(v => v.isDefault);
