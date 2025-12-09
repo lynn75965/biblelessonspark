@@ -6,7 +6,6 @@ import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
-import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
@@ -48,7 +47,6 @@ export default function Dashboard({
   organizationName = "Demo Baptist Church",
   setupComplete = true
 }: DashboardProps) {
-  const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
   const [showBetaHubModal, setShowBetaHubModal] = useState(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
@@ -134,7 +132,7 @@ export default function Dashboard({
 
   const handleFeedback = () => {
     trackFeatureUsed('feedback_button_clicked');
-    setShowFeedbackDialog(true);
+    setShowBetaFeedbackModal(true);
   };
 
   const handleNavigateToAnalytics = () => {
@@ -556,10 +554,7 @@ export default function Dashboard({
         Give Feedback
       </Button>
 
-      <BetaFeedbackForm
-        open={showFeedbackDialog}
-        onOpenChange={setShowFeedbackDialog}
-      />
+      
 
       <OrganizationSettingsModal
         open={showOrgSettingsModal}
@@ -591,5 +586,6 @@ export default function Dashboard({
     </div>
   );
 }
+
 
 
