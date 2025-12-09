@@ -28,8 +28,8 @@ export type BibleBook = typeof BIBLE_BOOKS[number];
  * @param limit - Maximum number of suggestions to return
  * @returns Array of matching book names
  */
-export function findMatchingBooks(prefix: string, limit: number = 5): string[] {
-  if (!prefix || prefix.length < 1) return [];
+export function findMatchingBooks(prefix: string, limit: number = 5, minChars: number = 2): string[] {
+  if (!prefix || prefix.length < minChars) return [];
   const lowerPrefix = prefix.toLowerCase();
   return BIBLE_BOOKS
     .filter(book => book.toLowerCase().startsWith(lowerPrefix))

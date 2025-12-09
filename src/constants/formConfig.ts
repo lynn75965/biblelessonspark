@@ -12,5 +12,9 @@ export const FORM_STYLING = {
   inputMaxWidth: "max-w-lg",
   inputFullWidth: "w-full",
   // Bible passage input: narrower width + hide datalist dropdown arrow
-  biblePassageInput: "max-w-md [&::-webkit-calendar-picker-indicator]:hidden",
+  biblePassageInput: "max-w-md",
+  // Autocomplete dropdown styling
+  autocompleteDropdown: "absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg",
+  autocompleteItem: "cursor-pointer px-3 py-2 hover:bg-gray-100",
+  autocompleteMinChars: 2,
 } as const;

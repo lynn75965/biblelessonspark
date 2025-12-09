@@ -12,7 +12,7 @@
  * - Mobile responsiveness fixes (December 4, 2025)
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
-import { BIBLE_BOOKS } from "@/constants/bibleBooks";
+import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
@@ -102,6 +102,8 @@ export function EnhanceLessonForm({
 
   const [contentInputType, setContentInputType] = useState<"curriculum" | "passage" | "topic">("passage");
   const [biblePassage, setBiblePassage] = useState("");
+  const [showBibleSuggestions, setShowBibleSuggestions] = useState(false);
+  const bibleInputRef = useRef<HTMLInputElement>(null);
   const [focusedTopic, setFocusedTopic] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
@@ -710,21 +712,37 @@ export function EnhanceLessonForm({
                       Start from a Bible passage
                     </Label>
                     {contentInputType === "passage" && (
-                      <div className="mt-2">
+                      <div className="mt-2 relative">
                         <Input
+                          ref={bibleInputRef}
                           className={FORM_STYLING.biblePassageInput}
                           placeholder="e.g., John 3:16-21"
                           value={biblePassage}
-                          onChange={(e) => setBiblePassage(e.target.value)}
+                          onChange={(e) => {
+                            setBiblePassage(e.target.value);
+                            setShowBibleSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
+                          }}
+                          onFocus={() => setShowBibleSuggestions(biblePassage.length >= FORM_STYLING.autocompleteMinChars)}
+                          onBlur={() => setTimeout(() => setShowBibleSuggestions(false), 150)}
                           disabled={isSubmitting}
-                          list="bible-books-list"
                           autoComplete="off"
                         />
-                        <datalist id="bible-books-list">
-                          {BIBLE_BOOKS.map((book) => (
-                            <option key={book} value={book} />
-                          ))}
-                        </datalist>
+                        {showBibleSuggestions && findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
+                          <div className={FORM_STYLING.autocompleteDropdown}>
+                            {findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
+                              <div
+                                key={book}
+                                className={FORM_STYLING.autocompleteItem}
+                                onMouseDown={() => {
+                                  setBiblePassage(book + " ");
+                                  setShowBibleSuggestions(false);
+                                }}
+                              >
+                                {book}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
