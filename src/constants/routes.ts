@@ -1,4 +1,4 @@
-﻿// SSOT MASTER: Frontend route definitions
+// SSOT MASTER: Frontend route definitions
 // Backend mirror: supabase/functions/_shared/routes.ts
 // Last updated: 2025-12-05
 
@@ -28,8 +28,8 @@ export const ROUTES = {
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   
   // Legal routes
-  PRIVACY: '/legal/privacy',
-  TERMS: '/legal/terms',
+  PRIVACY: '/privacy-policy',
+  TERMS: '/terms-of-service',
   COOKIE: '/legal/cookie',
 } as const;
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getUIConfig } from "@/constants/programConfig";
+import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -138,6 +139,16 @@ export default function Dashboard({
 
   const handleNavigateToAnalytics = () => {
     setActiveTab("analytics");
+  };
+
+  // SSOT-driven tab handler - clears viewing state based on dashboardConfig
+  const handleTabChange = (tabValue: string) => {
+    const tabKey = tabValue as keyof typeof DASHBOARD_TABS;
+    const tabConfig = DASHBOARD_TABS[tabKey];
+    if (tabConfig?.clearViewingOnClick) {
+      setSelectedLesson(null);
+    }
+    setActiveTab(tabValue);
   };
 
   const handleOrgSetupComplete = () => {
@@ -351,10 +362,10 @@ export default function Dashboard({
 
         {/* Tabs - SSOT access control */}
         {/* MOBILE FIX: Use flex with overflow-x-auto for horizontal scroll on mobile */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             {canAccessTab(effectiveRole, 'enhance', hasOrgContext) && (
-              <TabsTrigger value="enhance" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <TabsTrigger value="enhance" onClick={() => DASHBOARD_TABS.enhance.clearViewingOnClick && setSelectedLesson(null)} className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
                 <Sparkles className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Enhance Lesson</span>
               </TabsTrigger>
