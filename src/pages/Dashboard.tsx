@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { getUIConfig } from "@/constants/programConfig";
@@ -408,10 +408,22 @@ export default function Dashboard({
                   });
                 }}
                 onExport={() => {
-                  setTimeout(() => {
-                    setShowBetaFeedbackModal(true);
-                  }, 3000);
-                }}
+                    toast({
+                      title: "Thanks!",
+                      description: "Please help us improve with a 3 minute feedback survey.",
+                      duration: 10000,
+                      action: (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => setShowBetaFeedbackModal(true)}
+                          className="ml-2"
+                        >
+                          Give Feedback
+                        </Button>
+                      ),
+                    });
+                  }}
                 organizationId={organization?.id}
                 userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
                 defaultDoctrine={organization?.default_doctrine || "SBC"}
@@ -593,3 +605,4 @@ export default function Dashboard({
     </div>
   );
 }
+
