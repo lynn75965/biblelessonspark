@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
 import { ArrowLeft } from "lucide-react";
 
 export default function PrivacyPolicy() {
@@ -10,7 +11,7 @@ export default function PrivacyPolicy() {
       <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
         <Button
           variant="ghost"
-          onClick={() => navigate(-1)}
+          onClick={() => window.history.length > 1 ? navigate(-1) : navigate(ROUTES.HOME)}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

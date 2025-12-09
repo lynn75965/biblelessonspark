@@ -1,4 +1,4 @@
-﻿// AUTO-GENERATED - DO NOT EDIT DIRECTLY
+// AUTO-GENERATED - DO NOT EDIT DIRECTLY
 // Source: src/constants/routes.ts
 // Sync command: npm run sync-constants
 // Last synced: 2025-12-05
@@ -50,7 +50,7 @@ export const AUTH_QUERY_PARAMS = {
  * @returns Complete invite URL
  */
 export const buildInviteUrl = (baseUrl: string, token: string): string => {
-  return \\\?\=\\;
+  return `${baseUrl}${ROUTES.AUTH}?${AUTH_QUERY_PARAMS.INVITE_TOKEN}=${token}`;
 };
 
 export type RouteKey = keyof typeof ROUTES;
