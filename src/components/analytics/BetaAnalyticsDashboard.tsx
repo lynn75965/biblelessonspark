@@ -1,438 +1,635 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Users, 
-  TrendingUp, 
-  Star, 
-  Clock, 
-  BookOpen, 
-  MessageSquare,
-  Heart,
-  DollarSign,
-  Download,
-  RefreshCw
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+// ============================================================================
+// BetaAnalyticsDashboard.tsx
+// ============================================================================
+// Analytics dashboard for beta feedback - reads from SSOT config
+// Features: Summary cards, charts, individual response viewer, CSV export
+// ============================================================================
+
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  BarChart, Bar, PieChart, Pie,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
+  ResponsiveContainer, Cell 
+} from 'recharts';
+import { 
+  MessageSquare, Star, TrendingUp, DollarSign, 
+  Clock, ThumbsUp, Download, RefreshCw, Calendar
+} from 'lucide-react';
+import {
+  ANALYTICS_CHARTS,
+  ANALYTICS_SUMMARY_CARDS,
+  RESPONSE_TABLE_COLUMNS,
+  DATE_FILTER_OPTIONS,
+  EXPORT_CONFIG,
+  CURRENT_FEEDBACK_MODE,
+  type FeedbackResponse,
+  type DateFilterValue,
+  type BetaFeedbackStats,
+} from '@/constants/feedbackConfig';
 
-interface FeedbackStats {
-  totalFeedback: number;
-  averageRating: number;
-  averageNPS: number;
-  wouldPayPercentage: number;
-  averageTimeSaved: number;
-  engagementImproved: number;
-  wouldRecommendPercentage: number;
-}
+// Icon mapping
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  MessageSquare,
+  Star,
+  TrendingUp,
+  DollarSign,
+  Clock,
+  ThumbsUp,
+};
 
-interface UserStats {
-  totalUsers: number;
-  activeUsers: number;
-  totalLessons: number;
-  totalEnhancements: number;
-  averageSessionTime: number;
-}
+// Chart colors
+const CHART_COLORS = ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'];
+const NPS_COLORS = {
+  promoter: '#22c55e',
+  passive: '#eab308',
+  detractor: '#ef4444',
+};
 
 export function BetaAnalyticsDashboard() {
-  const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const { user } = useAuth();
+  const [stats, setStats] = useState<BetaFeedbackStats | null>(null);
+  const [responses, setResponses] = useState<FeedbackResponse[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>('all');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [sortColumn, setSortColumn] = useState<string>('submitted_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const fetchAnalytics = async () => {
-    if (!user) return;
+  // Calculate date range
+  const getDateRange = (): { start: string | null; end: string | null } => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    setLoading(true);
+    switch (dateFilter) {
+      case 'today':
+        return { start: today.toISOString(), end: new Date(today.getTime() + 86400000).toISOString() };
+      case 'yesterday':
+        const yesterday = new Date(today.getTime() - 86400000);
+        return { start: yesterday.toISOString(), end: today.toISOString() };
+      case 'last7days':
+        return { start: new Date(today.getTime() - 7 * 86400000).toISOString(), end: now.toISOString() };
+      case 'last30days':
+        return { start: new Date(today.getTime() - 30 * 86400000).toISOString(), end: now.toISOString() };
+      case 'thisWeek':
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        return { start: startOfWeek.toISOString(), end: now.toISOString() };
+      case 'lastWeek':
+        const lastWeekStart = new Date(today);
+        lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+        const lastWeekEnd = new Date(lastWeekStart);
+        lastWeekEnd.setDate(lastWeekStart.getDate() + 7);
+        return { start: lastWeekStart.toISOString(), end: lastWeekEnd.toISOString() };
+      case 'custom':
+        return { 
+          start: customStartDate ? new Date(customStartDate).toISOString() : null, 
+          end: customEndDate ? new Date(customEndDate + 'T23:59:59').toISOString() : null 
+        };
+      default:
+        return { start: null, end: null };
+    }
+  };
+
+  // Fetch data
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
-      // Fetch feedback statistics
-      const { data: feedback, error: feedbackError } = await supabase
-        .from('feedback')
-        .select('rating, minutes_saved, engagement_improved, comments');
-
-      if (feedbackError) throw feedbackError;
-
-      // Process feedback data
-      if (feedback && feedback.length > 0) {
-        const ratings = feedback.filter(f => f.rating).map(f => f.rating);
-        const npsScores: number[] = [];
-        const wouldPayResponses: string[] = [];
-        const wouldRecommendResponses: boolean[] = [];
-
-        feedback.forEach(f => {
-          if (f.comments) {
-            try {
-              const parsed = JSON.parse(f.comments);
-              if (parsed.nps_score !== undefined) npsScores.push(parsed.nps_score);
-              if (parsed.would_pay_for) wouldPayResponses.push(parsed.would_pay_for);
-              if (parsed.would_recommend !== undefined) wouldRecommendResponses.push(parsed.would_recommend);
-            } catch (e) {
-              console.error('Error parsing comments:', e);
-            }
-          }
+      const dateRange = getDateRange();
+      
+      // Fetch stats
+      const { data: statsData, error: statsError } = await supabase
+        .rpc('get_feedback_analytics', {
+          p_mode: CURRENT_FEEDBACK_MODE,
+          p_start_date: dateRange.start,
+          p_end_date: dateRange.end,
         });
 
-        const averageRating = ratings.length > 0 
-          ? ratings.reduce((a, b) => a + b, 0) / ratings.length 
-          : 0;
+      if (statsError) throw statsError;
+      setStats(statsData as BetaFeedbackStats);
 
-        const averageNPS = npsScores.length > 0 
-          ? npsScores.reduce((a, b) => a + b, 0) / npsScores.length 
-          : 0;
+      // Fetch individual responses
+      const viewName = CURRENT_FEEDBACK_MODE === 'beta' ? 'beta_feedback_view' : 'production_feedback_view';
+      
+      let query = supabase
+        .from(viewName)
+        .select('*')
+        .order(sortColumn, { ascending: sortDirection === 'asc' });
 
-        const wouldPayPositive = wouldPayResponses.filter(r => 
-          r === 'yes-definitely' || r === 'yes-probably'
-        ).length;
-        const wouldPayPercentage = wouldPayResponses.length > 0 
-          ? (wouldPayPositive / wouldPayResponses.length) * 100 
-          : 0;
+      if (dateRange.start) query = query.gte('submitted_at', dateRange.start);
+      if (dateRange.end) query = query.lte('submitted_at', dateRange.end);
 
-        const wouldRecommendPositive = wouldRecommendResponses.filter(r => r === true).length;
-        const wouldRecommendPercentage = wouldRecommendResponses.length > 0 
-          ? (wouldRecommendPositive / wouldRecommendResponses.length) * 100 
-          : 0;
+      const { data: responsesData, error: responsesError } = await query;
 
-        const timeSavedValues = feedback
-          .filter(f => f.minutes_saved)
-          .map(f => f.minutes_saved);
-        const averageTimeSaved = timeSavedValues.length > 0 
-          ? timeSavedValues.reduce((a, b) => a + b, 0) / timeSavedValues.length 
-          : 0;
-
-        const engagementImprovedCount = feedback
-          .filter(f => f.engagement_improved === true).length;
-
-        setFeedbackStats({
-          totalFeedback: feedback.length,
-          averageRating,
-          averageNPS,
-          wouldPayPercentage,
-          averageTimeSaved,
-          engagementImproved: engagementImprovedCount,
-          wouldRecommendPercentage
-        });
+      if (responsesError) {
+        // Fallback to direct table query
+        const { data: fallbackData } = await supabase
+          .from('feedback')
+          .select('*')
+          .eq('is_beta_feedback', CURRENT_FEEDBACK_MODE === 'beta')
+          .order(sortColumn, { ascending: sortDirection === 'asc' });
+        setResponses((fallbackData || []) as FeedbackResponse[]);
+      } else {
+        setResponses((responsesData || []) as FeedbackResponse[]);
       }
 
-      // Fetch user and lesson statistics
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('id, user_id, created_at');
-
-      if (lessonsError) throw lessonsError;
-
-      const { data: events, error: eventsError } = await supabase
-        .from('events')
-        .select('user_id, event, created_at');
-
-      if (eventsError) throw eventsError;
-
-      // Process user statistics
-      const uniqueUsers = new Set(lessons?.map(l => l.user_id) || []);
-      const activeUsers = new Set(
-        events?.filter(e => {
-          const eventDate = new Date(e.created_at);
-          const weekAgo = new Date();
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return eventDate >= weekAgo;
-        }).map(e => e.user_id) || []
-      );
-
-      const enhancements = events?.filter(e => 
-        e.event === 'lesson_enhanced' || e.event === 'lesson_created'
-      ).length || 0;
-
-      setUserStats({
-        totalUsers: uniqueUsers.size,
-        activeUsers: activeUsers.size,
-        totalLessons: lessons?.length || 0,
-        totalEnhancements: enhancements,
-        averageSessionTime: 25 // Mock data - would calculate from session events
-      });
-
-      setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching analytics:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [user]);
+    fetchData();
+  }, [dateFilter, customStartDate, customEndDate, sortColumn, sortDirection]);
 
-  const exportData = () => {
-    const data = {
-      feedbackStats,
-      userStats,
-      exportedAt: new Date().toISOString()
+  // Chart data transformations
+  const ratingChartData = useMemo(() => {
+    if (!stats?.ratingDistribution) return [];
+    return Object.entries(stats.ratingDistribution).map(([rating, count]) => ({
+      rating: `${rating} Star${rating !== '1' ? 's' : ''}`,
+      count: count as number,
+      fill: CHART_COLORS[parseInt(rating) - 1],
+    }));
+  }, [stats]);
+
+  const npsChartData = useMemo(() => {
+    if (!stats) return [];
+    return [
+      { name: 'Promoters (9-10)', value: stats.promoters, fill: NPS_COLORS.promoter },
+      { name: 'Passives (7-8)', value: stats.passives, fill: NPS_COLORS.passive },
+      { name: 'Detractors (0-6)', value: stats.detractors, fill: NPS_COLORS.detractor },
+    ].filter(d => d.value > 0);
+  }, [stats]);
+
+  const easeOfUseChartData = useMemo(() => {
+    if (!stats?.easeOfUseDistribution) return [];
+    const labels: Record<string, string> = {
+      'very-easy': 'Very Easy',
+      'easy': 'Easy',
+      'moderate': 'Moderate',
+      'difficult': 'Difficult',
+      'very-difficult': 'Very Difficult',
     };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const colors: Record<string, string> = {
+      'very-easy': '#22c55e',
+      'easy': '#84cc16',
+      'moderate': '#eab308',
+      'difficult': '#f97316',
+      'very-difficult': '#ef4444',
+    };
+    return Object.entries(stats.easeOfUseDistribution)
+      .map(([key, count]) => ({
+        name: labels[key] || key,
+        value: count as number,
+        fill: colors[key] || '#94a3b8',
+      }))
+      .filter(d => d.value > 0);
+  }, [stats]);
+
+  const lessonQualityChartData = useMemo(() => {
+    if (!stats?.lessonQualityDistribution) return [];
+    const labels: Record<string, string> = {
+      'excellent': 'Excellent',
+      'good': 'Good',
+      'fair': 'Fair',
+      'poor': 'Poor',
+    };
+    const colors: Record<string, string> = {
+      'excellent': '#22c55e',
+      'good': '#84cc16',
+      'fair': '#eab308',
+      'poor': '#ef4444',
+    };
+    return Object.entries(stats.lessonQualityDistribution)
+      .map(([key, count]) => ({
+        name: labels[key] || key,
+        value: count as number,
+        fill: colors[key] || '#94a3b8',
+      }))
+      .filter(d => d.value > 0);
+  }, [stats]);
+
+  const wouldPayChartData = useMemo(() => {
+    if (!stats?.wouldPayDistribution) return [];
+    const labels: Record<string, string> = {
+      'yes-definitely': 'Yes, definitely',
+      'yes-probably': 'Yes, probably',
+      'maybe': 'Maybe',
+      'no': 'No',
+    };
+    const colors: Record<string, string> = {
+      'yes-definitely': '#22c55e',
+      'yes-probably': '#84cc16',
+      'maybe': '#eab308',
+      'no': '#ef4444',
+    };
+    return Object.entries(stats.wouldPayDistribution)
+      .map(([key, count]) => ({
+        name: labels[key] || key,
+        value: count as number,
+        fill: colors[key] || '#94a3b8',
+      }))
+      .filter(d => d.value > 0);
+  }, [stats]);
+
+  const timeSavedChartData = useMemo(() => {
+    if (!stats?.timeSavedDistribution) return [];
+    const labels: Record<string, string> = { '15': '15 min', '30': '30 min', '60': '1 hour', '120': '2+ hours' };
+    return Object.entries(stats.timeSavedDistribution)
+      .map(([time, count], index) => ({
+        name: labels[time] || time,
+        value: count as number,
+        fill: CHART_COLORS[index % CHART_COLORS.length],
+      }))
+      .filter(d => d.value > 0);
+  }, [stats]);
+
+  // CSV Export
+  const handleExport = () => {
+    if (responses.length === 0) return;
+
+    const headers = RESPONSE_TABLE_COLUMNS.map(col => col.label).join(',');
+    const rows = responses.map(response => 
+      RESPONSE_TABLE_COLUMNS.map(col => {
+        const value = response[col.key as keyof FeedbackResponse];
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+        if (typeof value === 'string' && value.includes(',')) return `"${value}"`;
+        return value;
+      }).join(',')
+    );
+
+    const csv = [headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
+    const timestamp = EXPORT_CONFIG.includeTimestamp ? `_${new Date().toISOString().split('T')[0]}` : '';
     a.href = url;
-    a.download = `lessonspark-beta-analytics-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `${EXPORT_CONFIG.filename}${timestamp}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  if (loading) {
+  // Format cell value
+  const formatCellValue = (key: string, value: unknown): React.ReactNode => {
+    if (value === null || value === undefined) return '-';
+    
+    switch (key) {
+      case 'submitted_at':
+        return new Date(value as string).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        });
+      case 'rating':
+        return (
+          <div className="flex items-center gap-1">
+            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            {value}
+          </div>
+        );
+      case 'nps_score':
+        const nps = value as number;
+        const npsColor = nps >= 9 ? 'bg-green-100 text-green-800' 
+          : nps >= 7 ? 'bg-yellow-100 text-yellow-800' 
+          : 'bg-red-100 text-red-800';
+        return <Badge className={npsColor}>{nps}</Badge>;
+      case 'ease_of_use':
+        const easeColors: Record<string, string> = {
+          'very-easy': 'bg-green-100 text-green-800',
+          'easy': 'bg-lime-100 text-lime-800',
+          'moderate': 'bg-yellow-100 text-yellow-800',
+          'difficult': 'bg-orange-100 text-orange-800',
+          'very-difficult': 'bg-red-100 text-red-800',
+        };
+        return <Badge className={easeColors[value as string] || 'bg-gray-100'}>{value}</Badge>;
+      case 'lesson_quality':
+        const qualityColors: Record<string, string> = {
+          'excellent': 'bg-green-100 text-green-800',
+          'good': 'bg-lime-100 text-lime-800',
+          'fair': 'bg-yellow-100 text-yellow-800',
+          'poor': 'bg-red-100 text-red-800',
+        };
+        return <Badge className={qualityColors[value as string] || 'bg-gray-100'}>{value}</Badge>;
+      case 'minutes_saved':
+        const labels: Record<number, string> = { 15: '15 min', 30: '30 min', 60: '1 hour', 120: '2+ hrs' };
+        return labels[value as number] || `${value} min`;
+      case 'would_pay_for':
+        return value;
+      case 'positive_comments':
+      case 'improvement_suggestions':
+      case 'ui_issues':
+        const text = value as string;
+        return text.length > 50 ? `${text.substring(0, 50)}...` : text;
+      default:
+        return String(value);
+    }
+  };
+
+  // Loading state
+  if (isLoading && !stats) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <RefreshCw className="h-6 w-6 animate-spin mr-2" />
-          Loading analytics...
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {ANALYTICS_SUMMARY_CARDS.map((card) => (
+            <Card key={card.key}>
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-8 w-16" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold">Beta Analytics Dashboard</h2>
-          <p className="text-muted-foreground">
-            Insights from your beta user community
-            {lastUpdated && (
-              <span className="block text-sm mt-1">
-                Last updated: {lastUpdated.toLocaleString()}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchAnalytics}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-2xl font-bold">
+          {CURRENT_FEEDBACK_MODE === 'beta' ? 'Beta Feedback Analytics' : 'User Feedback Analytics'}
+        </h2>
+        <div className="flex items-center gap-3">
+          <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilterValue)}>
+            <SelectTrigger className="w-40">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DATE_FILTER_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {dateFilter === 'custom' && (
+            <div className="flex items-center gap-2">
+              <input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)}
+                className="border rounded px-2 py-1 text-sm" />
+              <span>to</span>
+              <input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)}
+                className="border rounded px-2 py-1 text-sm" />
+            </div>
+          )}
+
+          <Button variant="outline" size="sm" onClick={fetchData}>
+            <RefreshCw className="h-4 w-4 mr-2" />Refresh
           </Button>
-          <Button variant="outline" size="sm" onClick={exportData}>
-            <Download className="h-4 w-4 mr-2" />
-            Export
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={responses.length === 0}>
+            <Download className="h-4 w-4 mr-2" />Export CSV
           </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="engagement">Engagement</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback</TabsTrigger>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {ANALYTICS_SUMMARY_CARDS.map((card) => {
+          const Icon = ICON_MAP[card.icon];
+          const value = stats?.[card.key as keyof BetaFeedbackStats];
+          
+          let displayValue: string;
+          if (value === undefined || value === null) displayValue = '-';
+          else if (card.format === 'percent') displayValue = `${value}%`;
+          else if (card.format === 'decimal') displayValue = typeof value === 'number' ? value.toFixed(1) : String(value);
+          else displayValue = String(value);
+
+          return (
+            <Card key={card.key}>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                  {Icon && <Icon className="h-4 w-4" />}
+                  {card.label}
+                </div>
+                <div className="text-2xl font-bold">
+                  {displayValue}
+                  {card.suffix && <span className="text-sm font-normal text-muted-foreground">{card.suffix}</span>}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="charts" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="charts">Charts</TabsTrigger>
+          <TabsTrigger value="responses">Individual Responses ({responses.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{userStats?.totalUsers || 0}</p>
-                    <p className="text-xs text-muted-foreground">Total Beta Users</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success">
-                    <TrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{userStats?.activeUsers || 0}</p>
-                    <p className="text-xs text-muted-foreground">Active This Week</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning">
-                    <BookOpen className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{userStats?.totalLessons || 0}</p>
-                    <p className="text-xs text-muted-foreground">Lessons Created</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
-                    <Star className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">
-                      {feedbackStats?.averageRating ? feedbackStats.averageRating.toFixed(1) : '0.0'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">Avg Rating</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Usage Stats */}
-          <div className="grid md:grid-cols-2 gap-6">
+        {/* Charts Tab */}
+        <TabsContent value="charts" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Rating Distribution */}
             <Card>
               <CardHeader>
-                <CardTitle>User Engagement</CardTitle>
-                <CardDescription>How users are interacting with the platform</CardDescription>
+                <CardTitle>Overall Rating Distribution</CardTitle>
+                <CardDescription>How testers rated their experience</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span>Weekly Active Rate</span>
-                  <Badge variant="secondary">
-                    {userStats?.totalUsers ? 
-                      Math.round(((userStats.activeUsers / userStats.totalUsers) * 100)) : 0
-                    }%
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Avg Session Time</span>
-                  <Badge variant="outline">{userStats?.averageSessionTime || 0} min</Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Total Enhancements</span>
-                  <Badge variant="outline">{userStats?.totalEnhancements || 0}</Badge>
-                </div>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={ratingChartData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="rating" />
+                    <YAxis allowDecimals={false} />
+                    <Tooltip />
+                    <Bar dataKey="count" name="Responses">
+                      {ratingChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
 
+            {/* Ease of Use */}
             <Card>
               <CardHeader>
-                <CardTitle>Value Metrics</CardTitle>
-                <CardDescription>How much value users are getting</CardDescription>
+                <CardTitle>Ease of Use</CardTitle>
+                <CardDescription>How easy was it to create lessons?</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span>Avg Time Saved</span>
-                  <Badge variant="secondary">
-                    {feedbackStats?.averageTimeSaved || 0} min/lesson
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Would Pay $19/mo</span>
-                  <Badge variant={feedbackStats && feedbackStats.wouldPayPercentage > 50 ? "default" : "outline"}>
-                    {feedbackStats?.wouldPayPercentage.toFixed(0) || 0}%
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>Engagement Improved</span>
-                  <Badge variant="secondary">{feedbackStats?.engagementImproved || 0} users</Badge>
-                </div>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={easeOfUseChartData} cx="50%" cy="50%" outerRadius={80} dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                      {easeOfUseChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Lesson Quality */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Lesson Content Quality</CardTitle>
+                <CardDescription>Quality of generated content</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={lessonQualityChartData} cx="50%" cy="50%" outerRadius={80} dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                      {lessonQualityChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* NPS Distribution */}
+            <Card>
+              <CardHeader>
+                <CardTitle>NPS Score Distribution</CardTitle>
+                <CardDescription>Promoters, Passives, and Detractors</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={npsChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} 
+                      paddingAngle={5} dataKey="value" labelLine={false}
+                      label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
+                      {npsChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Would Pay */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Subscription Interest</CardTitle>
+                <CardDescription>Willingness to pay for subscription</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={wouldPayChartData} cx="50%" cy="50%" outerRadius={80} dataKey="value"
+                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
+                      {wouldPayChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Time Saved */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Time Saved</CardTitle>
+                <CardDescription>Preparation time saved</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie data={timeSavedChartData} cx="50%" cy="50%" outerRadius={80} dataKey="value"
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                      {timeSavedChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="engagement" className="space-y-6">
+        {/* Responses Tab */}
+        <TabsContent value="responses">
           <Card>
             <CardHeader>
-              <CardTitle>User Activity Trends</CardTitle>
-              <CardDescription>Placeholder for activity charts and engagement metrics</CardDescription>
-            </CardHeader>
-            <CardContent className="py-12 text-center">
-              <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Activity Charts Coming Soon</h3>
-              <p className="text-muted-foreground">
-                Detailed engagement analytics will be available here
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="feedback" className="space-y-6">
-          {/* NPS and Satisfaction */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5" />
-                  Net Promoter Score
-                </CardTitle>
-                <CardDescription>How likely users are to recommend us</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center space-y-2">
-                  <div className="text-4xl font-bold text-primary">
-                    {feedbackStats?.averageNPS.toFixed(1) || '0.0'}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Out of 10</div>
-                  <Progress 
-                    value={(feedbackStats?.averageNPS || 0) * 10} 
-                    className="w-full mt-4"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Willingness to Pay
-                </CardTitle>
-                <CardDescription>Users willing to pay $19/month</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center space-y-2">
-                  <div className="text-4xl font-bold text-success">
-                    {feedbackStats?.wouldPayPercentage.toFixed(0) || '0'}%
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Would pay for subscription
-                  </div>
-                  <Progress 
-                    value={feedbackStats?.wouldPayPercentage || 0} 
-                    className="w-full mt-4"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Feedback Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Feedback Summary
-              </CardTitle>
+              <CardTitle>Individual Feedback Responses</CardTitle>
               <CardDescription>
-                {feedbackStats?.totalFeedback || 0} feedback responses collected
+                Click column headers to sort. Showing {responses.length} response{responses.length !== 1 ? 's' : ''}.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{feedbackStats?.averageRating.toFixed(1) || '0.0'}</div>
-                  <div className="text-sm text-muted-foreground">Average Rating</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{feedbackStats?.engagementImproved || 0}</div>
-                  <div className="text-sm text-muted-foreground">Engagement Improved</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{feedbackStats?.wouldRecommendPercentage.toFixed(0) || '0'}%</div>
-                  <div className="text-sm text-muted-foreground">Would Recommend</div>
-                </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {RESPONSE_TABLE_COLUMNS.map((col) => (
+                        <TableHead 
+                          key={col.key}
+                          style={{ width: col.width, minWidth: col.width }}
+                          className={col.sortable ? 'cursor-pointer hover:bg-muted' : ''}
+                          onClick={() => {
+                            if (col.sortable) {
+                              if (sortColumn === col.key) {
+                                setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                              } else {
+                                setSortColumn(col.key);
+                                setSortDirection('desc');
+                              }
+                            }
+                          }}
+                        >
+                          {col.label}
+                          {sortColumn === col.key && (
+                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                          )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {responses.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={RESPONSE_TABLE_COLUMNS.length} className="text-center py-8 text-muted-foreground">
+                          No feedback responses found for the selected date range.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      responses.map((response) => (
+                        <TableRow key={response.id}>
+                          {RESPONSE_TABLE_COLUMNS.map((col) => (
+                            <TableCell 
+                              key={col.key}
+                              className={['positive_comments', 'improvement_suggestions', 'ui_issues'].includes(col.key) ? 'max-w-[200px] truncate' : ''}
+                              title={['positive_comments', 'improvement_suggestions', 'ui_issues'].includes(col.key) 
+                                ? (response[col.key as keyof FeedbackResponse] as string) || '' 
+                                : undefined
+                              }
+                            >
+                              {formatCellValue(col.key, response[col.key as keyof FeedbackResponse])}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
@@ -441,3 +638,5 @@ export function BetaAnalyticsDashboard() {
     </div>
   );
 }
+
+export default BetaAnalyticsDashboard;

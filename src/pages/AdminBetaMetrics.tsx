@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Users, MessageSquare, TrendingUp, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
 
 interface BetaTester {
   id: string;
@@ -275,9 +276,14 @@ const AdminBetaMetrics = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Feedback Questions Manager */}
+        <FeedbackQuestionsManager />
       </div>
     </div>
   );
 };
 
 export default AdminBetaMetrics;
+
+

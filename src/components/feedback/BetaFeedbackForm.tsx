@@ -1,313 +1,431 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Star, Heart, Users, DollarSign } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { useAnalytics } from '@/hooks/useAnalytics';
-import { supabase } from '@/integrations/supabase/client';
+// ============================================================================
+// BetaFeedbackForm.tsx (Database-Driven)
+// ============================================================================
+// Reads questions dynamically from feedback_questions table
+// Questions are managed via Admin Panel (FeedbackQuestionsManager)
+// Submits responses to discrete columns in feedback table
+// ============================================================================
 
-interface BetaFeedbackFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  lessonId?: string;
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Star, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  CURRENT_FEEDBACK_MODE, 
+  FEEDBACK_FORM_STYLES 
+} from '@/constants/feedbackConfig';
+
+// Question type from database
+interface QuestionOption {
+  value: string | number | boolean;
+  label: string;
+  color?: string;
 }
 
-export function BetaFeedbackForm({ open, onOpenChange, lessonId }: BetaFeedbackFormProps) {
-  const [rating, setRating] = useState<number>(0);
-  const [npsScore, setNpsScore] = useState<number>(0);
-  const [wouldPayFor, setWouldPayFor] = useState<string>('');
-  const [minutesSaved, setMinutesSaved] = useState<string>('');
-  const [engagementImproved, setEngagementImproved] = useState<boolean | null>(null);
-  const [positiveComments, setPositiveComments] = useState('');
-  const [improvements, setImprovements] = useState('');
-  const [wouldRecommend, setWouldRecommend] = useState<boolean | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+interface FeedbackQuestion {
+  id: string;
+  questionKey: string;
+  columnName: string;
+  label: string;
+  description: string | null;
+  placeholder: string | null;
+  type: 'stars' | 'nps' | 'select' | 'boolean' | 'textarea';
+  options: QuestionOption[] | null;
+  required: boolean;
+  minValue: number | null;
+  maxValue: number | null;
+  maxLength: number | null;
+  displayOrder: number;
+}
 
-  const { toast } = useToast();
+interface BetaFeedbackFormProps {
+  lessonId?: string | null;
+  onSuccess?: () => void;
+  onCancel?: () => void;
+}
+
+export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedbackFormProps) {
   const { user } = useAuth();
-  const { trackEvent } = useAnalytics();
+  const { toast } = useToast();
+  
+  // Questions loaded from database
+  const [questions, setQuestions] = useState<FeedbackQuestion[]>([]);
+  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  
+  // Form responses keyed by columnName
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  
+  // UI state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [hoveredStar, setHoveredStar] = useState<Record<string, number>>({});
 
+  // Fetch questions from database
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      setIsLoadingQuestions(true);
+      setLoadError(null);
+      try {
+        const { data, error } = await supabase
+          .rpc('get_feedback_questions', { p_mode: CURRENT_FEEDBACK_MODE });
+
+        if (error) throw error;
+        
+        if (!data || data.length === 0) {
+          setLoadError('No feedback questions configured. Please contact support.');
+          return;
+        }
+        
+        setQuestions(data as FeedbackQuestion[]);
+        
+        // Initialize responses with empty values
+        const initialResponses: Record<string, any> = {};
+        (data as FeedbackQuestion[]).forEach(q => {
+          initialResponses[q.columnName] = q.type === 'boolean' ? null : 
+                                           q.type === 'stars' || q.type === 'nps' ? 0 : '';
+        });
+        setResponses(initialResponses);
+        
+      } catch (error) {
+        console.error('Error fetching questions:', error);
+        setLoadError('Could not load feedback form. Please try again.');
+      } finally {
+        setIsLoadingQuestions(false);
+      }
+    };
+
+    fetchQuestions();
+  }, []);
+
+  // Update a response value
+  const updateResponse = (columnName: string, value: any) => {
+    setResponses(prev => ({ ...prev, [columnName]: value }));
+  };
+
+  // Check if all required questions are answered
+  const isFormValid = () => {
+    return questions
+      .filter(q => q.required)
+      .every(q => {
+        const value = responses[q.columnName];
+        if (value === null || value === undefined) return false;
+        if (typeof value === 'string' && value.trim() === '') return false;
+        if (typeof value === 'number' && value === 0 && q.type !== 'nps') return false;
+        return true;
+      });
+  };
+
+  // Submit form
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to submit feedback.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!isFormValid()) {
+      toast({
+        title: 'Please Complete Required Fields',
+        description: 'All questions marked with * are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setIsSubmitting(true);
 
     try {
-      const feedbackData = {
+      // Build submission object from responses
+      const submission: Record<string, any> = {
         user_id: user.id,
-        lesson_id: lessonId,
-        rating,
-        minutes_saved: minutesSaved ? parseInt(minutesSaved) : null,
-        engagement_improved: engagementImproved,
-        comments: JSON.stringify({
-          positive: positiveComments,
-          improvements,
-          nps_score: npsScore,
-          would_pay_for: wouldPayFor,
-          would_recommend: wouldRecommend
-        })
+        lesson_id: lessonId || null,
+        is_beta_feedback: CURRENT_FEEDBACK_MODE === 'beta',
       };
+
+      // Add each response using the column name
+      questions.forEach(q => {
+        const value = responses[q.columnName];
+        if (value !== null && value !== undefined && value !== '') {
+          submission[q.columnName] = value;
+        }
+      });
 
       const { error } = await supabase
         .from('feedback')
-        .insert(feedbackData);
+        .insert(submission);
 
       if (error) throw error;
 
-      // Track feedback submission
-      trackEvent('feedback_submitted', lessonId, {
-        rating,
-        nps_score: npsScore,
-        would_recommend: wouldRecommend,
-        engagement_improved: engagementImproved,
-        minutes_saved: minutesSaved
-      });
-
+      setIsSubmitted(true);
       toast({
-        title: "Feedback submitted successfully!",
-        description: "Thank you for helping us improve LessonSpark USA.",
+        title: 'Thank You!',
+        description: 'Your feedback helps us improve LessonSparkUSA.',
       });
 
-      onOpenChange(false);
-      
-      // Reset form
-      setRating(0);
-      setNpsScore(0);
-      setPositiveComments('');
-      setImprovements('');
-      setWouldRecommend(null);
-      setEngagementImproved(null);
-      setMinutesSaved('');
-      setWouldPayFor('');
-      
+      setTimeout(() => {
+        onSuccess?.();
+      }, 2000);
+
     } catch (error) {
-      console.error('Error submitting feedback:', error);
+      console.error('Feedback submission error:', error);
       toast({
-        title: "Error submitting feedback",
-        description: "Please try again or contact support.",
-        variant: "destructive",
+        title: 'Submission Failed',
+        description: 'Please try again. If the problem persists, contact support.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Render star rating input
+  const renderStars = (question: FeedbackQuestion) => {
+    const maxStars = question.maxValue || 5;
+    const currentValue = responses[question.columnName] || 0;
+    const hovered = hoveredStar[question.columnName] || 0;
+    
+    return (
+      <div className="flex gap-1 mt-2">
+        {Array.from({ length: maxStars }, (_, i) => i + 1).map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => updateResponse(question.columnName, star)}
+            onMouseEnter={() => setHoveredStar(prev => ({ ...prev, [question.columnName]: star }))}
+            onMouseLeave={() => setHoveredStar(prev => ({ ...prev, [question.columnName]: 0 }))}
+            className="p-1 transition-transform hover:scale-110"
+          >
+            <Star
+              className="h-8 w-8"
+              fill={(hovered || currentValue) >= star ? FEEDBACK_FORM_STYLES.starActiveColor : 'none'}
+              stroke={(hovered || currentValue) >= star ? FEEDBACK_FORM_STYLES.starActiveColor : FEEDBACK_FORM_STYLES.starInactiveColor}
+            />
+          </button>
+        ))}
+      </div>
+    );
+  };
+
+  // Render NPS scale (0-10)
+  const renderNPS = (question: FeedbackQuestion) => {
+    const minValue = question.minValue ?? 0;
+    const maxValue = question.maxValue ?? 10;
+    const currentValue = responses[question.columnName];
+    
+    return (
+      <div className="space-y-2 mt-2">
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: maxValue - minValue + 1 }, (_, i) => minValue + i).map((score) => (
+            <button
+              key={score}
+              type="button"
+              onClick={() => updateResponse(question.columnName, score)}
+              className={`${FEEDBACK_FORM_STYLES.npsButtonClass} ${
+                currentValue === score 
+                  ? FEEDBACK_FORM_STYLES.npsSelectedClass 
+                  : FEEDBACK_FORM_STYLES.npsUnselectedClass
+              }`}
+            >
+              {score}
+            </button>
+          ))}
+        </div>
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Not at all likely</span>
+          <span>Extremely likely</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Render select/radio options
+  const renderSelect = (question: FeedbackQuestion) => {
+    const options = question.options || [];
+    const currentValue = responses[question.columnName];
+    
+    return (
+      <RadioGroup
+        value={String(currentValue)}
+        onValueChange={(value) => {
+          // Try to preserve original type (number vs string)
+          const option = options.find(o => String(o.value) === value);
+          updateResponse(question.columnName, option ? option.value : value);
+        }}
+        className="mt-2 space-y-2"
+      >
+        {options.map((option) => (
+          <div key={String(option.value)} className="flex items-center space-x-2">
+            <RadioGroupItem value={String(option.value)} id={`${question.columnName}-${option.value}`} />
+            <Label 
+              htmlFor={`${question.columnName}-${option.value}`} 
+              className="font-normal cursor-pointer"
+            >
+              {option.label}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
+    );
+  };
+
+  // Render boolean (yes/no)
+  const renderBoolean = (question: FeedbackQuestion) => {
+    const options = question.options || [
+      { value: true, label: 'Yes' },
+      { value: false, label: 'No' },
+    ];
+    const currentValue = responses[question.columnName];
+    
+    return (
+      <RadioGroup
+        value={currentValue === null ? '' : String(currentValue)}
+        onValueChange={(value) => updateResponse(question.columnName, value === 'true')}
+        className="mt-2 space-y-2"
+      >
+        {options.map((option) => (
+          <div key={String(option.value)} className="flex items-center space-x-2">
+            <RadioGroupItem value={String(option.value)} id={`${question.columnName}-${option.value}`} />
+            <Label 
+              htmlFor={`${question.columnName}-${option.value}`} 
+              className="font-normal cursor-pointer"
+            >
+              {option.label}
+            </Label>
+          </div>
+        ))}
+      </RadioGroup>
+    );
+  };
+
+  // Render textarea
+  const renderTextarea = (question: FeedbackQuestion) => {
+    return (
+      <Textarea
+        value={responses[question.columnName] || ''}
+        onChange={(e) => updateResponse(question.columnName, e.target.value)}
+        placeholder={question.placeholder || ''}
+        maxLength={question.maxLength || 2000}
+        className="mt-2"
+        rows={3}
+      />
+    );
+  };
+
+  // Render a question based on its type
+  const renderQuestion = (question: FeedbackQuestion) => {
+    switch (question.type) {
+      case 'stars':
+        return renderStars(question);
+      case 'nps':
+        return renderNPS(question);
+      case 'select':
+        return renderSelect(question);
+      case 'boolean':
+        return renderBoolean(question);
+      case 'textarea':
+        return renderTextarea(question);
+      default:
+        return <p className="text-red-500">Unknown question type: {question.type}</p>;
+    }
+  };
+
+  // Loading state
+  if (isLoadingQuestions) {
+    return (
+      <div className={FEEDBACK_FORM_STYLES.containerClass}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="space-y-2">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Unable to Load Feedback Form
+        </h3>
+        <p className="text-gray-600 mb-4">{loadError}</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  // Success state
+  if (isSubmitted) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          Thank You for Your Feedback!
+        </h3>
+        <p className="text-gray-600">
+          Your input is invaluable in helping us serve Sunday School teachers better.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Heart className="h-5 w-5 text-primary" />
-            Beta User Feedback
-          </DialogTitle>
-        </DialogHeader>
+    <form onSubmit={handleSubmit} className={FEEDBACK_FORM_STYLES.containerClass}>
+      {questions.map((question) => (
+        <div key={question.id} className={FEEDBACK_FORM_STYLES.sectionClass}>
+          <Label className={FEEDBACK_FORM_STYLES.questionClass}>
+            {question.label} {question.required && '*'}
+          </Label>
+          {question.description && (
+            <p className={FEEDBACK_FORM_STYLES.descriptionClass}>
+              {question.description}
+            </p>
+          )}
+          {renderQuestion(question)}
+        </div>
+      ))}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Overall Rating */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg">Overall Experience</CardTitle>
-              <CardDescription>How would you rate LessonSpark USA overall?</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className="p-1 rounded-full hover:bg-accent transition-colors"
-                  >
-                    <Star
-                      className={`h-8 w-8 ${
-                        star <= rating 
-                          ? 'fill-yellow-400 text-yellow-400' 
-                          : 'text-muted-foreground'
-                      }`}
-                    />
-                  </button>
-                ))}
-                <span className="ml-2 text-sm text-muted-foreground">
-                  {rating > 0 && `${rating}/5 stars`}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* NPS Score */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Recommendation Score
-              </CardTitle>
-              <CardDescription>
-                How likely are you to recommend LessonSpark USA to other teachers? (0 = Not at all, 10 = Extremely likely)
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-11 gap-2">
-                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() => setNpsScore(score)}
-                    className={`p-2 text-sm rounded-lg border transition-colors ${
-                      npsScore === score 
-                        ? 'bg-primary text-primary-foreground border-primary' 
-                        : 'hover:bg-accent border-border'
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
-              </div>
-              {npsScore !== null && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Selected: {npsScore}/10
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Value Questions */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg">Time Savings</CardTitle>
-                <CardDescription>How many minutes does LessonSpark USA save you per lesson?</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup value={minutesSaved} onValueChange={setMinutesSaved}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="15" id="15min" />
-                    <Label htmlFor="15min">15 minutes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="30" id="30min" />
-                    <Label htmlFor="30min">30 minutes</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="60" id="60min" />
-                    <Label htmlFor="60min">1 hour</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="120" id="120min" />
-                    <Label htmlFor="120min">2+ hours</Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Willingness to Pay
-                </CardTitle>
-                <CardDescription>Would you pay $19/month for LessonSpark USA?</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RadioGroup value={wouldPayFor} onValueChange={setWouldPayFor}>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes-definitely" id="yes-def" />
-                    <Label htmlFor="yes-def">Yes, definitely</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="yes-probably" id="yes-prob" />
-                    <Label htmlFor="yes-prob">Yes, probably</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="maybe" id="maybe" />
-                    <Label htmlFor="maybe">Maybe</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="no" id="no" />
-                    <Label htmlFor="no">No, too expensive</Label>
-                  </div>
-                </RadioGroup>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Engagement Question */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg">Student Engagement</CardTitle>
-              <CardDescription>Has LessonSpark USA improved student engagement in your classes?</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={engagementImproved === true}
-                    onCheckedChange={() => setEngagementImproved(true)}
-                  />
-                  <Label>Yes, engagement has improved</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={engagementImproved === false}
-                    onCheckedChange={() => setEngagementImproved(false)}
-                  />
-                  <Label>No significant change</Label>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Open-ended Feedback */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="positive">What's working well?</Label>
-              <Textarea
-                id="positive"
-                value={positiveComments}
-                onChange={(e) => setPositiveComments(e.target.value)}
-                placeholder="Tell us what you love about LessonSpark USA..."
-                className="min-h-[100px]"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="improvements">What could be improved?</Label>
-              <Textarea
-                id="improvements"
-                value={improvements}
-                onChange={(e) => setImprovements(e.target.value)}
-                placeholder="Suggestions for making LessonSpark USA even better..."
-                className="min-h-[100px]"
-              />
-            </div>
-          </div>
-
-          {/* Submit Buttons */}
-          <div className="flex gap-2 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)} 
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              variant="default"
-              className="flex-1"
-              disabled={isSubmitting || rating === 0}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit Feedback'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+      {/* Form Actions */}
+      <div className="flex gap-3 pt-4 border-t">
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+            Cancel
+          </Button>
+        )}
+        <Button 
+          type="submit" 
+          disabled={isSubmitting || !isFormValid()}
+          className="flex-1"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            'Submit Feedback'
+          )}
+        </Button>
+      </div>
+    </form>
   );
 }
+
+export default BetaFeedbackForm;
