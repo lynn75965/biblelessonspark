@@ -29,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
+import { BIBLE_BOOKS } from "@/constants/bibleBooks";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
@@ -714,7 +715,14 @@ export function EnhanceLessonForm({
                           value={biblePassage}
                           onChange={(e) => setBiblePassage(e.target.value)}
                           disabled={isSubmitting}
+                          list="bible-books-list"
+                          autoComplete="off"
                         />
+                        <datalist id="bible-books-list">
+                          {BIBLE_BOOKS.map((book) => (
+                            <option key={book} value={book} />
+                          ))}
+                        </datalist>
                       </div>
                     )}
                   </div>
