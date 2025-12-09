@@ -39,6 +39,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ChevronDown, ChevronUp, Info, Save, Trash2, Loader2 } from "lucide-react";
+import { FORM_STYLING } from "@/constants/formConfig";
 
 // SSOT Imports
 import {
@@ -389,7 +390,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="teaching-style">Teaching Style</Label>
               <Select value={teachingStyle} onValueChange={setTeachingStyle} disabled={disabled}>
-                <SelectTrigger id="teaching-style">
+                <SelectTrigger id="teaching-style" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select teaching style" />
                 </SelectTrigger>
                 <SelectContent>
@@ -420,7 +421,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="learning-style">Learning Style</Label>
               <Select value={learningStyle} onValueChange={setLearningStyle} disabled={disabled}>
-                <SelectTrigger id="learning-style">
+                <SelectTrigger id="learning-style" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select learning style" />
                 </SelectTrigger>
                 <SelectContent>
@@ -437,7 +438,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="lesson-length">Lesson Length</Label>
               <Select value={lessonLength} onValueChange={setLessonLength} disabled={disabled}>
-                <SelectTrigger id="lesson-length">
+                <SelectTrigger id="lesson-length" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select lesson length" />
                 </SelectTrigger>
                 <SelectContent>
@@ -454,7 +455,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="group-size">Group Size</Label>
               <Select value={classSetting} onValueChange={setClassSetting} disabled={disabled}>
-                <SelectTrigger id="group-size">
+                <SelectTrigger id="group-size" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select group size" />
                 </SelectTrigger>
                 <SelectContent>
@@ -471,7 +472,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="learning-environment">Learning Environment</Label>
               <Select value={learningEnvironment} onValueChange={setLearningEnvironment} disabled={disabled}>
-                <SelectTrigger id="learning-environment">
+                <SelectTrigger id="learning-environment" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select environment" />
                 </SelectTrigger>
                 <SelectContent>
@@ -488,7 +489,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="student-experience">Student Experience Level</Label>
               <Select value={studentExperience} onValueChange={setStudentExperience} disabled={disabled}>
-                <SelectTrigger id="student-experience">
+                <SelectTrigger id="student-experience" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select experience level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -505,7 +506,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="education-experience">Education Experience</Label>
               <Select value={educationExperience} onValueChange={setEducationExperience} disabled={disabled}>
-                <SelectTrigger id="education-experience">
+                <SelectTrigger id="education-experience" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select education level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -522,7 +523,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="cultural-context">Cultural Context</Label>
               <Select value={culturalContext} onValueChange={setCulturalContext} disabled={disabled}>
-                <SelectTrigger id="cultural-context">
+                <SelectTrigger id="cultural-context" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select cultural context" />
                 </SelectTrigger>
                 <SelectContent>
@@ -539,7 +540,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="special-needs">Special Needs</Label>
               <Select value={specialNeeds} onValueChange={setSpecialNeeds} disabled={disabled}>
-                <SelectTrigger id="special-needs">
+                <SelectTrigger id="special-needs" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select special needs" />
                 </SelectTrigger>
                 <SelectContent>
@@ -556,7 +557,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="assessment-style">Assessment Style</Label>
               <Select value={assessmentStyle} onValueChange={setAssessmentStyle} disabled={disabled}>
-                <SelectTrigger id="assessment-style">
+                <SelectTrigger id="assessment-style" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select assessment style" />
                 </SelectTrigger>
                 <SelectContent>
@@ -573,7 +574,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
               <Select value={language} onValueChange={setLanguage} disabled={disabled}>
-                <SelectTrigger id="language">
+                <SelectTrigger id="language" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -590,7 +591,7 @@ export function TeacherCustomization({
             <div className="space-y-2">
               <Label htmlFor="lesson-sequence">Lesson Sequence</Label>
               <Select value={lessonSequence} onValueChange={setLessonSequence} disabled={disabled}>
-                <SelectTrigger id="lesson-sequence">
+                <SelectTrigger id="lesson-sequence" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select lesson sequence" />
                 </SelectTrigger>
                 <SelectContent>

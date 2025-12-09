@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
 import { BIBLE_BOOKS } from "@/constants/bibleBooks";
+import { FORM_STYLING } from "@/constants/formConfig";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
@@ -772,7 +773,7 @@ export function EnhanceLessonForm({
                     Age Group <span className="text-red-500">*</span>
                   </Label>
                   <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
-                    <SelectTrigger id="age-group">
+                    <SelectTrigger id="age-group" className={FORM_STYLING.selectMaxWidth}>
                       <SelectValue placeholder="Select age group" />
                     </SelectTrigger>
                     <SelectContent>
@@ -801,7 +802,7 @@ export function EnhanceLessonForm({
                     onValueChange={setTheologyProfileId}
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger id="theology-profile">
+                    <SelectTrigger id="theology-profile" className={FORM_STYLING.selectMaxWidth}>
                       <SelectValue placeholder="Select theology profile" />
                     </SelectTrigger>
                     <SelectContent>
@@ -831,7 +832,7 @@ export function EnhanceLessonForm({
                   onValueChange={setBibleVersionId}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger id="bible-version">
+                  <SelectTrigger id="bible-version" className={FORM_STYLING.selectMaxWidth}>
                     <SelectValue placeholder="Select Bible version" />
                   </SelectTrigger>
                   <SelectContent>
