@@ -6,6 +6,7 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
 import { GuardrailViolationsPanel } from "@/components/admin/GuardrailViolationsPanel";
+import { SystemAnalyticsDashboard } from "@/components/admin/SystemAnalyticsDashboard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
 // SSOT Fix: Filter beta stats to show ONLY beta testers, not all users/lessons (December 10, 2025)
+// System Analytics Dashboard with per-user lesson viewing (December 10, 2025)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -319,23 +321,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6 relative z-0">
-            <Card className="bg-gradient-card">
-              <CardHeader>
-                <CardTitle>System Analytics</CardTitle>
-                <CardDescription>
-                  Platform usage statistics and performance metrics
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Analytics Dashboard</h3>
-                  <p className="text-muted-foreground">
-                    Comprehensive system analytics coming soon.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <SystemAnalyticsDashboard />
           </TabsContent>
 
           <TabsContent value="settings" className="mt-6 relative z-0">
