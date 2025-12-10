@@ -81,51 +81,27 @@ export function SystemAnalyticsDashboard() {
 
   const fetchData = async () => {
     try {
-      // Fetch all users with their lesson counts using a single query approach
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, is_beta_tester, created_at');
+      // Use SECURITY DEFINER function to get all users with stats (admin only)
+      const { data, error } = await supabase.rpc('get_all_users_with_stats');
 
-      if (profilesError) throw profilesError;
+      if (error) throw error;
 
-      // Fetch all lessons with user_id
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('lessons')
-        .select('id, user_id, created_at');
-
-      if (lessonsError) throw lessonsError;
-
-      // Calculate stats per user
-      const lessonsByUser = new Map<string, { count: number; lastDate: string | null }>();
-      
-      lessons?.forEach(lesson => {
-        const existing = lessonsByUser.get(lesson.user_id) || { count: 0, lastDate: null };
-        existing.count += 1;
-        if (!existing.lastDate || lesson.created_at > existing.lastDate) {
-          existing.lastDate = lesson.created_at;
-        }
-        lessonsByUser.set(lesson.user_id, existing);
-      });
-
-      // Combine profiles with lesson stats
-      const usersWithStats: UserWithStats[] = (profiles || []).map(profile => {
-        const lessonStats = lessonsByUser.get(profile.id) || { count: 0, lastDate: null };
-        return {
-          id: profile.id,
-          email: profile.email || 'No email',
-          full_name: profile.full_name,
-          is_beta_tester: profile.is_beta_tester || false,
-          created_at: profile.created_at,
-          lesson_count: lessonStats.count,
-          last_lesson_date: lessonStats.lastDate,
-        };
-      });
+      // Map RPC results to component state
+      const usersWithStats: UserWithStats[] = (data || []).map((row: any) => ({
+        id: row.id,
+        email: row.email || 'No email',
+        full_name: row.full_name,
+        is_beta_tester: row.is_beta_tester || false,
+        created_at: row.created_at,
+        lesson_count: Number(row.lesson_count) || 0,
+        last_lesson_date: row.last_lesson_date,
+      }));
 
       setUsers(usersWithStats);
 
-      // Calculate platform stats
+      // Calculate platform stats from the data
       const totalUsers = usersWithStats.length;
-      const totalLessons = lessons?.length || 0;
+      const totalLessons = usersWithStats.reduce((sum, u) => sum + u.lesson_count, 0);
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
       
