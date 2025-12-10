@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-10
-**Current Phase:** Phase 12.10 Complete (Security Advisor Fixes)
+**Last Updated:** 2025-12-09
+**Current Phase:** Phase 12.9 Complete (Beta Feedback System)
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
 
@@ -269,37 +269,6 @@ npm run sync-constants
 - Reorder questions (drag-and-drop or display_order)
 - Toggle active/inactive
 - Preview question types
-
----
-
-## Database Triggers & Sync Functions
-
-### Email Synchronization (profiles.email)
-
-**Purpose:** Keep `profiles.email` in sync with `auth.users.email` to avoid direct joins to Supabase's auth schema.
-
-| Component | Type | Description |
-|-----------|------|-------------|
-| `profiles.email` | Column | User's email address, synced from auth.users |
-| `sync_user_email()` | Function | Trigger function that copies email on INSERT or UPDATE |
-| `on_auth_user_email_update` | Trigger | Fires on auth.users changes, calls sync function |
-
-**Why This Exists:**
-- Supabase Security Advisor flagged views joining `auth.users` as "Exposed Auth Users"
-- SSOT principle: User data should live in tables we control (`profiles`), not auth schema
-- Views now join `profiles.email` instead of `auth.users.email`
-
-**Affected Views (updated December 10, 2025):**
-
-| View | Change |
-|------|--------|
-| `beta_feedback_view` | Now joins `profiles.email` instead of `auth.users.email` |
-| `production_feedback_view` | Now joins `profiles.email` instead of `auth.users.email` |
-| `guardrail_violation_summary` | No email join (aggregates only), security_invoker added |
-
-**Security Properties Applied:**
-- All three views set to `security_invoker = true` (respects RLS)
-- All database functions set with explicit `search_path = public`
 
 ---
 
@@ -640,8 +609,8 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 12.10 Complete (Security Advisor Fixes)
-**Overall Completion:** ~97% (Core product + feedback + security ready)
+**Current Phase:** Phase 12.9 Complete (Beta Feedback System)
+**Overall Completion:** ~96% (Core product + feedback system ready)
 **Production Readiness:** Beta (Individual users, no payment)
 
 ### Phase 12 Summary
@@ -666,7 +635,6 @@ npm run sync-constants
 | Forgot Password Flow | ✅ Complete |
 | Beta Feedback System (Database-driven) | ✅ Complete |
 | FeedbackQuestionsManager Admin | ✅ Complete |
-| Security Advisor Fixes (0 errors, 0 warnings) | ✅ Complete |
 | Lesson Tiers SSOT | 🔄 In Progress |
 | Generation Metrics SSOT | 🔄 In Progress |
 | Beta Tester Onboarding | 🔄 In Progress |
@@ -1056,45 +1024,6 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 - Responsive NPS buttons (single row desktop, 2 rows mobile)
 - Removed "Not at all likely" label, kept only "Extremely likely"
 - 3-second delay after export before feedback modal appears
-
-### Session 14: Security Advisor Fixes (December 10, 2025) - COMPLETE
-
-**Issue:** Supabase Security Advisor flagged 5 errors (sent monthly alert email)
-- 2x "Exposed Auth Users" — views joining `auth.users` directly
-- 3x "Security Definer View" — views bypassing RLS
-
-**Resolution:**
-
-| Step | Action |
-|------|--------|
-| 1 | Added `email` column to `profiles` table |
-| 2 | Created `sync_user_email()` trigger function |
-| 3 | Created `on_auth_user_email_update` trigger on `auth.users` |
-| 4 | Backfilled existing profiles with email from auth.users |
-| 5 | Recreated `beta_feedback_view` to join `profiles` instead of `auth.users` |
-| 6 | Recreated `production_feedback_view` to join `profiles` instead of `auth.users` |
-| 7 | Recreated `guardrail_violation_summary` (no auth.users reference) |
-| 8 | Set all three views to `security_invoker = true` |
-| 9 | Set 7 flagged functions to explicit `search_path = public` |
-
-**Functions with search_path fixed:**
-
-| Function | Signature |
-|----------|-----------|
-| `sync_user_email` | () |
-| `update_feedback_questions_timestamp` | () |
-| `get_all_feedback_questions` | (p_mode text) |
-| `get_feedback_questions` | (p_mode text) |
-| `get_beta_feedback_analytics` | (p_start_date timestamptz, p_end_date timestamptz) |
-| `get_production_feedback_analytics` | (p_start_date timestamptz, p_end_date timestamptz) |
-| `get_feedback_analytics` | (p_mode text, p_start_date timestamptz, p_end_date timestamptz) |
-
-**Result:** 0 errors, 0 warnings in Security Advisor
-
-**SSOT Impact:**
-- `profiles` table now includes `email` column (synced automatically from auth.users)
-- Frontend/backend code should reference `profiles.email`, not `auth.users.email`
-- Email sync is automatic via database trigger (no code changes needed)
 
 ---
 
