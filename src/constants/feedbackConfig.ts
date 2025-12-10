@@ -36,6 +36,13 @@ export const BETA_PERIOD = {
 } as const;
 
 // ----------------------------------------------------------------------------
+// FEEDBACK TRIGGER TIMING
+// ----------------------------------------------------------------------------
+export const FEEDBACK_TRIGGER = {
+  exportDelayMs: 3000,  // 3 second delay after export before showing feedback
+} as const;
+
+// ----------------------------------------------------------------------------
 // FORM STYLING (Shared by all feedback forms)
 // ----------------------------------------------------------------------------
 

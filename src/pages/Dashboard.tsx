@@ -37,6 +37,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { OrganizationSetup } from "@/components/organization/OrganizationSetup";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { getEffectiveRole, canAccessTab, canAccessFeature, ROLES, ORG_ROLES } from "@/constants/accessControl";
+import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
 
 interface DashboardProps {
   organizationName?: string;
@@ -406,7 +407,7 @@ export default function Dashboard({
                   });
                 }}
                 onExport={() => {
-                    setShowBetaFeedbackModal(true);
+                    setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
                   }}
                 organizationId={organization?.id}
                 userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
@@ -586,6 +587,7 @@ export default function Dashboard({
     </div>
   );
 }
+
 
 
 
