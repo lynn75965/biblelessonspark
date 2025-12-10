@@ -10,8 +10,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Settings, Mail, Loader2 } from "lucide-react";
-import { format } from "date-fns";
+import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Mail, Loader2, Clock, Send, X } from "lucide-react";
+import { format, isPast } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
 
@@ -24,17 +24,29 @@ interface UserProfile {
   user_roles?: Array<{ role: string }>;
 }
 
+interface PendingInvite {
+  id: string;
+  email: string;
+  created_at: string;
+  expires_at: string;
+  token: string;
+}
+
 export function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [invitesLoading, setInvitesLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [setupDialogOpen, setSetupDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
+  const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
-  const { updateUserRole, deleteUser, setupLynnAdmin, loading: adminLoading } = useAdminOperations();
+  const { updateUserRole, deleteUser, loading: adminLoading } = useAdminOperations();
   const { sendInvite, loading: inviteLoading } = useInvites();
 
   const fetchUsers = async () => {
@@ -65,6 +77,110 @@ export function UserManagement() {
     }
   };
 
+  const fetchPendingInvites = async () => {
+    setInvitesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('id, email, created_at, expires_at, token')
+        .is('claimed_at', null)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+
+      setPendingInvites(data || []);
+    } catch (error) {
+      console.error('Error fetching pending invites:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch pending invites.",
+        variant: "destructive",
+      });
+    } finally {
+      setInvitesLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchUsers(), fetchPendingInvites()]);
+      toast({
+        title: "Refreshed",
+        description: "User data has been refreshed.",
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleCancelInvite = async (inviteId: string, email: string) => {
+    setCancelingInviteId(inviteId);
+    try {
+      const { error } = await supabase
+        .from('invites')
+        .delete()
+        .eq('id', inviteId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Invite Canceled",
+        description: `Invitation for ${email} has been canceled.`,
+      });
+
+      await fetchPendingInvites();
+    } catch (error) {
+      console.error('Error canceling invite:', error);
+      toast({
+        title: "Error",
+        description: "Failed to cancel invitation.",
+        variant: "destructive",
+      });
+    } finally {
+      setCancelingInviteId(null);
+    }
+  };
+
+  const handleResendInvite = async (inviteId: string, email: string) => {
+    setResendingInviteId(inviteId);
+    try {
+      // Step 1: Delete the old invite
+      const { error: deleteError } = await supabase
+        .from('invites')
+        .delete()
+        .eq('id', inviteId);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      // Step 2: Send a new invite using the existing hook
+      const success = await sendInvite({ email });
+
+      if (success) {
+        toast({
+          title: "Invite Resent",
+          description: `A new invitation has been sent to ${email}.`,
+        });
+        await fetchPendingInvites();
+      }
+    } catch (error) {
+      console.error('Error resending invite:', error);
+      toast({
+        title: "Error",
+        description: "Failed to resend invitation.",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingInviteId(null);
+    }
+  };
+
   const handleDeleteUser = async (userId: string, userName: string) => {
     try {
       await deleteUser(userId);
@@ -89,20 +205,6 @@ export function UserManagement() {
     }
   };
 
-  const handleSetupLynn = async () => {
-    try {
-      await setupLynnAdmin();
-      fetchUsers();
-      setSetupDialogOpen(false);
-      toast({
-        title: "Success",
-        description: "Lynn Eckeberger admin account is now ready to use with email: eckeberger@gmail.com",
-      });
-    } catch (error) {
-      console.error('Error setting up Lynn admin:', error);
-    }
-  };
-
   const handleSendInvite = async () => {
     if (!inviteEmail) {
       toast({
@@ -117,11 +219,13 @@ export function UserManagement() {
     if (success) {
       setInviteDialogOpen(false);
       setInviteEmail("");
+      await fetchPendingInvites();
     }
   };
 
   useEffect(() => {
     fetchUsers();
+    fetchPendingInvites();
   }, []);
 
   const filteredUsers = users.filter(user => 
@@ -140,6 +244,10 @@ export function UserManagement() {
 
   const getRoleIcon = (role: string) => {
     return role === 'admin' ? Shield : User;
+  };
+
+  const getInviteStatus = (expiresAt: string) => {
+    return isPast(new Date(expiresAt)) ? 'expired' : 'pending';
   };
 
   if (loading) {
@@ -181,42 +289,13 @@ export function UserManagement() {
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
-                onClick={fetchUsers}
+                onClick={handleRefresh}
+                disabled={refreshing}
                 className="flex items-center gap-2"
               >
-                <RefreshCw className="h-4 w-4" />
-                Refresh
+                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                {refreshing ? 'Refreshing...' : 'Refresh'}
               </Button>
-              <Dialog open={setupDialogOpen} onOpenChange={setSetupDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Setup Lynn Admin
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Setup Lynn Eckeberger Admin Account</DialogTitle>
-                    <DialogDescription>
-                      This will ensure Lynn Eckeberger's admin account is properly configured with:
-                      <br />
-                      <strong>Email:</strong> eckeberger@gmail.com
-                      <br />
-                      <strong>Password:</strong> 3527Raguet#
-                      <br />
-                      <strong>Role:</strong> Administrator
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setSetupDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button onClick={handleSetupLynn} disabled={adminLoading}>
-                      {adminLoading ? "Setting up..." : "Setup Admin Account"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
               <Button 
                 onClick={() => setInviteDialogOpen(true)}
                 className="flex items-center gap-2"
@@ -230,7 +309,7 @@ export function UserManagement() {
       </Card>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-card">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -266,7 +345,138 @@ export function UserManagement() {
             </div>
           </CardContent>
         </Card>
+
+        <Card className="bg-gradient-card">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <Clock className="h-8 w-8 text-warning" />
+              <div>
+                <p className="text-2xl font-bold">{pendingInvites.length}</p>
+                <p className="text-xs text-muted-foreground">Pending Invites</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Pending Invites Section */}
+      {pendingInvites.length > 0 && (
+        <Card className="bg-gradient-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-warning" />
+              Pending Invitations ({pendingInvites.length})
+            </CardTitle>
+            <CardDescription>
+              Manage unclaimed beta tester invitations. Resend or cancel invites as needed.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Sent</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invitesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        <RefreshCw className="h-5 w-5 animate-spin mx-auto mb-2" />
+                        <p className="text-muted-foreground">Loading invites...</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pendingInvites.map((invite) => {
+                      const status = getInviteStatus(invite.expires_at);
+                      const isExpired = status === 'expired';
+                      return (
+                        <TableRow key={invite.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-medium">{invite.email}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(invite.created_at), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            {format(new Date(invite.expires_at), 'MMM d, yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={isExpired ? 'destructive' : 'outline'}>
+                              {isExpired ? 'Expired' : 'Pending'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center gap-1 justify-end">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleResendInvite(invite.id, invite.email)}
+                                disabled={resendingInviteId === invite.id || inviteLoading}
+                                title="Resend Invitation"
+                              >
+                                {resendingInviteId === invite.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Send className="h-4 w-4" />
+                                )}
+                              </Button>
+                              
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-destructive hover:text-destructive"
+                                    disabled={cancelingInviteId === invite.id}
+                                    title="Cancel Invitation"
+                                  >
+                                    {cancelingInviteId === invite.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <X className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to cancel the invitation for {invite.email}? 
+                                      They will no longer be able to use their invitation link.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Keep Invite</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleCancelInvite(invite.id, invite.email)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Cancel Invitation
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Users Table */}
       <Card className="bg-gradient-card">
@@ -466,4 +676,3 @@ export function UserManagement() {
     </div>
   );
 }
-
