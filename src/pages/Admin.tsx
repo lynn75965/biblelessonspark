@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
+import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
 import { GuardrailViolationsPanel } from "@/components/admin/GuardrailViolationsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -260,7 +261,7 @@ export default function Admin() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
+                            <span className="text-primary">â€¢</span>
                             {benefit}
                           </li>
                         ))}
@@ -273,6 +274,9 @@ export default function Admin() {
               {/* Beta Analytics Dashboard */}
               <BetaAnalyticsDashboard />
             </div>
+
+              {/* Manage Beta Feedback Questions */}
+              <FeedbackQuestionsManager />
           </TabsContent>
 
           <TabsContent value="pricing" className="mt-6 relative z-0">
@@ -347,3 +351,4 @@ export default function Admin() {
     </div>
   );
 }
+
