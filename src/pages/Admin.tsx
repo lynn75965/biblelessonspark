@@ -18,6 +18,7 @@ import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
+// SSOT Fix: Filter beta stats to show ONLY beta testers, not all users/lessons (December 10, 2025)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -26,8 +27,8 @@ export default function Admin() {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [betaStats, setBetaStats] = useState({
-    totalUsers: 0,
-    totalLessons: 0,
+    totalBetaTesters: 0,
+    betaTesterLessons: 0,
     feedbackCount: 0,
     averageRating: null as number | null,
   });
@@ -86,17 +87,45 @@ export default function Admin() {
           return;
         }
 
-        // Fetch beta stats - SSOT: Use 'feedback' table with is_beta_feedback flag
-        const [usersResult, lessonsResult, feedbackResult] = await Promise.all([
-          supabase.from('profiles').select('*', { count: 'exact', head: true }),
-          supabase.from('lessons').select('*', { count: 'exact', head: true }),
-          // SSOT FIX: Query correct table (feedback) with beta filter
-          supabase.from('feedback').select('rating', { count: 'exact' }).eq('is_beta_feedback', true),
-        ]);
+        // Fetch beta stats - SSOT FIX: Filter for ONLY beta testers (not all users)
+        // Step 1: Get admin user IDs to exclude them
+        const { data: adminUsers } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin');
+        
+        const adminIdSet = new Set(adminUsers?.map(a => a.user_id) || []);
+
+        // Step 2: Get all beta testers, then filter out admins in JavaScript
+        const { data: allBetaTesters } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('is_beta_tester', true);
+        
+        // Filter out admin users
+        const betaTesters = allBetaTesters?.filter(bt => !adminIdSet.has(bt.id)) || [];
+        const betaTesterIds = betaTesters.map(bt => bt.id);
+        const betaTesterCount = betaTesterIds.length;
+
+        // Step 2: Count lessons created by beta testers only
+        let betaLessonCount = 0;
+        if (betaTesterIds.length > 0) {
+          const { count: lessonCount } = await supabase
+            .from('lessons')
+            .select('*', { count: 'exact', head: true })
+            .in('user_id', betaTesterIds);
+          betaLessonCount = lessonCount || 0;
+        }
+
+        // Step 3: Get feedback stats (already correctly filtered)
+        const { data: feedbackData, count: feedbackCount } = await supabase
+          .from('feedback')
+          .select('rating', { count: 'exact' })
+          .eq('is_beta_feedback', true);
 
         let avgRating = null;
-        if (feedbackResult.data && feedbackResult.data.length > 0) {
-          const validRatings = feedbackResult.data.filter(f => f.rating !== null && f.rating > 0);
+        if (feedbackData && feedbackData.length > 0) {
+          const validRatings = feedbackData.filter(f => f.rating !== null && f.rating > 0);
           if (validRatings.length > 0) {
             const sum = validRatings.reduce((acc, f) => acc + f.rating, 0);
             avgRating = Math.round((sum / validRatings.length) * 10) / 10;
@@ -104,9 +133,9 @@ export default function Admin() {
         }
 
         setBetaStats({
-          totalUsers: usersResult.count || 0,
-          totalLessons: lessonsResult.count || 0,
-          feedbackCount: feedbackResult.count || 0,
+          totalBetaTesters: betaTesterCount,
+          betaTesterLessons: betaLessonCount,
+          feedbackCount: feedbackCount || 0,
           averageRating: avgRating,
         });
 
@@ -229,16 +258,16 @@ export default function Admin() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {/* Beta Stats Row */}
+                  {/* Beta Stats Row - NOW SHOWS ONLY BETA TESTER DATA */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="text-center p-4 bg-muted rounded-lg">
                       <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{betaStats.totalUsers}</p>
-                      <p className="text-xs text-muted-foreground">Total Users</p>
+                      <p className="text-2xl font-bold">{betaStats.totalBetaTesters}</p>
+                      <p className="text-xs text-muted-foreground">Beta Testers</p>
                     </div>
                     <div className="text-center p-4 bg-muted rounded-lg">
                       <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{betaStats.totalLessons}</p>
+                      <p className="text-2xl font-bold">{betaStats.betaTesterLessons}</p>
                       <p className="text-xs text-muted-foreground">Lessons Created</p>
                     </div>
                     <div className="text-center p-4 bg-muted rounded-lg">
