@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 
 // Mobile responsiveness fixes (December 4, 2025)
+// SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -85,11 +86,12 @@ export default function Admin() {
           return;
         }
 
-        // Fetch beta stats
+        // Fetch beta stats - SSOT: Use 'feedback' table with is_beta_feedback flag
         const [usersResult, lessonsResult, feedbackResult] = await Promise.all([
           supabase.from('profiles').select('*', { count: 'exact', head: true }),
           supabase.from('lessons').select('*', { count: 'exact', head: true }),
-          supabase.from('beta_feedback').select('rating', { count: 'exact' }),
+          // SSOT FIX: Query correct table (feedback) with beta filter
+          supabase.from('feedback').select('rating', { count: 'exact' }).eq('is_beta_feedback', true),
         ]);
 
         let avgRating = null;
@@ -261,7 +263,7 @@ export default function Admin() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">â€¢</span>
+                            <span className="text-primary">•</span>
                             {benefit}
                           </li>
                         ))}
@@ -351,4 +353,3 @@ export default function Admin() {
     </div>
   );
 }
-
