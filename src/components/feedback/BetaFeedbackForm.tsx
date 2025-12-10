@@ -243,8 +243,8 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
           ))}
         </div>
         <div className="flex justify-between text-xs text-gray-500">
-          <span>Not at all likely</span>
-          <span>Extremely likely</span>
+          <span></span>
+            <span>Extremely likely</span>
         </div>
       </div>
     );
@@ -429,4 +429,5 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
 }
 
 export default BetaFeedbackForm;
+
 
