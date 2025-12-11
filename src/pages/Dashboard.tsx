@@ -118,7 +118,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header WITHOUT org name - this is Personal Workspace */}
-      <Header isAuthenticated />
+      <Header isAuthenticated hideOrgContext />
 
       <main className="container py-4 sm:py-6 px-4 sm:px-6 flex-1">
         {/* Welcome Section */}

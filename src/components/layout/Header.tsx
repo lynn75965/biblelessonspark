@@ -27,9 +27,10 @@ interface HeaderProps {
   onAuthClick?: () => void;
   isAuthenticated?: boolean;
   organizationName?: string;
+  hideOrgContext?: boolean; // NEW: Hide org badge for Personal Workspace
 }
 
-export function Header({ onAuthClick, isAuthenticated, organizationName }: HeaderProps) {
+export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrgContext = false }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { organization, userRole, hasOrganization } = useOrganization();
@@ -44,8 +45,8 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
   const navigationItems = getNavigationForRole(effectiveRole);
 
-  // Use org name from hook if not passed as prop
-  const displayOrgName = organizationName || organization?.name;
+  // Use org name from hook if not passed as prop, BUT respect hideOrgContext
+  const displayOrgName = hideOrgContext ? null : (organizationName || organization?.name);
 
   useEffect(() => {
     const fetchTheologyProfile = async () => {
@@ -74,13 +75,6 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
     window.location.href = '/';
   };
 
-  const handleNavClick = (item: NavigationItem) => {
-    if (item.id === 'signOut') {
-      handleSignOut();
-    }
-    // Other items use Link component
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
@@ -98,7 +92,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
             </Badge>
           )}
 
-          {authenticated && theologicalLens && (
+          {authenticated && theologicalLens && !hideOrgContext && (
             <Badge variant="secondary" className="hidden lg:flex text-xs">
               Lens: {theologicalLens}
             </Badge>
