@@ -1222,6 +1222,65 @@ Members retain joined_during_beta = true for historical tracking.
 
 **Dependencies:** Phase 13.1-13.6 must be complete (organization tables exist)
 
+### Phase 13.8: Context-Based Navigation Architecture (Approved 2025-12-11)
+
+**Purpose:** Establish three distinct contexts with dedicated routes, eliminating current Dashboard conflation.
+
+**Terminology Standards:**
+| Code Constant | Display Name | Scope |
+|---------------|--------------|-------|
+| platformAdmin | Administrator | Platform-wide (Lynn only) |
+| orgLeader | Organization Manager | Organization-scoped |
+| orgMember | Organization Member | Org context, personal lessons |
+| individual | Individual User | Personal scope only |
+
+**Route Architecture:**
+| Route | Name | Access | Data Scope |
+|-------|------|--------|------------|
+| /admin | Administrator Panel | Administrator only | All platform data |
+| /org | Organization Manager | Org Managers + Administrator | Org-scoped data |
+| /workspace | My Workspace | All authenticated users | Personal data only |
+
+**Header Navigation by Role:**
+
+*Administrator:*
+- Administrator Panel -> /admin
+- Organization Manager -> /org
+- My Workspace -> /workspace
+- Settings -> /account
+
+*Organization Manager (non-admin):*
+- Organization Manager -> /org
+- My Workspace -> /workspace
+- Settings -> /account
+
+*Individual User:*
+- My Workspace -> /workspace
+- Settings -> /account
+
+**Data Scoping Matrix:**
+| Context | Lessons | Members | Analytics | Settings |
+|---------|---------|---------|-----------|----------|
+| Administrator Panel | All platform | All users | Platform-wide | System |
+| Organization Manager | Org only | Org members | Org-scoped | Org settings |
+| My Workspace | My lessons | None | Personal stats | My preferences |
+
+**Implementation Tasks:**
+
+**13.8.1:** Create src/constants/navigationConfig.ts (SSOT for menu items by role)
+
+**13.8.2:** Refactor /dashboard to /workspace (personal-only view)
+
+**13.8.3:** Create Organization Manager page at /org
+
+**13.8.4:** Update Header.tsx to use navigationConfig.ts
+
+**13.8.5:** Add redirect /dashboard -> /workspace for backward compatibility
+
+**Estimated Effort:** 8-12 hours
+
+**Dependencies:** Can implement navigation structure immediately; Org Manager content builds incrementally
+
 ---
 
 ## Phase 14: Pricing & Billing Implementation (Post-Beta) - PLANNED
