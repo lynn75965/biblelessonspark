@@ -1279,6 +1279,29 @@ Members retain joined_during_beta = true for historical tracking.
 
 **Estimated Effort:** 8-12 hours
 
+
+### Phase 13.9: Admin Organization Drill-Down (Approved 2025-12-11)
+
+**Purpose:** Enable Platform Admin to access ALL organization data (members, lessons, analytics) directly from Admin Panel Organizations tab via drill-down interface.
+
+**Principle:** Admin Panel = Universal Access. Platform Admin can perform ANY operation without navigating elsewhere.
+
+**Drill-Down Structure:**
+- Organizations Tab (default): Table of all orgs
+- Click org row ? Org Detail View with sub-tabs:
+  - **Details:** Edit name, denomination, status, description
+  - **Members:** View all, add ANY user, remove ANY user, change roles
+  - **Lessons:** View metadata AND full content, edit capability
+  - **Analytics:** Org-scoped metrics (lesson count, active users, etc.)
+
+**Implementation Tasks:**
+- **13.9.1:** Add drill-down state management to OrganizationManagement.tsx
+- **13.9.2:** Create OrgDetailView component with sub-tabs
+- **13.9.3:** Adapt OrgMemberManagement for admin context (add any user to org)
+- **13.9.4:** Create OrgLessonsPanel (metadata table + view/edit modal)
+- **13.9.5:** Create OrgAnalyticsPanel (org-scoped metrics)
+
+**Estimated Effort:** 6-10 hours
 **Dependencies:** Can implement navigation structure immediately; Org Manager content builds incrementally
 
 ---
