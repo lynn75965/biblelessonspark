@@ -30,7 +30,6 @@ interface Lesson {
   organization_id: string | null;
   profiles: {
     full_name: string | null;
-    email: string | null;
   } | null;
   organizations: {
     name: string | null;
@@ -40,6 +39,7 @@ interface Lesson {
 export function AllLessonsPanel() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOrg, setFilterOrg] = useState<string>("all");
   const [organizations, setOrganizations] = useState<{id: string, name: string}[]>([]);
@@ -50,8 +50,11 @@ export function AllLessonsPanel() {
   useEffect(() => {
     const fetchLessons = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
-        const { data, error } = await supabase
+        // NOTE: profiles table does NOT have email column - only full_name
+        const { data, error: queryError } = await supabase
           .from('lessons')
           .select(`
             id,
@@ -63,9 +66,8 @@ export function AllLessonsPanel() {
             created_at,
             user_id,
             organization_id,
-            profiles!lessons_user_id_fkey (
-              full_name,
-              email
+            profiles (
+              full_name
             ),
             organizations (
               name
@@ -73,10 +75,17 @@ export function AllLessonsPanel() {
           `)
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (queryError) {
+          console.error('Supabase query error:', queryError);
+          setError(queryError.message);
+          return;
+        }
+        
+        console.log('Lessons fetched:', data?.length || 0);
         setLessons((data as any[]) || []);
-      } catch (error) {
-        console.error('Error fetching lessons:', error);
+      } catch (err) {
+        console.error('Error fetching lessons:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
       }
@@ -125,7 +134,6 @@ export function AllLessonsPanel() {
       (displayTitle.toLowerCase()).includes(searchTerm.toLowerCase()) ||
       (lesson.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (scripture.toLowerCase()).includes(searchTerm.toLowerCase()) ||
-      (lesson.profiles?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (lesson.profiles?.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
     const matchesOrg = filterOrg === "all" || 
@@ -142,7 +150,6 @@ export function AllLessonsPanel() {
 
   const getUserDisplay = (lesson: Lesson) => {
     if (lesson.profiles?.full_name) return lesson.profiles.full_name;
-    if (lesson.profiles?.email) return lesson.profiles.email.split('@')[0];
     return 'Unknown';
   };
 
@@ -165,6 +172,13 @@ export function AllLessonsPanel() {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Error Display */}
+        {error && (
+          <div className="mb-4 p-4 bg-destructive/10 border border-destructive rounded-lg text-destructive">
+            <strong>Error:</strong> {error}
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
