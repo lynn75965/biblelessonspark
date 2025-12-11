@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
-import { ViewModeProvider } from "@/contexts/ViewModeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SecurityAlerts } from "@/components/security/SecurityAlerts";
 import Index from "./pages/Index";
@@ -32,70 +31,68 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <ViewModeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <SecurityAlerts />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <Admin />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/account"
-                element={
-                  <ProtectedRoute>
-                    <Account />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/setup" element={<Setup />} />
-              <Route path="/setup/checklist" element={<SetupChecklist />} />
-              <Route path="/setup/guide" element={<Setup />} />
-              <Route path="/preferences/lens" element={
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <SecurityAlerts />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route
+              path="/dashboard"
+              element={
                 <ProtectedRoute>
-                  <PreferencesLens />
+                  <Dashboard />
                 </ProtectedRoute>
-              } />
-              <Route path="/docs" element={<Docs />} />
-              <Route path="/help" element={<Help />} />
-              <Route path="/training" element={<Training />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/terms-of-service" element={<TermsOfService />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/legal/cookie" element={<Cookie />} />
-              <Route path="/admin/beta-metrics" element={
+              }
+            />
+            <Route
+              path="/admin"
+              element={
                 <ProtectedRoute>
-                  <AdminBetaMetrics />
+                  <Admin />
                 </ProtectedRoute>
-              } />
-              <Route path="/beta-signup" element={
+              }
+            />
+            <Route
+              path="/account"
+              element={
                 <ProtectedRoute>
-                  <BetaSignup />
+                  <Account />
                 </ProtectedRoute>
-              } />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ViewModeProvider>
+              }
+            />
+            <Route path="/setup" element={<Setup />} />
+            <Route path="/setup/checklist" element={<SetupChecklist />} />
+            <Route path="/setup/guide" element={<Setup />} />
+            <Route path="/preferences/lens" element={
+              <ProtectedRoute>
+                <PreferencesLens />
+              </ProtectedRoute>
+            } />
+            <Route path="/docs" element={<Docs />} />
+            <Route path="/help" element={<Help />} />
+            <Route path="/training" element={<Training />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/legal/cookie" element={<Cookie />} />
+            <Route path="/admin/beta-metrics" element={
+              <ProtectedRoute>
+                <AdminBetaMetrics />
+              </ProtectedRoute>
+            } />
+            <Route path="/beta-signup" element={
+              <ProtectedRoute>
+                <BetaSignup />
+              </ProtectedRoute>
+            } />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

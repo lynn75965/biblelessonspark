@@ -7,17 +7,11 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { BookOpen, User, Settings, LogOut, Shield, Eye, Building2, UserCircle } from "lucide-react";
+import { BookOpen, User, Settings, LogOut, Shield, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { useViewMode, ViewMode } from "@/contexts/ViewModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
@@ -33,7 +27,6 @@ interface HeaderProps {
 export function Header({ onAuthClick, isAuthenticated, organizationName }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
-  const { viewMode, setViewMode, isSimulatedView, viewModeLabel } = useViewMode();
   const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
 
   const authenticated = user ? true : isAuthenticated;
@@ -68,10 +61,6 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
     window.location.href = '/';
   };
 
-  const handleViewModeChange = (mode: string) => {
-    setViewMode(mode as ViewMode);
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
@@ -92,13 +81,6 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
           {authenticated && theologicalLens && (
             <Badge variant="secondary" className="hidden lg:flex text-xs">
               Lens: {theologicalLens}
-            </Badge>
-          )}
-
-          {authenticated && isAdmin && isSimulatedView && (
-            <Badge variant="destructive" className="hidden sm:flex text-xs animate-pulse">
-              <Eye className="h-3 w-3 mr-1" />
-              {viewModeLabel}
             </Badge>
           )}
         </div>
@@ -135,38 +117,24 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
                           <span>Admin Panel</span>
                         </Link>
                       </DropdownMenuItem>
-                      
-                      <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>
-                          <Eye className="mr-2 h-4 w-4" />
-                          <span>View As...</span>
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent>
-                          <DropdownMenuRadioGroup value={viewMode} onValueChange={handleViewModeChange}>
-                            <DropdownMenuRadioItem value="admin">
-                              <Shield className="mr-2 h-4 w-4 text-red-500" />
-                              <span>Admin View</span>
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="orgLeader">
-                              <Building2 className="mr-2 h-4 w-4 text-blue-500" />
-                              <span>Org Leader View</span>
-                            </DropdownMenuRadioItem>
-                            <DropdownMenuRadioItem value="personal">
-                              <UserCircle className="mr-2 h-4 w-4 text-green-500" />
-                              <span>Personal Workspace</span>
-                            </DropdownMenuRadioItem>
-                          </DropdownMenuRadioGroup>
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                      
                       <DropdownMenuSeparator />
                     </>
                   )}
                   
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="flex items-center">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>My Workspace</span>
+                    </Link>
                   </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <Link to="/account" className="flex items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut}>
                     <LogOut className="mr-2 h-4 w-4" />
