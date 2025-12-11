@@ -1139,6 +1139,89 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 
 **Estimated Effort:** 18-26 hours
 
+### Phase 13.7: Organization Beta Phase Infrastructure (Approved 2025-12-11)
+
+**Purpose:** Allow Org Leaders to run pilot programs when first launching their organization, with Admin-controlled activation.
+
+**Design Principle:** Reuse platform beta infrastructure at organization scope. Admin controls activation; Org Leader views analytics.
+
+#### Database Schema Additions
+
+**organizations table additions:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| beta_mode | BOOLEAN DEFAULT false | Is org currently in beta phase? |
+| beta_start_date | TIMESTAMPTZ | When beta was activated |
+| beta_end_date | TIMESTAMPTZ | When beta ended (or scheduled end) |
+| beta_activated_by | UUID FK profiles | Admin who enabled beta mode |
+
+**organization_members table additions:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| joined_during_beta | BOOLEAN DEFAULT false | Auto-set true if org.beta_mode = true at join time |
+
+#### Access Control
+
+| Feature | Allowed Roles | Notes |
+|---------|---------------|-------|
+| activateOrgBeta | platformAdmin | Only Admin can enable |
+| deactivateOrgBeta | platformAdmin | Only Admin can disable |
+| viewOrgBetaAnalytics | platformAdmin, orgLeader | Both can view org-scoped analytics |
+
+#### Component Reusability
+
+| Component | Platform Beta | Org Beta | Modification |
+|-----------|---------------|----------|--------------|
+| feedbackConfig.ts | ✅ | ✅ | Add scope parameter |
+| BetaAnalyticsDashboard.tsx | ✅ | ✅ | Add org_id filter prop |
+| feedback_questions table | ✅ | ✅ | Add scope column |
+| beta_feedback_view | ✅ | ✅ | Add org join condition |
+| Summary card definitions | ✅ | ✅ | No change needed |
+
+#### Admin Workflow
+```
+Admin Panel → Organizations → [Org Name] → Actions → Enable Beta Mode
+```
+
+This sets:
+- organizations.beta_mode = true
+- organizations.beta_start_date = now()
+- organizations.beta_activated_by = admin user id
+
+New members joining while beta_mode = true automatically get:
+- organization_members.joined_during_beta = true
+
+#### Org Leader Workflow
+
+When org beta is active, Org Leader sees:
+- "Org Beta Analytics" tab in their dashboard
+- Metrics scoped to their organization only
+- Feedback from their org members only
+
+#### Grandfathering Support
+
+`joined_during_beta = true` persists after org beta ends, enabling:
+- Recognition of early adopters within organization
+- Potential org-level loyalty discounts
+- Testimonial identification
+
+#### Transition Command
+
+Admin ends org beta via:
+```
+Admin Panel → Organizations → [Org Name] → Actions → End Beta Mode
+```
+
+This sets:
+- organizations.beta_mode = false
+- organizations.beta_end_date = now()
+
+Members retain joined_during_beta = true for historical tracking.
+
+**Estimated Effort:** 4-6 hours (leverages platform beta infrastructure)
+
+**Dependencies:** Phase 13.1-13.6 must be complete (organization tables exist)
+
 ---
 
 ## Phase 14: Pricing & Billing Implementation (Post-Beta) - PLANNED
