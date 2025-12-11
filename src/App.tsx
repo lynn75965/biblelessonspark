@@ -25,6 +25,7 @@ import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Cookie from "./pages/legal/Cookie";
 import NotFound from "./pages/NotFound";
+import OrgManager from "./pages/OrgManager";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/org"
+              element={
+                <ProtectedRoute>
+                  <OrgManager />
                 </ProtectedRoute>
               }
             />
