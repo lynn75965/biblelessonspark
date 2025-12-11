@@ -7,10 +7,11 @@ import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDash
 import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
 import { GuardrailViolationsPanel } from "@/components/admin/GuardrailViolationsPanel";
 import { SystemAnalyticsDashboard } from "@/components/admin/SystemAnalyticsDashboard";
+import { AllLessonsPanel } from "@/components/admin/AllLessonsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, ShieldAlert } from "lucide-react";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, ShieldAlert, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -21,6 +22,7 @@ import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
 // SSOT Fix: Filter beta stats to show ONLY beta testers, not all users/lessons (December 10, 2025)
 // System Analytics Dashboard with per-user lesson viewing (December 10, 2025)
+// All Lessons tab for admin access to ALL platform lessons (December 11, 2025)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -201,6 +203,10 @@ export default function Admin() {
               <Building2 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Organizations</span>
             </TabsTrigger>
+            <TabsTrigger value="lessons" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <BookOpen className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">All Lessons</span>
+            </TabsTrigger>
             <TabsTrigger value="beta" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Rocket className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Beta Program</span>
@@ -234,6 +240,10 @@ export default function Admin() {
 
           <TabsContent value="organizations" className="mt-6 relative z-0">
             <OrganizationManagement />
+          </TabsContent>
+
+          <TabsContent value="lessons" className="mt-6 relative z-0">
+            <AllLessonsPanel />
           </TabsContent>
 
           <TabsContent value="beta" className="mt-6 relative z-0">
@@ -308,8 +318,8 @@ export default function Admin() {
               <BetaAnalyticsDashboard />
             </div>
 
-              {/* Manage Beta Feedback Questions */}
-              <FeedbackQuestionsManager />
+            {/* Manage Beta Feedback Questions */}
+            <FeedbackQuestionsManager />
           </TabsContent>
 
           <TabsContent value="pricing" className="mt-6 relative z-0">
