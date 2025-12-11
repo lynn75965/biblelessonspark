@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // SSOT: Feedback Configuration
 // ============================================================================
 // ARCHITECTURE CHANGE: Questions are now stored in the database and managed
@@ -10,7 +10,7 @@
 // - Analytics display configuration
 // - Type definitions
 //
-// To modify survey questions: Use Admin Panel â†’ Beta Feedback Questions
+// To modify survey questions: Use Admin Panel → Beta Feedback Questions
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -41,6 +41,42 @@ export const BETA_PERIOD = {
 export const FEEDBACK_TRIGGER = {
   exportDelayMs: 3000,  // 3 second delay after export before showing feedback
 } as const;
+
+// ----------------------------------------------------------------------------
+// FEEDBACK SOURCE (SSOT - Frontend Drives Backend)
+// ----------------------------------------------------------------------------
+// Where the feedback originated from
+// Database CHECK constraint mirrors these values
+
+export const FEEDBACK_SOURCE = {
+  FORM: 'form',           // "Give Feedback" button in UI
+  POST_EXPORT: 'post_export',  // Quick rating prompt after lesson export
+} as const;
+
+export type FeedbackSource = typeof FEEDBACK_SOURCE[keyof typeof FEEDBACK_SOURCE];
+
+// ----------------------------------------------------------------------------
+// FEEDBACK CATEGORY (SSOT - Frontend Drives Backend)
+// ----------------------------------------------------------------------------
+// Type/purpose of the feedback submission
+// Database CHECK constraint mirrors these values
+
+export const FEEDBACK_CATEGORY = {
+  BUG_REPORT: 'bug_report',
+  FEATURE_REQUEST: 'feature_request',
+  GENERAL_FEEDBACK: 'general_feedback',
+  LESSON_RATING: 'lesson_rating',  // Quick post-export ratings
+} as const;
+
+export type FeedbackCategory = typeof FEEDBACK_CATEGORY[keyof typeof FEEDBACK_CATEGORY];
+
+// Category display labels for UI
+export const FEEDBACK_CATEGORY_LABELS: Record<FeedbackCategory, string> = {
+  [FEEDBACK_CATEGORY.BUG_REPORT]: 'Bug Report',
+  [FEEDBACK_CATEGORY.FEATURE_REQUEST]: 'Feature Request',
+  [FEEDBACK_CATEGORY.GENERAL_FEEDBACK]: 'General Feedback',
+  [FEEDBACK_CATEGORY.LESSON_RATING]: 'Lesson Rating',
+};
 
 // ----------------------------------------------------------------------------
 // FORM STYLING (Shared by all feedback forms)

@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // BetaFeedbackForm.tsx (Database-Driven)
 // ============================================================================
 // Reads questions dynamically from feedback_questions table
@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Star, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Star, Loader2, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { 
   CURRENT_FEEDBACK_MODE, 
@@ -173,10 +173,6 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
         title: 'Thank You!',
         description: 'Your feedback helps us improve LessonSparkUSA.',
       });
-
-      setTimeout(() => {
-        onSuccess?.();
-      }, 2000);
 
     } catch (error) {
       console.error('Feedback submission error:', error);
@@ -371,7 +367,19 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
     );
   }
 
-  // Success state
+  // Reset form for another submission
+  const handleSubmitAnother = () => {
+    // Reset responses to initial values
+    const initialResponses: Record<string, any> = {};
+    questions.forEach(q => {
+      initialResponses[q.columnName] = q.type === 'boolean' ? null :
+                                       q.type === 'stars' || q.type === 'nps' ? 0 : '';
+    });
+    setResponses(initialResponses);
+    setIsSubmitted(false);
+  };
+
+  // Success state with options
   if (isSubmitted) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -379,9 +387,24 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
           Thank You for Your Feedback!
         </h3>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-6">
           Your input is invaluable in helping us serve Sunday School teachers better.
         </p>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={handleSubmitAnother}
+            className="gap-2"
+          >
+            <MessageSquare className="h-4 w-4" />
+            Submit Another
+          </Button>
+          <Button
+            onClick={() => onSuccess?.()}
+          >
+            Done
+          </Button>
+        </div>
       </div>
     );
   }
