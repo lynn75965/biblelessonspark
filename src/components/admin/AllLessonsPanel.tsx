@@ -11,16 +11,23 @@ import { BookOpen, Search, Eye, Calendar, User, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
+interface LessonMetadata {
+  scripture_passage?: string;
+  age_group?: string;
+  ai_lesson_title?: string;
+  [key: string]: any;
+}
+
 interface Lesson {
   id: string;
   title: string;
-  ai_lesson_title: string | null;
-  scripture_passage: string | null;
-  age_group: string | null;
+  original_text: string | null;
+  source_type: string | null;
+  filters: any;
+  metadata: LessonMetadata | null;
   created_at: string;
   user_id: string;
   organization_id: string | null;
-  original_text: string | null;
   profiles: {
     full_name: string | null;
     email: string | null;
@@ -49,13 +56,13 @@ export function AllLessonsPanel() {
           .select(`
             id,
             title,
-            ai_lesson_title,
-            scripture_passage,
-            age_group,
+            original_text,
+            source_type,
+            filters,
+            metadata,
             created_at,
             user_id,
             organization_id,
-            original_text,
             profiles!lessons_user_id_fkey (
               full_name,
               email
@@ -90,12 +97,34 @@ export function AllLessonsPanel() {
     fetchOrgs();
   }, []);
 
+  // Helper to extract metadata fields
+  const getScripture = (lesson: Lesson): string => {
+    return lesson.metadata?.scripture_passage || 
+           lesson.filters?.scripture_passage || 
+           'N/A';
+  };
+
+  const getAgeGroup = (lesson: Lesson): string => {
+    return lesson.metadata?.age_group || 
+           lesson.filters?.age_group || 
+           'N/A';
+  };
+
+  const getDisplayTitle = (lesson: Lesson): string => {
+    return lesson.metadata?.ai_lesson_title || 
+           lesson.title || 
+           'Untitled';
+  };
+
   // Filter lessons
   const filteredLessons = lessons.filter(lesson => {
+    const displayTitle = getDisplayTitle(lesson);
+    const scripture = getScripture(lesson);
+    
     const matchesSearch = 
+      (displayTitle.toLowerCase()).includes(searchTerm.toLowerCase()) ||
       (lesson.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (lesson.ai_lesson_title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (lesson.scripture_passage?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (scripture.toLowerCase()).includes(searchTerm.toLowerCase()) ||
       (lesson.profiles?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
       (lesson.profiles?.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
@@ -188,15 +217,15 @@ export function AllLessonsPanel() {
                   <TableRow key={lesson.id}>
                     <TableCell className="font-medium">
                       <div className="max-w-[200px] truncate">
-                        {lesson.ai_lesson_title || lesson.title || 'Untitled'}
+                        {getDisplayTitle(lesson)}
                       </div>
                       <div className="text-xs text-muted-foreground md:hidden">
-                        {lesson.scripture_passage || 'No passage'}
+                        {getScripture(lesson)}
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <Badge variant="outline" className="text-xs">
-                        {lesson.scripture_passage || 'N/A'}
+                        {getScripture(lesson)}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -243,7 +272,7 @@ export function AllLessonsPanel() {
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle>
-              {selectedLesson?.ai_lesson_title || selectedLesson?.title || 'Lesson Details'}
+              {selectedLesson ? getDisplayTitle(selectedLesson) : 'Lesson Details'}
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
@@ -252,11 +281,11 @@ export function AllLessonsPanel() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium">Scripture:</span>{' '}
-                    {selectedLesson.scripture_passage || 'N/A'}
+                    {getScripture(selectedLesson)}
                   </div>
                   <div>
                     <span className="font-medium">Age Group:</span>{' '}
-                    {selectedLesson.age_group || 'N/A'}
+                    {getAgeGroup(selectedLesson)}
                   </div>
                   <div>
                     <span className="font-medium">Created By:</span>{' '}
@@ -269,6 +298,10 @@ export function AllLessonsPanel() {
                   <div>
                     <span className="font-medium">Created:</span>{' '}
                     {format(new Date(selectedLesson.created_at), 'PPP')}
+                  </div>
+                  <div>
+                    <span className="font-medium">Source:</span>{' '}
+                    {selectedLesson.source_type || 'N/A'}
                   </div>
                 </div>
                 
