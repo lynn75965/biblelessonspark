@@ -1340,4 +1340,69 @@ Members retain joined_during_beta = true for historical tracking.
 
 ---
 
+## Phase 15: Perpetual Freshness - PLANNED
+
+**Status:** Deferred until core features stabilized
+
+**Purpose:** Ensure every lesson generation produces meaningfully different content, even for the same passage with the same settings. Prevent stale, repetitive outputs.
+
+### Three-Tier Architecture Context
+
+| Tier | Name | Freshness Impact |
+|------|------|------------------|
+| Tier 1 | Foundational Structure | None - intentionally stable (section names, order, word budgets) |
+| Tier 2 | User Customizations | Some variation - different age/theology produces different output |
+| Tier 3 | Perpetual Freshness | Claude generates creative content WITHIN Tier 1 structure |
+
+**Principle:** Same structure, fresh content every time.
+
+### Phase 15.1: Freshen Up User Control
+
+- Add "Freshen Up" checkbox to lesson generation form
+- Default: OFF (standard generation)
+- When ON: Claude explicitly varies approach
+- Store preference in user profile (optional persistence)
+
+### Phase 15.2: Varied Content Elements
+
+Instruct Claude to vary these elements across generations:
+
+| Element | Variation Approach |
+|---------|-------------------|
+| Illustrations/Stories | Different examples for same theological point |
+| Teaching Angles | Rotate: evangelistic, discipleship, apologetic, narrative |
+| Activity Types | Different activities for same learning objective |
+| Opening Hooks | Varied introductions (question, story, statistic, quote) |
+| Application Examples | Different real-world scenarios |
+
+### Phase 15.3: Contextual Awareness
+
+- **Date awareness:** Pass current date to Claude
+- **Holiday/Seasonal themes:** Christmas, Easter, Thanksgiving, back-to-school, New Year
+- **Christian calendar:** Advent, Lent, Pentecost awareness
+- **Current events:** Tasteful, non-political references (limited by Claude's training cutoff)
+
+### Phase 15.4: Edge Function Prompt Updates
+
+Add freshness instructions to lesson generation prompt:
+
+- "Vary your illustrations and examples from previous generations"
+- "Use different teaching angles when appropriate"
+- "Never repeat the same opening hook for the same passage"
+- "Consider current date for seasonal relevance: {current_date}"
+
+### Phase 15.5: Freshness Tracking (Optional)
+
+- Log illustration/example themes used per passage
+- Avoid repetition for same user generating same passage
+- Analytics: Track freshness satisfaction in feedback
+
+**Estimated Effort:** 6-10 hours
+
+**Dependencies:** 
+- Core lesson generation stable
+- Feedback system in place to measure satisfaction
+
+---
+
 *End of Document*
