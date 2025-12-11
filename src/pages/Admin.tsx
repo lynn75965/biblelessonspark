@@ -102,7 +102,7 @@ export default function Admin() {
         const { data: allBetaTesters } = await supabase
           .from('profiles')
           .select('id')
-          .eq('is_beta_tester', true);
+          .eq('beta_participant', true);
         
         // Filter out admin users
         const betaTesters = allBetaTesters?.filter(bt => !adminIdSet.has(bt.id)) || [];
