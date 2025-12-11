@@ -9,14 +9,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { BookOpen, User, Settings, LogOut, Shield, LayoutDashboard } from "lucide-react";
+import { BookOpen, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useOrganization } from "@/hooks/useOrganization";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
 import { getUIConfig } from "@/constants/programConfig";
+
+// SSOT Imports
+import { getEffectiveRole } from "@/constants/accessControl";
+import { getNavigationForRole, NavigationItem } from "@/constants/navigationConfig";
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -27,12 +32,20 @@ interface HeaderProps {
 export function Header({ onAuthClick, isAuthenticated, organizationName }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
+  const { organization, userRole, hasOrganization } = useOrganization();
   const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
 
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
   const displayName = user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'User';
   const uiConfig = getUIConfig();
+
+  // Determine effective role and get navigation items
+  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
+  const navigationItems = getNavigationForRole(effectiveRole);
+
+  // Use org name from hook if not passed as prop
+  const displayOrgName = organizationName || organization?.name;
 
   useEffect(() => {
     const fetchTheologyProfile = async () => {
@@ -61,6 +74,13 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
     window.location.href = '/';
   };
 
+  const handleNavClick = (item: NavigationItem) => {
+    if (item.id === 'signOut') {
+      handleSignOut();
+    }
+    // Other items use Link component
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
@@ -72,9 +92,9 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
             <span className="text-base sm:text-lg lg:text-xl font-bold gradient-text hidden xs:inline">LessonSpark USA</span>
           </Link>
 
-          {authenticated && organizationName && (
+          {authenticated && displayOrgName && (
             <Badge variant="outline" className="hidden md:flex text-xs truncate max-w-[120px] lg:max-w-none">
-              {organizationName}
+              {displayOrgName}
             </Badge>
           )}
 
@@ -109,37 +129,32 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin" className="flex items-center">
-                          <Shield className="mr-2 h-4 w-4" />
-                          <span>Admin Panel</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  
-                  <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="flex items-center">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>My Workspace</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  
-                  <DropdownMenuItem asChild>
-                    <Link to="/account" className="flex items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Sign Out</span>
-                  </DropdownMenuItem>
+                  {navigationItems.map((item, index) => {
+                    const IconComponent = item.icon;
+                    
+                    // Handle Sign Out specially (onClick, not Link)
+                    if (item.id === 'signOut') {
+                      return (
+                        <DropdownMenuItem key={item.id} onClick={handleSignOut}>
+                          <IconComponent className="mr-2 h-4 w-4" />
+                          <span>{item.label}</span>
+                        </DropdownMenuItem>
+                      );
+                    }
+                    
+                    // Render navigation link
+                    return (
+                      <div key={item.id}>
+                        <DropdownMenuItem asChild>
+                          <Link to={item.route} className="flex items-center">
+                            <IconComponent className="mr-2 h-4 w-4" />
+                            <span>{item.label}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        {item.dividerAfter && <DropdownMenuSeparator />}
+                      </div>
+                    );
+                  })}
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
