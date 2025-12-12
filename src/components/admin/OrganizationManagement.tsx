@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil } from "lucide-react";
+import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft } from "lucide-react";
 
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
 import { ORGANIZATION_VALIDATION, DENOMINATION_OPTIONS } from "@/constants/validation";
 import { Organization } from "@/constants/contracts";
+import { ORG_DETAIL_TABS, OrgDetailTabKey, DEFAULT_ORG_DETAIL_TAB } from "@/constants/orgManagerConfig";
 
 // Organization type imported from @/constants/contracts
 
@@ -52,6 +53,10 @@ export function OrganizationManagement() {
 
   // Assign leader state
   const [selectedUserId, setSelectedUserId] = useState("");
+
+  // Drill-down state (Phase 13.9)
+  const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
+  const [activeDetailTab, setActiveDetailTab] = useState<OrgDetailTabKey>(DEFAULT_ORG_DETAIL_TAB);
 
   const resetForm = () => {
     setFormData({ name: "", denomination: "", description: "" });
@@ -338,7 +343,43 @@ export function OrganizationManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {viewingOrg ? (
+        /* Drill-Down Detail View */
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setViewingOrg(null);
+                  setActiveDetailTab(DEFAULT_ORG_DETAIL_TAB);
+                }}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Organizations
+              </Button>
+            </div>
+            <CardTitle className="flex items-center gap-2 mt-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              {viewingOrg.name}
+            </CardTitle>
+            <CardDescription>
+              {viewingOrg.denomination || "No denomination specified"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Sub-tabs will be added in 13.9.2 */}
+            <div className="text-muted-foreground text-sm">
+              Organization detail view - Phase 13.9.2 will add sub-tabs here.
+              <br />
+              Active tab: {activeDetailTab}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Header */}
       <Card className="bg-gradient-card">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -493,6 +534,17 @@ export function OrganizationManagement() {
                         <Button
                           size="sm"
                           variant="outline"
+                          onClick={() => {
+                            setViewingOrg(org);
+                            setActiveDetailTab(DEFAULT_ORG_DETAIL_TAB);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => openEditDialog(org)}
                         >
                           <Pencil className="h-4 w-4" />
@@ -644,6 +696,8 @@ export function OrganizationManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   );
 }
