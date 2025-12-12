@@ -24,7 +24,7 @@ import { ROUTES as APP_ROUTES } from "./routes";
 
 const NAV_ROUTES = {
   admin: APP_ROUTES.ADMIN,
-  org: '/org',
+  org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.WORKSPACE,
   account: '/account',
   home: APP_ROUTES.HOME,

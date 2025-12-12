@@ -55,7 +55,7 @@ const App = () => (
               element={<Navigate to="/workspace" replace />}
             />
             <Route
-              path="/org"
+              path={ROUTES.ORG}
               element={
                 <ProtectedRoute>
                   <OrgManager />

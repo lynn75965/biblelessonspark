@@ -23,6 +23,7 @@ export const ROUTES = {
   DASHBOARD: '/dashboard', // Redirects to WORKSPACE
   CREATE_LESSON: '/create',
   MY_LESSONS: '/lessons',
+  ORG: '/org',
   ADMIN: '/admin',
   PREFERENCES_LENS: '/preferences/lens',
   BETA_SIGNUP: '/beta-signup',
