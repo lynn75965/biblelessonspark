@@ -1,40 +1,54 @@
 ﻿/**
  * formatLessonContent.ts
- * 
+ *
  * SINGLE SOURCE OF TRUTH for lesson content HTML formatting.
- * 
+ *
  * This utility converts markdown-style lesson content to formatted HTML.
  * Used by: EnhanceLessonForm, AllLessonsPanel, LessonExportButtons, and any future lesson viewers.
- * 
+ *
  * SSOT Compliance:
  * - One location for all lesson content formatting logic
  * - Any changes here apply everywhere lessons are displayed
  * - Supports potential export from Lovable.dev (pure TypeScript, no dependencies)
- * 
+ *
  * Updated: December 2025
  * - Added formatLessonContentForPrint() for print/export (inline styles)
+ * - Added line ending normalization for cross-platform compatibility
  */
-
 import React from "react";
+
+/**
+ * Normalizes line endings to Unix-style (\n)
+ * Handles Windows (\r\n), old Mac (\r), and mixed formats
+ *
+ * @param text - Raw text that may have mixed line endings
+ * @returns Text with consistent \n line endings
+ */
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
 
 /**
  * Converts markdown-style lesson content to HTML for screen display
  * Uses Tailwind CSS classes for styling
- * 
+ *
  * Handles:
  * - ## headers → <h2> with Tailwind classes
  * - **bold** → <strong>
  * - --- horizontal rules → styled <hr> with Tailwind classes
  * - Bullet character preservation
  * - Line break handling
- * 
+ *
  * @param content - Raw lesson content (original_text from database)
  * @returns HTML string safe for dangerouslySetInnerHTML
  */
 export function formatLessonContentToHtml(content: string | null | undefined): string {
   if (!content) return "";
   
-  return content
+  // Normalize line endings first (handles Windows \r\n, old Mac \r)
+  const normalized = normalizeLineEndings(content);
+  
+  return normalized
     // Convert ## headers to styled h2 elements
     .replace(
       /## (.*?)(?=\n|$)/g,
@@ -58,14 +72,17 @@ export function formatLessonContentToHtml(content: string | null | undefined): s
 /**
  * Converts markdown-style lesson content to HTML for print/export
  * Uses inline styles instead of Tailwind classes for cross-browser print compatibility
- * 
+ *
  * @param content - Raw lesson content (original_text from database)
  * @returns HTML string with inline styles for printing
  */
 export function formatLessonContentForPrint(content: string | null | undefined): string {
   if (!content) return "";
   
-  return content
+  // Normalize line endings first (handles Windows \r\n, old Mac \r)
+  const normalized = normalizeLineEndings(content);
+  
+  return normalized
     // Convert ## headers to h2 with inline styles
     .replace(/## (.*?)(?=\n|$)/g, "<h2>$1</h2>")
     // Convert **bold** to strong elements
@@ -84,9 +101,9 @@ export function formatLessonContentForPrint(content: string | null | undefined):
  */
 export const LESSON_CONTENT_CONTAINER_CLASSES = `
   whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]
-  md:[&::-webkit-scrollbar]:w-4 md:[&::-webkit-scrollbar-track]:bg-gray-200 
-  md:[&::-webkit-scrollbar-track]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-sky-400 
-  md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:border-2 
+  md:[&::-webkit-scrollbar]:w-4 md:[&::-webkit-scrollbar-track]:bg-gray-200
+  md:[&::-webkit-scrollbar-track]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-sky-400
+  md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:border-2
   md:[&::-webkit-scrollbar-thumb]:border-gray-200 hover:md:[&::-webkit-scrollbar-thumb]:bg-sky-500
 `.trim().replace(/\s+/g, ' ');
 
