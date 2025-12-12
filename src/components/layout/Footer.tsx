@@ -1,8 +1,10 @@
-﻿import { Sparkles, Mail } from "lucide-react";
+import { Sparkles, Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { SITE } from "@/config/site";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export function Footer() {
+  const { settings } = useSystemSettings();
   return (
     <footer className="bg-muted py-8 sm:py-10 lg:py-12 mt-auto">
       <div className="container px-4 sm:px-6">
@@ -31,11 +33,13 @@ export function Footer() {
                   Features
                 </a>
               </li>
-              <li>
-                <a href={FOOTER_LINKS.product.pricing} className="hover:text-primary transition-colors">
-                  Pricing
-                </a>
-              </li>
+              {settings.show_pricing && (
+                <li>
+                  <a href={FOOTER_LINKS.product.pricing} className="hover:text-primary transition-colors">
+                    Pricing
+                  </a>
+                </li>
+              )}
               <li>
                 <a href={FOOTER_LINKS.product.setup} className="hover:text-primary transition-colors">
                   Setup Guide
