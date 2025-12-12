@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { MaintenanceWrapper } from "@/components/MaintenanceWrapper";
 import { SecurityAlerts } from "@/components/security/SecurityAlerts";
 import { ROUTES } from "@/constants/routes";
 import Index from "./pages/Index";
@@ -37,7 +38,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <SecurityAlerts />
-        <BrowserRouter>
+        <MaintenanceWrapper><BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
@@ -105,7 +106,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </BrowserRouter></MaintenanceWrapper>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
