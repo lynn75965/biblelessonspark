@@ -36,6 +36,11 @@ import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
+import {
+  formatLessonContentToHtml,
+  LESSON_CONTENT_CONTAINER_CLASSES,
+  LESSON_CONTENT_CONTAINER_STYLES,
+} from "@/utils/formatLessonContent";
 
 // ============================================================================
 // INTERFACES
@@ -1100,25 +1105,13 @@ export function EnhanceLessonForm({
               </div>
             )}
 
-            {/* Lesson Content */}
+            {/* Lesson Content - SSOT: Uses shared formatLessonContentToHtml utility */}
             <div className="prose-sm max-w-none">
               <div
-                className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px] md:[&::-webkit-scrollbar]:w-4 md:[&::-webkit-scrollbar-track]:bg-gray-200 md:[&::-webkit-scrollbar-track]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-sky-400 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:border-2 md:[&::-webkit-scrollbar-thumb]:border-gray-200 hover:md:[&::-webkit-scrollbar-thumb]:bg-sky-500"
-                style={{ lineHeight: "1.3", scrollbarWidth: "thick", scrollbarColor: "#38bdf8 #e5e7eb" }}
+                className={LESSON_CONTENT_CONTAINER_CLASSES}
+                style={LESSON_CONTENT_CONTAINER_STYLES}
                 dangerouslySetInnerHTML={{
-                  __html: (currentLesson.original_text || "")
-                    .replace(
-                      /## (.*?)(?=\n|$)/g,
-                      '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>'
-                    )
-                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                    .replace(
-                      /\n---\n/g,
-                      '<hr class="my-1.5 border-t border-muted-foreground/20">'
-                    )
-                    .replace(/\x95/g, "\x95")
-                    .replace(/\n\n/g, "<br><br>")
-                    .replace(/\n/g, "<br>"),
+                  __html: formatLessonContentToHtml(currentLesson.original_text),
                 }}
               />
             </div>
