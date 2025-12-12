@@ -1,19 +1,12 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
-export interface Lesson {
-  id: string;
-  title: string | null;
-  original_text: string | null;
-  source_type: string;
-  upload_path: string | null;
-  filters: any;
-  created_at: string | null;
-  user_id: string;
-  organization_id: string | null;
-}
+import { Lesson } from "@/constants/contracts";
+
+// Re-export for backward compatibility
+export type { Lesson };
 
 export function useLessons() {
   const [lessons, setLessons] = useState<Lesson[]>([]);

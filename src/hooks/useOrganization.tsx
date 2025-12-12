@@ -1,29 +1,10 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Organization, OrganizationMember } from "@/constants/contracts";
 
-export interface Organization {
-  id: string;
-  name: string;
-  organization_type: string;
-  denomination: string;
-  default_doctrine: string;
-  description?: string;
-  website?: string;
-  address?: string;
-  phone?: string;
-  email?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OrganizationMember {
-  id: string;
-  organization_id: string;
-  user_id: string;
-  role: string;
-  joined_at: string;
-}
+// Re-export for backward compatibility
+export type { Organization, OrganizationMember };
 
 export function useOrganization() {
   const { user } = useAuth();

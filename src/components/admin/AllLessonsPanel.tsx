@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -10,53 +10,45 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { BookOpen, Search, Eye, Calendar, User, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Lesson } from "@/constants/contracts";
+import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CONTENT_CONTAINER_STYLES } from "@/utils/formatLessonContent";
 
 /**
  * SCHEMA VERIFICATION (December 11, 2025):
- * 
- * lessons table columns: id, title, original_text, source_type, upload_path, 
+ *
+ * lessons table columns: id, title, original_text, source_type, upload_path,
  *   filters (jsonb), user_id, organization_id, created_at, updated_at, metadata (jsonb)
- * 
+ *
  * lessons.metadata keys: ageGroup, teaser, wordCount, generatedAt, sectionCount,
  *   anthropicUsage, theologyProfile, generationTimeSeconds, lessonStructureVersion, etc.
- * 
+ *
  * lessons.filters keys: language, age_group, bible_passage, focused_topic,
  *   theology_profile_id, generate_teaser, etc.
- * 
+ *
  * profiles table columns: id, full_name, role, founder_status, organization_id,
  *   organization_role, preferred_age_group, credits_balance, email, beta_participant, etc.
- * 
- * organizations table columns: id, name, organization_type, denomination, 
+ *
+ * organizations table columns: id, name, organization_type, denomination,
  *   default_doctrine, description, status, etc.
- * 
+ *
  * NOTE: No FK between lessons.user_id and profiles.id - must use two queries
  */
 
-interface LessonFilters {
-  bible_passage?: string;
-  age_group?: string;
-  focused_topic?: string;
-  [key: string]: any;
-}
-
-interface LessonMetadata {
-  ageGroup?: string;
-  teaser?: string;
-  wordCount?: number;
-  theologyProfile?: string;
-  [key: string]: any;
-}
-
-interface Lesson {
-  id: string;
-  title: string;
-  original_text: string | null;
-  source_type: string | null;
-  filters: LessonFilters | null;
-  metadata: LessonMetadata | null;
-  created_at: string;
-  user_id: string;
-  organization_id: string | null;
+// Extended type for admin view with organization join
+interface AdminLessonView extends Omit<Lesson, 'filters' | 'metadata'> {
+  filters: {
+    bible_passage?: string;
+    age_group?: string;
+    focused_topic?: string;
+    [key: string]: any;
+  } | null;
+  metadata: {
+    ageGroup?: string;
+    teaser?: string;
+    wordCount?: number;
+    theologyProfile?: string;
+    [key: string]: any;
+  } | null;
   organizations: {
     name: string | null;
   } | null;
@@ -69,14 +61,14 @@ interface ProfileMap {
 }
 
 export function AllLessonsPanel() {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [lessons, setLessons] = useState<AdminLessonView[]>([]);
   const [profileMap, setProfileMap] = useState<ProfileMap>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterOrg, setFilterOrg] = useState<string>("all");
   const [organizations, setOrganizations] = useState<{id: string, name: string}[]>([]);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<AdminLessonView | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
 
   // Two-query approach: No FK between lessons and profiles
@@ -84,7 +76,7 @@ export function AllLessonsPanel() {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         // Query 1: Fetch lessons with organizations (FK exists for organization_id)
         const { data: lessonsData, error: lessonsError } = await supabase
@@ -111,13 +103,13 @@ export function AllLessonsPanel() {
           return;
         }
 
-        const fetchedLessons = (lessonsData as Lesson[]) || [];
+        const fetchedLessons = (lessonsData as AdminLessonView[]) || [];
         setLessons(fetchedLessons);
         console.log('Lessons fetched:', fetchedLessons.length);
 
         // Query 2: Fetch profiles for all unique user_ids (separate query - no FK)
         const uniqueUserIds = [...new Set(fetchedLessons.map(l => l.user_id).filter(Boolean))];
-        
+
         if (uniqueUserIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
@@ -162,22 +154,22 @@ export function AllLessonsPanel() {
   }, []);
 
   // Helper functions using VERIFIED JSONB keys
-  const getScripture = (lesson: Lesson): string => {
+  const getScripture = (lesson: AdminLessonView): string => {
     // Actual key is filters.bible_passage
     return lesson.filters?.bible_passage || 'N/A';
   };
 
-  const getAgeGroup = (lesson: Lesson): string => {
+  const getAgeGroup = (lesson: AdminLessonView): string => {
     // metadata uses camelCase: ageGroup, filters uses snake_case: age_group
     return lesson.metadata?.ageGroup || lesson.filters?.age_group || 'N/A';
   };
 
-  const getDisplayTitle = (lesson: Lesson): string => {
+  const getDisplayTitle = (lesson: AdminLessonView): string => {
     // Use title column, fallback to focused_topic from filters
     return lesson.title || lesson.filters?.focused_topic || 'Untitled';
   };
 
-  const getUserDisplay = (lesson: Lesson): string => {
+  const getUserDisplay = (lesson: AdminLessonView): string => {
     const profile = profileMap[lesson.user_id];
     return profile?.full_name || 'Unknown';
   };
@@ -187,20 +179,20 @@ export function AllLessonsPanel() {
     const displayTitle = getDisplayTitle(lesson);
     const scripture = getScripture(lesson);
     const userName = getUserDisplay(lesson);
-    
-    const matchesSearch = 
+
+    const matchesSearch =
       displayTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
       scripture.toLowerCase().includes(searchTerm.toLowerCase()) ||
       userName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesOrg = filterOrg === "all" || 
+
+    const matchesOrg = filterOrg === "all" ||
       (filterOrg === "none" && !lesson.organization_id) ||
       lesson.organization_id === filterOrg;
 
     return matchesSearch && matchesOrg;
   });
 
-  const handleViewLesson = (lesson: Lesson) => {
+  const handleViewLesson = (lesson: AdminLessonView) => {
     setSelectedLesson(lesson);
     setShowViewModal(true);
   };
@@ -313,7 +305,7 @@ export function AllLessonsPanel() {
                     <TableCell className="hidden sm:table-cell">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        {format(new Date(lesson.created_at), 'MMM d, yyyy')}
+                        {format(new Date(lesson.created_at || ''), 'MMM d, yyyy')}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -363,20 +355,21 @@ export function AllLessonsPanel() {
                   </div>
                   <div>
                     <span className="font-medium">Created:</span>{' '}
-                    {format(new Date(selectedLesson.created_at), 'PPP')}
+                    {format(new Date(selectedLesson.created_at || ''), 'PPP')}
                   </div>
                   <div>
                     <span className="font-medium">Source:</span>{' '}
                     {selectedLesson.source_type || 'N/A'}
                   </div>
                 </div>
-                
+
                 <div className="border-t pt-4">
                   <h4 className="font-medium mb-2">Lesson Content:</h4>
                   {selectedLesson.original_text ? (
-                    <div 
-                      className="prose prose-sm max-w-none dark:prose-invert"
-                      dangerouslySetInnerHTML={{ __html: selectedLesson.original_text }}
+                    <div
+                      className={LESSON_CONTENT_CONTAINER_CLASSES}
+                      style={LESSON_CONTENT_CONTAINER_STYLES}
+                      dangerouslySetInnerHTML={{ __html: formatLessonContentToHtml(selectedLesson.original_text) }}
                     />
                   ) : (
                     <p className="text-muted-foreground italic">
