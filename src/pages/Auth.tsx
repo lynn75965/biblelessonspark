@@ -14,7 +14,8 @@ import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
 import { SITE } from '@/config/site';
 import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
-import { getUIConfig } from '@/constants/programConfig';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
+import { isBetaMode } from '@/constants/systemSettings';
 import { LegalModal } from '@/components/LegalModal';
 
 export default function Auth() {
@@ -22,9 +23,9 @@ export default function Auth() {
   const inviteToken = searchParams.get('invite');
   
   // Get UI config from SSOT
-  const uiConfig = getUIConfig();
+  
   const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl === 'signin' || tabFromUrl === 'signup' ? tabFromUrl : uiConfig.authDefaultTab);
+  const [activeTab, setActiveTab] = useState(tabFromUrl === 'signin' || tabFromUrl === 'signup' ? tabFromUrl : 'signup');
   const [isLoading, setIsLoading] = useState(false);
   const [inviterName, setInviterName] = useState<string>('');
   const [showSignInPassword, setShowSignInPassword] = useState(false);

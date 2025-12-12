@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, MessageSquare, Gift, Newspaper, Users, TrendingUp, Rocket, ExternalLink, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
+import { PROGRAM_CONFIG } from "@/constants/programConfig";
+import { isBetaMode, getPhaseDisplayLabel } from "@/constants/systemSettings";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 interface FeedbackEntry {
   id: string;
@@ -37,6 +39,7 @@ export function BetaHubModal({
   onNavigateToAnalytics 
 }: BetaHubModalProps) {
   const { user } = useAuth();
+  const { settings } = useSystemSettings();
   const [feedbackCount, setFeedbackCount] = useState(0);
   const [averageRating, setAverageRating] = useState<number | null>(null);
   const [totalLessons, setTotalLessons] = useState(0);
@@ -106,11 +109,11 @@ export function BetaHubModal({
   };
 
   const renderStars = (rating: number) => {
-    return "★".repeat(rating) + "☆".repeat(5 - rating);
+    return "?".repeat(rating) + "?".repeat(5 - rating);
   };
 
-  const title = isBetaMode() ? "Private Beta Hub" : PROGRAM_CONFIG.production.adminHubTitle;
-  const description = isBetaMode() 
+  const title = isBetaMode(settings.current_phase as string) ? "Private Beta Hub" : PROGRAM_CONFIG.production.adminHubTitle;
+  const description = isBetaMode(settings.current_phase as string) 
     ? "Managing the beta program and tester feedback" 
     : "Platform administration and analytics";
 
@@ -161,15 +164,15 @@ export function BetaHubModal({
           )}
 
           {/* Beta-specific content */}
-          {isBetaMode() && (
+          {isBetaMode(settings.current_phase as string) && (
             <>
               {/* Phase indicator */}
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">{PROGRAM_CONFIG.beta.currentPhase}</span>
+                  <span className="text-sm font-medium">{getPhaseDisplayLabel(settings.current_phase as string)}</span>
                 </div>
-                <Badge variant="outline">Target: {PROGRAM_CONFIG.beta.targetLaunch}</Badge>
+                <Badge variant="outline">Target: {settings.target_launch}</Badge>
               </div>
 
               {/* Beta Benefits */}
@@ -182,7 +185,7 @@ export function BetaHubModal({
                   <ul className="text-sm space-y-2 text-muted-foreground">
                     {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-primary">•</span>
+                        <span className="text-primary">�</span>
                         {benefit}
                       </li>
                     ))}
@@ -260,11 +263,11 @@ export function BetaHubModal({
               <div className="flex items-center gap-2 mb-3">
                 <Newspaper className="h-4 w-4 text-primary" />
                 <h3 className="font-semibold text-sm">
-                  {isBetaMode() ? "Recent Updates" : "Changelog"}
+                  {isBetaMode(settings.current_phase as string) ? "Recent Updates" : "Changelog"}
                 </h3>
               </div>
               <ul className="text-sm space-y-2 text-muted-foreground">
-                {(isBetaMode() ? PROGRAM_CONFIG.beta.recentUpdates : PROGRAM_CONFIG.production.recentUpdates).map((update, index) => (
+                {(isBetaMode(settings.current_phase as string) ? PROGRAM_CONFIG.beta.recentUpdates : PROGRAM_CONFIG.production.recentUpdates).map((update, index) => (
                   <li key={index} className="flex items-start gap-2">
                     <Badge variant="outline" className="text-xs shrink-0">{update.date}</Badge>
                     <span>{update.text}</span>

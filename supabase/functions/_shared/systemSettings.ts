@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/systemSettings.ts
- * Generated: 2025-12-12T15:48:58.071Z
+ * Generated: 2025-12-12T17:28:06.256Z
  */
 ﻿// =====================================================
 // SYSTEM SETTINGS - Single Source of Truth
@@ -59,27 +59,19 @@ export type SettingType = typeof SETTING_TYPES[keyof typeof SETTING_TYPES];
 // -----------------------------------------------------
 export const SYSTEM_SETTINGS = {
   // === PROGRAM CATEGORY ===
-  program_status: {
-    key: 'program_status',
-    category: 'program',
-    type: 'select',
-    label: 'Program Status',
-    description: 'Controls beta-specific UI and behavior across the platform',
-    options: [
-      { value: 'beta', label: 'Beta Mode' },
-      { value: 'production', label: 'Production Mode' },
-    ],
-    defaultValue: 'beta',
-    order: 1,
-  },
   current_phase: {
     key: 'current_phase',
     category: 'program',
-    type: 'text',
-    label: 'Current Phase',
-    description: 'Displayed in beta UI (e.g., "Private Beta", "Public Beta")',
-    defaultValue: 'Private Beta',
-    order: 2,
+    type: 'select',
+    label: 'Platform Mode',
+    description: 'Controls platform behavior and display across the application',
+    options: [
+      { value: 'private_beta', label: 'Private Beta' },
+      { value: 'public_beta', label: 'Public Beta' },
+      { value: 'production', label: 'Production' },
+    ],
+    defaultValue: 'private_beta',
+    order: 1,
   },
   target_launch: {
     key: 'target_launch',
@@ -88,7 +80,7 @@ export const SYSTEM_SETTINGS = {
     label: 'Target Launch',
     description: 'Target launch date shown to beta users',
     defaultValue: 'Q1 2026',
-    order: 3,
+    order: 2,
   },
 
   // === VISIBILITY CATEGORY ===
@@ -175,3 +167,17 @@ export function isValidValue(key: SettingKey, value: unknown): boolean {
 }
 
 export const VALID_SETTING_KEYS = Object.keys(SYSTEM_SETTINGS) as SettingKey[];
+
+// -----------------------------------------------------
+// BEHAVIOR HELPERS
+// -----------------------------------------------------
+
+export function isBetaMode(currentPhase: string): boolean {
+  return currentPhase === 'private_beta' || currentPhase === 'public_beta';
+}
+
+export function getPhaseDisplayLabel(currentPhase: string): string {
+  const setting = SYSTEM_SETTINGS.current_phase;
+  const option = setting.options.find(opt => opt.value === currentPhase);
+  return option?.label || 'Unknown';
+}

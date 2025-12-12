@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
-import { getUIConfig } from "@/constants/programConfig";
+
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -30,7 +30,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
   const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
   
   // Get UI config from SSOT
-  const uiConfig = getUIConfig();
+  
 
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
@@ -135,7 +135,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
             </>
           ) : (
             <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={onAuthClick || (() => window.location.href = '/auth')}>
-              {uiConfig.headerButtonText}
+              Sign In
             </Button>
           )}
         </div>

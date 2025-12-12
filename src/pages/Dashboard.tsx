@@ -1,7 +1,7 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { getUIConfig } from "@/constants/programConfig";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
@@ -37,7 +37,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { balance, loading: creditsLoading } = useCredits();
-  const uiConfig = getUIConfig();
+  const { settings } = useSystemSettings();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -138,7 +138,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {uiConfig.showCreditsBlock && <CreditsDisplay balance={balance} loading={creditsLoading} />}
+          {settings.show_credits_block && <CreditsDisplay balance={balance} loading={creditsLoading} />}
         </div>
 
         {/* Stats Cards - Personal Only */}

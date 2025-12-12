@@ -18,7 +18,8 @@ import { OrganizationManagement } from "@/components/admin/OrganizationManagemen
 import { SystemSettingsPanel } from "@/components/admin/SystemSettingsPanel";
 import { useToast } from "@/hooks/use-toast";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
+import { PROGRAM_CONFIG } from "@/constants/programConfig";
+import { isBetaMode } from "@/constants/systemSettings";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -264,7 +265,7 @@ export default function Admin() {
                         Monitor beta testers, feedback, and program progress
                       </CardDescription>
                     </div>
-                    {isBetaMode() && (
+                    {isBetaMode(settings.current_phase as string) && (
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{settings.current_phase}</Badge>
                         <Badge variant="secondary">Target: {settings.target_launch}</Badge>
@@ -298,7 +299,7 @@ export default function Admin() {
                   </div>
 
                   {/* Beta Benefits */}
-                  {isBetaMode() && (
+                  {isBetaMode(settings.current_phase as string) && (
                     <div className="p-4 border rounded-lg">
                       <h4 className="font-semibold mb-2 flex items-center gap-2">
                         <Gift className="h-4 w-4 text-primary" />

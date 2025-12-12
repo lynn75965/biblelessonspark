@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
-import { getUIConfig } from "@/constants/programConfig";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 // SSOT Imports
 import { getEffectiveRole } from "@/constants/accessControl";
@@ -39,7 +39,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
   const displayName = user?.user_metadata?.full_name || userEmail?.split('@')[0] || 'User';
-  const uiConfig = getUIConfig();
+  const { settings } = useSystemSettings();
 
   // Determine effective role and get navigation items
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
@@ -154,13 +154,13 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
             </>
           ) : (
             <>
-              {uiConfig.showJoinBetaButton && (
+              {settings.show_join_beta_button && (
                 <Button variant="ghost" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-2 sm:px-3" onClick={() => window.location.href = '/auth?tab=signin'}>
                   Sign In
                 </Button>
               )}
-              <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={() => window.location.href = uiConfig.showJoinBetaButton ? '/auth?tab=signup' : '/auth'}>
-                {uiConfig.showJoinBetaButton ? uiConfig.joinBetaButtonText : uiConfig.headerButtonText}
+              <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={() => window.location.href = settings.show_join_beta_button ? '/auth?tab=signup' : '/auth'}>
+                {settings.show_join_beta_button ? "Join Beta" : "Sign In"}
               </Button>
             </>
           )}
