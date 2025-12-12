@@ -16,17 +16,18 @@
 
 import { Shield, Building2, LayoutDashboard, Settings, LogOut } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
+import { ROUTES as APP_ROUTES } from "./routes";
 
 // =============================================================================
 // ROUTE DEFINITIONS
 // =============================================================================
 
-export const ROUTES = {
-  admin: '/admin',
+const NAV_ROUTES = {
+  admin: APP_ROUTES.ADMIN,
   org: '/org',
-  workspace: '/workspace',
+  workspace: APP_ROUTES.WORKSPACE,
   account: '/account',
-  home: '/',
+  home: APP_ROUTES.HOME,
 } as const;
 
 // =============================================================================
@@ -137,5 +138,7 @@ export const canAccessNavItem = (role: Role, itemId: string): boolean => {
   const allowedItems = MENU_BY_ROLE[role] || [];
   return allowedItems.includes(itemId);
 };
+
+
 
 
