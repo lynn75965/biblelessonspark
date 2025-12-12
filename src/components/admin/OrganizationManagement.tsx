@@ -17,6 +17,7 @@ import { ORG_ROLES } from "@/constants/accessControl";
 import { ORGANIZATION_VALIDATION, DENOMINATION_OPTIONS } from "@/constants/validation";
 import { Organization } from "@/constants/contracts";
 import { ORG_DETAIL_TABS, OrgDetailTabKey, DEFAULT_ORG_DETAIL_TAB } from "@/constants/orgManagerConfig";
+import { OrgDetailView } from "./OrgDetailView";
 
 // Organization type imported from @/constants/contracts
 
@@ -344,39 +345,15 @@ export function OrganizationManagement() {
   return (
     <div className="space-y-6">
       {viewingOrg ? (
-        /* Drill-Down Detail View */
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setViewingOrg(null);
-                  setActiveDetailTab(DEFAULT_ORG_DETAIL_TAB);
-                }}
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Organizations
-              </Button>
-            </div>
-            <CardTitle className="flex items-center gap-2 mt-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              {viewingOrg.name}
-            </CardTitle>
-            <CardDescription>
-              {viewingOrg.denomination || "No denomination specified"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Sub-tabs will be added in 13.9.2 */}
-            <div className="text-muted-foreground text-sm">
-              Organization detail view - Phase 13.9.2 will add sub-tabs here.
-              <br />
-              Active tab: {activeDetailTab}
-            </div>
-          </CardContent>
-        </Card>
+        <OrgDetailView
+          organization={viewingOrg}
+          activeTab={activeDetailTab}
+          onTabChange={setActiveDetailTab}
+          onBack={() => {
+            setViewingOrg(null);
+            setActiveDetailTab(DEFAULT_ORG_DETAIL_TAB);
+          }}
+        />
       ) : (
         <>
           {/* Header */}
