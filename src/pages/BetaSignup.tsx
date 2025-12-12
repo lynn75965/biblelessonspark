@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AGE_GROUPS } from "@/constants/ageGroups";
+import { THEOLOGY_PROFILE_OPTIONS } from "@/constants/theologyProfiles";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -198,10 +199,9 @@ const BetaSignup = () => {
                     <SelectValue placeholder="Select theological perspective" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sbc_1963">Southern Baptist Convention (SBC BF&M 1963)</SelectItem>
-                    <SelectItem value="sbc_2000">Southern Baptist Convention (SBC BF&M 2000)</SelectItem>
-                    <SelectItem value="reformed">Reformed Baptist</SelectItem>
-                    <SelectItem value="independent">Independent Baptist</SelectItem>
+                    {THEOLOGY_PROFILE_OPTIONS.map((tp) => (
+                      <SelectItem key={tp.id} value={tp.id}>{tp.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
