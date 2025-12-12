@@ -17,6 +17,7 @@ import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { SystemSettingsPanel } from "@/components/admin/SystemSettingsPanel";
 import { useToast } from "@/hooks/use-toast";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 
 // Mobile responsiveness fixes (December 4, 2025)
@@ -29,6 +30,7 @@ export default function Admin() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { settings } = useSystemSettings();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [betaStats, setBetaStats] = useState({
@@ -264,8 +266,8 @@ export default function Admin() {
                     </div>
                     {isBetaMode() && (
                       <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">{PROGRAM_CONFIG.beta.currentPhase}</Badge>
-                        <Badge variant="secondary">Target: {PROGRAM_CONFIG.beta.targetLaunch}</Badge>
+                        <Badge variant="outline">{settings.current_phase}</Badge>
+                        <Badge variant="secondary">Target: {settings.target_launch}</Badge>
                       </div>
                     )}
                   </div>
