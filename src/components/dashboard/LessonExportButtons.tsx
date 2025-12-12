@@ -1,3 +1,14 @@
+﻿/**
+ * LessonExportButtons Component
+ * Export buttons for lessons: Copy, Print, PDF, DOCX
+ * 
+ * SSOT Compliance:
+ * - formatLessonContentForPrint imported from @/utils/formatLessonContent (shared utility)
+ * - No inline formatting logic - all formatting centralized in utility
+ * 
+ * Updated: December 2025
+ */
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -6,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { exportToPdf } from "@/utils/exportToPdf";
 import { exportToDocx } from "@/utils/exportToDocx";
 import { EXPORT_FORMATTING } from "@/constants/lessonStructure";
+import { formatLessonContentForPrint } from "@/utils/formatLessonContent";
 
 interface LessonData {
   title: string;
@@ -42,11 +54,10 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     const metaItems: string[] = [lesson.title];
     if (lesson.metadata?.ageGroup) metaItems.push(lesson.metadata.ageGroup);
     if (lesson.metadata?.theologyProfile) metaItems.push(lesson.metadata.theologyProfile);
-    const formattedContent = lesson.original_text
-      .replace(/## (.*?)(?=\n|$)/g, "<h2>$1</h2>")
-      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-      .replace(/\n---\n/g, '<hr style="margin:18px 0">')
-      .replace(/\n/g, "<br>");
+    
+    // SSOT: Use shared formatting utility for print
+    const formattedContent = formatLessonContentForPrint(lesson.original_text);
+    
     const lessonTitleMatch = lesson.original_text.match(/Lesson Title:?\s*[""]?(.+?)[""]?\s*(?:\n|$)/i);
     const documentTitle = lessonTitleMatch ? lessonTitleMatch[1].replace(/[""\*]/g, "").trim() : lesson.title;
     const printContent = `<!DOCTYPE html><html><head><title>${documentTitle}</title><style>@page{margin:1in}body{font-family:Calibri,sans-serif;font-size:11pt;line-height:1.5;max-width:8.5in;margin:0 auto;padding:0}h1{font-size:18pt;margin-bottom:12pt;line-height:1.3}h2{font-size:14pt;margin-top:18pt;margin-bottom:12pt;line-height:1.3}hr{margin:18px 0;border:none;border-top:1px solid #ccc}.metadata{color:#666;font-size:10pt;margin-bottom:18pt;line-height:1.3}.teaser-box{background:#F0F7FF;border:1px solid #3B82F6;border-radius:8px;padding:12pt;margin:18pt 0}.teaser-box h3{color:#3B82F6;margin:0 0 6pt 0;font-size:12pt}.teaser-box p{font-style:italic;margin:0;line-height:1.5}p{margin-bottom:12pt}</style></head><body><h1>${documentTitle}</h1><div class="metadata">${metaItems.join(" | ")}</div>${lesson.metadata?.teaser ? `<div class="teaser-box"><h3>${EXPORT_FORMATTING.teaserLabel}</h3><p>${lesson.metadata.teaser}</p></div>` : ""}<div>${formattedContent}</div></body></html>`;
@@ -107,5 +118,3 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     </div>
   );
 }
-
-
