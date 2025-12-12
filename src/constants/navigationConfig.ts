@@ -24,7 +24,7 @@ import { ROLES, Role } from "./accessControl";
 export const ROUTES = {
   admin: '/admin',
   org: '/org',
-  workspace: '/dashboard', // Will become /workspace after refactor
+  workspace: '/workspace',
   account: '/account',
   home: '/',
 } as const;
@@ -46,7 +46,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   adminPanel: {
     id: 'adminPanel',
     label: 'Administrator Panel',
-    route: ROUTES.admin,
+    route: NAV_ROUTES.admin,
     icon: Shield,
     description: 'Platform-wide administration',
     dividerAfter: false,
@@ -54,7 +54,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   orgManager: {
     id: 'orgManager',
     label: 'Organization Manager',
-    route: ROUTES.org,
+    route: NAV_ROUTES.org,
     icon: Building2,
     description: 'Manage your organization',
     dividerAfter: false,
@@ -62,7 +62,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   workspace: {
     id: 'workspace',
     label: 'My Workspace',
-    route: ROUTES.workspace,
+    route: NAV_ROUTES.workspace,
     icon: LayoutDashboard,
     description: 'Your personal lessons',
     dividerAfter: true,
@@ -70,7 +70,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   settings: {
     id: 'settings',
     label: 'Settings',
-    route: ROUTES.account,
+    route: NAV_ROUTES.account,
     icon: Settings,
     description: 'Account settings',
     dividerAfter: true,
@@ -137,3 +137,5 @@ export const canAccessNavItem = (role: Role, itemId: string): boolean => {
   const allowedItems = MENU_BY_ROLE[role] || [];
   return allowedItems.includes(itemId);
 };
+
+

@@ -19,7 +19,8 @@ export const ROUTES = {
   COMMUNITY: '/community',
   
   // Protected routes
-  DASHBOARD: '/dashboard',
+  WORKSPACE: '/workspace',
+  DASHBOARD: '/dashboard', // Redirects to WORKSPACE
   CREATE_LESSON: '/create',
   MY_LESSONS: '/lessons',
   ADMIN: '/admin',
@@ -54,3 +55,4 @@ export const buildInviteUrl = (baseUrl: string, token: string): string => {
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
+
