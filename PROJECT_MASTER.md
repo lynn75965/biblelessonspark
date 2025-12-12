@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-10
-**Current Phase:** Phase 12.10 Complete (Security Advisor Fixes)
+**Last Updated:** 2025-12-12
+**Current Phase:** Phase 13 (SSOT Compliance Complete)
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
 
@@ -640,7 +640,7 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 12.10 Complete (Security Advisor Fixes)
+**Current Phase:** Phase 13 (SSOT Compliance Complete)
 **Overall Completion:** ~97% (Core product + feedback + security ready)
 **Production Readiness:** Beta (Individual users, no payment)
 
@@ -1095,6 +1095,82 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 - `profiles` table now includes `email` column (synced automatically from auth.users)
 - Frontend/backend code should reference `profiles.email`, not `auth.users.email`
 - Email sync is automatic via database trigger (no code changes needed)
+
+### Session 15: SSOT Compliance Audit & Lesson Formatting (December 11-12, 2025) - COMPLETE
+
+**Objective:** Comprehensive audit and remediation of SSOT violations across codebase
+
+**SSOT Violations Found & Fixed:**
+
+| Violation Type | Files Affected | Resolution |
+|----------------|----------------|------------|
+| Duplicate type definitions | 4 files | Centralized in contracts.ts |
+| Hardcoded theology options | 3 files | Import from theologyProfiles.ts |
+| Hardcoded age groups | 2 files | Import from ageGroups.ts |
+| Duplicate formatting logic | 2 files | Centralized in formatLessonContent.ts |
+
+**New SSOT Source Files Created:**
+
+| File | Purpose | Consumers |
+|------|---------|-----------|
+| src/constants/contracts.ts | Type definitions (Lesson, Organization, OrganizationMember) | useLessons, useOrganization, AllLessonsPanel, OrganizationManagement |
+| src/utils/formatLessonContent.ts | Lesson content HTML formatting | AllLessonsPanel, LessonExportButtons, EnhanceLessonForm |
+
+**formatLessonContent.ts Exports:**
+
+| Export | Purpose |
+|--------|---------|
+| formatLessonContentToHtml() | Convert markdown to HTML (screen display) |
+| formatLessonContentForPrint() | Convert markdown to HTML (print/export) |
+| LESSON_CONTENT_CONTAINER_CLASSES | Tailwind classes for content wrapper |
+| LESSON_CONTENT_CONTAINER_STYLES | Inline styles for scrollbar customization |
+
+**Key Features of formatLessonContent.ts:**
+- Normalizes line endings (Windows \r\n to Unix \n)
+- Pre-processes AI content lacking line breaks
+- Converts ## headers, **bold**, --- rules to HTML
+- Supports both screen display (Tailwind) and print (inline styles)
+
+**Commits (8 total):**
+
+| Commit | Description |
+|--------|-------------|
+| e5b0d9d | Centralize lesson formatting in shared utility |
+| f588951 | Organization components use THEOLOGY_PROFILE_OPTIONS |
+| 8aa26f4 | Age groups use AGE_GROUPS constant |
+| 06a7639 | BetaSignup uses THEOLOGY_PROFILE_OPTIONS |
+| 93e21b5 | OrganizationManagement imports Organization from contracts |
+| 9442183 | Add line ending normalization to lesson formatting |
+| b83113d | Handle AI content lacking line breaks |
+| 6e6b384 | Apply lesson content container classes and type imports |
+
+**Files Modified (10 total):**
+- src/constants/contracts.ts
+- src/utils/formatLessonContent.ts
+- src/hooks/useLessons.tsx
+- src/hooks/useOrganization.tsx
+- src/components/admin/AllLessonsPanel.tsx
+- src/components/admin/OrganizationManagement.tsx
+- src/components/dashboard/LessonExportButtons.tsx
+- src/components/dashboard/OrganizationSettingsModal.tsx
+- src/components/organization/OrganizationSetup.tsx
+- src/pages/BetaSignup.tsx
+
+**Deployment Architecture Confirmed:**
+
+| Stage | System |
+|-------|--------|
+| Local Development | C:\Users\Lynn\lesson-spark-usa |
+| Version Control | GitHub (lynn75965/lesson-spark-usa) |
+| Deployment | Netlify (automatic from main branch) |
+| Production | lessonsparkusa.com |
+
+**CRITICAL:** DO NOT use Lovable.dev for deployment or editing - causes unauthorized code modifications.
+
+**Lesson Learned:**
+- Always run git status after modifications to verify all files are staged
+- Never assume code is deployed without checking Netlify dashboard
+- Include verification commands after every change
 
 ---
 
