@@ -15,19 +15,9 @@ import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil } from "lucide-re
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
 import { ORGANIZATION_VALIDATION, DENOMINATION_OPTIONS } from "@/constants/validation";
+import { Organization } from "@/constants/contracts";
 
-interface Organization {
-  id: string;
-  name: string;
-  status: string;
-  denomination: string | null;
-  description: string | null;
-  created_at: string;
-  created_by: string;
-  requested_by: string | null;
-  approved_by: string | null;
-  approved_at: string | null;
-}
+// Organization type imported from @/constants/contracts
 
 interface UserProfile {
   id: string;
