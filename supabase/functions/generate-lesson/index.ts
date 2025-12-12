@@ -8,6 +8,7 @@ import { BIBLE_VERSIONS, generateCopyrightGuardrails, getDefaultBibleVersion } f
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
+import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
@@ -214,6 +215,31 @@ serve(async (req) => {
     }
 
     checkpoint = logTiming('Auth completed', checkpoint);
+
+    // Capture metrics - SSOT functions from generationMetrics.ts
+    const userAgent = req.headers.get('user-agent') || '';
+    const deviceType = parseDeviceType(userAgent);
+    const browser = parseBrowser(userAgent);
+    const os = parseOS(userAgent);
+    
+    // Insert started metric
+    const { data: metricRecord } = await supabase
+      .from('generation_metrics')
+      .insert({
+        user_id: user.id,
+        user_agent: userAgent,
+        device_type: deviceType,
+        browser: browser,
+        os: os,
+        generation_start: new Date().toISOString(),
+        tier_requested: 'full',
+        sections_requested: 8,
+        status: 'started'
+      })
+      .select('id')
+      .single();
+    
+    const metricId = metricRecord?.id;
 
     const requestData = await req.json();
 
@@ -580,6 +606,21 @@ INSTRUCTIONS:
 
       console.log('Lesson saved:', lesson.id);
 
+      // Update metric to completed
+      if (metricId) {
+        await supabase
+          .from('generation_metrics')
+          .update({
+            lesson_id: lesson.id,
+            organization_id: lesson.organization_id,
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - functionStartTime,
+            sections_generated: totalSections,
+            status: 'completed'
+          })
+          .eq('id', metricId);
+      }
+
       return new Response(JSON.stringify({
         success: true,
         lesson,
@@ -593,6 +634,18 @@ INSTRUCTIONS:
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
         console.error('Anthropic API timeout after 120 seconds');
+        // Update metric to timeout
+        if (metricId) {
+          await supabase
+            .from('generation_metrics')
+            .update({
+              generation_end: new Date().toISOString(),
+              generation_duration_ms: Date.now() - functionStartTime,
+              status: 'timeout',
+              error_message: 'Anthropic API timeout after 120 seconds'
+            })
+            .eq('id', metricId);
+        }
         throw new Error('Lesson generation timed out. Please try again.');
       }
       throw fetchError;
@@ -601,6 +654,19 @@ INSTRUCTIONS:
   } catch (error) {
     logTiming('ERROR occurred at', functionStartTime);
     console.error('Error in generate-lesson:', error);
+    
+    // Update metric to error
+    if (typeof metricId !== 'undefined' && metricId) {
+      await supabase
+        .from('generation_metrics')
+        .update({
+          generation_end: new Date().toISOString(),
+          generation_duration_ms: Date.now() - functionStartTime,
+          status: 'error',
+          error_message: error.message || 'Unknown error'
+        })
+        .eq('id', metricId);
+    }
 
     return new Response(JSON.stringify({
       error: error.message || 'An unexpected error occurred',
@@ -611,3 +677,8 @@ INSTRUCTIONS:
     });
   }
 });
+
+
+
+
+
