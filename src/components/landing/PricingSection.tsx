@@ -89,7 +89,7 @@ export function PricingSection() {
   };
 
   return (
-    <section className="py-10 sm:py-16 lg:py-20">
+    <section id="pricing" className="py-10 sm:py-16 lg:py-20">
       <div className="container px-4 sm:px-6">
         <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-12 lg:mb-16">
           <Badge variant="outline" className="px-3 py-1 text-xs sm:text-sm">
