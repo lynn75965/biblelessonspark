@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,17 +8,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Loader2 } from "lucide-react";
+import { THEOLOGY_PROFILE_OPTIONS } from "@/constants/theologyProfiles";
 
 interface OrganizationSettingsModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const DOCTRINE_OPTIONS = [
-  { value: "SBC", label: "Southern Baptist Convention" },
-  { value: "Reformed Baptist", label: "Reformed Baptist" },
-  { value: "Independent Baptist", label: "Independent Baptist" }
-];
+// SSOT: Map theology profile options to Select component format
+const DOCTRINE_OPTIONS = THEOLOGY_PROFILE_OPTIONS.map(profile => ({
+  value: profile.id,
+  label: profile.name
+}));
 
 
 export function OrganizationSettingsModal({
@@ -31,7 +32,7 @@ export function OrganizationSettingsModal({
 
   const [formData, setFormData] = useState(() => ({
     name: organization?.name || "",
-    default_doctrine: organization?.default_doctrine || "SBC",
+    default_doctrine: organization?.default_doctrine || "sbc-bfm-2000",
     description: organization?.description || "",
     website: organization?.website || "",
     address: organization?.address || "",
@@ -44,7 +45,7 @@ export function OrganizationSettingsModal({
     if (organization) {
       setFormData({
         name: organization.name || "",
-        default_doctrine: organization.default_doctrine || "SBC",
+        default_doctrine: organization.default_doctrine || "sbc-bfm-2000",
         description: organization.description || "",
         website: organization.website || "",
         address: organization.address || "",
@@ -71,12 +72,12 @@ export function OrganizationSettingsModal({
     setLoading(true);
     try {
       await updateOrganization(formData);
-      
+
       toast({
         title: "Settings Updated",
         description: "Organization settings have been successfully updated.",
       });
-      
+
       onOpenChange(false);
     } catch (error: any) {
       toast({
@@ -95,11 +96,11 @@ export function OrganizationSettingsModal({
         <DialogHeader>
           <DialogTitle>Organization Settings</DialogTitle>
           <DialogDescription>
-            Configure your organization's settings and preferences. 
+            Configure your organization's settings and preferences.
             {!isAdmin && " (View only - contact an administrator to make changes)"}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
           <div className="grid gap-2">
             <Label htmlFor="name">Organization Name</Label>
@@ -113,8 +114,8 @@ export function OrganizationSettingsModal({
 
           <div className="grid gap-2">
             <Label htmlFor="doctrine">Default Doctrine</Label>
-            <Select 
-              value={formData.default_doctrine} 
+            <Select
+              value={formData.default_doctrine}
               onValueChange={(value) => handleInputChange("default_doctrine", value)}
               disabled={!isAdmin}
             >
@@ -189,10 +190,10 @@ export function OrganizationSettingsModal({
             />
           </div>
         </div>
-        
+
         <div className="flex justify-end gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >

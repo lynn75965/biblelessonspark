@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Loader2, Building, Users, User } from "lucide-react";
+import { THEOLOGY_PROFILE_OPTIONS } from "@/constants/theologyProfiles";
 
 interface OrganizationSetupProps {
   open: boolean;
@@ -36,16 +37,11 @@ const DENOMINATIONS = [
   { value: "Other", label: "Other" }
 ];
 
-const DOCTRINE_OPTIONS = [
-  { value: "SBC", label: "Southern Baptist Convention" },
-  { value: "Reformed Baptist", label: "Reformed Baptist" },
-  { value: "Independent Baptist", label: "Independent Baptist" },
-  { value: "Methodist", label: "Methodist" },
-  { value: "Presbyterian", label: "Presbyterian" },
-  { value: "Lutheran", label: "Lutheran" },
-  { value: "Pentecostal", label: "Pentecostal" },
-  { value: "Non-denominational", label: "Non-denominational" }
-];
+// SSOT: Map theology profile options to Select component format
+const DOCTRINE_OPTIONS = THEOLOGY_PROFILE_OPTIONS.map(profile => ({
+  value: profile.id,
+  label: profile.name
+}));
 
 
 export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationSetupProps) {
@@ -65,7 +61,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
     name: "",
     organization_type: "church",
     denomination: "Baptist",
-    default_doctrine: "SBC",
+    default_doctrine: "sbc-bfm-2000",
     description: "",
     website: "",
     address: "",
@@ -97,7 +93,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
       onComplete();
     } catch (error: any) {
       console.error('Error creating organization:', error);
-      
+
       // Provide specific error message for authentication issues
       let errorMessage = error.message || "Failed to create organization";
       if (error.message?.includes('Authentication session')) {
@@ -105,7 +101,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
       } else if (error.message?.includes('row-level security policy')) {
         errorMessage = "Authentication error. Please try logging out and back in.";
       }
-      
+
       toast({
         title: "Error",
         description: errorMessage,
@@ -146,8 +142,8 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
   };
 
   return (
-    <Dialog 
-      open={internalOpen} 
+    <Dialog
+      open={internalOpen}
       onOpenChange={(newOpen) => {
         if (!newOpen) {
           onDismiss?.();
@@ -301,7 +297,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
                     <p>✓ No organization management needed</p>
                   </div>
                 </div>
-                <Button 
+                <Button
                   onClick={() => onComplete()}
                   size="lg"
                   className="mt-4"
