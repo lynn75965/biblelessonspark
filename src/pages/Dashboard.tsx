@@ -208,7 +208,7 @@ export default function Dashboard() {
                 setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
               }}
               organizationId={userProfile?.organization_id}
-              userPreferredAgeGroup={userProfile?.preferred_age_group || "Adults"}
+              userPreferredAgeGroup={userProfile?.preferred_age_group || "youngadult"}
               defaultDoctrine="SBC"
               viewingLesson={selectedLesson}
               onClearViewing={() => {

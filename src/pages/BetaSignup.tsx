@@ -14,8 +14,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { AGE_GROUPS } from "@/constants/ageGroups";
 import { useNavigate } from "react-router-dom";
-import { SITE } from '@/config/site';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const BetaSignup = () => {
@@ -179,11 +179,9 @@ const BetaSignup = () => {
                     <SelectValue placeholder="Select age group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="preschool">Preschool (Ages 2-5)</SelectItem>
-                    <SelectItem value="children">Children (Grades 1-5)</SelectItem>
-                    <SelectItem value="youth">Youth (Grades 6-12)</SelectItem>
-                    <SelectItem value="college">College/Young Adult</SelectItem>
-                    <SelectItem value="adult">Adult</SelectItem>
+                    {AGE_GROUPS.map((ag) => (
+                      <SelectItem key={ag.id} value={ag.id}>{ag.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
