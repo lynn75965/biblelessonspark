@@ -11,10 +11,39 @@ import { BookOpen, Search, Eye, Calendar, User, Building2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
-interface LessonMetadata {
-  scripture_passage?: string;
+/**
+ * SCHEMA VERIFICATION (December 11, 2025):
+ * 
+ * lessons table columns: id, title, original_text, source_type, upload_path, 
+ *   filters (jsonb), user_id, organization_id, created_at, updated_at, metadata (jsonb)
+ * 
+ * lessons.metadata keys: ageGroup, teaser, wordCount, generatedAt, sectionCount,
+ *   anthropicUsage, theologyProfile, generationTimeSeconds, lessonStructureVersion, etc.
+ * 
+ * lessons.filters keys: language, age_group, bible_passage, focused_topic,
+ *   theology_profile_id, generate_teaser, etc.
+ * 
+ * profiles table columns: id, full_name, role, founder_status, organization_id,
+ *   organization_role, preferred_age_group, credits_balance, email, beta_participant, etc.
+ * 
+ * organizations table columns: id, name, organization_type, denomination, 
+ *   default_doctrine, description, status, etc.
+ * 
+ * NOTE: No FK between lessons.user_id and profiles.id - must use two queries
+ */
+
+interface LessonFilters {
+  bible_passage?: string;
   age_group?: string;
-  ai_lesson_title?: string;
+  focused_topic?: string;
+  [key: string]: any;
+}
+
+interface LessonMetadata {
+  ageGroup?: string;
+  teaser?: string;
+  wordCount?: number;
+  theologyProfile?: string;
   [key: string]: any;
 }
 
@@ -23,21 +52,25 @@ interface Lesson {
   title: string;
   original_text: string | null;
   source_type: string | null;
-  filters: any;
+  filters: LessonFilters | null;
   metadata: LessonMetadata | null;
   created_at: string;
   user_id: string;
   organization_id: string | null;
-  profiles: {
-    full_name: string | null;
-  } | null;
   organizations: {
     name: string | null;
   } | null;
 }
 
+interface ProfileMap {
+  [userId: string]: {
+    full_name: string | null;
+  };
+}
+
 export function AllLessonsPanel() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [profileMap, setProfileMap] = useState<ProfileMap>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,15 +79,15 @@ export function AllLessonsPanel() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
 
-  // Fetch all lessons with user and org info
+  // Two-query approach: No FK between lessons and profiles
   useEffect(() => {
-    const fetchLessons = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError(null);
       
       try {
-        // NOTE: profiles table does NOT have email column - only full_name
-        const { data, error: queryError } = await supabase
+        // Query 1: Fetch lessons with organizations (FK exists for organization_id)
+        const { data: lessonsData, error: lessonsError } = await supabase
           .from('lessons')
           .select(`
             id,
@@ -66,35 +99,57 @@ export function AllLessonsPanel() {
             created_at,
             user_id,
             organization_id,
-            profiles (
-              full_name
-            ),
             organizations (
               name
             )
           `)
           .order('created_at', { ascending: false });
 
-        if (queryError) {
-          console.error('Supabase query error:', queryError);
-          setError(queryError.message);
+        if (lessonsError) {
+          console.error('Lessons query error:', lessonsError);
+          setError(lessonsError.message);
           return;
         }
+
+        const fetchedLessons = (lessonsData as Lesson[]) || [];
+        setLessons(fetchedLessons);
+        console.log('Lessons fetched:', fetchedLessons.length);
+
+        // Query 2: Fetch profiles for all unique user_ids (separate query - no FK)
+        const uniqueUserIds = [...new Set(fetchedLessons.map(l => l.user_id).filter(Boolean))];
         
-        console.log('Lessons fetched:', data?.length || 0);
-        setLessons((data as any[]) || []);
+        if (uniqueUserIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', uniqueUserIds);
+
+          if (profilesError) {
+            console.error('Profiles query error:', profilesError);
+            // Don't fail entirely - just show lessons without names
+          } else {
+            // Build lookup map
+            const map: ProfileMap = {};
+            (profilesData || []).forEach((p: { id: string; full_name: string | null }) => {
+              map[p.id] = { full_name: p.full_name };
+            });
+            setProfileMap(map);
+            console.log('Profiles fetched:', Object.keys(map).length);
+          }
+        }
+
       } catch (err) {
-        console.error('Error fetching lessons:', err);
+        console.error('Error fetching data:', err);
         setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchLessons();
+    fetchData();
   }, []);
 
-  // Fetch organizations for filter
+  // Fetch organizations for filter dropdown
   useEffect(() => {
     const fetchOrgs = async () => {
       const { data } = await supabase
@@ -106,35 +161,37 @@ export function AllLessonsPanel() {
     fetchOrgs();
   }, []);
 
-  // Helper to extract metadata fields
+  // Helper functions using VERIFIED JSONB keys
   const getScripture = (lesson: Lesson): string => {
-    return lesson.metadata?.scripture_passage || 
-           lesson.filters?.scripture_passage || 
-           'N/A';
+    // Actual key is filters.bible_passage
+    return lesson.filters?.bible_passage || 'N/A';
   };
 
   const getAgeGroup = (lesson: Lesson): string => {
-    return lesson.metadata?.age_group || 
-           lesson.filters?.age_group || 
-           'N/A';
+    // metadata uses camelCase: ageGroup, filters uses snake_case: age_group
+    return lesson.metadata?.ageGroup || lesson.filters?.age_group || 'N/A';
   };
 
   const getDisplayTitle = (lesson: Lesson): string => {
-    return lesson.metadata?.ai_lesson_title || 
-           lesson.title || 
-           'Untitled';
+    // Use title column, fallback to focused_topic from filters
+    return lesson.title || lesson.filters?.focused_topic || 'Untitled';
+  };
+
+  const getUserDisplay = (lesson: Lesson): string => {
+    const profile = profileMap[lesson.user_id];
+    return profile?.full_name || 'Unknown';
   };
 
   // Filter lessons
   const filteredLessons = lessons.filter(lesson => {
     const displayTitle = getDisplayTitle(lesson);
     const scripture = getScripture(lesson);
+    const userName = getUserDisplay(lesson);
     
     const matchesSearch = 
-      (displayTitle.toLowerCase()).includes(searchTerm.toLowerCase()) ||
-      (lesson.title?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (scripture.toLowerCase()).includes(searchTerm.toLowerCase()) ||
-      (lesson.profiles?.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+      displayTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      scripture.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      userName.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesOrg = filterOrg === "all" || 
       (filterOrg === "none" && !lesson.organization_id) ||
@@ -146,11 +203,6 @@ export function AllLessonsPanel() {
   const handleViewLesson = (lesson: Lesson) => {
     setSelectedLesson(lesson);
     setShowViewModal(true);
-  };
-
-  const getUserDisplay = (lesson: Lesson) => {
-    if (lesson.profiles?.full_name) return lesson.profiles.full_name;
-    return 'Unknown';
   };
 
   return (
