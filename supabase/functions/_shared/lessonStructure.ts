@@ -2,9 +2,9 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/lessonStructure.ts
- * Generated: 2025-12-07T19:42:04.687Z
+ * Generated: 2025-12-12T15:48:58.069Z
  */
-﻿// src/constants/lessonStructure.ts
+// src/constants/lessonStructure.ts
 export const LESSON_STRUCTURE_VERSION = "2.1.1";
 
 export const EXPORT_FORMATTING = {
@@ -13,6 +13,7 @@ export const EXPORT_FORMATTING = {
   documentTitleSource: "Lesson Title",
   footerText: "LessonSparkUSA",
   teaserLabel: "STUDENT TEASER",
+  printTooltip: "Opens in new tab. Close that tab to return here.",
 };
 
 export interface LessonSection {

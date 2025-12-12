@@ -15,6 +15,7 @@ import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingU
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
+import { SystemSettingsPanel } from "@/components/admin/SystemSettingsPanel";
 import { useToast } from "@/hooks/use-toast";
 import { PROGRAM_CONFIG, isBetaMode } from "@/constants/programConfig";
 
@@ -335,23 +336,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="settings" className="mt-6 relative z-0">
-            <Card className="bg-gradient-card">
-              <CardHeader>
-                <CardTitle>System Settings</CardTitle>
-                <CardDescription>
-                  Global application configuration and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">System Configuration</h3>
-                  <p className="text-muted-foreground">
-                    Advanced system settings panel coming soon.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <SystemSettingsPanel />
           </TabsContent>
 
           <TabsContent value="security" className="mt-6 relative z-0">

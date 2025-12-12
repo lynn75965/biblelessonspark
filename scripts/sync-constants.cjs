@@ -33,6 +33,7 @@ const FILES_TO_SYNC = [
   'generationMetrics.ts',
   'lessonStructure.ts',
   'lessonTiers.ts',
+  'systemSettings.ts',
   'teacherPreferences.ts',
   'theologyProfiles.ts',
 ];
