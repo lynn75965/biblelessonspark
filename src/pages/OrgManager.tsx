@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
+import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
+import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,15 +51,25 @@ export default function OrgManager() {
           .select('*', { count: 'exact', head: true })
           .eq('organization_id', organization.id);
 
-        // Count org lessons
-        const { count: lessonCount } = await supabase
-          .from('lessons')
-          .select('*', { count: 'exact', head: true })
+        // Count org lessons (by member user_ids for accuracy)
+        const { data: members } = await supabase
+          .from('profiles')
+          .select('id')
           .eq('organization_id', organization.id);
+        
+        const memberIds = members?.map(m => m.id) || [];
+        let lessonCount = 0;
+        if (memberIds.length > 0) {
+          const { count } = await supabase
+            .from('lessons')
+            .select('*', { count: 'exact', head: true })
+            .in('user_id', memberIds);
+          lessonCount = count || 0;
+        }
 
         setOrgStats({
           memberCount: memberCount || 0,
-          lessonCount: lessonCount || 0
+          lessonCount: lessonCount
         });
       } catch (error) {
         console.error('Error fetching org stats:', error);
@@ -206,36 +218,30 @@ export default function OrgManager() {
 
           {/* Org Lessons Tab */}
           <TabsContent value="lessons" className="mt-6">
-            <Card className="bg-gradient-card">
-              <CardHeader>
-                <CardTitle>Organization Lessons</CardTitle>
-                <CardDescription>
-                  View all lessons created by organization members
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  Organization lesson library coming soon.
-                </p>
-              </CardContent>
-            </Card>
+            {organization?.id ? (
+              <OrgLessonsPanel
+                organizationId={organization.id}
+                organizationName={organization.name || "Organization"}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No organization found.
+              </div>
+            )}
           </TabsContent>
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="mt-6">
-            <Card className="bg-gradient-card">
-              <CardHeader>
-                <CardTitle>Organization Analytics</CardTitle>
-                <CardDescription>
-                  View usage statistics for your organization
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground text-center py-8">
-                  Organization analytics coming soon.
-                </p>
-              </CardContent>
-            </Card>
+            {organization?.id ? (
+              <OrgAnalyticsPanel
+                organizationId={organization.id}
+                organizationName={organization.name || "Organization"}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No organization found.
+              </div>
+            )}
           </TabsContent>
 
           {/* Settings Tab */}
