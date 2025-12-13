@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // PricingPage - Display pricing plans with Stripe checkout
 // SSOT: Uses pricingPlans.ts for plan data
 // =============================================================================
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Check, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { useAuth } from '@/hooks/useAuth';
 import { ROUTES } from '@/constants/routes';
@@ -43,14 +44,27 @@ export default function PricingPage() {
       return;
     }
 
-    // TODO: Implement Stripe Checkout
-    // For now, redirect to auth if not logged in
     if (!user) {
       navigate(ROUTES.AUTH + '?redirect=pricing&plan=' + plan.id);
-    } else {
-      // Will implement Stripe checkout session creation
-      console.log('Creating checkout for:', priceId);
-      alert('Stripe checkout coming soon! Price ID: ' + priceId);
+      return;
+    }
+
+    // Create Stripe checkout session
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout-session', {
+        body: { priceId },
+      });
+
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert('Failed to start checkout. Please try again.');
     }
   };
 
@@ -198,3 +212,5 @@ export default function PricingPage() {
     </div>
   );
 }
+
+
