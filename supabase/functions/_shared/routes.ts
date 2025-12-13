@@ -1,7 +1,12 @@
-// AUTO-GENERATED - DO NOT EDIT DIRECTLY
-// Source: src/constants/routes.ts
-// Sync command: npm run sync-constants
-// Last synced: 2025-12-05
+/**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/routes.ts
+ * Generated: 2025-12-13T19:59:06.601Z
+ */
+// SSOT MASTER: Frontend route definitions
+// Backend mirror: supabase/functions/_shared/routes.ts
+// Last updated: 2025-12-05
 
 /**
  * Application route paths
@@ -20,17 +25,19 @@ export const ROUTES = {
   COMMUNITY: '/community',
   
   // Protected routes
-  DASHBOARD: '/dashboard',
+  WORKSPACE: '/workspace',
+  DASHBOARD: '/dashboard', // Redirects to WORKSPACE
   CREATE_LESSON: '/create',
   MY_LESSONS: '/lessons',
+  ORG: '/org',
   ADMIN: '/admin',
   PREFERENCES_LENS: '/preferences/lens',
   BETA_SIGNUP: '/beta-signup',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   
   // Legal routes
-  PRIVACY: '/legal/privacy',
-  TERMS: '/legal/terms',
+  PRIVACY: '/privacy-policy',
+  TERMS: '/terms-of-service',
   COOKIE: '/legal/cookie',
 } as const;
 
@@ -55,3 +62,4 @@ export const buildInviteUrl = (baseUrl: string, token: string): string => {
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
+

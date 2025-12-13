@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/generationMetrics.ts
- * Generated: 2025-12-12T17:28:06.252Z
+ * Generated: 2025-12-13T19:59:06.594Z
  */
 ﻿// =====================================================
 // GENERATION METRICS - Single Source of Truth

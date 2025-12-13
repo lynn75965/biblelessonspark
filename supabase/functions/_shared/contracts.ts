@@ -1,4 +1,10 @@
 /**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/contracts.ts
+ * Generated: 2025-12-13T19:59:06.602Z
+ */
+﻿/**
  * LessonSparkUSA Constants - TypeScript Contracts
  * @version 1.1.0
  * @lastUpdated 2025-11-22
@@ -177,4 +183,63 @@ export interface LessonFilters {
   assessment?: string;
   resources?: string;
   preparation?: string;
+}
+// ============================================================================
+// Database Entity Types (Frontend SSOT)
+// ============================================================================
+
+/**
+ * Lesson entity from lessons table
+ */
+export interface Lesson {
+  id: string;
+  title: string | null;
+  original_text: string | null;
+  source_type: string;
+  upload_path: string | null;
+  filters: LessonFilters | null;
+  created_at: string | null;
+  user_id: string;
+  organization_id: string | null;
+  theology_profile_id?: string | null;
+  metadata?: {
+    teaser?: string | null;
+    ageGroup?: string;
+    theologyProfile?: string;
+  } | null;
+}
+
+/**
+ * Organization entity from organizations table
+ * Includes all database fields for admin and general use
+ */
+export interface Organization {
+  id: string;
+  name: string;
+  organization_type?: string;
+  denomination?: string | null;
+  default_doctrine?: string;
+  status?: string;
+  description?: string | null;
+  website?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  created_at: string;
+  updated_at?: string;
+  created_by?: string;
+  requested_by?: string | null;
+  approved_by?: string | null;
+  approved_at?: string | null;
+}
+
+/**
+ * Organization member from organization_members table
+ */
+export interface OrganizationMember {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: string;
+  joined_at: string;
 }

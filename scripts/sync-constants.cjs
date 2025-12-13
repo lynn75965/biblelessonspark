@@ -36,6 +36,9 @@ const FILES_TO_SYNC = [
   'systemSettings.ts',
   'teacherPreferences.ts',
   'theologyProfiles.ts',
+  'routes.ts',
+  'contracts.ts',
+  'rateLimitConfig.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**
@@ -85,3 +88,7 @@ function main() {
   log(`Synced: ${successCount} of ${FILES_TO_SYNC.length} files\n`);
 }
 main();
+
+
+
+
