@@ -57,10 +57,36 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
     setLoading(true);
     setError(null);
     try {
+      // Step 1: Get all member user_ids for this organization
+      const { data: membersData, error: membersError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('organization_id', organizationId);
+
+      if (membersError) {
+        console.error('Members query error:', membersError);
+        setError(membersError.message);
+        return;
+      }
+
+      const memberIds = membersData?.map(m => m.id) || [];
+      
+      // Build profile map from members query
+      const map: ProfileMap = {};
+      membersData?.forEach(p => { map[p.id] = { full_name: p.full_name }; });
+      setProfileMap(map);
+
+      if (memberIds.length === 0) {
+        setLessons([]);
+        setLoading(false);
+        return;
+      }
+
+      // Step 2: Query lessons created by org members
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('lessons')
         .select(`id, title, original_text, source_type, filters, metadata, created_at, user_id`)
-        .eq('organization_id', organizationId)
+        .in('user_id', memberIds)
         .order('created_at', { ascending: false });
 
       if (lessonsError) {
@@ -71,20 +97,6 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
 
       const fetchedLessons = (lessonsData as OrgLesson[]) || [];
       setLessons(fetchedLessons);
-
-      const uniqueUserIds = [...new Set(fetchedLessons.map(l => l.user_id).filter(Boolean))];
-      if (uniqueUserIds.length > 0) {
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', uniqueUserIds);
-
-        if (!profilesError && profilesData) {
-          const map: ProfileMap = {};
-          profilesData.forEach(p => { map[p.id] = { full_name: p.full_name }; });
-          setProfileMap(map);
-        }
-      }
     } catch (err) {
       console.error('Error fetching org lessons:', err);
       setError('Failed to load lessons');

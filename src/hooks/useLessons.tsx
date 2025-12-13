@@ -2,7 +2,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-
 import { Lesson } from "@/constants/contracts";
 
 // Re-export for backward compatibility
@@ -28,7 +27,7 @@ export function useLessons() {
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-	.eq('user_id', user.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -54,8 +53,14 @@ export function useLessons() {
     organization_id?: string;
   }) => {
     if (!user) return { error: 'Not authenticated' };
-
     try {
+      // Fetch user's organization_id from profile (SSOT: data integrity at source)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user.id)
+        .single();
+
       const { data, error } = await supabase
         .from('lessons')
         .insert([
@@ -63,19 +68,18 @@ export function useLessons() {
             ...lessonData,
             title: lessonData.title || 'Untitled Lesson',
             user_id: user.id,
+            organization_id: profile?.organization_id || null,
           },
         ])
         .select()
         .single();
 
       if (error) throw error;
-
       setLessons(prev => [data, ...prev]);
       toast({
         title: "Lesson created",
         description: "Your lesson has been saved successfully.",
       });
-
       return { data, error: null };
     } catch (error) {
       console.error('Error creating lesson:', error);
@@ -96,7 +100,6 @@ export function useLessons() {
         .eq('id', lessonId);
 
       if (error) throw error;
-
       setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
       toast({
         title: "Lesson deleted",
