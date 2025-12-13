@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/contracts.ts
- * Generated: 2025-12-13T19:59:06.602Z
+ * Generated: 2025-12-13T20:31:45.827Z
  */
 ﻿/**
  * LessonSparkUSA Constants - TypeScript Contracts
@@ -231,6 +231,11 @@ export interface Organization {
   requested_by?: string | null;
   approved_by?: string | null;
   approved_at?: string | null;
+  // Beta program fields
+  beta_mode?: boolean;
+  beta_start_date?: string | null;
+  beta_end_date?: string | null;
+  beta_activated_by?: string | null;
 }
 
 /**
@@ -243,3 +248,4 @@ export interface OrganizationMember {
   role: string;
   joined_at: string;
 }
+

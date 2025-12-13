@@ -225,6 +225,11 @@ export interface Organization {
   requested_by?: string | null;
   approved_by?: string | null;
   approved_at?: string | null;
+  // Beta program fields
+  beta_mode?: boolean;
+  beta_start_date?: string | null;
+  beta_end_date?: string | null;
+  beta_activated_by?: string | null;
 }
 
 /**
@@ -237,3 +242,4 @@ export interface OrganizationMember {
   role: string;
   joined_at: string;
 }
+

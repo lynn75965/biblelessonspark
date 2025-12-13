@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/bibleVersions.ts
- * Generated: 2025-12-13T19:59:06.593Z
+ * Generated: 2025-12-13T20:31:45.819Z
  */
 // =============================================================================
 // BIBLE VERSIONS - Single Source of Truth (SSOT)

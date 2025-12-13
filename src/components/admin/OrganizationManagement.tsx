@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -353,6 +353,13 @@ export function OrganizationManagement() {
             setViewingOrg(null);
             setActiveDetailTab(DEFAULT_ORG_DETAIL_TAB);
           }}
+          onOrganizationUpdate={(updatedOrg) => {
+            setViewingOrg(updatedOrg);
+            // Also update in the main list
+            setOrganizations(prev => 
+              prev.map(org => org.id === updatedOrg.id ? updatedOrg : org)
+            );
+          }}
         />
       ) : (
         <>
@@ -678,3 +685,4 @@ export function OrganizationManagement() {
     </div>
   );
 }
+
