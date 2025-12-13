@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/routes.ts
- * Generated: 2025-12-13T20:31:45.826Z
+ * Generated: 2025-12-13T22:18:10.918Z
  */
 // SSOT MASTER: Frontend route definitions
 // Backend mirror: supabase/functions/_shared/routes.ts
@@ -16,6 +16,7 @@ export const ROUTES = {
   // Public routes
   HOME: '/',
   AUTH: '/auth',
+  PRICING: '/pricing',
   SETUP: '/setup',
   SETUP_CHECKLIST: '/setup/checklist',
   SETUP_GUIDE: '/setup/guide',
@@ -62,4 +63,7 @@ export const buildInviteUrl = (baseUrl: string, token: string): string => {
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
+
+
+
 

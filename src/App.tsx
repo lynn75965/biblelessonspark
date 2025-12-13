@@ -12,6 +12,7 @@ import { ROUTES } from "@/constants/routes";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import PricingPage from "./pages/PricingPage";
 import Admin from "./pages/Admin";
 import Account from "./pages/Account";
 import Setup from "./pages/Setup";
@@ -42,6 +43,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route
               path={ROUTES.WORKSPACE}
               element={
@@ -113,5 +115,7 @@ const App = () => (
 );
 
 export default App;
+
+
 
 
