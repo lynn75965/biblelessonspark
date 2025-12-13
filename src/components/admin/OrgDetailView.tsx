@@ -8,6 +8,7 @@ import { ArrowLeft, Building2 } from "lucide-react";
 import { Organization } from "@/constants/contracts";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
+import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
 import { ROLES } from "@/constants/accessControl";
 import { 
   ORG_DETAIL_TABS, 
@@ -97,9 +98,12 @@ export function OrgDetailView({
             />
           </TabsContent>
 
-          {/* Analytics Tab - Placeholder for 13.9.5 */}
+          {/* Analytics Tab */}
           <TabsContent value={ORG_DETAIL_TABS.analytics.value} className="mt-4">
-            <p className="text-muted-foreground">Analytics panel - Phase 13.9.5</p>
+            <OrgAnalyticsPanel
+              organizationId={organization.id}
+              organizationName={organization.name}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>
