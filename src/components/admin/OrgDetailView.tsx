@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { Organization } from "@/constants/contracts";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
+import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
 import { ROLES } from "@/constants/accessControl";
 import { 
   ORG_DETAIL_TABS, 
@@ -88,9 +89,12 @@ export function OrgDetailView({
             />
           </TabsContent>
 
-          {/* Lessons Tab - Placeholder for 13.9.4 */}
+          {/* Lessons Tab */}
           <TabsContent value={ORG_DETAIL_TABS.lessons.value} className="mt-4">
-            <p className="text-muted-foreground">Lessons panel - Phase 13.9.4</p>
+            <OrgLessonsPanel
+              organizationId={organization.id}
+              organizationName={organization.name}
+            />
           </TabsContent>
 
           {/* Analytics Tab - Placeholder for 13.9.5 */}
