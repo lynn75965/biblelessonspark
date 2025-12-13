@@ -236,6 +236,8 @@ export default function OrgManager() {
               <OrgAnalyticsPanel
                 organizationId={organization.id}
                 organizationName={organization.name || "Organization"}
+                betaMode={organization.beta_mode}
+                betaStartDate={organization.beta_start_date}
               />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
@@ -306,3 +308,4 @@ export default function OrgManager() {
     </div>
   );
 }
+

@@ -227,6 +227,8 @@ export function OrgDetailView({
             <OrgAnalyticsPanel
               organizationId={organization.id}
               organizationName={organization.name}
+              betaMode={organization.beta_mode}
+              betaStartDate={organization.beta_start_date}
             />
           </TabsContent>
         </Tabs>
@@ -234,3 +236,4 @@ export function OrgDetailView({
     </Card>
   );
 }
+

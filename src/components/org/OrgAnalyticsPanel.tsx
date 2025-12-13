@@ -1,12 +1,15 @@
 ﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Users, BookOpen, Calendar, UserCheck, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BarChart3, Users, BookOpen, Calendar, UserCheck, RefreshCw, Rocket } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface OrgAnalyticsPanelProps {
   organizationId: string;
   organizationName: string;
+  betaMode?: boolean;
+  betaStartDate?: string | null;
 }
 
 interface OrgStats {
@@ -14,14 +17,21 @@ interface OrgStats {
   totalLessons: number;
   lessonsThisMonth: number;
   activeAuthors: number;
+  betaMembers: number;
 }
 
-export function OrgAnalyticsPanel({ organizationId, organizationName }: OrgAnalyticsPanelProps) {
+export function OrgAnalyticsPanel({ 
+  organizationId, 
+  organizationName,
+  betaMode = false,
+  betaStartDate
+}: OrgAnalyticsPanelProps) {
   const [stats, setStats] = useState<OrgStats>({
     totalMembers: 0,
     totalLessons: 0,
     lessonsThisMonth: 0,
     activeAuthors: 0,
+    betaMembers: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +79,26 @@ export function OrgAnalyticsPanel({ organizationId, organizationName }: OrgAnaly
 
       const uniqueAuthors = new Set(authorData?.map(l => l.user_id).filter(Boolean));
 
+      // Query 5: Beta members count
+      let betaMemberCount = 0;
+      if (betaMode) {
+        const { count, error: betaError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true })
+          .eq('organization_id', organizationId)
+          .eq('joined_during_beta', true);
+        
+        if (!betaError) {
+          betaMemberCount = count || 0;
+        }
+      }
+
       setStats({
         totalMembers: memberCount || 0,
         totalLessons: lessonCount || 0,
         lessonsThisMonth: monthlyCount || 0,
         activeAuthors: uniqueAuthors.size,
+        betaMembers: betaMemberCount,
       });
     } catch (err) {
       console.error('Error fetching org analytics:', err);
@@ -83,7 +108,7 @@ export function OrgAnalyticsPanel({ organizationId, organizationName }: OrgAnaly
     }
   };
 
-  useEffect(() => { fetchStats(); }, [organizationId]);
+  useEffect(() => { fetchStats(); }, [organizationId, betaMode]);
 
   const statCards = [
     { label: 'Total Members', value: stats.totalMembers, icon: Users, color: 'text-blue-500' },
@@ -94,6 +119,40 @@ export function OrgAnalyticsPanel({ organizationId, organizationName }: OrgAnaly
 
   return (
     <div className="space-y-4">
+      {/* Beta Program Status Card */}
+      {betaMode && (
+        <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <Rocket className="h-5 w-5" />
+              Beta Program Active
+            </CardTitle>
+            <CardDescription className="text-amber-700 dark:text-amber-300">
+              This organization is currently running a beta program
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <Badge className="bg-amber-500 hover:bg-amber-600 mt-1">Active</Badge>
+              </div>
+              {betaStartDate && (
+                <div>
+                  <p className="text-sm text-muted-foreground">Started</p>
+                  <p className="font-medium">{new Date(betaStartDate).toLocaleDateString()}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-sm text-muted-foreground">Beta Testers</p>
+                <p className="font-medium">{stats.betaMembers} members</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Analytics Card */}
       <Card className="bg-gradient-card">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
