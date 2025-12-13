@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2 } from "lucide-react";
 import { Organization } from "@/constants/contracts";
+import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
+import { ROLES } from "@/constants/accessControl";
 import { 
   ORG_DETAIL_TABS, 
   OrgDetailTabKey, 
@@ -77,9 +79,13 @@ export function OrgDetailView({
             </div>
           </TabsContent>
 
-          {/* Members Tab - Placeholder for 13.9.3 */}
+          {/* Members Tab */}
           <TabsContent value={ORG_DETAIL_TABS.members.value} className="mt-4">
-            <p className="text-muted-foreground">Members panel - Phase 13.9.3</p>
+            <OrgMemberManagement
+              organizationId={organization.id}
+              organizationName={organization.name}
+              userRole={ROLES.platformAdmin}
+            />
           </TabsContent>
 
           {/* Lessons Tab - Placeholder for 13.9.4 */}

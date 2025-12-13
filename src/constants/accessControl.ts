@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ACCESS CONTROL CONSTANTS
  * Single Source of Truth for role-based feature visibility
  * 
@@ -70,6 +70,7 @@ export const FEATURE_ACCESS = {
   approveOrgRequests: [ROLES.platformAdmin],
   manageBilling: [ROLES.platformAdmin],
   editAnyLesson: [ROLES.platformAdmin],
+  addExistingUserToOrg: [ROLES.platformAdmin],
   
   // Platform Admin + Org Leader
   orgSettings: [ROLES.platformAdmin, ROLES.orgLeader],

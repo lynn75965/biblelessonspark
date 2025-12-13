@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useInvites } from "@/hooks/useInvites";
-import { Users, UserPlus, Mail, RefreshCw, XCircle, Send, UserMinus, Crown } from "lucide-react";
+import { Users, UserPlus, Mail, RefreshCw, XCircle, Send, UserMinus, Crown, UserCheck } from "lucide-react";
 
 // SSOT Imports
-import { ORG_ROLES } from "@/constants/accessControl";
+import { ORG_ROLES, ROLES, Role, canAccessFeature } from "@/constants/accessControl";
 
 interface OrgMember {
   id: string;
@@ -29,13 +30,19 @@ interface PendingInvite {
   claimed_at: string | null;
 }
 
+interface UnassignedUser {
+  id: string;
+  full_name: string | null;
+  email: string;
+}
+
 interface OrgMemberManagementProps {
   organizationId: string;
   organizationName: string;
-  isLeader: boolean;
+  userRole: Role;
 }
 
-export function OrgMemberManagement({ organizationId, organizationName, isLeader }: OrgMemberManagementProps) {
+export function OrgMemberManagement({ organizationId, organizationName, userRole }: OrgMemberManagementProps) {
   const { toast } = useToast();
   const { sendInvite, getOrgInvites, cancelInvite, resendInvite, loading: inviteLoading } = useInvites();
   
@@ -44,6 +51,10 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
+  const [unassignedUsers, setUnassignedUsers] = useState<UnassignedUser[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [loadingUnassigned, setLoadingUnassigned] = useState(false);
 
   const fetchMembers = async () => {
     setLoading(true);
@@ -173,6 +184,67 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
     }
   };
 
+  const fetchUnassignedUsers = async () => {
+    setLoadingUnassigned(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .is("organization_id", null)
+        .order("full_name", { ascending: true });
+
+      if (error) throw error;
+      setUnassignedUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching unassigned users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load available users",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingUnassigned(false);
+    }
+  };
+
+  const handleAddExistingUser = async () => {
+    if (!selectedUserId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a user",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          organization_id: organizationId,
+          organization_role: ORG_ROLES.member
+        })
+        .eq("id", selectedUserId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "User added to organization",
+      });
+      setAddUserDialogOpen(false);
+      setSelectedUserId("");
+      fetchMembers();
+    } catch (error) {
+      console.error("Error adding user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add user to organization",
+        variant: "destructive",
+      });
+    }
+  };
+
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case ORG_ROLES.leader:
@@ -211,7 +283,7 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
               </Button>
-              {isLeader && (
+              {canAccessFeature(userRole, 'inviteOrgMembers', true) && (
                 <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm">
@@ -245,6 +317,59 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
                       <Button onClick={handleSendInvite} disabled={inviteLoading}>
                         <Mail className="h-4 w-4 mr-2" />
                         Send Invitation
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+              {canAccessFeature(userRole, 'addExistingUserToOrg', true) && (
+                <Dialog open={addUserDialogOpen} onOpenChange={(open) => {
+                  setAddUserDialogOpen(open);
+                  if (open) fetchUnassignedUsers();
+                }}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      Add Existing User
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Existing User</DialogTitle>
+                      <DialogDescription>
+                        Add a platform user to {organizationName}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label>Select User *</Label>
+                        {loadingUnassigned ? (
+                          <p className="text-sm text-muted-foreground">Loading users...</p>
+                        ) : unassignedUsers.length === 0 ? (
+                          <p className="text-sm text-muted-foreground">No unassigned users available</p>
+                        ) : (
+                          <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a user..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unassignedUsers.map((user) => (
+                                <SelectItem key={user.id} value={user.id}>
+                                  {user.full_name || user.email}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setAddUserDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleAddExistingUser} disabled={!selectedUserId}>
+                        <UserCheck className="h-4 w-4 mr-2" />
+                        Add to Organization
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -292,7 +417,7 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Joined</TableHead>
-                  {isLeader && <TableHead className="text-right">Actions</TableHead>}
+                  {canAccessFeature(userRole, 'removeOrgMembers', true) && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -305,7 +430,7 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
                     <TableCell>
                       {new Date(member.created_at).toLocaleDateString()}
                     </TableCell>
-                    {isLeader && (
+                    {canAccessFeature(userRole, 'removeOrgMembers', true) && (
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {member.organization_role === ORG_ROLES.member && (
@@ -363,7 +488,7 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
                 <TableRow>
                   <TableHead>Email</TableHead>
                   <TableHead>Sent</TableHead>
-                  {isLeader && <TableHead className="text-right">Actions</TableHead>}
+                  {canAccessFeature(userRole, 'inviteOrgMembers', true) && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -373,7 +498,7 @@ export function OrgMemberManagement({ organizationId, organizationName, isLeader
                     <TableCell>
                       {new Date(invite.created_at).toLocaleDateString()}
                     </TableCell>
-                    {isLeader && (
+                    {canAccessFeature(userRole, 'inviteOrgMembers', true) && (
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

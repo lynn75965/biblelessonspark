@@ -20,7 +20,7 @@ import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ORG_ROLES } from "@/constants/accessControl";
+import { ORG_ROLES, ROLES, getEffectiveRole } from "@/constants/accessControl";
 
 export default function OrgManager() {
   const { user } = useAuth();
@@ -33,9 +33,9 @@ export default function OrgManager() {
     lessonCount: 0
   });
 
-  // Check if user has org leader access
-  const isOrgLeader = userRole === ORG_ROLES.leader || userRole === ORG_ROLES.coLeader;
-  const hasAccess = isAdmin || isOrgLeader;
+  // Get effective frontend role for SSOT permission checks
+  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
+  const hasAccess = effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader;
 
   // Fetch org stats
   useEffect(() => {
@@ -195,7 +195,7 @@ export default function OrgManager() {
               <OrgMemberManagement
                 organizationId={organization.id}
                 organizationName={organization.name || "Organization"}
-                isLeader={hasAccess}
+                userRole={effectiveRole}
               />
             ) : (
               <div className="text-center py-8 text-muted-foreground">
