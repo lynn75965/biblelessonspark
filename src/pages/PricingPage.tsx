@@ -55,6 +55,9 @@ export default function PricingPage() {
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { priceId },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        }
       });
 
       if (error) throw error;
@@ -218,6 +221,7 @@ export default function PricingPage() {
     </>
   );
 }
+
 
 
 
