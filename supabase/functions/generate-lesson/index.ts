@@ -9,6 +9,7 @@ import { buildCustomizationDirectives } from '../_shared/customizationDirectives
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
+import { buildFreshnessContext } from '../_shared/freshnessOptions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
@@ -266,7 +267,8 @@ serve(async (req) => {
       assessment_style,
       learning_style,
       education_experience,
-      generate_teaser = false
+      generate_teaser = false,
+      freshness_mode = 'fresh'
     } = validatedData;
 
     if (!bible_passage && !focused_topic && !extracted_content) {
@@ -359,6 +361,7 @@ AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageM
 Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
 Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
 ${customizationDirectives}
+${buildFreshnessContext(new Date(), freshness_mode)}
 ${buildTeaserInstructions(generate_teaser)}
 ${buildCompressionRules(generate_teaser)}
 -------------------------------------------------------------------------------
@@ -569,7 +572,8 @@ INSTRUCTIONS:
           learning_style,
           education_experience,
           additional_notes: additional_notes || null,
-          generate_teaser
+          generate_teaser,
+          freshness_mode
         },
         metadata: {
           lessonStructureVersion: LESSON_STRUCTURE_VERSION,
@@ -586,7 +590,8 @@ INSTRUCTIONS:
           generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
           anthropicUsage: anthropicData.usage,
           wasEnhancement: !!extracted_content,
-          extractedContentLength: extracted_content?.length || 0
+          extractedContentLength: extracted_content?.length || 0,
+          freshnessMode: freshness_mode
         }
       };
 

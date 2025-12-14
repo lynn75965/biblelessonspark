@@ -34,6 +34,7 @@ import { FORM_STYLING } from "@/constants/formConfig";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
+import { getDefaultFreshnessMode } from "@/constants/freshnessOptions";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 import {
@@ -155,6 +156,8 @@ export function EnhanceLessonForm({
 
   const [notes, setNotes] = useState("");
   const [generateTeaser, setGenerateTeaser] = useState(false);
+  // Freshness mode - default is "fresh" (varied content each time)
+  const [freshnessMode, setFreshnessMode] = useState(getDefaultFreshnessMode().id);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
@@ -478,6 +481,7 @@ export function EnhanceLessonForm({
         language: language,
         activity_types: activityTypes,
         generate_teaser: generateTeaser,
+        freshness_mode: freshnessMode,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
       };
@@ -963,6 +967,32 @@ export function EnhanceLessonForm({
                   </label>
                   <p className="text-xs text-muted-foreground">
                     Build anticipation before you teach (perfect for emails, texts, or social media)
+                  </p>
+                </div>
+              </div>
+
+              {/* Freshness Mode Toggle */}
+              <div className="flex items-start space-x-2 pt-2 border-t">
+                <Checkbox
+                  id="consistent-style"
+                  checked={freshnessMode === "consistent"}
+                  onCheckedChange={(checked) => 
+                    setFreshnessMode(checked ? "consistent" : "fresh")
+                  }
+                  disabled={isSubmitting}
+                />
+                <div className="space-y-1">
+                  <label
+                    htmlFor="consistent-style"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Consistent Style Mode
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {freshnessMode === "consistent" 
+                      ? "Lessons will maintain similar teaching approach (useful for series)"
+                      : "Each lesson uses varied illustrations, examples, and teaching angles"
+                    }
                   </p>
                 </div>
               </div>

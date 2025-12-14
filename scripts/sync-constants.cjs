@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const path = require('path');
 const colors = {
   reset: '\x1b[0m',
@@ -39,6 +39,7 @@ const FILES_TO_SYNC = [
   'routes.ts',
   'contracts.ts',
   'rateLimitConfig.ts',
+  'freshnessOptions.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**
