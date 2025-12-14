@@ -9,7 +9,7 @@ import { buildCustomizationDirectives } from '../_shared/customizationDirectives
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
-import { buildFreshnessContext } from '../_shared/freshnessOptions.ts';
+import { buildFreshnessContext, selectFreshElements, buildFreshnessSuggestionsPrompt, FreshnessSuggestions } from '../_shared/freshnessOptions.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
@@ -268,7 +268,8 @@ serve(async (req) => {
       learning_style,
       education_experience,
       generate_teaser = false,
-      freshness_mode = 'fresh'
+      freshness_mode = 'fresh',
+      freshness_suggestions = null
     } = validatedData;
 
     if (!bible_passage && !focused_topic && !extracted_content) {
@@ -362,6 +363,7 @@ Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
 Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
 ${customizationDirectives}
 ${buildFreshnessContext(new Date(), freshness_mode)}
+${freshness_suggestions ? buildFreshnessSuggestionsPrompt(freshness_suggestions, freshness_mode) : ""}
 ${buildTeaserInstructions(generate_teaser)}
 ${buildCompressionRules(generate_teaser)}
 -------------------------------------------------------------------------------
@@ -591,7 +593,8 @@ INSTRUCTIONS:
           anthropicUsage: anthropicData.usage,
           wasEnhancement: !!extracted_content,
           extractedContentLength: extracted_content?.length || 0,
-          freshnessMode: freshness_mode
+          freshnessMode: freshness_mode,
+          freshnessSuggestions: freshness_suggestions
         }
       };
 

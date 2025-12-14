@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/freshnessOptions.ts
- * Generated: 2025-12-14T13:04:00.268Z
+ * Generated: 2025-12-14T19:10:52.914Z
  */
 /**
  * Freshness Options SSOT
@@ -493,6 +493,84 @@ You MUST vary your approach each time by:
   }
 
   return context;
+}
+
+// ============================================================================
+// PHASE 15.5: FRESHNESS TRACKING HELPERS
+// ============================================================================
+
+/**
+ * Freshness suggestions structure stored in lesson metadata
+ */
+export interface FreshnessSuggestions {
+  openingHook: string;
+  illustrationType: string;
+  teachingAngle: string;
+  activityFormat: string;
+  applicationContext: string;
+  closingChallenge: string;
+  generatedAt: string;
+}
+
+/**
+ * Select fresh elements for a lesson, avoiding recently used ones
+ */
+export function selectFreshElements(
+  recentSuggestions: FreshnessSuggestions[] = [],
+  maxHistory: number = 5
+): FreshnessSuggestions {
+  const relevantHistory = recentSuggestions.slice(0, maxHistory);
+  
+  const pickFresh = (elementId: string, historyKey: keyof FreshnessSuggestions): string => {
+    const element = FRESHNESS_ELEMENTS.find(e => e.id === elementId);
+    if (!element) return '';
+    
+    const recentlyUsed = new Set(
+      relevantHistory.map(s => s[historyKey]).filter(Boolean)
+    );
+    
+    const available = element.variations.filter(v => !recentlyUsed.has(v));
+    const pool = available.length > 0 ? available : [...element.variations];
+    
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
+  
+  return {
+    openingHook: pickFresh('openingHooks', 'openingHook'),
+    illustrationType: pickFresh('illustrations', 'illustrationType'),
+    teachingAngle: pickFresh('teachingAngles', 'teachingAngle'),
+    activityFormat: pickFresh('activityFormats', 'activityFormat'),
+    applicationContext: pickFresh('applicationContexts', 'applicationContext'),
+    closingChallenge: pickFresh('closingChallenges', 'closingChallenge'),
+    generatedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Build prompt instructions from freshness suggestions
+ */
+export function buildFreshnessSuggestionsPrompt(
+  suggestions: FreshnessSuggestions,
+  mode: string = 'fresh'
+): string {
+  if (mode !== 'fresh') return '';
+  
+  return `
+-------------------------------------------------------------------------------
+FRESHNESS DIRECTIVES (Vary Your Approach)
+-------------------------------------------------------------------------------
+
+For THIS lesson, use these specific approaches to ensure variety:
+
+- OPENING HOOK: Use a "${suggestions.openingHook}" approach
+- ILLUSTRATION STYLE: Feature a "${suggestions.illustrationType}" as your main example
+- TEACHING ANGLE: Emphasize a "${suggestions.teachingAngle}" perspective
+- ACTIVITY FORMAT: Include a "${suggestions.activityFormat}" in Section 6
+- APPLICATION CONTEXT: Focus applications on "${suggestions.applicationContext}"
+- CLOSING CHALLENGE: End with a "${suggestions.closingChallenge}"
+
+Follow these while maintaining theological accuracy and age-appropriateness.
+`;
 }
 
 // ============================================================================

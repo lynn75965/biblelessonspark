@@ -34,7 +34,7 @@ import { FORM_STYLING } from "@/constants/formConfig";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
-import { getDefaultFreshnessMode } from "@/constants/freshnessOptions";
+import { getDefaultFreshnessMode, selectFreshElements } from "@/constants/freshnessOptions";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 import {
@@ -482,6 +482,7 @@ export function EnhanceLessonForm({
         activity_types: activityTypes,
         generate_teaser: generateTeaser,
         freshness_mode: freshnessMode,
+        freshness_suggestions: freshnessMode === "fresh" ? selectFreshElements([]) : null,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
       };
