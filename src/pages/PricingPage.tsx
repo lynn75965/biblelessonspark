@@ -53,10 +53,18 @@ export default function PricingPage() {
 
     // Create Stripe checkout session
     try {
+      // Get current session for auth token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        navigate(ROUTES.AUTH + '?redirect=pricing&plan=' + plan.id);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
         body: { priceId },
         headers: {
-          Authorization: `Bearer ${session?.access_token}`
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -221,6 +229,7 @@ export default function PricingPage() {
     </>
   );
 }
+
 
 
 
