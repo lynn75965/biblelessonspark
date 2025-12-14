@@ -1442,9 +1442,9 @@ Members retain joined_during_beta = true for historical tracking.
 
 ---
 
-## Phase 15: Perpetual Freshness - PLANNED
+## Phase 15: Perpetual Freshness - IN PROGRESS
 
-**Status:** Deferred until core features stabilized
+**Status:** Starting December 14, 2025
 
 **Purpose:** Ensure every lesson generation produces meaningfully different content, even for the same passage with the same settings. Prevent stale, repetitive outputs.
 
@@ -1508,6 +1508,8 @@ Add freshness instructions to lesson generation prompt:
 ---
 
 *End of Document*
+
+
 
 
 
