@@ -4,6 +4,8 @@
 // =============================================================================
 
 import { useState } from 'react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -105,7 +107,9 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+    <>
+      <Header />
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
         <div className="text-center mb-12">
@@ -209,8 +213,13 @@ export default function PricingPage() {
           All plans include a 14-day money-back guarantee. Cancel anytime.
         </p>
       </div>
-    </div>
+      </div>
+      <Footer />
+    </>
   );
 }
+
+
+
 
 
