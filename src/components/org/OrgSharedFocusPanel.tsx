@@ -1,4 +1,4 @@
-﻿/**
+/**
  * OrgSharedFocusPanel - Shared Focus Management for Organizations
  * 
  * SSOT: src/constants/sharedFocusConfig.ts
@@ -253,7 +253,7 @@ export function OrgSharedFocusPanel({
             Shared Focus
           </h3>
           <p className="text-sm text-muted-foreground">
-            Set church-wide Scripture passages or themes for coordinated study
+            Set Scripture passages or themes for coordinated study
           </p>
         </div>
         {canEdit && (
@@ -273,7 +273,7 @@ export function OrgSharedFocusPanel({
             <p>No shared focus set for {organizationName}</p>
             {canEdit && (
               <p className="text-sm mt-2">
-                Click "New Focus" to assign a church-wide passage or theme
+                Click "New Focus" to assign a passage or theme
               </p>
             )}
           </CardContent>
@@ -348,7 +348,7 @@ export function OrgSharedFocusPanel({
               {editingFocus ? "Edit Shared Focus" : "Create Shared Focus"}
             </DialogTitle>
             <DialogDescription>
-              Set a church-wide passage or theme for {organizationName}
+              Set a passage or theme for {organizationName}
             </DialogDescription>
           </DialogHeader>
 
