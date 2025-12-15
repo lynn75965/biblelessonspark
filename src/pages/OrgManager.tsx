@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,8 @@ import {
   BookOpen,
   BarChart3,
   Settings,
-  ArrowLeft
+  ArrowLeft,
+  Target
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -19,6 +20,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
 import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
+import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -187,6 +189,10 @@ export default function OrgManager() {
               <Users className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Members</span>
             </TabsTrigger>
+            <TabsTrigger value="focus" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Target className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Shared Focus</span>
+            </TabsTrigger>
             <TabsTrigger value="lessons" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Org Lessons</span>
@@ -208,6 +214,21 @@ export default function OrgManager() {
                 organizationId={organization.id}
                 organizationName={organization.name || "Organization"}
                 userRole={effectiveRole}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No organization found.
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Shared Focus Tab */}
+          <TabsContent value="focus" className="mt-6">
+            {organization?.id ? (
+              <OrgSharedFocusPanel
+                organizationId={organization.id}
+                organizationName={organization.name || "Organization"}
+                canEdit={effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader}
               />
             ) : (
               <div className="text-center py-8 text-muted-foreground">

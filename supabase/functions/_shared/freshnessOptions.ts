@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/freshnessOptions.ts
- * Generated: 2025-12-15T19:57:11.189Z
+ * Generated: 2025-12-15T20:44:38.265Z
  */
 /**
  * Freshness Options SSOT

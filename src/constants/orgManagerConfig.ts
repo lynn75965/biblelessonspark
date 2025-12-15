@@ -2,7 +2,7 @@
 // Controls sub-tab behavior, labels, and admin capabilities
 // Used by: OrganizationManagement.tsx (Admin drill-down), OrgManager.tsx
 
-import { FileText, Users, BookOpen, BarChart3 } from "lucide-react";
+import { FileText, Users, BookOpen, BarChart3, Target } from "lucide-react";
 
 /**
  * Sub-tabs for organization drill-down view
@@ -15,6 +15,13 @@ export const ORG_DETAIL_TABS = {
     label: "Details",
     icon: FileText,
     description: "Organization name, denomination, status, description",
+    adminOnly: false,
+  },
+  focus: {
+    value: "focus",
+    label: "Shared Focus",
+    icon: Target,
+    description: "Set church-wide passage or theme for coordinated study",
     adminOnly: false,
   },
   members: {
