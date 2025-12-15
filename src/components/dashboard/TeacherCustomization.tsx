@@ -116,6 +116,10 @@ interface TeacherCustomizationProps {
   totalLessons: number;
   setTotalLessons: (value: number) => void;
 
+  // Freshness mode (only relevant for series)
+  freshnessMode: string;
+  setFreshnessMode: (value: string) => void;
+
   // Profile management
   profiles: TeacherPreferenceProfile[];
   currentProfileId: string | null;
@@ -164,6 +168,8 @@ export function TeacherCustomization({
   setLessonNumber,
   totalLessons,
   setTotalLessons,
+  freshnessMode,
+  setFreshnessMode,
   profiles,
   currentProfileId,
   onSaveProfile,
@@ -635,6 +641,29 @@ export function TeacherCustomization({
               <p className="text-xs text-muted-foreground mt-2">
                 Each lesson in the series uses 1 credit. Position is not saved in your profile.
               </p>
+
+              {/* Consistent Style Mode - only for series */}
+              <div className="flex items-start space-x-2 mt-4 pt-3 border-t">
+                <Checkbox
+                  id="consistent-style"
+                  checked={freshnessMode === "consistent"}
+                  onCheckedChange={(checked) => 
+                    setFreshnessMode(checked ? "consistent" : "fresh")
+                  }
+                  disabled={disabled}
+                />
+                <div className="space-y-1">
+                  <label
+                    htmlFor="consistent-style"
+                    className="text-sm font-medium leading-none cursor-pointer"
+                  >
+                    Consistent Style Mode
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Lessons will maintain similar teaching approach (useful for series)
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

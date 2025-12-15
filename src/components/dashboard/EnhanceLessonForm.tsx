@@ -919,6 +919,8 @@ export function EnhanceLessonForm({
             setLessonNumber={setLessonNumber}
             totalLessons={totalLessons}
             setTotalLessons={setTotalLessons}
+            freshnessMode={freshnessMode}
+            setFreshnessMode={setFreshnessMode}
             profiles={profiles}
             currentProfileId={currentProfileId}
             onSaveProfile={handleSaveProfile}
@@ -972,33 +974,7 @@ export function EnhanceLessonForm({
                 </div>
               </div>
 
-              {/* Consistent Style Mode - ONLY show when "Part of Series" is selected */}
-              {lessonSequence === "part_of_series" && (
-                <div className="flex items-start space-x-2 pt-2 border-t">
-                  <Checkbox
-                    id="consistent-style"
-                    checked={freshnessMode === "consistent"}
-                    onCheckedChange={(checked) => 
-                      setFreshnessMode(checked ? "consistent" : "fresh")
-                    }
-                    disabled={isSubmitting}
-                  />
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="consistent-style"
-                      className="text-sm font-medium leading-none cursor-pointer"
-                    >
-                      Consistent Style Mode
-                    </label>
-                    <p className="text-xs text-muted-foreground">
-                      {freshnessMode === "consistent" 
-                        ? "Lessons will maintain similar teaching approach (useful for series)"
-                        : "Each lesson uses varied illustrations, examples, and teaching angles"
-                      }
-                    </p>
-                  </div>
-                </div>
-              )}
+
             </CardContent>
           </Card>
 
