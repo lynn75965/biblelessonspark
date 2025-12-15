@@ -158,6 +158,8 @@ export function EnhanceLessonForm({
   const [generateTeaser, setGenerateTeaser] = useState(false);
   // Freshness mode - default is "fresh" (varied content each time)
   const [freshnessMode, setFreshnessMode] = useState(getDefaultFreshnessMode().id);
+  const [includeLiturgical, setIncludeLiturgical] = useState(false);
+  const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
@@ -482,6 +484,8 @@ export function EnhanceLessonForm({
         activity_types: activityTypes,
         generate_teaser: generateTeaser,
         freshness_mode: freshnessMode,
+        include_liturgical: includeLiturgical,
+        include_cultural: includeCultural,
         freshness_suggestions: freshnessMode === "fresh" ? selectFreshElements([]) : null,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,

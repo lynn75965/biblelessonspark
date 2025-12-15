@@ -269,6 +269,8 @@ serve(async (req) => {
       education_experience,
       generate_teaser = false,
       freshness_mode = 'fresh',
+      include_liturgical = false,
+      include_cultural = false,
       freshness_suggestions = null
     } = validatedData;
 
@@ -362,7 +364,7 @@ AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageM
 Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
 Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
 ${customizationDirectives}
-${buildFreshnessContext(new Date(), freshness_mode)}
+${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
 ${freshness_suggestions ? buildFreshnessSuggestionsPrompt(freshness_suggestions, freshness_mode) : ""}
 ${buildTeaserInstructions(generate_teaser)}
 ${buildCompressionRules(generate_teaser)}

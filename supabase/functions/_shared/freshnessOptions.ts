@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/freshnessOptions.ts
- * Generated: 2025-12-14T19:10:52.914Z
+ * Generated: 2025-12-15T19:57:11.189Z
  */
 /**
  * Freshness Options SSOT
@@ -452,10 +452,17 @@ export function getElementVariations(elementId: string): readonly string[] {
 
 /**
  * Build freshness context string for Claude prompt
+ * @param date - Current date for seasonal awareness
+ * @param mode - "fresh" for varied content, "consistent" for series continuity
+ * @param includeLiturgical - Whether to include Christian calendar themes (opt-in)
+ * @param includeCultural - Whether to include cultural season themes (opt-in)
  */
-export function buildFreshnessContext(date: Date = new Date(), mode: string = "fresh"): string {
-  const liturgicalSeason = getCurrentLiturgicalSeason(date);
-  const culturalSeason = getCurrentCulturalSeason(date);
+export function buildFreshnessContext(
+  date: Date = new Date(), 
+  mode: string = "fresh",
+  includeLiturgical: boolean = false,
+  includeCultural: boolean = false
+): string {
   const isFreshMode = mode === "fresh";
   
   const dateStr = date.toLocaleDateString('en-US', { 
@@ -465,21 +472,35 @@ export function buildFreshnessContext(date: Date = new Date(), mode: string = "f
     day: 'numeric' 
   });
   
+  // Always include current date
   let context = `
 CURRENT DATE: ${dateStr}
-
-LITURGICAL CONTEXT: ${liturgicalSeason.name}
-${liturgicalSeason.description}
-Seasonal Themes: ${liturgicalSeason.themes.join(', ')}
 `;
 
-  if (culturalSeason) {
+  // Liturgical context - OPT-IN ONLY
+  if (includeLiturgical) {
+    const liturgicalSeason = getCurrentLiturgicalSeason(date);
     context += `
-CULTURAL CONTEXT: ${culturalSeason.name}
-Relevant Themes: ${culturalSeason.themes.join(', ')}
+LITURGICAL CALENDAR CONTEXT (User Requested):
+Season: ${liturgicalSeason.name}
+${liturgicalSeason.description}
+Seasonal Themes to Weave In: ${liturgicalSeason.themes.join(', ')}
 `;
   }
 
+  // Cultural context - OPT-IN ONLY
+  if (includeCultural) {
+    const culturalSeason = getCurrentCulturalSeason(date);
+    if (culturalSeason) {
+      context += `
+CULTURAL SEASON CONTEXT (User Requested):
+Occasion: ${culturalSeason.name}
+Relevant Themes to Incorporate: ${culturalSeason.themes.join(', ')}
+`;
+    }
+  }
+
+  // ALWAYS include freshness variation instructions (perpetual freshness)
   if (isFreshMode) {
     context += `
 FRESHNESS MODE: ACTIVE
@@ -488,7 +509,7 @@ You MUST vary your approach each time by:
 - Rotating through different teaching angles
 - Never repeating the same opening hook for the same passage
 - Varying activity formats and application contexts
-- Incorporating seasonal themes when naturally relevant
+- Using fresh closing challenges
 `;
   }
 
