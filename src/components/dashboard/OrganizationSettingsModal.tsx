@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useOrganization } from "@/hooks/useOrganization";
 import { Loader2 } from "lucide-react";
 import { THEOLOGY_PROFILE_OPTIONS } from "@/constants/theologyProfiles";
+import { getBibleVersionOptions, getDefaultBibleVersion } from "@/constants/bibleVersions";
 
 interface OrganizationSettingsModalProps {
   open: boolean;
@@ -21,18 +22,24 @@ const DOCTRINE_OPTIONS = THEOLOGY_PROFILE_OPTIONS.map(profile => ({
   label: profile.name
 }));
 
+// SSOT: Bible version options
+const BIBLE_VERSION_OPTIONS = getBibleVersionOptions();
 
 export function OrganizationSettingsModal({
   open,
   onOpenChange
 }: OrganizationSettingsModalProps) {
-  const { organization, updateOrganization, isAdmin } = useOrganization();
+  const { organization, updateOrganization, isAdmin, userRole } = useOrganization();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+
+  // Org Leaders and Co-Leaders can also edit settings
+  const canEdit = isAdmin || userRole === "leader" || userRole === "co-leader";
 
   const [formData, setFormData] = useState(() => ({
     name: organization?.name || "",
     default_doctrine: organization?.default_doctrine || "sbc-bfm-2000",
+    default_bible_version: organization?.default_bible_version || getDefaultBibleVersion().id,
     description: organization?.description || "",
     website: organization?.website || "",
     address: organization?.address || "",
@@ -46,6 +53,7 @@ export function OrganizationSettingsModal({
       setFormData({
         name: organization.name || "",
         default_doctrine: organization.default_doctrine || "sbc-bfm-2000",
+        default_bible_version: organization.default_bible_version || getDefaultBibleVersion().id,
         description: organization.description || "",
         website: organization.website || "",
         address: organization.address || "",
@@ -60,7 +68,7 @@ export function OrganizationSettingsModal({
   };
 
   const handleSave = async () => {
-    if (!isAdmin) {
+    if (!canEdit) {
       toast({
         title: "Error",
         description: "You don't have permission to update organization settings.",
@@ -92,12 +100,12 @@ export function OrganizationSettingsModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Organization Settings</DialogTitle>
           <DialogDescription>
             Configure your organization's settings and preferences.
-            {!isAdmin && " (View only - contact an administrator to make changes)"}
+            {!canEdit && " (View only - contact an organization leader to make changes)"}
           </DialogDescription>
         </DialogHeader>
 
@@ -108,22 +116,42 @@ export function OrganizationSettingsModal({
               id="name"
               value={formData.name}
               onChange={(e) => handleInputChange("name", e.target.value)}
-              disabled={!isAdmin}
+              disabled={!canEdit}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="doctrine">Default Doctrine</Label>
+            <Label htmlFor="doctrine">Baptist Theology Profile</Label>
             <Select
               value={formData.default_doctrine}
               onValueChange={(value) => handleInputChange("default_doctrine", value)}
-              disabled={!isAdmin}
+              disabled={!canEdit}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select doctrine" />
+                <SelectValue placeholder="Select theology profile" />
               </SelectTrigger>
               <SelectContent>
                 {DOCTRINE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="bibleVersion">Default Bible Version</Label>
+            <Select
+              value={formData.default_bible_version}
+              onValueChange={(value) => handleInputChange("default_bible_version", value)}
+              disabled={!canEdit}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Bible version" />
+              </SelectTrigger>
+              <SelectContent>
+                {BIBLE_VERSION_OPTIONS.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -138,7 +166,7 @@ export function OrganizationSettingsModal({
               id="description"
               value={formData.description}
               onChange={(e) => handleInputChange("description", e.target.value)}
-              disabled={!isAdmin}
+              disabled={!canEdit}
               rows={3}
             />
           </div>
@@ -150,7 +178,7 @@ export function OrganizationSettingsModal({
                 id="website"
                 value={formData.website}
                 onChange={(e) => handleInputChange("website", e.target.value)}
-                disabled={!isAdmin}
+                disabled={!canEdit}
                 placeholder="https://..."
               />
             </div>
@@ -162,7 +190,7 @@ export function OrganizationSettingsModal({
                 value={isAdmin ? formData.phone : "••••••••••"}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 disabled={!isAdmin}
-                placeholder={isAdmin ? "(555) 123-4567" : "Contact information restricted"}
+                placeholder={isAdmin ? "(555) 123-4567" : ""}
               />
             </div>
           </div>
@@ -174,7 +202,7 @@ export function OrganizationSettingsModal({
               value={isAdmin ? formData.address : "••••••••••"}
               onChange={(e) => handleInputChange("address", e.target.value)}
               disabled={!isAdmin}
-              placeholder={isAdmin ? "Street address" : "Contact information restricted"}
+              placeholder={isAdmin ? "Street address" : ""}
             />
           </div>
 
@@ -186,7 +214,7 @@ export function OrganizationSettingsModal({
               value={isAdmin ? formData.email : "••••••••••"}
               onChange={(e) => handleInputChange("email", e.target.value)}
               disabled={!isAdmin}
-              placeholder={isAdmin ? "contact@organization.com" : "Contact information restricted"}
+              placeholder={isAdmin ? "contact@organization.com" : ""}
             />
           </div>
         </div>
@@ -197,9 +225,9 @@ export function OrganizationSettingsModal({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            {isAdmin ? "Cancel" : "Close"}
+            {canEdit ? "Cancel" : "Close"}
           </Button>
-          {isAdmin && (
+          {canEdit && (
             <Button onClick={handleSave} disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes

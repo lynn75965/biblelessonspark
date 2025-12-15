@@ -1,24 +1,31 @@
 ﻿/**
- * useOrgSharedFocus - Fetch active shared focus for user's organization
+ * useOrgSharedFocus - Fetch active shared focus and org settings
  * 
  * SSOT: src/constants/sharedFocusConfig.ts
- * Returns the currently active focus (if any) for the user's org
+ * Returns the currently active focus (if any) and org defaults
  */
 
 import { useState, useEffect } from "react";
 import { useOrganization } from "./useOrganization";
 import { supabase } from "@/integrations/supabase/client";
-import { SharedFocus, getFocusStatus } from "@/constants/sharedFocusConfig";
+import { SharedFocus } from "@/constants/sharedFocusConfig";
+
+interface OrgSettings {
+  default_doctrine: string | null;
+  default_bible_version: string | null;
+}
 
 export function useOrgSharedFocus() {
   const { organization, hasOrganization } = useOrganization();
   const [activeFocus, setActiveFocus] = useState<SharedFocus | null>(null);
+  const [orgSettings, setOrgSettings] = useState<OrgSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchActiveFocus = async () => {
       if (!hasOrganization || !organization?.id) {
         setActiveFocus(null);
+        setOrgSettings(null);
         setLoading(false);
         return;
       }
@@ -43,6 +50,12 @@ export function useOrgSharedFocus() {
         } else {
           setActiveFocus(data);
         }
+
+        // Also capture org settings
+        setOrgSettings({
+          default_doctrine: organization.default_doctrine || null,
+          default_bible_version: organization.default_bible_version || null,
+        });
       } catch (error) {
         console.error("Error in fetchActiveFocus:", error);
         setActiveFocus(null);
@@ -52,10 +65,11 @@ export function useOrgSharedFocus() {
     };
 
     fetchActiveFocus();
-  }, [organization?.id, hasOrganization]);
+  }, [organization?.id, organization?.default_doctrine, organization?.default_bible_version, hasOrganization]);
 
   return {
     activeFocus,
+    orgSettings,
     loading,
     hasActiveFocus: !!activeFocus,
   };

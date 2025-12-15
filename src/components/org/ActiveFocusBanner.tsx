@@ -11,16 +11,22 @@ import { Badge } from "@/components/ui/badge";
 import { Target, BookOpen, Lightbulb, ChevronRight } from "lucide-react";
 import { SharedFocus, FOCUS_TYPES, formatDateRange } from "@/constants/sharedFocusConfig";
 
-interface ActiveFocusBannerProps {
-  focus: SharedFocus;
-  onUseFocus: (passage: string | null, theme: string | null) => void;
+interface OrgSettings {
+  default_doctrine: string | null;
+  default_bible_version: string | null;
 }
 
-export function ActiveFocusBanner({ focus, onUseFocus }: ActiveFocusBannerProps) {
+interface ActiveFocusBannerProps {
+  focus: SharedFocus;
+  orgSettings?: OrgSettings | null;
+  onUseFocus: (passage: string | null, theme: string | null, orgSettings?: OrgSettings | null) => void;
+}
+
+export function ActiveFocusBanner({ focus, orgSettings, onUseFocus }: ActiveFocusBannerProps) {
   const typeConfig = FOCUS_TYPES[focus.focus_type];
 
   const handleUseFocus = () => {
-    onUseFocus(focus.passage, focus.theme);
+    onUseFocus(focus.passage, focus.theme, orgSettings);
   };
 
   return (

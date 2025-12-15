@@ -159,7 +159,11 @@ export function EnhanceLessonForm({
   const [notes, setNotes] = useState("");
 
   // Handler for "Use Focus" button from org shared focus
-  const handleUseFocus = (passage: string | null, theme: string | null) => {
+  const handleUseFocus = (
+    passage: string | null, 
+    theme: string | null,
+    settings?: { default_doctrine: string | null; default_bible_version: string | null } | null
+  ) => {
     // Set passage if provided
     if (passage) {
       setContentInputType("passage");
@@ -173,6 +177,16 @@ export function EnhanceLessonForm({
       if (!passage) {
         setContentInputType("topic");
       }
+    }
+    
+    // Apply org default theology profile if set
+    if (settings?.default_doctrine) {
+      setTheologyProfileId(settings.default_doctrine);
+    }
+    
+    // Apply org default Bible version if set
+    if (settings?.default_bible_version) {
+      setBibleVersionId(settings.default_bible_version);
     }
     
     // Also add theme to notes for visibility when using passage mode
@@ -191,6 +205,8 @@ export function EnhanceLessonForm({
     const appliedItems: string[] = [];
     if (passage) appliedItems.push(`Passage: ${passage}`);
     if (theme) appliedItems.push(`Theme: ${theme}`);
+    if (settings?.default_doctrine) appliedItems.push("Theology profile applied");
+    if (settings?.default_bible_version) appliedItems.push("Bible version applied");
     
     toast({
       title: "Organization Focus Applied",
@@ -221,7 +237,7 @@ export function EnhanceLessonForm({
     refreshRateLimit,
   } = useRateLimit();
   const { toast } = useToast();
-  const { activeFocus, hasActiveFocus } = useOrgSharedFocus();
+  const { activeFocus, orgSettings, hasActiveFocus } = useOrgSharedFocus();
 
   // Teacher Profiles Hook
   const {
@@ -626,7 +642,7 @@ export function EnhanceLessonForm({
         {/* ACTIVE ORGANIZATION FOCUS BANNER */}
         {/* ================================================================ */}
         {!viewingLesson && hasActiveFocus && activeFocus && (
-          <ActiveFocusBanner focus={activeFocus} onUseFocus={handleUseFocus} />
+          <ActiveFocusBanner focus={activeFocus} orgSettings={orgSettings} onUseFocus={handleUseFocus} />
         )}
 
         {/* ================================================================ */}
