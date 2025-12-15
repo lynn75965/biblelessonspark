@@ -173,6 +173,9 @@ export function OrgSharedFocusPanel({
         created_by: user.id,
       };
 
+      let savedFocusId: string | null = null;
+      const isUpdate = !!editingFocus;
+
       if (editingFocus) {
         // Update existing
         const { error } = await supabase
@@ -188,20 +191,29 @@ export function OrgSharedFocusPanel({
           .eq("id", editingFocus.id);
 
         if (error) throw error;
+        savedFocusId = editingFocus.id;
         toast({ title: "Success", description: "Shared focus updated" });
       } else {
         // Insert new
-        const { error } = await supabase
+        const { data: newFocus, error } = await supabase
           .from("org_shared_focus")
-          .insert(focusData);
+          .insert(focusData)
+          .select("id")
+          .single();
 
         if (error) throw error;
+        savedFocusId = newFocus?.id || null;
         toast({ title: "Success", description: "Shared focus created" });
       }
 
       setShowDialog(false);
       resetForm();
       fetchFocusList();
+
+      // Ask to notify members
+      if (savedFocusId && confirm("Would you like to notify organization members about this focus?")) {
+        await sendNotification(savedFocusId, isUpdate);
+      }
     } catch (error: any) {
       console.error("Error saving shared focus:", error);
       toast({
@@ -230,6 +242,49 @@ export function OrgSharedFocusPanel({
       toast({
         title: "Error",
         description: error.message || "Failed to delete shared focus",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Send notification to org members
+  const sendNotification = async (focusId: string, isUpdate: boolean = false) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Error", description: "Not authenticated", variant: "destructive" });
+        return;
+      }
+
+      const response = await supabase.functions.invoke("send-focus-notification", {
+        body: {
+          focus_id: focusId,
+          organization_id: organizationId,
+          is_update: isUpdate,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const result = response.data;
+      if (result.emails_sent > 0) {
+        toast({
+          title: "Notifications Sent",
+          description: `${result.emails_sent} member(s) notified`,
+        });
+      } else {
+        toast({
+          title: "No Members to Notify",
+          description: "You are the only member in this organization",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error sending notifications:", error);
+      toast({
+        title: "Notification Failed",
+        description: error.message || "Failed to send notifications",
         variant: "destructive",
       });
     }
