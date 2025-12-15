@@ -304,14 +304,14 @@ export default function OrgManager() {
 
               <Card className="bg-gradient-card">
                 <CardHeader>
-                  <CardTitle>Invite Members</CardTitle>
+                  <CardTitle>Member Management</CardTitle>
                   <CardDescription>
                     Add teachers to your organization
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground text-center py-4">
-                    Member invitations coming soon.
+                    Use the <strong>Members</strong> tab to invite new members or add existing users to your organization.
                   </p>
                 </CardContent>
               </Card>
