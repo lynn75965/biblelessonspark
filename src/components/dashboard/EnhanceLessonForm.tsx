@@ -160,10 +160,13 @@ export function EnhanceLessonForm({
 
   // Handler for "Use Focus" button from org shared focus
   const handleUseFocus = (passage: string | null, theme: string | null) => {
+    // Set passage if provided
     if (passage) {
       setContentInputType("passage");
       setBiblePassage(passage);
     }
+    
+    // Set theme in topic field
     if (theme) {
       setFocusedTopic(theme);
       // If no passage, switch to topic mode
@@ -171,9 +174,27 @@ export function EnhanceLessonForm({
         setContentInputType("topic");
       }
     }
+    
+    // Also add theme to notes for visibility when using passage mode
+    if (passage && theme) {
+      setNotes((prevNotes) => {
+        const themeNote = `Organization Theme: ${theme}`;
+        if (prevNotes.includes(themeNote)) return prevNotes;
+        return prevNotes ? `${prevNotes}\n\n${themeNote}` : themeNote;
+      });
+    }
+    
+    // Store applied focus for visual confirmation in Step 1
+    setAppliedFocus({ passage, theme });
+    
+    // Build confirmation message showing ALL applied values
+    const appliedItems: string[] = [];
+    if (passage) appliedItems.push(`Passage: ${passage}`);
+    if (theme) appliedItems.push(`Theme: ${theme}`);
+    
     toast({
       title: "Organization Focus Applied",
-      description: passage ? `Passage set to: ${passage}` : `Theme set to: ${theme}`,
+      description: appliedItems.join(" • "),
     });
   };
   const [generateTeaser, setGenerateTeaser] = useState(false);
@@ -181,6 +202,7 @@ export function EnhanceLessonForm({
   const [freshnessMode, setFreshnessMode] = useState(getDefaultFreshnessMode().id);
   const [includeLiturgical, setIncludeLiturgical] = useState(false);
   const [includeCultural, setIncludeCultural] = useState(false);
+  const [appliedFocus, setAppliedFocus] = useState<{ passage: string | null; theme: string | null } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
@@ -626,6 +648,21 @@ export function EnhanceLessonForm({
               <CardDescription>Choose one way to describe your lesson content</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Applied Focus Confirmation */}
+              {appliedFocus && (appliedFocus.passage || appliedFocus.theme) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
+                  <div className="flex items-center gap-2 text-green-800 font-medium mb-1">
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    Organization Focus Applied
+                  </div>
+                  <div className="text-green-700 space-y-1">
+                    {appliedFocus.passage && <div><strong>Passage:</strong> {appliedFocus.passage}</div>}
+                    {appliedFocus.theme && <div><strong>Theme:</strong> {appliedFocus.theme}</div>}
+                  </div>
+                </div>
+              )}
               {/* Radio selection for content type */}
               <RadioGroup
                 value={contentInputType}
