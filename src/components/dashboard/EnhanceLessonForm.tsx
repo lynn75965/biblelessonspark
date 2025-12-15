@@ -36,6 +36,8 @@ import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
 import { getDefaultFreshnessMode, selectFreshElements } from "@/constants/freshnessOptions";
 import { TeacherCustomization } from "./TeacherCustomization";
+import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
+import { ActiveFocusBanner } from "@/components/org/ActiveFocusBanner";
 import { LessonExportButtons } from "./LessonExportButtons";
 import {
   formatLessonContentToHtml,
@@ -155,6 +157,25 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const [notes, setNotes] = useState("");
+
+  // Handler for "Use Focus" button from org shared focus
+  const handleUseFocus = (passage: string | null, theme: string | null) => {
+    if (passage) {
+      setContentInputType("passage");
+      setBiblePassage(passage);
+    }
+    if (theme) {
+      setFocusedTopic(theme);
+      // If no passage, switch to topic mode
+      if (!passage) {
+        setContentInputType("topic");
+      }
+    }
+    toast({
+      title: "Organization Focus Applied",
+      description: passage ? `Passage set to: ${passage}` : `Theme set to: ${theme}`,
+    });
+  };
   const [generateTeaser, setGenerateTeaser] = useState(false);
   // Freshness mode - default is "fresh" (varied content each time)
   const [freshnessMode, setFreshnessMode] = useState(getDefaultFreshnessMode().id);
@@ -178,6 +199,7 @@ export function EnhanceLessonForm({
     refreshRateLimit,
   } = useRateLimit();
   const { toast } = useToast();
+  const { activeFocus, hasActiveFocus } = useOrgSharedFocus();
 
   // Teacher Profiles Hook
   const {
@@ -576,6 +598,13 @@ export function EnhanceLessonForm({
               </div>
             </div>
           </>
+        )}
+
+        {/* ================================================================ */}
+        {/* ACTIVE ORGANIZATION FOCUS BANNER */}
+        {/* ================================================================ */}
+        {!viewingLesson && hasActiveFocus && activeFocus && (
+          <ActiveFocusBanner focus={activeFocus} onUseFocus={handleUseFocus} />
         )}
 
         {/* ================================================================ */}
