@@ -16,7 +16,6 @@ import {
   ChevronUp,
   Calendar,
   FileText,
-  Download,
   Clock,
   TrendingUp,
   User,
@@ -26,6 +25,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CONTENT_CONTAINER_STYLES } from "@/utils/formatLessonContent";
 
 // Types - SSOT: uses beta_participant to match database column name
 interface UserWithStats {
@@ -41,6 +41,7 @@ interface UserWithStats {
 interface UserLesson {
   id: string;
   title: string;
+  original_text: string | null;
   scripture_passage: string | null;
   age_group: string | null;
   theology_profile_id: string | null;
@@ -73,7 +74,11 @@ export function SystemAnalyticsDashboard() {
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
   const [userLessons, setUserLessons] = useState<UserLesson[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [userLessonsDialogOpen, setUserLessonsDialogOpen] = useState(false);
+
+  // Selected lesson for viewing content
+  const [selectedLesson, setSelectedLesson] = useState<UserLesson | null>(null);
+  const [lessonViewDialogOpen, setLessonViewDialogOpen] = useState(false);
 
   // Sorting
   const [sortField, setSortField] = useState<'lesson_count' | 'last_lesson_date' | 'created_at'>('lesson_count');
@@ -166,10 +171,15 @@ export function SystemAnalyticsDashboard() {
     });
   };
 
-  const handleViewLessons = (user: UserWithStats) => {
+  const handleViewUserLessons = (user: UserWithStats) => {
     setSelectedUser(user);
-    setDialogOpen(true);
+    setUserLessonsDialogOpen(true);
     fetchUserLessons(user.id);
+  };
+
+  const handleViewLessonContent = (lesson: UserLesson) => {
+    setSelectedLesson(lesson);
+    setLessonViewDialogOpen(true);
   };
 
   const handleSort = (field: 'lesson_count' | 'last_lesson_date' | 'created_at') => {
@@ -370,7 +380,7 @@ export function SystemAnalyticsDashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleViewLessons(user)}
+                          onClick={() => handleViewUserLessons(user)}
                           disabled={user.lesson_count === 0}
                         >
                           <Eye className="h-4 w-4 mr-1" />
@@ -387,7 +397,7 @@ export function SystemAnalyticsDashboard() {
       </Card>
 
       {/* User Lessons Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={userLessonsDialogOpen} onOpenChange={setUserLessonsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -421,12 +431,17 @@ export function SystemAnalyticsDashboard() {
             ) : (
               <div className="space-y-3">
                 {userLessons.map((lesson) => (
-                  <Card key={lesson.id} className="bg-muted/50">
+                  <Card 
+                    key={lesson.id} 
+                    className="bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors"
+                    onClick={() => handleViewLessonContent(lesson)}
+                  >
                     <CardContent className="p-4">
                       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-sm truncate">
+                          <h4 className="font-semibold text-sm truncate flex items-center gap-2">
                             {lesson.title || 'Untitled Lesson'}
+                            <Eye className="h-3 w-3 text-muted-foreground" />
                           </h4>
                           <div className="flex flex-wrap gap-2 mt-2">
                             {lesson.scripture_passage && (
@@ -461,6 +476,64 @@ export function SystemAnalyticsDashboard() {
                     </CardContent>
                   </Card>
                 ))}
+              </div>
+            )}
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lesson Content View Dialog - SSOT: Uses same formatting as AllLessonsPanel */}
+      <Dialog open={lessonViewDialogOpen} onOpenChange={setLessonViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedLesson?.title || 'Lesson Details'}
+            </DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="max-h-[60vh]">
+            {selectedLesson && (
+              <div className="space-y-4 p-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Scripture:</span>{' '}
+                    {selectedLesson.scripture_passage || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Age Group:</span>{' '}
+                    {selectedLesson.age_group || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Bible Version:</span>{' '}
+                    {selectedLesson.bible_version?.toUpperCase() || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Theology Profile:</span>{' '}
+                    {selectedLesson.theology_profile_id?.replace(/-/g, ' ') || 'N/A'}
+                  </div>
+                  <div>
+                    <span className="font-medium">Created:</span>{' '}
+                    {formatDateTime(selectedLesson.created_at)}
+                  </div>
+                  <div>
+                    <span className="font-medium">Updated:</span>{' '}
+                    {formatDateTime(selectedLesson.updated_at)}
+                  </div>
+                </div>
+
+                <div className="border-t pt-4">
+                  <h4 className="font-medium mb-2">Lesson Content:</h4>
+                  {selectedLesson.original_text ? (
+                    <div
+                      className={LESSON_CONTENT_CONTAINER_CLASSES}
+                      style={LESSON_CONTENT_CONTAINER_STYLES}
+                      dangerouslySetInnerHTML={{ __html: formatLessonContentToHtml(selectedLesson.original_text) }}
+                    />
+                  ) : (
+                    <p className="text-muted-foreground italic">
+                      No lesson content available.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </ScrollArea>
