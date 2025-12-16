@@ -15,6 +15,8 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { findMatchingBooks } from "@/constants/bibleBooks";
+import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, Trash2, Search, BookOpen, Users } from "lucide-react";
@@ -109,6 +111,7 @@ const extractPrimaryScripture = (content: string): string | null => {
 
 export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
   const [searchPassage, setSearchPassage] = useState("");
+  const [showPassageSuggestions, setShowPassageSuggestions] = useState(false);
   const [searchTitle, setSearchTitle] = useState("");
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [profileFilter, setProfileFilter] = useState<string>("all");
@@ -219,15 +222,37 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
         <CardContent>
           {/* Single Row with All Filters */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            {/* Bible Passage Search */}
+            {/* Bible Passage Search with Autocomplete */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
                 placeholder="Bible Passage"
                 value={searchPassage}
-                onChange={(e) => setSearchPassage(e.target.value)}
+                onChange={(e) => {
+                  setSearchPassage(e.target.value);
+                  setShowPassageSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
+                }}
+                onFocus={() => setShowPassageSuggestions(searchPassage.length >= FORM_STYLING.autocompleteMinChars)}
+                onBlur={() => setTimeout(() => setShowPassageSuggestions(false), 150)}
                 className="pl-10"
+                autoComplete="off"
               />
+              {showPassageSuggestions && findMatchingBooks(searchPassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
+                <div className={FORM_STYLING.autocompleteDropdown}>
+                  {findMatchingBooks(searchPassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
+                    <div
+                      key={book}
+                      className={FORM_STYLING.autocompleteItem}
+                      onMouseDown={() => {
+                        setSearchPassage(book);
+                        setShowPassageSuggestions(false);
+                      }}
+                    >
+                      {book}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Title Search */}
