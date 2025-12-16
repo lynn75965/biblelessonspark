@@ -19,6 +19,8 @@ import { Target, Plus, Pencil, Trash2, Calendar, BookOpen, Lightbulb, AlertCircl
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { findMatchingBooks } from "@/constants/bibleBooks";
+import { FORM_STYLING } from "@/constants/formConfig";
 import {
   FOCUS_TYPES,
   FOCUS_STATUS,
@@ -53,6 +55,7 @@ export function OrgSharedFocusPanel({
   // Form state
   const [focusType, setFocusType] = useState<FocusTypeKey>(DEFAULT_SHARED_FOCUS.focus_type);
   const [passage, setPassage] = useState("");
+  const [showPassageSuggestions, setShowPassageSuggestions] = useState(false);
   const [theme, setTheme] = useState("");
   const [startDate, setStartDate] = useState(DEFAULT_SHARED_FOCUS.start_date);
   const [endDate, setEndDate] = useState(DEFAULT_SHARED_FOCUS.end_date);
@@ -439,12 +442,37 @@ export function OrgSharedFocusPanel({
             {FOCUS_TYPES[focusType].requiresPassage && (
               <div className="space-y-2">
                 <Label>Scripture Passage *</Label>
-                <Input
-                  placeholder="e.g., John 3:16-21"
-                  value={passage}
-                  onChange={(e) => setPassage(e.target.value)}
-                  maxLength={SHARED_FOCUS_VALIDATION.PASSAGE_MAX_LENGTH}
-                />
+                <div className="relative">
+                  <Input
+                    className={FORM_STYLING.biblePassageInput}
+                    placeholder="e.g., John 3:16-21"
+                    value={passage}
+                    onChange={(e) => {
+                      setPassage(e.target.value);
+                      setShowPassageSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
+                    }}
+                    onFocus={() => setShowPassageSuggestions(passage.length >= FORM_STYLING.autocompleteMinChars)}
+                    onBlur={() => setTimeout(() => setShowPassageSuggestions(false), 150)}
+                    maxLength={SHARED_FOCUS_VALIDATION.PASSAGE_MAX_LENGTH}
+                    autoComplete="off"
+                  />
+                  {showPassageSuggestions && findMatchingBooks(passage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
+                    <div className={FORM_STYLING.autocompleteDropdown}>
+                      {findMatchingBooks(passage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
+                        <div
+                          key={book}
+                          className={FORM_STYLING.autocompleteItem}
+                          onMouseDown={() => {
+                            setPassage(book + " ");
+                            setShowPassageSuggestions(false);
+                          }}
+                        >
+                          {book}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
