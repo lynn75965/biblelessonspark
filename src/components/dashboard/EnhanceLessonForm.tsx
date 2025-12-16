@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -34,6 +34,8 @@ import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
+import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
+import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 
 // ============================================================================
 // INTERFACES
@@ -48,6 +50,7 @@ interface EnhanceLessonFormProps {
   defaultDoctrine?: string;
   viewingLesson?: any;
   onClearViewing?: () => void;
+  initialFocusData?: FocusApplicationData;
 }
 
 // ============================================================================
@@ -93,6 +96,7 @@ export function EnhanceLessonForm({
   defaultDoctrine,
   viewingLesson,
   onClearViewing,
+  initialFocusData,
 }: EnhanceLessonFormProps) {
   // ============================================================================
   // STEP 1: LESSON CONTENT STATE
@@ -283,6 +287,33 @@ export function EnhanceLessonForm({
 
     fetchUserProfile();
   }, []);
+
+  // ============================================================================
+  // APPLY FOCUS DATA FROM ORGANIZATION SHARED FOCUS
+  // ============================================================================
+
+  useEffect(() => {
+    if (initialFocusData) {
+      // Apply passage or theme based on what's provided
+      if (initialFocusData.passage) {
+        setContentInputType("passage");
+        setBiblePassage(initialFocusData.passage);
+      } else if (initialFocusData.theme) {
+        setContentInputType("topic");
+        setFocusedTopic(initialFocusData.theme);
+      }
+
+      // Apply Bible version if provided
+      if (initialFocusData.bibleVersionId) {
+        setBibleVersionId(initialFocusData.bibleVersionId);
+      }
+
+      // Apply theology profile if provided
+      if (initialFocusData.theologyProfileId) {
+        setTheologyProfileId(initialFocusData.theologyProfileId);
+      }
+    }
+  }, [initialFocusData]);
 
   // ============================================================================
   // PROGRESS TIMER
@@ -654,7 +685,7 @@ export function EnhanceLessonForm({
                             )}
                             {extractedContent && (
                               <div className="text-sm text-green-600">
-                                ✓ File content extracted ({extractedContent.length} characters)
+                                âœ“ File content extracted ({extractedContent.length} characters)
                               </div>
                             )}
                           </div>
@@ -675,7 +706,7 @@ export function EnhanceLessonForm({
                             {pastedContent.trim() && (
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm text-green-600">
-                                  ✓ {pastedContent.length} characters entered
+                                  âœ“ {pastedContent.length} characters entered
                                 </span>
                                 <Button
                                   type="button"
@@ -826,7 +857,7 @@ export function EnhanceLessonForm({
                       <SelectItem key={version.id} value={version.id}>
                         {version.name} ({version.abbreviation})
                         {version.copyrightStatus === 'public_domain' && (
-                          <span className="ml-2 text-xs text-green-600">• Direct quotes</span>
+                          <span className="ml-2 text-xs text-green-600">â€¢ Direct quotes</span>
                         )}
                       </SelectItem>
                     ))}
@@ -896,7 +927,7 @@ export function EnhanceLessonForm({
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add specific requests — describe your focus or primary thought
+                  Add specific requests â€” describe your focus or primary thought
                 </p>
                 <Textarea
                   id="notes"
@@ -938,7 +969,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">📱 Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">ðŸ“± Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
               </p>
             </div>
 
@@ -950,7 +981,7 @@ export function EnhanceLessonForm({
             >
               {isLimitReached ? (
                 <span>
-                  Limit reached — resets in {hoursUntilReset} hour
+                  Limit reached â€” resets in {hoursUntilReset} hour
                   {hoursUntilReset === 1 ? "" : "s"}
                 </span>
               ) : (
@@ -987,7 +1018,7 @@ export function EnhanceLessonForm({
 
             {/* Generation Warning */}
             <p className="text-xs text-center text-amber-600">
-              ⚠️ Must remain on this page until lesson is fully generated
+              âš ï¸ Must remain on this page until lesson is fully generated
             </p>
           </div>
         </form>
@@ -1108,3 +1139,4 @@ export function EnhanceLessonForm({
     </>
   );
 }
+
