@@ -315,7 +315,7 @@ export function TeacherCustomization({
               <GoldAccent>Personalize</GoldAccent> Your Lesson
             </CardTitle>
             <CardDescription className="text-amber-700 font-medium">
-              ?? Click to describe your teaching environment
+              Click here to describe your teaching environment
             </CardDescription>
           </div>
           {isExpanded ? (
