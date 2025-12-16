@@ -40,6 +40,14 @@ export const ROLE_LABELS: Record<Role, string> = {
   platformAdmin: 'Manager',
 } as const;
 
+// Role descriptions - what each role can do
+export const ROLE_DESCRIPTIONS: Record<Role, string> = {
+  individual: 'Personal workspace user - creates and manages own lessons only',
+  orgMember: 'Church member - creates lessons and views organization lessons',
+  orgLeader: 'Church leader - manages members, sets shared focus, views analytics',
+  platformAdmin: 'Platform manager - full access to all platform features',
+} as const;
+
 // Organization role values (stored in profiles.organization_role)
 export const ORG_ROLES = {
   leader: 'leader',
