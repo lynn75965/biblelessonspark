@@ -72,7 +72,7 @@ const GoldAccent = ({ children }: { children: React.ReactNode }) => (
 
 // Step badge component (teal pill matching landing page "How It Works")
 const StepBadge = ({ number }: { number: number }) => (
-  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500 text-white">
+  <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold bg-sky-500 text-white shadow-md border-2 border-sky-600">
     STEP {number}
   </span>
 );
@@ -314,8 +314,8 @@ export function TeacherCustomization({
             <CardTitle className="text-lg text-slate-800">
               <GoldAccent>Personalize</GoldAccent> Your Lesson
             </CardTitle>
-            <CardDescription>
-              Optional customizations that make your lesson unique
+            <CardDescription className="text-amber-700 font-medium">
+              ?? Click to describe your teaching environment
             </CardDescription>
           </div>
           {isExpanded ? (

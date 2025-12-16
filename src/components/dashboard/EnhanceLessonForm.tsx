@@ -64,9 +64,9 @@ const GoldAccent = ({ children }: { children: React.ReactNode }) => (
   <span className="text-amber-500">{children}</span>
 );
 
-// Step badge component (teal pill matching landing page "How It Works")
+// Step badge component - prominent teal pill with border
 const StepBadge = ({ number }: { number: number }) => (
-  <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-sky-500 text-white">
+  <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold bg-sky-500 text-white shadow-md border-2 border-sky-600">
     STEP {number}
   </span>
 );
