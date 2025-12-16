@@ -27,6 +27,11 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
+// ============================================================================
+// USE FOCUS IMPORTS
+// ============================================================================
+import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
+import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 
 export default function Dashboard() {
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
@@ -41,6 +46,12 @@ export default function Dashboard() {
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const [userProfile, setUserProfile] = useState<any>(null);
+
+  // ============================================================================
+  // USE FOCUS STATE & HOOK
+  // ============================================================================
+  const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
+  const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
 
   useEffect(() => {
     const loadUserProfile = async () => {
@@ -113,6 +124,22 @@ export default function Dashboard() {
     }
   };
 
+  // ============================================================================
+  // USE FOCUS HANDLER
+  // ============================================================================
+  const handleUseFocus = (data: FocusApplicationData) => {
+    setFocusDataToApply(data);
+    // Switch to enhance tab if not already there
+    setActiveTab("enhance");
+    // Clear any viewing lesson so form is fresh
+    setSelectedLesson(null);
+    
+    toast({
+      title: "Focus Applied",
+      description: `${focusData.organizationName || "Organization"} defaults applied to your lesson form`,
+    });
+  };
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
 
   return (
@@ -140,6 +167,21 @@ export default function Dashboard() {
           </div>
           {settings.show_credits_block && <CreditsDisplay balance={balance} loading={creditsLoading} />}
         </div>
+
+        {/* ================================================================== */}
+        {/* ACTIVE FOCUS BANNER - Shows when org has active shared focus */}
+        {/* ================================================================== */}
+        {hasActiveFocus && focusData.activeFocus && focusStatus && (
+          <ActiveFocusBanner
+            focus={focusData.activeFocus}
+            status={focusStatus}
+            organizationName={focusData.organizationName || "Your Organization"}
+            defaultBibleVersion={focusData.defaultBibleVersion}
+            defaultDoctrine={focusData.defaultDoctrine}
+            onUseFocus={handleUseFocus}
+            dismissible
+          />
+        )}
 
         {/* Stats Cards - Personal Only */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -198,6 +240,8 @@ export default function Dashboard() {
             <EnhanceLessonForm
               onLessonGenerated={(lesson) => {
                 setLastGeneratedLessonId(lesson?.id || null);
+                // Clear focus data after lesson is generated so it doesn't re-apply
+                setFocusDataToApply(null);
                 toast({
                   title: "Lesson Generated!",
                   description: "Review your lesson, then use Copy, Print, or Download when ready.",
@@ -215,6 +259,7 @@ export default function Dashboard() {
                 setSelectedLesson(null);
                 setActiveTab("library");
               }}
+              initialFocusData={focusDataToApply || undefined}
             />
           </TabsContent>
 

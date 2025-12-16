@@ -12,7 +12,7 @@
  * - Mobile responsiveness fixes (December 4, 2025)
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,7 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ArrowDown } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
@@ -29,21 +29,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
-import { findMatchingBooks } from "@/constants/bibleBooks";
-import { FORM_STYLING } from "@/constants/formConfig";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
-import { getDefaultFreshnessMode, selectFreshElements } from "@/constants/freshnessOptions";
 import { TeacherCustomization } from "./TeacherCustomization";
-import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
-import { ActiveFocusBanner } from "@/components/org/ActiveFocusBanner";
 import { LessonExportButtons } from "./LessonExportButtons";
-import {
-  formatLessonContentToHtml,
-  LESSON_CONTENT_CONTAINER_CLASSES,
-  LESSON_CONTENT_CONTAINER_STYLES,
-} from "@/utils/formatLessonContent";
 
 // ============================================================================
 // INTERFACES
@@ -110,8 +100,6 @@ export function EnhanceLessonForm({
 
   const [contentInputType, setContentInputType] = useState<"curriculum" | "passage" | "topic">("passage");
   const [biblePassage, setBiblePassage] = useState("");
-  const [showBibleSuggestions, setShowBibleSuggestions] = useState(false);
-  const bibleInputRef = useRef<HTMLInputElement>(null);
   const [focusedTopic, setFocusedTopic] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
@@ -157,68 +145,7 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const [notes, setNotes] = useState("");
-
-  // Handler for "Use Focus" button from org shared focus
-  const handleUseFocus = (
-    passage: string | null, 
-    theme: string | null,
-    settings?: { default_doctrine: string | null; default_bible_version: string | null } | null
-  ) => {
-    // Set passage if provided
-    if (passage) {
-      setContentInputType("passage");
-      setBiblePassage(passage);
-    }
-    
-    // Set theme in topic field
-    if (theme) {
-      setFocusedTopic(theme);
-      // If no passage, switch to topic mode
-      if (!passage) {
-        setContentInputType("topic");
-      }
-    }
-    
-    // Apply org default theology profile if set
-    if (settings?.default_doctrine) {
-      setTheologyProfileId(settings.default_doctrine);
-    }
-    
-    // Apply org default Bible version if set
-    if (settings?.default_bible_version) {
-      setBibleVersionId(settings.default_bible_version);
-    }
-    
-    // Also add theme to notes for visibility when using passage mode
-    if (passage && theme) {
-      setNotes((prevNotes) => {
-        const themeNote = `Organization Theme: ${theme}`;
-        if (prevNotes.includes(themeNote)) return prevNotes;
-        return prevNotes ? `${prevNotes}\n\n${themeNote}` : themeNote;
-      });
-    }
-    
-    // Store applied focus for visual confirmation in Step 1
-    setAppliedFocus({ passage, theme });
-    
-    // Build confirmation message showing ALL applied values
-    const appliedItems: string[] = [];
-    if (passage) appliedItems.push(`Passage: ${passage}`);
-    if (theme) appliedItems.push(`Theme: ${theme}`);
-    if (settings?.default_doctrine) appliedItems.push("Theology profile applied");
-    if (settings?.default_bible_version) appliedItems.push("Bible version applied");
-    
-    toast({
-      title: "Organization Focus Applied",
-      description: appliedItems.join(" • "),
-    });
-  };
   const [generateTeaser, setGenerateTeaser] = useState(false);
-  // Freshness mode - default is "fresh" (varied content each time)
-  const [freshnessMode, setFreshnessMode] = useState(getDefaultFreshnessMode().id);
-  const [includeLiturgical, setIncludeLiturgical] = useState(false);
-  const [includeCultural, setIncludeCultural] = useState(false);
-  const [appliedFocus, setAppliedFocus] = useState<{ passage: string | null; theme: string | null } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
@@ -237,7 +164,6 @@ export function EnhanceLessonForm({
     refreshRateLimit,
   } = useRateLimit();
   const { toast } = useToast();
-  const { activeFocus, orgSettings, hasActiveFocus } = useOrgSharedFocus();
 
   // Teacher Profiles Hook
   const {
@@ -543,10 +469,6 @@ export function EnhanceLessonForm({
         language: language,
         activity_types: activityTypes,
         generate_teaser: generateTeaser,
-        freshness_mode: freshnessMode,
-        include_liturgical: includeLiturgical,
-        include_cultural: includeCultural,
-        freshness_suggestions: freshnessMode === "fresh" ? selectFreshElements([]) : null,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
       };
@@ -629,20 +551,8 @@ export function EnhanceLessonForm({
               <p className="text-slate-600 mt-1">
                 Generate a theologically-sound Bible study lesson tailored to your class
               </p>
-              <div className="mt-4 flex items-center justify-center gap-2 text-sky-600 font-semibold">
-                <ArrowDown className="h-5 w-5 animate-bounce" />
-                <span>Complete the 3 simple steps below to build your lesson</span>
-                <ArrowDown className="h-5 w-5 animate-bounce" />
-              </div>
             </div>
           </>
-        )}
-
-        {/* ================================================================ */}
-        {/* ACTIVE ORGANIZATION FOCUS BANNER */}
-        {/* ================================================================ */}
-        {!viewingLesson && hasActiveFocus && activeFocus && (
-          <ActiveFocusBanner focus={activeFocus} orgSettings={orgSettings} onUseFocus={handleUseFocus} />
         )}
 
         {/* ================================================================ */}
@@ -664,21 +574,6 @@ export function EnhanceLessonForm({
               <CardDescription>Choose one way to describe your lesson content</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Applied Focus Confirmation */}
-              {appliedFocus && (appliedFocus.passage || appliedFocus.theme) && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-sm">
-                  <div className="flex items-center gap-2 text-green-800 font-medium mb-1">
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    Organization Focus Applied
-                  </div>
-                  <div className="text-green-700 space-y-1">
-                    {appliedFocus.passage && <div><strong>Passage:</strong> {appliedFocus.passage}</div>}
-                    {appliedFocus.theme && <div><strong>Theme:</strong> {appliedFocus.theme}</div>}
-                  </div>
-                </div>
-              )}
               {/* Radio selection for content type */}
               <RadioGroup
                 value={contentInputType}
@@ -808,37 +703,13 @@ export function EnhanceLessonForm({
                       Start from a Bible passage
                     </Label>
                     {contentInputType === "passage" && (
-                      <div className="mt-2 relative">
+                      <div className="mt-2">
                         <Input
-                          ref={bibleInputRef}
-                          className={FORM_STYLING.biblePassageInput}
                           placeholder="e.g., John 3:16-21"
                           value={biblePassage}
-                          onChange={(e) => {
-                            setBiblePassage(e.target.value);
-                            setShowBibleSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
-                          }}
-                          onFocus={() => setShowBibleSuggestions(biblePassage.length >= FORM_STYLING.autocompleteMinChars)}
-                          onBlur={() => setTimeout(() => setShowBibleSuggestions(false), 150)}
+                          onChange={(e) => setBiblePassage(e.target.value)}
                           disabled={isSubmitting}
-                          autoComplete="off"
                         />
-                        {showBibleSuggestions && findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
-                          <div className={FORM_STYLING.autocompleteDropdown}>
-                            {findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
-                              <div
-                                key={book}
-                                className={FORM_STYLING.autocompleteItem}
-                                onMouseDown={() => {
-                                  setBiblePassage(book + " ");
-                                  setShowBibleSuggestions(false);
-                                }}
-                              >
-                                {book}
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>
@@ -888,7 +759,7 @@ export function EnhanceLessonForm({
                     Age Group <span className="text-red-500">*</span>
                   </Label>
                   <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
-                    <SelectTrigger id="age-group" className={FORM_STYLING.selectMaxWidth}>
+                    <SelectTrigger id="age-group">
                       <SelectValue placeholder="Select age group" />
                     </SelectTrigger>
                     <SelectContent>
@@ -917,7 +788,7 @@ export function EnhanceLessonForm({
                     onValueChange={setTheologyProfileId}
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger id="theology-profile" className={FORM_STYLING.selectMaxWidth}>
+                    <SelectTrigger id="theology-profile">
                       <SelectValue placeholder="Select theology profile" />
                     </SelectTrigger>
                     <SelectContent>
@@ -947,7 +818,7 @@ export function EnhanceLessonForm({
                   onValueChange={setBibleVersionId}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger id="bible-version" className={FORM_STYLING.selectMaxWidth}>
+                  <SelectTrigger id="bible-version">
                     <SelectValue placeholder="Select Bible version" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1005,8 +876,6 @@ export function EnhanceLessonForm({
             setLessonNumber={setLessonNumber}
             totalLessons={totalLessons}
             setTotalLessons={setTotalLessons}
-            freshnessMode={freshnessMode}
-            setFreshnessMode={setFreshnessMode}
             profiles={profiles}
             currentProfileId={currentProfileId}
             onSaveProfile={handleSaveProfile}
@@ -1059,8 +928,6 @@ export function EnhanceLessonForm({
                   </p>
                 </div>
               </div>
-
-
             </CardContent>
           </Card>
 
@@ -1200,13 +1067,25 @@ export function EnhanceLessonForm({
               </div>
             )}
 
-            {/* Lesson Content - SSOT: Uses shared formatLessonContentToHtml utility */}
+            {/* Lesson Content */}
             <div className="prose-sm max-w-none">
               <div
-                className={LESSON_CONTENT_CONTAINER_CLASSES}
-                style={LESSON_CONTENT_CONTAINER_STYLES}
+                className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px] md:[&::-webkit-scrollbar]:w-4 md:[&::-webkit-scrollbar-track]:bg-gray-200 md:[&::-webkit-scrollbar-track]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-sky-400 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:border-2 md:[&::-webkit-scrollbar-thumb]:border-gray-200 hover:md:[&::-webkit-scrollbar-thumb]:bg-sky-500"
+                style={{ lineHeight: "1.3", scrollbarWidth: "thick", scrollbarColor: "#38bdf8 #e5e7eb" }}
                 dangerouslySetInnerHTML={{
-                  __html: formatLessonContentToHtml(currentLesson.original_text),
+                  __html: (currentLesson.original_text || "")
+                    .replace(
+                      /## (.*?)(?=\n|$)/g,
+                      '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>'
+                    )
+                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                    .replace(
+                      /\n---\n/g,
+                      '<hr class="my-1.5 border-t border-muted-foreground/20">'
+                    )
+                    .replace(/\x95/g, "\x95")
+                    .replace(/\n\n/g, "<br><br>")
+                    .replace(/\n/g, "<br>"),
                 }}
               />
             </div>
