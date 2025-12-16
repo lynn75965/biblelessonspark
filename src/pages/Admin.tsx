@@ -20,6 +20,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { PROGRAM_CONFIG } from "@/constants/programConfig";
 import { isBetaMode } from "@/constants/systemSettings";
+import { AdminSecurityPanel } from "@/components/admin/AdminSecurityPanel";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -343,23 +344,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="security" className="mt-6 relative z-0">
-            <Card className="bg-gradient-card">
-              <CardHeader>
-                <CardTitle>Security Center</CardTitle>
-                <CardDescription>
-                  Security monitoring and access control management
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Security Dashboard</h3>
-                  <p className="text-muted-foreground">
-                    Advanced security controls and monitoring coming soon.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminSecurityPanel />
           </TabsContent>
         </Tabs>
       </main>
