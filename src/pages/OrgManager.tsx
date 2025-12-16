@@ -132,7 +132,7 @@ export default function OrgManager() {
           </div>
           <div className="flex items-center justify-end">
             <Badge variant="outline" className="text-sm">
-              {isAdmin ? 'Administrator' : 'Organization Manager'}
+              {isAdmin ? 'Manager' : 'Organization Manager'}
             </Badge>
           </div>
         </div>

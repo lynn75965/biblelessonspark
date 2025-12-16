@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -308,7 +308,7 @@ export default function Admin() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
+                            <span className="text-primary">â€¢</span>
                             {benefit}
                           </li>
                         ))}

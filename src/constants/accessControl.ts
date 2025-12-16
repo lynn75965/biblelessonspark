@@ -40,6 +40,13 @@ export const ROLE_LABELS: Record<Role, string> = {
   platformAdmin: 'Manager',
 } as const;
 
+// Context-specific labels for platformAdmin based on route
+export const ADMIN_CONTEXT_LABELS = {
+  admin: 'Administrator',
+  org: 'Manager',
+  workspace: null,  // No label on workspace
+} as const;
+
 // Role descriptions - what each role can do
 export const ROLE_DESCRIPTIONS: Record<Role, string> = {
   individual: 'Personal workspace user - creates and manages own lessons only',
