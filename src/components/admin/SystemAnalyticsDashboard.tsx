@@ -27,12 +27,12 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
-// Types
+// Types - SSOT: uses beta_participant to match database column name
 interface UserWithStats {
   id: string;
   email: string;
   full_name: string | null;
-  is_beta_tester: boolean;
+  beta_participant: boolean;
   created_at: string;
   lesson_count: number;
   last_lesson_date: string | null;
@@ -86,12 +86,12 @@ export function SystemAnalyticsDashboard() {
 
       if (error) throw error;
 
-      // Map RPC results to component state
+      // Map RPC results to component state - SSOT: uses beta_participant
       const usersWithStats: UserWithStats[] = (data || []).map((row: any) => ({
         id: row.id,
         email: row.email || 'No email',
         full_name: row.full_name,
-        is_beta_tester: row.is_beta_tester || false,
+        beta_participant: row.beta_participant || false,
         created_at: row.created_at,
         lesson_count: Number(row.lesson_count) || 0,
         last_lesson_date: row.last_lesson_date,
@@ -208,58 +208,57 @@ export function SystemAnalyticsDashboard() {
       <ChevronDown className="h-4 w-4 inline ml-1" />;
   };
 
+  // Format date helper
   const formatDate = (dateString: string | null) => {
-    if (!dateString) return '—';
-    return format(new Date(dateString), 'MMM d, yyyy');
+    if (!dateString) return 'Never';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return '—';
-    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch {
+      return 'Invalid date';
+    }
   };
 
   if (loading) {
     return (
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle>System Analytics</CardTitle>
-          <CardDescription>Loading platform data...</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Platform Summary Stats */}
+      {/* Platform Overview Card */}
       <Card className="bg-gradient-card">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Platform Overview
-              </CardTitle>
-              <CardDescription>
-                All users and lesson activity across the platform
-              </CardDescription>
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={refreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Button>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Platform Overview
+            </CardTitle>
+            <CardDescription>
+              All users and lesson activity across the platform
+            </CardDescription>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -347,7 +346,7 @@ export function SystemAnalyticsDashboard() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {user.is_beta_tester ? (
+                        {user.beta_participant ? (
                           <Badge variant="secondary" className="bg-green-100 text-green-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Yes
