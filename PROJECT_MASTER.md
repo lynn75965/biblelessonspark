@@ -1,8 +1,8 @@
-# LessonSparkUSA - Project Master Document
+﻿# LessonSparkUSA - Project Master Document
 
 ---
 
-## ⚠️ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
+## âš ï¸ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
 
 > **THIS SECTION IS MANDATORY READING BEFORE ANY ROLE-RELATED CHANGES**
 
@@ -128,7 +128,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 ## Current Architecture
 
 ### Frontend
-- **Platform:** Netlify (automatic GitHub deployment) � DO NOT use Lovable.dev for deployment
+- **Platform:** Netlify (automatic GitHub deployment) — DO NOT use Lovable.dev for deployment
 - **Stack:** React, TypeScript, Vite
 - **UI:** Shadcn/ui components, Tailwind CSS
 - **State:** React hooks, Supabase client
@@ -162,13 +162,13 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 | src/constants/teacherPreferences.ts | supabase/functions/_shared/teacherPreferences.ts | Teacher customization options |
 | src/constants/bibleVersions.ts | supabase/functions/_shared/bibleVersions.ts | 7 versions with copyright guardrails |
 | src/constants/generationMetrics.ts | supabase/functions/_shared/generationMetrics.ts | Device/timing tracking |
-| src/constants/accessControl.ts | — | Role definitions (frontend only) |
+| src/constants/accessControl.ts | â€” | Role definitions (frontend only) |
 | src/constants/validation.ts | supabase/functions/_shared/validation.ts | Input validation rules |
 | src/constants/routes.ts | supabase/functions/_shared/routes.ts | Application route definitions |
-| src/constants/navigationConfig.ts | � | Navigation menu items by role |
-| src/constants/dashboardConfig.ts | � | Dashboard tab configuration |
-| src/constants/orgManagerConfig.ts | � | Org detail drill-down tabs |
-| src/config/site.ts | — | Site branding constants |
+| src/constants/navigationConfig.ts | — | Navigation menu items by role |
+| src/constants/dashboardConfig.ts | — | Dashboard tab configuration |
+| src/constants/orgManagerConfig.ts | — | Org detail drill-down tabs |
+| src/config/site.ts | â€” | Site branding constants |
 
 ### SSOT Exception: Pricing
 
@@ -264,7 +264,7 @@ npm run sync-constants
 
 ### Admin Management
 
-**Location:** Admin Panel → Beta Program tab → Scroll to "Beta Feedback Questions"
+**Location:** Admin Panel â†’ Beta Program tab â†’ Scroll to "Beta Feedback Questions"
 
 **Capabilities:**
 - Add new questions
@@ -384,7 +384,7 @@ All 8 sections as defined in Current Lesson Structure, plus optional Student Tea
 |-----------|-------------------|-------------------|
 | SSOT Location | Frontend constants | Stripe Dashboard |
 | Change Origin | Edit .ts file, deploy | Edit in Stripe |
-| Sync Direction | Frontend → Backend | Stripe → Supabase (webhook) |
+| Sync Direction | Frontend â†’ Backend | Stripe â†’ Supabase (webhook) |
 | Lynn's Workflow | Code change required | No code change needed |
 
 ### Rationale for Exception
@@ -413,7 +413,7 @@ Lynn rarely changes pricing, but when changes happen:
 
 | Plan | Lessons/Month | Tier Access | Monthly | Annual (2 mo. free) |
 |------|---------------|-------------|---------|---------------------|
-| **Free** | 5 | Basic only | $0 | — |
+| **Free** | 5 | Basic only | $0 | â€” |
 | **Personal** | 20 | Full | $9 | $90 |
 
 **Organization Plans (Phase 13):**
@@ -651,28 +651,28 @@ npm run sync-constants
 
 | Task | Status |
 |------|--------|
-| Teacher Preference Profiles | ✅ Complete |
-| Auth Bug Fixes | ✅ Complete |
-| UI Improvements (Create Lesson 3-step cards) | ✅ Complete |
-| Prompt Caching Implementation | ✅ Complete |
-| 10 Theology Profiles with Guardrails | ✅ Complete |
-| SSOT Compliance Audit & Fixes | ✅ Complete |
-| Filter Matching Bug Fix | ✅ Complete |
-| Edge Function Guardrails Integration | ✅ Complete |
-| Bible Version Selection with Copyright Guardrails | ✅ Complete |
-| Security Advisor Clean (0 errors, 0 warnings) | ✅ Complete |
-| Mobile Responsiveness Audit (30+ files) | ✅ Complete |
-| Guardrail Violation Logging System | ✅ Complete |
-| Admin Panel Guardrails Tab | ✅ Complete |
-| Email SMTP Configuration | ✅ Complete |
-| Password Validation SSOT | ✅ Complete |
-| Forgot Password Flow | ✅ Complete |
-| Beta Feedback System (Database-driven) | ✅ Complete |
-| FeedbackQuestionsManager Admin | ✅ Complete |
-| Security Advisor Fixes (0 errors, 0 warnings) | ✅ Complete |
-| Lesson Tiers SSOT | 🔄 In Progress |
-| Generation Metrics SSOT | 🔄 In Progress |
-| Beta Tester Onboarding | 🔄 In Progress |
+| Teacher Preference Profiles | âœ… Complete |
+| Auth Bug Fixes | âœ… Complete |
+| UI Improvements (Create Lesson 3-step cards) | âœ… Complete |
+| Prompt Caching Implementation | âœ… Complete |
+| 10 Theology Profiles with Guardrails | âœ… Complete |
+| SSOT Compliance Audit & Fixes | âœ… Complete |
+| Filter Matching Bug Fix | âœ… Complete |
+| Edge Function Guardrails Integration | âœ… Complete |
+| Bible Version Selection with Copyright Guardrails | âœ… Complete |
+| Security Advisor Clean (0 errors, 0 warnings) | âœ… Complete |
+| Mobile Responsiveness Audit (30+ files) | âœ… Complete |
+| Guardrail Violation Logging System | âœ… Complete |
+| Admin Panel Guardrails Tab | âœ… Complete |
+| Email SMTP Configuration | âœ… Complete |
+| Password Validation SSOT | âœ… Complete |
+| Forgot Password Flow | âœ… Complete |
+| Beta Feedback System (Database-driven) | âœ… Complete |
+| FeedbackQuestionsManager Admin | âœ… Complete |
+| Security Advisor Fixes (0 errors, 0 warnings) | âœ… Complete |
+| Lesson Tiers SSOT | ðŸ”„ In Progress |
+| Generation Metrics SSOT | ðŸ”„ In Progress |
+| Beta Tester Onboarding | ðŸ”„ In Progress |
 
 ---
 
@@ -1063,8 +1063,8 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 ### Session 14: Security Advisor Fixes (December 10, 2025) - COMPLETE
 
 **Issue:** Supabase Security Advisor flagged 5 errors (sent monthly alert email)
-- 2x "Exposed Auth Users" — views joining `auth.users` directly
-- 3x "Security Definer View" — views bypassing RLS
+- 2x "Exposed Auth Users" â€” views joining `auth.users` directly
+- 3x "Security Definer View" â€” views bypassing RLS
 
 **Resolution:**
 
@@ -1251,15 +1251,15 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 
 | Component | Platform Beta | Org Beta | Modification |
 |-----------|---------------|----------|--------------|
-| feedbackConfig.ts | ✅ | ✅ | Add scope parameter |
-| BetaAnalyticsDashboard.tsx | ✅ | ✅ | Add org_id filter prop |
-| feedback_questions table | ✅ | ✅ | Add scope column |
-| beta_feedback_view | ✅ | ✅ | Add org join condition |
-| Summary card definitions | ✅ | ✅ | No change needed |
+| feedbackConfig.ts | âœ… | âœ… | Add scope parameter |
+| BetaAnalyticsDashboard.tsx | âœ… | âœ… | Add org_id filter prop |
+| feedback_questions table | âœ… | âœ… | Add scope column |
+| beta_feedback_view | âœ… | âœ… | Add org join condition |
+| Summary card definitions | âœ… | âœ… | No change needed |
 
 #### Admin Workflow
 ```
-Admin Panel → Organizations → [Org Name] → Actions → Enable Beta Mode
+Admin Panel â†’ Organizations â†’ [Org Name] â†’ Actions â†’ Enable Beta Mode
 ```
 
 This sets:
@@ -1288,7 +1288,7 @@ When org beta is active, Org Leader sees:
 
 Admin ends org beta via:
 ```
-Admin Panel → Organizations → [Org Name] → Actions → End Beta Mode
+Admin Panel â†’ Organizations â†’ [Org Name] â†’ Actions â†’ End Beta Mode
 ```
 
 This sets:
@@ -1573,3 +1573,64 @@ Users can now enter BOTH a Bible passage AND a topic/theme simultaneously.
 - Enter "John 3:16" + "God's Love" ? Lesson addresses both
 - Use Focus button populates both passage AND theme from org settings
 - Either field optional, but at least one required
+
+---
+
+### Session: December 16, 2025
+
+#### Completed Items
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Phase 15: Perpetual Freshness Checkboxes | ✅ Fixed | Liturgical/Cultural opt-in checkboxes were missing from UI despite documentation claiming implementation. Root cause: state variables never saved to file. Properly implemented with commits 4208b26 and 560c46a |
+| System Analytics Tab | ✅ Fixed | RPC function existed but PostgREST schema cache was stale. Fixed with `NOTIFY pgrst, 'reload schema';` |
+| System Settings Tab | ✅ Verified | Working - Visibility and System categories displaying correctly |
+| Security Tab | ✅ Implemented | New SSOT-compliant implementation with AdminSecurityPanel.tsx |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/constants/securityConfig.ts` | SSOT for security events, categories, display limits, metadata |
+| `src/components/admin/AdminSecurityPanel.tsx` | Admin security panel - reads all config from SSOT |
+
+#### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Added includeLiturgical/includeCultural state and checkboxes |
+| `src/pages/Admin.tsx` | Wired AdminSecurityPanel to Security tab |
+
+#### Git Commits (December 16, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `4208b26` | Add Liturgical and Cultural season opt-in checkboxes to UI |
+| `560c46a` | Fix: Add missing useState declarations for includeLiturgical/includeCultural |
+| `5bbfccf` | feat: implement Security tab with SSOT-compliant AdminSecurityPanel |
+
+#### Key Learnings
+
+1. **PostgREST Schema Cache**: After creating/modifying database functions, always run `NOTIFY pgrst, 'reload schema';` in SQL Editor
+2. **SSOT Compliance Pattern**: Create constant file FIRST, then component imports from it
+3. **Debugging Protocol**: Diagnose → Verify data access → Apply minimal fix → Test end-to-end
+
+#### Technical Debt Identified
+
+| Item | Priority | Description |
+|------|----------|-------------|
+| admin_full_access RLS on events | LOW | Currently hardcoded to Lynn's UUID instead of using `has_role('admin')` |
+| Generation Metrics Viewer | HIGH | `generation_metrics` table captures data but NO admin UI to view it |
+| Program Status category | MEDIUM | System Settings may be missing Program Status section |
+
+#### Security Tab Documentation
+
+**Component:** `AdminSecurityPanel.tsx`
+**SSOT:** `src/constants/securityConfig.ts`
+
+**Event Categories Monitored:**
+- security: security_role_changed, security_login_failed, security_access_denied
+- lessons: lesson_created, lesson_viewed, lesson_downloaded, lesson_copied, lesson_printed
+- feedback: feedback_submitted
+
+**Admin Display Settings:** 50 events default, shows all users with email, 30-second refresh interval
