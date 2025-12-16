@@ -297,13 +297,17 @@ export function EnhanceLessonForm({
 
   useEffect(() => {
     if (initialFocusData) {
-      // Apply passage or theme based on what's provided
+      // Apply BOTH passage AND theme if provided
       if (initialFocusData.passage) {
         setContentInputType("passage");
         setBiblePassage(initialFocusData.passage);
-      } else if (initialFocusData.theme) {
-        setContentInputType("topic");
+      }
+      if (initialFocusData.theme) {
         setFocusedTopic(initialFocusData.theme);
+        // If no passage, switch to topic mode
+        if (!initialFocusData.passage) {
+          setContentInputType("topic");
+        }
       }
 
       // Apply Bible version if provided
@@ -447,8 +451,8 @@ export function EnhanceLessonForm({
     e.preventDefault();
 
     const effectiveContent = getEffectiveContent();
-    const effectivePassage = contentInputType === "passage" ? biblePassage : "";
-    const effectiveTopic = contentInputType === "topic" ? focusedTopic : "";
+    const effectivePassage = biblePassage;
+    const effectiveTopic = focusedTopic;
 
     if (!effectivePassage && !effectiveTopic && !effectiveContent) {
       toast({
@@ -736,7 +740,7 @@ export function EnhanceLessonForm({
                     <Label htmlFor="content-passage" className="font-medium cursor-pointer">
                       Start from a Bible passage
                     </Label>
-                    {contentInputType === "passage" && (
+                    {(contentInputType === "passage" || contentInputType === "topic") && (
                       <div className="mt-2 relative">
                         <Input
                           className={FORM_STYLING.biblePassageInput}
@@ -779,7 +783,7 @@ export function EnhanceLessonForm({
                     <Label htmlFor="content-topic" className="font-medium cursor-pointer">
                       Start from a topic or theme
                     </Label>
-                    {contentInputType === "topic" && (
+                    {(contentInputType === "passage" || contentInputType === "topic") && (
                       <div className="mt-2">
                         <Input
                           placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
