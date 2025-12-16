@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,12 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Users, 
-  BookOpen, 
-  Eye, 
-  RefreshCw, 
-  ChevronDown, 
+import {
+  Users,
+  BookOpen,
+  Eye,
+  RefreshCw,
+  ChevronDown,
   ChevronUp,
   Calendar,
   FileText,
@@ -68,7 +68,7 @@ export function SystemAnalyticsDashboard() {
     activeUsersThisWeek: 0,
     avgLessonsPerUser: 0,
   });
-  
+
   // Selected user for viewing lessons
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
   const [userLessons, setUserLessons] = useState<UserLesson[]>([]);
@@ -104,13 +104,13 @@ export function SystemAnalyticsDashboard() {
       const totalLessons = usersWithStats.reduce((sum, u) => sum + u.lesson_count, 0);
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      
-      const activeUsersThisWeek = usersWithStats.filter(u => 
+
+      const activeUsersThisWeek = usersWithStats.filter(u =>
         u.last_lesson_date && new Date(u.last_lesson_date) >= oneWeekAgo
       ).length;
 
-      const avgLessonsPerUser = totalUsers > 0 
-        ? Math.round((totalLessons / totalUsers) * 10) / 10 
+      const avgLessonsPerUser = totalUsers > 0
+        ? Math.round((totalLessons / totalUsers) * 10) / 10
         : 0;
 
       setPlatformStats({
@@ -136,11 +136,8 @@ export function SystemAnalyticsDashboard() {
   const fetchUserLessons = async (userId: string) => {
     setLessonsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('id, title, scripture_passage, age_group, theology_profile_id, bible_version, created_at, updated_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      // Use admin RPC to bypass RLS and view any user's lessons
+      const { data, error } = await supabase.rpc('get_user_lessons_admin', { _user_id: userId });
 
       if (error) throw error;
       setUserLessons(data || []);
@@ -187,7 +184,7 @@ export function SystemAnalyticsDashboard() {
   // Sort users
   const sortedUsers = [...users].sort((a, b) => {
     let comparison = 0;
-    
+
     if (sortField === 'lesson_count') {
       comparison = a.lesson_count - b.lesson_count;
     } else if (sortField === 'last_lesson_date') {
@@ -197,14 +194,14 @@ export function SystemAnalyticsDashboard() {
     } else if (sortField === 'created_at') {
       comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     }
-    
+
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortField !== field) return null;
-    return sortDirection === 'asc' ? 
-      <ChevronUp className="h-4 w-4 inline ml-1" /> : 
+    return sortDirection === 'asc' ?
+      <ChevronUp className="h-4 w-4 inline ml-1" /> :
       <ChevronDown className="h-4 w-4 inline ml-1" />;
   };
 
@@ -250,9 +247,9 @@ export function SystemAnalyticsDashboard() {
               All users and lesson activity across the platform
             </CardDescription>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             disabled={refreshing}
           >
@@ -304,19 +301,19 @@ export function SystemAnalyticsDashboard() {
                 <TableRow>
                   <TableHead className="min-w-[200px]">User</TableHead>
                   <TableHead className="text-center">Beta Tester</TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('lesson_count')}
                   >
                     Lessons <SortIcon field="lesson_count" />
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('last_lesson_date')}
                   >
                     Last Active <SortIcon field="last_lesson_date" />
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('created_at')}
                   >
@@ -408,7 +405,7 @@ export function SystemAnalyticsDashboard() {
               </span>
             </DialogDescription>
           </DialogHeader>
-          
+
           <ScrollArea className="max-h-[60vh] pr-4">
             {lessonsLoading ? (
               <div className="space-y-4">
