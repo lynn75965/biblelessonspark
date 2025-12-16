@@ -1,4 +1,4 @@
-﻿/**
+/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -29,6 +29,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { getTheologyProfileOptions, getDefaultTheologyProfile, getTheologyProfile } from "@/constants/theologyProfiles";
 import { AGE_GROUPS, getAgeGroupById } from "@/constants/ageGroups";
+import { findMatchingBooks } from "@/constants/bibleBooks";
+import { FORM_STYLING } from "@/constants/formConfig";
 import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from "@/constants/bibleVersions";
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
@@ -104,6 +106,7 @@ export function EnhanceLessonForm({
 
   const [contentInputType, setContentInputType] = useState<"curriculum" | "passage" | "topic">("passage");
   const [biblePassage, setBiblePassage] = useState("");
+  const [showBibleSuggestions, setShowBibleSuggestions] = useState(false);
   const [focusedTopic, setFocusedTopic] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [extractedContent, setExtractedContent] = useState<string | null>(null);
@@ -685,7 +688,7 @@ export function EnhanceLessonForm({
                             )}
                             {extractedContent && (
                               <div className="text-sm text-green-600">
-                                âœ“ File content extracted ({extractedContent.length} characters)
+                                ✓ File content extracted ({extractedContent.length} characters)
                               </div>
                             )}
                           </div>
@@ -706,7 +709,7 @@ export function EnhanceLessonForm({
                             {pastedContent.trim() && (
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm text-green-600">
-                                  âœ“ {pastedContent.length} characters entered
+                                  ✓ {pastedContent.length} characters entered
                                 </span>
                                 <Button
                                   type="button"
@@ -734,13 +737,36 @@ export function EnhanceLessonForm({
                       Start from a Bible passage
                     </Label>
                     {contentInputType === "passage" && (
-                      <div className="mt-2">
+                      <div className="mt-2 relative">
                         <Input
+                          className={FORM_STYLING.biblePassageInput}
                           placeholder="e.g., John 3:16-21"
                           value={biblePassage}
-                          onChange={(e) => setBiblePassage(e.target.value)}
+                          onChange={(e) => {
+                            setBiblePassage(e.target.value);
+                            setShowBibleSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
+                          }}
+                          onFocus={() => setShowBibleSuggestions(biblePassage.length >= FORM_STYLING.autocompleteMinChars)}
+                          onBlur={() => setTimeout(() => setShowBibleSuggestions(false), 150)}
                           disabled={isSubmitting}
+                          autoComplete="off"
                         />
+                        {showBibleSuggestions && findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
+                          <div className={FORM_STYLING.autocompleteDropdown}>
+                            {findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
+                              <div
+                                key={book}
+                                className={FORM_STYLING.autocompleteItem}
+                                onMouseDown={() => {
+                                  setBiblePassage(book + " ");
+                                  setShowBibleSuggestions(false);
+                                }}
+                              >
+                                {book}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -857,7 +883,7 @@ export function EnhanceLessonForm({
                       <SelectItem key={version.id} value={version.id}>
                         {version.name} ({version.abbreviation})
                         {version.copyrightStatus === 'public_domain' && (
-                          <span className="ml-2 text-xs text-green-600">â€¢ Direct quotes</span>
+                          <span className="ml-2 text-xs text-green-600">• Direct quotes</span>
                         )}
                       </SelectItem>
                     ))}
@@ -927,7 +953,7 @@ export function EnhanceLessonForm({
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add specific requests â€” describe your focus or primary thought
+                  Add specific requests — describe your focus or primary thought
                 </p>
                 <Textarea
                   id="notes"
@@ -969,7 +995,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">ðŸ“± Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">📱 Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
               </p>
             </div>
 
@@ -981,7 +1007,7 @@ export function EnhanceLessonForm({
             >
               {isLimitReached ? (
                 <span>
-                  Limit reached â€” resets in {hoursUntilReset} hour
+                  Limit reached — resets in {hoursUntilReset} hour
                   {hoursUntilReset === 1 ? "" : "s"}
                 </span>
               ) : (
@@ -1018,7 +1044,7 @@ export function EnhanceLessonForm({
 
             {/* Generation Warning */}
             <p className="text-xs text-center text-amber-600">
-              âš ï¸ Must remain on this page until lesson is fully generated
+              ⚠️ Must remain on this page until lesson is fully generated
             </p>
           </div>
         </form>
