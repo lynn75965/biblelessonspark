@@ -1,4 +1,4 @@
-ï»¿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +22,11 @@ const DOCTRINE_OPTIONS = THEOLOGY_PROFILE_OPTIONS.map(profile => ({
   label: profile.name
 }));
 
-// SSOT: Bible version options
-const BIBLE_VERSION_OPTIONS = getBibleVersionOptions();
+// SSOT: Bible version options - map to value/label format for Select component
+const BIBLE_VERSION_OPTIONS = getBibleVersionOptions().map(v => ({
+  value: v.id,
+  label: `${v.name} (${v.abbreviation})`
+}));
 
 export function OrganizationSettingsModal({
   open,
@@ -187,7 +190,7 @@ export function OrganizationSettingsModal({
               <Label htmlFor="phone">Phone {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
               <Input
                 id="phone"
-                value={isAdmin ? formData.phone : "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"}
+                value={isAdmin ? formData.phone : "••••••••••"}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 disabled={!isAdmin}
                 placeholder={isAdmin ? "(555) 123-4567" : ""}
@@ -199,7 +202,7 @@ export function OrganizationSettingsModal({
             <Label htmlFor="address">Address {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
             <Input
               id="address"
-              value={isAdmin ? formData.address : "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"}
+              value={isAdmin ? formData.address : "••••••••••"}
               onChange={(e) => handleInputChange("address", e.target.value)}
               disabled={!isAdmin}
               placeholder={isAdmin ? "Street address" : ""}
@@ -211,7 +214,7 @@ export function OrganizationSettingsModal({
             <Input
               id="orgEmail"
               type="email"
-              value={isAdmin ? formData.email : "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"}
+              value={isAdmin ? formData.email : "••••••••••"}
               onChange={(e) => handleInputChange("email", e.target.value)}
               disabled={!isAdmin}
               placeholder={isAdmin ? "contact@organization.com" : ""}
