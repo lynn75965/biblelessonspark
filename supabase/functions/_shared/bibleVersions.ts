@@ -2,14 +2,14 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/bibleVersions.ts
- * Generated: 2025-12-16T00:15:42.903Z
+ * Generated: 2025-12-16T03:11:03.191Z
  */
 // =============================================================================
 // BIBLE VERSIONS - Single Source of Truth (SSOT)
 // =============================================================================
 // Location: src/constants/bibleVersions.ts (MASTER)
 // Mirror: supabase/functions/_shared/bibleVersions.ts (AUTO-GENERATED)
-// 
+//
 // MODIFICATION RULES:
 // 1. ONLY edit this file (the frontend master)
 // 2. Run `npm run sync-constants` to update backend mirror
@@ -124,6 +124,18 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     displayOrder: 7,
     isDefault: false,
     description: 'Balance of accuracy and readability. Copyrighted - lessons will paraphrase rather than quote directly.'
+  },
+  {
+    id: 'nlt',
+    name: 'New Living Translation',
+    abbreviation: 'NLT',
+    copyrightStatus: 'copyrighted',
+    quoteType: 'paraphrase',
+    copyrightHolder: 'Tyndale House Publishers',
+    copyrightNotice: 'Scripture quotations marked NLT are taken from the Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Carol Stream, Illinois 60188. All rights reserved.',
+    displayOrder: 8,
+    isDefault: false,
+    description: 'Thought-for-thought translation emphasizing clarity. Copyrighted - lessons will paraphrase rather than quote directly.'
   }
 ];
 
@@ -185,7 +197,7 @@ export function getBibleVersionOptions(): Array<{
  */
 export function generateCopyrightGuardrails(versionId: string): string {
   const version = getBibleVersion(versionId);
-  
+
   if (!version) {
     // Default to KJV (public domain) if version not found
     const defaultVersion = getDefaultBibleVersion();
