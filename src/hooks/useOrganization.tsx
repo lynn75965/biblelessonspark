@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Organization, OrganizationMember } from "@/constants/contracts";
@@ -179,7 +179,8 @@ export function useOrganization() {
 
   const updateOrganization = async (updates: Partial<Organization>) => {
     if (!organization) throw new Error('No organization to update');
-    if (!['owner', 'admin'].includes(userRole || '')) {
+    // Allow owner, admin, leader, and co-leader to update org settings
+    if (!['owner', 'admin', 'leader', 'co-leader'].includes(userRole || '')) {
       throw new Error('Insufficient permissions');
     }
 
