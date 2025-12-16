@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ACCESS CONTROL CONSTANTS
  * Single Source of Truth for role-based feature visibility
  * 
@@ -31,6 +31,14 @@ export const ROLES = {
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];
+
+// Display labels for roles (used in UI)
+export const ROLE_LABELS: Record<Role, string> = {
+  individual: 'Personal',
+  orgMember: 'Member',
+  orgLeader: 'Manager',
+  platformAdmin: 'Platform Admin',
+} as const;
 
 // Organization role values (stored in profiles.organization_role)
 export const ORG_ROLES = {
