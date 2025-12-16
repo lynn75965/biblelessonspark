@@ -95,7 +95,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-14
+**Last Updated:** 2025-12-16
 **Current Phase:** Phase 15 (Perpetual Freshness Complete)
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
@@ -1516,3 +1516,60 @@ Add freshness instructions to lesson generation prompt:
 
 
 
+
+---
+
+## Recent Updates (December 16, 2025)
+
+### Bible Book Autocomplete (SSOT Compliant)
+
+Dropdown suggestions for Bible book names when typing in Scripture passage fields.
+
+| Location | File | Trigger |
+|----------|------|---------|
+| Enhance Lesson | EnhanceLessonForm.tsx | "Start from a Bible passage" input |
+| My Lesson Library | LessonLibrary.tsx | Bible Passage search field |
+| Org Shared Focus | OrgSharedFocusPanel.tsx | New Focus passage input |
+
+**SSOT Sources:**
+- `src/constants/bibleBooks.ts` - BIBLE_BOOKS array (66 books), findMatchingBooks(prefix, limit, minChars)
+- `src/constants/formConfig.ts` - FORM_STYLING.autocompleteMinChars (2), autocompleteDropdown, autocompleteItem
+
+### Enhanced STEP Badges
+
+Step badges made more prominent for better visibility:
+- Size: px-4 py-1.5 (increased from px-2.5 py-0.5)
+- Font: text-sm font-bold (increased from text-xs font-medium)
+- Added: shadow-md border-2 border-sky-600
+
+### Step 3 Click Instruction
+
+TeacherCustomization header updated:
+- **Old:** "Optional customizations that make your lesson unique"
+- **New:** "Click here to describe your teaching environment" (amber color)
+
+### Passage + Topic Combined Input
+
+Users can now enter BOTH a Bible passage AND a topic/theme simultaneously.
+
+**Frontend Changes (EnhanceLessonForm.tsx):**
+- Both input fields visible when either "Bible passage" or "Topic" radio selected
+- Both values always sent to backend (no radio-dependent filtering)
+- Use Focus applies BOTH passage AND theme from org shared focus
+
+**Backend Changes (generate-lesson Edge Function):**
+```javascript
+} else if (bible_passage && focused_topic) {
+  // BOTH passage AND topic provided
+  userPrompt = `...Bible Passage: ${bible_passage}\nTheme/Topic: ${focused_topic}...`;
+} else if (bible_passage) {
+  // Passage only
+} else {
+  // Topic only
+}
+```
+
+**User Experience:**
+- Enter "John 3:16" + "God's Love" ? Lesson addresses both
+- Use Focus button populates both passage AND theme from org settings
+- Either field optional, but at least one required
