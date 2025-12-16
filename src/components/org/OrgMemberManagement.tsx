@@ -49,6 +49,7 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
   const [members, setMembers] = useState<OrgMember[]>([]);
   const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
@@ -258,9 +259,15 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
     }
   };
 
-  const refresh = () => {
-    fetchMembers();
-    fetchInvites();
+  const refresh = async () => {
+    setRefreshing(true);
+    await fetchMembers();
+    await fetchInvites();
+    setRefreshing(false);
+    toast({
+      title: "Refreshed",
+      description: "Member list updated",
+    });
   };
 
   return (
@@ -279,8 +286,8 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={refresh}>
-                <RefreshCw className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
               {canAccessFeature(userRole, 'inviteOrgMembers', true) && (
