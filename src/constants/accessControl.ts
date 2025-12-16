@@ -37,7 +37,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   individual: 'Personal',
   orgMember: 'Member',
   orgLeader: 'Manager',
-  platformAdmin: 'Platform Admin',
+  platformAdmin: 'Manager',
 } as const;
 
 // Organization role values (stored in profiles.organization_role)
