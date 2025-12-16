@@ -153,6 +153,8 @@ export function EnhanceLessonForm({
 
   const [notes, setNotes] = useState("");
   const [generateTeaser, setGenerateTeaser] = useState(false);
+  const [includeLiturgical, setIncludeLiturgical] = useState(false);
+  const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
