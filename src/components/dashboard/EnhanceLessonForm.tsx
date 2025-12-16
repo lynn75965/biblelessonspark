@@ -507,6 +507,8 @@ export function EnhanceLessonForm({
         language: language,
         activity_types: activityTypes,
         generate_teaser: generateTeaser,
+        include_liturgical: includeLiturgical,
+        include_cultural: includeCultural,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
       };
@@ -987,6 +989,55 @@ export function EnhanceLessonForm({
                   <p className="text-xs text-muted-foreground">
                     Build anticipation before you teach (perfect for emails, texts, or social media)
                   </p>
+                </div>
+              </div>
+
+              {/* Seasonal Theme Options - Opt-in */}
+              <div className="pt-3 border-t space-y-3">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Optional Seasonal Themes
+                </p>
+                
+                {/* Liturgical Calendar Checkbox */}
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="include-liturgical"
+                    checked={includeLiturgical}
+                    onCheckedChange={(checked) => setIncludeLiturgical(checked as boolean)}
+                    disabled={isSubmitting}
+                  />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="include-liturgical"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Include Liturgical Calendar Themes
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Weave themes from the Christian calendar (Advent, Lent, Easter, Pentecost) when seasonally appropriate
+                    </p>
+                  </div>
+                </div>
+
+                {/* Cultural Seasons Checkbox */}
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="include-cultural"
+                    checked={includeCultural}
+                    onCheckedChange={(checked) => setIncludeCultural(checked as boolean)}
+                    disabled={isSubmitting}
+                  />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="include-cultural"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Include Cultural Season Themes
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Connect lessons to cultural occasions (Mother's Day, Father's Day, Thanksgiving, Back to School) when timely
+                    </p>
+                  </div>
                 </div>
               </div>
             </CardContent>

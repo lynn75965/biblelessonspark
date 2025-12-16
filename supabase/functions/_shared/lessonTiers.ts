@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/lessonTiers.ts
- * Generated: 2025-12-16T03:11:03.195Z
+ * Generated: 2025-12-16T20:54:50.045Z
  */
 ﻿// =====================================================
 // LESSON TIERS - Single Source of Truth
