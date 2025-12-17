@@ -1,12 +1,12 @@
 /**
  * ActiveFocusBanner Component
- * 
+ *
  * Displays the organization's active shared focus to members with a "Use Focus" button.
  * When clicked, applies ALL org defaults to the lesson form:
  * - Shared Focus passage and/or theme
- * - Organization's default_bible_version  
+ * - Organization's default_bible_version
  * - Organization's default_doctrine (theology profile)
- * 
+ *
  * SSOT: src/constants/sharedFocusConfig.ts
  */
 
@@ -78,7 +78,7 @@ export function ActiveFocusBanner({
   const statusConfig = FOCUS_STATUS[status];
 
   // Get friendly names for org defaults
-  const bibleVersionName = defaultBibleVersion 
+  const bibleVersionName = defaultBibleVersion
     ? getBibleVersion(defaultBibleVersion)?.abbreviation || defaultBibleVersion
     : null;
   const theologyProfileName = defaultDoctrine
@@ -106,7 +106,81 @@ export function ActiveFocusBanner({
 
   return (
     <Alert className="border-primary bg-primary/5 mb-6">
-      <div className="flex items-start gap-3">
+      {/* Dismiss button - absolute positioned top right on mobile */}
+      {dismissible && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsDismissed(true)}
+          className="absolute top-2 right-2 h-6 w-6 p-0 sm:hidden"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Dismiss</span>
+        </Button>
+      )}
+
+      {/* Mobile Layout: Stacked */}
+      <div className="block sm:hidden">
+        {/* Header with badge */}
+        <div className="flex items-center gap-2 flex-wrap pr-8">
+          <AlertTitle className="text-base font-semibold">
+            {organizationName} Shared Focus
+          </AlertTitle>
+          <Badge variant={statusConfig.badgeVariant} className="text-xs">
+            {statusConfig.label}
+          </Badge>
+        </div>
+
+        {/* Focus Details */}
+        <AlertDescription className="mt-2">
+          <div className="space-y-1 text-sm">
+            {focus.passage && (
+              <div>
+                <span className="font-medium">Passage:</span> {focus.passage}
+              </div>
+            )}
+            {focus.theme && (
+              <div>
+                <span className="font-medium">Theme:</span> {focus.theme}
+              </div>
+            )}
+            <div className="text-muted-foreground text-xs">
+              {formatDateRange(focus.start_date, focus.end_date)}
+            </div>
+          </div>
+
+          {/* Org Defaults Info */}
+          {(bibleVersionName || theologyProfileName) && (
+            <div className="mt-2 pt-2 border-t border-primary/20">
+              <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                <span className="font-medium">Defaults:</span>
+                {bibleVersionName && <span>Bible: {bibleVersionName}</span>}
+                {theologyProfileName && <span>Doctrine: {theologyProfileName}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Notes if any */}
+          {focus.notes && (
+            <div className="mt-2 text-xs text-muted-foreground italic">
+              {focus.notes}
+            </div>
+          )}
+
+          {/* Action Button - Full width on mobile */}
+          <Button
+            size="sm"
+            onClick={handleUseFocus}
+            className="w-full mt-3 gap-1"
+          >
+            Use Focus
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </AlertDescription>
+      </div>
+
+      {/* Desktop Layout: Horizontal */}
+      <div className="hidden sm:flex items-start gap-3">
         {/* Icon */}
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary flex-shrink-0">
           {getFocusIcon()}
@@ -146,8 +220,8 @@ export function ActiveFocusBanner({
               <div className="mt-2 pt-2 border-t border-primary/20">
                 <div className="text-xs text-muted-foreground">
                   <span className="font-medium">Organization defaults:</span>
-                  {bibleVersionName && <span className="ml-2">📖 {bibleVersionName}</span>}
-                  {theologyProfileName && <span className="ml-2">⛪ {theologyProfileName}</span>}
+                  {bibleVersionName && <span className="ml-2">Bible: {bibleVersionName}</span>}
+                  {theologyProfileName && <span className="ml-2">Doctrine: {theologyProfileName}</span>}
                 </div>
               </div>
             )}
@@ -163,15 +237,15 @@ export function ActiveFocusBanner({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             onClick={handleUseFocus}
             className="gap-1"
           >
             Use Focus
             <ChevronRight className="h-4 w-4" />
           </Button>
-          
+
           {dismissible && (
             <Button
               variant="ghost"
