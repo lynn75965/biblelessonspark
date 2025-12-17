@@ -3,7 +3,14 @@ import { Webhook } from 'https://esm.sh/standardwebhooks@1.0.0'
 import { Resend } from 'npm:resend@4.0.0'
 import { renderAsync } from 'npm:@react-email/components@0.0.22'
 import React from 'npm:react@18.3.1'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { SignupConfirmationEmail } from './_templates/signup-confirmation.tsx'
+
+// ============================================================================
+// BRANDING: Database-driven branding (SSOT compliant)
+// Both frontend and Edge Functions read from the same database table
+// ============================================================================
+import { getBranding, getEmailFrom, getEmailSubject } from '../_shared/branding.ts'
 
 const resend = new Resend(Deno.env.get('RESEND_API_KEY') as string)
 const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET') as string
@@ -56,16 +63,38 @@ serve(async (req) => {
 
     console.log(`Sending ${email_action_type} email to ${user.email}`)
 
-    // Determine subject and render appropriate email template based on action type
-    let subject = 'Confirm your email'
+    // ========================================================================
+    // BRANDING: Create Supabase client and fetch branding from database
+    // This ensures frontend and backend use the SAME source of truth
+    // ========================================================================
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+    
+    // Fetch branding from database (with caching)
+    const branding = await getBranding(supabaseClient)
+    
+    console.log(`Using branding: ${branding.appName}`)
+
+    // ========================================================================
+    // BRANDING: Get subject from database-driven config
+    // ========================================================================
+    let subject: string
     let html: string
 
     switch (email_action_type) {
       case 'signup':
-        subject = 'Welcome to LessonSpark USA - Confirm Your Email'
+        // BRANDING: Welcome/signup email subject from database
+        subject = getEmailSubject(branding, 'signup')
         html = await renderAsync(
           React.createElement(SignupConfirmationEmail, {
-            supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
+            supabase_url: supabaseUrl,
             token_hash,
             email_action_type,
             redirect_to,
@@ -75,10 +104,11 @@ serve(async (req) => {
         break
       
       case 'magiclink':
-        subject = 'Your LessonSpark USA Login Link'
+        // BRANDING: Magic link email subject from database
+        subject = getEmailSubject(branding, 'magiclink')
         html = await renderAsync(
           React.createElement(SignupConfirmationEmail, {
-            supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
+            supabase_url: supabaseUrl,
             token_hash,
             email_action_type,
             redirect_to,
@@ -88,10 +118,11 @@ serve(async (req) => {
         break
       
       case 'recovery':
-        subject = 'Reset Your LessonSpark USA Password'
+        // BRANDING: Password recovery email subject from database
+        subject = getEmailSubject(branding, 'recovery')
         html = await renderAsync(
           React.createElement(SignupConfirmationEmail, {
-            supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
+            supabase_url: supabaseUrl,
             token_hash,
             email_action_type,
             redirect_to,
@@ -101,10 +132,11 @@ serve(async (req) => {
         break
       
       default:
-        subject = 'LessonSpark USA - Email Verification'
+        // BRANDING: Generic email verification subject from database
+        subject = getEmailSubject(branding, 'emailVerification')
         html = await renderAsync(
           React.createElement(SignupConfirmationEmail, {
-            supabase_url: Deno.env.get('SUPABASE_URL') ?? '',
+            supabase_url: supabaseUrl,
             token_hash,
             email_action_type,
             redirect_to,
@@ -113,9 +145,11 @@ serve(async (req) => {
         )
     }
 
-    // Send email via Resend
+    // ========================================================================
+    // BRANDING: Send email via Resend using database-driven "from" address
+    // ========================================================================
     const { data, error } = await resend.emails.send({
-      from: 'LessonSpark USA <support@lessonsparkusa.com>',
+      from: getEmailFrom(branding),
       to: [user.email],
       subject,
       html,
