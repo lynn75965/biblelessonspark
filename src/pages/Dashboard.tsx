@@ -316,15 +316,15 @@ export default function Dashboard() {
 
       <Footer />
 
-      {/* Feedback Button */}
+      {/* Feedback Button - Compact on mobile, small on desktop */}
       <Button
         variant="hero"
-        size="lg"
-        className="fixed bottom-6 right-6 shadow-glow z-40"
+        size="sm"
+        className="fixed bottom-4 right-4 shadow-glow z-40 px-3 py-2 text-xs sm:text-sm"
         onClick={handleFeedback}
       >
-        <MessageSquare className="h-4 w-4" />
-        Give Feedback
+        <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4" />
+        <span className="hidden sm:inline ml-1">Feedback</span>
       </Button>
 
       {/* Modals */}
