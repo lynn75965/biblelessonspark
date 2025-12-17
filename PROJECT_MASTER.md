@@ -1634,3 +1634,41 @@ Users can now enter BOTH a Bible passage AND a topic/theme simultaneously.
 - feedback: feedback_submitted
 
 **Admin Display Settings:** 50 events default, shows all users with email, 30-second refresh interval
+
+---
+
+## Recent Updates (December 17, 2025)
+
+### Generation Metrics Merged into System Analytics
+
+Generation performance metrics now display in the System Analytics tab (Admin Panel).
+
+**Features:**
+- Summary cards: Total Generations, Completed, Avg Duration, Timeouts/Errors
+- Device breakdown: Desktop, Tablet, Mobile percentages
+- Sortable history table: Timestamp, Device, Browser, OS, Duration, Status, Sections
+
+**SSOT Files:**
+- `src/constants/metricsViewerConfig.ts` - Column definitions, status badges, duration thresholds
+- `src/components/admin/SystemAnalyticsDashboard.tsx` - Combined user analytics + generation metrics
+
+**Git Commits:**
+- `726fd0b` - feat: merge Generation Metrics into System Analytics tab (SSOT compliant)
+- `bf9856d` - chore: remove unused GenerationMetricsPanel
+
+### RLS Policy Fix: admin_full_access
+
+Fixed `admin_full_access` policy on `events` table to use `has_role()` function instead of hardcoded UUID.
+
+**Before:** `auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid`
+**After:** `has_role(auth.uid(), 'admin'::app_role)`
+
+### Phase 15: Perpetual Freshness - COMPLETE
+
+All Phase 15 items implemented:
+- ✅ Perpetual Freshness (always ON) - varied illustrations, teaching angles, hooks
+- ✅ Consistent Style Mode (series only) - checkbox in Series Position popdown
+- ✅ Liturgical Calendar Themes (opt-in checkbox)
+- ✅ Cultural Season Themes (opt-in checkbox)
+- ✅ Edge Function integration with `buildFreshnessContext()`
+
