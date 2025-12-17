@@ -1,5 +1,4 @@
 import { Sparkles, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
@@ -23,9 +22,9 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-3 sm:space-y-4">
             {/* ============================================================
-                BRANDING: Logo links to home page
+                BRANDING: Logo links to home page (using anchor for reliability)
                 ============================================================ */}
-            <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity w-fit">
+            <a href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity w-fit">
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
                 <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
@@ -35,7 +34,7 @@ export function Footer() {
               <span className="font-semibold text-base sm:text-lg">
                 {branding.appName}
               </span>
-            </Link>
+            </a>
             {/* ============================================================
                 BRANDING: Tagline from database (SSOT)
                 ============================================================ */}
