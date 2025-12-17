@@ -9,7 +9,7 @@ import { useBranding, getCopyrightNotice } from "@/hooks/useBranding";
 
 export function Footer() {
   const { settings } = useSystemSettings();
-  
+
   // ============================================================================
   // BRANDING: Get branding from database (with caching and fallback)
   // ============================================================================
@@ -24,7 +24,11 @@ export function Footer() {
             {/* ============================================================
                 BRANDING: Logo links to home page (using anchor for reliability)
                 ============================================================ */}
-            <a href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity w-fit">
+            <a 
+              href="/" 
+              className="flex items-center gap-2 hover:opacity-90 transition-opacity w-fit cursor-pointer relative z-10"
+              title="Return to Home"
+            >
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
                 <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
@@ -128,7 +132,7 @@ export function Footer() {
               BRANDING: Copyright notice from database (SSOT)
               ============================================================ */}
           <p>{getCopyrightNotice(branding)}</p>
-          <a 
+          <a
             href={`mailto:${branding.contact.supportEmail}`}
             className="flex items-center gap-1.5 hover:text-primary transition-colors"
           >
