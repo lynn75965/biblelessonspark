@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,19 +15,33 @@ import {
   ChevronDown,
   ChevronUp,
   Calendar,
-  FileText,
   Clock,
   TrendingUp,
   User,
   Mail,
   CheckCircle,
-  XCircle
+  XCircle,
+  Activity,
+  AlertTriangle,
+  Monitor,
+  Smartphone,
+  Tablet,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CONTENT_CONTAINER_STYLES } from "@/utils/formatLessonContent";
+import {
+  METRICS_DISPLAY,
+  METRICS_COLUMNS,
+  STATUS_BADGES,
+  formatDuration,
+  getDurationColor,
+} from '@/constants/metricsViewerConfig';
 
-// Types - SSOT: uses beta_participant to match database column name
+// -----------------------------------------------------
+// TYPES - User Analytics
+// -----------------------------------------------------
 interface UserWithStats {
   id: string;
   email: string;
@@ -50,7 +64,6 @@ interface UserLesson {
   updated_at: string;
 }
 
-// Platform stats summary
 interface PlatformStats {
   totalUsers: number;
   totalLessons: number;
@@ -58,8 +71,55 @@ interface PlatformStats {
   avgLessonsPerUser: number;
 }
 
+// -----------------------------------------------------
+// TYPES - Generation Metrics
+// -----------------------------------------------------
+interface MetricsRecord {
+  id: string;
+  user_id: string;
+  device_type: string;
+  browser: string | null;
+  os: string | null;
+  generation_duration_ms: number | null;
+  status: string;
+  sections_requested: number;
+  sections_generated: number | null;
+  error_message: string | null;
+  created_at: string;
+}
+
+interface MetricsSummary {
+  total: number;
+  completed: number;
+  timeouts: number;
+  errors: number;
+  avgDuration: number | null;
+  deviceBreakdown: Record<string, number>;
+}
+
+// -----------------------------------------------------
+// DEVICE ICON COMPONENT
+// -----------------------------------------------------
+const DeviceIcon = ({ type }: { type: string }) => {
+  switch (type) {
+    case 'mobile':
+      return <Smartphone className="h-4 w-4" />;
+    case 'tablet':
+      return <Tablet className="h-4 w-4" />;
+    case 'desktop':
+      return <Monitor className="h-4 w-4" />;
+    default:
+      return <HelpCircle className="h-4 w-4" />;
+  }
+};
+
+// -----------------------------------------------------
+// MAIN COMPONENT
+// -----------------------------------------------------
 export function SystemAnalyticsDashboard() {
   const { toast } = useToast();
+  
+  // User Analytics State
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [users, setUsers] = useState<UserWithStats[]>([]);
@@ -70,28 +130,43 @@ export function SystemAnalyticsDashboard() {
     avgLessonsPerUser: 0,
   });
 
-  // Selected user for viewing lessons
+  // User Lessons Dialog State
   const [selectedUser, setSelectedUser] = useState<UserWithStats | null>(null);
   const [userLessons, setUserLessons] = useState<UserLesson[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(false);
   const [userLessonsDialogOpen, setUserLessonsDialogOpen] = useState(false);
 
-  // Selected lesson for viewing content
+  // Lesson Content Dialog State
   const [selectedLesson, setSelectedLesson] = useState<UserLesson | null>(null);
   const [lessonViewDialogOpen, setLessonViewDialogOpen] = useState(false);
 
-  // Sorting
+  // User Sorting State
   const [sortField, setSortField] = useState<'lesson_count' | 'last_lesson_date' | 'created_at'>('lesson_count');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  const fetchData = async () => {
+  // Generation Metrics State
+  const [metricsLoading, setMetricsLoading] = useState(true);
+  const [metrics, setMetrics] = useState<MetricsRecord[]>([]);
+  const [metricsSummary, setMetricsSummary] = useState<MetricsSummary>({
+    total: 0,
+    completed: 0,
+    timeouts: 0,
+    errors: 0,
+    avgDuration: null,
+    deviceBreakdown: {},
+  });
+  const [metricsSortField, setMetricsSortField] = useState<string>('created_at');
+  const [metricsSortDirection, setMetricsSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // -----------------------------------------------------
+  // DATA FETCHING - User Analytics
+  // -----------------------------------------------------
+  const fetchUserData = async () => {
     try {
-      // Use SECURITY DEFINER function to get all users with stats (admin only)
       const { data, error } = await supabase.rpc('get_all_users_with_stats');
 
       if (error) throw error;
 
-      // Map RPC results to component state - SSOT: uses beta_participant
       const usersWithStats: UserWithStats[] = (data || []).map((row: any) => ({
         id: row.id,
         email: row.email || 'No email',
@@ -104,7 +179,6 @@ export function SystemAnalyticsDashboard() {
 
       setUsers(usersWithStats);
 
-      // Calculate platform stats from the data
       const totalUsers = usersWithStats.length;
       const totalLessons = usersWithStats.reduce((sum, u) => sum + u.lesson_count, 0);
       const oneWeekAgo = new Date();
@@ -126,22 +200,75 @@ export function SystemAnalyticsDashboard() {
       });
 
     } catch (error) {
-      console.error('Error fetching analytics data:', error);
+      console.error('Error fetching user analytics data:', error);
       toast({
         title: "Error",
-        description: "Failed to load analytics data.",
+        description: "Failed to load user analytics data.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
-      setRefreshing(false);
+    }
+  };
+
+  // -----------------------------------------------------
+  // DATA FETCHING - Generation Metrics
+  // -----------------------------------------------------
+  const fetchMetrics = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('generation_metrics')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(METRICS_DISPLAY.defaultLimit);
+
+      if (error) throw error;
+
+      setMetrics(data || []);
+
+      const records = data || [];
+      const completed = records.filter(r => r.status === 'completed');
+      const timeouts = records.filter(r => r.status === 'timeout');
+      const errors = records.filter(r => r.status === 'error');
+
+      const completedDurations = completed
+        .map(r => r.generation_duration_ms)
+        .filter((d): d is number => d !== null);
+
+      const avgDuration = completedDurations.length > 0
+        ? Math.round(completedDurations.reduce((a, b) => a + b, 0) / completedDurations.length)
+        : null;
+
+      const deviceBreakdown: Record<string, number> = {};
+      records.forEach(r => {
+        const device = r.device_type || 'unknown';
+        deviceBreakdown[device] = (deviceBreakdown[device] || 0) + 1;
+      });
+
+      setMetricsSummary({
+        total: records.length,
+        completed: completed.length,
+        timeouts: timeouts.length,
+        errors: errors.length,
+        avgDuration,
+        deviceBreakdown,
+      });
+
+    } catch (error) {
+      console.error('Error fetching generation metrics:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load generation metrics.',
+        variant: 'destructive',
+      });
+    } finally {
+      setMetricsLoading(false);
     }
   };
 
   const fetchUserLessons = async (userId: string) => {
     setLessonsLoading(true);
     try {
-      // Use admin RPC to bypass RLS and view any user's lessons
       const { data, error } = await supabase.rpc('get_user_lessons_admin', { _user_id: userId });
 
       if (error) throw error;
@@ -158,16 +285,25 @@ export function SystemAnalyticsDashboard() {
     }
   };
 
+  // -----------------------------------------------------
+  // INITIAL DATA LOAD
+  // -----------------------------------------------------
   useEffect(() => {
-    fetchData();
+    fetchUserData();
+    fetchMetrics();
   }, []);
 
+  // -----------------------------------------------------
+  // EVENT HANDLERS
+  // -----------------------------------------------------
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchData();
-    toast({
-      title: "Refreshing",
-      description: "Loading latest analytics data...",
+    Promise.all([fetchUserData(), fetchMetrics()]).finally(() => {
+      setRefreshing(false);
+      toast({
+        title: "Refreshed",
+        description: "Analytics data updated.",
+      });
     });
   };
 
@@ -191,7 +327,18 @@ export function SystemAnalyticsDashboard() {
     }
   };
 
-  // Sort users
+  const handleMetricsSort = (field: string) => {
+    if (metricsSortField === field) {
+      setMetricsSortDirection(metricsSortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setMetricsSortField(field);
+      setMetricsSortDirection('desc');
+    }
+  };
+
+  // -----------------------------------------------------
+  // SORTING LOGIC
+  // -----------------------------------------------------
   const sortedUsers = [...users].sort((a, b) => {
     let comparison = 0;
 
@@ -208,126 +355,149 @@ export function SystemAnalyticsDashboard() {
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
-  const SortIcon = ({ field }: { field: string }) => {
-    if (sortField !== field) return null;
-    return sortDirection === 'asc' ?
-      <ChevronUp className="h-4 w-4 inline ml-1" /> :
-      <ChevronDown className="h-4 w-4 inline ml-1" />;
+  const sortedMetrics = [...metrics].sort((a, b) => {
+    let comparison = 0;
+    const aVal = a[metricsSortField as keyof MetricsRecord];
+    const bVal = b[metricsSortField as keyof MetricsRecord];
+
+    if (metricsSortField === 'created_at') {
+      comparison = new Date(aVal as string).getTime() - new Date(bVal as string).getTime();
+    } else if (metricsSortField === 'generation_duration_ms') {
+      comparison = ((aVal as number) || 0) - ((bVal as number) || 0);
+    } else if (typeof aVal === 'string' && typeof bVal === 'string') {
+      comparison = aVal.localeCompare(bVal);
+    }
+
+    return metricsSortDirection === 'asc' ? comparison : -comparison;
+  });
+
+  // -----------------------------------------------------
+  // HELPER COMPONENTS
+  // -----------------------------------------------------
+  const SortIcon = ({ field, currentField, direction }: { field: string; currentField: string; direction: 'asc' | 'desc' }) => {
+    if (currentField !== field) return null;
+    return direction === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />;
   };
 
-  // Format date helper
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Never';
-    try {
-      return format(new Date(dateString), 'MMM d, yyyy');
-    } catch {
-      return 'Invalid date';
-    }
+    return format(new Date(dateString), 'MMM d, yyyy');
   };
 
-  const formatDateTime = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    try {
-      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
-    } catch {
-      return 'Invalid date';
-    }
+  const formatDateTime = (dateString: string) => {
+    return format(new Date(dateString), 'MMM d, yyyy h:mm a');
   };
 
+  // -----------------------------------------------------
+  // LOADING STATE
+  // -----------------------------------------------------
   if (loading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-32 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+        <Skeleton className="h-96" />
       </div>
     );
   }
 
+  // -----------------------------------------------------
+  // RENDER
+  // -----------------------------------------------------
   return (
-    <div className="space-y-6">
-      {/* Platform Overview Card */}
-      <Card className="bg-gradient-card">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-primary" />
-              Platform Overview
-            </CardTitle>
-            <CardDescription>
-              All users and lesson activity across the platform
-            </CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{platformStats.totalUsers}</p>
-              <p className="text-xs text-muted-foreground">Total Users</p>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold">{platformStats.totalLessons}</p>
-              <p className="text-xs text-muted-foreground">Total Lessons</p>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <Clock className="h-6 w-6 mx-auto mb-2 text-green-500" />
-              <p className="text-2xl font-bold">{platformStats.activeUsersThisWeek}</p>
-              <p className="text-xs text-muted-foreground">Active This Week</p>
-            </div>
-            <div className="text-center p-4 bg-muted rounded-lg">
-              <FileText className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
-              <p className="text-2xl font-bold">{platformStats.avgLessonsPerUser}</p>
-              <p className="text-xs text-muted-foreground">Avg Lessons/User</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-8">
+      {/* ================================================= */}
+      {/* SECTION 1: USER ANALYTICS */}
+      {/* ================================================= */}
+      
+      {/* Platform Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-card">
+          <CardContent className="p-4 text-center">
+            <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <p className="text-2xl font-bold">{platformStats.totalUsers}</p>
+            <p className="text-xs text-muted-foreground">Total Users</p>
+          </CardContent>
+        </Card>
 
-      {/* All Users Table */}
+        <Card className="bg-gradient-card">
+          <CardContent className="p-4 text-center">
+            <BookOpen className="h-6 w-6 mx-auto mb-2 text-primary" />
+            <p className="text-2xl font-bold">{platformStats.totalLessons}</p>
+            <p className="text-xs text-muted-foreground">Total Lessons</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card">
+          <CardContent className="p-4 text-center">
+            <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-600" />
+            <p className="text-2xl font-bold">{platformStats.activeUsersThisWeek}</p>
+            <p className="text-xs text-muted-foreground">Active This Week</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-card">
+          <CardContent className="p-4 text-center">
+            <BookOpen className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+            <p className="text-2xl font-bold">{platformStats.avgLessonsPerUser}</p>
+            <p className="text-xs text-muted-foreground">Avg Lessons/User</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* User Table */}
       <Card className="bg-gradient-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            All Users ({users.length})
-          </CardTitle>
-          <CardDescription>
-            Click "View Lessons" to see any user's lesson library
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                All Platform Users
+              </CardTitle>
+              <CardDescription>
+                View all users and their lesson activity
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh All
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border overflow-x-auto">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[200px]">User</TableHead>
-                  <TableHead className="text-center">Beta Tester</TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead className="text-center">Beta</TableHead>
                   <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('lesson_count')}
                   >
-                    Lessons <SortIcon field="lesson_count" />
+                    <div className="flex items-center justify-center gap-1">
+                      Lessons
+                      <SortIcon field="lesson_count" currentField={sortField} direction={sortDirection} />
+                    </div>
                   </TableHead>
                   <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('last_lesson_date')}
                   >
-                    Last Active <SortIcon field="last_lesson_date" />
+                    <div className="flex items-center justify-center gap-1">
+                      Last Lesson
+                      <SortIcon field="last_lesson_date" currentField={sortField} direction={sortDirection} />
+                    </div>
                   </TableHead>
                   <TableHead
                     className="text-center cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort('created_at')}
                   >
-                    Joined <SortIcon field="created_at" />
+                    <div className="flex items-center justify-center gap-1">
+                      Joined
+                      <SortIcon field="created_at" currentField={sortField} direction={sortDirection} />
+                    </div>
                   </TableHead>
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
@@ -395,6 +565,167 @@ export function SystemAnalyticsDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ================================================= */}
+      {/* SECTION 2: GENERATION METRICS */}
+      {/* ================================================= */}
+      
+      {/* Section Header */}
+      <div className="border-t pt-8">
+        <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
+          <Activity className="h-5 w-5" />
+          Generation Performance Metrics
+        </h2>
+      </div>
+
+      {/* Generation Metrics Summary Cards */}
+      {metricsLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4 text-center">
+                <Activity className="h-6 w-6 mx-auto mb-2 text-primary" />
+                <p className="text-2xl font-bold">{metricsSummary.total}</p>
+                <p className="text-xs text-muted-foreground">Total Generations</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4 text-center">
+                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                <p className="text-2xl font-bold">{metricsSummary.completed}</p>
+                <p className="text-xs text-muted-foreground">Completed</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4 text-center">
+                <Clock className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+                <p className="text-2xl font-bold">{formatDuration(metricsSummary.avgDuration)}</p>
+                <p className="text-xs text-muted-foreground">Avg Duration</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-card">
+              <CardContent className="p-4 text-center">
+                <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-amber-600" />
+                <p className="text-2xl font-bold">{metricsSummary.timeouts + metricsSummary.errors}</p>
+                <p className="text-xs text-muted-foreground">Timeouts/Errors</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Device Breakdown */}
+          <Card className="bg-gradient-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Monitor className="h-5 w-5" />
+                Device Breakdown
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-4">
+                {Object.entries(metricsSummary.deviceBreakdown).map(([device, count]) => (
+                  <div key={device} className="flex items-center gap-2 px-3 py-2 bg-muted rounded-lg">
+                    <DeviceIcon type={device} />
+                    <span className="capitalize">{device}</span>
+                    <Badge variant="secondary">{count}</Badge>
+                    {metricsSummary.total > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        ({Math.round((count / metricsSummary.total) * 100)}%)
+                      </span>
+                    )}
+                  </div>
+                ))}
+                {Object.keys(metricsSummary.deviceBreakdown).length === 0 && (
+                  <p className="text-muted-foreground text-sm">No device data available</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Generation History Table */}
+          <Card className="bg-gradient-card">
+            <CardHeader>
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5" />
+                  Generation History
+                </CardTitle>
+                <CardDescription>
+                  Recent lesson generation metrics (last {METRICS_DISPLAY.defaultLimit})
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {METRICS_COLUMNS.map(col => (
+                        <TableHead
+                          key={col.key}
+                          className={col.sortable ? 'cursor-pointer hover:bg-muted/50' : ''}
+                          onClick={() => col.sortable && handleMetricsSort(col.key)}
+                        >
+                          <div className="flex items-center gap-1">
+                            {col.label}
+                            {col.sortable && <SortIcon field={col.key} currentField={metricsSortField} direction={metricsSortDirection} />}
+                          </div>
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedMetrics.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={METRICS_COLUMNS.length} className="text-center py-8 text-muted-foreground">
+                          No generation metrics found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      sortedMetrics.map(record => (
+                        <TableRow key={record.id}>
+                          <TableCell className="text-sm">
+                            {format(new Date(record.created_at), METRICS_DISPLAY.dateFormat)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <DeviceIcon type={record.device_type} />
+                              <span className="capitalize">{record.device_type}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{record.browser || '—'}</TableCell>
+                          <TableCell>{record.os || '—'}</TableCell>
+                          <TableCell className={getDurationColor(record.generation_duration_ms)}>
+                            {formatDuration(record.generation_duration_ms)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={STATUS_BADGES[record.status]?.variant || 'outline'}>
+                              {STATUS_BADGES[record.status]?.label || record.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {record.sections_generated ?? '—'}/{record.sections_requested}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {/* ================================================= */}
+      {/* DIALOGS */}
+      {/* ================================================= */}
 
       {/* User Lessons Dialog */}
       <Dialog open={userLessonsDialogOpen} onOpenChange={setUserLessonsDialogOpen}>
@@ -482,7 +813,7 @@ export function SystemAnalyticsDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Lesson Content View Dialog - SSOT: Uses same formatting as AllLessonsPanel */}
+      {/* Lesson Content View Dialog */}
       <Dialog open={lessonViewDialogOpen} onOpenChange={setLessonViewDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[80vh]">
           <DialogHeader>

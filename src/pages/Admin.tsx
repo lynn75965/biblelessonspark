@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -27,6 +27,7 @@ import { AdminSecurityPanel } from "@/components/admin/AdminSecurityPanel";
 // SSOT Fix: Filter beta stats to show ONLY beta testers, not all users/lessons (December 10, 2025)
 // System Analytics Dashboard with per-user lesson viewing (December 10, 2025)
 // All Lessons tab for admin access to ALL platform lessons (December 11, 2025)
+// Generation Metrics merged into System Analytics tab (December 17, 2025)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -309,7 +310,7 @@ export default function Admin() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">â€¢</span>
+                            <span className="text-primary">•</span>
                             {benefit}
                           </li>
                         ))}
