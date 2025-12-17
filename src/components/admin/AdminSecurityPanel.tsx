@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Admin Security Panel
  * 
  * SSOT COMPLIANCE:
@@ -38,6 +38,10 @@ export function AdminSecurityPanel() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination state
+  const [eventsPerPage, setEventsPerPage] = useState(10);
+  const [currentEventPage, setCurrentEventPage] = useState(1);
   
   // Get config from SSOT
   const config = SECURITY_DISPLAY.admin;
@@ -88,6 +92,13 @@ export function AdminSecurityPanel() {
       fetchEvents();
     }
   }, [isAdmin]);
+
+  // Pagination logic
+  const totalEventPages = Math.ceil(events.length / eventsPerPage);
+  const paginatedEvents = events.slice(
+    (currentEventPage - 1) * eventsPerPage,
+    currentEventPage * eventsPerPage
+  );
 
   // Loading state
   if (adminLoading) {
@@ -161,7 +172,7 @@ export function AdminSecurityPanel() {
 
         {!loading && !error && events.length > 0 && (
           <div className="space-y-3">
-            {events.map((event) => {
+            {paginatedEvents.map((event) => {
               const metadata = getEventMetadata(event.event);
               const severityClass = getSeverityColor(metadata.severity);
               
@@ -201,9 +212,48 @@ export function AdminSecurityPanel() {
               );
             })}
             
-            <p className="text-center text-xs text-muted-foreground pt-4">
-              Showing {events.length} of {config.defaultLimit} most recent events
-            </p>
+            {/* Pagination Controls */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Show</span>
+                <select
+                  value={eventsPerPage}
+                  onChange={(e) => {
+                    setEventsPerPage(Number(e.target.value));
+                    setCurrentEventPage(1);
+                  }}
+                  className="border rounded px-2 py-1 bg-background"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>of {events.length} events</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentEventPage(p => Math.max(1, p - 1))}
+                  disabled={currentEventPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm px-2">
+                  Page {currentEventPage} of {totalEventPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentEventPage(p => Math.min(totalEventPages, p + 1))}
+                  disabled={currentEventPage === totalEventPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>

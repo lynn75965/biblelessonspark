@@ -17,6 +17,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
+// Anthropic model constant for tracking
+const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+
 function logTiming(label: string, startTime: number): number {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   console.log(`[TIMING] ${label}: ${elapsed}s`);
@@ -190,6 +193,10 @@ serve(async (req) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  // Declare metricId and supabase at function scope for error handling
+  let metricId: string | undefined;
+  let supabase: any;
+
   try {
     let checkpoint = functionStartTime;
 
@@ -201,7 +208,7 @@ serve(async (req) => {
       throw new Error('ANTHROPIC_API_KEY not configured');
     }
 
-    const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
+    supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -240,7 +247,7 @@ serve(async (req) => {
       .select('id')
       .single();
     
-    const metricId = metricRecord?.id;
+    metricId = metricRecord?.id;
 
     const requestData = await req.json();
 
@@ -349,144 +356,67 @@ THEOLOGY PROFILE: ${theologyProfile.name}
 -------------------------------------------------------------------------------
 ${theologyProfile.description}
 
-Distinctives:
-${(theologyProfile.distinctives || []).map((d) => `• ${d}`).join('\n')}
-Hermeneutics: ${theologyProfile.hermeneutics || 'Standard grammatical-historical interpretation'}
-Application Focus: ${theologyProfile.applicationEmphasis || 'Practical life application'}
+${generateTheologicalGuardrails(theologyProfile.id)}
 
-${generateTheologicalGuardrails(theology_profile_id)}
+-------------------------------------------------------------------------------
+AGE GROUP: ${ageGroupData.label}
+-------------------------------------------------------------------------------
+${ageGroupData.promptGuidance}
+
+${buildCompressionRules(generate_teaser)}
+
+-------------------------------------------------------------------------------
+BIBLE VERSION: ${bibleVersion.name} (${bibleVersion.abbreviation})
+-------------------------------------------------------------------------------
+Copyright Status: ${bibleVersion.copyrightStatus}
+Quote Type: ${bibleVersion.quoteType}
 
 ${copyrightGuardrails}
 
--------------------------------------------------------------------------------
-AUDIENCE: ${ageGroupData.label} (ages ${ageGroupData.ageMin}-${ageGroupData.ageMax})
--------------------------------------------------------------------------------
-Vocabulary Level: ${ageGroupData.teachingProfile.vocabularyLevel}
-Conceptual Depth: ${ageGroupData.teachingProfile.conceptualDepth}
 ${customizationDirectives}
-${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
-${freshness_suggestions ? buildFreshnessSuggestionsPrompt(freshness_suggestions, freshness_mode) : ""}
+
 ${buildTeaserInstructions(generate_teaser)}
-${buildCompressionRules(generate_teaser)}
+
+${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
+
 -------------------------------------------------------------------------------
-THE ${totalSections}-SECTION FRAMEWORK (Structure Version ${LESSON_STRUCTURE_VERSION})
+LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
 -------------------------------------------------------------------------------
 ${buildSectionsPrompt(generate_teaser)}
+
 -------------------------------------------------------------------------------
-MANDATORY PRE-RELEASE SELF-EVALUATION
+OUTPUT REQUIREMENTS
 -------------------------------------------------------------------------------
+Generate all ${totalSections} sections in order. Follow EXACT formatting:
 
-⚠️ STOP - Before outputting your completed lesson, perform this evaluation:
+## Section N: [Section Name]
 
-SECTION-BY-SECTION VERIFICATION:
-✓ Section 1: 150-250 words? All required elements present?
-✓ Section 2: 150-250 words? Objectives measurable?
-✓ Section 3: 450-600 words? Deep theology complete?
-✓ Section 4: 120-200 words? Engaging opening created?
-✓ Section 5: MINIMUM 630 words? (COUNT CAREFULLY) Deep explanations included?
-✓ Section 6: 150-250 words? Clear activity instructions?
-✓ Section 7: 200-300 words? Assessment questions included?
-✓ Section 8: 250-400 words? Student-focused and distinct from teacher content?
-${generate_teaser ? '✓ Student Teaser: 50-100 words? NO passage/topic/theology revealed? Compelling signoff included?' : ''}
-
-QUALITY VERIFICATION:
-✓ Section 5 contains explanations, not just assertions?
-✓ Theological concepts unpacked with WHY and HOW?
-✓ Teacher has substance to answer follow-up questions?
-${generate_teaser ? '✓ Student teaser reveals ZERO lesson content? Ends with compelling time-neutral signoff?' : ''}
-${generate_teaser ? '✓ Teaser appears ONCE at the beginning, not repeated later?' : ''}
-✓ No redundancy between sections?
-✓ Every sentence adds value?
-✓ No filler or padding?
-✓ NO word count metadata in section headers?
-
-COPYRIGHT VERIFICATION:
-✓ Bible version copyright rules followed?
-✓ ${bibleVersion.copyrightStatus === 'public_domain' ? 'Direct quotations properly formatted with verse references?' : `No verbatim Scripture quotations from copyrighted ${bibleVersion.abbreviation}?`}
-✓ ${bibleVersion.copyrightStatus === 'public_domain' ? 'N/A - Public domain' : 'All Scripture content paraphrased with verse references?'}
-
-CRITICAL FAILURES - If ANY of these are true, DO NOT OUTPUT:
-❌ Section 5 is under 630 words
-${generate_teaser ? '❌ Teaser mentions passage, topic, or theological concepts' : ''}
-${generate_teaser ? '❌ Teaser lacks compelling signoff or uses day-specific language' : ''}
-${generate_teaser ? '❌ Teaser appears more than once in the output' : ''}
-❌ Sections repeat theology already covered in Section 3
-❌ Any section ends mid-sentence or incomplete
-❌ Word counts appear in section headers
-${bibleVersion.copyrightStatus === 'copyrighted' ? `❌ Direct quotations from copyrighted ${bibleVersion.abbreviation} appear in lesson` : ''}
-
-IF ANY CHECKBOX IS UNCHECKED:
-GO BACK and fix that section NOW before outputting.
-
-ONLY output the lesson when ALL checkboxes are marked ✓
--------------------------------------------------------------------------------
-OUTPUT FORMAT
--------------------------------------------------------------------------------
-${generate_teaser ? `
-REQUIRED OUTPUT STRUCTURE:
-
-**STUDENT TEASER**
-[teaser content here - 50-100 words]
+[Section content following rules above]
 
 ---
 
-## Section 1: Lens + Lesson Overview
-[content here]
-
----
-
-## Section 2: Learning Objectives + Key Scriptures
-[content here]
-
-[...and so on]
-
-IMPORTANT: The teaser appears ONCE at the beginning. Do NOT repeat it anywhere else.
-` : ''}
-
-Use Markdown formatting:
-- ## for section headers
-- **bold** for key terms
-- Bullet points for lists
-- --- for section dividers
-
-DO NOT include word counts in section headers or anywhere in the output.
+Each section separated by "---" on its own line.
+Meet ALL word minimums. Respect ALL word maximums.
 `;
 
-    // Build lesson input title for display
-    const lessonInput = bible_passage || focused_topic || (extracted_content ? 'Curriculum Enhancement' : 'General Bible Study');
+    let lessonInput = bible_passage || focused_topic || '';
+    if (bible_passage && focused_topic) {
+      lessonInput = `${bible_passage} - ${focused_topic}`;
+    }
 
-    // Build user prompt based on input type
+    let bibleVersionInstruction = `\n\nIMPORTANT: Use the ${bibleVersion.name} (${bibleVersion.abbreviation}) for ALL Scripture quotations and references.`;
+
+    let teaserInstruction = '';
+    if (generate_teaser) {
+      teaserInstruction = '\n\nINCLUDE STUDENT TEASER: Generate the student teaser section at the beginning, before Section 1.';
+    }
+
     let userPrompt: string;
-    const teaserInstruction = generate_teaser
-      ? '\n\nIMPORTANT: Generate a Student Teaser (50-100 words) and place it at the TOP of the lesson under "**STUDENT TEASER**" followed by "---". Do NOT repeat the teaser content anywhere else. The teaser must build anticipation through FELT NEEDS ONLY, with ZERO revelation of passage, topic, or theological content. MUST end with a compelling, time-neutral signoff.'
-      : '';
-
-    // Add Bible version instruction to user prompt
-    const bibleVersionInstruction = `\n\nBIBLE VERSION: ${bibleVersion.name} (${bibleVersion.abbreviation}) - ${bibleVersion.copyrightStatus === 'public_domain' ? 'You may quote directly.' : 'PARAPHRASE ONLY - do not quote directly.'}`;
 
     if (extracted_content) {
-      // Curriculum enhancement mode - use extracted content as the source
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson by ENHANCING the following curriculum content with deeper Baptist theological insights.
-
-EXISTING CURRICULUM TO ENHANCE:
----
-${extracted_content}
----
-
-${bible_passage ? `Bible Passage Focus: ${bible_passage}` : ''}
-${focused_topic ? `Topic Focus: ${focused_topic}` : ''}
-${additional_notes ? `Teacher Notes: ${additional_notes}` : ''}
-
-INSTRUCTIONS:
-1. Use the existing curriculum as your foundation
-2. Identify the Bible passage(s) and main themes from the content
-3. Enhance with deeper Baptist theological analysis
-4. Restructure into the ${totalSections}-section framework
-5. Add theological depth aligned with ${theologyProfile.name}
-6. Adapt language and activities for ${ageGroupData.label}${bibleVersionInstruction}${teaserInstruction}`;
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson based on this curriculum content:\n\n---BEGIN CURRICULUM CONTENT---\n${extracted_content}\n---END CURRICULUM CONTENT---\n\n${bible_passage ? `Primary Passage: ${bible_passage}\n` : ''}${focused_topic ? `Focus Topic: ${focused_topic}\n` : ''}${additional_notes ? `Teacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
     } else if (bible_passage && focused_topic) {
-      // BOTH passage AND topic provided
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}\nTheme/Topic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
+      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}\nTheme/Focus: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
     } else if (bible_passage) {
       userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
     } else {
@@ -514,7 +444,7 @@ INSTRUCTIONS:
         },
         signal: controller.signal,
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: ANTHROPIC_MODEL,
           max_tokens: 8000,
           temperature: 0.6,
           system: systemPrompt,
@@ -524,6 +454,29 @@ INSTRUCTIONS:
 
       clearTimeout(timeoutId);
       checkpoint = logTiming('Anthropic API returned', checkpoint);
+
+      // Check for rate limit (429) error
+      if (anthropicResponse.status === 429) {
+        const errorData = await anthropicResponse.text();
+        console.error('Anthropic API rate limited:', errorData);
+        
+        // Update metric with rate_limited flag
+        if (metricId) {
+          await supabase
+            .from('generation_metrics')
+            .update({
+              generation_end: new Date().toISOString(),
+              generation_duration_ms: Date.now() - functionStartTime,
+              status: 'error',
+              rate_limited: true,
+              anthropic_model: ANTHROPIC_MODEL,
+              error_message: 'Anthropic API rate limit exceeded (429)'
+            })
+            .eq('id', metricId);
+        }
+        
+        throw new Error('Service temporarily busy. Please try again in a few minutes.');
+      }
 
       if (!anthropicResponse.ok) {
         const errorData = await anthropicResponse.text();
@@ -535,8 +488,13 @@ INSTRUCTIONS:
       let generatedLesson = anthropicData.content[0].text;
       const wordCount = generatedLesson.split(/\s+/).length;
 
+      // Extract token usage from response
+      const tokensInput = anthropicData.usage?.input_tokens || null;
+      const tokensOutput = anthropicData.usage?.output_tokens || null;
+
       console.log(`Lesson generated: ${generatedLesson.length} chars, ${wordCount} words`);
       console.log(`Anthropic usage: ${JSON.stringify(anthropicData.usage)}`);
+      console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}`);
 
       let teaserContent: string | null = null;
       if (generate_teaser) {
@@ -619,7 +577,7 @@ INSTRUCTIONS:
 
       console.log('Lesson saved:', lesson.id);
 
-      // Update metric to completed
+      // Update metric to completed with token tracking
       if (metricId) {
         await supabase
           .from('generation_metrics')
@@ -629,7 +587,10 @@ INSTRUCTIONS:
             generation_end: new Date().toISOString(),
             generation_duration_ms: Date.now() - functionStartTime,
             sections_generated: totalSections,
-            status: 'completed'
+            status: 'completed',
+            tokens_input: tokensInput,
+            tokens_output: tokensOutput,
+            anthropic_model: ANTHROPIC_MODEL
           })
           .eq('id', metricId);
       }
@@ -655,6 +616,7 @@ INSTRUCTIONS:
               generation_end: new Date().toISOString(),
               generation_duration_ms: Date.now() - functionStartTime,
               status: 'timeout',
+              anthropic_model: ANTHROPIC_MODEL,
               error_message: 'Anthropic API timeout after 120 seconds'
             })
             .eq('id', metricId);
@@ -669,13 +631,14 @@ INSTRUCTIONS:
     console.error('Error in generate-lesson:', error);
     
     // Update metric to error
-    if (typeof metricId !== 'undefined' && metricId) {
+    if (typeof metricId !== 'undefined' && metricId && supabase) {
       await supabase
         .from('generation_metrics')
         .update({
           generation_end: new Date().toISOString(),
           generation_duration_ms: Date.now() - functionStartTime,
           status: 'error',
+          anthropic_model: ANTHROPIC_MODEL,
           error_message: error.message || 'Unknown error'
         })
         .eq('id', metricId);
@@ -690,8 +653,3 @@ INSTRUCTIONS:
     });
   }
 });
-
-
-
-
-

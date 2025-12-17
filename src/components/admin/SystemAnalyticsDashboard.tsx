@@ -27,9 +27,13 @@ import {
   Smartphone,
   Tablet,
   HelpCircle,
+  Zap,
+  DollarSign,
+  AlertOctagon,
+  Loader,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CONTENT_CONTAINER_STYLES } from "@/utils/formatLessonContent";
 import {
   METRICS_DISPLAY,
@@ -37,6 +41,10 @@ import {
   STATUS_BADGES,
   formatDuration,
   getDurationColor,
+  formatTokens,
+  calculateCost,
+  formatCost,
+  API_USAGE_CONFIG,
 } from '@/constants/metricsViewerConfig';
 
 // -----------------------------------------------------
@@ -86,6 +94,10 @@ interface MetricsRecord {
   sections_generated: number | null;
   error_message: string | null;
   created_at: string;
+  tokens_input: number | null;
+  tokens_output: number | null;
+  rate_limited: boolean | null;
+  anthropic_model: string | null;
 }
 
 interface MetricsSummary {
@@ -95,6 +107,25 @@ interface MetricsSummary {
   errors: number;
   avgDuration: number | null;
   deviceBreakdown: Record<string, number>;
+}
+
+interface ApiUsageSummary {
+  activeNow: number;
+  tokensInputToday: number;
+  tokensOutputToday: number;
+  tokensTotalToday: number;
+  costToday: number;
+  rateLimitHitsToday: number;
+  rateLimitHitsTotal: number;
+  // Cumulative (all-time)
+  tokensInputAllTime: number;
+  tokensOutputAllTime: number;
+  tokensTotalAllTime: number;
+  costAllTime: number;
+  // Period costs
+  cost7d: number;
+  cost30d: number;
+  cost365d: number;
 }
 
 // -----------------------------------------------------
@@ -118,7 +149,7 @@ const DeviceIcon = ({ type }: { type: string }) => {
 // -----------------------------------------------------
 export function SystemAnalyticsDashboard() {
   const { toast } = useToast();
-  
+
   // User Analytics State
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -144,6 +175,13 @@ export function SystemAnalyticsDashboard() {
   const [sortField, setSortField] = useState<'lesson_count' | 'last_lesson_date' | 'created_at'>('lesson_count');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
+  // User Pagination State
+  const [usersPerPage, setUsersPerPage] = useState(10);
+  const [currentUserPage, setCurrentUserPage] = useState(1);
+
+  // Cost Period State
+  const [costPeriod, setCostPeriod] = useState<'7d' | '30d' | '365d' | 'all'>('30d');
+
   // Generation Metrics State
   const [metricsLoading, setMetricsLoading] = useState(true);
   const [metrics, setMetrics] = useState<MetricsRecord[]>([]);
@@ -157,6 +195,24 @@ export function SystemAnalyticsDashboard() {
   });
   const [metricsSortField, setMetricsSortField] = useState<string>('created_at');
   const [metricsSortDirection, setMetricsSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  // API Usage State
+  const [apiUsage, setApiUsage] = useState<ApiUsageSummary>({
+    activeNow: 0,
+    tokensInputToday: 0,
+    tokensOutputToday: 0,
+    tokensTotalToday: 0,
+    costToday: 0,
+    rateLimitHitsToday: 0,
+    rateLimitHitsTotal: 0,
+    tokensInputAllTime: 0,
+    tokensOutputAllTime: 0,
+    tokensTotalAllTime: 0,
+    costAllTime: 0,
+    cost7d: 0,
+    cost30d: 0,
+    cost365d: 0,
+  });
 
   // -----------------------------------------------------
   // DATA FETCHING - User Analytics
@@ -254,6 +310,9 @@ export function SystemAnalyticsDashboard() {
         deviceBreakdown,
       });
 
+      // Calculate API usage from the fetched data
+      calculateApiUsage(records);
+
     } catch (error) {
       console.error('Error fetching generation metrics:', error);
       toast({
@@ -264,6 +323,76 @@ export function SystemAnalyticsDashboard() {
     } finally {
       setMetricsLoading(false);
     }
+  };
+
+  // -----------------------------------------------------
+  // CALCULATE API USAGE
+  // -----------------------------------------------------
+  const calculateApiUsage = (records: MetricsRecord[]) => {
+    const todayStart = startOfDay(new Date()).toISOString();
+    
+    // Filter for today's records
+    const todayRecords = records.filter(r => r.created_at >= todayStart);
+    
+    // Active now = status 'started'
+    const activeNow = records.filter(r => r.status === 'started').length;
+    
+    // Today's tokens
+    const tokensInputToday = todayRecords.reduce((sum, r) => sum + (r.tokens_input || 0), 0);
+    const tokensOutputToday = todayRecords.reduce((sum, r) => sum + (r.tokens_output || 0), 0);
+    const tokensTotalToday = tokensInputToday + tokensOutputToday;
+    
+    // All-time tokens
+    const tokensInputAllTime = records.reduce((sum, r) => sum + (r.tokens_input || 0), 0);
+    const tokensOutputAllTime = records.reduce((sum, r) => sum + (r.tokens_output || 0), 0);
+    const tokensTotalAllTime = tokensInputAllTime + tokensOutputAllTime;
+    
+    // Period date boundaries
+    const now = new Date();
+    const date7dAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const date30dAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const date365dAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Filter records by period
+    const records7d = records.filter(r => r.created_at >= date7dAgo);
+    const records30d = records.filter(r => r.created_at >= date30dAgo);
+    const records365d = records.filter(r => r.created_at >= date365dAgo);
+
+    // Period token sums
+    const tokens7dIn = records7d.reduce((sum, r) => sum + (r.tokens_input || 0), 0);
+    const tokens7dOut = records7d.reduce((sum, r) => sum + (r.tokens_output || 0), 0);
+    const tokens30dIn = records30d.reduce((sum, r) => sum + (r.tokens_input || 0), 0);
+    const tokens30dOut = records30d.reduce((sum, r) => sum + (r.tokens_output || 0), 0);
+    const tokens365dIn = records365d.reduce((sum, r) => sum + (r.tokens_input || 0), 0);
+    const tokens365dOut = records365d.reduce((sum, r) => sum + (r.tokens_output || 0), 0);
+
+    // Cost calculations
+    const costToday = calculateCost(tokensInputToday, tokensOutputToday);
+    const cost7d = calculateCost(tokens7dIn, tokens7dOut);
+    const cost30d = calculateCost(tokens30dIn, tokens30dOut);
+    const cost365d = calculateCost(tokens365dIn, tokens365dOut);
+    const costAllTime = calculateCost(tokensInputAllTime, tokensOutputAllTime);
+    
+    // Rate limit hits
+    const rateLimitHitsToday = todayRecords.filter(r => r.rate_limited === true).length;
+    const rateLimitHitsTotal = records.filter(r => r.rate_limited === true).length;
+    
+    setApiUsage({
+      activeNow,
+      tokensInputToday,
+      tokensOutputToday,
+      tokensTotalToday,
+      costToday,
+      rateLimitHitsToday,
+      rateLimitHitsTotal,
+      tokensInputAllTime,
+      tokensOutputAllTime,
+      tokensTotalAllTime,
+      costAllTime,
+      cost7d,
+      cost30d,
+      cost365d,
+    });
   };
 
   const fetchUserLessons = async (userId: string) => {
@@ -355,6 +484,13 @@ export function SystemAnalyticsDashboard() {
     return sortDirection === 'asc' ? comparison : -comparison;
   });
 
+  // Paginate users
+  const totalUserPages = Math.ceil(sortedUsers.length / usersPerPage);
+  const paginatedUsers = sortedUsers.slice(
+    (currentUserPage - 1) * usersPerPage,
+    currentUserPage * usersPerPage
+  );
+
   const sortedMetrics = [...metrics].sort((a, b) => {
     let comparison = 0;
     const aVal = a[metricsSortField as keyof MetricsRecord];
@@ -364,6 +500,10 @@ export function SystemAnalyticsDashboard() {
       comparison = new Date(aVal as string).getTime() - new Date(bVal as string).getTime();
     } else if (metricsSortField === 'generation_duration_ms') {
       comparison = ((aVal as number) || 0) - ((bVal as number) || 0);
+    } else if (metricsSortField === 'tokens_total') {
+      const aTokens = (a.tokens_input || 0) + (a.tokens_output || 0);
+      const bTokens = (b.tokens_input || 0) + (b.tokens_output || 0);
+      comparison = aTokens - bTokens;
     } else if (typeof aVal === 'string' && typeof bVal === 'string') {
       comparison = aVal.localeCompare(bVal);
     }
@@ -410,7 +550,7 @@ export function SystemAnalyticsDashboard() {
       {/* ================================================= */}
       {/* SECTION 1: USER ANALYTICS */}
       {/* ================================================= */}
-      
+
       {/* Platform Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-card">
@@ -503,14 +643,14 @@ export function SystemAnalyticsDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedUsers.length === 0 ? (
+                {paginatedUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedUsers.map((user) => (
+                  paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell>
                         <div className="flex flex-col">
@@ -563,13 +703,147 @@ export function SystemAnalyticsDashboard() {
               </TableBody>
             </Table>
           </div>
+
+          {/* Pagination Controls */}
+          {sortedUsers.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Show</span>
+                <select
+                  value={usersPerPage}
+                  onChange={(e) => {
+                    setUsersPerPage(Number(e.target.value));
+                    setCurrentUserPage(1);
+                  }}
+                  className="border rounded px-2 py-1 bg-background"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span>of {sortedUsers.length} users</span>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentUserPage(p => Math.max(1, p - 1))}
+                  disabled={currentUserPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm px-2">
+                  Page {currentUserPage} of {totalUserPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentUserPage(p => Math.min(totalUserPages, p + 1))}
+                  disabled={currentUserPage === totalUserPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* ================================================= */}
-      {/* SECTION 2: GENERATION METRICS */}
+      {/* SECTION 2: API USAGE MONITORING */}
       {/* ================================================= */}
-      
+
+      {/* Section Header */}
+      <div className="border-t pt-8">
+        <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
+          <Zap className="h-5 w-5" />
+          API Usage Monitoring
+        </h2>
+      </div>
+
+      {/* API Usage Cards */}
+      {metricsLoading ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card className="bg-gradient-card">
+            <CardContent className="p-4 text-center">
+              <Loader className={`h-6 w-6 mx-auto mb-2 text-blue-600 ${apiUsage.activeNow > 0 ? 'animate-spin' : ''}`} />
+              <p className="text-2xl font-bold">{apiUsage.activeNow}</p>
+              <p className="text-xs text-muted-foreground">Active Now</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card">
+            <CardContent className="p-4 text-center">
+              <Zap className="h-6 w-6 mx-auto mb-2 text-purple-600" />
+              <p className="text-2xl font-bold">{formatTokens(apiUsage.tokensTotalToday)}</p>
+              <p className="text-xs text-muted-foreground">Tokens Today</p>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                In: {formatTokens(apiUsage.tokensInputToday)} / Out: {formatTokens(apiUsage.tokensOutputToday)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card">
+            <CardContent className="p-4 text-center">
+              <DollarSign className={`h-6 w-6 mx-auto mb-2 ${
+                apiUsage.costToday >= API_USAGE_CONFIG.thresholds.dailyCostCritical 
+                  ? 'text-red-600' 
+                  : apiUsage.costToday >= API_USAGE_CONFIG.thresholds.dailyCostWarning 
+                    ? 'text-amber-600' 
+                    : 'text-green-600'
+              }`} />
+              <p className="text-2xl font-bold">{formatCost(apiUsage.costToday)}</p>
+              <p className="text-xs text-muted-foreground">Est. Cost Today</p>
+              <div className="mt-2 pt-2 border-t border-muted">
+                <select
+                  value={costPeriod}
+                  onChange={(e) => setCostPeriod(e.target.value as '7d' | '30d' | '365d' | 'all')}
+                  className="text-[10px] border rounded px-1 py-0.5 bg-background mb-1"
+                >
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="365d">Last 365 days</option>
+                  <option value="all">All time</option>
+                </select>
+                <p className="text-sm font-semibold">
+                  {formatCost(
+                    costPeriod === '7d' ? apiUsage.cost7d :
+                    costPeriod === '30d' ? apiUsage.cost30d :
+                    costPeriod === '365d' ? apiUsage.cost365d :
+                    apiUsage.costAllTime
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-card">
+            <CardContent className="p-4 text-center">
+              <AlertOctagon className={`h-6 w-6 mx-auto mb-2 ${
+                apiUsage.rateLimitHitsTotal > 0 ? 'text-red-600' : 'text-green-600'
+              }`} />
+              <p className="text-2xl font-bold">{apiUsage.rateLimitHitsToday}</p>
+              <p className="text-xs text-muted-foreground">Rate Limits Today</p>
+              {apiUsage.rateLimitHitsTotal > 0 && (
+                <p className="text-[10px] text-red-600 mt-1">
+                  {apiUsage.rateLimitHitsTotal} total (all time)
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ================================================= */}
+      {/* SECTION 3: GENERATION METRICS */}
+      {/* ================================================= */}
+
       {/* Section Header */}
       <div className="border-t pt-8">
         <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
@@ -705,12 +979,23 @@ export function SystemAnalyticsDashboard() {
                             {formatDuration(record.generation_duration_ms)}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={STATUS_BADGES[record.status]?.variant || 'outline'}>
-                              {STATUS_BADGES[record.status]?.label || record.status}
-                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <Badge variant={STATUS_BADGES[record.status]?.variant || 'outline'}>
+                                {STATUS_BADGES[record.status]?.label || record.status}
+                              </Badge>
+                              {record.rate_limited && (
+                                <AlertOctagon className="h-3 w-3 text-red-600" title="Rate limited" />
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-center">
-                            {record.sections_generated ?? '—'}/{record.sections_requested}
+                            {record.tokens_input !== null && record.tokens_output !== null ? (
+                              <span title={`In: ${record.tokens_input?.toLocaleString()} / Out: ${record.tokens_output?.toLocaleString()}`}>
+                                {formatTokens((record.tokens_input || 0) + (record.tokens_output || 0))}
+                              </span>
+                            ) : (
+                              '—'
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -762,8 +1047,8 @@ export function SystemAnalyticsDashboard() {
             ) : (
               <div className="space-y-3">
                 {userLessons.map((lesson) => (
-                  <Card 
-                    key={lesson.id} 
+                  <Card
+                    key={lesson.id}
                     className="bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors"
                     onClick={() => handleViewLessonContent(lesson)}
                   >

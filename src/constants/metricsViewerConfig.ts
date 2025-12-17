@@ -28,7 +28,7 @@ export const METRICS_COLUMNS = [
   { key: 'os', label: 'OS', sortable: true },
   { key: 'generation_duration_ms', label: 'Duration', sortable: true },
   { key: 'status', label: 'Status', sortable: true },
-  { key: 'sections_generated', label: 'Sections', sortable: false },
+  { key: 'tokens_total', label: 'Tokens', sortable: true },
 ] as const;
 
 // -----------------------------------------------------
@@ -71,6 +71,45 @@ export function getDurationColor(ms: number | null): string {
 }
 
 // -----------------------------------------------------
+// TOKEN DISPLAY HELPERS
+// -----------------------------------------------------
+export function formatTokens(count: number | null): string {
+  if (count === null || count === undefined) return '—';
+  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
+  return count.toString();
+}
+
+// -----------------------------------------------------
+// API USAGE CONFIG
+// -----------------------------------------------------
+export const API_USAGE_CONFIG = {
+  // Anthropic pricing per 1M tokens (as of Dec 2024)
+  // Claude Sonnet 4: $3/1M input, $15/1M output
+  pricing: {
+    inputPer1M: 3.00,
+    outputPer1M: 15.00,
+  },
+  // Warning thresholds
+  thresholds: {
+    rateLimitWarning: 1, // Any rate limits are concerning
+    dailyCostWarning: 10, // $10/day warning
+    dailyCostCritical: 50, // $50/day critical
+  },
+} as const;
+
+export function calculateCost(inputTokens: number, outputTokens: number): number {
+  const inputCost = (inputTokens / 1_000_000) * API_USAGE_CONFIG.pricing.inputPer1M;
+  const outputCost = (outputTokens / 1_000_000) * API_USAGE_CONFIG.pricing.outputPer1M;
+  return inputCost + outputCost;
+}
+
+export function formatCost(amount: number): string {
+  if (amount < 0.01) return '< $0.01';
+  return `$${amount.toFixed(2)}`;
+}
+
+// -----------------------------------------------------
 // SUMMARY CARD CONFIG
 // -----------------------------------------------------
 export const SUMMARY_CARDS = [
@@ -78,6 +117,16 @@ export const SUMMARY_CARDS = [
   { key: 'completed', label: 'Completed', icon: 'CheckCircle', colorClass: 'text-green-600' },
   { key: 'avgDuration', label: 'Avg Duration', icon: 'Clock', colorClass: 'text-blue-600' },
   { key: 'timeouts', label: 'Timeouts/Errors', icon: 'AlertTriangle', colorClass: 'text-amber-600' },
+] as const;
+
+// -----------------------------------------------------
+// API USAGE CARDS CONFIG
+// -----------------------------------------------------
+export const API_USAGE_CARDS = [
+  { key: 'activeNow', label: 'Active Now', icon: 'Loader', colorClass: 'text-blue-600' },
+  { key: 'tokensToday', label: 'Tokens Today', icon: 'Zap', colorClass: 'text-purple-600' },
+  { key: 'costToday', label: 'Est. Cost Today', icon: 'DollarSign', colorClass: 'text-green-600' },
+  { key: 'rateLimits', label: 'Rate Limit Hits', icon: 'AlertOctagon', colorClass: 'text-red-600' },
 ] as const;
 
 // -----------------------------------------------------
