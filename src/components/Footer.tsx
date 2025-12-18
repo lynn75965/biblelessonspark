@@ -11,10 +11,10 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {/* Brand - NOW CLICKABLE */}
           <div className="space-y-3 sm:space-y-4">
-            <a 
-              href="/" 
+            <a
+              href="/"
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              title={`Go to ${BRANDING.appName} home`}
+              title="Go to LessonSpark USA home"
             >
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
                 <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
