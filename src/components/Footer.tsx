@@ -1,49 +1,30 @@
 import { Sparkles, Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
+import { BRANDING, getCopyrightNotice } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-
-// ============================================================================
-// BRANDING: Database-driven branding hook (SSOT compliant)
-// ============================================================================
-import { useBranding, getCopyrightNotice } from "@/hooks/useBranding";
 
 export function Footer() {
   const { settings } = useSystemSettings();
-
-  // ============================================================================
-  // BRANDING: Get branding from database (with caching and fallback)
-  // ============================================================================
-  const { branding } = useBranding();
-
   return (
     <footer className="bg-muted py-8 sm:py-10 lg:py-12 mt-auto">
       <div className="container px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {/* Brand */}
+          {/* Brand - NOW CLICKABLE */}
           <div className="space-y-3 sm:space-y-4">
-            {/* ============================================================
-                BRANDING: Logo links to home page (using anchor for reliability)
-                ============================================================ */}
             <a 
               href="/" 
-              className="flex items-center gap-2 hover:opacity-90 transition-opacity w-fit cursor-pointer relative z-10"
-              title="Return to Home"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              title={`Go to ${BRANDING.appName} home`}
             >
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
                 <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
-              {/* ============================================================
-                  BRANDING: App name from database (SSOT)
-                  ============================================================ */}
               <span className="font-semibold text-base sm:text-lg">
-                {branding.appName}
+                Lesson<span className="text-secondary">Spark</span> USA
               </span>
             </a>
-            {/* ============================================================
-                BRANDING: Tagline from database (SSOT)
-                ============================================================ */}
             <p className="text-xs sm:text-sm text-muted-foreground">
-              {branding.tagline}
+              {BRANDING.tagline}
             </p>
           </div>
 
@@ -128,16 +109,13 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-6 sm:pt-8 border-t text-xs sm:text-sm text-muted-foreground gap-3 sm:gap-0">
-          {/* ============================================================
-              BRANDING: Copyright notice from database (SSOT)
-              ============================================================ */}
-          <p>{getCopyrightNotice(branding)}</p>
-          <a
-            href={`mailto:${branding.contact.supportEmail}`}
+          <p>{getCopyrightNotice()}</p>
+          <a 
+            href={`mailto:${BRANDING.contact.supportEmail}`}
             className="flex items-center gap-1.5 hover:text-primary transition-colors"
           >
             <Mail className="h-3.5 w-3.5" />
-            {branding.contact.supportEmail}
+            {BRANDING.contact.supportEmail}
           </a>
         </div>
       </div>
