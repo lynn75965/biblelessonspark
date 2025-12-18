@@ -1,4 +1,5 @@
 import { Sparkles, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { BRANDING, getCopyrightNotice } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -9,12 +10,12 @@ export function Footer() {
     <footer className="bg-muted py-8 sm:py-10 lg:py-12 mt-auto">
       <div className="container px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {/* Brand - NOW CLICKABLE */}
+          {/* Brand - CLICKABLE using same pattern as Header */}
           <div className="space-y-3 sm:space-y-4">
-            <a
-              href="/"
+            <Link 
+              to="/" 
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-              title="Go to LessonSpark USA home"
+              title="Return to Home"
             >
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
                 <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
@@ -22,7 +23,7 @@ export function Footer() {
               <span className="font-semibold text-base sm:text-lg">
                 Lesson<span className="text-secondary">Spark</span> USA
               </span>
-            </a>
+            </Link>
             <p className="text-xs sm:text-sm text-muted-foreground">
               {BRANDING.tagline}
             </p>
