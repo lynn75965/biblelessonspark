@@ -1,20 +1,27 @@
 import { Sparkles, Mail } from "lucide-react";
-import { Link } from "react-router-dom";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { BRANDING, getCopyrightNotice } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 export function Footer() {
   const { settings } = useSystemSettings();
+  
+  const handleLogoClick = () => {
+    window.location.href = "/";
+  };
+
   return (
     <footer className="bg-muted py-8 sm:py-10 lg:py-12 mt-auto">
       <div className="container px-4 sm:px-6">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-          {/* Brand - CLICKABLE using same pattern as Header */}
+          {/* Brand - CLICKABLE via onClick */}
           <div className="space-y-3 sm:space-y-4">
-            <Link 
-              to="/" 
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            <div 
+              onClick={handleLogoClick}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+              role="link"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogoClick()}
               title="Return to Home"
             >
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
@@ -23,7 +30,7 @@ export function Footer() {
               <span className="font-semibold text-base sm:text-lg">
                 Lesson<span className="text-secondary">Spark</span> USA
               </span>
-            </Link>
+            </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
               {BRANDING.tagline}
             </p>
