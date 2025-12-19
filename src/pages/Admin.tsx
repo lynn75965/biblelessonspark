@@ -11,8 +11,7 @@ import { AllLessonsPanel } from "@/components/admin/AllLessonsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, ShieldAlert, BookOpen } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, ShieldAlert, BookOpen, Palette } from "lucide-react";import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { SystemSettingsPanel } from "@/components/admin/SystemSettingsPanel";
@@ -21,6 +20,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { PROGRAM_CONFIG } from "@/constants/programConfig";
 import { isBetaMode } from "@/constants/systemSettings";
 import { AdminSecurityPanel } from "@/components/admin/AdminSecurityPanel";
+import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -237,7 +237,11 @@ export default function Admin() {
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
-          </TabsList>
+          <TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Palette className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Branding</span>
+            </TabsTrigger>
+	</TabsList>
 
           {/* MOBILE FIX: Add relative z-0 to all TabsContent */}
           <TabsContent value="users" className="mt-6 relative z-0">
@@ -347,6 +351,13 @@ export default function Admin() {
           <TabsContent value="security" className="mt-6 relative z-0">
             <AdminSecurityPanel />
           </TabsContent>
+		<TabsContent value="branding" className="mt-6 relative z-0">
+            <TenantBrandingPanel />
+          </TabsContent>
+	<TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Palette className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Branding</span>
+            </TabsTrigger>
         </Tabs>
       </main>
     </div>

@@ -1,0 +1,17 @@
+"use client";
+
+import React, { useMemo } from "react";
+import type { TenantConfig } from "@/lib/tenant/getTenantConfig";
+import { TenantContext } from "@/lib/tenant/tenant-context";
+
+type Props = {
+  config: TenantConfig;
+  children: React.ReactNode;
+};
+
+export default function TenantProvider({ config, children }: Props) {
+  // Memoize so React doesn’t re-render everything unnecessarily
+  const value = useMemo(() => config, [config]);
+
+  return <TenantContext.Provider value={value}>{children}</TenantContext.Provider>;
+}
