@@ -2,10 +2,10 @@
  * Tenant Configuration Loader
  * 
  * ARCHITECTURE: Imports types and defaults from SSOT (tenantConfig.ts)
- * Uses Vite environment variables (import.meta.env)
+ * Uses existing Supabase client from integrations
  */
 
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import {
   TenantConfig,
   TenantConfigRow,
@@ -13,15 +13,6 @@ import {
   mapRowToConfig,
   resolveTenantFromHost,
 } from "@/constants/tenantConfig";
-
-// =============================================================================
-// SUPABASE CLIENT (Public/Anon - uses RLS)
-// =============================================================================
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL as string,
-  import.meta.env.VITE_SUPABASE_ANON_KEY as string
-);
 
 // =============================================================================
 // CACHE (simple in-memory for client-side)
