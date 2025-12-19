@@ -354,10 +354,6 @@ export default function Admin() {
 		<TabsContent value="branding" className="mt-6 relative z-0">
             <TenantBrandingPanel />
           </TabsContent>
-	<TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Palette className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Branding</span>
-            </TabsTrigger>
         </Tabs>
       </main>
     </div>
