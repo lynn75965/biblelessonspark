@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-16
-**Current Phase:** Phase 15 (Perpetual Freshness Complete)
+**Last Updated:** 2025-12-17
+**Current Phase:** Phase 15 Complete, Admin Panel Enhanced
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
 
@@ -643,7 +643,7 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 15 (Perpetual Freshness Complete)
+**Current Phase:** Phase 15 Complete, Admin Panel Enhanced
 **Overall Completion:** ~97% (Core product + feedback + security ready)
 **Production Readiness:** Beta (Individual users, no payment)
 
@@ -1672,3 +1672,126 @@ All Phase 15 items implemented:
 - ✅ Cultural Season Themes (opt-in checkbox)
 - ✅ Edge Function integration with `buildFreshnessContext()`
 
+
+### Session: December 17, 2025 (Afternoon)
+
+#### API Usage Monitoring - Admin Panel
+
+New section added to System Analytics tab for tracking Claude API token usage and costs.
+
+**Features Implemented:**
+
+| Card | Data Displayed |
+|------|----------------|
+| Active Now | In-progress generations (spinning indicator if any) |
+| Tokens Today | Total with input/output breakdown on hover |
+| Est. Cost (Period) | Dropdown: 7d / 30d / 365d / All-time, color-coded thresholds |
+| Rate Limit Hits | Today count + all-time total (red warning if any) |
+
+**Cost Calculation (Anthropic Claude Sonnet 4):**
+- Input tokens: $3.00 per million
+- Output tokens: $15.00 per million
+- Thresholds: Green < $10/day < Amber < $50/day < Red
+
+**Database Columns Added (Phase A - already deployed):**
+- `generation_metrics.tokens_input` INTEGER
+- `generation_metrics.tokens_output` INTEGER  
+- `generation_metrics.rate_limited` BOOLEAN
+- `generation_metrics.anthropic_model` TEXT
+
+**SSOT Updates:**
+- `src/constants/metricsViewerConfig.ts` - Added API_USAGE_CONFIG, formatTokens(), calculateCost()
+
+#### Table Pagination - Admin Panel
+
+Added pagination controls to large tables:
+
+| Table | Location | Options |
+|-------|----------|---------|
+| Users | System Analytics | 10 / 25 / 50 / 100 per page |
+| Security Events | Security Tab | 10 / 25 / 50 / 100 per page |
+| Generation History | System Analytics | Already had pagination |
+
+**UI Pattern:** Dropdown selector + Previous/Next buttons + "X of Y" indicator
+
+#### Mobile-Friendly Use Focus Banner
+
+Redesigned ActiveFocusBanner for mobile responsiveness:
+
+**Mobile Layout (< 640px):**
+- Stacked vertical layout
+- Full-width "Use Focus" button at bottom
+- Dismiss X button positioned top-right
+- Icon hidden to save space
+
+**Desktop Layout (>= 640px):**
+- Original horizontal layout with icon
+- Side-by-side button placement
+
+**File:** `src/components/org/ActiveFocusBanner.tsx`
+
+**Bug Fixed:** Emoji characters (book, church) corrupted to `??` during file write. Replaced with text labels: "Bible:", "Doctrine:"
+
+**Lesson Learned:** Never use emoji characters in code files - they corrupt during PowerShell file operations.
+
+#### Feedback Button Styling
+
+Reduced feedback button size on mobile for better thumb accessibility.
+
+#### Git Commits (December 17, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `393c139` | Feedback button styling fix |
+| `8e348c4` | feat: add API usage monitoring with token tracking and pagination |
+| `18492f9` | fix: mobile-friendly Use Focus banner with stacked layout |
+
+---
+
+## Future Planning: UI/UX Configuration System
+
+### Progressive Disclosure (Proposed)
+
+Discussed concept of simplified form for new users:
+
+| Mode | Visible Fields |
+|------|----------------|
+| Simple | Passage + Age Group only (fastest path) |
+| Standard | Steps 1 & 2 visible, Step 3 collapsed (current) |
+| Advanced | All options expanded by default |
+
+### Admin-Controlled Experience Profiles (Proposed)
+
+Future capability for A/B testing and subscription-based UI:
+
+**Experience Profiles Table (not yet implemented):**
+- Form mode (simple/standard/advanced)
+- Feature toggles (curriculum upload, topic mode, etc.)
+- Daily limits per tier
+- User permission flags
+
+**Profile Assignments (not yet implemented):**
+- System default
+- Subscription tier override
+- Organization override
+- User override
+- A/B experiment assignment
+
+**Priority Cascade:** User > Org > Subscription > A/B Test > System Default
+
+### Development Environment Verified
+
+Confirmed no subscription upgrades needed for feature branch workflow:
+
+| Service | Current Plan | Branch Workflow Impact |
+|---------|--------------|------------------------|
+| Supabase | Pro ($25/mo) | No change - uses same DB |
+| Netlify | Free | No change - includes preview deploys |
+| GitHub | Free | No change - unlimited branches |
+| Claude API | Pay-as-you-go | No change |
+
+**Recommended Approach:** Git feature branch + Netlify preview URL (zero additional cost)
+
+---
+
+**Last Updated:** 2025-12-17
