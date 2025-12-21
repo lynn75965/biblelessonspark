@@ -79,7 +79,7 @@ import {
 // ============================================================================
 
 // Standalone context uses Baptist Core Beliefs silently (not exposed to UI)
-const STANDALONE_THEOLOGY_ID = 'baptist_core';
+const STANDALONE_THEOLOGY_ID = 'baptist-core-beliefs';
 const STANDALONE_BIBLE_VERSION_ID = 'kjv';
 
 // ============================================================================
