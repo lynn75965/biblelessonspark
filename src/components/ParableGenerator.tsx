@@ -471,21 +471,21 @@ export function ParableGenerator({
         throw new Error(fnError.message || 'Failed to generate parable');
       }
 
-      if (!data || !data.parable_text) {
-        throw new Error('No parable was generated. Please try again.');
+      if (!data || !data.success || !data.parable || !data.parable.parable_text) {
+        throw new Error(data?.error || 'No parable was generated. Please try again.');
       }
 
       const parable: GeneratedParable = {
-        id: data.id || crypto.randomUUID(),
-        parable_text: data.parable_text,
-        bible_passage: data.bible_passage || biblePassage,
-        news_headline: data.news_headline || '',
-        news_source: data.news_source || 'generated',
-        news_url: data.news_url || '',
-        news_date: data.news_date || null,
-        news_location: data.news_location || null,
-        word_count: data.word_count || data.parable_text.split(/\s+/).length,
-        generation_time_ms: data.generation_time_ms || 0,
+        id: data.parable.id || crypto.randomUUID(),
+        parable_text: data.parable.parable_text,
+        bible_passage: data.parable.bible_passage || biblePassage,
+        news_headline: data.parable.news_headline || '',
+        news_source: data.parable.news_source || 'generated',
+        news_url: data.parable.news_url || '',
+        news_date: data.parable.news_date || null,
+        news_location: data.parable.news_location || null,
+        word_count: data.parable.word_count || data.parable.parable_text.split(/\s+/).length,
+        generation_time_ms: data.parable.generation_time_ms || 0,
       };
 
       setGeneratedParable(parable);
