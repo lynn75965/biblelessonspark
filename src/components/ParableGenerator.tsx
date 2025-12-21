@@ -11,17 +11,18 @@
  *    - User can override via explicit checkbox
  * 
  * 2. STANDALONE CONTEXT  
- *    - All settings visible and user-controlled
- *    - Uses teacher_preferences if authenticated
+ *    - Simplified UI: Age Group only
+ *    - Baptist Core Beliefs applied silently (not revealed to user)
+ *    - KJV Bible version used as default
  *    - Uses STANDALONE_DIRECTIVE for contemplative parables
- *    - Anonymous users see all dropdowns with defaults
+ *    - Anonymous users welcome
  * 
  * SSOT COMPLIANCE:
  * - All configuration from frontend constants
  * - Edge Function receives complete resolved objects
  * - No backend config lookups
  * 
- * @version 2.0.0
+ * @version 2.1.0
  * @lastUpdated 2025-12-21
  */
 
@@ -72,6 +73,14 @@ import {
   getParableDirective,
   type ParableContext,
 } from '@/constants/parableDirectives';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+// Standalone context uses Baptist Core Beliefs silently (not exposed to UI)
+const STANDALONE_THEOLOGY_ID = 'baptist_core';
+const STANDALONE_BIBLE_VERSION_ID = 'kjv';
 
 // ============================================================================
 // TYPES
@@ -223,10 +232,8 @@ export function ParableGenerator({
   const [overrideAgeGroupId, setOverrideAgeGroupId] = useState(lessonSettings?.ageGroup || '');
   const [overrideBibleVersionId, setOverrideBibleVersionId] = useState(lessonSettings?.bibleVersion || '');
   
-  // Standalone settings (when no lesson context)
-  const [standaloneTheologyId, setStandaloneTheologyId] = useState('');
+  // Standalone settings - SIMPLIFIED: Age Group only (theology/bible applied silently)
   const [standaloneAgeGroupId, setStandaloneAgeGroupId] = useState('');
-  const [standaloneBibleVersionId, setStandaloneBibleVersionId] = useState('');
   
   // User preferences (from database - for standalone context)
   const [preferences, setPreferences] = useState<TeacherPreferences | null>(null);
@@ -251,9 +258,7 @@ export function ParableGenerator({
         if (!user) {
           // Anonymous user - use defaults
           setIsAuthenticated(false);
-          setStandaloneTheologyId(getDefaultTheologyProfile().id);
           setStandaloneAgeGroupId(getDefaultAgeGroup().id);
-          setStandaloneBibleVersionId(getDefaultBibleVersion().id);
           setLoadingPreferences(false);
           return;
         }
@@ -273,17 +278,13 @@ export function ParableGenerator({
         const prefs = data || {};
         setPreferences(prefs);
         
-        // Set standalone defaults from preferences
-        setStandaloneTheologyId(prefs.theology_profile || getDefaultTheologyProfile().id);
+        // Set standalone age group from preferences (or default)
         setStandaloneAgeGroupId(prefs.age_group || getDefaultAgeGroup().id);
-        setStandaloneBibleVersionId(prefs.bible_version || getDefaultBibleVersion().id);
         
       } catch (err) {
         console.error('Error loading preferences:', err);
         // Fall back to defaults
-        setStandaloneTheologyId(getDefaultTheologyProfile().id);
         setStandaloneAgeGroupId(getDefaultAgeGroup().id);
-        setStandaloneBibleVersionId(getDefaultBibleVersion().id);
       } finally {
         setLoadingPreferences(false);
       }
@@ -300,7 +301,8 @@ export function ParableGenerator({
     if (isLessonSparkContext) {
       return customizeSettings ? overrideTheologyId : (lessonSettings?.theologyProfile || getDefaultTheologyProfile().id);
     }
-    return standaloneTheologyId || getDefaultTheologyProfile().id;
+    // Standalone: Always use Baptist Core Beliefs (applied silently)
+    return STANDALONE_THEOLOGY_ID;
   }
 
   function getEffectiveAgeGroupId(): string {
@@ -314,7 +316,8 @@ export function ParableGenerator({
     if (isLessonSparkContext) {
       return customizeSettings ? overrideBibleVersionId : (lessonSettings?.bibleVersion || getDefaultBibleVersion().id);
     }
-    return standaloneBibleVersionId || getDefaultBibleVersion().id;
+    // Standalone: Always use KJV (applied silently)
+    return STANDALONE_BIBLE_VERSION_ID;
   }
 
   function resolveTheologyProfile(): ResolvedTheologyProfile {
@@ -402,7 +405,15 @@ export function ParableGenerator({
   }
 
   function resolveWordCountTarget(): ResolvedWordCountTarget {
-    const target = getWordCountTargetById(wordCountTargetId) || getDefaultWordCountTarget();
+    const target = getWordCountTargetById(wordCountTargetId);
+    if (!target) {
+      const defaultTarget = getDefaultWordCountTarget();
+      return {
+        id: defaultTarget.id,
+        name: defaultTarget.name,
+        wordRange: { ...defaultTarget.wordRange },
+      };
+    }
     return {
       id: target.id,
       name: target.name,
@@ -411,32 +422,12 @@ export function ParableGenerator({
   }
 
   // =========================================================================
-  // GET DISPLAY NAMES FOR SUMMARY
-  // =========================================================================
-
-  function getTheologyDisplayName(id: string): string {
-    const profile = getTheologyProfile(id);
-    return profile?.name || id;
-  }
-
-  function getAgeGroupDisplayName(id: string): string {
-    const ageGroup = getAgeGroupById(id);
-    return ageGroup?.label || id;
-  }
-
-  function getBibleVersionDisplayName(id: string): string {
-    const version = getBibleVersion(id);
-    return version?.abbreviation || id;
-  }
-
-  // =========================================================================
-  // GENERATE PARABLE
+  // GENERATION HANDLER
   // =========================================================================
 
   async function handleGenerate() {
-    // Validation: need either passage or focus point
     if (!biblePassage.trim() && !focusPoint.trim()) {
-      setError('Please enter a Bible passage or a focus point (or both)');
+      setError('Please provide a Bible passage or focus point.');
       return;
     }
 
@@ -445,12 +436,6 @@ export function ParableGenerator({
     setGeneratedParable(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('Please sign in to generate parables');
-      }
-
-      // Build SSOT-compliant request
       const request: ParableRequest = {
         bible_passage: biblePassage.trim() || undefined,
         focus_point: focusPoint.trim() || undefined,
@@ -461,17 +446,8 @@ export function ParableGenerator({
         modern_setting: resolveModernSetting(),
         word_count_target: resolveWordCountTarget(),
         age_group: resolveAgeGroup(),
-        lesson_id: lessonSettings?.lessonId,
+        lesson_id: isLessonSparkContext ? lessonSettings?.lessonId : undefined,
       };
-
-      console.log('Sending SSOT-compliant parable request:', {
-        context: context,
-        bible_passage: request.bible_passage,
-        parable_directive: request.parable_directive.id,
-        theology_profile: request.theology_profile.name,
-        bible_version: request.bible_version.abbreviation,
-        age_group: request.age_group.name,
-      });
 
       const { data, error: fnError } = await supabase.functions.invoke('generate-parable', {
         body: request,
@@ -481,23 +457,35 @@ export function ParableGenerator({
         throw new Error(fnError.message || 'Failed to generate parable');
       }
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to generate parable');
+      if (!data || !data.parable_text) {
+        throw new Error('No parable was generated. Please try again.');
       }
 
-      setGeneratedParable(data.parable);
+      const parable: GeneratedParable = {
+        id: data.id || crypto.randomUUID(),
+        parable_text: data.parable_text,
+        bible_passage: data.bible_passage || biblePassage,
+        news_headline: data.news_headline || '',
+        news_source: data.news_source || 'generated',
+        news_url: data.news_url || '',
+        news_date: data.news_date || null,
+        news_location: data.news_location || null,
+        word_count: data.word_count || data.parable_text.split(/\s+/).length,
+        generation_time_ms: data.generation_time_ms || 0,
+      };
+
+      setGeneratedParable(parable);
       
+      if (onParableGenerated) {
+        onParableGenerated(parable);
+      }
+
       toast({
-        title: 'Parable Generated!',
-        description: `${data.parable.word_count} words in ${(data.parable.generation_time_ms / 1000).toFixed(1)}s`,
+        title: 'Parable Generated',
+        description: `Created a ${parable.word_count}-word parable inspired by current events.`,
       });
 
-      if (onParableGenerated) {
-        onParableGenerated(data.parable);
-      }
-
     } catch (err) {
-      console.error('Generation error:', err);
       const message = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(message);
       toast({
@@ -511,24 +499,21 @@ export function ParableGenerator({
   }
 
   // =========================================================================
-  // COPY TO CLIPBOARD
+  // COPY HANDLER
   // =========================================================================
 
-  async function handleCopy() {
+  function handleCopy() {
     if (!generatedParable) return;
     
-    try {
-      await navigator.clipboard.writeText(generatedParable.parable_text);
+    const textToCopy = generatedParable.parable_text;
+    navigator.clipboard.writeText(textToCopy).then(() => {
       setCopied(true);
-      toast({ title: 'Copied to clipboard!' });
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast({ 
-        title: 'Copy failed', 
-        description: 'Please select and copy manually',
-        variant: 'destructive' 
+      toast({
+        title: 'Copied',
+        description: 'Parable copied to clipboard.',
       });
-    }
+    });
   }
 
   // =========================================================================
@@ -548,76 +533,59 @@ export function ParableGenerator({
 
   return (
     <div className="space-y-6">
-      {/* Input Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
-            {isLessonSparkContext ? 'Generate Parable for Lesson' : 'Create Modern Parable'}
+            <Sparkles className="h-5 w-5" />
+            {isLessonSparkContext ? 'Generate Teaching Parable' : 'Create Your Parable'}
           </CardTitle>
           <CardDescription>
-            {isLessonSparkContext 
-              ? `Creating a teaching parable for "${lessonSettings?.lessonTitle}"`
-              : 'Create a contemplative parable for personal reflection'
+            {isLessonSparkContext
+              ? 'Create a contemporary parable that reinforces your lesson\'s biblical teaching.'
+              : 'Enter a Bible passage or spiritual theme to generate a modern parable.'
             }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           
           {/* ============================================================= */}
-          {/* LESSONSPARK CONTEXT: Lesson Info + Inherited Settings */}
+          {/* LESSONSPARK CONTEXT: Show Lesson Settings */}
           {/* ============================================================= */}
+          
           {isLessonSparkContext && (
             <>
               {/* Lesson Context Banner */}
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <BookOpen className="h-5 w-5 text-primary mt-0.5" />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">From Lesson Library</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {lessonSettings?.passage && (
-                        <>Bible Passage: <span className="font-medium">{lessonSettings.passage}</span></>
-                      )}
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <BookOpen className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      Using Lesson Settings
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-300">
+                      Passage: {lessonSettings?.passage || 'Not specified'} • 
+                      Age: {getAgeGroupById(lessonSettings?.ageGroup || '')?.label || 'Default'}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Inherited Settings Summary */}
-              <div className="bg-muted/50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Using Lesson Settings:</span>
-                </div>
-                <div className="flex flex-wrap gap-2 text-sm">
-                  <span className="bg-background px-2 py-1 rounded border">
-                    {getAgeGroupDisplayName(lessonSettings?.ageGroup || '')}
-                  </span>
-                  <span className="bg-background px-2 py-1 rounded border">
-                    {getTheologyDisplayName(lessonSettings?.theologyProfile || '')}
-                  </span>
-                  <span className="bg-background px-2 py-1 rounded border">
-                    {getBibleVersionDisplayName(lessonSettings?.bibleVersion || '')}
-                  </span>
-                </div>
-                
-                {/* Customize Toggle */}
-                <div className="flex items-center gap-2 mt-4 pt-3 border-t">
-                  <Checkbox 
-                    id="customize" 
-                    checked={customizeSettings}
-                    onCheckedChange={(checked) => setCustomizeSettings(checked === true)}
-                  />
-                  <label htmlFor="customize" className="text-sm cursor-pointer flex items-center gap-1">
-                    <Settings2 className="h-3.5 w-3.5" />
-                    Customize settings for this parable
-                  </label>
-                </div>
+              {/* Customize Toggle */}
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="customize" 
+                  checked={customizeSettings}
+                  onCheckedChange={(checked) => setCustomizeSettings(checked === true)}
+                />
+                <Label htmlFor="customize" className="flex items-center gap-2 cursor-pointer">
+                  <Settings2 className="h-4 w-4" />
+                  Customize settings
+                </Label>
               </div>
 
-              {/* Override Settings (shown when customizing) */}
+              {/* Override Controls (shown when customize is checked) */}
               {customizeSettings && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border border-dashed rounded-lg">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-muted/30">
                   <div className="space-y-2">
                     <Label>Age Group</Label>
                     <Select value={overrideAgeGroupId} onValueChange={setOverrideAgeGroupId}>
@@ -669,84 +637,46 @@ export function ParableGenerator({
           )}
 
           {/* ============================================================= */}
-          {/* STANDALONE CONTEXT: Full Settings */}
+          {/* STANDALONE CONTEXT: Bible Passage + Age Group Only */}
           {/* ============================================================= */}
+          
           {!isLessonSparkContext && (
             <>
-              {/* Bible Passage */}
+              {/* Bible Passage Input */}
               <div className="space-y-2">
-                <Label htmlFor="passage" className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4" />
-                  Bible Passage (optional)
+                <Label htmlFor="passage">
+                  Bible Passage or Theme
                 </Label>
                 <Textarea
                   id="passage"
-                  placeholder="e.g., Luke 15:11-32 (The Prodigal Son)"
+                  placeholder="e.g., Luke 15:11-32 (Prodigal Son) or 'forgiveness and reconciliation'"
                   value={biblePassage}
                   onChange={(e) => setBiblePassage(e.target.value)}
-                  className="min-h-[60px]"
+                  className="min-h-[80px]"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Enter a specific passage (e.g., "John 3:16") or a spiritual theme you'd like to explore.
+                </p>
               </div>
-
-              {/* Your Settings Header */}
-              <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-4 flex items-center gap-2">
-                  <Settings2 className="h-4 w-4" />
-                  Your Settings
-                  {preferences && (
-                    <span className="text-xs text-muted-foreground font-normal">
-                      (from your preferences)
-                    </span>
-                  )}
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Age Group</Label>
-                    <Select value={standaloneAgeGroupId} onValueChange={setStandaloneAgeGroupId}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {AGE_GROUPS.map((ag) => (
-                          <SelectItem key={ag.id} value={ag.id}>
-                            {ag.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Theology Profile</Label>
-                    <Select value={standaloneTheologyId} onValueChange={setStandaloneTheologyId}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getTheologyProfileOptions().map((profile) => (
-                          <SelectItem key={profile.id} value={profile.id}>
-                            {profile.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Bible Version</Label>
-                    <Select value={standaloneBibleVersionId} onValueChange={setStandaloneBibleVersionId}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {getBibleVersionOptions().map((version) => (
-                          <SelectItem key={version.id} value={version.id}>
-                            {version.name} ({version.abbreviation})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+              
+              {/* Age Group Selector - STANDALONE ONLY SHOWS THIS */}
+              <div className="space-y-2">
+                <Label>Target Audience</Label>
+                <Select value={standaloneAgeGroupId} onValueChange={setStandaloneAgeGroupId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select age group" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AGE_GROUPS.map((ag) => (
+                      <SelectItem key={ag.id} value={ag.id}>
+                        {ag.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  The parable's vocabulary and concepts will be tailored to this audience.
+                </p>
               </div>
             </>
           )}
@@ -758,7 +688,7 @@ export function ParableGenerator({
           {/* Focus Point */}
           <div className="space-y-2">
             <Label htmlFor="focus">
-              Focus Point {isLessonSparkContext ? '(optional)' : '(optional - or use instead of passage)'}
+              Focus Point <span className="text-muted-foreground font-normal">(optional)</span>
             </Label>
             <Textarea
               id="focus"
@@ -767,6 +697,9 @@ export function ParableGenerator({
               onChange={(e) => setFocusPoint(e.target.value)}
               className="min-h-[60px]"
             />
+            <p className="text-xs text-muted-foreground">
+              Highlight a specific aspect or application you want the parable to emphasize.
+            </p>
           </div>
 
           {/* Parable-Specific Settings */}
