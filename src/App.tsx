@@ -45,6 +45,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/pricing" element={<PricingPage />} />
+            {/* PUBLIC ROUTE: Modern Parable Generator accessible to all users */}
+            <Route path="/parables" element={<Parables />} />
             <Route
               path={ROUTES.WORKSPACE}
               element={
@@ -106,11 +108,6 @@ const App = () => (
                 <BetaSignup />
               </ProtectedRoute>
             } />
-            <Route path="/parables" element={
-              <ProtectedRoute>
-                <Parables />
-              </ProtectedRoute>
-            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
@@ -121,7 +118,3 @@ const App = () => (
 );
 
 export default App;
-
-
-
-
