@@ -19,7 +19,7 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Sparkles } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
 import { AGE_GROUPS } from "@/constants/ageGroups";
@@ -31,6 +31,7 @@ import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfil
 
 interface LessonLibraryProps {
   onViewLesson?: (lesson: any) => void;
+  onGenerateParable?: (lesson: any) => void;
   organizationId?: string;
 }
 
@@ -109,7 +110,7 @@ const extractPrimaryScripture = (content: string): string | null => {
 // COMPONENT
 // ============================================================================
 
-export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
+export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId }: LessonLibraryProps) {
   const [searchPassage, setSearchPassage] = useState("");
   const [showPassageSuggestions, setShowPassageSuggestions] = useState(false);
   const [searchTitle, setSearchTitle] = useState("");
@@ -350,6 +351,17 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>
+                  {lesson.has_content && (
+                    <Button
+                      onClick={() => onGenerateParable?.(lesson)}
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
+                      title="Generate a modern parable for this lesson"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button
                     onClick={() => handleDelete(lesson.id)}
                     variant="outline"

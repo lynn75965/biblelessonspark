@@ -14,7 +14,7 @@
  * - Individual User = individual
  */
 
-import { Shield, Building2, LayoutDashboard, Settings, LogOut } from "lucide-react";
+import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
 import { ROUTES as APP_ROUTES } from "./routes";
 
@@ -26,6 +26,7 @@ const NAV_ROUTES = {
   admin: APP_ROUTES.ADMIN,
   org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.WORKSPACE,
+  parables: '/parables',
   account: '/account',
   home: APP_ROUTES.HOME,
 } as const;
@@ -66,6 +67,14 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     route: NAV_ROUTES.workspace,
     icon: LayoutDashboard,
     description: 'Your personal lessons',
+    dividerAfter: false,
+  },
+  parables: {
+    id: 'parables',
+    label: 'Parable Generator',
+    route: NAV_ROUTES.parables,
+    icon: Sparkles,
+    description: 'Create modern parables',
     dividerAfter: true,
   },
   settings: {
@@ -98,22 +107,26 @@ export const MENU_BY_ROLE: Record<Role, string[]> = {
     'adminPanel',
     'orgManager',
     'workspace',
+    'parables',
     'settings',
     'signOut',
   ],
   [ROLES.orgLeader]: [
     'orgManager',
     'workspace',
+    'parables',
     'settings',
     'signOut',
   ],
   [ROLES.orgMember]: [
     'workspace',
+    'parables',
     'settings',
     'signOut',
   ],
   [ROLES.individual]: [
     'workspace',
+    'parables',
     'settings',
     'signOut',
   ],

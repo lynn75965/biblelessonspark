@@ -29,6 +29,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Cookie from "./pages/legal/Cookie";
 import NotFound from "./pages/NotFound";
 import OrgManager from "./pages/OrgManager";
+import Parables from "./pages/Parables";
 
 const queryClient = new QueryClient();
 
@@ -103,6 +104,11 @@ const App = () => (
             <Route path="/beta-signup" element={
               <ProtectedRoute>
                 <BetaSignup />
+              </ProtectedRoute>
+            } />
+            <Route path="/parables" element={
+              <ProtectedRoute>
+                <Parables />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
