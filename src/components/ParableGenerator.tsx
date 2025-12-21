@@ -245,6 +245,9 @@ export function ParableGenerator({
   const [generatedParable, setGeneratedParable] = useState<GeneratedParable | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  
+  // Usage tracking (authenticated users only)
+  const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; remaining: number } | null>(null);
 
   // =========================================================================
   // LOAD USER PREFERENCES (for standalone context)
@@ -280,6 +283,17 @@ export function ParableGenerator({
         
         // Set standalone age group from preferences (or default)
         setStandaloneAgeGroupId(prefs.age_group || getDefaultAgeGroup().id);
+        
+        // Fetch current parable usage for authenticated users
+        const { data: usageData } = await supabase
+          .from('user_parable_usage')
+          .select('parables_this_month')
+          .eq('user_id', user.id)
+          .single();
+        
+        const used = usageData?.parables_this_month || 0;
+        const limit = 7; // Monthly limit for authenticated users
+        setUsageInfo({ used, limit, remaining: limit - used });
         
       } catch (err) {
         console.error('Error loading preferences:', err);
@@ -476,6 +490,11 @@ export function ParableGenerator({
 
       setGeneratedParable(parable);
       
+      // Update usage info if returned (authenticated users)
+      if (data.usage) {
+        setUsageInfo(data.usage);
+      }
+      
       if (onParableGenerated) {
         onParableGenerated(parable);
       }
@@ -544,6 +563,11 @@ export function ParableGenerator({
               ? 'Create a contemporary parable that reinforces your lesson\'s biblical teaching.'
               : 'Enter a Bible passage or spiritual theme to generate a modern parable.'
             }
+            {isAuthenticated && usageInfo && (
+              <span className="block mt-1 text-xs font-medium text-primary">
+                {usageInfo.remaining} of {usageInfo.limit} parables remaining this month
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
