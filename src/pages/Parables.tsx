@@ -1,37 +1,82 @@
 /**
- * Parables Page
- * Standalone Modern Parable Generator (DevotionalSpark)
+ * Parables.tsx
+ * Modern Parable Generator Page
  * 
- * Route: /parables
- * Context: standalone (contemplative, personal reflection)
+ * DUAL CONTEXT SUPPORT:
  * 
- * @version 1.0.0
- * @created 2025-12-21
+ * 1. LESSONSPARK CONTEXT (from Lesson Library sparkle button)
+ *    - URL includes: ?context=lessonspark&lessonId=...&passage=...&theologyProfile=...
+ *    - Inherits lesson's settings as defaults
+ *    - User can override via "Customize" toggle
+ *    - LESSONSPARK_DIRECTIVE used for teaching context
+ * 
+ * 2. STANDALONE CONTEXT (direct navigation to /parables)
+ *    - No URL params or context=standalone
+ *    - All settings visible and user-controlled
+ *    - May use teacher_preferences if authenticated
+ *    - STANDALONE_DIRECTIVE used for contemplative parables
+ * 
+ * @version 1.1.0
+ * @lastUpdated 2025-12-21
  */
 
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import { useSearchParams } from "react-router-dom";
 import { ParableGenerator } from "@/components/ParableGenerator";
+import type { ParableContext } from "@/constants/parableDirectives";
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export interface LessonSettings {
+  lessonId: string;
+  lessonTitle: string;
+  passage: string;
+  theologyProfile: string;
+  ageGroup: string;
+  bibleVersion: string;
+}
+
+// ============================================================================
+// COMPONENT
+// ============================================================================
 
 export default function Parables() {
+  const [searchParams] = useSearchParams();
+  
+  // Determine context from URL
+  const contextParam = searchParams.get("context") as ParableContext | null;
+  const isLessonSparkContext = contextParam === "lessonspark";
+  
+  // Extract lesson settings if coming from LessonSparkUSA
+  const lessonSettings: LessonSettings | undefined = isLessonSparkContext ? {
+    lessonId: searchParams.get("lessonId") || "",
+    lessonTitle: searchParams.get("lessonTitle") || "Untitled Lesson",
+    passage: searchParams.get("passage") || "",
+    theologyProfile: searchParams.get("theologyProfile") || "",
+    ageGroup: searchParams.get("ageGroup") || "",
+    bibleVersion: searchParams.get("bibleVersion") || "",
+  } : undefined;
+  
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Header />
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Header - Different messaging based on context */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold mb-2">
+          {isLessonSparkContext ? "Modern Parable Generator" : "✨ Modern Parable Generator"}
+        </h1>
+        <p className="text-muted-foreground">
+          {isLessonSparkContext 
+            ? "Generate a contemporary parable to enhance your Bible study lesson."
+            : "Create contemplative parables for personal reflection and devotional reading."
+          }
+        </p>
+      </div>
       
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Modern Parable Generator</h1>
-          <p className="text-muted-foreground">
-            Create contemporary parables in the style of Jesus' teaching. 
-            Perfect for personal reflection, devotional reading, and heart examination.
-          </p>
-        </div>
-        
-        {/* Standalone context: contemplative, personal - NOT classroom teaching */}
-        <ParableGenerator context="standalone" />
-      </main>
-      
-      <Footer />
+      <ParableGenerator 
+        context={isLessonSparkContext ? "lessonspark" : "standalone"}
+        lessonSettings={lessonSettings}
+      />
     </div>
   );
 }

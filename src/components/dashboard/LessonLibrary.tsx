@@ -9,9 +9,14 @@
  * - getTheologyProfile() used for display name lookup
  * - Filter dropdowns generated dynamically from constants
  * - Badge colors keyed by ID (order-independent, fully SSOT-compliant)
+ * 
+ * Phase 17.6: Sparkle button passes LESSON settings to parable generator
+ * - Parable inherits lesson's theology_profile, age_group, bible_version
+ * - User can override in the parable generator if desired
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +36,6 @@ import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfil
 
 interface LessonLibraryProps {
   onViewLesson?: (lesson: any) => void;
-  onGenerateParable?: (lesson: any) => void;
   organizationId?: string;
 }
 
@@ -41,6 +45,7 @@ interface LessonDisplay extends Lesson {
   passage_or_topic: string;
   age_group: string;
   theology_profile_id: string;
+  bible_version_id: string;
   created_by_name: string;
   has_content: boolean;
   updated_at?: string;
@@ -51,7 +56,6 @@ interface LessonDisplay extends Lesson {
 // Colors keyed by profile ID - fully SSOT compliant, order-independent
 // ============================================================================
 
-// Age group badge colors keyed by ID (from AGE_GROUPS constant in @/constants/ageGroups.ts)
 const AGE_GROUP_BADGE_COLOR_MAP: Record<string, string> = {
   "preschool": "bg-pink-100 text-pink-800 border-pink-200",
   "elementary": "bg-blue-100 text-blue-800 border-blue-200",
@@ -66,7 +70,6 @@ const AGE_GROUP_BADGE_COLOR_MAP: Record<string, string> = {
   "mixed": "bg-gray-100 text-gray-800 border-gray-200",
 };
 
-// Theology profile badge colors keyed by profile ID (from THEOLOGY_PROFILES constant)
 const THEOLOGY_BADGE_COLOR_MAP: Record<string, string> = {
   "baptist-core-beliefs": "bg-amber-100 text-amber-800 border-amber-200",
   "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
@@ -110,7 +113,8 @@ const extractPrimaryScripture = (content: string): string | null => {
 // COMPONENT
 // ============================================================================
 
-export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId }: LessonLibraryProps) {
+export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
+  const navigate = useNavigate();
   const [searchPassage, setSearchPassage] = useState("");
   const [showPassageSuggestions, setShowPassageSuggestions] = useState(false);
   const [searchTitle, setSearchTitle] = useState("");
@@ -132,60 +136,40 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
       ai_lesson_title: aiGeneratedTitle,
       bible_passage: userInputPassage || aiGeneratedScripture,
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
-      // SSOT: Use snake_case keys from filters (database stores IDs there, not display names)
       age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
       theology_profile_id: filters?.theology_profile_id || getDefaultTheologyProfile().id,
+      bible_version_id: filters?.bible_version || "kjv",
       created_by_name: "Teacher",
       has_content: !!lesson.original_text,
       updated_at: lesson.created_at,
     };
   });
 
-  // Filter lessons based on search and filters
+  // Filter lessons
   const filteredLessons = displayLessons.filter((lesson) => {
     const matchesPassage = !searchPassage || lesson.bible_passage?.toLowerCase().includes(searchPassage.toLowerCase());
     const matchesTitle = !searchTitle || lesson.ai_lesson_title?.toLowerCase().includes(searchTitle.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
     const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
-    
-    // DEBUG: Log filter comparisons (remove after fixing)
-    console.log("Filter Debug:", {
-      lessonId: lesson.id,
-      ageFilter,
-      lessonAgeGroup: lesson.age_group,
-      matchesAge,
-      profileFilter,
-      lessonProfileId: lesson.theology_profile_id,
-      matchesProfile
-    });
-    
     return matchesPassage && matchesTitle && matchesAge && matchesProfile;
   });
 
-  // SSOT: Get badge color by profile ID (order-independent)
   const getAgeGroupBadgeColor = (ageGroup: string): string => {
     return AGE_GROUP_BADGE_COLOR_MAP[ageGroup] || DEFAULT_BADGE_COLOR;
   };
 
-  // SSOT: Get badge color by profile ID (order-independent)
   const getProfileBadgeColor = (profileId: string): string => {
     return THEOLOGY_BADGE_COLOR_MAP[profileId] || DEFAULT_BADGE_COLOR;
   };
 
-  // SSOT: Get display name from theology profile constant
   const getProfileDisplayName = (profileId: string): string => {
     const profile = getTheologyProfile(profileId);
     return profile ? profile.name : profileId;
   };
 
-  // SSOT: Get short label for age group (for mobile display)
   const getAgeGroupShortLabel = (ageGroup: string): string => {
     const ag = AGE_GROUPS.find((a) => a.id === ageGroup);
-    // Extract first word or use a short version
-    if (ag) {
-      const firstWord = ag.label.split(" ")[0];
-      return firstWord;
-    }
+    if (ag) return ag.label.split(" ")[0];
     return ageGroup.split(" ")[0];
   };
 
@@ -203,7 +187,26 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
     }
   };
 
-  // Loading state
+  /**
+   * Navigate to parable generator with LESSON's settings
+   * SSOT: Lesson settings flow to parable generator as defaults
+   * User can override via "Customize" toggle in ParableGenerator
+   */
+  const handleGenerateParable = (lesson: LessonDisplay) => {
+    const params = new URLSearchParams({
+      context: "lessonspark",
+      lessonId: lesson.id,
+      lessonTitle: lesson.ai_lesson_title || lesson.title || "Untitled",
+    });
+    
+    if (lesson.bible_passage) params.set("passage", lesson.bible_passage);
+    if (lesson.theology_profile_id) params.set("theologyProfile", lesson.theology_profile_id);
+    if (lesson.age_group) params.set("ageGroup", lesson.age_group);
+    if (lesson.bible_version_id) params.set("bibleVersion", lesson.bible_version_id);
+    
+    navigate(`/parables?${params.toString()}`);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -221,9 +224,7 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
           <CardDescription>Browse and manage your Baptist Bible study lessons</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Single Row with All Filters */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            {/* Bible Passage Search with Autocomplete */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input
@@ -256,7 +257,6 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
               )}
             </div>
 
-            {/* Title Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -267,7 +267,6 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
               />
             </div>
 
-            {/* Age Group Filter - SSOT: Generated from AGE_GROUPS constant */}
             <Select value={ageFilter} onValueChange={setAgeFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Ages" />
@@ -282,7 +281,6 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
               </SelectContent>
             </Select>
 
-            {/* Theology Profile Filter - SSOT: Generated from getTheologyProfileOptions() */}
             <Select value={profileFilter} onValueChange={setProfileFilter}>
               <SelectTrigger>
                 <SelectValue placeholder="All Theology Profiles" />
@@ -319,7 +317,6 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
                   </div>
                 </div>
 
-                {/* Badges - SSOT: Colors derived from constant indices */}
                 <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
                   <Badge className={`${getAgeGroupBadgeColor(lesson.age_group)} text-xs`} variant="secondary">
                     <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
@@ -345,7 +342,6 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
                   </span>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button onClick={() => onViewLesson?.(lesson)} className="flex-1" size="sm">
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
@@ -353,7 +349,7 @@ export function LessonLibrary({ onViewLesson, onGenerateParable, organizationId 
                   </Button>
                   {lesson.has_content && (
                     <Button
-                      onClick={() => onGenerateParable?.(lesson)}
+                      onClick={() => handleGenerateParable(lesson)}
                       variant="outline"
                       size="sm"
                       className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
