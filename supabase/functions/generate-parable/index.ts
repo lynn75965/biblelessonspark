@@ -23,12 +23,29 @@ import { deriveParableGuardrails } from "./_guardrails/deriveGuardrails.ts";
 // CORS HEADERS
 // =============================================================================
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Max-Age": "86400",
-};
+const CORS_ALLOWED_HEADERS =
+  "authorization, x-client-info, apikey, content-type";
+const CORS_ALLOWED_METHODS = "POST, OPTIONS";
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") ?? "*";
+
+  const headers: Record<string, string> = {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Headers": CORS_ALLOWED_HEADERS,
+    "Access-Control-Allow-Methods": CORS_ALLOWED_METHODS,
+    "Access-Control-Max-Age": "86400",
+    Vary: "Origin",
+  };
+
+  // If the browser sends credentials, '*' cannot be used. Echoing the origin + enabling credentials is the safest.
+  if (origin !== "*") {
+    headers["Access-Control-Allow-Credentials"] = "true";
+  }
+
+  return headers;
+}
+;
 
 // =============================================================================
 // CONSTANTS
@@ -622,7 +639,7 @@ async function incrementAnonymousUsage(supabase: any, ipAddress: string): Promis
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: getCorsHeaders(req) });
   }
 
   const startTime = Date.now();
@@ -671,17 +688,29 @@ serve(async (req) => {
 
       
       // Admin/test bypass (does not affect normal users)
-      const userEmail = user?.email || null;if (isBypassEmail(userEmail)) {
+      const userEmail = user?.email ?? null;
+
+      // Prefer server-verified user metadata (token validated via supabase.auth.getUser)
+      const rawRole = (user as any)?.app_metadata?.role ?? null;
+      const role = typeof rawRole === "string" ? rawRole.toLowerCase() : "";
+      const isAdminRole = role === "admin";
+
+      // Email-based bypass is optional (requires ADMIN_BYPASS_EMAILS secret to be present)
+      const bypass = isAdminRole || isBypassEmail(userEmail);
+
+      if (bypass) {
         usageLimit = 999999;
       }
-if (currentUsage >= usageLimit) {
+
+
+      if (currentUsage >= usageLimit) {
         return new Response(
           JSON.stringify({ 
             success: false, 
             error: `You have reached your monthly limit of ${usageLimit} parables. Limit resets next month.`,
             usage: { used: currentUsage, limit: usageLimit, remaining: 0 }
           }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
     } else {
@@ -699,7 +728,7 @@ if (currentUsage >= usageLimit) {
             success: false, 
             error: "Daily limit reached. Please try again tomorrow."
           }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
         );
       }
     }
@@ -714,7 +743,7 @@ if (currentUsage >= usageLimit) {
     if (!validation.valid) {
       return new Response(
         JSON.stringify({ success: false, error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -781,7 +810,7 @@ if (parableGuardrails.real_life_trigger === "mortality") {
     if (!anthropicApiKey) {
       return new Response(
         JSON.stringify({ success: false, error: "Anthropic API key not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -811,7 +840,7 @@ if (parableGuardrails.real_life_trigger === "mortality") {
       console.error("Claude API error:", errorText);
       return new Response(
         JSON.stringify({ success: false, error: "Failed to generate parable" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -821,7 +850,7 @@ if (parableGuardrails.real_life_trigger === "mortality") {
     if (!parableText) {
       return new Response(
         JSON.stringify({ success: false, error: "Empty response from AI" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -909,14 +938,14 @@ if (parableGuardrails.real_life_trigger === "mortality") {
 
     return new Response(JSON.stringify(response), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
     });
 
   } catch (error) {
     console.error("Error in generate-parable:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });
