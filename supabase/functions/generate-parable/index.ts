@@ -670,6 +670,26 @@ serve(async (req) => {
       
       // Admin/test bypass (does not affect normal users)
       const userEmail = user?.email || null;
+	  
+	  // TEMP DEBUG — REMOVE AFTER BYPASS CONFIRMED
+const rawBypass = Deno.env.get("ADMIN_BYPASS_EMAILS") ?? "";
+const bypassList = rawBypass
+  .split(",")
+  .map(s => s.trim().toLowerCase())
+  .filter(Boolean);
+
+const sawEmail = (userEmail ?? "").toLowerCase();
+const bypassEnvPresent = rawBypass.length > 0;
+const bypassMatch = bypassList.includes(sawEmail);
+
+return new Response(JSON.stringify({
+  debug: true,
+  sawEmail,
+  bypassEnvPresent,
+  bypassMatch,
+  bypassListCount: bypassList.length,
+}), { headers: { "Content-Type": "application/json" } });
+	  
       if (isBypassEmail(userEmail)) {
         usageLimit = 999999;
       }
