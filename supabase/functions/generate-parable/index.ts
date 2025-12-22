@@ -35,6 +35,14 @@ const corsHeaders = {
 const ANONYMOUS_DAILY_LIMIT = 3;
 const AUTHENTICATED_MONTHLY_LIMIT = 7;
 
+
+
+function isBypassEmail(email?: string | null): boolean {
+  const raw = Deno.env.get("ADMIN_BYPASS_EMAILS") || "";
+  const list = raw.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (!email) return false;
+  return list.includes(email.toLowerCase());
+}
 // =============================================================================
 // TYPE DEFINITIONS - REQUEST INTERFACE (Contract with Frontend)
 // =============================================================================
@@ -659,7 +667,13 @@ serve(async (req) => {
       currentUsage = usageData?.parables_this_month || 0;
       usageLimit = AUTHENTICATED_MONTHLY_LIMIT;
 
-      if (currentUsage >= usageLimit) {
+      
+      // Admin/test bypass (does not affect normal users)
+      const userEmail = user?.email || null;
+      if (isBypassEmail(userEmail)) {
+        usageLimit = 999999;
+      }
+if (currentUsage >= usageLimit) {
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -905,5 +919,7 @@ if (parableGuardrails.real_life_trigger === "mortality") {
     );
   }
 });
+
+
 
 
