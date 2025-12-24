@@ -888,7 +888,7 @@ async function generateParableWithProvider(
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
   if (anthropicKey) {
-    const model = "claude-3-5-sonnet-20241022"; // Correct model name
+    const model = "claude-sonnet-4-5-20250929";
     
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
