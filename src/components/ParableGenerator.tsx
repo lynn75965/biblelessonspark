@@ -246,8 +246,14 @@ export function ParableGenerator({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   
-  // Usage tracking (authenticated users only)
-  const [usageInfo, setUsageInfo] = useState<{ used: number; limit: number; remaining: number } | null>(null);
+  // Usage tracking (both anonymous and authenticated)
+  const [usageInfo, setUsageInfo] = useState<{ 
+    used: number; 
+    limit: number; 
+    remaining: number;
+    limit_type?: 'daily' | 'monthly';
+    bypassed?: boolean;
+  } | null>(null);
 
   // =========================================================================
   // LOAD USER PREFERENCES (for standalone context)
@@ -490,9 +496,17 @@ export function ParableGenerator({
 
       setGeneratedParable(parable);
       
-      // Update usage info if returned (authenticated users)
+      // Update usage info if returned (both anonymous and authenticated)
       if (data.usage) {
-        setUsageInfo(data.usage);
+        // Normalize the usage data structure
+        const normalizedUsage = {
+          used: data.usage.used ?? 0,
+          limit: data.usage.limit ?? (data.usage.limit_type === 'daily' ? 3 : 7),
+          remaining: data.usage.remaining ?? 0,
+          limit_type: data.usage.limit_type,
+          bypassed: data.usage.bypassed,
+        };
+        setUsageInfo(normalizedUsage);
       }
       
       if (onParableGenerated) {
@@ -563,9 +577,28 @@ export function ParableGenerator({
               ? 'Create a contemporary parable that reinforces your lesson\'s biblical teaching.'
               : 'Enter a Bible passage or spiritual theme to generate a modern parable.'
             }
-            {isAuthenticated && usageInfo && (
+            {/* Usage display for authenticated users */}
+            {isAuthenticated && usageInfo && !usageInfo.bypassed && (
               <span className="block mt-1 text-xs font-medium text-primary">
                 {usageInfo.remaining} of {usageInfo.limit} parables remaining this month
+              </span>
+            )}
+            {/* Admin bypass notice */}
+            {isAuthenticated && usageInfo?.bypassed && (
+              <span className="block mt-1 text-xs font-medium text-green-600">
+                Admin: Unlimited parables
+              </span>
+            )}
+            {/* Usage display for anonymous users (after first generation) */}
+            {!isAuthenticated && usageInfo && (
+              <span className="block mt-1 text-xs font-medium text-amber-600">
+                {usageInfo.remaining} of 3 parables remaining today
+              </span>
+            )}
+            {/* Static message for anonymous users (before generation) */}
+            {!isAuthenticated && !usageInfo && (
+              <span className="block mt-1 text-xs text-muted-foreground">
+                Anonymous users: 3 parables per day • Create a free account for more
               </span>
             )}
           </CardDescription>

@@ -1143,6 +1143,7 @@ Deno.serve(async (req: Request) => {
         anonymous: true,
         usage: { 
           used: anonUsage.used, 
+          limit: 3,
           remaining: anonUsage.remaining,
           limit_type: "daily"
         },
