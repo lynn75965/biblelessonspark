@@ -13,7 +13,7 @@
  * 2. STANDALONE CONTEXT  
  *    - Simplified UI: Age Group only
  *    - Baptist Core Beliefs applied silently (not revealed to user)
- *    - KJV Bible version used as default
+ *    - WEB Bible version used as default (public domain)
  *    - Uses STANDALONE_DIRECTIVE for contemplative parables
  *    - Anonymous users welcome
  * 
@@ -22,8 +22,8 @@
  * - Edge Function receives complete resolved objects
  * - No backend config lookups
  * 
- * @version 2.1.0
- * @lastUpdated 2025-12-21
+ * @version 2.2.0
+ * @lastUpdated 2025-12-24
  */
 
 import React, { useState, useEffect } from 'react';
@@ -78,9 +78,9 @@ import {
 // CONSTANTS
 // ============================================================================
 
-// Standalone context uses Baptist Core Beliefs silently (not exposed to UI)
+// Standalone context uses Baptist Core Beliefs and WEB silently (not exposed to UI)
 const STANDALONE_THEOLOGY_ID = 'baptist-core-beliefs';
-const STANDALONE_BIBLE_VERSION_ID = 'kjv';
+const STANDALONE_BIBLE_VERSION_ID = 'web';
 
 // ============================================================================
 // TYPES
@@ -330,7 +330,7 @@ export function ParableGenerator({
     if (isLessonSparkContext) {
       return customizeSettings ? overrideBibleVersionId : (lessonSettings?.bibleVersion || getDefaultBibleVersion().id);
     }
-    // Standalone: Always use KJV (applied silently)
+    // Standalone: Always use WEB (applied silently)
     return STANDALONE_BIBLE_VERSION_ID;
   }
 

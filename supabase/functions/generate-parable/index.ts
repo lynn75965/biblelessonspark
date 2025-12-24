@@ -1,129 +1,73 @@
-﻿/**
- * Generate Modern Parable Edge Function
- * Phase 17.6: Anonymous Access Support
+/// <reference lib="deno.ns" />
+
+/**
+ * generate-parable Edge Function
+ * LessonSparkUSA Modern Parable Generator
  * 
- * ARCHITECTURE: Frontend Drives Backend
- * - Frontend resolves all IDs to full objects from SSOT constants
- * - Frontend sends complete, resolved data
- * - Edge Function uses what it receives (no config lookups)
+ * COMPLETE REWRITE addressing all 39 identified errors:
+ * - Anonymous access with IP-based 3/day limit (standalone only)
+ * - Authenticated access with 7/month limit
+ * - Admin bypass for unlimited access
+ * - Context detection from parable_directive.id
+ * - LessonSpark lesson loading from lessons.filters (SSOT)
+ * - Full object properties used in prompt (guardrails, heartCondition, etc.)
+ * - NewsData.io integration (FREE tier /api/1/news, 48-hour window)
+ * - Correct database column names and string ID storage
  * 
- * ACCESS MODES:
- * - Anonymous: 3 parables/day per IP, not saved to DB
- * - Authenticated: 7 parables/month, saved to DB with full tracking
- * 
- * @version 2.1.0
- * @lastUpdated 2025-12-21
+ * @version 3.0.0
+ * @updated 2025-12-24
  */
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { deriveParableGuardrails } from "./_guardrails/deriveGuardrails.ts";
 
 // =============================================================================
-// CORS HEADERS
+// TYPES
 // =============================================================================
-
-const CORS_ALLOWED_HEADERS =
-  "authorization, x-client-info, apikey, content-type";
-const CORS_ALLOWED_METHODS = "POST, OPTIONS";
-
-function getCorsHeaders(req: Request): Record<string, string> {
-  const origin = req.headers.get("origin") ?? "*";
-
-  const headers: Record<string, string> = {
-    "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": CORS_ALLOWED_HEADERS,
-    "Access-Control-Allow-Methods": CORS_ALLOWED_METHODS,
-    "Access-Control-Max-Age": "86400",
-    Vary: "Origin",
-  };
-
-  // If the browser sends credentials, '*' cannot be used. Echoing the origin + enabling credentials is the safest.
-  if (origin !== "*") {
-    headers["Access-Control-Allow-Credentials"] = "true";
-  }
-
-  return headers;
-}
-;
-
-// =============================================================================
-// CONSTANTS
-// =============================================================================
-
-const ANONYMOUS_DAILY_LIMIT = 3;
-const AUTHENTICATED_MONTHLY_LIMIT = 7;
-
-
-
-function isBypassEmail(email?: string | null): boolean {
-  const raw = Deno.env.get("ADMIN_BYPASS_EMAILS") || "";
-  const list = raw.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
-  if (!email) return false;
-  return list.includes(email.toLowerCase());
-}
-// =============================================================================
-// TYPE DEFINITIONS - REQUEST INTERFACE (Contract with Frontend)
-// =============================================================================
-
-interface ResolvedTheologyProfile {
-  id: string;
-  name: string;
-  guardrails: string;
-  description: string;
-}
-
-interface ResolvedBibleVersion {
-  id: string;
-  name: string;
-  abbreviation: string;
-  copyrightStatus: 'public_domain' | 'copyrighted';
-  copyrightGuardrails: string;
-}
-
-interface ResolvedAudienceLens {
-  id: string;
-  name: string;
-  description: string;
-  heartCondition: string;
-}
-
-interface ResolvedModernSetting {
-  id: string;
-  name: string;
-  description: string;
-  exampleRoles: string[];
-}
-
-interface ResolvedWordCountTarget {
-  id: string;
-  name: string;
-  wordRange: { min: number; max: number };
-}
-
-interface ResolvedAgeGroup {
-  id: string;
-  name: string;
-  vocabularyLevel: string;
-  conceptualDepth: string;
-}
-
-interface ParableDirective {
-  id: 'standalone' | 'lessonspark';
-  name: string;
-  systemInstruction: string;
-}
 
 interface ParableRequest {
   bible_passage?: string;
   focus_point?: string;
-  parable_directive: ParableDirective;
-  theology_profile: ResolvedTheologyProfile;
-  bible_version: ResolvedBibleVersion;
-  audience_lens: ResolvedAudienceLens;
-  modern_setting: ResolvedModernSetting;
-  word_count_target: ResolvedWordCountTarget;
-  age_group: ResolvedAgeGroup;
+  parable_directive: {
+    id: 'standalone' | 'lessonspark';
+    name: string;
+    systemInstruction: string;
+  };
+  theology_profile: {
+    id: string;
+    name: string;
+    guardrails: string;
+    description: string;
+  };
+  bible_version: {
+    id: string;
+    name: string;
+    abbreviation: string;
+    copyrightStatus: 'public_domain' | 'copyrighted';
+    copyrightGuardrails: string;
+  };
+  audience_lens: {
+    id: string;
+    name: string;
+    description: string;
+    heartCondition: string;
+  };
+  modern_setting: {
+    id: string;
+    name: string;
+    description: string;
+    exampleRoles: string[];
+  };
+  word_count_target: {
+    id: string;
+    name: string;
+    wordRange: { min: number; max: number };
+  };
+  age_group: {
+    id: string;
+    name: string;
+    vocabularyLevel: string;
+    conceptualDepth: string;
+  };
   lesson_id?: string;
 }
 
@@ -133,103 +77,636 @@ interface NewsArticle {
   content: string;
   source_id: string;
   link: string;
-  pubDate?: string;
-  country?: string[];
+  pubDate: string;
+  country: string[];
 }
 
-interface ParableResponse {
-  success: boolean;
-  parable?: {
-    id: string;
-    parable_text: string;
-    bible_passage?: string;
-    focus_point?: string;
-    news_headline: string;
-    news_source: string;
-    news_url: string;
-    news_date: string | null;
-    news_location: string | null;
-    word_count: number;
-    generation_time_ms: number;
-  };
-  // Usage info for authenticated users
-  usage?: {
-    used: number;
-    limit: number;
-    remaining: number;
-  };
-  error?: string;
+interface LessonFilters {
+  theology_profile_id?: string;
+  bible_version_id?: string;
+  age_group?: string;
+  bible_passage?: string;
+  focused_topic?: string;
 }
 
 // =============================================================================
-// NEWS FETCHING
+// CORS HEADERS
 // =============================================================================
 
-async function fetchRelevantNews(newsKeywords: string[]): Promise<NewsArticle | null> {
+const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+function json(
+  body: unknown,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      ...corsHeaders,
+      ...extraHeaders,
+      "Content-Type": "application/json; charset=utf-8",
+    },
+  });
+}
+
+function getBearerToken(req: Request): string | null {
+  const auth = req.headers.get("authorization") || req.headers.get("Authorization");
+  if (!auth) return null;
+  const m = auth.match(/^Bearer\s+(.+)$/i);
+  return m ? m[1] : null;
+}
+
+function getClientIP(req: Request): string {
+  // Try various headers that might contain the real IP
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  const realIP = req.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP.trim();
+  }
+  // Fallback - this may be the proxy IP
+  return "unknown";
+}
+
+function billingPeriodStartISO(): string {
+  const now = new Date();
+  const y = now.getUTCFullYear();
+  const m = now.getUTCMonth();
+  return new Date(Date.UTC(y, m, 1, 0, 0, 0, 0)).toISOString();
+}
+
+function todayDateString(): string {
+  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+}
+
+function generateUUID(): string {
+  return crypto.randomUUID();
+}
+
+// =============================================================================
+// DIRECTIVES (Embedded from parableDirectives.ts)
+// =============================================================================
+
+const STANDALONE_DIRECTIVE = `STAND-ALONE CLAUDE SYSTEM INSTRUCTION
+(Distinct from LessonSparkUSA)
+
+1. Purpose of This Product
+
+You are generating Modern Parables as a stand-alone spiritual reflection product.
+
+This product is:
+- not a lesson system
+- not classroom-oriented
+- not structured for teaching aids
+- not multi-age adapted
+- not tied to LessonSparkUSA outputs
+
+It is designed for:
+- personal reflection
+- devotional reading
+- short-form sharing
+- heart examination
+
+The tone is quiet, reflective, and searching, not instructional.
+
+2. Core Distinction from LessonSparkUSA (Non-Negotiable)
+
+LessonSparkUSA = structured teaching environment
+Modern Parables (stand-alone) = contemplative narrative
+
+Therefore:
+- No teaching scaffolding
+- No discussion prompts
+- No age targeting
+- No metadata
+- No editorial explanations
+- No "teacher usefulness" bias
+
+The parable must stand on its own.
+
+3. Fixed Jesus-Style Structure
+
+(Do not rename, reorder, or merge sections)
+
+Every Modern Parable must use these section labels, in this order:
+
+**A Scene from Everyday Life**
+(Intent: recognition)
+Introduce ordinary modern life. No moral framing. No Scripture language.
+
+**A Moment of Offense or Loss**
+(Intent: discomfort)
+A believable relational, emotional, or moral rupture.
+
+**The Struggle of the Human Heart**
+(Intent: justification)
+Show reasoning that makes self-protection feel right.
+
+**The Turning of the Will**
+(Intent: decision)
+A quiet, costly internal choice.
+
+**The Unexpected Way of Grace**
+(Intent: reversal)
+Mercy, restraint, forgiveness, or generosity that contradicts instinct.
+
+**The Matter of the Heart Revealed**
+(Intent: exposure)
+Name the heart issue using biblical categories (pride, fear, mercy, humility).
+
+**The Question That Searches the Listener**
+(Intent: self-examination)
+One or two probing questions. No answers supplied.
+
+**The Scripture That Anchors the Truth**
+(Intent: authority)
+One Scripture. Scripture closes the parable. No commentary afterward.
+
+4. Modern Attribution Rule (Required)
+
+Each parable must include one subtle attribution line, either at the beginning or end:
+
+Inspired by real-life situations reported in MM—YYYY within [general locale].
+
+Rules:
+- Month—Year only
+- Geographic region only
+- No media names
+- No real people or organizations
+- Parable must remain timeless if attribution is removed
+
+This attribution exists only to ensure freshness, not commentary.
+
+5. Perpetual Freshness Requirements
+
+(Mandatory, enforced silently)
+
+Freshness must come from variation, not novelty.
+
+You must vary:
+- setting
+- relationship type
+- surface conflict
+- narrative pacing
+- sentence structure
+
+You must never vary:
+- section structure
+- theological trajectory
+- heart logic
+- Scripture placement
+- overall length range
+
+Prohibited staleness:
+- repeated metaphors
+- recycled emotional arcs
+- formulaic phrasing
+- predictable reversals
+
+6. Tone and Language Rules
+
+- Plain, restrained language
+- No preaching
+- No moral conclusions
+- No modern self-help vocabulary
+- No psychological diagnosis
+- No cultural commentary
+
+Write as if Jesus were speaking quietly to attentive listeners, not addressing a crowd.
+
+7. Theological Guardrails
+
+- Scripture confirms the story; the story does not reinterpret Scripture
+- Grace is costly, not permissive
+- Mercy does not deny wrongdoing
+- Obedience is not reduced to emotional relief
+- God's character is implied, not explained
+
+8. Prohibited Practices (Hard Stops)
+
+You must not:
+- explain symbolism
+- summarize lessons
+- include applications
+- offer resolutions
+- add teaching commentary
+- reference LessonSparkUSA
+- adapt for classrooms
+
+9. Single-Truth Rule
+
+Each parable must reveal one heart truth only.
+
+If more than one emerges, revise until one remains.
+
+10. Final Silent Validation (Required)
+
+Before output, confirm:
+- Does this feel like something Jesus could tell today?
+- Does the listener recognize themselves before understanding the meaning?
+- Does grace interrupt instinct?
+- Does Scripture end the parable without explanation?
+
+If any answer is no, revise before output.
+
+11. Output Instruction
+
+Output only the parable, using:
+- the exact section labels
+- the attribution line
+- no meta commentary
+- no explanations
+
+Closing Instruction:
+Stand-alone Modern Parables are not lessons.
+They are invitations.
+Speak softly. Let the heart listen. Let Scripture speak last.`;
+
+const LESSONSPARK_DIRECTIVE = `MASTER CLAUDE SYSTEM INSTRUCTION
+Modern Parables with Perpetual Freshness
+(Authoritative — Non-Negotiable)
+
+1. Your Role and Scope
+
+You are generating Modern Parables for LessonSparkUSA.
+
+A Modern Parable is:
+- a short narrative rooted in ordinary modern life
+- shaped after the teaching style of Jesus
+- designed to reveal the human heart
+- anchored in Scripture
+- suitable for volunteer Bible teachers, lay leaders, and church settings
+
+You are not writing:
+- sermons
+- devotionals with commentary
+- moral essays
+- news analysis
+- allegories with explained symbols
+
+You are writing parable mirrors — stories that allow the listener to recognize themselves before recognizing the lesson.
+
+2. Non-Negotiable Structural Framework
+
+(This structure must never change)
+
+Every Modern Parable must appear in this exact order using these section labels.
+You may vary the wording inside each section, but never the intent.
+
+**A Scene from Everyday Life**
+Jesus-style intent: Disarm the listener with familiarity.
+Introduce an ordinary modern setting (family, work, community, relationships).
+Use realistic, everyday roles.
+Do not use spiritual language.
+Do not explain meaning.
+
+**A Moment of Offense or Loss**
+Jesus-style intent: Awaken moral discomfort.
+Introduce a believable offense, loss, or threat.
+The listener should sympathize with the offended party.
+Avoid exaggeration or villain caricatures.
+
+**The Struggle of the Human Heart**
+Jesus-style intent: Expose what feels justified.
+Show internal reasoning, fears, and pressures.
+Include socially reinforcing voices ("others advised," "friends said").
+Make retaliation, control, or withdrawal feel reasonable.
+Do not moralize or quote Scripture.
+
+**The Turning of the Will**
+Jesus-style intent: Reveal the decisive heart choice.
+Present a clear internal decision point.
+The choice must involve real cost.
+Avoid emotional catharsis language.
+The decision should surprise but remain believable.
+
+**The Unexpected Way of Grace**
+Jesus-style intent: Overturn worldly logic.
+Show restraint, mercy, forgiveness, or generosity.
+Grace must feel costly, not convenient.
+Do not resolve all consequences neatly.
+
+**The Matter of the Heart Revealed**
+Jesus-style intent: Name the true issue beneath the issue.
+Reveal the heart condition (pride, fear, hardness, compassion, humility).
+Use biblical heart language, not therapeutic identity language.
+Do not over-explain.
+
+**The Question That Searches the Listener**
+Jesus-style intent: Force self-examination, not agreement.
+Ask 1–2 probing questions.
+No yes/no questions.
+No rhetorical answers.
+Questions must turn the story outward toward the listener.
+
+**The Scripture That Anchors the Truth**
+Jesus-style intent: Let God's Word close the parable.
+Include one Scripture (or a short passage).
+Scripture must be last.
+No commentary after Scripture.
+Introduce with a brief framing line only if necessary.
+
+3. Modern Attribution Rule
+
+(Perpetual Freshness without News Commentary)
+
+Each Modern Parable must include one attribution line at the top or bottom:
+
+Inspired by real-life situations reported in MM—YYYY within [general locale].
+
+Rules:
+- Month—Year only (MM—YYYY)
+- Geographic reference only (city/region/state/country)
+- Never name news outlets
+- Never name real people or organizations
+- The parable must remain timeless even if the attribution is removed
+
+This attribution exists to:
+- ground the parable in modern reality
+- ensure freshness and variety
+- prevent recycled phrasing
+
+4. Perpetual Freshness Requirements
+
+(Mandatory for every output)
+
+Freshness must come from variation, not novelty.
+
+You MUST vary:
+- setting (workplace, family, community, etc.)
+- relational dynamic (parent/child, employer/employee, peers, neighbors)
+- surface conflict
+- language rhythm and sentence structure
+
+You MUST NOT vary:
+- section order
+- heart trajectory
+- theological integrity
+- Scripture anchoring
+- overall length range
+
+Prohibited "staleness indicators":
+- repeating sentence patterns
+- identical emotional arcs
+- reused metaphors
+- predictable phrasing like "everyone was shocked" or "in that moment"
+
+5. Theological Guardrails (LessonSparkUSA Alignment)
+
+- Scripture interprets the story, not the story interpreting Scripture
+- Mercy, humility, repentance, and compassion must align with biblical teaching
+- Avoid modern moral relativism
+- Avoid prosperity or self-actualization framing
+- Do not present grace as endorsement of sin
+- Do not reduce obedience to emotional well-being
+
+6. Prohibited Practices (Hard Stops)
+
+You must NOT:
+- explain the parable's symbolism
+- preach or apply mid-story
+- reference political ideologies
+- moralize news events
+- end with "the moral is"
+- flatten the parable into a lesson summary
+- resolve all consequences neatly
+
+7. Single-Point Integrity Rule
+
+Every Modern Parable must drive toward one dominant heart truth.
+
+If more than one lesson emerges, revise until one remains.
+
+8. Final Validation Checklist
+
+(Run silently before output)
+
+Before delivering the parable, confirm:
+- Does this sound like something Jesus could plausibly tell today?
+- Does the listener recognize themselves before recognizing the lesson?
+- Is the grace shown costly and counter-cultural?
+- Does Scripture seal the truth without explanation?
+- Does the structure remain intact from start to finish?
+
+If any answer is no, revise before output.
+
+9. Output Instruction
+
+When generating a Modern Parable:
+- Use the exact section labels above
+- Include the attribution line
+- Maintain consistent length and tone
+- Deliver the parable only — no meta commentary
+
+Closing Instruction:
+Modern Parables are not teaching tools first — they are mirrors.
+Your task is not to persuade, but to reveal.
+Let the story do the work. Let Scripture have the final word.`;
+
+// =============================================================================
+// ANONYMOUS DEFAULTS (Applied silently)
+// =============================================================================
+
+const ANONYMOUS_DEFAULTS = {
+  theology_profile: {
+    id: 'baptist-core-beliefs',
+    name: 'Baptist Core Beliefs',
+    guardrails: '', // No guardrails sent for anonymous
+    description: 'Core Baptist theological convictions'
+  },
+  bible_version: {
+    id: 'web',
+    name: 'World English Bible',
+    abbreviation: 'WEB',
+    copyrightStatus: 'public_domain' as const,
+    copyrightGuardrails: '' // No guardrails sent for anonymous
+  }
+};
+
+// =============================================================================
+// ANONYMOUS USAGE TRACKING (IP-based, 3/day limit)
+// =============================================================================
+
+async function checkAnonymousLimit(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  ipAddress: string,
+  dailyLimit = 3,
+): Promise<{ allowed: boolean; used: number; remaining: number }> {
+  const today = todayDateString();
+
+  // Check current usage
+  const { data: row, error: selErr } = await supabaseAdmin
+    .from("anonymous_parable_usage")
+    .select("parable_count")
+    .eq("ip_address", ipAddress)
+    .eq("usage_date", today)
+    .maybeSingle();
+
+  if (selErr) {
+    console.error("Anonymous usage select error:", selErr);
+    // On error, allow the request (fail open for better UX)
+    return { allowed: true, used: 0, remaining: dailyLimit };
+  }
+
+  const used = Number(row?.parable_count ?? 0);
+
+  if (used >= dailyLimit) {
+    return { allowed: false, used, remaining: 0 };
+  }
+
+  // Increment or insert
+  if (!row) {
+    // First parable today from this IP
+    const { error: insErr } = await supabaseAdmin
+      .from("anonymous_parable_usage")
+      .insert({
+        ip_address: ipAddress,
+        usage_date: today,
+        parable_count: 1,
+      });
+
+    if (insErr) {
+      console.error("Anonymous usage insert error:", insErr);
+    }
+
+    return { allowed: true, used: 1, remaining: dailyLimit - 1 };
+  }
+
+  // Increment existing
+  const nextUsed = used + 1;
+  const { error: updErr } = await supabaseAdmin
+    .from("anonymous_parable_usage")
+    .update({ parable_count: nextUsed })
+    .eq("ip_address", ipAddress)
+    .eq("usage_date", today);
+
+  if (updErr) {
+    console.error("Anonymous usage update error:", updErr);
+  }
+
+  return { allowed: true, used: nextUsed, remaining: Math.max(0, dailyLimit - nextUsed) };
+}
+
+// =============================================================================
+// AUTHENTICATED USAGE TRACKING (7/month limit)
+// =============================================================================
+
+async function checkAuthenticatedLimit(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  monthlyLimit = 7,
+): Promise<{ allowed: boolean; used: number; limit: number; remaining: number }> {
+  const periodStart = billingPeriodStartISO();
+
+  const { data: row, error: selErr } = await supabaseAdmin
+    .from("user_parable_usage")
+    .select("parables_this_month")
+    .eq("user_id", userId)
+    .gte("billing_period_start", periodStart)
+    .maybeSingle();
+
+  if (selErr) {
+    console.error("Usage select error:", selErr);
+    throw new Error(`usage_select_failed: ${selErr.message}`);
+  }
+
+  const used = Number(row?.parables_this_month ?? 0);
+
+  if (used >= monthlyLimit) {
+    return { allowed: false, used, limit: monthlyLimit, remaining: 0 };
+  }
+
+  if (!row) {
+    // First parable this billing period
+    const { error: insErr } = await supabaseAdmin
+      .from("user_parable_usage")
+      .upsert({
+        user_id: userId,
+        billing_period_start: periodStart,
+        parables_this_month: 1,
+      }, { onConflict: "user_id" });
+
+    if (insErr) {
+      console.error("Usage insert error:", insErr);
+      throw new Error(`usage_insert_failed: ${insErr.message}`);
+    }
+
+    return { allowed: true, used: 1, limit: monthlyLimit, remaining: monthlyLimit - 1 };
+  }
+
+  // Increment existing count
+  const nextUsed = used + 1;
+
+  const { error: updErr } = await supabaseAdmin
+    .from("user_parable_usage")
+    .update({ parables_this_month: nextUsed })
+    .eq("user_id", userId);
+
+  if (updErr) {
+    console.error("Usage update error:", updErr);
+    throw new Error(`usage_update_failed: ${updErr.message}`);
+  }
+
+  return { allowed: true, used: nextUsed, limit: monthlyLimit, remaining: Math.max(0, monthlyLimit - nextUsed) };
+}
+
+// =============================================================================
+// NEWS FETCHING (NewsData.io FREE tier - 48 hour window)
+// =============================================================================
+
+async function fetchRelevantNews(keywords: string[]): Promise<NewsArticle | null> {
   const apiKey = Deno.env.get("NEWSDATA_API_KEY");
   if (!apiKey) {
-    console.error("NEWSDATA_API_KEY not configured");
+    console.log("NEWSDATA_API_KEY not configured - skipping news fetch");
     return null;
   }
 
+  // Build search query from keywords
   const query = keywords.slice(0, 3).join(" OR ");
-  const newsUrl = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(query)}&language=en&size=10`;
+  
+  // FREE tier uses /api/1/news (recent 48 hours)
+  const url = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(query)}&language=en&size=10`;
 
   try {
-    console.log("Fetching recent news:", { query, keywords });
-    const response = await fetch(newsUrl);
+    console.log("Fetching news:", { query, keywords: keywords.slice(0, 3) });
+    const response = await fetch(url);
     const data = await response.json();
 
     if (data.status === "success" && data.results && data.results.length > 0) {
+      // Pick a random article for variety
       const randomIndex = Math.floor(Math.random() * Math.min(10, data.results.length));
       const article = data.results[randomIndex];
       
-      console.log("Found news article:", article.title, "from", article.source_id);
+      console.log("Found news article:", article.title?.substring(0, 50));
       
       return {
         title: article.title || "",
         description: article.description || "",
         content: article.content || article.description || "",
-        source_id: article.source_id || "unknown",
+        source_id: article.source_id || "news",
         link: article.link || "",
         pubDate: article.pubDate || "",
         country: article.country || [],
       };
     }
     
-    console.log("No results from primary search, trying broader terms...");
-    const fallbackKeywords = ["family", "community", "people", "helping"];
-
-// IMPORTANT: If Scripture-trigger is mortality/limits, do NOT use lifestyle fallback.
-// This prevents drift into unrelated "recognition/travel" style stories.
-if ((realLifeTrigger || "").toLowerCase().includes("mortality")) {
-  console.log("Fallback disabled for mortality trigger — proceeding without fallback news.");
-  return null;
-}
-    const fallbackQuery = fallbackKeywords.slice(0, 2).join(" OR ");
-    const fallbackUrl = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(fallbackQuery)}&language=en&category=lifestyle&size=10`;
-    
-    const fallbackResponse = await fetch(fallbackUrl);
-    const fallbackData = await fallbackResponse.json();
-    
-    if (fallbackData.status === "success" && fallbackData.results && fallbackData.results.length > 0) {
-      const randomIndex = Math.floor(Math.random() * Math.min(10, fallbackData.results.length));
-      const article = fallbackData.results[randomIndex];
-      
-      console.log("Found fallback news article:", article.title);
-      
-      return {
-        title: article.title || "",
-        description: article.description || "",
-        content: article.content || article.description || "",
-        source_id: article.source_id || "unknown",
-        link: article.link || "",
-        pubDate: article.pubDate || "",
-        country: article.country || [],
-      };
-    }
-    
-    console.log("No news articles found even with fallback");
+    console.log("No news articles found for keywords:", keywords);
     return null;
   } catch (error) {
     console.error("Error fetching news:", error);
@@ -237,719 +714,551 @@ if ((realLifeTrigger || "").toLowerCase().includes("mortality")) {
   }
 }
 
-const COUNTRY_NAMES: Record<string, string> = {
-  us: "United States",
-  gb: "United Kingdom",
-  ca: "Canada",
-  au: "Australia",
-  nz: "New Zealand",
-  ie: "Ireland",
-  za: "South Africa",
-  in: "India",
-  sg: "Singapore",
-  ph: "Philippines",
-  ng: "Nigeria",
-  ke: "Kenya",
-  gh: "Ghana",
-};
-
-function formatCountryCodes(codes: string[]): string {
-  if (!codes || codes.length === 0) return "";
+function extractKeywordsFromPassage(passage: string, focusPoint?: string): string[] {
+  const keywords: string[] = [];
   
-  const names = codes
-    .slice(0, 2)
-    .map(code => COUNTRY_NAMES[code.toLowerCase()] || code.toUpperCase())
-    .filter(Boolean);
+  // Extract meaningful words from focus point
+  if (focusPoint) {
+    const focusWords = focusPoint
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .filter(w => w.length > 3 && !['the', 'and', 'for', 'that', 'with', 'from', 'this', 'have', 'been'].includes(w));
+    keywords.push(...focusWords.slice(0, 3));
+  }
   
-  return names.join(", ");
-}
-
-function extractKeywordsFromPassage(passage?: string, focusPoint?: string): string[] {
-  const themeKeywords: Record<string, string[]> = {
-    "love": ["charity", "compassion", "volunteer", "donation", "helping"],
-    "neighbor": ["community", "neighbor", "local", "helping", "volunteer"],
-    "forgive": ["reconciliation", "forgiveness", "apology", "healing"],
-    "mercy": ["mercy", "pardon", "compassion", "relief"],
-    "faith": ["trust", "hope", "perseverance", "courage"],
-    "trust": ["trust", "confidence", "reliability", "faith"],
-    "fear": ["anxiety", "worry", "courage", "overcoming"],
-    "hope": ["hope", "optimism", "recovery", "comeback"],
-    "justice": ["justice", "fairness", "court", "rights"],
-    "truth": ["truth", "honesty", "transparency", "integrity"],
-    "righteous": ["ethics", "integrity", "moral", "honest"],
-    "money": ["wealth", "poverty", "economy", "financial"],
-    "rich": ["wealthy", "billionaire", "success", "prosperity"],
-    "poor": ["poverty", "homeless", "struggling", "hardship"],
-    "give": ["donation", "charity", "generous", "giving"],
-    "father": ["father", "parent", "family", "dad"],
-    "mother": ["mother", "parent", "family", "mom"],
-    "son": ["son", "child", "youth", "family"],
-    "daughter": ["daughter", "child", "family"],
-    "brother": ["brothers", "siblings", "family", "brothers dispute"],
-    "sister": ["sisters", "siblings", "family", "sisters conflict"],
-    "sibling": ["siblings", "brothers", "sisters", "family conflict"],
-    "rivalry": ["competition", "conflict", "dispute", "jealousy"],
-    "prodigal": ["return", "reconciliation", "forgiveness", "family"],
-    "servant": ["employee", "worker", "service", "dedication"],
-    "master": ["employer", "boss", "leadership", "management"],
-    "work": ["workplace", "job", "career", "employment"],
-    "talent": ["skill", "talent", "ability", "potential"],
-    "church": ["community", "congregation", "faith community"],
-    "sheep": ["lost", "rescue", "search", "recovery"],
-    "shepherd": ["leader", "pastor", "guide", "protector"],
-    "jealousy": ["jealousy", "envy", "competition", "resentment"],
-    "envy": ["envy", "jealousy", "competition", "comparison"],
-    "pride": ["arrogance", "humility", "success", "achievement"],
-    "anger": ["conflict", "dispute", "confrontation", "resolution"],
-    "grief": ["loss", "mourning", "healing", "support"],
-    "anxiety": ["stress", "worry", "mental health", "coping"],
-    "loneliness": ["isolation", "community", "connection", "friendship"],
-    "patience": ["waiting", "perseverance", "endurance", "delay"],
-    "gratitude": ["thankfulness", "appreciation", "blessing", "generosity"],
-    "conflict": ["dispute", "disagreement", "resolution", "reconciliation"],
-    "comparison": ["comparison", "competition", "jealousy", "self-worth"],
+  // Map common biblical themes to news-searchable terms
+  const themeMap: Record<string, string[]> = {
+    'forgive': ['reconciliation', 'forgiveness', 'apology'],
+    'prodigal': ['family reunion', 'reconciliation', 'return home'],
+    'love': ['compassion', 'kindness', 'charity'],
+    'faith': ['trust', 'belief', 'hope'],
+    'grace': ['mercy', 'second chance', 'forgiveness'],
+    'pride': ['humility', 'ego', 'arrogance'],
+    'fear': ['courage', 'anxiety', 'worry'],
+    'money': ['wealth', 'poverty', 'generosity'],
+    'neighbor': ['community', 'helping others', 'kindness'],
+    'servant': ['service', 'helping', 'volunteer'],
   };
 
-  const keywords: string[] = [];
-  const passageLower = (passage || "").toLowerCase();
-  const focusLower = (focusPoint || "").toLowerCase();
-  const combined = passageLower + " " + focusLower;
-
-  for (const [theme, newsKeywords] of Object.entries(themeKeywords)) {
-    if (combined.includes(theme)) {
-      keywords.push(...newsKeywords.slice(0, 2));
+  // Check for theme matches
+  const passageLower = (passage + ' ' + (focusPoint || '')).toLowerCase();
+  for (const [theme, searchTerms] of Object.entries(themeMap)) {
+    if (passageLower.includes(theme)) {
+      keywords.push(...searchTerms);
+      break;
     }
   }
 
+  // Ensure we have at least some keywords
   if (keywords.length === 0) {
-    keywords.push("family", "community", "people", "helping");
+    keywords.push('kindness', 'community', 'family');
   }
 
+  // Deduplicate and limit
   return [...new Set(keywords)].slice(0, 5);
 }
 
 // =============================================================================
-// PROMPT BUILDING
+// LESSON LOADING (For LessonSpark context - SSOT from database)
 // =============================================================================
 
-function buildParablePrompt(request: ParableRequest, newsSummary: string, newsDate: string | null, newsLocation: string | null, hasRealNews: boolean): string {
-  const { 
-    bible_passage,
-    focus_point,
-    parable_directive,
-    theology_profile,
-    bible_version,
-    audience_lens,
-    modern_setting,
-    word_count_target,
-    age_group,
-  } = request;
-
-  const targetRange = `${word_count_target.wordRange.min}-${word_count_target.wordRange.max}`;
-  
-  let attributionSection: string;
-  if (hasRealNews && newsLocation) {
-    const now = new Date();
-    const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
-    attributionSection = `=== ATTRIBUTION LINE (Include in output) ===
-Inspired by real-life situations reported in ${monthYear} within ${newsLocation}.`;
-  } else {
-    attributionSection = `=== ATTRIBUTION ===
-NOTE: No specific news source available. Do NOT include an attribution line in the output.
-Create a timeless parable based on the focus/passage without referencing specific dates or locations.`;
-  }
-
-  const hasPassage = bible_passage && bible_passage.trim();
-  const hasFocus = focus_point && focus_point.trim();
-  
-  let passageSection: string;
-  let scriptureInstruction: string;
-  
-  const focusInterpretation = hasFocus ? `
-CRITICAL FOCUS INTERPRETATION:
-The focus point "${focus_point}" defines:
-1. WHO the main characters must be (e.g., "sibling rivalry" = two siblings are the protagonists)
-2. WHAT relationship conflict is central (e.g., "sibling rivalry" = conflict BETWEEN siblings, not involving parents)
-3. The parable must show this specific dynamic between these specific people
-
-Examples of correct interpretation:
-- "sibling rivalry" â†’ Story about TWO BROTHERS or TWO SISTERS who are jealous of each other
-- "parent-child conflict" â†’ Story about a PARENT and CHILD in disagreement
-- "workplace jealousy" â†’ Story about COWORKERS who are envious of each other
-- "marital forgiveness" â†’ Story about a HUSBAND and WIFE
-
-DO NOT substitute other relationships. If the focus says "sibling," the main characters MUST be siblings.` : '';
-  
-  if (hasPassage && hasFocus) {
-    passageSection = `BIBLE PASSAGE: ${bible_passage}
-FOCUS POINT: ${focus_point}
-${focusInterpretation}`;
-    scriptureInstruction = `End with Scripture from ${bible_passage} using ${bible_version.abbreviation} - no commentary after`;
-  } else if (hasPassage) {
-    passageSection = `BIBLE PASSAGE: ${bible_passage}
-FOCUS POINT: The central truth of this passage`;
-    scriptureInstruction = `End with Scripture from ${bible_passage} using ${bible_version.abbreviation} - no commentary after`;
-  } else {
-    passageSection = `FOCUS POINT: ${focus_point}
-${focusInterpretation}
-
-NOTE: No specific Bible passage provided. Select an appropriate Scripture that speaks to this focus.`;
-    scriptureInstruction = `End with an appropriate Scripture that speaks to "${focus_point}" using ${bible_version.abbreviation} - no commentary after. Choose a passage that anchors the heart truth revealed in the parable.`;
-  }
-
-  return `${parable_directive.systemInstruction}
-
-=============================================================================
-SPECIFIC GENERATION CONTEXT
-=============================================================================
-
-=== PASSAGE & FOCUS ===
-${passageSection}
-
-${attributionSection}
-
-=== AUDIENCE CONTEXT ===
-AUDIENCE LENS: ${audience_lens.name} - ${audience_lens.description}
-TARGET HEART CONDITION: ${audience_lens.heartCondition}
-AGE GROUP: ${age_group.name}
-VOCABULARY LEVEL: ${age_group.vocabularyLevel}
-CONCEPTUAL DEPTH: ${age_group.conceptualDepth}
-
-=== MODERN SETTING ===
-SETTING: ${modern_setting.name} - ${modern_setting.description}
-POSSIBLE ROLES: ${modern_setting.exampleRoles.join(", ")}
-
-=== NEWS CONTEXT (for realism - do NOT mention directly) ===
-Use this as "soil" for realistic scenarios. Never reference directly in output.
-${newsSummary}
-
-=== SOURCE FIDELITY REQUIREMENT (NON-NEGOTIABLE) ===
-When sparked by a real-world source, you MUST preserve alignment across these dimensions.
-STOP generation and use generic scenario if alignment cannot be maintained.
-
-1. TYPE OF SUFFERING - Do not change the category:
-   - Violence in source â†’ harm caused by another in parable
-   - Illness in source â†’ illness in parable
-   - Injustice in source â†’ injustice in parable
-
-2. AGENT OF SUFFERING - Preserve the cause:
-   - Harm by person â†’ must remain harm by person (not illness, fate, or internal struggle)
-   - Random/senseless harm â†’ must remain random (not moral consequence or earned suffering)
-
-3. SETTING SCALE - Match scope:
-   - Public event â†’ public or communal setting
-   - Private suffering â†’ private setting
-   - Do NOT convert public tragedy into private introspection
-
-4. EMOTIONAL REGISTER - Preserve the emotion:
-   - Fear â†’ fear (not peace)
-   - Shock â†’ shock (not acceptance)
-   - Grief â†’ grief (not resolution)
-   - You may deepen meaning but NOT replace the core emotion
-
-5. THEOLOGICAL QUESTION CONTINUITY:
-   - Identify the core question (e.g., "Why does innocent suffering occur?")
-   - The parable MUST wrestle with the SAME question, not a different one
-
-PROHIBITED SOURCE DRIFT:
-âœ— Do NOT abstract violence into illness
-âœ— Do NOT abstract injustice into personal guilt
-âœ— Do NOT abstract public trauma into private devotion
-âœ— Do NOT replace randomness with earned consequence
-
-BEFORE GENERATING: Verify your parable preserves fidelity to the source across all 5 dimensions.
-
-=== THEOLOGICAL GUARDRAILS ===
-THEOLOGY PROFILE: ${theology_profile.name}
-${theology_profile.guardrails}
-
-=== BIBLE VERSION RULES ===
-BIBLE VERSION: ${bible_version.name} (${bible_version.abbreviation})
-${bible_version.copyrightGuardrails}
-
-=== OUTPUT REQUIREMENTS ===
-- TARGET LENGTH: ${targetRange} words total
-- Use the exact 8-section structure from the directive above
-- Include the attribution line at the beginning or end
-- Match vocabulary to ${age_group.vocabularyLevel} level
-- ${scriptureInstruction}
-
-Generate the Modern Parable now:`;
-}
-
-// =============================================================================
-// REQUEST VALIDATION
-// =============================================================================
-
-function validateRequest(body: unknown): { valid: boolean; error?: string; request?: ParableRequest } {
-  if (!body || typeof body !== 'object') {
-    return { valid: false, error: "Invalid request body" };
-  }
-
-  const req = body as Record<string, unknown>;
-
-  const hasPassage = req.bible_passage && typeof req.bible_passage === 'string' && req.bible_passage.trim();
-  const hasFocus = req.focus_point && typeof req.focus_point === 'string' && req.focus_point.trim();
-  
-  if (!hasPassage && !hasFocus) {
-    return { valid: false, error: "Either bible_passage or focus_point is required (or both)" };
-  }
-
-  if (!req.parable_directive || typeof req.parable_directive !== 'object') {
-    return { valid: false, error: "parable_directive must be a resolved object from SSOT constants" };
-  }
-  const pd = req.parable_directive as Record<string, unknown>;
-  if (!pd.id || !pd.systemInstruction) {
-    return { valid: false, error: "parable_directive must include id and systemInstruction" };
-  }
-  if (pd.id !== 'standalone' && pd.id !== 'lessonspark') {
-    return { valid: false, error: "parable_directive.id must be 'standalone' or 'lessonspark'" };
-  }
-
-  if (!req.theology_profile || typeof req.theology_profile !== 'object') {
-    return { valid: false, error: "theology_profile must be a resolved object (not just ID)" };
-  }
-  const tp = req.theology_profile as Record<string, unknown>;
-  if (!tp.id || !tp.name || !tp.guardrails) {
-    return { valid: false, error: "theology_profile must include id, name, and guardrails" };
-  }
-
-  if (!req.bible_version || typeof req.bible_version !== 'object') {
-    return { valid: false, error: "bible_version must be a resolved object (not just ID)" };
-  }
-  const bv = req.bible_version as Record<string, unknown>;
-  if (!bv.id || !bv.name || !bv.copyrightGuardrails) {
-    return { valid: false, error: "bible_version must include id, name, and copyrightGuardrails" };
-  }
-
-  if (!req.audience_lens || typeof req.audience_lens !== 'object') {
-    return { valid: false, error: "audience_lens must be a resolved object" };
-  }
-
-  if (!req.modern_setting || typeof req.modern_setting !== 'object') {
-    return { valid: false, error: "modern_setting must be a resolved object" };
-  }
-
-  if (!req.word_count_target || typeof req.word_count_target !== 'object') {
-    return { valid: false, error: "word_count_target must be a resolved object" };
-  }
-  const wct = req.word_count_target as Record<string, unknown>;
-  if (!wct.wordRange || typeof wct.wordRange !== 'object') {
-    return { valid: false, error: "word_count_target must include wordRange with min/max" };
-  }
-
-  if (!req.age_group || typeof req.age_group !== 'object') {
-    return { valid: false, error: "age_group must be a resolved object" };
-  }
-
-  return { 
-    valid: true, 
-    request: body as ParableRequest 
-  };
-}
-
-// =============================================================================
-// IP ADDRESS EXTRACTION
-// =============================================================================
-
-function getClientIP(req: Request): string {
-  // Try various headers that might contain the client IP
-  const forwardedFor = req.headers.get("x-forwarded-for");
-  if (forwardedFor) {
-    // x-forwarded-for can contain multiple IPs, take the first one
-    return forwardedFor.split(",")[0].trim();
-  }
-  
-  const realIP = req.headers.get("x-real-ip");
-  if (realIP) {
-    return realIP.trim();
-  }
-  
-  const cfConnectingIP = req.headers.get("cf-connecting-ip");
-  if (cfConnectingIP) {
-    return cfConnectingIP.trim();
-  }
-  
-  // Fallback - shouldn't happen in production
-  return "unknown";
-}
-
-// =============================================================================
-// ANONYMOUS USAGE TRACKING
-// =============================================================================
-
-async function checkAnonymousUsage(supabase: any, ipAddress: string): Promise<{ allowed: boolean; count: number }> {
-  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  
-  const { data, error } = await supabase
-    .from("anonymous_parable_usage")
-    .select("parable_count")
-    .eq("ip_address", ipAddress)
-    .eq("usage_date", today)
+async function loadLessonContext(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  lessonId: string,
+): Promise<LessonFilters | null> {
+  const { data, error } = await supabaseAdmin
+    .from("lessons")
+    .select("filters")
+    .eq("id", lessonId)
     .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    // PGRST116 = no rows found, which is fine
-    console.error("Error checking anonymous usage:", error);
+
+  if (error) {
+    console.error("Error loading lesson:", error);
+    return null;
   }
-  
-  const currentCount = data?.parable_count || 0;
+
+  if (!data?.filters) {
+    console.log("Lesson has no filters:", lessonId);
+    return null;
+  }
+
+  // Extract relevant fields from filters JSONB
+  const filters = data.filters as LessonFilters;
   return {
-    allowed: currentCount < ANONYMOUS_DAILY_LIMIT,
-    count: currentCount
+    theology_profile_id: filters.theology_profile_id,
+    bible_version_id: filters.bible_version_id,
+    age_group: filters.age_group,
+    bible_passage: filters.bible_passage,
+    focused_topic: filters.focused_topic,
   };
 }
 
-async function incrementAnonymousUsage(supabase: any, ipAddress: string): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+// =============================================================================
+// PROMPT BUILDER (Uses full object properties)
+// =============================================================================
+
+function buildParablePrompt(
+  payload: ParableRequest,
+  news: NewsArticle | null,
+  isAnonymous: boolean,
+): string {
+  const biblePassage = payload.bible_passage || "Not specified";
+  const focusPoint = payload.focus_point || "General application";
   
-  // Try to update existing row
-  const { data: existing } = await supabase
-    .from("anonymous_parable_usage")
-    .select("id, parable_count")
-    .eq("ip_address", ipAddress)
-    .eq("usage_date", today)
-    .single();
+  // Extract display values from objects
+  const audienceLens = payload.audience_lens?.name || "General Audience";
+  const heartCondition = payload.audience_lens?.heartCondition || "various";
+  const modernSetting = payload.modern_setting?.name || "Family & Home";
+  const exampleRoles = payload.modern_setting?.exampleRoles?.join(", ") || "family members";
+  const wordCountMin = payload.word_count_target?.wordRange?.min || 300;
+  const wordCountMax = payload.word_count_target?.wordRange?.max || 400;
+  const ageGroup = payload.age_group?.name || "Adults";
+  const vocabularyLevel = payload.age_group?.vocabularyLevel || "moderate";
+  const conceptualDepth = payload.age_group?.conceptualDepth || "developing";
   
-  if (existing) {
-    // Update existing row
-    await supabase
-      .from("anonymous_parable_usage")
-      .update({ 
-        parable_count: existing.parable_count + 1,
-        updated_at: new Date().toISOString()
-      })
-      .eq("id", existing.id);
-  } else {
-    // Insert new row
-    await supabase
-      .from("anonymous_parable_usage")
-      .insert({
-        ip_address: ipAddress,
-        usage_date: today,
-        parable_count: 1
-      });
+  // For authenticated users, include guardrails
+  const theologyName = payload.theology_profile?.name || "Baptist Core Beliefs";
+  const theologyGuardrails = !isAnonymous && payload.theology_profile?.guardrails 
+    ? `\n\nTHEOLOGICAL GUARDRAILS:\n${payload.theology_profile.guardrails}` 
+    : "";
+  
+  const bibleVersionName = payload.bible_version?.name || "World English Bible";
+  const bibleVersionAbbr = payload.bible_version?.abbreviation || "WEB";
+  const copyrightGuardrails = !isAnonymous && payload.bible_version?.copyrightGuardrails
+    ? `\n\nSCRIPTURE QUOTATION GUIDELINES:\n${payload.bible_version.copyrightGuardrails}`
+    : "";
+
+  // News context
+  let newsContext = "No specific news story available. Create a timeless scenario based on common human experiences.";
+  if (news) {
+    const newsDate = news.pubDate ? new Date(news.pubDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : "Recent";
+    const newsLocation = news.country?.length > 0 ? news.country[0] : "United States";
+    newsContext = `NEWS INSPIRATION (use as "soil" for modern setting, not as the story itself):
+Headline: ${news.title}
+Summary: ${news.description || news.content?.substring(0, 200)}
+Time: ${newsDate}
+Location: ${newsLocation}
+
+Use this real-world context to ground your parable in modern reality. Do NOT retell the news story. Extract the human situation and create an original parable.`;
   }
+
+  return `Generate a Modern Parable based on the following:
+
+BIBLE PASSAGE: ${biblePassage}
+FOCUS POINT: ${focusPoint}
+
+TARGET AUDIENCE: ${ageGroup}
+- Vocabulary Level: ${vocabularyLevel}
+- Conceptual Depth: ${conceptualDepth}
+
+AUDIENCE LENS (heart condition to address): ${audienceLens}
+- Heart Condition: ${heartCondition}
+
+MODERN SETTING: ${modernSetting}
+- Example Roles to Consider: ${exampleRoles}
+
+THEOLOGY: ${theologyName}
+BIBLE VERSION FOR SCRIPTURE QUOTES: ${bibleVersionName} (${bibleVersionAbbr})
+
+TARGET LENGTH: ${wordCountMin}-${wordCountMax} words
+${theologyGuardrails}
+${copyrightGuardrails}
+
+${newsContext}
+
+Follow the 8-section structure exactly as specified in your system instructions.
+Use vocabulary and conceptual depth appropriate for ${ageGroup} (${vocabularyLevel}).
+Ensure Scripture quotes use ${bibleVersionAbbr} text.
+
+Write the parable now:`;
+}
+
+// =============================================================================
+// LLM PROVIDER (Anthropic primary, OpenAI fallback)
+// =============================================================================
+
+async function generateParableWithProvider(
+  systemInstruction: string,
+  userPrompt: string,
+  maxTokens = 1500,
+  temperature = 0.7,
+): Promise<string> {
+  const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
+  const openaiKey = Deno.env.get("OPENAI_API_KEY");
+
+  if (anthropicKey) {
+    const model = "claude-3-5-sonnet-20241022"; // Correct model name
+    
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: maxTokens,
+        temperature,
+        system: systemInstruction,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error("Anthropic API error:", resp.status, t);
+      throw new Error(`anthropic_failed: ${resp.status} ${t}`);
+    }
+
+    const j = await resp.json();
+    const text =
+      j?.content?.find?.((c: any) => c?.type === "text")?.text ??
+      j?.content?.[0]?.text ??
+      "";
+    if (!text) throw new Error("anthropic_empty_response");
+    return text;
+  }
+
+  if (openaiKey) {
+    const model = "gpt-4o-mini";
+    
+    const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openaiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: maxTokens,
+        temperature,
+      }),
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error("OpenAI API error:", resp.status, t);
+      throw new Error(`openai_failed: ${resp.status} ${t}`);
+    }
+
+    const j = await resp.json();
+    const text = j?.choices?.[0]?.message?.content ?? "";
+    if (!text) throw new Error("openai_empty_response");
+    return text;
+  }
+
+  throw new Error("no_llm_provider_configured");
+}
+
+// =============================================================================
+// DATABASE INSERT (Authenticated users only - stores STRING IDs)
+// =============================================================================
+
+async function saveParable(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  payload: ParableRequest,
+  parableText: string,
+  news: NewsArticle | null,
+  generationTimeMs: number,
+): Promise<string> {
+  const parableId = generateUUID();
+  const wordCount = countWords(parableText);
+  const now = new Date().toISOString();
+
+  // Extract STRING IDs from objects for database storage
+  const insertData = {
+    id: parableId,
+    user_id: userId,
+    lesson_id: payload.lesson_id || null,
+    bible_passage: payload.bible_passage || "",
+    focus_point: payload.focus_point || null,
+    // Store STRING IDs, not objects
+    audience_lens: payload.audience_lens?.id || "general",
+    modern_setting: payload.modern_setting?.id || "family",
+    word_count_target: payload.word_count_target?.id || "standard",
+    age_group: payload.age_group?.id || null,
+    theology_profile: payload.theology_profile?.id || null,
+    bible_version: payload.bible_version?.id || "web",
+    parable_text: parableText,
+    word_count: wordCount,
+    generation_time_ms: generationTimeMs,
+    // News fields
+    news_headline: news?.title || "Contemporary scenario",
+    news_source: news?.source_id || "generated",
+    news_summary: news?.description || "A person in your community faces a decision that reveals what they truly value.",
+    news_url: news?.link || "",
+    news_date: news?.pubDate || null,
+    news_location: news?.country?.[0] || null,
+    created_at: now,
+    updated_at: now,
+  };
+
+  const { error: insertErr } = await supabaseAdmin
+    .from("modern_parables")
+    .insert(insertData);
+
+  if (insertErr) {
+    console.error("Parable insert error:", insertErr);
+    throw new Error(`parable_insert_failed: ${insertErr.message}`);
+  }
+
+  return parableId;
 }
 
 // =============================================================================
 // MAIN HANDLER
 // =============================================================================
 
-serve(async (req) => {
-  // Handle CORS preflight
+Deno.serve(async (req: Request) => {
+  // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: getCorsHeaders(req) });
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return json({ success: false, error: "Method not allowed" }, 405);
   }
 
   const startTime = Date.now();
 
+  // Environment check
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return json({ success: false, error: "Server not configured" }, 500);
+  }
+
+  const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+
+  // Parse payload
+  let payload: ParableRequest;
   try {
-    // Initialize Supabase client with service role (for DB operations)
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    payload = await req.json();
+  } catch {
+    return json({ success: false, error: "Invalid request body" }, 400);
+  }
 
-    // =========================================================================
-    // AUTHENTICATION (OPTIONAL)
-    // =========================================================================
+  // Determine context from parable_directive.id
+  const context = payload.parable_directive?.id || "standalone";
+  
+  // Check authentication
+  const token = getBearerToken(req);
+  let user: any = null;
+  let isAnonymous = true;
+
+  if (token) {
+    const { data: userRes, error: userErr } = await supabaseAdmin.auth.getUser(token);
+    if (!userErr && userRes?.user) {
+      user = userRes.user;
+      isAnonymous = false;
+    }
+  }
+
+  // =========================================================================
+  // CONTEXT VALIDATION
+  // =========================================================================
+  
+  // LessonSpark context requires authentication
+  if (context === "lessonspark") {
+    if (isAnonymous) {
+      return json({ 
+        success: false, 
+        error: "Login required for lesson integration" 
+      }, 401);
+    }
     
-    const authHeader = req.headers.get("Authorization");
-    let user = null;
-    let isAuthenticated = false;
+    if (!payload.lesson_id) {
+      return json({ 
+        success: false, 
+        error: "lesson_id is required for lessonspark context" 
+      }, 400);
+    }
+  }
+
+  // =========================================================================
+  // ANONYMOUS FLOW
+  // =========================================================================
+  
+  if (isAnonymous) {
+    const ipAddress = getClientIP(req);
+    console.log("Anonymous request from IP:", ipAddress);
     
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
+    // Check daily limit (3/day)
+    const anonUsage = await checkAnonymousLimit(supabaseAdmin, ipAddress, 3);
+    
+    if (!anonUsage.allowed) {
+      return json({
+        success: false,
+        error: "Daily limit reached. You can generate more parables tomorrow, or create a free account for additional access.",
+      }, 429);
+    }
+
+    try {
+      // Apply anonymous defaults
+      payload.theology_profile = ANONYMOUS_DEFAULTS.theology_profile;
+      payload.bible_version = ANONYMOUS_DEFAULTS.bible_version;
       
-      if (!userError && authUser) {
-        user = authUser;
-        isAuthenticated = true;
+      // Select directive (always standalone for anonymous)
+      const systemInstruction = STANDALONE_DIRECTIVE;
+
+      // Fetch news
+      const keywords = extractKeywordsFromPassage(
+        payload.bible_passage || "",
+        payload.focus_point
+      );
+      const news = await fetchRelevantNews(keywords);
+
+      // Build prompt
+      const userPrompt = buildParablePrompt(payload, news, true);
+
+      // Generate parable
+      console.log("Generating parable for anonymous user");
+      const parableText = await generateParableWithProvider(systemInstruction, userPrompt);
+      const generationTimeMs = Date.now() - startTime;
+
+      // Return without saving (anonymous parables are not stored)
+      return json({
+        success: true,
+        parable: {
+          parable_text: parableText,
+          bible_passage: payload.bible_passage || "",
+          news_headline: news?.title || "Contemporary scenario",
+          news_source: news?.source_id || "generated",
+          news_url: news?.link || "",
+          news_date: news?.pubDate || null,
+          news_location: news?.country?.[0] || null,
+          word_count: countWords(parableText),
+          generation_time_ms: generationTimeMs,
+        },
+        anonymous: true,
+        usage: { 
+          used: anonUsage.used, 
+          remaining: anonUsage.remaining,
+          limit_type: "daily"
+        },
+      });
+
+    } catch (err) {
+      console.error("Error generating anonymous parable:", err);
+      const message = err instanceof Error ? err.message : "Internal error";
+      return json({ success: false, error: message }, 500);
+    }
+  }
+
+  // =========================================================================
+  // AUTHENTICATED FLOW
+  // =========================================================================
+  
+  const role = (user.app_metadata as any)?.role ?? null;
+  const isAdmin = role === "admin";
+
+  try {
+    // ADMIN BYPASS - skip usage limits
+    if (!isAdmin) {
+      const monthlyLimit = Number(Deno.env.get("PARABLE_MONTHLY_LIMIT") ?? "7");
+      const usage = await checkAuthenticatedLimit(supabaseAdmin, user.id, monthlyLimit);
+
+      if (!usage.allowed) {
+        return json({
+          success: false,
+          error: `You have reached your monthly limit of ${usage.limit} parables. Limit resets next month.`,
+          usage: { used: usage.used, limit: usage.limit, remaining: usage.remaining },
+        }, 429);
       }
     }
 
-    // =========================================================================
-    // USAGE LIMIT CHECK
-    // =========================================================================
-    
-    let currentUsage = 0;
-    let usageLimit = 0;
-    
-    if (isAuthenticated && user) {
-      // Authenticated user: Check monthly limit
-      const { data: usageData } = await supabase
-        .from("user_parable_usage")
-        .select("parables_this_month")
-        .eq("user_id", user.id)
-        .single();
-
-      currentUsage = usageData?.parables_this_month || 0;
-      usageLimit = AUTHENTICATED_MONTHLY_LIMIT;
-
-      
-      // Admin/test bypass (does not affect normal users)
-      const userEmail = user?.email ?? null;
-
-      // Prefer server-verified user metadata (token validated via supabase.auth.getUser)
-      const rawRole = (user as any)?.app_metadata?.role ?? null;
-      const role = typeof rawRole === "string" ? rawRole.toLowerCase() : "";
-      const isAdminRole = role === "admin";
-
-      // Email-based bypass is optional (requires ADMIN_BYPASS_EMAILS secret to be present)
-      const bypass = isAdminRole || isBypassEmail(userEmail);
-
-      if (bypass) {
-        usageLimit = 999999;
-      }
-
-
-      if (currentUsage >= usageLimit) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `You have reached your monthly limit of ${usageLimit} parables. Limit resets next month.`,
-            usage: { used: currentUsage, limit: usageLimit, remaining: 0 }
-          }),
-          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-        );
-      }
-    } else {
-      // Anonymous user: Check daily limit by IP
-      const clientIP = getClientIP(req);
-      console.log("Anonymous user from IP:", clientIP);
-      
-      const { allowed, count } = await checkAnonymousUsage(supabase, clientIP);
-      currentUsage = count;
-      usageLimit = ANONYMOUS_DAILY_LIMIT;
-      
-      if (!allowed) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Daily limit reached. Please try again tomorrow."
-          }),
-          { status: 429, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-        );
+    // Load lesson context if LessonSpark (SSOT from database)
+    if (context === "lessonspark" && payload.lesson_id) {
+      const lessonContext = await loadLessonContext(supabaseAdmin, payload.lesson_id);
+      if (lessonContext) {
+        console.log("Loaded lesson context:", lessonContext);
+        // Lesson context provides authoritative values
+        // (Frontend payload used as fallback for non-lesson fields)
+        if (lessonContext.bible_passage) {
+          payload.bible_passage = lessonContext.bible_passage;
+        }
+        if (lessonContext.focused_topic) {
+          payload.focus_point = lessonContext.focused_topic;
+        }
+        // Note: theology_profile_id, bible_version_id, age_group from lesson
+        // would need to be resolved to full objects - for now, frontend provides these
       }
     }
 
-    // =========================================================================
-    // PARSE AND VALIDATE REQUEST
-    // =========================================================================
-    
-    const body = await req.json();
-    const validation = validateRequest(body);
-    
-    if (!validation.valid) {
-      return new Response(
-        JSON.stringify({ success: false, error: validation.error }),
-        { status: 400, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
+    // Select directive based on context
+    const systemInstruction = context === "lessonspark" 
+      ? LESSONSPARK_DIRECTIVE 
+      : STANDALONE_DIRECTIVE;
 
-    const request = validation.request!;
+    // Fetch news
+    const keywords = extractKeywordsFromPassage(
+      payload.bible_passage || "",
+      payload.focus_point
+    );
+    const news = await fetchRelevantNews(keywords);
 
-    // =========================================================================
-    // FETCH NEWS
-    // =========================================================================
-    
-    /**
- * Scripture-first parable guardrails (SSOT priority: Scripture/theme)
- */
-const parableGuardrails = deriveParableGuardrails(
-  request.bible_passage,
-  request.focus_point,
-  request.age_group?.name,
-  request.audience_lens?.name
-);
+    // Build prompt with full guardrails
+    const userPrompt = buildParablePrompt(payload, news, false);
 
-// News keywords are derived from guardrails to prevent drift
-let newsKeywords: string[];
-
-if (parableGuardrails.real_life_trigger === "mortality") {
-  newsKeywords = [
-    "death", "died", "dead", "fatal", "killed",
-    "funeral", "obituary", "memorial", "hospice",
-    "terminal", "aging", "elderly"
-  ];
-} else {
-  newsKeywords = extractKeywordsFromPassage(request.bible_passage, request.focus_point);
-}
-    console.log("Searching news with keywords:", keywords);
-    
-    const newsArticle = await fetchRelevantNews(newsKeywords);
-    
-    let newsSummary = "A person in your community faces a difficult decision that will reveal what they truly value.";
-    let newsHeadline = "Contemporary scenario";
-    let newsSource = "generated";
-    let newsUrl = "";
-    let newsDate: string | null = null;
-    let newsLocation: string | null = null;
-    let hasRealNews = false;
-
-    if (newsArticle) {
-      newsSummary = `${newsArticle.title}. ${newsArticle.description || newsArticle.content}`.slice(0, 500);
-      newsHeadline = newsArticle.title;
-      newsSource = newsArticle.source_id;
-      newsUrl = newsArticle.link;
-      newsDate = newsArticle.pubDate || null;
-      newsLocation = newsArticle.country && newsArticle.country.length > 0 
-        ? formatCountryCodes(newsArticle.country) 
-        : null;
-      hasRealNews = true;
-      console.log("Found news article:", newsHeadline, "Date:", newsDate, "Location:", newsLocation);
-    } else {
-      console.log("No news found, using generic scenario");
-    }
-
-    // =========================================================================
-    // GENERATE PARABLE
-    // =========================================================================
-    
-    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!anthropicApiKey) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Anthropic API key not configured" }),
-        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
-
-    const prompt = buildParablePrompt(request, newsSummary, newsDate, newsLocation, hasRealNews);
-
-    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-      }),
-    });
-
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text();
-      console.error("Claude API error:", errorText);
-      return new Response(
-        JSON.stringify({ success: false, error: "Failed to generate parable" }),
-        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
-
-    const claudeData = await claudeResponse.json();
-    const parableText = claudeData.content[0]?.text || "";
-    
-    if (!parableText) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Empty response from AI" }),
-        { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-      );
-    }
-
-    const wordCount = parableText.split(/\s+/).filter(Boolean).length;
+    // Generate parable
+    console.log("Generating parable for authenticated user:", user.id);
+    const parableText = await generateParableWithProvider(systemInstruction, userPrompt);
     const generationTimeMs = Date.now() - startTime;
 
-    // =========================================================================
-    // SAVE AND TRACK (Authenticated only)
-    // =========================================================================
-    
-    let parableId = "generated";
-    
-    if (isAuthenticated && user) {
-      // Save parable to database
-      const { data: savedParable, error: saveError } = await supabase
-        .from("modern_parables")
-        .insert({
-          user_id: user.id,
-          lesson_id: request.lesson_id || null,
-          bible_passage: request.bible_passage,
-          focus_point: request.focus_point,
-          audience_lens: request.audience_lens.id,
-          modern_setting: request.modern_setting.id,
-          word_count_target: request.word_count_target.id,
-          age_group: request.age_group.id,
-          news_headline: newsHeadline,
-          news_source: newsSource,
-          news_summary: newsSummary.slice(0, 1000),
-          news_url: newsUrl,
-          news_date: newsDate,
-          news_location: newsLocation,
-          parable_text: parableText,
-          theology_profile: request.theology_profile.id,
-          bible_version: request.bible_version.id,
-          word_count: wordCount,
-          generation_time_ms: generationTimeMs,
-        })
-        .select()
-        .single();
+    // Save to database
+    const parableId = await saveParable(
+      supabaseAdmin,
+      user.id,
+      payload,
+      parableText,
+      news,
+      generationTimeMs
+    );
 
-      if (saveError) {
-        console.error("Error saving parable:", saveError);
-      } else {
-        parableId = savedParable?.id || "unsaved";
-      }
-
-      // Update usage count
-      await supabase.rpc('increment_parable_usage', { p_user_id: user.id });
-      currentUsage += 1;
-    } else {
-      // Anonymous: Just increment IP usage counter
-      const clientIP = getClientIP(req);
-      await incrementAnonymousUsage(supabase, clientIP);
-    }
-
-    // =========================================================================
-    // BUILD RESPONSE
-    // =========================================================================
+    // Get updated usage for response
+    const periodStart = billingPeriodStartISO();
+    const { data: usageData } = await supabaseAdmin
+      .from("user_parable_usage")
+      .select("parables_this_month")
+      .eq("user_id", user.id)
+      .gte("billing_period_start", periodStart)
+      .maybeSingle();
     
-    const response: ParableResponse = {
+    const monthlyLimit = Number(Deno.env.get("PARABLE_MONTHLY_LIMIT") ?? "7");
+    const currentUsed = usageData?.parables_this_month ?? 1;
+
+    return json({
       success: true,
       parable: {
         id: parableId,
         parable_text: parableText,
-        bible_passage: request.bible_passage,
-        focus_point: request.focus_point,
-        news_headline: newsHeadline,
-        news_source: newsSource,
-        news_url: newsUrl,
-        news_date: newsDate,
-        news_location: newsLocation,
-        word_count: wordCount,
+        bible_passage: payload.bible_passage || "",
+        news_headline: news?.title || "Contemporary scenario",
+        news_source: news?.source_id || "generated",
+        news_url: news?.link || "",
+        news_date: news?.pubDate || null,
+        news_location: news?.country?.[0] || null,
+        word_count: countWords(parableText),
         generation_time_ms: generationTimeMs,
       },
-    };
-    
-    // Include usage info for authenticated users
-    if (isAuthenticated) {
-      response.usage = {
-        used: currentUsage,
-        limit: usageLimit,
-        remaining: usageLimit - currentUsage,
-      };
-    }
-
-    return new Response(JSON.stringify(response), {
-      status: 200,
-      headers: { ...getCorsHeaders(req), "Content-Type": "application/json" },
+      usage: isAdmin 
+        ? { bypassed: true, role: "admin" }
+        : { used: currentUsed, limit: monthlyLimit, remaining: Math.max(0, monthlyLimit - currentUsed) },
     });
 
-  } catch (error) {
-    console.error("Error in generate-parable:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message || "Internal server error" }),
-      { status: 500, headers: { ...getCorsHeaders(req), "Content-Type": "application/json" } }
-    );
+  } catch (err) {
+    console.error("Error generating parable:", err);
+    const message = err instanceof Error ? err.message : "Internal error";
+    return json({ success: false, error: message }, 500);
   }
 });
-
-
-
-

@@ -1,0 +1,878 @@
+/**
+ * Generate Modern Parable Edge Function
+ * Phase 17.6: Anonymous Access Support
+ * 
+ * ARCHITECTURE: Frontend Drives Backend
+ * - Frontend resolves all IDs to full objects from SSOT constants
+ * - Frontend sends complete, resolved data
+ * - Edge Function uses what it receives (no config lookups)
+ * 
+ * ACCESS MODES:
+ * - Anonymous: 3 parables/day per IP, not saved to DB
+ * - Authenticated: 7 parables/month, saved to DB with full tracking
+ * 
+ * @version 2.1.0
+ * @lastUpdated 2025-12-21
+ */
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// =============================================================================
+// CORS HEADERS
+// =============================================================================
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// =============================================================================
+// CONSTANTS
+// =============================================================================
+
+const ANONYMOUS_DAILY_LIMIT = 3;
+const AUTHENTICATED_MONTHLY_LIMIT = 7;
+
+// =============================================================================
+// TYPE DEFINITIONS - REQUEST INTERFACE (Contract with Frontend)
+// =============================================================================
+
+interface ResolvedTheologyProfile {
+  id: string;
+  name: string;
+  guardrails: string;
+  description: string;
+}
+
+interface ResolvedBibleVersion {
+  id: string;
+  name: string;
+  abbreviation: string;
+  copyrightStatus: 'public_domain' | 'copyrighted';
+  copyrightGuardrails: string;
+}
+
+interface ResolvedAudienceLens {
+  id: string;
+  name: string;
+  description: string;
+  heartCondition: string;
+}
+
+interface ResolvedModernSetting {
+  id: string;
+  name: string;
+  description: string;
+  exampleRoles: string[];
+}
+
+interface ResolvedWordCountTarget {
+  id: string;
+  name: string;
+  wordRange: { min: number; max: number };
+}
+
+interface ResolvedAgeGroup {
+  id: string;
+  name: string;
+  vocabularyLevel: string;
+  conceptualDepth: string;
+}
+
+interface ParableDirective {
+  id: 'standalone' | 'lessonspark';
+  name: string;
+  systemInstruction: string;
+}
+
+interface ParableRequest {
+  bible_passage?: string;
+  focus_point?: string;
+  parable_directive: ParableDirective;
+  theology_profile: ResolvedTheologyProfile;
+  bible_version: ResolvedBibleVersion;
+  audience_lens: ResolvedAudienceLens;
+  modern_setting: ResolvedModernSetting;
+  word_count_target: ResolvedWordCountTarget;
+  age_group: ResolvedAgeGroup;
+  lesson_id?: string;
+}
+
+interface NewsArticle {
+  title: string;
+  description: string;
+  content: string;
+  source_id: string;
+  link: string;
+  pubDate?: string;
+  country?: string[];
+}
+
+interface ParableResponse {
+  success: boolean;
+  parable?: {
+    id: string;
+    parable_text: string;
+    bible_passage?: string;
+    focus_point?: string;
+    news_headline: string;
+    news_source: string;
+    news_url: string;
+    news_date: string | null;
+    news_location: string | null;
+    word_count: number;
+    generation_time_ms: number;
+  };
+  // Usage info for authenticated users
+  usage?: {
+    used: number;
+    limit: number;
+    remaining: number;
+  };
+  error?: string;
+}
+
+// =============================================================================
+// NEWS FETCHING
+// =============================================================================
+
+async function fetchRelevantNews(keywords: string[]): Promise<NewsArticle | null> {
+  const apiKey = Deno.env.get("NEWSDATA_API_KEY");
+  if (!apiKey) {
+    console.error("NEWSDATA_API_KEY not configured");
+    return null;
+  }
+
+  const query = keywords.slice(0, 3).join(" OR ");
+  const newsUrl = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(query)}&language=en&size=10`;
+
+  try {
+    console.log("Fetching recent news:", { query, keywords });
+    const response = await fetch(newsUrl);
+    const data = await response.json();
+
+    if (data.status === "success" && data.results && data.results.length > 0) {
+      const randomIndex = Math.floor(Math.random() * Math.min(10, data.results.length));
+      const article = data.results[randomIndex];
+      
+      console.log("Found news article:", article.title, "from", article.source_id);
+      
+      return {
+        title: article.title || "",
+        description: article.description || "",
+        content: article.content || article.description || "",
+        source_id: article.source_id || "unknown",
+        link: article.link || "",
+        pubDate: article.pubDate || "",
+        country: article.country || [],
+      };
+    }
+    
+    console.log("No results from primary search, trying broader terms...");
+    const fallbackKeywords = ["family", "community", "people", "helping"];
+    const fallbackQuery = fallbackKeywords.slice(0, 2).join(" OR ");
+    const fallbackUrl = `https://newsdata.io/api/1/news?apikey=${apiKey}&q=${encodeURIComponent(fallbackQuery)}&language=en&category=lifestyle&size=10`;
+    
+    const fallbackResponse = await fetch(fallbackUrl);
+    const fallbackData = await fallbackResponse.json();
+    
+    if (fallbackData.status === "success" && fallbackData.results && fallbackData.results.length > 0) {
+      const randomIndex = Math.floor(Math.random() * Math.min(10, fallbackData.results.length));
+      const article = fallbackData.results[randomIndex];
+      
+      console.log("Found fallback news article:", article.title);
+      
+      return {
+        title: article.title || "",
+        description: article.description || "",
+        content: article.content || article.description || "",
+        source_id: article.source_id || "unknown",
+        link: article.link || "",
+        pubDate: article.pubDate || "",
+        country: article.country || [],
+      };
+    }
+    
+    console.log("No news articles found even with fallback");
+    return null;
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    return null;
+  }
+}
+
+const COUNTRY_NAMES: Record<string, string> = {
+  us: "United States",
+  gb: "United Kingdom",
+  ca: "Canada",
+  au: "Australia",
+  nz: "New Zealand",
+  ie: "Ireland",
+  za: "South Africa",
+  in: "India",
+  sg: "Singapore",
+  ph: "Philippines",
+  ng: "Nigeria",
+  ke: "Kenya",
+  gh: "Ghana",
+};
+
+function formatCountryCodes(codes: string[]): string {
+  if (!codes || codes.length === 0) return "";
+  
+  const names = codes
+    .slice(0, 2)
+    .map(code => COUNTRY_NAMES[code.toLowerCase()] || code.toUpperCase())
+    .filter(Boolean);
+  
+  return names.join(", ");
+}
+
+function extractKeywordsFromPassage(passage?: string, focusPoint?: string): string[] {
+  const themeKeywords: Record<string, string[]> = {
+    "love": ["charity", "compassion", "volunteer", "donation", "helping"],
+    "neighbor": ["community", "neighbor", "local", "helping", "volunteer"],
+    "forgive": ["reconciliation", "forgiveness", "apology", "healing"],
+    "mercy": ["mercy", "pardon", "compassion", "relief"],
+    "faith": ["trust", "hope", "perseverance", "courage"],
+    "trust": ["trust", "confidence", "reliability", "faith"],
+    "fear": ["anxiety", "worry", "courage", "overcoming"],
+    "hope": ["hope", "optimism", "recovery", "comeback"],
+    "justice": ["justice", "fairness", "court", "rights"],
+    "truth": ["truth", "honesty", "transparency", "integrity"],
+    "righteous": ["ethics", "integrity", "moral", "honest"],
+    "money": ["wealth", "poverty", "economy", "financial"],
+    "rich": ["wealthy", "billionaire", "success", "prosperity"],
+    "poor": ["poverty", "homeless", "struggling", "hardship"],
+    "give": ["donation", "charity", "generous", "giving"],
+    "father": ["father", "parent", "family", "dad"],
+    "mother": ["mother", "parent", "family", "mom"],
+    "son": ["son", "child", "youth", "family"],
+    "daughter": ["daughter", "child", "family"],
+    "brother": ["brothers", "siblings", "family", "brothers dispute"],
+    "sister": ["sisters", "siblings", "family", "sisters conflict"],
+    "sibling": ["siblings", "brothers", "sisters", "family conflict"],
+    "rivalry": ["competition", "conflict", "dispute", "jealousy"],
+    "prodigal": ["return", "reconciliation", "forgiveness", "family"],
+    "servant": ["employee", "worker", "service", "dedication"],
+    "master": ["employer", "boss", "leadership", "management"],
+    "work": ["workplace", "job", "career", "employment"],
+    "talent": ["skill", "talent", "ability", "potential"],
+    "church": ["community", "congregation", "faith community"],
+    "sheep": ["lost", "rescue", "search", "recovery"],
+    "shepherd": ["leader", "pastor", "guide", "protector"],
+    "jealousy": ["jealousy", "envy", "competition", "resentment"],
+    "envy": ["envy", "jealousy", "competition", "comparison"],
+    "pride": ["arrogance", "humility", "success", "achievement"],
+    "anger": ["conflict", "dispute", "confrontation", "resolution"],
+    "grief": ["loss", "mourning", "healing", "support"],
+    "anxiety": ["stress", "worry", "mental health", "coping"],
+    "loneliness": ["isolation", "community", "connection", "friendship"],
+    "patience": ["waiting", "perseverance", "endurance", "delay"],
+    "gratitude": ["thankfulness", "appreciation", "blessing", "generosity"],
+    "conflict": ["dispute", "disagreement", "resolution", "reconciliation"],
+    "comparison": ["comparison", "competition", "jealousy", "self-worth"],
+  };
+
+  const keywords: string[] = [];
+  const passageLower = (passage || "").toLowerCase();
+  const focusLower = (focusPoint || "").toLowerCase();
+  const combined = passageLower + " " + focusLower;
+
+  for (const [theme, newsKeywords] of Object.entries(themeKeywords)) {
+    if (combined.includes(theme)) {
+      keywords.push(...newsKeywords.slice(0, 2));
+    }
+  }
+
+  if (keywords.length === 0) {
+    keywords.push("family", "community", "people", "helping");
+  }
+
+  return [...new Set(keywords)].slice(0, 5);
+}
+
+// =============================================================================
+// PROMPT BUILDING
+// =============================================================================
+
+function buildParablePrompt(request: ParableRequest, newsSummary: string, newsDate: string | null, newsLocation: string | null, hasRealNews: boolean): string {
+  const { 
+    bible_passage,
+    focus_point,
+    parable_directive,
+    theology_profile,
+    bible_version,
+    audience_lens,
+    modern_setting,
+    word_count_target,
+    age_group,
+  } = request;
+
+  const targetRange = `${word_count_target.wordRange.min}-${word_count_target.wordRange.max}`;
+  
+  let attributionSection: string;
+  if (hasRealNews && newsLocation) {
+    const now = new Date();
+    const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`;
+    attributionSection = `=== ATTRIBUTION LINE (Include in output) ===
+Inspired by real-life situations reported in ${monthYear} within ${newsLocation}.`;
+  } else {
+    attributionSection = `=== ATTRIBUTION ===
+NOTE: No specific news source available. Do NOT include an attribution line in the output.
+Create a timeless parable based on the focus/passage without referencing specific dates or locations.`;
+  }
+
+  const hasPassage = bible_passage && bible_passage.trim();
+  const hasFocus = focus_point && focus_point.trim();
+  
+  let passageSection: string;
+  let scriptureInstruction: string;
+  
+  const focusInterpretation = hasFocus ? `
+CRITICAL FOCUS INTERPRETATION:
+The focus point "${focus_point}" defines:
+1. WHO the main characters must be (e.g., "sibling rivalry" = two siblings are the protagonists)
+2. WHAT relationship conflict is central (e.g., "sibling rivalry" = conflict BETWEEN siblings, not involving parents)
+3. The parable must show this specific dynamic between these specific people
+
+Examples of correct interpretation:
+- "sibling rivalry" → Story about TWO BROTHERS or TWO SISTERS who are jealous of each other
+- "parent-child conflict" → Story about a PARENT and CHILD in disagreement
+- "workplace jealousy" → Story about COWORKERS who are envious of each other
+- "marital forgiveness" → Story about a HUSBAND and WIFE
+
+DO NOT substitute other relationships. If the focus says "sibling," the main characters MUST be siblings.` : '';
+  
+  if (hasPassage && hasFocus) {
+    passageSection = `BIBLE PASSAGE: ${bible_passage}
+FOCUS POINT: ${focus_point}
+${focusInterpretation}`;
+    scriptureInstruction = `End with Scripture from ${bible_passage} using ${bible_version.abbreviation} - no commentary after`;
+  } else if (hasPassage) {
+    passageSection = `BIBLE PASSAGE: ${bible_passage}
+FOCUS POINT: The central truth of this passage`;
+    scriptureInstruction = `End with Scripture from ${bible_passage} using ${bible_version.abbreviation} - no commentary after`;
+  } else {
+    passageSection = `FOCUS POINT: ${focus_point}
+${focusInterpretation}
+
+NOTE: No specific Bible passage provided. Select an appropriate Scripture that speaks to this focus.`;
+    scriptureInstruction = `End with an appropriate Scripture that speaks to "${focus_point}" using ${bible_version.abbreviation} - no commentary after. Choose a passage that anchors the heart truth revealed in the parable.`;
+  }
+
+  return `${parable_directive.systemInstruction}
+
+=============================================================================
+SPECIFIC GENERATION CONTEXT
+=============================================================================
+
+=== PASSAGE & FOCUS ===
+${passageSection}
+
+${attributionSection}
+
+=== AUDIENCE CONTEXT ===
+AUDIENCE LENS: ${audience_lens.name} - ${audience_lens.description}
+TARGET HEART CONDITION: ${audience_lens.heartCondition}
+AGE GROUP: ${age_group.name}
+VOCABULARY LEVEL: ${age_group.vocabularyLevel}
+CONCEPTUAL DEPTH: ${age_group.conceptualDepth}
+
+=== MODERN SETTING ===
+SETTING: ${modern_setting.name} - ${modern_setting.description}
+POSSIBLE ROLES: ${modern_setting.exampleRoles.join(", ")}
+
+=== NEWS CONTEXT (for realism - do NOT mention directly) ===
+Use this as "soil" for realistic scenarios. Never reference directly in output.
+${newsSummary}
+
+=== SOURCE FIDELITY REQUIREMENT (NON-NEGOTIABLE) ===
+When sparked by a real-world source, you MUST preserve alignment across these dimensions.
+STOP generation and use generic scenario if alignment cannot be maintained.
+
+1. TYPE OF SUFFERING - Do not change the category:
+   - Violence in source → harm caused by another in parable
+   - Illness in source → illness in parable
+   - Injustice in source → injustice in parable
+
+2. AGENT OF SUFFERING - Preserve the cause:
+   - Harm by person → must remain harm by person (not illness, fate, or internal struggle)
+   - Random/senseless harm → must remain random (not moral consequence or earned suffering)
+
+3. SETTING SCALE - Match scope:
+   - Public event → public or communal setting
+   - Private suffering → private setting
+   - Do NOT convert public tragedy into private introspection
+
+4. EMOTIONAL REGISTER - Preserve the emotion:
+   - Fear → fear (not peace)
+   - Shock → shock (not acceptance)
+   - Grief → grief (not resolution)
+   - You may deepen meaning but NOT replace the core emotion
+
+5. THEOLOGICAL QUESTION CONTINUITY:
+   - Identify the core question (e.g., "Why does innocent suffering occur?")
+   - The parable MUST wrestle with the SAME question, not a different one
+
+PROHIBITED SOURCE DRIFT:
+✗ Do NOT abstract violence into illness
+✗ Do NOT abstract injustice into personal guilt
+✗ Do NOT abstract public trauma into private devotion
+✗ Do NOT replace randomness with earned consequence
+
+BEFORE GENERATING: Verify your parable preserves fidelity to the source across all 5 dimensions.
+
+=== THEOLOGICAL GUARDRAILS ===
+THEOLOGY PROFILE: ${theology_profile.name}
+${theology_profile.guardrails}
+
+=== BIBLE VERSION RULES ===
+BIBLE VERSION: ${bible_version.name} (${bible_version.abbreviation})
+${bible_version.copyrightGuardrails}
+
+=== OUTPUT REQUIREMENTS ===
+- TARGET LENGTH: ${targetRange} words total
+- Use the exact 8-section structure from the directive above
+- Include the attribution line at the beginning or end
+- Match vocabulary to ${age_group.vocabularyLevel} level
+- ${scriptureInstruction}
+
+Generate the Modern Parable now:`;
+}
+
+// =============================================================================
+// REQUEST VALIDATION
+// =============================================================================
+
+function validateRequest(body: unknown): { valid: boolean; error?: string; request?: ParableRequest } {
+  if (!body || typeof body !== 'object') {
+    return { valid: false, error: "Invalid request body" };
+  }
+
+  const req = body as Record<string, unknown>;
+
+  const hasPassage = req.bible_passage && typeof req.bible_passage === 'string' && req.bible_passage.trim();
+  const hasFocus = req.focus_point && typeof req.focus_point === 'string' && req.focus_point.trim();
+  
+  if (!hasPassage && !hasFocus) {
+    return { valid: false, error: "Either bible_passage or focus_point is required (or both)" };
+  }
+
+  if (!req.parable_directive || typeof req.parable_directive !== 'object') {
+    return { valid: false, error: "parable_directive must be a resolved object from SSOT constants" };
+  }
+  const pd = req.parable_directive as Record<string, unknown>;
+  if (!pd.id || !pd.systemInstruction) {
+    return { valid: false, error: "parable_directive must include id and systemInstruction" };
+  }
+  if (pd.id !== 'standalone' && pd.id !== 'lessonspark') {
+    return { valid: false, error: "parable_directive.id must be 'standalone' or 'lessonspark'" };
+  }
+
+  if (!req.theology_profile || typeof req.theology_profile !== 'object') {
+    return { valid: false, error: "theology_profile must be a resolved object (not just ID)" };
+  }
+  const tp = req.theology_profile as Record<string, unknown>;
+  if (!tp.id || !tp.name || !tp.guardrails) {
+    return { valid: false, error: "theology_profile must include id, name, and guardrails" };
+  }
+
+  if (!req.bible_version || typeof req.bible_version !== 'object') {
+    return { valid: false, error: "bible_version must be a resolved object (not just ID)" };
+  }
+  const bv = req.bible_version as Record<string, unknown>;
+  if (!bv.id || !bv.name || !bv.copyrightGuardrails) {
+    return { valid: false, error: "bible_version must include id, name, and copyrightGuardrails" };
+  }
+
+  if (!req.audience_lens || typeof req.audience_lens !== 'object') {
+    return { valid: false, error: "audience_lens must be a resolved object" };
+  }
+
+  if (!req.modern_setting || typeof req.modern_setting !== 'object') {
+    return { valid: false, error: "modern_setting must be a resolved object" };
+  }
+
+  if (!req.word_count_target || typeof req.word_count_target !== 'object') {
+    return { valid: false, error: "word_count_target must be a resolved object" };
+  }
+  const wct = req.word_count_target as Record<string, unknown>;
+  if (!wct.wordRange || typeof wct.wordRange !== 'object') {
+    return { valid: false, error: "word_count_target must include wordRange with min/max" };
+  }
+
+  if (!req.age_group || typeof req.age_group !== 'object') {
+    return { valid: false, error: "age_group must be a resolved object" };
+  }
+
+  return { 
+    valid: true, 
+    request: body as ParableRequest 
+  };
+}
+
+// =============================================================================
+// IP ADDRESS EXTRACTION
+// =============================================================================
+
+function getClientIP(req: Request): string {
+  // Try various headers that might contain the client IP
+  const forwardedFor = req.headers.get("x-forwarded-for");
+  if (forwardedFor) {
+    // x-forwarded-for can contain multiple IPs, take the first one
+    return forwardedFor.split(",")[0].trim();
+  }
+  
+  const realIP = req.headers.get("x-real-ip");
+  if (realIP) {
+    return realIP.trim();
+  }
+  
+  const cfConnectingIP = req.headers.get("cf-connecting-ip");
+  if (cfConnectingIP) {
+    return cfConnectingIP.trim();
+  }
+  
+  // Fallback - shouldn't happen in production
+  return "unknown";
+}
+
+// =============================================================================
+// ANONYMOUS USAGE TRACKING
+// =============================================================================
+
+async function checkAnonymousUsage(supabase: any, ipAddress: string): Promise<{ allowed: boolean; count: number }> {
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  
+  const { data, error } = await supabase
+    .from("anonymous_parable_usage")
+    .select("parable_count")
+    .eq("ip_address", ipAddress)
+    .eq("usage_date", today)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') {
+    // PGRST116 = no rows found, which is fine
+    console.error("Error checking anonymous usage:", error);
+  }
+  
+  const currentCount = data?.parable_count || 0;
+  return {
+    allowed: currentCount < ANONYMOUS_DAILY_LIMIT,
+    count: currentCount
+  };
+}
+
+async function incrementAnonymousUsage(supabase: any, ipAddress: string): Promise<void> {
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Try to update existing row
+  const { data: existing } = await supabase
+    .from("anonymous_parable_usage")
+    .select("id, parable_count")
+    .eq("ip_address", ipAddress)
+    .eq("usage_date", today)
+    .single();
+  
+  if (existing) {
+    // Update existing row
+    await supabase
+      .from("anonymous_parable_usage")
+      .update({ 
+        parable_count: existing.parable_count + 1,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", existing.id);
+  } else {
+    // Insert new row
+    await supabase
+      .from("anonymous_parable_usage")
+      .insert({
+        ip_address: ipAddress,
+        usage_date: today,
+        parable_count: 1
+      });
+  }
+}
+
+// =============================================================================
+// MAIN HANDLER
+// =============================================================================
+
+serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  const startTime = Date.now();
+
+  try {
+    // Initialize Supabase client with service role (for DB operations)
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // =========================================================================
+    // AUTHENTICATION (OPTIONAL)
+    // =========================================================================
+    
+    const authHeader = req.headers.get("Authorization");
+    let user = null;
+    let isAuthenticated = false;
+    
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (!userError && authUser) {
+        user = authUser;
+        isAuthenticated = true;
+      }
+    }
+
+    // =========================================================================
+    // USAGE LIMIT CHECK
+    // =========================================================================
+    
+    let currentUsage = 0;
+    let usageLimit = 0;
+    
+    if (isAuthenticated && user) {
+      // Authenticated user: Check monthly limit
+      const { data: usageData } = await supabase
+        .from("user_parable_usage")
+        .select("parables_this_month")
+        .eq("user_id", user.id)
+        .single();
+
+      currentUsage = usageData?.parables_this_month || 0;
+      usageLimit = AUTHENTICATED_MONTHLY_LIMIT;
+
+      if (currentUsage >= usageLimit) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `You have reached your monthly limit of ${usageLimit} parables. Limit resets next month.`,
+            usage: { used: currentUsage, limit: usageLimit, remaining: 0 }
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      // Anonymous user: Check daily limit by IP
+      const clientIP = getClientIP(req);
+      console.log("Anonymous user from IP:", clientIP);
+      
+      const { allowed, count } = await checkAnonymousUsage(supabase, clientIP);
+      currentUsage = count;
+      usageLimit = ANONYMOUS_DAILY_LIMIT;
+      
+      if (!allowed) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Daily limit reached. Please try again tomorrow."
+          }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // =========================================================================
+    // PARSE AND VALIDATE REQUEST
+    // =========================================================================
+    
+    const body = await req.json();
+    const validation = validateRequest(body);
+    
+    if (!validation.valid) {
+      return new Response(
+        JSON.stringify({ success: false, error: validation.error }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const request = validation.request!;
+
+    // =========================================================================
+    // FETCH NEWS
+    // =========================================================================
+    
+    const keywords = extractKeywordsFromPassage(request.bible_passage, request.focus_point);
+    console.log("Searching news with keywords:", keywords);
+    
+    const newsArticle = await fetchRelevantNews(keywords);
+    
+    let newsSummary = "A person in your community faces a difficult decision that will reveal what they truly value.";
+    let newsHeadline = "Contemporary scenario";
+    let newsSource = "generated";
+    let newsUrl = "";
+    let newsDate: string | null = null;
+    let newsLocation: string | null = null;
+    let hasRealNews = false;
+
+    if (newsArticle) {
+      newsSummary = `${newsArticle.title}. ${newsArticle.description || newsArticle.content}`.slice(0, 500);
+      newsHeadline = newsArticle.title;
+      newsSource = newsArticle.source_id;
+      newsUrl = newsArticle.link;
+      newsDate = newsArticle.pubDate || null;
+      newsLocation = newsArticle.country && newsArticle.country.length > 0 
+        ? formatCountryCodes(newsArticle.country) 
+        : null;
+      hasRealNews = true;
+      console.log("Found news article:", newsHeadline, "Date:", newsDate, "Location:", newsLocation);
+    } else {
+      console.log("No news found, using generic scenario");
+    }
+
+    // =========================================================================
+    // GENERATE PARABLE
+    // =========================================================================
+    
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Anthropic API key not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const prompt = buildParablePrompt(request, newsSummary, newsDate, newsLocation, hasRealNews);
+
+    const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+    });
+
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text();
+      console.error("Claude API error:", errorText);
+      return new Response(
+        JSON.stringify({ success: false, error: "Failed to generate parable" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const claudeData = await claudeResponse.json();
+    const parableText = claudeData.content[0]?.text || "";
+    
+    if (!parableText) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Empty response from AI" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const wordCount = parableText.split(/\s+/).filter(Boolean).length;
+    const generationTimeMs = Date.now() - startTime;
+
+    // =========================================================================
+    // SAVE AND TRACK (Authenticated only)
+    // =========================================================================
+    
+    let parableId = "generated";
+    
+    if (isAuthenticated && user) {
+      // Save parable to database
+      const { data: savedParable, error: saveError } = await supabase
+        .from("modern_parables")
+        .insert({
+          user_id: user.id,
+          lesson_id: request.lesson_id || null,
+          bible_passage: request.bible_passage,
+          focus_point: request.focus_point,
+          audience_lens: request.audience_lens.id,
+          modern_setting: request.modern_setting.id,
+          word_count_target: request.word_count_target.id,
+          age_group: request.age_group.id,
+          news_headline: newsHeadline,
+          news_source: newsSource,
+          news_summary: newsSummary.slice(0, 1000),
+          news_url: newsUrl,
+          news_date: newsDate,
+          news_location: newsLocation,
+          parable_text: parableText,
+          theology_profile: request.theology_profile.id,
+          bible_version: request.bible_version.id,
+          word_count: wordCount,
+          generation_time_ms: generationTimeMs,
+        })
+        .select()
+        .single();
+
+      if (saveError) {
+        console.error("Error saving parable:", saveError);
+      } else {
+        parableId = savedParable?.id || "unsaved";
+      }
+
+      // Update usage count
+      await supabase.rpc('increment_parable_usage', { p_user_id: user.id });
+      currentUsage += 1;
+    } else {
+      // Anonymous: Just increment IP usage counter
+      const clientIP = getClientIP(req);
+      await incrementAnonymousUsage(supabase, clientIP);
+    }
+
+    // =========================================================================
+    // BUILD RESPONSE
+    // =========================================================================
+    
+    const response: ParableResponse = {
+      success: true,
+      parable: {
+        id: parableId,
+        parable_text: parableText,
+        bible_passage: request.bible_passage,
+        focus_point: request.focus_point,
+        news_headline: newsHeadline,
+        news_source: newsSource,
+        news_url: newsUrl,
+        news_date: newsDate,
+        news_location: newsLocation,
+        word_count: wordCount,
+        generation_time_ms: generationTimeMs,
+      },
+    };
+    
+    // Include usage info for authenticated users
+    if (isAuthenticated) {
+      response.usage = {
+        used: currentUsage,
+        limit: usageLimit,
+        remaining: usageLimit - currentUsage,
+      };
+    }
+
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+
+  } catch (error) {
+    console.error("Error in generate-parable:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message || "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
