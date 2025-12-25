@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated:** 2025-12-17
-**Current Phase:** Phase 15 Complete, Admin Panel Enhanced
+**Last Updated: 2025-12-25
+**Current Phase: Phase 17 Complete - Modern Parable Generator
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
 
@@ -135,7 +135,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 
 ### Backend
 - **Database:** Supabase PostgreSQL
-- **AI Processing:** Supabase Edge Functions (Deno) + Anthropic Claude API (claude-sonnet-4-20250514)
+- **AI Processing:** Supabase Edge Functions (Deno) + Anthropic Claude API (claude-sonnet-4-20250514 for lessons, claude-sonnet-4-5-20250929 for parables)
 - **Authentication:** Supabase Auth
 - **Storage:** Supabase Storage
 
@@ -643,7 +643,7 @@ npm run sync-constants
 
 ## Project Status
 
-**Current Phase:** Phase 15 Complete, Admin Panel Enhanced
+**Current Phase: Phase 17 Complete - Modern Parable Generator
 **Overall Completion:** ~97% (Core product + feedback + security ready)
 **Production Readiness:** Beta (Individual users, no payment)
 
@@ -761,12 +761,12 @@ npm run sync-constants
 
 | Item | Priority | Status |
 |------|----------|--------|
-| SSOT Compliance Audit (see below) | HIGH | Post-Beta |
+| SSOT Compliance Audit (see below) | HIGH | ✅ COMPLETE (Dec 13, 2025) |
 | Security Monitoring & Logging | LOW | Deferred |
 | Failed Access Logging | LOW | Deferred |
 | Frontend warning toast for guardrail violations | MEDIUM | Pending |
-| System Analytics dashboard implementation | MEDIUM | Pending |
-| System Settings panel implementation | LOW | Deferred |
+| System Analytics dashboard implementation | MEDIUM | ✅ COMPLETE (Dec 17, 2025) |
+| System Settings panel implementation | LOW | ✅ COMPLETE (Dec 16, 2025) |
 | Quick Tier evaluation (post-beta data) | MEDIUM | Pending beta data |
 
 ---
@@ -948,7 +948,7 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 
 ---
 
-## Phase 12: Teacher Profiles & UX Improvements (December 2-7, 2025) - IN PROGRESS
+## Phase 12: Teacher Profiles & UX Improvements (December 2-7, 2025) - COMPLETE
 
 ### Session 1-6: Core Improvements
 - PDF Extraction Bug Fix (Claude API)
@@ -1424,10 +1424,10 @@ Members retain joined_during_beta = true for historical tracking.
 
 | Task | Priority | Status |
 |------|----------|--------|
-| Create lessonTiers.ts SSOT | HIGH | Ready |
-| Create generationMetrics.ts SSOT | HIGH | Ready |
+| Create lessonTiers.ts SSOT | HIGH | ✅ COMPLETE |
+| Create generationMetrics.ts SSOT | HIGH | ✅ COMPLETE |
 | Update sync-constants.cjs | HIGH | Pending |
-| Create generation_metrics table | MEDIUM | Pending (after SSOT) |
+| Create generation_metrics table | MEDIUM | ✅ COMPLETE (used by System Analytics) |
 | Beta tester onboarding | HIGH | In Progress |
 
 ## Post-Beta
@@ -1442,9 +1442,9 @@ Members retain joined_during_beta = true for historical tracking.
 
 ---
 
-## Phase 15: Perpetual Freshness - IN PROGRESS
+## Phase 15: Perpetual Freshness - COMPLETE
 
-**Status:** Starting December 14, 2025
+**Status:** Completed December 17, 2025
 
 **Purpose:** Ensure every lesson generation produces meaningfully different content, even for the same passage with the same settings. Prevent stale, repetitive outputs.
 
@@ -1507,6 +1507,102 @@ Add freshness instructions to lesson generation prompt:
 
 ---
 
+## Phase 17: Modern Parable Generator - COMPLETE
+
+**Status:** Completed December 25, 2025
+
+**Purpose:** Generate contemporary parables inspired by current news events, crafted in the teaching style of Jesus, serving both LessonSparkUSA users (teaching context) and standalone users (personal devotional context).
+
+### Dual Context Architecture
+
+| Context | Entry Point | User Type | Directive |
+|---------|-------------|-----------|-----------|
+| **LessonSpark** | Sparkle button in Lesson Library | Authenticated LessonSpark user | LESSONSPARK_DIRECTIVE (teaching parables) |
+| **Standalone** | Direct navigation to /parables | Anyone (including anonymous) | STANDALONE_DIRECTIVE (contemplative parables) |
+
+### 8-Section Jesus-Style Parable Structure
+
+| # | Section Name | Intent |
+|---|--------------|--------|
+| 1 | A Scene from Everyday Life | Recognition |
+| 2 | A Moment of Offense or Loss | Discomfort |
+| 3 | The Struggle of the Human Heart | Tension |
+| 4 | The Turning of the Will | Decision |
+| 5 | The Unexpected Way of Grace | Surprise |
+| 6 | The Matter of the Heart Revealed | Exposure |
+| 7 | The Question That Searches the Listener | Conviction |
+| 8 | The Scripture That Anchors the Truth | Authority |
+
+### SSOT Constants Files
+
+| File | Exports |
+|------|---------|
+| `src/constants/parableConfig.ts` | AUDIENCE_LENSES, MODERN_SETTINGS, WORD_COUNT_TARGETS, getter functions |
+| `src/constants/parableDirectives.ts` | STANDALONE_DIRECTIVE, LESSONSPARK_DIRECTIVE, getParableDirective() |
+| `src/constants/theologyProfiles.ts` | 10 Baptist theology profiles with guardrails |
+| `src/constants/bibleVersions.ts` | 7 Bible versions with copyright guardrails |
+| `src/constants/ageGroups.ts` | Age group definitions with vocabulary levels |
+
+### Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `modern_parables` | Stores generated parables (22 columns) |
+| `anonymous_parable_usage` | Tracks anonymous user daily limits by IP |
+| `user_parable_usage` | Tracks authenticated user monthly limits |
+
+### Rate Limits
+
+| User Type | Limit | Period |
+|-----------|-------|--------|
+| Anonymous | 3 parables | Per day (by IP address) |
+| Authenticated | 7 parables | Per month (billing period) |
+| Admin | Unlimited | N/A |
+
+### Edge Function
+
+**File:** `supabase/functions/generate-parable/index.ts`
+**Model:** `claude-sonnet-4-5-20250929`
+**News API:** NewsData.io (48-hour window, FREE tier)
+
+**Key Features:**
+- Dual context support (standalone vs lessonspark)
+- Anonymous user rate limiting by IP
+- Authenticated user monthly tracking
+- News integration for contemporary relevance
+- Debug logging for troubleshooting
+- Fail-open error handling on limit checks
+
+### Frontend Components
+
+| File | Purpose |
+|------|---------|
+| `src/pages/Parables.tsx` | Page component - determines context from URL |
+| `src/components/ParableGenerator.tsx` | Main generator UI with all dropdowns |
+| `src/components/dashboard/LessonLibrary.tsx` | Sparkle button navigation to parable generator |
+
+### Verification Commands
+
+```powershell
+# Check deployed function
+npx supabase functions list --project-ref hphebzdftpjbiudpfcrs
+
+# Verify model name in local file
+Select-String -Path "C:\Users\Lynn\lesson-spark-usa\supabase\functions\generate-parable\index.ts" -Pattern "const model"
+
+# Verify secrets
+npx supabase secrets list --project-ref hphebzdftpjbiudpfcrs
+```
+
+### Git Commits (December 24-25, 2025)
+
+| Date | Description |
+|------|-------------|
+| 2025-12-24 | Edge Function deployed with correct model name |
+| 2025-12-25 | Debug logging added, anonymous limit fix verified |
+
+---
+
 *End of Document*
 
 
@@ -1516,6 +1612,40 @@ Add freshness instructions to lesson generation prompt:
 
 
 
+
+---
+
+## Recent Updates (December 24-25, 2025)
+
+### Phase 17: Modern Parable Generator - COMPLETE
+
+After extensive debugging across multiple sessions, the Modern Parable Generator is now fully operational.
+
+**Root Cause Analysis:**
+
+| Issue | Description | Resolution |
+|-------|-------------|------------|
+| Wrong model name | Original file had `claude-3-5-sonnet-20241022` | Corrected to `claude-sonnet-4-5-20250929` |
+| Silent crashes | `checkAnonymousLimit` failing without logs | Added 8-point debug logging |
+| Rate limit confusion | Error displayed as generic failure | Anonymous IP had hit 3/day limit |
+
+**Verification Process Established:**
+
+All future Edge Function debugging must verify:
+1. Supabase secrets present (`npx supabase secrets list`)
+2. Frontend constants files exist with correct exports
+3. Database tables have correct columns
+4. Model name is current and valid
+5. Debug logging reveals crash location
+
+**Files Deployed:**
+- `supabase/functions/generate-parable/index.ts` (Version 32)
+
+**Tested and Working:**
+- Anonymous user generation
+- Authenticated user generation
+- Usage tracking and rate limiting
+- Both LessonSpark and Standalone contexts
 
 ---
 
@@ -1619,8 +1749,8 @@ Users can now enter BOTH a Bible passage AND a topic/theme simultaneously.
 
 | Item | Priority | Description |
 |------|----------|-------------|
-| admin_full_access RLS on events | LOW | Currently hardcoded to Lynn's UUID instead of using `has_role('admin')` |
-| Generation Metrics Viewer | HIGH | `generation_metrics` table captures data but NO admin UI to view it |
+| admin_full_access RLS on events | LOW | ✅ FIXED Dec 17 - Now uses `has_role('admin')` |
+| Generation Metrics Viewer | HIGH | ✅ COMPLETE Dec 17 - Merged into System Analytics |
 | Program Status category | MEDIUM | System Settings may be missing Program Status section |
 
 #### Security Tab Documentation
@@ -1794,4 +1924,4 @@ Confirmed no subscription upgrades needed for feature branch workflow:
 
 ---
 
-**Last Updated:** 2025-12-17
+**Last Updated: 2025-12-25
