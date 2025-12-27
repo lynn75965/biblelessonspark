@@ -549,14 +549,18 @@ async function checkAnonymousLimit(
   dailyLimit = 3,
 ): Promise<{ allowed: boolean; used: number; remaining: number }> {
   const today = todayDateString();
+  console.log("checkAnonymousLimit - today:", today, "ip:", ipAddress);
 
   // Check current usage
+  console.log("checkAnonymousLimit - querying database...");
   const { data: row, error: selErr } = await supabaseAdmin
     .from("anonymous_parable_usage")
     .select("parable_count")
     .eq("ip_address", ipAddress)
     .eq("usage_date", today)
     .maybeSingle();
+
+  console.log("checkAnonymousLimit - query complete, error:", selErr, "row:", row);
 
   if (selErr) {
     console.error("Anonymous usage select error:", selErr);
@@ -565,6 +569,7 @@ async function checkAnonymousLimit(
   }
 
   const used = Number(row?.parable_count ?? 0);
+  console.log("checkAnonymousLimit - used count:", used);
 
   if (used >= dailyLimit) {
     return { allowed: false, used, remaining: 0 };
@@ -573,6 +578,7 @@ async function checkAnonymousLimit(
   // Increment or insert
   if (!row) {
     // First parable today from this IP
+    console.log("checkAnonymousLimit - inserting new record");
     const { error: insErr } = await supabaseAdmin
       .from("anonymous_parable_usage")
       .insert({
@@ -589,6 +595,7 @@ async function checkAnonymousLimit(
   }
 
   // Increment existing
+  console.log("checkAnonymousLimit - updating existing record");
   const nextUsed = used + 1;
   const { error: updErr } = await supabaseAdmin
     .from("anonymous_parable_usage")
@@ -1094,7 +1101,16 @@ Deno.serve(async (req: Request) => {
     console.log("Anonymous request from IP:", ipAddress);
     
     // Check daily limit (3/day)
-    const anonUsage = await checkAnonymousLimit(supabaseAdmin, ipAddress, 3);
+    let anonUsage: { allowed: boolean; used: number; remaining: number };
+    try {
+      console.log("Checking anonymous limit...");
+      anonUsage = await checkAnonymousLimit(supabaseAdmin, ipAddress, 3);
+      console.log("Anonymous limit check result:", JSON.stringify(anonUsage));
+    } catch (limitErr) {
+      console.error("CRITICAL: checkAnonymousLimit threw:", limitErr);
+      // Fail open - allow the request
+      anonUsage = { allowed: true, used: 0, remaining: 3 };
+    }
     
     if (!anonUsage.allowed) {
       return json({
@@ -1105,6 +1121,7 @@ Deno.serve(async (req: Request) => {
 
     try {
       // Apply anonymous defaults
+      console.log("Applying anonymous defaults...");
       payload.theology_profile = ANONYMOUS_DEFAULTS.theology_profile;
       payload.bible_version = ANONYMOUS_DEFAULTS.bible_version;
       

@@ -1,115 +1,111 @@
-﻿import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+// ============================================================
+// LESSONSPARK USA - CREATE CHECKOUT SESSION
+// Location: supabase/functions/create-checkout-session/index.ts
+// ============================================================
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+  apiVersion: "2023-10-16",
+});
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
-    if (!stripeKey) throw new Error('STRIPE_SECRET_KEY not configured');
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error('Missing authorization header');
-    
-    const token = authHeader.replace('Bearer ', '');
-    
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey);
-    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser(token);
-    
-    if (userError || !user) {
-      console.error('Auth error:', userError);
-      throw new Error('Unauthorized - invalid token');
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "No authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    const { priceId } = await req.json();
-    if (!priceId) throw new Error('Missing priceId');
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('stripe_customer_id, email, full_name')
-      .eq('id', user.id)
+    const { price_id, success_url, cancel_url } = await req.json();
+
+    if (!price_id) {
+      return new Response(JSON.stringify({ error: "Missing price_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let customerId: string;
+
+    const { data: existingSub } = await supabase
+      .from("user_subscriptions")
+      .select("stripe_customer_id")
+      .eq("user_id", user.id)
       .single();
 
-    let customerId = profile?.stripe_customer_id;
-
-    if (!customerId) {
-      const customerResponse = await fetch('https://api.stripe.com/v1/customers', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${stripeKey}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          email: user.email || profile?.email || '',
-          name: profile?.full_name || '',
-          'metadata[supabase_user_id]': user.id,
-        }),
+    if (existingSub?.stripe_customer_id) {
+      customerId = existingSub.stripe_customer_id;
+    } else {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { user_id: user.id },
       });
-
-      if (!customerResponse.ok) {
-        const err = await customerResponse.json();
-        throw new Error(`Failed to create customer: ${err.error?.message}`);
-      }
-
-      const customer = await customerResponse.json();
       customerId = customer.id;
 
-      await supabaseAdmin
-        .from('profiles')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', user.id);
+      await supabase.from("user_subscriptions").upsert({
+        user_id: user.id,
+        stripe_customer_id: customerId,
+        tier: "free",
+        status: "active",
+      }, { onConflict: "user_id" });
     }
 
-    const origin = req.headers.get('origin') || 'https://lessonsparkusa.com';
-    
-    const sessionResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${stripeKey}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        customer: customerId,
-        mode: 'subscription',
-        'payment_method_types[0]': 'card',
-        'line_items[0][price]': priceId,
-        'line_items[0][quantity]': '1',
-        success_url: `${origin}/workspace?checkout=success`,
-        cancel_url: `${origin}/pricing?checkout=cancelled`,
-        'subscription_data[metadata][supabase_user_id]': user.id,
-        'metadata[supabase_user_id]': user.id,
-      }),
+    const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
+    const finalSuccessUrl = success_url || `${baseUrl}/dashboard?payment=success`;
+    const finalCancelUrl = cancel_url || `${baseUrl}/pricing?payment=canceled`;
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ["card"],
+      line_items: [{ price: price_id, quantity: 1 }],
+      mode: "subscription",
+      success_url: finalSuccessUrl,
+      cancel_url: finalCancelUrl,
+      metadata: { user_id: user.id },
+      subscription_data: { metadata: { user_id: user.id } },
+      allow_promotion_codes: true,
     });
 
-    if (!sessionResponse.ok) {
-      const err = await sessionResponse.json();
-      throw new Error(`Failed to create session: ${err.error?.message}`);
-    }
-
-    const session = await sessionResponse.json();
+    console.log(`Created checkout session ${session.id} for user ${user.id}`);
 
     return new Response(
-      JSON.stringify({ sessionId: session.id, url: session.url }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      JSON.stringify({ url: session.url, session_id: session.id }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error('Checkout error:', error);
+    console.error("Checkout session error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

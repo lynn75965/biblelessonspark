@@ -8,6 +8,7 @@ import { BIBLE_VERSIONS, generateCopyrightGuardrails, getDefaultBibleVersion } f
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
+import { checkLessonLimit, incrementLessonUsage, getSectionsForTier } from '../_shared/subscriptionCheck.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
 import { buildFreshnessContext, selectFreshElements, buildFreshnessSuggestionsPrompt, FreshnessSuggestions } from '../_shared/freshnessOptions.ts';
 
@@ -223,6 +224,27 @@ serve(async (req) => {
     }
 
     checkpoint = logTiming('Auth completed', checkpoint);
+
+    // Check subscription tier and lesson limit
+    const limitCheck = await checkLessonLimit(supabase, user.id);
+    console.log('Subscription check:', limitCheck);
+    
+    if (!limitCheck.can_generate) {
+      return new Response(JSON.stringify({
+        error: 'Lesson limit reached',
+        code: 'LIMIT_REACHED',
+        lessons_used: limitCheck.lessons_used,
+        lessons_limit: limitCheck.lessons_limit,
+        tier: limitCheck.tier,
+        reset_date: limitCheck.reset_date
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    const userTier = limitCheck.tier;
+    const allowedSections = limitCheck.sections_allowed;
 
     // Capture metrics - SSOT functions from generationMetrics.ts
     const userAgent = req.headers.get('user-agent') || '';
@@ -576,6 +598,10 @@ Meet ALL word minimums. Respect ALL word maximums.
       logTiming('TOTAL FUNCTION TIME', functionStartTime);
 
       console.log('Lesson saved:', lesson.id);
+
+      // Increment lesson usage for subscription tracking
+      await incrementLessonUsage(supabase, user.id);
+      console.log('Lesson usage incremented for user:', user.id);
 
       // Update metric to completed with token tracking
       if (metricId) {

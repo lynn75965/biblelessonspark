@@ -24,6 +24,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
+import { useSubscription } from "@/hooks/useSubscription";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,6 +166,18 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
+  const {
+    tier,
+    lessonsUsed: subLessonsUsed,
+    lessonsLimit: subLessonsLimit,
+    sectionsAllowed,
+    canGenerate,
+    resetDate,
+    checkCanGenerate,
+    incrementUsage,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const {
     isLimitReached,
     lessonsUsed,
@@ -1219,6 +1233,13 @@ export function EnhanceLessonForm({
           </CardContent>
         </Card>
       )}
+
+      {/* Upgrade Prompt Modal */}
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        trigger="limit_reached"
+      />
     </>
   );
 }
