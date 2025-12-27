@@ -178,6 +178,7 @@ export function useSubscription() {
     refreshSubscription: fetchSubscription,
     incrementUsage,
     startCheckout,
+    openCustomerPortal,
     checkCanGenerate,
     getUpgradeUrl,
     isFreeTier: state.tier === 'free',
