@@ -14,7 +14,7 @@
  * - Individual User = individual
  */
 
-import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles } from "lucide-react";
+import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
 import { ROUTES as APP_ROUTES } from "./routes";
 
@@ -27,6 +27,7 @@ const NAV_ROUTES = {
   org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.WORKSPACE,
   parables: '/parables',
+  pricing: '/pricing',
   account: '/account',
   home: APP_ROUTES.HOME,
 } as const;
@@ -75,6 +76,14 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     route: NAV_ROUTES.parables,
     icon: Sparkles,
     description: 'Create modern parables',
+    dividerAfter: false,
+  },
+  pricing: {
+    id: 'pricing',
+    label: 'Pricing',
+    route: NAV_ROUTES.pricing,
+    icon: CreditCard,
+    description: 'View plans and pricing',
     dividerAfter: true,
   },
   settings: {
@@ -108,6 +117,7 @@ export const MENU_BY_ROLE: Record<Role, string[]> = {
     'orgManager',
     'workspace',
     'parables',
+    'pricing',
     'settings',
     'signOut',
   ],
@@ -115,18 +125,21 @@ export const MENU_BY_ROLE: Record<Role, string[]> = {
     'orgManager',
     'workspace',
     'parables',
+    'pricing',
     'settings',
     'signOut',
   ],
   [ROLES.orgMember]: [
     'workspace',
     'parables',
+    'pricing',
     'settings',
     'signOut',
   ],
   [ROLES.individual]: [
     'workspace',
     'parables',
+    'pricing',
     'settings',
     'signOut',
   ],
@@ -151,7 +164,3 @@ export const canAccessNavItem = (role: Role, itemId: string): boolean => {
   const allowedItems = MENU_BY_ROLE[role] || [];
   return allowedItems.includes(itemId);
 };
-
-
-
-
