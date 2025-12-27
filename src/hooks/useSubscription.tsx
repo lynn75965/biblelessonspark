@@ -17,6 +17,7 @@ interface SubscriptionState {
   sectionsAllowed: string[];
   includesTeaser: boolean;
   resetDate: Date | null;
+  billingInterval: 'month' | 'year' | null;
   upgradeNeeded: boolean;
   isLoading: boolean;
   error: string | null;
@@ -40,6 +41,7 @@ export function useSubscription() {
     sectionsAllowed: getTierSections('free'),
     includesTeaser: false,
     resetDate: null,
+    billingInterval: null,
     upgradeNeeded: false,
     isLoading: true,
     error: null,
@@ -72,6 +74,7 @@ export function useSubscription() {
           sectionsAllowed: result.sections_allowed || getTierSections('free'),
           includesTeaser: result.includes_teaser ?? false,
           resetDate: result.reset_date ? new Date(result.reset_date) : null,
+          billingInterval: result.billing_interval || null,
           upgradeNeeded: result.upgrade_needed ?? false,
           isLoading: false,
           error: null,
@@ -137,6 +140,35 @@ export function useSubscription() {
       return data?.url || null;
     } catch (err) {
       console.error('Checkout error:', err);
+      return null;
+    }
+  }, [user]);
+
+  const openCustomerPortal = useCallback(async (returnUrl?: string): Promise<string | null> => {
+    if (!user) {
+      console.error('No user for portal');
+      return null;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session for portal');
+        return null;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-portal-session', {
+        body: { return_url: returnUrl },
+      });
+
+      if (error) {
+        console.error('Portal session error:', error);
+        return null;
+      }
+
+      return data?.url || null;
+    } catch (err) {
+      console.error('Portal error:', err);
       return null;
     }
   }, [user]);
