@@ -3,7 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
-import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
+import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
@@ -22,7 +22,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
 import { useAuth } from "@/hooks/useAuth";
-import { useCredits } from "@/hooks/useCredits";
 import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +40,6 @@ export default function Dashboard() {
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { balance, loading: creditsLoading } = useCredits();
   const { settings } = useSystemSettings();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
@@ -165,7 +163,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          {settings.show_credits_block && <CreditsDisplay balance={balance} loading={creditsLoading} />}
+          <UsageDisplay />
         </div>
 
         {/* ================================================================== */}
