@@ -1,7 +1,7 @@
 export const FOOTER_LINKS = {
   product: {
     features: "/#features",
-    pricing: "/#pricing",
+    pricing: "/pricing",
     setup: "/setup",
     docs: "/docs",
   },
@@ -17,3 +17,4 @@ export const FOOTER_LINKS = {
     cookie: "/legal/cookie"
   }
 };
+

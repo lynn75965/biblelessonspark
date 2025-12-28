@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // LESSONSPARK USA - PRICING CONFIGURATION (SSOT-COMPLIANT)
 // Location: src/constants/pricingConfig.ts
 //
@@ -21,6 +21,7 @@ export const STRIPE_CONFIG = {
 // Tier type - matches database enum
 export type SubscriptionTier = 'free' | 'personal' | 'admin';
 export type BillingInterval = 'month' | 'year';
+export const DEFAULT_BILLING_INTERVAL: BillingInterval = 'year';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
 
 // Section mappings - App-controlled
@@ -121,4 +122,5 @@ export interface PricingPlanFromDB {
   is_active: boolean;
   best_for: string | null;
 }
+
 
