@@ -28,7 +28,7 @@ export async function checkLessonLimit(supabase: any, userId: string): Promise<L
     };
   }
   
-  return data as LessonLimitResult;
+  return (Array.isArray(data) ? data[0] : data) as LessonLimitResult;
 }
 
 export async function incrementLessonUsage(supabase: any, userId: string): Promise<void> {
