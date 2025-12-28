@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams();
   
   // Handle tab query parameter
-  React.useEffect(() => {
+  useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (tabParam && ["enhance", "library", "devotional-library", "settings"].includes(tabParam)) {
       setActiveTab(tabParam);
@@ -360,6 +360,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
