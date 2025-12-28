@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LESSONSPARK USA - UPGRADE PROMPT MODAL (SSOT-COMPLIANT)
 // Location: src/components/subscription/UpgradePromptModal.tsx
 // ============================================================
@@ -29,7 +29,7 @@ export function UpgradePromptModal({
   onClose, 
   trigger = 'limit_reached' 
 }: UpgradePromptModalProps) {
-  const { startCheckout, lessonsUsed, lessonsLimit, resetDate } = useSubscription();
+  const { startCheckout, lessonsUsed, lessonsLimit, resetDate, tier } = useSubscription();
   const { freePlan, personalPlan, isLoading: plansLoading } = usePricingPlans();
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +71,47 @@ export function UpgradePromptModal({
         <DialogContent className="sm:max-w-[600px]">
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Admin users should NEVER see this modal - close it immediately
+  if (tier === 'admin') {
+    onClose();
+    return null;
+  }
+
+  // Personal tier users who hit their limit - show "wait for reset" message
+  if (tier === 'personal' && trigger === 'limit_reached') {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Sparkles className="h-5 w-5 text-amber-500" />
+              Monthly Limit Reached
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              <span className="text-amber-600 font-medium">
+                You have used {lessonsUsed} of {lessonsLimit} lessons this month.
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 p-4 bg-sky-50 rounded-lg border border-sky-200">
+            <p className="text-sm text-slate-700">
+              Your lesson limit will reset on <strong>{formatResetDate()}</strong>.
+            </p>
+            <p className="text-sm text-slate-600 mt-2">
+              Thank you for being a Personal subscriber! If you need more lessons, 
+              please contact support.
+            </p>
+          </div>
+          <div className="flex justify-end mt-6">
+            <Button onClick={onClose} className="bg-sky-600 hover:bg-sky-700">
+              Got It
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -236,3 +277,5 @@ export function UpgradePromptModal({
     </Dialog>
   );
 }
+
+
