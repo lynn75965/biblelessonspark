@@ -10,9 +10,11 @@
  * - Filter dropdowns generated dynamically from constants
  * - Badge colors keyed by ID (order-independent, fully SSOT-compliant)
  * 
- * Phase 17.6: Sparkle button passes LESSON settings to parable generator
- * - Parable inherits lesson's theology_profile, age_group, bible_version
- * - User can override in the parable generator if desired
+ * Phase 19: DevotionalSpark Integration
+ * - Sparkle button passes LESSON settings to devotional generator
+ * - Devotional inherits lesson's theology_profile, age_group, bible_version
+ * - Supports both passage-based AND theme/focus-based lessons
+ * - User can override Target (audience) and Length in the devotional generator
  */
 
 import { useState } from "react";
@@ -42,6 +44,7 @@ interface LessonLibraryProps {
 interface LessonDisplay extends Lesson {
   ai_lesson_title: string | null;
   bible_passage: string | null;
+  focused_topic: string | null;
   passage_or_topic: string;
   age_group: string;
   theology_profile_id: string;
@@ -99,11 +102,20 @@ const extractLessonTitle = (content: string): string | null => {
   return null;
 };
 
+/**
+ * Extract Primary Scripture from lesson content
+ * Handles multiple formats:
+ * - "Primary Scripture: John 3:16"
+ * - "Primary Scripture Passage: John 3:16"
+ * - "**Primary Scripture:** John 3:16"
+ * - "**Primary Scripture Passage:** John 3:16"
+ */
 const extractPrimaryScripture = (content: string): string | null => {
   if (!content) return null;
   const lines = content.split("\n");
   for (const line of lines) {
-    const match = line.match(/^(?:\*\*)?Primary Scripture:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
+    // Match both "Primary Scripture:" and "Primary Scripture Passage:"
+    const match = line.match(/^(?:\*\*)?Primary Scripture(?:\s+Passage)?:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
     if (match) return match[1].replace(/[""\*]/g, "").trim();
   }
   return null;
@@ -130,11 +142,13 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
     const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
     const aiGeneratedScripture = extractPrimaryScripture(lesson.original_text || "");
     const userInputPassage = filters?.bible_passage || null;
+    const userInputTopic = filters?.focused_topic || null;
 
     return {
       ...lesson,
       ai_lesson_title: aiGeneratedTitle,
       bible_passage: userInputPassage || aiGeneratedScripture,
+      focused_topic: userInputTopic,
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
       age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
       theology_profile_id: filters?.theology_profile_id || getDefaultTheologyProfile().id,
@@ -188,23 +202,34 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
   };
 
   /**
-   * Navigate to parable generator with LESSON's settings
-   * SSOT: Lesson settings flow to parable generator as defaults
-   * User can override via "Customize" toggle in ParableGenerator
+   * Navigate to devotional generator with LESSON's settings
+   * SSOT: Lesson settings flow to devotional generator as defaults
+   * Supports both passage-based AND theme/focus-based lessons
+   * User can override Target and Length in DevotionalGenerator
    */
-  const handleGenerateParable = (lesson: LessonDisplay) => {
+  const handleGenerateDevotional = (lesson: LessonDisplay) => {
     const params = new URLSearchParams({
       context: "lessonspark",
       lessonId: lesson.id,
       lessonTitle: lesson.ai_lesson_title || lesson.title || "Untitled",
     });
     
-    if (lesson.bible_passage) params.set("passage", lesson.bible_passage);
+    // Pass passage if available
+    if (lesson.bible_passage) {
+      params.set("passage", lesson.bible_passage);
+    }
+    
+    // Pass theme/focus if available (for theme-based lessons)
+    if (lesson.focused_topic) {
+      params.set("theme", lesson.focused_topic);
+    }
+    
+    // Pass inherited settings
     if (lesson.theology_profile_id) params.set("theologyProfile", lesson.theology_profile_id);
     if (lesson.age_group) params.set("ageGroup", lesson.age_group);
     if (lesson.bible_version_id) params.set("bibleVersion", lesson.bible_version_id);
     
-    navigate(`/parables?${params.toString()}`);
+    navigate(`/devotionals?${params.toString()}`);
   };
 
   if (loading) {
@@ -314,6 +339,11 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                         Bible Passage: {lesson.bible_passage}
                       </CardDescription>
                     )}
+                    {!lesson.bible_passage && lesson.focused_topic && (
+                      <CardDescription className="text-xs sm:text-sm line-clamp-1">
+                        Theme: {lesson.focused_topic}
+                      </CardDescription>
+                    )}
                   </div>
                 </div>
 
@@ -349,11 +379,11 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                   </Button>
                   {lesson.has_content && (
                     <Button
-                      onClick={() => handleGenerateParable(lesson)}
+                      onClick={() => handleGenerateDevotional(lesson)}
                       variant="outline"
                       size="sm"
                       className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
-                      title="Generate a modern parable for this lesson"
+                      title="Generate a devotional from this lesson"
                     >
                       <Sparkles className="h-3.5 w-3.5" />
                     </Button>

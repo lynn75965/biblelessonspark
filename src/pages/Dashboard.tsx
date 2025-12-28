@@ -6,6 +6,7 @@ import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
+import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import LanguageSelector from "@/components/settings/LanguageSelector";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,15 @@ export default function Dashboard() {
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
+  const [searchParams] = useSearchParams();
+  
+  // Handle tab query parameter
+  React.useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["enhance", "library", "devotional-library", "settings"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -225,7 +235,11 @@ export default function Dashboard() {
             </TabsTrigger>
             <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">My Lesson Library</span>
+              <span className="hidden sm:inline">Lesson Library</span>
+            </TabsTrigger>
+            <TabsTrigger value="devotional-library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Sparkles className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Devotional Library</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Settings className="h-4 w-4 flex-shrink-0" />
@@ -261,12 +275,17 @@ export default function Dashboard() {
             />
           </TabsContent>
 
-          {/* My Lesson Library Tab */}
+          {/* Lesson Library Tab */}
           <TabsContent value="library" className="mt-6 relative z-0">
             <LessonLibrary
               onCreateNew={handleCreateLesson}
               onViewLesson={handleViewLesson}
             />
+          </TabsContent>
+
+          {/* Devotional Library Tab */}
+          <TabsContent value="devotional-library" className="mt-6 relative z-0">
+            <DevotionalLibrary />
           </TabsContent>
 
           {/* Settings Tab */}
@@ -340,3 +359,9 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+
+
+
+

@@ -30,6 +30,7 @@ import Cookie from "./pages/legal/Cookie";
 import NotFound from "./pages/NotFound";
 import OrgManager from "./pages/OrgManager";
 import Parables from "./pages/Parables";
+import Devotionals from "./pages/Devotionals";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,8 @@ const App = () => (
             <Route path="/pricing" element={<PricingPage />} />
             {/* PUBLIC ROUTE: Modern Parable Generator accessible to all users */}
             <Route path="/parables" element={<Parables />} />
+            {/* PROTECTED ROUTE: DevotionalSpark for authenticated users */}
+            <Route path="/devotionals" element={<ProtectedRoute><Devotionals /></ProtectedRoute>} />
             <Route
               path={ROUTES.WORKSPACE}
               element={
@@ -118,3 +121,5 @@ const App = () => (
 );
 
 export default App;
+
+

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LESSONSPARK USA - SUBSCRIPTION CHECK (SHARED)
 // Location: supabase/functions/_shared/subscriptionCheck.ts
 // ============================================================
@@ -41,9 +41,10 @@ export async function incrementLessonUsage(supabase: any, userId: string): Promi
 }
 
 export function getSectionsForTier(tier: string): number[] {
-  if (tier === 'personal') {
+  if (tier === 'admin' || tier === 'personal') {
     return [1, 2, 3, 4, 5, 6, 7, 8];
   }
   // Free tier gets core sections only
   return [1, 5, 8];
 }
+

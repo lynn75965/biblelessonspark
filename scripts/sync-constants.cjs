@@ -40,6 +40,7 @@ const FILES_TO_SYNC = [
   'contracts.ts',
   'rateLimitConfig.ts',
   'freshnessOptions.ts',
+  'devotionalConfig.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**
@@ -89,6 +90,7 @@ function main() {
   log(`Synced: ${successCount} of ${FILES_TO_SYNC.length} files\n`);
 }
 main();
+
 
 
 
