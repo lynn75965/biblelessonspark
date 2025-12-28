@@ -1,8 +1,8 @@
-# LessonSparkUSA - Project Master Document
+﻿# LessonSparkUSA - Project Master Document
 
 ---
 
-## ⚠️ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
+## âš ï¸ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
 
 > **THIS SECTION IS MANDATORY READING BEFORE ANY ROLE-RELATED CHANGES**
 
@@ -95,7 +95,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated: 2025-12-27
+**Last Updated: 2025-12-28
 **Current Phase: Phase 18 Complete - Subscription & Payment System
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
@@ -128,7 +128,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 ## Current Architecture
 
 ### Frontend
-- **Platform:** Netlify (automatic GitHub deployment) � DO NOT use Lovable.dev for deployment
+- **Platform:** Netlify (automatic GitHub deployment) — DO NOT use Lovable.dev for deployment
 - **Stack:** React, TypeScript, Vite
 - **UI:** Shadcn/ui components, Tailwind CSS
 - **State:** React hooks, Supabase client
@@ -162,13 +162,13 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 | src/constants/teacherPreferences.ts | supabase/functions/_shared/teacherPreferences.ts | Teacher customization options |
 | src/constants/bibleVersions.ts | supabase/functions/_shared/bibleVersions.ts | 7 versions with copyright guardrails |
 | src/constants/generationMetrics.ts | supabase/functions/_shared/generationMetrics.ts | Device/timing tracking |
-| src/constants/accessControl.ts | — | Role definitions (frontend only) |
+| src/constants/accessControl.ts | â€” | Role definitions (frontend only) |
 | src/constants/validation.ts | supabase/functions/_shared/validation.ts | Input validation rules |
 | src/constants/routes.ts | supabase/functions/_shared/routes.ts | Application route definitions |
-| src/constants/navigationConfig.ts | � | Navigation menu items by role |
-| src/constants/dashboardConfig.ts | � | Dashboard tab configuration |
-| src/constants/orgManagerConfig.ts | � | Org detail drill-down tabs |
-| src/config/site.ts | — | Site branding constants |
+| src/constants/navigationConfig.ts | — | Navigation menu items by role |
+| src/constants/dashboardConfig.ts | — | Dashboard tab configuration |
+| src/constants/orgManagerConfig.ts | — | Org detail drill-down tabs |
+| src/config/site.ts | â€” | Site branding constants |
 
 ### SSOT Exception: Pricing
 
@@ -264,7 +264,7 @@ npm run sync-constants
 
 ### Admin Management
 
-**Location:** Admin Panel → Beta Program tab → Scroll to "Beta Feedback Questions"
+**Location:** Admin Panel â†’ Beta Program tab â†’ Scroll to "Beta Feedback Questions"
 
 **Capabilities:**
 - Add new questions
@@ -384,7 +384,7 @@ All 8 sections as defined in Current Lesson Structure, plus optional Student Tea
 |-----------|-------------------|-------------------|
 | SSOT Location | Frontend constants | Stripe Dashboard |
 | Change Origin | Edit .ts file, deploy | Edit in Stripe |
-| Sync Direction | Frontend → Backend | Stripe → Supabase (webhook) |
+| Sync Direction | Frontend â†’ Backend | Stripe â†’ Supabase (webhook) |
 | Lynn's Workflow | Code change required | No code change needed |
 
 ### Rationale for Exception
@@ -413,7 +413,7 @@ Lynn rarely changes pricing, but when changes happen:
 
 | Plan | Lessons/Month | Tier Access | Monthly | Annual (2 mo. free) |
 |------|---------------|-------------|---------|---------------------|
-| **Free** | 5 | Basic only | $0 | — |
+| **Free** | 5 | Basic only | $0 | â€” |
 | **Personal** | 20 | Full | $9 | $90 |
 
 **Organization Plans (Phase 13):**
@@ -651,28 +651,28 @@ npm run sync-constants
 
 | Task | Status |
 |------|--------|
-| Teacher Preference Profiles | ✅ Complete |
-| Auth Bug Fixes | ✅ Complete |
-| UI Improvements (Create Lesson 3-step cards) | ✅ Complete |
-| Prompt Caching Implementation | ✅ Complete |
-| 10 Theology Profiles with Guardrails | ✅ Complete |
-| SSOT Compliance Audit & Fixes | ✅ Complete |
-| Filter Matching Bug Fix | ✅ Complete |
-| Edge Function Guardrails Integration | ✅ Complete |
-| Bible Version Selection with Copyright Guardrails | ✅ Complete |
-| Security Advisor Clean (0 errors, 0 warnings) | ✅ Complete |
-| Mobile Responsiveness Audit (30+ files) | ✅ Complete |
-| Guardrail Violation Logging System | ✅ Complete |
-| Admin Panel Guardrails Tab | ✅ Complete |
-| Email SMTP Configuration | ✅ Complete |
-| Password Validation SSOT | ✅ Complete |
-| Forgot Password Flow | ✅ Complete |
-| Beta Feedback System (Database-driven) | ✅ Complete |
-| FeedbackQuestionsManager Admin | ✅ Complete |
-| Security Advisor Fixes (0 errors, 0 warnings) | ✅ Complete |
-| Lesson Tiers SSOT | 🔄 In Progress |
-| Generation Metrics SSOT | 🔄 In Progress |
-| Beta Tester Onboarding | 🔄 In Progress |
+| Teacher Preference Profiles | âœ… Complete |
+| Auth Bug Fixes | âœ… Complete |
+| UI Improvements (Create Lesson 3-step cards) | âœ… Complete |
+| Prompt Caching Implementation | âœ… Complete |
+| 10 Theology Profiles with Guardrails | âœ… Complete |
+| SSOT Compliance Audit & Fixes | âœ… Complete |
+| Filter Matching Bug Fix | âœ… Complete |
+| Edge Function Guardrails Integration | âœ… Complete |
+| Bible Version Selection with Copyright Guardrails | âœ… Complete |
+| Security Advisor Clean (0 errors, 0 warnings) | âœ… Complete |
+| Mobile Responsiveness Audit (30+ files) | âœ… Complete |
+| Guardrail Violation Logging System | âœ… Complete |
+| Admin Panel Guardrails Tab | âœ… Complete |
+| Email SMTP Configuration | âœ… Complete |
+| Password Validation SSOT | âœ… Complete |
+| Forgot Password Flow | âœ… Complete |
+| Beta Feedback System (Database-driven) | âœ… Complete |
+| FeedbackQuestionsManager Admin | âœ… Complete |
+| Security Advisor Fixes (0 errors, 0 warnings) | âœ… Complete |
+| Lesson Tiers SSOT | ðŸ”„ In Progress |
+| Generation Metrics SSOT | ðŸ”„ In Progress |
+| Beta Tester Onboarding | ðŸ”„ In Progress |
 
 ---
 
@@ -1063,8 +1063,8 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 ### Session 14: Security Advisor Fixes (December 10, 2025) - COMPLETE
 
 **Issue:** Supabase Security Advisor flagged 5 errors (sent monthly alert email)
-- 2x "Exposed Auth Users" — views joining `auth.users` directly
-- 3x "Security Definer View" — views bypassing RLS
+- 2x "Exposed Auth Users" â€” views joining `auth.users` directly
+- 3x "Security Definer View" â€” views bypassing RLS
 
 **Resolution:**
 
@@ -1251,15 +1251,15 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 
 | Component | Platform Beta | Org Beta | Modification |
 |-----------|---------------|----------|--------------|
-| feedbackConfig.ts | ✅ | ✅ | Add scope parameter |
-| BetaAnalyticsDashboard.tsx | ✅ | ✅ | Add org_id filter prop |
-| feedback_questions table | ✅ | ✅ | Add scope column |
-| beta_feedback_view | ✅ | ✅ | Add org join condition |
-| Summary card definitions | ✅ | ✅ | No change needed |
+| feedbackConfig.ts | âœ… | âœ… | Add scope parameter |
+| BetaAnalyticsDashboard.tsx | âœ… | âœ… | Add org_id filter prop |
+| feedback_questions table | âœ… | âœ… | Add scope column |
+| beta_feedback_view | âœ… | âœ… | Add org join condition |
+| Summary card definitions | âœ… | âœ… | No change needed |
 
 #### Admin Workflow
 ```
-Admin Panel → Organizations → [Org Name] → Actions → Enable Beta Mode
+Admin Panel â†’ Organizations â†’ [Org Name] â†’ Actions â†’ Enable Beta Mode
 ```
 
 This sets:
@@ -1288,7 +1288,7 @@ When org beta is active, Org Leader sees:
 
 Admin ends org beta via:
 ```
-Admin Panel → Organizations → [Org Name] → Actions → End Beta Mode
+Admin Panel â†’ Organizations â†’ [Org Name] â†’ Actions â†’ End Beta Mode
 ```
 
 This sets:
@@ -1889,7 +1889,86 @@ Reduced feedback button size on mobile for better thumb accessibility.
 
 | Tier | Price | Lessons/Month | Sections | Teaser |
 |------|-------|---------------|----------|--------|
-| Free | ## Future Planning: UI/UX Configuration System | 5 | 3 (1, 5, 8) | No |
+| Free | ## Session: December 28, 2025
+
+### Lesson Generation 403 Error - Critical Bug Fix
+
+**Problem:** Lesson generation returning "Edge Function returned a non-2xx status code" (403 Forbidden) with `{"error":"Lesson limit reached","code":"LIMIT_REACHED"}` even for admin users.
+
+**Root Cause:** The `check_lesson_limit` PostgreSQL RPC function returns an **array** `[{...}]` instead of a single object `{...}`. The code was checking `[{...}].can_generate` which evaluated to `undefined` (falsy), triggering the limit error for ALL users.
+
+**Fix Applied:**
+
+| File | Change |
+|------|--------|
+| `supabase/functions/_shared/subscriptionCheck.ts` | Added `Array.isArray()` check: `return (Array.isArray(data) ? data[0] : data)` |
+
+### LIMIT_REACHED Error Handling - User Experience Improvement
+
+**Problem:** When users hit their lesson limit, they saw a generic error toast instead of the existing `UpgradePromptModal`.
+
+**Solution:** Implemented structured error handling with tier-aware responses:
+
+| File | Change |
+|------|--------|
+| `src/hooks/useEnhanceLesson.tsx` | Returns structured result with `code`, `tier`, `lessons_used`, etc. |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Checks for `LIMIT_REACHED` code and triggers modal |
+| `src/constants/apiErrorCodes.ts` | **Created** - SSOT for API error codes |
+
+### Admin Tier Support - SSOT Compliance
+
+**Problem:** Admin tier was not properly defined in SSOT constants, and `UpgradePromptModal` showed wrong content for different tiers.
+
+**Changes:**
+
+| File | Change |
+|------|--------|
+| `src/constants/pricingConfig.ts` | Added `'admin'` to `SubscriptionTier` type and `TIER_SECTIONS` |
+| `supabase/functions/_shared/subscriptionCheck.ts` | `getSectionsForTier()` now handles admin tier |
+| `src/components/subscription/UpgradePromptModal.tsx` | Tier-aware display logic |
+
+### UpgradePromptModal - Tier-Based Behavior
+
+| Tier | Hits Limit? | Modal Behavior |
+|------|-------------|----------------|
+| **Admin** | Never (9999 limit) | Modal closes immediately if triggered |
+| **Personal** | Yes, monthly cap | Shows "wait for reset" message (no upgrade push) |
+| **Free** | Yes, 3/month | Shows upgrade comparison (Free vs Personal) |
+
+### New SSOT File: apiErrorCodes.ts
+
+**Location:** `src/constants/apiErrorCodes.ts`
+```typescript
+export const API_ERROR_CODES = {
+  LIMIT_REACHED: 'LIMIT_REACHED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+} as const;
+```
+
+**Used by:**
+- `src/hooks/useEnhanceLesson.tsx`
+- `src/components/dashboard/EnhanceLessonForm.tsx`
+
+### Git Commits (December 28, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `d045bdf` | Fix: Handle array response from check_lesson_limit RPC |
+| `ae9bf76` | SSOT: Add API_ERROR_CODES constant for error code handling |
+| `a7cf75c` | SSOT: Add admin tier support and improve limit handling |
+
+### Architecture Compliance
+
+| Principle | Status |
+|-----------|--------|
+| Frontend drives backend | ✅ UI decides display based on tier data from backend |
+| SSOT for error codes | ✅ apiErrorCodes.ts is single source |
+| SSOT for tier definitions | ✅ pricingConfig.ts includes admin |
+| Admin unlimited access | ✅ 9999 limit, no upgrade prompts |
+
+---
+## Future Planning: UI/UX Configuration System | 5 | 3 (1, 5, 8) | No |
 | Personal | $9/mo or $90/yr | 20 | 8 (all) | Yes |
 | Admin | N/A | Unlimited (9999) | 8 (all) | Yes |
 
@@ -1975,6 +2054,85 @@ Added "Pricing" link to navigation via src/constants/navigationConfig.ts:
 
 ---
 
+## Session: December 28, 2025
+
+### Lesson Generation 403 Error - Critical Bug Fix
+
+**Problem:** Lesson generation returning "Edge Function returned a non-2xx status code" (403 Forbidden) with `{"error":"Lesson limit reached","code":"LIMIT_REACHED"}` even for admin users.
+
+**Root Cause:** The `check_lesson_limit` PostgreSQL RPC function returns an **array** `[{...}]` instead of a single object `{...}`. The code was checking `[{...}].can_generate` which evaluated to `undefined` (falsy), triggering the limit error for ALL users.
+
+**Fix Applied:**
+
+| File | Change |
+|------|--------|
+| `supabase/functions/_shared/subscriptionCheck.ts` | Added `Array.isArray()` check: `return (Array.isArray(data) ? data[0] : data)` |
+
+### LIMIT_REACHED Error Handling - User Experience Improvement
+
+**Problem:** When users hit their lesson limit, they saw a generic error toast instead of the existing `UpgradePromptModal`.
+
+**Solution:** Implemented structured error handling with tier-aware responses:
+
+| File | Change |
+|------|--------|
+| `src/hooks/useEnhanceLesson.tsx` | Returns structured result with `code`, `tier`, `lessons_used`, etc. |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Checks for `LIMIT_REACHED` code and triggers modal |
+| `src/constants/apiErrorCodes.ts` | **Created** - SSOT for API error codes |
+
+### Admin Tier Support - SSOT Compliance
+
+**Problem:** Admin tier was not properly defined in SSOT constants, and `UpgradePromptModal` showed wrong content for different tiers.
+
+**Changes:**
+
+| File | Change |
+|------|--------|
+| `src/constants/pricingConfig.ts` | Added `'admin'` to `SubscriptionTier` type and `TIER_SECTIONS` |
+| `supabase/functions/_shared/subscriptionCheck.ts` | `getSectionsForTier()` now handles admin tier |
+| `src/components/subscription/UpgradePromptModal.tsx` | Tier-aware display logic |
+
+### UpgradePromptModal - Tier-Based Behavior
+
+| Tier | Hits Limit? | Modal Behavior |
+|------|-------------|----------------|
+| **Admin** | Never (9999 limit) | Modal closes immediately if triggered |
+| **Personal** | Yes, monthly cap | Shows "wait for reset" message (no upgrade push) |
+| **Free** | Yes, 3/month | Shows upgrade comparison (Free vs Personal) |
+
+### New SSOT File: apiErrorCodes.ts
+
+**Location:** `src/constants/apiErrorCodes.ts`
+```typescript
+export const API_ERROR_CODES = {
+  LIMIT_REACHED: 'LIMIT_REACHED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+} as const;
+```
+
+**Used by:**
+- `src/hooks/useEnhanceLesson.tsx`
+- `src/components/dashboard/EnhanceLessonForm.tsx`
+
+### Git Commits (December 28, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `d045bdf` | Fix: Handle array response from check_lesson_limit RPC |
+| `ae9bf76` | SSOT: Add API_ERROR_CODES constant for error code handling |
+| `a7cf75c` | SSOT: Add admin tier support and improve limit handling |
+
+### Architecture Compliance
+
+| Principle | Status |
+|-----------|--------|
+| Frontend drives backend | ✅ UI decides display based on tier data from backend |
+| SSOT for error codes | ✅ apiErrorCodes.ts is single source |
+| SSOT for tier definitions | ✅ pricingConfig.ts includes admin |
+| Admin unlimited access | ✅ 9999 limit, no upgrade prompts |
+
+---
 ## Future Planning: UI/UX Configuration System
 
 ### Progressive Disclosure (Proposed)
@@ -2021,5 +2179,6 @@ Confirmed no subscription upgrades needed for feature branch workflow:
 
 ---
 
-**Last Updated: 2025-12-27
+**Last Updated: 2025-12-28
+
 
