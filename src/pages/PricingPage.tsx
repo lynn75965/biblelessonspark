@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
 import { STRIPE_CONFIG, UPGRADE_PROMPTS, formatPrice, SubscriptionTier, DEFAULT_BILLING_INTERVAL } from '@/constants/pricingConfig';
+import { ROUTES } from '@/constants/routes';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function PricingPage() {
@@ -321,7 +322,7 @@ export default function PricingPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Can I cancel anytime?</h3>
-                <p className="text-gray-600 mt-1">Yes! You can <a href="/account" className="text-sky-600 hover:text-sky-700 underline">cancel</a> your subscription at any time. You will continue to have access until the end of your billing period.</p>
+                <p className="text-gray-600 mt-1">Yes! You can <a href={ROUTES.ACCOUNT} className="text-sky-600 hover:text-sky-700 underline">cancel</a> your subscription at any time. You will continue to have access until the end of your billing period.</p>
               </div>
               <div>
                 <h3 className="font-semibold text-lg">What payment methods do you accept?</h3>
@@ -337,6 +338,8 @@ export default function PricingPage() {
     </div>
   );
 }
+
+
 
 
 

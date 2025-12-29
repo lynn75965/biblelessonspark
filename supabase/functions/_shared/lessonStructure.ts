@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/lessonStructure.ts
- * Generated: 2025-12-28T20:08:56.704Z
+ * Generated: 2025-12-29T00:07:58.425Z
  */
 // src/constants/lessonStructure.ts
 export const LESSON_STRUCTURE_VERSION = "2.1.1";

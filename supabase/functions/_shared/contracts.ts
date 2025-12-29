@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/contracts.ts
- * Generated: 2025-12-28T20:08:56.718Z
+ * Generated: 2025-12-29T00:07:58.434Z
  */
 ﻿/**
  * LessonSparkUSA Constants - TypeScript Contracts

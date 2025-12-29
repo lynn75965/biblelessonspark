@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/systemSettings.ts
- * Generated: 2025-12-28T20:08:56.713Z
+ * Generated: 2025-12-29T00:07:58.428Z
  */
 ﻿// =====================================================
 // SYSTEM SETTINGS - Single Source of Truth

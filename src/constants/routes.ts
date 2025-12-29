@@ -29,6 +29,7 @@ export const ROUTES = {
   PREFERENCES_LENS: '/preferences/lens',
   BETA_SIGNUP: '/beta-signup',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
+  ACCOUNT: '/account',
   
   // Legal routes
   PRIVACY: '/privacy-policy',
@@ -57,6 +58,7 @@ export const buildInviteUrl = (baseUrl: string, token: string): string => {
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
+
 
 
 
