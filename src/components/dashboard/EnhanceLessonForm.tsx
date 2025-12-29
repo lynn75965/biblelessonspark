@@ -1122,7 +1122,7 @@ export function EnhanceLessonForm({
 
             {/* Generation Warning */}
             <p className="text-xs text-center text-amber-600">
-              âš ï¸ Must remain on this page until lesson is fully generated
+              Warning: Must remain on this page until lesson is fully generated
             </p>
           </div>
         </form>
@@ -1250,6 +1250,8 @@ export function EnhanceLessonForm({
     </>
   );
 }
+
+
 
 
 
