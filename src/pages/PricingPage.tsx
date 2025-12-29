@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LESSONSPARK USA - PRICING PAGE (SSOT-COMPLIANT)
 // Location: src/pages/PricingPage.tsx
 // Prices come FROM Supabase database (synced via Stripe webhook)
@@ -23,7 +23,7 @@ export default function PricingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
-  const { tier: currentTier, startCheckout } = useSubscription();
+  const { tier: currentTier, startCheckout, isFreeTier } = useSubscription();
   const { freePlan, personalPlan, isLoading: plansLoading, error: plansError } = usePricingPlans();
   
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>(DEFAULT_BILLING_INTERVAL);
@@ -322,7 +322,7 @@ export default function PricingPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Can I cancel anytime?</h3>
-                <p className="text-gray-600 mt-1">Yes! You can <a href={ROUTES.ACCOUNT} className="text-sky-600 hover:text-sky-700 underline">cancel</a> your subscription at any time. You will continue to have access until the end of your billing period.</p>
+                <p className="text-gray-600 mt-1">Yes! You can {!isFreeTier ? <a href={ROUTES.ACCOUNT} className="text-sky-600 hover:text-sky-700 underline">cancel</a> : "cancel"} your subscription at any time. You will continue to have access until the end of your billing period.</p>
               </div>
               <div>
                 <h3 className="font-semibold text-lg">What payment methods do you accept?</h3>
@@ -338,6 +338,8 @@ export default function PricingPage() {
     </div>
   );
 }
+
+
 
 
 
