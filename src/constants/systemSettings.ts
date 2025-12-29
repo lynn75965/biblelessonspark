@@ -93,7 +93,7 @@ export const SYSTEM_SETTINGS = {
     type: 'toggle',
     label: 'Show Pricing Page',
     description: 'Display pricing information to users',
-    defaultValue: false,
+    defaultValue: true,
     order: 2,
   },
   show_credits_block: {
@@ -175,3 +175,4 @@ export function getPhaseDisplayLabel(currentPhase: string): string {
   const option = setting.options.find(opt => opt.value === currentPhase);
   return option?.label || 'Unknown';
 }
+
