@@ -45,6 +45,24 @@ export const AUTH_QUERY_PARAMS = {
   REDIRECT: 'redirect',
   ERROR: 'error',
 } as const;
+/**
+ * Query parameter keys used in workspace/dashboard navigation
+ */
+export const WORKSPACE_QUERY_PARAMS = {
+  TAB: 'tab',
+  VIEW_LESSON: 'viewLesson',
+  SESSION_ID: 'session_id',
+} as const;
+
+/**
+ * Valid workspace tab values
+ */
+export const WORKSPACE_TABS = {
+  ENHANCE: 'enhance',
+  LIBRARY: 'library',
+  DEVOTIONAL_LIBRARY: 'devotional-library',
+  SETTINGS: 'settings',
+} as const;
 
 /**
  * Build a complete invite URL for email links

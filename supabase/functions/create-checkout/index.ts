@@ -14,7 +14,6 @@ serve(async (req) => {
 
   try {
     const { lookup_key } = await req.json();
-    
     if (!lookup_key) {
       return new Response(JSON.stringify({ error: "lookup_key required" }), {
         status: 400,
@@ -37,7 +36,6 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
     if (authError || !user?.email) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -52,7 +50,6 @@ serve(async (req) => {
     // Find or create customer
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     let customerId;
-    
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
     } else {
@@ -65,7 +62,6 @@ serve(async (req) => {
 
     // Get price by lookup_key
     const prices = await stripe.prices.list({ lookup_keys: [lookup_key], limit: 1 });
-    
     if (prices.data.length === 0) {
       return new Response(JSON.stringify({ error: "Price not found" }), {
         status: 404,
@@ -74,13 +70,24 @@ serve(async (req) => {
     }
 
     const origin = req.headers.get("origin") || "http://localhost:8080";
-    
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      customer_email: user.email,
       line_items: [{ price: prices.data[0].id, quantity: 1 }],
       mode: "subscription",
       success_url: `${origin}/account?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/`,
+      metadata: {
+        user_id: user.id,
+      },
+      payment_intent_data: {
+        receipt_email: user.email,
+      },
+      subscription_data: {
+        metadata: {
+          user_id: user.id,
+        },
+      },
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
+import { WORKSPACE_QUERY_PARAMS, WORKSPACE_TABS } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -28,65 +29,74 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
-// ============================================================================
-// USE FOCUS IMPORTS
-// ============================================================================
 import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 
 export default function Dashboard() {
+  // STATE DECLARATIONS
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
-  const [searchParams] = useSearchParams();
-  
-  // Handle tab query parameter
-  useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam && ["enhance", "library", "devotional-library", "settings"].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
-  }, [searchParams]);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
+
+  // HOOKS
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
   const { settings } = useSystemSettings();
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
-  const [userProfile, setUserProfile] = useState<any>(null);
-
-  // ============================================================================
-  // USE FOCUS STATE & HOOK
-  // ============================================================================
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
-  const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
+
+  // Handle URL query parameters (SSOT: routes.ts)
+  useEffect(() => {
+    const tabParam = searchParams.get(WORKSPACE_QUERY_PARAMS.TAB);
+    const viewLessonId = searchParams.get(WORKSPACE_QUERY_PARAMS.VIEW_LESSON);
+    
+    const validTabs = Object.values(WORKSPACE_TABS);
+    if (tabParam && validTabs.includes(tabParam as any)) {
+      setActiveTab(tabParam);
+    }
+    
+    if (viewLessonId && lessons.length > 0) {
+      const lessonToView = lessons.find((l: any) => l.id === viewLessonId);
+      if (lessonToView) {
+        setSelectedLesson(lessonToView);
+        setActiveTab("enhance");
+        toast({
+          title: "Opening source lesson",
+          description: `Opening "${lessonToView.ai_lesson_title || lessonToView.title}"`,
+        });
+      }
+    }
+  }, [searchParams, lessons, toast]);
 
   useEffect(() => {
     const loadUserProfile = async () => {
       if (!user) return;
-
       try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('preferred_age_group, organization_role, organization_id, theology_profile_id')
           .eq('id', user.id)
           .single();
-
         setUserProfile(profile);
       } catch (error) {
         console.error('Error loading user profile:', error);
       }
     };
-
     loadUserProfile();
   }, [user]);
 
-  // Personal stats only - MY lessons
   const stats = {
     lessonsCreated: lessons.length,
     aiGenerations: lessons.length * 3
   };
+
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
 
   const handleCreateLesson = () => {
     trackFeatureUsed('create_lesson_clicked');
@@ -119,45 +129,32 @@ export default function Dashboard() {
 
   const handleProfileUpdated = async () => {
     if (!user) return;
-
     try {
       const { data: profile } = await supabase
         .from('profiles')
         .select('preferred_age_group, organization_role, organization_id')
         .eq('id', user.id)
         .single();
-
       setUserProfile(profile);
     } catch (error) {
       console.error('Error loading user profile:', error);
     }
   };
 
-  // ============================================================================
-  // USE FOCUS HANDLER
-  // ============================================================================
   const handleUseFocus = (data: FocusApplicationData) => {
     setFocusDataToApply(data);
-    // Switch to enhance tab if not already there
     setActiveTab("enhance");
-    // Clear any viewing lesson so form is fresh
     setSelectedLesson(null);
-    
     toast({
       title: "Focus Applied",
       description: `${focusData.organizationName || "Organization"} defaults applied to your lesson form`,
     });
   };
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header WITHOUT org name - this is Personal Workspace */}
       <Header isAuthenticated hideOrgContext />
-
       <main className="container py-4 sm:py-6 px-4 sm:px-6 flex-1">
-        {/* Welcome Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-2">
@@ -177,9 +174,6 @@ export default function Dashboard() {
           <UsageDisplay />
         </div>
 
-        {/* ================================================================== */}
-        {/* ACTIVE FOCUS BANNER - Shows when org has active shared focus */}
-        {/* ================================================================== */}
         {hasActiveFocus && focusData.activeFocus && focusStatus && (
           <ActiveFocusBanner
             focus={focusData.activeFocus}
@@ -192,7 +186,6 @@ export default function Dashboard() {
           />
         )}
 
-        {/* Stats Cards - Personal Only */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Card className="bg-gradient-card">
             <CardContent className="p-3 sm:p-4">
@@ -207,7 +200,6 @@ export default function Dashboard() {
               </div>
             </CardContent>
           </Card>
-
           <Card className="bg-gradient-card">
             <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -223,7 +215,6 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Tabs - Personal Workspace Only */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             <TabsTrigger 
@@ -248,12 +239,10 @@ export default function Dashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Enhance Lesson Tab */}
           <TabsContent value="enhance" className="mt-6 relative z-0">
             <EnhanceLessonForm
               onLessonGenerated={(lesson) => {
                 setLastGeneratedLessonId(lesson?.id || null);
-                // Clear focus data after lesson is generated so it doesn't re-apply
                 setFocusDataToApply(null);
                 toast({
                   title: "Lesson Generated!",
@@ -276,7 +265,6 @@ export default function Dashboard() {
             />
           </TabsContent>
 
-          {/* Lesson Library Tab */}
           <TabsContent value="library" className="mt-6 relative z-0">
             <LessonLibrary
               onCreateNew={handleCreateLesson}
@@ -284,32 +272,25 @@ export default function Dashboard() {
             />
           </TabsContent>
 
-          {/* Devotional Library Tab */}
           <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
           </TabsContent>
 
-          {/* Settings Tab */}
           <TabsContent value="settings" className="mt-6 relative z-0">
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="bg-gradient-card md:col-span-2">
                 <CardHeader>
                   <CardTitle>Language Preferences</CardTitle>
-                  <CardDescription>
-                    Choose your preferred language for lesson plans and content
-                  </CardDescription>
+                  <CardDescription>Choose your preferred language for lesson plans and content</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <LanguageSelector />
                 </CardContent>
               </Card>
-
               <Card className="bg-gradient-card">
                 <CardHeader>
                   <CardTitle>User Profile</CardTitle>
-                  <CardDescription>
-                    Manage your account and preferences
-                  </CardDescription>
+                  <CardDescription>Manage your account and preferences</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -317,11 +298,7 @@ export default function Dashboard() {
                       <span className="text-sm">Workspace</span>
                       <Badge variant="outline">Personal</Badge>
                     </div>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => setShowProfileModal(true)}
-                    >
+                    <Button variant="outline" className="w-full" onClick={() => setShowProfileModal(true)}>
                       Update Profile
                     </Button>
                   </div>
@@ -334,7 +311,6 @@ export default function Dashboard() {
 
       <Footer />
 
-      {/* Feedback Button - Compact on mobile, small on desktop */}
       <Button
         variant="hero"
         size="sm"
@@ -345,7 +321,6 @@ export default function Dashboard() {
         <span className="hidden sm:inline ml-1">Feedback</span>
       </Button>
 
-      {/* Modals */}
       <UserProfileModal
         open={showProfileModal}
         onOpenChange={setShowProfileModal}
@@ -360,11 +335,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
