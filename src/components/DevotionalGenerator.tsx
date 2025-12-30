@@ -7,6 +7,7 @@
  * - DEVOTIONAL_TARGETS from @/constants/devotionalConfig
  * - DEVOTIONAL_LENGTHS from @/constants/devotionalConfig
  * - mapAgeGroupToTarget() for default Target selection
+ * - Usage limit enforced via check_devotional_limit RPC
  * 
  * User Flow:
  * 1. Arrives from LessonLibrary with lesson params in URL
@@ -21,8 +22,8 @@
  * - Theme/focus-based lessons (focused_topic)
  * - Combined passage + theme lessons
  * 
- * @version 1.1.0
- * @lastUpdated 2025-12-28
+ * @version 1.2.0
+ * @lastUpdated 2025-12-30
  */
 
 import { useState, useEffect } from "react";
@@ -34,6 +35,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sparkles, ArrowLeft, Copy, Printer, BookOpen, Clock, Users, CheckCircle, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   getDevotionalTargetOptions,
   getDevotionalLengthOptions,
@@ -65,6 +67,7 @@ export function DevotionalGenerator() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // URL Parameters (inherited from lesson)
   const context = searchParams.get("context") || "standalone";
@@ -85,6 +88,13 @@ export function DevotionalGenerator() {
   const [devotional, setDevotional] = useState<GeneratedDevotional | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Usage State
+  const [devotionalsUsed, setDevotionalsUsed] = useState(0);
+  const [devotionalsLimit, setDevotionalsLimit] = useState(7);
+  const [periodEnd, setPeriodEnd] = useState<Date | null>(null);
+  const [usageLoading, setUsageLoading] = useState(true);
+  const [canGenerate, setCanGenerate] = useState(true);
+
   // Options from SSOT
   const targetOptions = getDevotionalTargetOptions();
   const lengthOptions = getDevotionalLengthOptions();
@@ -92,7 +102,7 @@ export function DevotionalGenerator() {
   // Determine if we have valid input
   const hasPassage = passage.trim().length > 0;
   const hasTheme = theme.trim().length > 0;
-  const canGenerate = hasPassage || hasTheme;
+  const hasValidInput = hasPassage || hasTheme;
 
   // Set default target based on lesson's age group
   useEffect(() => {
@@ -104,15 +114,73 @@ export function DevotionalGenerator() {
     }
   }, [ageGroup]);
 
+  // Fetch usage on mount
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (!user) {
+        setUsageLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc("check_devotional_limit", {
+          p_user_id: user.id,
+        });
+
+        if (error) {
+          console.error("Error fetching devotional usage:", error);
+          setUsageLoading(false);
+          return;
+        }
+
+        const result = Array.isArray(data) ? data[0] : data;
+        if (result) {
+          setDevotionalsUsed(result.devotionals_used || 0);
+          setDevotionalsLimit(result.devotionals_limit || 7);
+          setCanGenerate(result.can_generate ?? true);
+          if (result.period_end) {
+            setPeriodEnd(new Date(result.period_end));
+          }
+        }
+      } catch (err) {
+        console.error("Usage fetch error:", err);
+      } finally {
+        setUsageLoading(false);
+      }
+    };
+
+    fetchUsage();
+  }, [user]);
+
+  // Format reset date
+  const formatResetDate = (date: Date | null) => {
+    if (!date) {
+      // Default to first of next month
+      const now = new Date();
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      return nextMonth.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
   // ============================================================================
   // HANDLERS
   // ============================================================================
 
   const handleGenerate = async () => {
-    if (!canGenerate) {
+    if (!hasValidInput) {
       toast({
         title: "Missing Content",
         description: "A Bible passage or theme is required to generate a devotional.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canGenerate) {
+      toast({
+        title: "Monthly Limit Reached",
+        description: `You've used all ${devotionalsLimit} devotionals this month. Resets ${formatResetDate(periodEnd)}.`,
         variant: "destructive",
       });
       return;
@@ -156,6 +224,9 @@ export function DevotionalGenerator() {
 
       if (!result.success) {
         if (result.code === "LIMIT_REACHED") {
+          setDevotionalsUsed(result.devotionals_used);
+          setDevotionalsLimit(result.devotionals_limit);
+          setCanGenerate(false);
           toast({
             title: "Monthly Limit Reached",
             description: `You've used ${result.devotionals_used} of ${result.devotionals_limit} devotionals this month.`,
@@ -166,6 +237,12 @@ export function DevotionalGenerator() {
         }
         setIsGenerating(false);
         return;
+      }
+
+      // Update usage count after successful generation
+      setDevotionalsUsed(prev => prev + 1);
+      if (devotionalsUsed + 1 >= devotionalsLimit) {
+        setCanGenerate(false);
       }
 
       setDevotional(result.devotional);
@@ -326,7 +403,7 @@ export function DevotionalGenerator() {
                 </div>
               )}
 
-              {!canGenerate && (
+              {!hasValidInput && (
                 <div className="p-3 bg-destructive/10 text-destructive rounded-md">
                   <p className="text-sm">No Scripture passage or theme found for this lesson.</p>
                 </div>
@@ -383,10 +460,29 @@ export function DevotionalGenerator() {
               </Select>
             </div>
 
+            {/* Usage Indicator */}
+            <div
+              className={`text-sm text-center p-2 rounded-lg ${
+                !canGenerate ? "bg-destructive/10 text-destructive" : "bg-muted"
+              }`}
+            >
+              {usageLoading ? (
+                <span className="text-muted-foreground">Loading usage...</span>
+              ) : !canGenerate ? (
+                <span>
+                  Limit reached - Resets {formatResetDate(periodEnd)}
+                </span>
+              ) : (
+                <span>
+                  {devotionalsUsed} of {devotionalsLimit} devotionals used this month - Resets {formatResetDate(periodEnd)}
+                </span>
+              )}
+            </div>
+
             {/* Generate Button */}
             <Button
               onClick={handleGenerate}
-              disabled={isGenerating || !canGenerate}
+              disabled={isGenerating || !hasValidInput || !canGenerate}
               className="w-full"
               size="lg"
             >
