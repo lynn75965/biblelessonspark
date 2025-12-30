@@ -1,4 +1,4 @@
-﻿/**
+/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -717,7 +717,7 @@ export function EnhanceLessonForm({
                             )}
                             {extractedContent && (
                               <div className="text-sm text-green-600">
-                                âœ“ File content extracted ({extractedContent.length} characters)
+                                ✓ File content extracted ({extractedContent.length} characters)
                               </div>
                             )}
                           </div>
@@ -738,7 +738,7 @@ export function EnhanceLessonForm({
                             {pastedContent.trim() && (
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm text-green-600">
-                                  âœ“ {pastedContent.length} characters entered
+                                  ✓ {pastedContent.length} characters entered
                                 </span>
                                 <Button
                                   type="button"
@@ -912,7 +912,7 @@ export function EnhanceLessonForm({
                       <SelectItem key={version.id} value={version.id}>
                         {version.name} ({version.abbreviation})
                         {version.copyrightStatus === 'public_domain' && (
-                          <span className="ml-2 text-xs text-green-600">â€¢ Direct quotes</span>
+                          <span className="ml-2 text-xs text-green-600">• Direct quotes</span>
                         )}
                       </SelectItem>
                     ))}
@@ -982,7 +982,7 @@ export function EnhanceLessonForm({
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add specific requests â€” describe your focus or primary thought
+                  Add specific requests — describe your focus or primary thought
                 </p>
                 <Textarea
                   id="notes"
@@ -1073,7 +1073,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">ðŸ“± Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">📱 Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
               </p>
             </div>
 
@@ -1085,7 +1085,7 @@ export function EnhanceLessonForm({
             >
               {isLimitReached ? (
                 <span>
-                  Limit reached â€” resets in {hoursUntilReset} hour
+                  Limit reached — resets in {hoursUntilReset} hour
                   {hoursUntilReset === 1 ? "" : "s"}
                 </span>
               ) : (
