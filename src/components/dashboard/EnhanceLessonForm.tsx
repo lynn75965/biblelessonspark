@@ -1090,7 +1090,7 @@ export function EnhanceLessonForm({
                 </span>
               ) : (
                 <span>
-                  {lessonsUsed} of {lessonsAllowed} lessons used (24-hour period)
+                  {subLessonsUsed} of {subLessonsLimit} lessons used this month
                 </span>
               )}
             </div>
