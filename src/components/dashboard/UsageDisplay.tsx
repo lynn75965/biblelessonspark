@@ -3,7 +3,6 @@
 // Location: src/components/dashboard/UsageDisplay.tsx
 // Shows subscription tier and lesson usage on Dashboard
 // ============================================================
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -59,11 +58,11 @@ export function UsageDisplay() {
           </Badge>
         </div>
         <CardDescription className="text-xs">
-          {lessonsRemaining > 0 
+          {lessonsRemaining > 0
             ? `${lessonsRemaining} lesson${lessonsRemaining !== 1 ? 's' : ''} remaining`
             : 'No lessons remaining'
           }
-          {resetDate && ` · Resets ${formatResetDate(resetDate)}`}
+          {resetDate && ` - Resets ${formatResetDate(resetDate)}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -72,16 +71,15 @@ export function UsageDisplay() {
             <span className="text-muted-foreground">Used</span>
             <span className="font-medium">{lessonsUsed} / {lessonsLimit}</span>
           </div>
-          <Progress 
-            value={usagePercentage} 
+          <Progress
+            value={usagePercentage}
             className={`h-2 ${usagePercentage >= 90 ? '[&>div]:bg-destructive' : usagePercentage >= 70 ? '[&>div]:bg-amber-500' : ''}`}
           />
         </div>
-        
         {isFreeTier && (
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="w-full text-xs"
             onClick={() => navigate("/pricing")}
           >
@@ -89,7 +87,6 @@ export function UsageDisplay() {
             Upgrade for 20 lessons/month
           </Button>
         )}
-        
         {!isFreeTier && lessonsRemaining === 0 && (
           <p className="text-xs text-muted-foreground text-center">
             Resets {formatResetDate(resetDate)}
