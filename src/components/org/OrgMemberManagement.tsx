@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -153,6 +153,30 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
       toast({
         title: "Error",
         description: "Failed to promote member",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDemoteToMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ organization_role: ORG_ROLES.member })
+        .eq("id", memberId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Co-Leader demoted to Member",
+      });
+      fetchMembers();
+    } catch (error) {
+      console.error("Error demoting member:", error);
+      toast({
+        title: "Error",
+        description: "Failed to demote co-leader",
         variant: "destructive",
       });
     }
@@ -462,15 +486,25 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                             </>
                           )}
                           {member.organization_role === ORG_ROLES.coLeader && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-red-600"
-                              onClick={() => handleRemoveMember(member.id)}
-                              title="Remove from organization"
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDemoteToMember(member.id)}
+                                title="Demote to Member"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600"
+                                onClick={() => handleRemoveMember(member.id)}
+                                title="Remove from organization"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>
