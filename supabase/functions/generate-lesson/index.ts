@@ -1,4 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
@@ -11,6 +11,8 @@ import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
 import { checkLessonLimit, incrementLessonUsage, getSectionsForTier } from '../_shared/subscriptionCheck.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
 import { buildFreshnessContext, selectFreshElements, buildFreshnessSuggestionsPrompt, FreshnessSuggestions } from '../_shared/freshnessOptions.ts';
+import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
+import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
@@ -27,22 +29,20 @@ function logTiming(label: string, startTime: number): number {
   return Date.now();
 }
 
-function buildSectionsPrompt(includeTeaser: boolean = false) {
-  const sections = [...getRequiredSections()];
-
+function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, includeTeaser: boolean = false) {
   return sections.map((section) => {
-    const rules = section.contentRules.map((r) => `    • ${r}`).join('\n');
-    const prohibitions = section.prohibitions.map((p) => `    • ${p}`).join('\n');
+    const rules = section.contentRules.map((r) => `    â€¢ ${r}`).join('\n');
+    const prohibitions = section.prohibitions.map((p) => `    â€¢ ${p}`).join('\n');
     const redundancyNote = section.redundancyLock.length > 0
-      ? `\n    ⚠️ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
+      ? `\n    âš ï¸ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
       : '';
-    const optionalNote = section.optional ? '\n    • OPTIONAL SECTION - Only include when requested' : '';
+    const optionalNote = section.optional ? '\n    â€¢ OPTIONAL SECTION - Only include when requested' : '';
 
     let enforcementNote = '';
     if (section.id === 5) {
       enforcementNote = `
 
-⚠️ CRITICAL ENFORCEMENT FOR THIS SECTION:
+âš ï¸ CRITICAL ENFORCEMENT FOR THIS SECTION:
 1. MANDATORY MINIMUM: ${section.minWords} words (COUNT CAREFULLY)
 2. Every sentence must ADD NEW INSIGHT or DEPTH
 3. If explaining a concept, give the WHY and HOW, not just the WHAT
@@ -50,14 +50,14 @@ function buildSectionsPrompt(includeTeaser: boolean = false) {
 5. Connect abstract theology to concrete life application
 6. Give teachers substance to answer student questions confidently
 
-🚫 FORBIDDEN - These do NOT count toward word target:
+ðŸš« FORBIDDEN - These do NOT count toward word target:
 - Repetition of content from other sections
 - Transitional phrases ("As we discussed...", "Moving on...")
 - Padding sentences that add no value
 - Circular reasoning or restating the same point
 - Generic statements without specific application
 
-✅ REQUIRED - Every sentence must do ONE of these:
+âœ… REQUIRED - Every sentence must do ONE of these:
 - Unpack a theological concept with depth
 - Explain WHY something matters (not just that it does)
 - Give concrete examples or applications
@@ -65,7 +65,7 @@ function buildSectionsPrompt(includeTeaser: boolean = false) {
 - Draw from Section 3's depth and make it spoken/teachable
 - Bridge abstract truth to student's real-world experience
 
-⚠️ QUALITY CHECK: Before finishing this section, ask yourself:
+âš ï¸ QUALITY CHECK: Before finishing this section, ask yourself:
 "Could a volunteer teacher use this to answer student questions with confidence?"
 If no, add more depth and explanation.`;
     }
@@ -134,8 +134,8 @@ function buildTeaserInstructions(includeTeaser: boolean): string {
   const teaserSection = getTeaserSection();
   if (!teaserSection) return '';
 
-  const rules = teaserSection.contentRules.map((r) => `    • ${r}`).join('\n');
-  const prohibitions = teaserSection.prohibitions.map((p) => `    • ${p}`).join('\n');
+  const rules = teaserSection.contentRules.map((r) => `    â€¢ ${r}`).join('\n');
+  const prohibitions = teaserSection.prohibitions.map((p) => `    â€¢ ${p}`).join('\n');
 
   return `
 -------------------------------------------------------------------------------
@@ -161,7 +161,7 @@ ${rules}
 **PROHIBITED:**
 ${prohibitions}
 
-⚠️ CRITICAL TEASER ENFORCEMENT:
+âš ï¸ CRITICAL TEASER ENFORCEMENT:
 This section is ONLY about FELT NEEDS. You must create curiosity WITHOUT revealing ANY lesson content.
 
 REQUIRED SIGNOFF:
@@ -171,11 +171,11 @@ REQUIRED SIGNOFF:
 - Create urgency through curiosity, not promotional language
 
 EXAMPLES:
-❌ WRONG TEASER: "Discover what makes you unique - made in God's image"
-✅ RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meet—you might be surprised by what we uncover."
+âŒ WRONG TEASER: "Discover what makes you unique - made in God's image"
+âœ… RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meetâ€”you might be surprised by what we uncover."
 
-❌ WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
-✅ RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
+âŒ WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
+âœ… RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
 
 REMEMBER:
 - DO NOT reference the Bible passage in ANY way
@@ -245,6 +245,68 @@ serve(async (req) => {
     
     const userTier = limitCheck.tier;
     const allowedSections = limitCheck.sections_allowed;
+
+    // =========================================================================
+    // PLATFORM MODE & SECTION FILTERING (SSOT: organizationConfig.ts, trialConfig.ts)
+    // =========================================================================
+    
+    // Fetch platform mode from system_settings
+    const { data: platformModeRow } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'current_phase')
+      .single();
+    
+    const platformMode = (platformModeRow?.value || 'private_beta') as keyof typeof PLATFORM_MODE_ACCESS;
+    const modeConfig = PLATFORM_MODE_ACCESS[platformMode] || PLATFORM_MODE_ACCESS.private_beta;
+    
+    console.log('Platform mode:', platformMode, 'Tier enforcement:', modeConfig.tierEnforcement);
+    
+    // Determine sections to generate based on platform mode
+    let sectionsToGenerate: number[];
+    let isTrialLesson = false;
+    
+    if (!modeConfig.tierEnforcement) {
+      // BETA MODE: Everyone gets all sections
+      sectionsToGenerate = getRequiredSections().map(s => s.id);
+      console.log('Beta mode: All users get all sections');
+    } else {
+      // PRODUCTION MODE: Check tier and trial
+      if (doesTrialApply(platformMode, userTier)) {
+        // Fetch user's trial status
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('trial_full_lesson_last_used, trial_full_lesson_granted_until')
+          .eq('id', user.id)
+          .single();
+        
+        const trialAvailable = isTrialAvailable(
+          profileData?.trial_full_lesson_last_used,
+          profileData?.trial_full_lesson_granted_until
+        );
+        
+        if (trialAvailable) {
+          // TRIAL: Give full sections, mark as trial
+          sectionsToGenerate = getRequiredSections().map(s => s.id);
+          isTrialLesson = true;
+          console.log('Trial lesson: Free user gets all sections (monthly trial)');
+        } else {
+          // NO TRIAL: Use tier-based sections
+          sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
+          console.log('Production mode: User tier', userTier, 'gets sections:', sectionsToGenerate);
+        }
+      } else {
+        // Paid tier or non-free: Use tier-based sections
+        sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
+        console.log('Production mode: User tier', userTier, 'gets sections:', sectionsToGenerate);
+      }
+    }
+    
+    // Filter required sections based on what user is allowed
+    const allRequiredSections = getRequiredSections();
+    const filteredSections = allRequiredSections.filter(s => sectionsToGenerate.includes(s.id));
+    
+    console.log('Sections to generate:', filteredSections.map(s => ${s.id}: ));
 
     // Capture metrics - SSOT functions from generationMetrics.ts
     const userAgent = req.headers.get('user-agent') || '';
@@ -332,8 +394,8 @@ serve(async (req) => {
       throw new Error(`Bible version not found: ${effectiveBibleVersionId}`);
     }
 
-    const requiredSections = getRequiredSections();
-    const totalSections = requiredSections.length;
+    // Use filteredSections (set earlier based on platform mode + tier)
+    const totalSections = filteredSections.length;
 
     console.log('Generating lesson:', {
       user: user.id,
@@ -404,7 +466,7 @@ ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_
 -------------------------------------------------------------------------------
 LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
 -------------------------------------------------------------------------------
-${buildSectionsPrompt(generate_teaser)}
+${buildSectionsPrompt(filteredSections, generate_teaser)}
 
 -------------------------------------------------------------------------------
 OUTPUT REQUIREMENTS
@@ -579,7 +641,10 @@ Meet ALL word minimums. Respect ALL word maximums.
           wasEnhancement: !!extracted_content,
           extractedContentLength: extracted_content?.length || 0,
           freshnessMode: freshness_mode,
-          freshnessSuggestions: freshness_suggestions
+          freshnessSuggestions: freshness_suggestions,
+          platformMode: platformMode,
+          isTrialLesson: isTrialLesson,
+          sectionsGenerated: filteredSections.map(s => s.id)
         }
       };
 
@@ -602,6 +667,15 @@ Meet ALL word minimums. Respect ALL word maximums.
       // Increment lesson usage for subscription tracking
       await incrementLessonUsage(supabase, user.id);
       console.log('Lesson usage incremented for user:', user.id);
+
+      // Consume trial if this was a trial lesson
+      if (isTrialLesson) {
+        await supabase
+          .from('profiles')
+          .update({ trial_full_lesson_last_used: new Date().toISOString() })
+          .eq('id', user.id);
+        console.log('Trial lesson consumed for user:', user.id);
+      }
 
       // Update metric to completed with token tracking
       if (metricId) {
