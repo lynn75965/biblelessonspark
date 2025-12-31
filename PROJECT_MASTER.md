@@ -2343,3 +2343,145 @@ Note: Other project references found in Supabase are inactive/old projects.
 **Last Updated: 2025-12-31**
 **Current Phase: Phase 18 Complete + DevotionalSpark Feature**
 
+## Session: December 31, 2025 (Evening) - Beta-to-Production Architecture
+
+### Overview
+
+Implemented complete beta-to-production transition architecture with SSOT compliance. System now supports platform mode switching from Admin Panel.
+
+### New SSOT Constants Created
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/organizationConfig.ts | supabase/functions/_shared/organizationConfig.ts | Org types, hierarchy, platform modes |
+| src/constants/trialConfig.ts | supabase/functions/_shared/trialConfig.ts | Trial feature logic, reset rules |
+
+### Organization Configuration (organizationConfig.ts)
+
+**Organization Types:**
+
+| Type | Label | Allow Sub-Orgs | Rate Limit |
+|------|-------|----------------|------------|
+| beta_program | Beta Program | No | 3/day |
+| church | Church | Yes | Tier-based |
+| enterprise | Enterprise | Yes | Tier-based |
+
+**Beta Access Levels:**
+
+| Level | Label | Open Enrollment |
+|-------|-------|-----------------|
+| private | Private Beta | No (invitation only) |
+| public | Public Beta | Yes (self-join) |
+
+**Platform Modes:**
+
+| Mode | Tier Enforcement | All Sections | Org Types Allowed |
+|------|------------------|--------------|-------------------|
+| private_beta | OFF | Yes (8 sections for all) | beta_program only |
+| public_beta | OFF | Yes (8 sections for all) | beta_program only |
+| production | ON | No (tier-based) | beta_program, church, enterprise |
+
+### Trial Configuration (trialConfig.ts)
+
+| Setting | Value |
+|---------|-------|
+| Enabled | true |
+| Sections Granted | 8 (full lesson) |
+| Reset Period | Monthly (1st of month) |
+| Applies To | Free tier only |
+| Admin Can Grant | Yes (30 days default) |
+
+**Trial Logic:**
+- Free users get 1 full lesson per month (trial)
+- Resets at 12:00 AM on 1st of each month
+- Admin can override via `trial_full_lesson_granted_until` column
+
+### Database Schema Changes
+
+**Organizations Table - New Columns:**
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| org_type | TEXT | beta_program, church, enterprise |
+| parent_org_id | UUID | Hierarchy support (max depth 2) |
+| beta_access_level | TEXT | private, public |
+| org_level | INTEGER | 1 = org, 2 = sub-org |
+
+**Profiles Table - New Columns:**
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| trial_full_lesson_last_used | TIMESTAMPTZ | When user last used monthly trial |
+| trial_full_lesson_granted_until | TIMESTAMPTZ | Admin override expiration |
+
+### Beta Organizations Seeded
+
+| Organization | ID | Status | Members |
+|--------------|-----|--------|---------|
+| LessonSparkUSA Private Beta | 00cf6e5e-fa0d-4077-b64d-bce5ee822ff9 | approved | 20 |
+| LessonSparkUSA Public Beta | 9a5da69e-adf2-4661-8833-197940c255e0 | approved | 0 |
+
+### Edge Function Updates
+
+**File:** `supabase/functions/generate-lesson/index.ts`
+
+**Changes:**
+1. Imports platform mode config from `_shared/organizationConfig.ts`
+2. Imports trial config from `_shared/trialConfig.ts`
+3. Fetches `current_phase` from `system_settings` table
+4. Applies tier enforcement only when `platformMode = production`
+5. Checks trial availability for free users in production mode
+6. Records `isTrialLesson` in metadata
+7. Consumes trial after successful generation
+
+### OrgMemberManagement Updates
+
+**New Feature:** Demote Co-Leader to Member
+
+| Function | Purpose |
+|----------|---------|
+| handleDemoteToMember() | Updates `organization_role` to `ORG_ROLES.member` |
+
+**SSOT Compliance:** Uses `ORG_ROLES.member` from `accessControl.ts`
+
+### Current System State
+
+| Setting | Value |
+|---------|-------|
+| Platform Mode | private_beta |
+| Tier Enforcement | OFF |
+| All Users Get | 8 sections |
+| Private Beta Members | 20 |
+| Public Beta Members | 0 |
+
+### Git Commits (December 31, 2025 Evening)
+
+| Hash | Description |
+|------|-------------|
+| 1781abf | Add organizationConfig.ts and trialConfig.ts SSOT constants |
+| 87a57b4 | Update generate-lesson Edge Function with platform mode logic |
+| 3ac6743 | Fix Edge Function syntax error |
+| b0082f5 | Add demote co-leader to member action - SSOT compliant |
+
+### How to Go to Production
+
+1. Open Admin Panel → System Settings
+2. Change Platform Mode from `private_beta` to `production`
+3. This enables:
+   - Tier enforcement (Free: 3 sections, Personal: 8 sections)
+   - Monthly trial for free users (1 full lesson)
+   - Church and Enterprise org types
+
+### Outstanding Items (Next Session)
+
+| Priority | Item | Description |
+|----------|------|-------------|
+| HIGH | Admin UI for Platform Mode | Dropdown in System Settings to change mode |
+| MEDIUM | Admin UI for Trial Grant | Grant trial override to specific users |
+| LOW | Public Beta Enrollment | Self-join flow for public beta org |
+
+---
+
+**Last Updated: 2025-12-31**
+**Current Phase: Phase 19 - Beta-to-Production Architecture**
+
