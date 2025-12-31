@@ -1,24 +1,23 @@
 /**
  * DevotionalLibrary Component
- * 
+ *
  * Displays and manages user's generated devotionals.
- * 
+ *
  * SSOT Compliance:
  * - DEVOTIONAL_TARGETS from @/constants/devotionalConfig
  * - DEVOTIONAL_LENGTHS from @/constants/devotionalConfig
- * 
+ *
  * Features:
  * - Card grid display
- * - Filter by target audience
- * - Filter by detected valence
+ * - Filter by target audience (age group)
  * - Search by scripture or title
  * - View full content in modal
  * - Copy to clipboard
  * - Print devotional
  * - Delete devotional
  * - Link to source lesson (opens in modal)
- * 
- * @version 1.1.0
+ *
+ * @version 1.2.0
  * @lastUpdated 2025-12-30
  */
 
@@ -65,12 +64,6 @@ const TARGET_BADGE_COLORS: Record<string, string> = {
   adult: "bg-green-100 text-green-800 border-green-200",
 };
 
-const VALENCE_BADGE_COLORS: Record<string, string> = {
-  virtue: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  cautionary: "bg-amber-100 text-amber-800 border-amber-200",
-  complex: "bg-slate-100 text-slate-800 border-slate-200",
-};
-
 const LENGTH_BADGE_COLORS: Record<string, string> = {
   short: "bg-cyan-100 text-cyan-800 border-cyan-200",
   medium: "bg-indigo-100 text-indigo-800 border-indigo-200",
@@ -83,7 +76,6 @@ export function DevotionalLibrary() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [targetFilter, setTargetFilter] = useState<string>("all");
-  const [valenceFilter, setValenceFilter] = useState<string>("all");
   const [selectedDevotional, setSelectedDevotional] = useState<Devotional | null>(null);
   const [sourceLesson, setSourceLesson] = useState<any>(null);
   const [loadingSource, setLoadingSource] = useState(false);
@@ -97,8 +89,7 @@ export function DevotionalLibrary() {
       devotional.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       devotional.bible_passage?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTarget = targetFilter === "all" || devotional.target_id === targetFilter;
-    const matchesValence = valenceFilter === "all" || devotional.detected_valence === valenceFilter;
-    return matchesSearch && matchesTarget && matchesValence;
+    return matchesSearch && matchesTarget;
   });
 
   const handleView = (devotional: Devotional) => {
@@ -215,24 +206,13 @@ export function DevotionalLibrary() {
             </div>
             <Select value={targetFilter} onValueChange={setTargetFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="All Audiences" />
+                <SelectValue placeholder="All Age Groups" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Audiences</SelectItem>
+                <SelectItem value="all">All Age Groups</SelectItem>
                 {targetOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-            <Select value={valenceFilter} onValueChange={setValenceFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="All Types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="virtue">Virtue (Encouragement)</SelectItem>
-                <SelectItem value="cautionary">Cautionary (Warning)</SelectItem>
-                <SelectItem value="complex">Complex (Balanced)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -263,11 +243,6 @@ export function DevotionalLibrary() {
                     <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                     {getLengthLabel(devotional.length_id)}
                   </Badge>
-                  {devotional.detected_valence && (
-                    <Badge className={`${VALENCE_BADGE_COLORS[devotional.detected_valence] || "bg-gray-100 text-gray-800"} text-xs`} variant="secondary">
-                      {devotional.detected_valence.charAt(0).toUpperCase() + devotional.detected_valence.slice(1)}
-                    </Badge>
-                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
@@ -315,10 +290,10 @@ export function DevotionalLibrary() {
             <Sparkles className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <div className="space-y-2 text-center">
               <h3 className="text-lg font-semibold">
-                {searchTerm || targetFilter !== "all" || valenceFilter !== "all" ? "No devotionals match your filters" : "No devotionals yet"}
+                {searchTerm || targetFilter !== "all" ? "No devotionals match your filters" : "No devotionals yet"}
               </h3>
               <p className="text-muted-foreground max-w-md">
-                {searchTerm || targetFilter !== "all" || valenceFilter !== "all"
+                {searchTerm || targetFilter !== "all"
                   ? "Try adjusting your search terms or filters."
                   : "Generate your first devotional from a lesson in your Lesson Library."}
               </p>
@@ -334,7 +309,7 @@ export function DevotionalLibrary() {
             <>
               <DialogHeader>
                 <DialogTitle className="text-xl">{selectedDevotional.title || "Untitled Devotional"}</DialogTitle>
-                <DialogDescription>{selectedDevotional.bible_passage} • {selectedDevotional.word_count} words</DialogDescription>
+                <DialogDescription>{selectedDevotional.bible_passage} - {selectedDevotional.word_count} words</DialogDescription>
               </DialogHeader>
               <div className="flex gap-2 py-2">
                 <Button variant="outline" size="sm" onClick={() => handleCopy(selectedDevotional.content || "")}>
