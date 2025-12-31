@@ -211,7 +211,7 @@ export function DevotionalLibrary() {
               <SelectContent>
                 <SelectItem value="all">All Age Groups</SelectItem>
                 {targetOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                  <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

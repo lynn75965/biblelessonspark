@@ -17,8 +17,8 @@
  * - Full theology profile guardrails
  * - Copyright-compliant Scripture handling
  * 
- * @version 1.1.0
- * @lastUpdated 2025-12-28
+ * @version 1.2.0
+ * @lastUpdated 2025-12-31
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -285,7 +285,7 @@ Please generate the devotional with these exact section headers:
 At the very beginning, before the sections, include:
 **Title:** [A compelling, passage-specific title]
 **Scripture:** [The Scripture reference being used]
-**Detected Valence:** [virtue/cautionary/complex]
+**Age Group:** ${target.label}
 
 Then provide the five sections. Do not include word counts in the output.`;
 
@@ -324,7 +324,7 @@ Then provide the five sections. Do not include word counts in the output.`;
     const anthropicData = await anthropicResponse.json();
     console.log("[generate-devotional] Anthropic response received");
 
-    const generatedContent = anthropicData.content[0]?.text || "";
+    let generatedContent = anthropicData.content[0]?.text || "";
     const tokensInput = anthropicData.usage?.input_tokens || 0;
     const tokensOutput = anthropicData.usage?.output_tokens || 0;
 
@@ -340,9 +340,20 @@ Then provide the five sections. Do not include word counts in the output.`;
     const scriptureMatch = generatedContent.match(/\*\*Scripture:\*\*\s*(.+?)(?:\n|$)/);
     const extractedScripture = scriptureMatch ? scriptureMatch[1].trim() : displayPassage;
 
-    // Extract detected valence
-    const valenceMatch = generatedContent.match(/\*\*Detected Valence:\*\*\s*(virtue|cautionary|complex)/i);
-    const detectedValence = valenceMatch ? valenceMatch[1].toLowerCase() : "complex";
+    // Detect valence internally (for database tracking only - not shown to user)
+    // Analyze content for virtue/cautionary/complex indicators
+    const contentLower = generatedContent.toLowerCase();
+    let detectedValence = "complex"; // default
+    const virtueIndicators = ["blessing", "grace", "encouragement", "hope", "joy", "peace", "love", "faith"];
+    const cautionaryIndicators = ["warning", "caution", "avoid", "danger", "sin", "temptation", "judgment"];
+    
+    let virtueScore = 0;
+    let cautionaryScore = 0;
+    virtueIndicators.forEach(word => { if (contentLower.includes(word)) virtueScore++; });
+    cautionaryIndicators.forEach(word => { if (contentLower.includes(word)) cautionaryScore++; });
+    
+    if (virtueScore > cautionaryScore + 2) detectedValence = "virtue";
+    else if (cautionaryScore > virtueScore + 2) detectedValence = "cautionary";
 
     // Extract sections
     const extractSection = (content: string, sectionName: string): string => {
