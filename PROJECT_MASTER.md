@@ -1,8 +1,8 @@
-﻿# LessonSparkUSA - Project Master Document
+# LessonSparkUSA - Project Master Document
 
 ---
 
-## âš ï¸ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
+## ⚠️ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
 
 > **THIS SECTION IS MANDATORY READING BEFORE ANY ROLE-RELATED CHANGES**
 
@@ -95,7 +95,7 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated: 2025-12-28
+**Last Updated: 2025-12-31
 **Current Phase: Phase 18 Complete - Subscription & Payment System
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
@@ -128,7 +128,7 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 ## Current Architecture
 
 ### Frontend
-- **Platform:** Netlify (automatic GitHub deployment) — DO NOT use Lovable.dev for deployment
+- **Platform:** Netlify (automatic GitHub deployment) � DO NOT use Lovable.dev for deployment
 - **Stack:** React, TypeScript, Vite
 - **UI:** Shadcn/ui components, Tailwind CSS
 - **State:** React hooks, Supabase client
@@ -162,13 +162,13 @@ LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunt
 | src/constants/teacherPreferences.ts | supabase/functions/_shared/teacherPreferences.ts | Teacher customization options |
 | src/constants/bibleVersions.ts | supabase/functions/_shared/bibleVersions.ts | 7 versions with copyright guardrails |
 | src/constants/generationMetrics.ts | supabase/functions/_shared/generationMetrics.ts | Device/timing tracking |
-| src/constants/accessControl.ts | â€” | Role definitions (frontend only) |
+| src/constants/accessControl.ts | — | Role definitions (frontend only) |
 | src/constants/validation.ts | supabase/functions/_shared/validation.ts | Input validation rules |
 | src/constants/routes.ts | supabase/functions/_shared/routes.ts | Application route definitions |
-| src/constants/navigationConfig.ts | — | Navigation menu items by role |
-| src/constants/dashboardConfig.ts | — | Dashboard tab configuration |
-| src/constants/orgManagerConfig.ts | — | Org detail drill-down tabs |
-| src/config/site.ts | â€” | Site branding constants |
+| src/constants/navigationConfig.ts | � | Navigation menu items by role |
+| src/constants/dashboardConfig.ts | � | Dashboard tab configuration |
+| src/constants/orgManagerConfig.ts | � | Org detail drill-down tabs |
+| src/config/site.ts | — | Site branding constants |
 
 ### SSOT Exception: Pricing
 
@@ -264,7 +264,7 @@ npm run sync-constants
 
 ### Admin Management
 
-**Location:** Admin Panel â†’ Beta Program tab â†’ Scroll to "Beta Feedback Questions"
+**Location:** Admin Panel → Beta Program tab → Scroll to "Beta Feedback Questions"
 
 **Capabilities:**
 - Add new questions
@@ -384,7 +384,7 @@ All 8 sections as defined in Current Lesson Structure, plus optional Student Tea
 |-----------|-------------------|-------------------|
 | SSOT Location | Frontend constants | Stripe Dashboard |
 | Change Origin | Edit .ts file, deploy | Edit in Stripe |
-| Sync Direction | Frontend â†’ Backend | Stripe â†’ Supabase (webhook) |
+| Sync Direction | Frontend → Backend | Stripe → Supabase (webhook) |
 | Lynn's Workflow | Code change required | No code change needed |
 
 ### Rationale for Exception
@@ -413,7 +413,7 @@ Lynn rarely changes pricing, but when changes happen:
 
 | Plan | Lessons/Month | Tier Access | Monthly | Annual (2 mo. free) |
 |------|---------------|-------------|---------|---------------------|
-| **Free** | 5 | Basic only | $0 | â€” |
+| **Free** | 5 | Basic only | $0 | — |
 | **Personal** | 20 | Full | $9 | $90 |
 
 **Organization Plans (Phase 13):**
@@ -651,28 +651,28 @@ npm run sync-constants
 
 | Task | Status |
 |------|--------|
-| Teacher Preference Profiles | âœ… Complete |
-| Auth Bug Fixes | âœ… Complete |
-| UI Improvements (Create Lesson 3-step cards) | âœ… Complete |
-| Prompt Caching Implementation | âœ… Complete |
-| 10 Theology Profiles with Guardrails | âœ… Complete |
-| SSOT Compliance Audit & Fixes | âœ… Complete |
-| Filter Matching Bug Fix | âœ… Complete |
-| Edge Function Guardrails Integration | âœ… Complete |
-| Bible Version Selection with Copyright Guardrails | âœ… Complete |
-| Security Advisor Clean (0 errors, 0 warnings) | âœ… Complete |
-| Mobile Responsiveness Audit (30+ files) | âœ… Complete |
-| Guardrail Violation Logging System | âœ… Complete |
-| Admin Panel Guardrails Tab | âœ… Complete |
-| Email SMTP Configuration | âœ… Complete |
-| Password Validation SSOT | âœ… Complete |
-| Forgot Password Flow | âœ… Complete |
-| Beta Feedback System (Database-driven) | âœ… Complete |
-| FeedbackQuestionsManager Admin | âœ… Complete |
-| Security Advisor Fixes (0 errors, 0 warnings) | âœ… Complete |
-| Lesson Tiers SSOT | ðŸ”„ In Progress |
-| Generation Metrics SSOT | ðŸ”„ In Progress |
-| Beta Tester Onboarding | ðŸ”„ In Progress |
+| Teacher Preference Profiles | ✅ Complete |
+| Auth Bug Fixes | ✅ Complete |
+| UI Improvements (Create Lesson 3-step cards) | ✅ Complete |
+| Prompt Caching Implementation | ✅ Complete |
+| 10 Theology Profiles with Guardrails | ✅ Complete |
+| SSOT Compliance Audit & Fixes | ✅ Complete |
+| Filter Matching Bug Fix | ✅ Complete |
+| Edge Function Guardrails Integration | ✅ Complete |
+| Bible Version Selection with Copyright Guardrails | ✅ Complete |
+| Security Advisor Clean (0 errors, 0 warnings) | ✅ Complete |
+| Mobile Responsiveness Audit (30+ files) | ✅ Complete |
+| Guardrail Violation Logging System | ✅ Complete |
+| Admin Panel Guardrails Tab | ✅ Complete |
+| Email SMTP Configuration | ✅ Complete |
+| Password Validation SSOT | ✅ Complete |
+| Forgot Password Flow | ✅ Complete |
+| Beta Feedback System (Database-driven) | ✅ Complete |
+| FeedbackQuestionsManager Admin | ✅ Complete |
+| Security Advisor Fixes (0 errors, 0 warnings) | ✅ Complete |
+| Lesson Tiers SSOT | 🔄 In Progress |
+| Generation Metrics SSOT | 🔄 In Progress |
+| Beta Tester Onboarding | 🔄 In Progress |
 
 ---
 
@@ -1063,8 +1063,8 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 ### Session 14: Security Advisor Fixes (December 10, 2025) - COMPLETE
 
 **Issue:** Supabase Security Advisor flagged 5 errors (sent monthly alert email)
-- 2x "Exposed Auth Users" â€” views joining `auth.users` directly
-- 3x "Security Definer View" â€” views bypassing RLS
+- 2x "Exposed Auth Users" — views joining `auth.users` directly
+- 3x "Security Definer View" — views bypassing RLS
 
 **Resolution:**
 
@@ -1251,15 +1251,15 @@ These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
 
 | Component | Platform Beta | Org Beta | Modification |
 |-----------|---------------|----------|--------------|
-| feedbackConfig.ts | âœ… | âœ… | Add scope parameter |
-| BetaAnalyticsDashboard.tsx | âœ… | âœ… | Add org_id filter prop |
-| feedback_questions table | âœ… | âœ… | Add scope column |
-| beta_feedback_view | âœ… | âœ… | Add org join condition |
-| Summary card definitions | âœ… | âœ… | No change needed |
+| feedbackConfig.ts | ✅ | ✅ | Add scope parameter |
+| BetaAnalyticsDashboard.tsx | ✅ | ✅ | Add org_id filter prop |
+| feedback_questions table | ✅ | ✅ | Add scope column |
+| beta_feedback_view | ✅ | ✅ | Add org join condition |
+| Summary card definitions | ✅ | ✅ | No change needed |
 
 #### Admin Workflow
 ```
-Admin Panel â†’ Organizations â†’ [Org Name] â†’ Actions â†’ Enable Beta Mode
+Admin Panel → Organizations → [Org Name] → Actions → Enable Beta Mode
 ```
 
 This sets:
@@ -1288,7 +1288,7 @@ When org beta is active, Org Leader sees:
 
 Admin ends org beta via:
 ```
-Admin Panel â†’ Organizations â†’ [Org Name] â†’ Actions â†’ End Beta Mode
+Admin Panel → Organizations → [Org Name] → Actions → End Beta Mode
 ```
 
 This sets:
@@ -1962,10 +1962,10 @@ export const API_ERROR_CODES = {
 
 | Principle | Status |
 |-----------|--------|
-| Frontend drives backend | ✅ UI decides display based on tier data from backend |
-| SSOT for error codes | ✅ apiErrorCodes.ts is single source |
-| SSOT for tier definitions | ✅ pricingConfig.ts includes admin |
-| Admin unlimited access | ✅ 9999 limit, no upgrade prompts |
+| Frontend drives backend | ? UI decides display based on tier data from backend |
+| SSOT for error codes | ? apiErrorCodes.ts is single source |
+| SSOT for tier definitions | ? pricingConfig.ts includes admin |
+| Admin unlimited access | ? 9999 limit, no upgrade prompts |
 
 ---
 ## Future Planning: UI/UX Configuration System | 5 | 3 (1, 5, 8) | No |
@@ -2127,10 +2127,10 @@ export const API_ERROR_CODES = {
 
 | Principle | Status |
 |-----------|--------|
-| Frontend drives backend | ✅ UI decides display based on tier data from backend |
-| SSOT for error codes | ✅ apiErrorCodes.ts is single source |
-| SSOT for tier definitions | ✅ pricingConfig.ts includes admin |
-| Admin unlimited access | ✅ 9999 limit, no upgrade prompts |
+| Frontend drives backend | ? UI decides display based on tier data from backend |
+| SSOT for error codes | ? apiErrorCodes.ts is single source |
+| SSOT for tier definitions | ? pricingConfig.ts includes admin |
+| Admin unlimited access | ? 9999 limit, no upgrade prompts |
 
 ---
 ## Future Planning: UI/UX Configuration System
@@ -2179,6 +2179,167 @@ Confirmed no subscription upgrades needed for feature branch workflow:
 
 ---
 
-**Last Updated: 2025-12-28
+**Last Updated: 2025-12-31
 
+
+
+---
+
+## DevotionalSpark Feature
+
+### Overview
+
+DevotionalSpark generates personal devotionals anchored to lessons. Unlike lessons (classroom instruction), devotionals speak directly to the reader's heart in second-person voice.
+
+### SSOT Configuration
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/devotionalConfig.ts | supabase/functions/_shared/devotionalConfig.ts | Target audiences, lengths, sections |
+
+### Devotional Targets (SSOT: devotionalConfig.ts)
+
+| ID | Label | Description | Vocabulary |
+|----|-------|-------------|------------|
+| preschool | Preschool | Parent reads aloud (ages 3-5) | Simple |
+| children | Children | Child reads independently (ages 6-10) | Simple |
+| youth | Youth | Teen personal devotion (ages 11-18) | Moderate |
+| adult | Adult | Standard devotional (ages 19+) | Advanced |
+
+### Devotional Lengths (SSOT: devotionalConfig.ts)
+
+| ID | Label | Minutes | Word Range |
+|----|-------|---------|------------|
+| short | 3 minutes | 3 | 300-400 |
+| medium | 5 minutes | 5 | 500-600 |
+| long | 10 minutes | 10 | 900-1100 |
+
+### Usage Limits
+
+| User Type | Monthly Limit |
+|-----------|---------------|
+| Regular User | 7 devotionals |
+| Admin | Unlimited (9999) |
+
+### Database Schema
+
+**Table: devotionals**
+- user_id, source_lesson_id, bible_passage
+- target_id, length_id, theology_profile_id, bible_version_id
+- title, content, word_count
+- section_contemporary_connection, section_scripture_in_context
+- section_theological_insights, section_reflection_questions, section_prayer_prompt
+- detected_valence (internal only - not shown to users)
+
+**Table: devotional_usage**
+- user_id, period_start, period_end, devotionals_generated
+- Reset: 12:00 a.m. on 1st of each month
+
+**RPC Functions:**
+- check_devotional_limit(p_user_id) - Returns can_generate, devotionals_used, devotionals_limit, period_end
+- increment_devotional_usage(p_user_id) - Increments counter after generation
+
+### Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| DevotionalGenerator | src/components/DevotionalGenerator.tsx | Generate new devotionals |
+| DevotionalLibrary | src/components/dashboard/DevotionalLibrary.tsx | Browse/manage devotionals |
+| generate-devotional | supabase/functions/generate-devotional/index.ts | Edge function for AI generation |
+
+### User Flow
+
+1. Lesson Library → Select lesson → Click sparkle button
+2. DevotionalGenerator shows passage/theme (read-only from lesson)
+3. User selects Target (age group) and Length
+4. Click Generate → Edge function calls Claude AI
+5. Devotional saved and displayed with copy/print options
+
+---
+
+## Session: December 31, 2025
+
+### Stripe Subscription Fix - Cornerstone Products
+
+**Problem:** User purchased Personal plan ($90/year) via Stripe but account showed "Free" with 5 lesson limit instead of 20.
+
+**Root Cause:** Stripe webhook `stripe-webhook` had incorrect schema assumptions. The webhook was not properly inserting subscription records.
+
+**Fix Applied:**
+
+| Action | Details |
+|--------|---------|
+| Manual subscription insert | Inserted record into `subscriptions` table for user `13afe118-7094-45d4-baf4-df4def09e9a5` |
+| Updated EnhanceLessonForm | Now uses `useSubscription` hook as SSOT for subscription data |
+| Fixed UsageDisplay | Removed corrupted bullet character (line 66) |
+
+### DevotionalSpark Fixes
+
+**Issue 1: Auth Header Missing**
+
+DevotionalGenerator failed with "Auth session missing!" when calling edge function.
+
+| File | Fix |
+|------|-----|
+| src/components/DevotionalGenerator.tsx | Added `headers: { Authorization: \`Bearer \${session.access_token}\` }` to edge function invocation |
+
+**Issue 2: Usage Display Missing**
+
+Users had no visibility into devotional usage until hitting limit.
+
+| File | Fix |
+|------|-----|
+| src/components/DevotionalGenerator.tsx | Added usage indicator: "X of 7 devotionals used this month - Resets [date]" |
+| Database: check_devotional_limit | Fixed ambiguous column reference error (added table alias `du`) |
+
+**Issue 3: Detected Valence Confusion**
+
+AI output showed "**Detected Valence:** virtue" which confused users.
+
+| File | Fix |
+|------|-----|
+| supabase/functions/generate-devotional/index.ts | Changed prompt from "Detected Valence" to "Age Group" |
+| src/components/dashboard/DevotionalLibrary.tsx | Removed all valence display (filter, badges) |
+
+**Issue 4: Age Group Filter Not Working**
+
+Filter dropdown used `option.value` but SSOT returns `option.id`.
+
+| File | Fix |
+|------|-----|
+| src/components/dashboard/DevotionalLibrary.tsx | Changed `option.value` to `option.id` per SSOT |
+
+### Git Commits (December 31, 2025)
+
+| Hash | Description |
+|------|-------------|
+| deefac7 | Fix corrupted bullet character in UsageDisplay |
+| 507505d | Add usage display to DevotionalGenerator |
+| 3dc0cce | Add auth header to DevotionalGenerator |
+| 9ca30c6 | Remove valence display, rename filter to Age Groups |
+| 9d3c643 | Fix Age Group filter - use option.id per SSOT |
+
+### Edge Function Deployment
+
+**Correct Project Reference:** `hphebzdftpjbiudpfcrs`
+
+```bash
+npx supabase functions deploy generate-devotional --project-ref hphebzdftpjbiudpfcrs
+```
+
+Note: Other project references found in Supabase are inactive/old projects.
+
+### Architecture Compliance
+
+| Principle | Status |
+|-----------|--------|
+| SSOT for devotional config | ✅ devotionalConfig.ts is master |
+| Frontend drives backend | ✅ Edge function reads target.label from SSOT |
+| Filter uses SSOT property | ✅ option.id matches database target_id |
+| Usage tracking | ✅ RPC functions handle limits and resets |
+
+---
+
+**Last Updated: 2025-12-31**
+**Current Phase: Phase 18 Complete + DevotionalSpark Feature**
 
