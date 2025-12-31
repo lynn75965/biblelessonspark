@@ -22,7 +22,7 @@
  * - Theme/focus-based lessons (focused_topic)
  * - Combined passage + theme lessons
  * 
- * @version 1.2.0
+ * @version 1.3.0
  * @lastUpdated 2025-12-30
  */
 
@@ -213,6 +213,9 @@ export function DevotionalGenerator() {
           age_group_id: ageGroup,
           source_lesson_id: lessonId,
           lesson_title: lessonTitle,
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
 
