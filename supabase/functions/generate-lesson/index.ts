@@ -306,7 +306,7 @@ serve(async (req) => {
     const allRequiredSections = getRequiredSections();
     const filteredSections = allRequiredSections.filter(s => sectionsToGenerate.includes(s.id));
     
-    console.log('Sections to generate:', filteredSections.map(s => ${s.id}: ));
+    console.log('Sections to generate:', filteredSections.map(s => s.id + ': ' + s.name));
 
     // Capture metrics - SSOT functions from generationMetrics.ts
     const userAgent = req.headers.get('user-agent') || '';
