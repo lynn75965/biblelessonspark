@@ -146,7 +146,7 @@ export function PricingPlansManager() {
             </Button>
             <Button variant="outline" asChild>
               <a
-                href="https://dashboard.stripe.com/test/products"
+                href="https://dashboard.stripe.com/products"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -156,7 +156,7 @@ export function PricingPlansManager() {
             </Button>
             <Button variant="outline" asChild>
               <a
-                href="https://dashboard.stripe.com/test/settings/billing/portal"
+                href="https://dashboard.stripe.com/settings/billing/portal"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -229,7 +229,7 @@ export function PricingPlansManager() {
                     <TableCell>
                       <Button variant="ghost" size="sm" asChild>
                         <a
-                          href={`https://dashboard.stripe.com/test/products/${plan.stripe_product_id}`}
+                          href={`https://dashboard.stripe.com/products/${plan.stripe_product_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
