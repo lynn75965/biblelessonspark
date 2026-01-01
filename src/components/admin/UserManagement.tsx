@@ -37,6 +37,7 @@ interface PendingInvite {
 // SSOT: Extract UI config for cleaner JSX
 const TRIAL_UI = TRIAL_CONFIG.adminGrant.ui;
 const TRIAL_BADGE = TRIAL_CONFIG.adminGrant.badge;
+const TRIAL_REVOKE_UI = TRIAL_CONFIG.adminRevoke.ui;
 
 export function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -57,6 +58,9 @@ export function UserManagement() {
   const [trialGrantDays, setTrialGrantDays] = useState(getDefaultGrantDays().toString());
   const [grantingTrialUserId, setGrantingTrialUserId] = useState<string | null>(null);
   const [trialUser, setTrialUser] = useState<UserProfile | null>(null);
+  
+  // Trial revoke state
+  const [revokingTrialUserId, setRevokingTrialUserId] = useState<string | null>(null);
   
   const { toast } = useToast();
   const { updateUserRole, deleteUser, loading: adminLoading } = useAdminOperations();
@@ -259,6 +263,37 @@ export function UserManagement() {
       });
     } finally {
       setGrantingTrialUserId(null);
+    }
+  };
+
+  const handleRevokeTrial = async (user: UserProfile) => {
+    setRevokingTrialUserId(user.id);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ trial_full_lesson_granted_until: null })
+        .eq('id', user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Use SSOT for success message
+      toast({
+        title: TRIAL_REVOKE_UI.successTitle,
+        description: TRIAL_REVOKE_UI.successDescription(user.full_name || 'User'),
+      });
+
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error revoking trial:', error);
+      toast({
+        title: TRIAL_REVOKE_UI.errorTitle,
+        description: TRIAL_REVOKE_UI.errorDescription,
+        variant: "destructive",
+      });
+    } finally {
+      setRevokingTrialUserId(null);
     }
   };
 
@@ -681,6 +716,44 @@ export function UserManagement() {
                                   <Gift className="h-4 w-4" />
                                 )}
                               </Button>
+                            )}
+
+                            {/* Revoke Trial Button - SSOT: Only show if adminRevoke.enabled AND user has active trial */}
+                            {TRIAL_CONFIG.adminRevoke.enabled && userHasActiveTrial && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={revokingTrialUserId === user.id}
+                                    title={TRIAL_REVOKE_UI.buttonTitle}
+                                    className="text-warning hover:text-warning"
+                                  >
+                                    {revokingTrialUserId === user.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <X className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>{TRIAL_REVOKE_UI.dialogTitle}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      {TRIAL_REVOKE_UI.dialogDescription}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>{TRIAL_REVOKE_UI.cancelButton}</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => handleRevokeTrial(user)}
+                                      className="bg-warning text-warning-foreground hover:bg-warning/90"
+                                    >
+                                      {TRIAL_REVOKE_UI.confirmButton}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
                             )}
 
                             {/* Delete User Dialog */}

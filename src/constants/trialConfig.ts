@@ -67,6 +67,28 @@ export const TRIAL_CONFIG = {
   },
   
   // -------------------------------------------------------------------------
+  // ADMIN REVOKE SETTINGS (controls Admin Panel UI)
+  // -------------------------------------------------------------------------
+  adminRevoke: {
+    enabled: true,                  // Show revoke button for users with active trials
+    
+    // UI Text (easily customizable)
+    ui: {
+      buttonTitle: 'Revoke Trial',
+      dialogTitle: 'Revoke Trial Access',
+      dialogDescription: 'Are you sure you want to revoke trial access? This user will immediately lose access to full lessons.',
+      cancelButton: 'Keep Trial',
+      confirmButton: 'Revoke Trial',
+      revokingButton: 'Revoking...',
+      successTitle: 'Trial Revoked',
+      successDescription: (userName: string) => 
+        `Trial access has been revoked for ${userName}.`,
+      errorTitle: 'Error',
+      errorDescription: 'Failed to revoke trial access.',
+    },
+  },
+  
+  // -------------------------------------------------------------------------
   // USER-FACING MESSAGES
   // -------------------------------------------------------------------------
   messages: {
