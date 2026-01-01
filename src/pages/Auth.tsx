@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BookOpen, Mail, User, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BookOpen, Mail, User, Lock, Eye, EyeOff, ArrowLeft, Church } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useInvites } from '@/hooks/useInvites';
@@ -17,12 +18,19 @@ import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/valida
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { isBetaMode } from '@/constants/systemSettings';
 import { LegalModal } from '@/components/LegalModal';
+import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from '@/constants/betaEnrollmentConfig';
+
+// Public Beta Organization ID - SSOT: This should match system_settings or be fetched
+const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('invite');
   
-  // Get UI config from SSOT
+  // Get system settings for platform mode
+  const { settings } = useSystemSettings();
+  const platformMode = settings.current_phase as string;
+  const isPublicBeta = shouldShowPublicBetaEnrollment(platformMode);
   
   const tabFromUrl = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState(tabFromUrl === 'signin' || tabFromUrl === 'signup' ? tabFromUrl : 'signup');
@@ -41,12 +49,17 @@ export default function Auth() {
     email: '',
     password: '',
     fullName: '',
+    churchName: '',
+    referralSource: '',
   });
 
   const { signIn, signUp, user } = useAuth();
   const { toast } = useToast();
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
+
+  // SSOT: Get form config
+  const FORM_CONFIG = BETA_ENROLLMENT_CONFIG.form;
 
   // Handle password reset mode - must check BEFORE auth redirect
   useEffect(() => {
@@ -100,16 +113,12 @@ export default function Auth() {
     handleInvite();
   }, [inviteToken, getInviteByToken, toast]);
 
-  // Redirect if already authenticated
-  // Auth redirect handled above with reset mode check
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email || !formData.password) return;
 
     setIsLoading(true);
     try {
-      // Sanitize email input
       const sanitizedEmail = sanitizeEmail(formData.email);
       const { error } = await signIn(sanitizedEmail, formData.password);
 
@@ -136,13 +145,46 @@ export default function Auth() {
     }
   };
 
+  // Enroll user in Public Beta organization
+  const enrollInPublicBeta = async (userId: string) => {
+    try {
+      // Add to organization_members
+      const { error: memberError } = await supabase
+        .from('organization_members')
+        .insert({
+          organization_id: PUBLIC_BETA_ORG_ID,
+          user_id: userId,
+          role: 'member',
+        });
+
+      if (memberError && !memberError.message.includes('duplicate')) {
+        console.error('Error adding to org members:', memberError);
+      }
+
+      // Update profile with organization_id
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          organization_id: PUBLIC_BETA_ORG_ID,
+          church_name: formData.churchName || null,
+          referral_source: formData.referralSource || null,
+        })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+      }
+    } catch (error) {
+      console.error('Error enrolling in public beta:', error);
+    }
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email || !formData.password || !formData.fullName) return;
 
     setIsLoading(true);
     try {
-      // Sanitize inputs on submit (not during typing)
       const sanitizedEmail = sanitizeEmail(formData.email);
       const sanitizedFullName = sanitizeText(formData.fullName);
 
@@ -157,7 +199,7 @@ export default function Auth() {
         return;
       }
 
-      const { error } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
+      const { error, data } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
 
       if (error) {
         if (error.message.includes('User already registered')) {
@@ -180,6 +222,11 @@ export default function Auth() {
           await claimInvite(inviteToken);
         }
 
+        // Auto-enroll in Public Beta if in public_beta mode and no invite token
+        if (isPublicBeta && !inviteToken && data?.user?.id) {
+          await enrollInPublicBeta(data.user.id);
+        }
+
         // Trigger verification email
         try {
           const { data: userData } = await supabase.auth.getUser();
@@ -191,8 +238,8 @@ export default function Auth() {
         }
 
         toast({
-          title: "Account created!",
-          description: "Please check your email to verify your account.",
+          title: BETA_ENROLLMENT_CONFIG.messages.enrollmentSuccess.title,
+          description: BETA_ENROLLMENT_CONFIG.messages.enrollmentSuccess.description,
         });
       }
     } catch (error) {
@@ -309,7 +356,6 @@ export default function Auth() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    // Only lowercase email during typing - all other sanitization happens on submit
     const processedValue = field === 'email' ? value.toLowerCase() : value;
     setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
@@ -381,7 +427,7 @@ export default function Auth() {
                   <p className="font-medium mb-1">Password requirements:</p>
                   <ul className="space-y-0.5">
                     {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                      <li key={i}>• {req}</li>
+                      <li key={i}>â€¢ {req}</li>
                     ))}
                   </ul>
                 </div>
@@ -407,7 +453,6 @@ export default function Auth() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
         <div className="w-full max-w-md px-4 sm:px-0">
-          {/* Header */}
           <div className="text-center mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
@@ -503,9 +548,11 @@ export default function Auth() {
             </div>
             <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold mb-2">Welcome to {SITE.name}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">
+            {isPublicBeta ? FORM_CONFIG.title : `Welcome to ${SITE.name}`}
+          </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {SITE.tagline}
+            {isPublicBeta ? FORM_CONFIG.subtitle : SITE.tagline}
           </p>
         </div>
 
@@ -577,12 +624,13 @@ export default function Auth() {
                         ) : (
                           <Eye className="h-4 w-4" />
                         )}
-                      </button>                    </div>
+                      </button>
+                    </div>
                     <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>• {req}</li>
+                          <li key={i}>â€¢ {req}</li>
                         ))}
                       </ul>
                     </div>
@@ -605,12 +653,12 @@ export default function Auth() {
               <TabsContent value="signup" className="space-y-3 sm:space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-sm">Full Name</Label>
+                    <Label htmlFor="signup-name" className="text-sm">{FORM_CONFIG.fullNameLabel}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
-                        placeholder="Your full name"
+                        placeholder={FORM_CONFIG.fullNamePlaceholder}
                         value={formData.fullName}
                         onChange={(e) => handleInputChange('fullName', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -619,13 +667,13 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm">Email</Label>
+                    <Label htmlFor="signup-email" className="text-sm">{FORM_CONFIG.emailLabel}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="your.email@church.org"
+                        placeholder={FORM_CONFIG.emailPlaceholder}
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -634,13 +682,13 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm">Password</Label>
+                    <Label htmlFor="signup-password" className="text-sm">{FORM_CONFIG.passwordLabel}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type={showSignUpPassword ? "text" : "password"}
-                        placeholder="Enter your password"
+                        placeholder={FORM_CONFIG.passwordPlaceholder}
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-9 sm:pl-10 pr-10 text-sm sm:text-base"
@@ -658,16 +706,56 @@ export default function Auth() {
                         ) : (
                           <Eye className="h-4 w-4" />
                         )}
-                      </button>                    </div>
+                      </button>
+                    </div>
                     <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>• {req}</li>
+                          <li key={i}>â€¢ {req}</li>
                         ))}
                       </ul>
                     </div>
                   </div>
+
+                  {/* Optional fields for Public Beta mode - SSOT controlled */}
+                  {isPublicBeta && BETA_ENROLLMENT_CONFIG.features.collectChurchName && (
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-church" className="text-sm">{FORM_CONFIG.churchNameLabel}</Label>
+                      <div className="relative">
+                        <Church className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+                        <Input
+                          id="signup-church"
+                          placeholder={FORM_CONFIG.churchNamePlaceholder}
+                          value={formData.churchName}
+                          onChange={(e) => handleInputChange('churchName', e.target.value)}
+                          className="pl-9 sm:pl-10 text-sm sm:text-base"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {isPublicBeta && BETA_ENROLLMENT_CONFIG.features.collectReferralSource && (
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-referral" className="text-sm">{FORM_CONFIG.referralSourceLabel}</Label>
+                      <Select 
+                        value={formData.referralSource} 
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, referralSource: value }))}
+                      >
+                        <SelectTrigger id="signup-referral" className="text-sm sm:text-base">
+                          <SelectValue placeholder={FORM_CONFIG.referralSourcePlaceholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BETA_ENROLLMENT_CONFIG.referralSources.map((source) => (
+                            <SelectItem key={source.value} value={source.value}>
+                              {source.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <Button
                     type="submit"
                     className="w-full text-sm sm:text-base"
@@ -675,10 +763,10 @@ export default function Auth() {
                     size="lg"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Creating Account...' : 'Create Account'}
+                    {isLoading ? FORM_CONFIG.submittingButton : FORM_CONFIG.submitButton}
                   </Button>
                   <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-                    By signing up, you agree to our <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">terms of service</button> and <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">privacy policy</button>
+                    By signing up, you agree to our <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">{FORM_CONFIG.termsLink}</button> and <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">{FORM_CONFIG.privacyLink}</button>
                   </p>
                 </form>
               </TabsContent>
@@ -688,7 +776,10 @@ export default function Auth() {
 
         {/* Back to Home */}
         <div className="text-center mt-4 sm:mt-6">
-          <Button variant="ghost" onClick={() => navigate('/')} size="sm" className="text-xs sm:text-sm"><ArrowLeft className="h-4 w-4 mr-2" />Back to Home</Button>
+          <Button variant="ghost" onClick={() => navigate('/')} size="sm" className="text-xs sm:text-sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Home
+          </Button>
         </div>
       </div>
       {/* Legal Modal */}

@@ -3,6 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles, Users, Clock, Star } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
 
 interface HeroSectionProps {
   onRequestAccess?: () => void;
@@ -10,6 +12,20 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
+  const { settings } = useSystemSettings();
+  const platformMode = settings.current_phase as string;
+  const isPublicBeta = shouldShowPublicBetaEnrollment(platformMode);
+  
+  // SSOT: Get CTA text based on platform mode
+  const ctaButtonText = isPublicBeta 
+    ? BETA_ENROLLMENT_CONFIG.landingPage.ctaButton 
+    : 'Get Started';
+  
+  // SSOT: Get badge text based on platform mode
+  const badgeText = isPublicBeta
+    ? 'Public Beta • Free for Baptist Teachers'
+    : 'Welcome to the Beta • Exclusive for Baptist Teachers';
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary-light/20">
       {/* Background pattern */}
@@ -21,7 +37,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
           <div className="flex-1 space-y-4 sm:space-y-6 lg:space-y-8 text-center lg:text-left w-full">
             {/* Beta badge */}
             <Badge className="bg-gradient-to-r from-secondary to-warning text-white px-3 py-1 text-xs sm:text-sm font-semibold inline-block">
-              Welcome to the Beta • Exclusive for Baptist Teachers
+              {badgeText}
             </Badge>
             
             {/* Main headline */}
@@ -71,14 +87,16 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
                 className="text-base sm:text-lg w-full sm:w-auto min-h-[44px]"
               >
                 <Star className="h-4 w-4 sm:h-5 sm:w-5" />
-                Get Started
+                {ctaButtonText}
               </Button>
             </div>
 
             {/* Social proof */}
             <div className="pt-4 sm:pt-6 lg:pt-8 space-y-2">
               <p className="text-xs sm:text-sm text-muted-foreground">
-                Trusted by Baptist teachers across the country
+                {isPublicBeta 
+                  ? BETA_ENROLLMENT_CONFIG.landingPage.trustText
+                  : 'Trusted by Baptist teachers across the country'}
               </p>
               <div className="flex items-center justify-center lg:justify-start gap-0.5 sm:gap-1">
                 {[...Array(5)].map((_, i) => (
