@@ -1,7 +1,9 @@
-﻿// ============================================================================
+// ============================================================================
 // SSOT: Trial Feature Configuration
 // LessonSparkUSA - Master Definition
 // Database columns store data; THIS FILE defines logic and rules
+// Mirror: supabase/functions/_shared/trialConfig.ts
+// DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -22,11 +24,51 @@ export const TRIAL_CONFIG = {
   appliesTo: ['free'] as const,     // Only Free tier users
   excludeBetaGraduates: false,      // Beta users also get trial when they become Free
   
-  // Admin override settings
-  adminCanGrant: true,
-  defaultGrantDays: 30,             // Admin grants last 30 days by default
+  // -------------------------------------------------------------------------
+  // ADMIN GRANT SETTINGS (controls Admin Panel UI)
+  // -------------------------------------------------------------------------
+  adminGrant: {
+    enabled: true,                  // Show grant button in User Management
+    defaultDays: 30,                // Pre-selected value in dropdown
+    
+    // Dropdown options for admin (value in days)
+    dayOptions: [
+      { value: 7, label: '7 days' },
+      { value: 14, label: '14 days' },
+      { value: 30, label: '30 days', isDefault: true },
+      { value: 60, label: '60 days' },
+      { value: 90, label: '90 days' },
+    ],
+    
+    // UI Text (easily customizable)
+    ui: {
+      buttonTitle: 'Grant Trial',
+      buttonTitleExtend: 'Extend Trial',
+      dialogTitle: 'Grant Trial Access',
+      dialogDescription: 'Grant temporary access to full lessons (all 8 sections).',
+      activeTrialWarning: 'This user already has an active trial. Granting a new trial will replace the existing one.',
+      expirationLabel: 'Trial will expire on:',
+      daysLabel: 'Number of Days',
+      cancelButton: 'Cancel',
+      confirmButton: 'Grant Trial',
+      confirmingButton: 'Granting...',
+      successTitle: 'Trial Granted',
+      successDescription: (userName: string, days: number, expireDate: string) => 
+        `${userName} has been granted ${days} days of full lessons until ${expireDate}.`,
+      errorTitle: 'Error',
+      errorDescription: 'Failed to grant trial access.',
+    },
+    
+    // Badge shown in user list for active trials
+    badge: {
+      show: true,
+      prefix: 'Trial until',
+    },
+  },
   
-  // UI messaging
+  // -------------------------------------------------------------------------
+  // USER-FACING MESSAGES
+  // -------------------------------------------------------------------------
   messages: {
     available: {
       title: "Your First Lesson This Month is FREE at Full Quality!",
@@ -46,6 +88,17 @@ export const TRIAL_CONFIG = {
     nextReset: "Your free full lesson resets on the 1st of each month.",
   },
 } as const;
+
+// Type exports for TypeScript support
+export type TrialDayOption = typeof TRIAL_CONFIG.adminGrant.dayOptions[number];
+
+// ----------------------------------------------------------------------------
+// HELPER: Get default days value
+// ----------------------------------------------------------------------------
+export const getDefaultGrantDays = (): number => {
+  const defaultOption = TRIAL_CONFIG.adminGrant.dayOptions.find(opt => opt.isDefault);
+  return defaultOption?.value || TRIAL_CONFIG.adminGrant.defaultDays;
+};
 
 // ----------------------------------------------------------------------------
 // TRIAL AVAILABILITY LOGIC

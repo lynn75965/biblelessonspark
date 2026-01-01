@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/systemSettings.ts
- * Generated: 2025-12-29T00:07:58.428Z
+ * Generated: 2026-01-01T13:23:43.676Z
  */
 ﻿// =====================================================
 // SYSTEM SETTINGS - Single Source of Truth
@@ -99,7 +99,7 @@ export const SYSTEM_SETTINGS = {
     type: 'toggle',
     label: 'Show Pricing Page',
     description: 'Display pricing information to users',
-    defaultValue: false,
+    defaultValue: true,
     order: 2,
   },
   show_credits_block: {
@@ -181,3 +181,4 @@ export function getPhaseDisplayLabel(currentPhase: string): string {
   const option = setting.options.find(opt => opt.value === currentPhase);
   return option?.label || 'Unknown';
 }
+

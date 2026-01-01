@@ -10,10 +10,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Mail, Loader2, Clock, Send, X } from "lucide-react";
-import { format, isPast } from "date-fns";
+import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Mail, Loader2, Clock, Send, X, Gift } from "lucide-react";
+import { format, isPast, addDays } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
+import { TRIAL_CONFIG, getDefaultGrantDays } from "@/constants/trialConfig";
 
 interface UserProfile {
   id: string;
@@ -22,6 +23,7 @@ interface UserProfile {
   founder_status: string;
   created_at: string;
   user_roles?: Array<{ role: string }>;
+  trial_full_lesson_granted_until?: string | null;
 }
 
 interface PendingInvite {
@@ -31,6 +33,10 @@ interface PendingInvite {
   expires_at: string;
   token: string;
 }
+
+// SSOT: Extract UI config for cleaner JSX
+const TRIAL_UI = TRIAL_CONFIG.adminGrant.ui;
+const TRIAL_BADGE = TRIAL_CONFIG.adminGrant.badge;
 
 export function UserManagement() {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -45,6 +51,13 @@ export function UserManagement() {
   const [resendingInviteId, setResendingInviteId] = useState<string | null>(null);
   const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Trial grant state - uses SSOT for default value
+  const [trialDialogOpen, setTrialDialogOpen] = useState(false);
+  const [trialGrantDays, setTrialGrantDays] = useState(getDefaultGrantDays().toString());
+  const [grantingTrialUserId, setGrantingTrialUserId] = useState<string | null>(null);
+  const [trialUser, setTrialUser] = useState<UserProfile | null>(null);
+  
   const { toast } = useToast();
   const { updateUserRole, deleteUser, loading: adminLoading } = useAdminOperations();
   const { sendInvite, loading: inviteLoading } = useInvites();
@@ -205,6 +218,50 @@ export function UserManagement() {
     }
   };
 
+  const handleGrantTrial = async () => {
+    if (!trialUser) return;
+    
+    setGrantingTrialUserId(trialUser.id);
+    try {
+      const days = parseInt(trialGrantDays) || getDefaultGrantDays();
+      const grantedUntil = addDays(new Date(), days);
+      const expireDateFormatted = format(grantedUntil, 'MMM d, yyyy');
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ trial_full_lesson_granted_until: grantedUntil.toISOString() })
+        .eq('id', trialUser.id);
+
+      if (error) {
+        throw error;
+      }
+
+      // Use SSOT for success message
+      toast({
+        title: TRIAL_UI.successTitle,
+        description: TRIAL_UI.successDescription(
+          trialUser.full_name || 'User',
+          days,
+          expireDateFormatted
+        ),
+      });
+
+      setTrialDialogOpen(false);
+      setTrialUser(null);
+      setTrialGrantDays(getDefaultGrantDays().toString());
+      await fetchUsers();
+    } catch (error) {
+      console.error('Error granting trial:', error);
+      toast({
+        title: TRIAL_UI.errorTitle,
+        description: TRIAL_UI.errorDescription,
+        variant: "destructive",
+      });
+    } finally {
+      setGrantingTrialUserId(null);
+    }
+  };
+
   const handleSendInvite = async () => {
     if (!inviteEmail) {
       toast({
@@ -248,6 +305,12 @@ export function UserManagement() {
 
   const getInviteStatus = (expiresAt: string) => {
     return isPast(new Date(expiresAt)) ? 'expired' : 'pending';
+  };
+
+  // Check if user has active trial grant
+  const hasActiveTrial = (grantedUntil: string | null | undefined): boolean => {
+    if (!grantedUntil) return false;
+    return new Date(grantedUntil) > new Date();
   };
 
   if (loading) {
@@ -510,6 +573,7 @@ export function UserManagement() {
                 ) : (
                   filteredUsers.map((user) => {
                     const RoleIcon = getRoleIcon(user.role);
+                    const userHasActiveTrial = hasActiveTrial(user.trial_full_lesson_granted_until);
                     return (
                       <TableRow key={user.id}>
                         <TableCell>
@@ -527,21 +591,32 @@ export function UserManagement() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            {user.founder_status}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant="outline">
+                              {user.founder_status}
+                            </Badge>
+                            {/* SSOT: Trial badge controlled by TRIAL_BADGE config */}
+                            {TRIAL_BADGE.show && userHasActiveTrial && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Gift className="h-3 w-3 mr-1" />
+                                {TRIAL_BADGE.prefix} {format(new Date(user.trial_full_lesson_granted_until!), 'MMM d')}
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
                           {format(new Date(user.created_at), 'MMM d, yyyy')}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center gap-1 justify-end">
+                            {/* Edit Role Dialog */}
                             <Dialog open={editDialogOpen && selectedUser?.id === user.id} onOpenChange={setEditDialogOpen}>
                               <DialogTrigger asChild>
                                 <Button 
                                   variant="ghost" 
                                   size="sm"
                                   onClick={() => setSelectedUser(user)}
+                                  title="Edit Role"
                                 >
                                   <Edit className="h-4 w-4" />
                                 </Button>
@@ -586,12 +661,36 @@ export function UserManagement() {
                               </DialogContent>
                             </Dialog>
 
+                            {/* Grant Trial Button - SSOT: Only show if adminGrant.enabled */}
+                            {TRIAL_CONFIG.adminGrant.enabled && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setTrialUser(user);
+                                  setTrialGrantDays(getDefaultGrantDays().toString());
+                                  setTrialDialogOpen(true);
+                                }}
+                                disabled={grantingTrialUserId === user.id}
+                                title={userHasActiveTrial ? TRIAL_UI.buttonTitleExtend : TRIAL_UI.buttonTitle}
+                                className="text-success hover:text-success"
+                              >
+                                {grantingTrialUserId === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Gift className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+
+                            {/* Delete User Dialog */}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button 
                                   variant="ghost" 
                                   size="sm"
                                   className="text-destructive hover:text-destructive"
+                                  title="Delete User"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -626,6 +725,80 @@ export function UserManagement() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Grant Trial Dialog - All text from SSOT */}
+      <Dialog open={trialDialogOpen} onOpenChange={setTrialDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-success" />
+              {TRIAL_UI.dialogTitle}
+            </DialogTitle>
+            <DialogDescription>
+              {TRIAL_UI.dialogDescription.replace('temporary access to full lessons (all 8 sections)', 
+                `temporary access to full lessons (all ${TRIAL_CONFIG.sectionsGranted} sections)`)}
+              {trialUser && hasActiveTrial(trialUser.trial_full_lesson_granted_until) && (
+                <span className="block mt-2 text-warning">
+                  {TRIAL_UI.activeTrialWarning.replace(
+                    'This user already has an active trial.',
+                    `This user already has an active trial until ${format(new Date(trialUser.trial_full_lesson_granted_until!), 'MMM d, yyyy')}.`
+                  )}
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="trial-days">{TRIAL_UI.daysLabel}</Label>
+              {/* SSOT: Dropdown options from TRIAL_CONFIG.adminGrant.dayOptions */}
+              <Select value={trialGrantDays} onValueChange={setTrialGrantDays}>
+                <SelectTrigger id="trial-days">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIAL_CONFIG.adminGrant.dayOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {TRIAL_UI.expirationLabel} <strong>{format(addDays(new Date(), parseInt(trialGrantDays) || getDefaultGrantDays()), 'MMMM d, yyyy')}</strong>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setTrialDialogOpen(false);
+                setTrialUser(null);
+              }}
+              disabled={grantingTrialUserId !== null}
+            >
+              {TRIAL_UI.cancelButton}
+            </Button>
+            <Button
+              onClick={handleGrantTrial}
+              disabled={grantingTrialUserId !== null}
+              className="bg-success text-success-foreground hover:bg-success/90"
+            >
+              {grantingTrialUserId ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {TRIAL_UI.confirmingButton}
+                </>
+              ) : (
+                <>
+                  <Gift className="mr-2 h-4 w-4" />
+                  {TRIAL_UI.confirmButton}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Invite User Dialog */}
       <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
