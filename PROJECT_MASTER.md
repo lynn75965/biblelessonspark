@@ -95,8 +95,8 @@ The getEffectiveRole() function in accessControl.ts performs this mapping:
 
 ---
 
-**Last Updated: 2025-12-31
-**Current Phase: Phase 18 Complete - Subscription & Payment System
+**Last Updated: 2026-01-01**
+**Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
 **Repository:** C:\Users\Lynn\lesson-spark-usa
 **Framework Version:** 2.1.2
 
@@ -2476,12 +2476,189 @@ Implemented complete beta-to-production transition architecture with SSOT compli
 
 | Priority | Item | Description |
 |----------|------|-------------|
-| HIGH | Admin UI for Platform Mode | Dropdown in System Settings to change mode |
-| MEDIUM | Admin UI for Trial Grant | Grant trial override to specific users |
-| LOW | Public Beta Enrollment | Self-join flow for public beta org |
+| ~~HIGH~~ | ~~Admin UI for Platform Mode~~ | ✅ Already working |
+| ~~MEDIUM~~ | ~~Admin UI for Trial Grant~~ | ✅ Completed 2026-01-01 |
+| ~~LOW~~ | ~~Public Beta Enrollment~~ | ✅ Completed 2026-01-01 |
 
 ---
 
 **Last Updated: 2025-12-31**
 **Current Phase: Phase 19 - Beta-to-Production Architecture**
+
+## Session: January 1, 2026 - Admin Trial Management & Public Beta Enrollment
+
+### Overview
+
+Completed all outstanding items from Phase 19: Admin Trial Grant/Revoke UI and Public Beta Enrollment Flow. All implementations follow strict SSOT architecture with configuration-driven UI.
+
+### Task 1: Admin Trial Grant Feature ✅
+
+**Purpose:** Allow admin to grant trial full-lesson access to specific users for a specified duration.
+
+**SSOT Configuration Added to trialConfig.ts:**
+
+| Config Key | Purpose |
+|------------|---------|
+| adminGrant.enabled | Toggle grant feature on/off |
+| adminGrant.defaultDays | Default dropdown selection (30 days) |
+| adminGrant.dayOptions[] | Dropdown choices (7, 14, 30, 60, 90 days) |
+| adminGrant.ui.* | All dialog text, button labels, toast messages |
+| adminGrant.badge.show | Display trial expiration badge in Status column |
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/constants/trialConfig.ts | Added adminGrant configuration section |
+| src/components/admin/UserManagement.tsx | Added Gift button, grant dialog, trial badge |
+| supabase/functions/_shared/trialConfig.ts | Manual sync of SSOT |
+
+**Database Changes:**
+
+```sql
+-- Updated RPC function to return trial column
+DROP FUNCTION IF EXISTS get_all_users_for_admin();
+CREATE OR REPLACE FUNCTION get_all_users_for_admin()
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  user_role TEXT,
+  founder_status TEXT,
+  created_at TIMESTAMPTZ,
+  trial_full_lesson_granted_until TIMESTAMPTZ  -- Added
+)
+```
+
+**UI Features:**
+- Green Gift icon in Actions column
+- Dialog with day selector dropdown (7/14/30/60/90 days)
+- Shows calculated expiration date preview
+- Warning displayed if user already has active trial
+- Updates `profiles.trial_full_lesson_granted_until`
+
+### Task 2: Admin Trial Revoke Feature ✅
+
+**Purpose:** Allow admin to revoke trial access from users.
+
+**SSOT Configuration Added to trialConfig.ts:**
+
+| Config Key | Purpose |
+|------------|---------|
+| adminRevoke.enabled | Toggle revoke feature on/off |
+| adminRevoke.ui.* | All revoke dialog text, button labels |
+
+**UI Features:**
+- Orange X button (only visible for users with active trials)
+- Confirmation dialog before revocation
+- Sets `trial_full_lesson_granted_until` to NULL
+
+### Task 3: Public Beta Enrollment Flow ✅
+
+**Purpose:** Allow users to self-enroll in Public Beta when platform is in `public_beta` mode.
+
+**New SSOT File Created:**
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/betaEnrollmentConfig.ts | supabase/functions/_shared/betaEnrollmentConfig.ts | Beta enrollment UI and behavior |
+
+**betaEnrollmentConfig.ts Structure:**
+
+| Section | Purpose |
+|---------|---------|
+| features.* | Toggle fields on/off (collectChurchName, collectReferralSource) |
+| referralSources[] | Dropdown options for "How did you hear about us?" |
+| landingPage.* | CTA text, button labels, trust indicators |
+| form.* | All form field labels, placeholders, validation messages |
+| dashboardPrompt.* | Banner for orphan users (future use) |
+| messages.* | Success/error toast messages |
+| validation.* | Form validation error messages |
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/constants/betaEnrollmentConfig.ts | NEW - SSOT for enrollment flow |
+| src/components/landing/HeroSection.tsx | Dynamic CTA based on platform mode |
+| src/pages/Auth.tsx | Optional fields + auto-enroll logic |
+
+**Database Changes:**
+
+```sql
+-- Added optional enrollment fields to profiles
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS church_name TEXT,
+ADD COLUMN IF NOT EXISTS referral_source TEXT;
+```
+
+**Platform Mode Behavior:**
+
+| Mode | Landing Page Badge | Sign Up Form |
+|------|-------------------|--------------|
+| private_beta | "Welcome to the Beta • Exclusive for Baptist Teachers" | Name, Email, Password only |
+| public_beta | "Public Beta • Free for Baptist Teachers" | + Church Name (optional) + Referral Source (optional) |
+
+**Auto-Enrollment Logic:**
+- When platform is in `public_beta` mode
+- New users without invite tokens are automatically added to:
+  - `organization_members` table (Public Beta org)
+  - `profiles.organization_id` updated
+  - Optional fields saved: `church_name`, `referral_source`
+
+**Public Beta Organization:**
+
+| Name | ID |
+|------|-----|
+| LessonSparkUSA Public Beta | 9a5da69e-adf2-4661-8833-197940c255e0 |
+
+### Git Commits (January 1, 2026)
+
+| Hash | Description |
+|------|-------------|
+| a0d3855 | Add Grant Trial feature with full SSOT compliance |
+| b908c9d | Add Revoke Trial feature with SSOT compliance |
+| 1bb3c40 | Add Public Beta enrollment flow with SSOT config |
+
+### SSOT Summary - New Constants
+
+| Constant File | Key Configurations |
+|---------------|-------------------|
+| trialConfig.ts | adminGrant.*, adminRevoke.*, badge.* |
+| betaEnrollmentConfig.ts | features.*, referralSources[], landingPage.*, form.*, messages.* |
+
+### Testing Completed
+
+| Feature | Test Result |
+|---------|-------------|
+| Grant Trial (Gift icon) | ✅ Dialog opens, days selectable, trial granted |
+| Trial Badge display | ✅ Shows "Trial until [date]" in Status column |
+| Revoke Trial (X icon) | ✅ Only shows for active trials, revokes successfully |
+| Landing page (private_beta) | ✅ Shows "Exclusive for Baptist Teachers" |
+| Landing page (public_beta) | ✅ Shows "Free for Baptist Teachers" |
+| Sign Up (private_beta) | ✅ Basic fields only |
+| Sign Up (public_beta) | ✅ Shows Church Name + Referral Source fields |
+| Auto-enrollment | ✅ New users added to Public Beta org |
+
+### Current System State
+
+| Setting | Value |
+|---------|-------|
+| Platform Mode | private_beta |
+| Tier Enforcement | OFF |
+| Trial Grant UI | Enabled |
+| Trial Revoke UI | Enabled |
+| Public Beta Enrollment | Ready (activates when mode = public_beta) |
+
+### Outstanding Items (Next Session)
+
+| Priority | Item | Description |
+|----------|------|-------------|
+| MEDIUM | Dashboard Prompt for Orphan Users | Banner prompting org-less users to join Public Beta |
+| LOW | Referral Source Analytics | Admin view of how users discovered platform |
+| LOW | Church Name Directory | Admin view of churches represented |
+
+---
+
+**Last Updated: 2026-01-01**
+**Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
 
