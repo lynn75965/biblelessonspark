@@ -5,13 +5,13 @@ import { Header } from "@/components/layout/Header";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
-import { GuardrailViolationsPanel } from "@/components/admin/GuardrailViolationsPanel";
 import { SystemAnalyticsDashboard } from "@/components/admin/SystemAnalyticsDashboard";
 import { AllLessonsPanel } from "@/components/admin/AllLessonsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, ShieldAlert, BookOpen, Palette } from "lucide-react";import { supabase } from "@/integrations/supabase/client";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { SystemSettingsPanel } from "@/components/admin/SystemSettingsPanel";
@@ -28,6 +28,7 @@ import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
 // System Analytics Dashboard with per-user lesson viewing (December 10, 2025)
 // All Lessons tab for admin access to ALL platform lessons (December 11, 2025)
 // Generation Metrics merged into System Analytics tab (December 17, 2025)
+// Guardrails tab merged into Security tab (January 1, 2026)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -173,21 +174,13 @@ export default function Admin() {
     );
   }
 
-  if (!userProfile) {
-    return null; // Will redirect
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      <Header
-        isAuthenticated
-        organizationName="LessonSpark USA"
-      />
-
-      <main className="container py-6 px-4 sm:px-6">
+      <Header />
+      <main className="container mx-auto px-4 py-8">
         {/* Admin Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary flex-shrink-0">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
             <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
           <div className="min-w-0">
@@ -198,7 +191,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Admin Tabs - MOBILE FIX: Use flex with horizontal scroll */}
+        {/* Admin Tabs - Guardrails merged into Security (January 1, 2026) */}
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             <TabsTrigger value="users" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
@@ -221,10 +214,6 @@ export default function Admin() {
               <DollarSign className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Pricing & Plans</span>
             </TabsTrigger>
-            <TabsTrigger value="guardrails" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <ShieldAlert className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Guardrails</span>
-            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">System Analytics</span>
@@ -237,11 +226,11 @@ export default function Admin() {
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
-          <TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+            <TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Palette className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Branding</span>
             </TabsTrigger>
-	</TabsList>
+          </TabsList>
 
           {/* MOBILE FIX: Add relative z-0 to all TabsContent */}
           <TabsContent value="users" className="mt-6 relative z-0">
@@ -336,10 +325,6 @@ export default function Admin() {
             <PricingPlansManager />
           </TabsContent>
 
-          <TabsContent value="guardrails" className="mt-6 relative z-0">
-            <GuardrailViolationsPanel />
-          </TabsContent>
-
           <TabsContent value="analytics" className="mt-6 relative z-0">
             <SystemAnalyticsDashboard />
           </TabsContent>
@@ -351,7 +336,8 @@ export default function Admin() {
           <TabsContent value="security" className="mt-6 relative z-0">
             <AdminSecurityPanel />
           </TabsContent>
-		<TabsContent value="branding" className="mt-6 relative z-0">
+
+          <TabsContent value="branding" className="mt-6 relative z-0">
             <TenantBrandingPanel />
           </TabsContent>
         </Tabs>
