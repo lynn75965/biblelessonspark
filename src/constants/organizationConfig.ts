@@ -1,8 +1,18 @@
-﻿// ============================================================================
+// ============================================================================
 // SSOT: Organization Configuration
 // LessonSparkUSA - Master Definition
 // Database columns store data; THIS FILE defines valid values and rules
 // ============================================================================
+
+// ----------------------------------------------------------------------------
+// WELL-KNOWN ORGANIZATION IDS
+// ----------------------------------------------------------------------------
+
+/** Private Beta org - invitation only testers */
+export const PRIVATE_BETA_ORG_ID = '00cf6e5e-fa0d-4077-b64d-bce5ee822ff9';
+
+/** Public Beta org - self-enrollment when platform is in public_beta mode */
+export const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
 
 // ----------------------------------------------------------------------------
 // ORGANIZATION TYPES

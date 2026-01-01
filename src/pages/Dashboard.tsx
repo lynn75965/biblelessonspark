@@ -10,6 +10,7 @@ import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
+import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
 import LanguageSelector from "@/components/settings/LanguageSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +32,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
 import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
+
+// Public Beta Prompt Banner added (January 1, 2026)
 
 export default function Dashboard() {
   // STATE DECLARATIONS
@@ -74,20 +77,22 @@ export default function Dashboard() {
     }
   }, [searchParams, lessons, toast]);
 
+  // Load user profile
+  const loadUserProfile = async () => {
+    if (!user) return;
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('preferred_age_group, organization_role, organization_id, theology_profile_id')
+        .eq('id', user.id)
+        .single();
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };
+
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!user) return;
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('preferred_age_group, organization_role, organization_id, theology_profile_id')
-          .eq('id', user.id)
-          .single();
-        setUserProfile(profile);
-      } catch (error) {
-        console.error('Error loading user profile:', error);
-      }
-    };
     loadUserProfile();
   }, [user]);
 
@@ -128,17 +133,7 @@ export default function Dashboard() {
   };
 
   const handleProfileUpdated = async () => {
-    if (!user) return;
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('preferred_age_group, organization_role, organization_id')
-        .eq('id', user.id)
-        .single();
-      setUserProfile(profile);
-    } catch (error) {
-      console.error('Error loading user profile:', error);
-    }
+    await loadUserProfile();
   };
 
   const handleUseFocus = (data: FocusApplicationData) => {
@@ -149,6 +144,11 @@ export default function Dashboard() {
       title: "Focus Applied",
       description: `${focusData.organizationName || "Organization"} defaults applied to your lesson form`,
     });
+  };
+
+  // Callback when user joins Public Beta - refresh profile to update org status
+  const handleBetaEnrollmentComplete = async () => {
+    await loadUserProfile();
   };
 
   return (
@@ -173,6 +173,12 @@ export default function Dashboard() {
           </div>
           <UsageDisplay />
         </div>
+
+        {/* Public Beta Prompt Banner - shows for orphan users in public_beta mode */}
+        <PublicBetaPromptBanner
+          userOrgId={userProfile?.organization_id || null}
+          onEnrollmentComplete={handleBetaEnrollmentComplete}
+        />
 
         {hasActiveFocus && focusData.activeFocus && focusStatus && (
           <ActiveFocusBanner
