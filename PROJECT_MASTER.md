@@ -2662,3 +2662,134 @@ ADD COLUMN IF NOT EXISTS referral_source TEXT;
 **Last Updated: 2026-01-01**
 **Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
 
+
+## Session: January 2, 2026 - Admin Panel Consolidation & Enrollment Analytics
+
+### Overview
+
+Completed all outstanding items from Phase 19: Admin Panel tab consolidation (Guardrails merged into Security), Public Beta Prompt Banner for orphan users, and Enrollment Analytics (Referral Sources + Church Directory). All implementations follow strict SSOT architecture.
+
+### Task 1: Merge Guardrails Tab into Security Tab ✅
+
+**Purpose:** Reduce Admin Panel nav clutter by consolidating related functionality.
+
+**Changes:**
+- Security tab now contains two sub-tabs: "Security Events" and "Guardrail Violations"
+- Admin Panel reduced from 10 tabs to 9 tabs
+- GuardrailViolationsPanel.tsx unchanged (imported into AdminSecurityPanel)
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/components/admin/AdminSecurityPanel.tsx | Added internal Tabs with sub-tabs for Security Events and Guardrail Violations |
+| src/pages/Admin.tsx | Removed separate Guardrails tab and import |
+
+### Task 2: Public Beta Prompt Banner for Orphan Users ✅
+
+**Purpose:** Prompt users without an organization to join Public Beta when platform is in `public_beta` mode.
+
+**New SSOT Constants Added to organizationConfig.ts:**
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| PRIVATE_BETA_ORG_ID | 00cf6e5e-fa0d-4077-b64d-bce5ee822ff9 | Private Beta org reference |
+| PUBLIC_BETA_ORG_ID | 9a5da69e-adf2-4661-8833-197940c255e0 | Public Beta org for auto-enrollment |
+
+**New Component Created:**
+
+| File | Purpose |
+|------|---------|
+| src/components/dashboard/PublicBetaPromptBanner.tsx | Banner shown to orphan users on Dashboard |
+
+**Banner Behavior:**
+- Only shows when `platform_mode = public_beta`
+- Only shows when user has no `organization_id`
+- "Join Now" button enrolls user in Public Beta org automatically
+- "Maybe Later" dismisses for 7 days (localStorage)
+- Uses SSOT config from `betaEnrollmentConfig.ts → dashboardPrompt.*`
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/constants/organizationConfig.ts | Added PRIVATE_BETA_ORG_ID and PUBLIC_BETA_ORG_ID constants |
+| src/pages/Dashboard.tsx | Imports and renders PublicBetaPromptBanner |
+
+### Task 3: Enrollment Analytics Panel ✅
+
+**Purpose:** Admin view of how users discovered the platform and which churches are represented.
+
+**New Component Created:**
+
+| File | Purpose |
+|------|---------|
+| src/components/admin/EnrollmentAnalyticsPanel.tsx | Referral Sources + Church Directory analytics |
+
+**Features:**
+
+| Sub-Tab | Features |
+|---------|----------|
+| Referral Sources | Pie chart, bar chart, table with percentages, CSV export |
+| Church Directory | Table with church names, teacher counts, latest join dates, CSV export |
+
+**SSOT Compliance:**
+- Referral source labels pulled from `betaEnrollmentConfig.ts → referralSources[]`
+- Data sourced from `profiles.referral_source` and `profiles.church_name`
+
+**Location in Admin Panel:**
+- Beta Program tab → Enrollment Analytics card (between header and Beta Analytics Dashboard)
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/pages/Admin.tsx | Imports and renders EnrollmentAnalyticsPanel in Beta Program tab |
+
+### Git Commits (January 2, 2026)
+
+| Hash | Description |
+|------|-------------|
+| f6f6d69 | Merge Guardrails tab into Security tab - reduce Admin nav clutter |
+| 84d82bd | Add Public Beta Prompt Banner for orphan users on Dashboard |
+| 69fe1d2 | Add Enrollment Analytics - Referral Sources and Church Directory in Beta Program tab |
+
+### Current Admin Panel Structure
+
+| Tab | Contents |
+|-----|----------|
+| User Management | User list, roles, trial grant/revoke |
+| Organizations | Org management, member lists |
+| All Lessons | Platform-wide lesson browser |
+| Beta Program | Stats, Enrollment Analytics, Feedback Analytics, Feedback Questions |
+| Pricing & Plans | Subscription tier management |
+| System Analytics | Usage metrics, generation stats |
+| System Settings | Platform mode, launch targets |
+| Security | Security Events + Guardrail Violations (sub-tabs) |
+| Branding | White-label tenant branding |
+
+### Current System State
+
+| Setting | Value |
+|---------|-------|
+| Platform Mode | private_beta |
+| Tier Enforcement | OFF |
+| Admin Panel Tabs | 9 |
+| Security Sub-tabs | Security Events, Guardrail Violations |
+| Public Beta Banner | Ready (activates when mode = public_beta) |
+| Enrollment Analytics | Active (shows data as users enroll) |
+
+### Outstanding Items
+
+**All Phase 19 items complete!** ✅
+
+| Item | Status |
+|------|--------|
+| ~~Dashboard Prompt for Orphan Users~~ | ✅ Completed |
+| ~~Referral Source Analytics~~ | ✅ Completed |
+| ~~Church Name Directory~~ | ✅ Completed |
+
+---
+
+**Last Updated: 2026-01-02**
+**Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
