@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
+import { EnrollmentAnalyticsPanel } from "@/components/admin/EnrollmentAnalyticsPanel";
 import { SystemAnalyticsDashboard } from "@/components/admin/SystemAnalyticsDashboard";
 import { AllLessonsPanel } from "@/components/admin/AllLessonsPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
 // All Lessons tab for admin access to ALL platform lessons (December 11, 2025)
 // Generation Metrics merged into System Analytics tab (December 17, 2025)
 // Guardrails tab merged into Security tab (January 1, 2026)
+// Enrollment Analytics (Referral Sources + Church Directory) added (January 1, 2026)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -313,12 +315,15 @@ export default function Admin() {
                 </CardContent>
               </Card>
 
+              {/* Enrollment Analytics - Referral Sources & Church Directory */}
+              <EnrollmentAnalyticsPanel />
+
               {/* Beta Analytics Dashboard */}
               <BetaAnalyticsDashboard />
-            </div>
 
-            {/* Manage Beta Feedback Questions */}
-            <FeedbackQuestionsManager />
+              {/* Manage Beta Feedback Questions */}
+              <FeedbackQuestionsManager />
+            </div>
           </TabsContent>
 
           <TabsContent value="pricing" className="mt-6 relative z-0">
