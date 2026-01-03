@@ -502,7 +502,7 @@ export default function Auth() {
                       <Input
                         id="reset-email"
                         type="email"
-                        placeholder="your.email@church.org"
+                        placeholder="you@yourplace.com"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -583,7 +583,7 @@ export default function Auth() {
                       <Input
                         id="signin-email"
                         type="email"
-                        placeholder="your.email@church.org"
+                        placeholder="you@yourplace.com"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
