@@ -891,7 +891,7 @@ export function UserManagement() {
               <Input
                 id="invite-email"
                 type="email"
-                placeholder="user@church.org"
+                placeholder="you@yourplace.com"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
                 disabled={inviteLoading}

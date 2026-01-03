@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -335,7 +335,7 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                         <Input
                           id="invite-email"
                           type="email"
-                          placeholder="teacher@example.com"
+                          placeholder="you@yourplace.com"
                           value={inviteEmail}
                           onChange={(e) => setInviteEmail(e.target.value)}
                         />
