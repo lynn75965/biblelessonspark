@@ -246,7 +246,7 @@ export function PricingSection() {
             <div>
               <h4 className="font-semibold text-base sm:text-lg">Can I cancel anytime?</h4>
               <p className="text-muted-foreground text-sm sm:text-base mt-1">
-                Yes! You can cancel your subscription at any time. You will continue to have access until the end of your billing period.
+                Yes! You can <a href="/account" className="text-sky-600 hover:text-sky-700 underline">cancel</a> your subscription at any time. You will continue to have access until the end of your billing period.
               </p>
             </div>
             <div>
