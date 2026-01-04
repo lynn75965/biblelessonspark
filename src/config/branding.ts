@@ -292,6 +292,61 @@ export const BRANDING = {
   },
 
   // ==========================================================================
+  // LAYOUT & STRUCTURE (Page-level styling for white-label customization)
+  // ==========================================================================
+  
+  layout: {
+    /**
+     * Page wrapper - outermost container for all pages
+     */
+    pageWrapper: "min-h-screen bg-background flex flex-col",
+    
+    /**
+     * Main content area - flex-1 to fill available space
+     */
+    mainContent: "flex-1",
+    
+    /**
+     * Container padding (responsive)
+     */
+    containerPadding: "py-6 sm:py-8 px-4 sm:px-6",
+    
+    /**
+     * Container max-width for centered content
+     */
+    containerNarrow: "max-w-2xl mx-auto",
+    
+    /**
+     * Container max-width for wider content
+     */
+    containerWide: "max-w-6xl mx-auto",
+    
+    /**
+     * Page header bottom margin
+     */
+    pageHeaderMargin: "mb-6 sm:mb-8",
+    
+    /**
+     * Section vertical spacing
+     */
+    sectionSpacing: "mb-6 sm:mb-8",
+    
+    /**
+     * Card/grid gaps (responsive)
+     */
+    gridGap: "gap-4 sm:gap-6",
+    
+    /**
+     * Stats card grid columns
+     */
+    statsGrid: "grid grid-cols-2 gap-3 sm:gap-4",
+    
+    /**
+     * Standard card padding
+     */
+    cardPadding: "p-4 sm:p-6",
+  },
+  // ==========================================================================
   // LEGAL & COPYRIGHT
   // ==========================================================================
   
