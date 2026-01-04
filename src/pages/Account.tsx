@@ -2,10 +2,8 @@ import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
 import { Loader2 } from "lucide-react";
 import { SubscriptionManagement } from "@/components/subscription/SubscriptionManagement";
-import { BRANDING } from "@/config/branding";
 
 export default function Account() {
   const { user, loading: authLoading } = useAuth();
@@ -19,19 +17,17 @@ export default function Account() {
 
   if (authLoading) {
     return (
-      <div className={BRANDING.layout.pageWrapper}>
-        <div className="flex items-center justify-center flex-1">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className={BRANDING.layout.pageWrapper}>
-      <Header isAuthenticated organizationName={BRANDING.appName} />
-      <main className={`container ${BRANDING.layout.containerPadding} ${BRANDING.layout.mainContent}`}>
-        <div className={`${BRANDING.layout.containerNarrow} space-y-8`}>
+    <div className="min-h-screen bg-background">
+      <Header isAuthenticated organizationName="LessonSpark USA" />
+      <main className="container py-12">
+        <div className="max-w-2xl mx-auto space-y-8">
           <div>
             <h1 className="text-3xl font-bold mb-2">Account</h1>
             <p className="text-muted-foreground">Manage your subscription and billing</p>
@@ -40,7 +36,6 @@ export default function Account() {
           <SubscriptionManagement />
         </div>
       </main>
-      <Footer />
     </div>
   );
 }
