@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { BRANDING } from "@/config/branding";
 import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
 import { WORKSPACE_QUERY_PARAMS, WORKSPACE_TABS } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
@@ -152,9 +153,9 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className={BRANDING.layout.pageWrapper}>
       <Header isAuthenticated hideOrgContext />
-      <main className="container py-4 sm:py-6 px-4 sm:px-6 flex-1">
+      <main className={`container ${BRANDING.layout.containerPadding} ${BRANDING.layout.mainContent}`}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-2">
