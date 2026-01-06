@@ -7,8 +7,8 @@ export default function TermsOfService() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8">
+    <div className={BRANDING.layout.legalPageWrapper}>
+      <div className={BRANDING.layout.legalPageCard}>
         <Button
           variant="ghost"
           onClick={() => window.history.length > 1 ? navigate(-1) : navigate(ROUTES.HOME)}

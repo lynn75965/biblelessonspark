@@ -1,5 +1,6 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
+import { BRANDING } from "@/config/branding";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -166,7 +167,7 @@ const Help = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className={BRANDING.layout.pageWrapper}>
       {/* Header */}
       <div className="bg-gradient-to-b from-primary/5 to-background border-b">
         <div className="container max-w-5xl py-12">

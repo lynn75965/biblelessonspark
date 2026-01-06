@@ -355,6 +355,16 @@ export const BRANDING = {
      * Auth form container - max-width centered
      */
     authFormContainer: "w-full max-w-md px-4 sm:px-0",
+    
+    /**
+     * Legal pages wrapper - gradient background for Privacy/Terms
+     */
+    legalPageWrapper: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4",
+    
+    /**
+     * Legal page content card
+     */
+    legalPageCard: "max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8",
   },
   // ==========================================================================
   // LEGAL & COPYRIGHT
