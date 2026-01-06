@@ -22,8 +22,7 @@ import {
   Sparkles,
   Settings,
   MessageSquare,
-  UserCircle,
-  HelpCircle
+  UserCircle
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
@@ -34,10 +33,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
 import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
-
-// Help Video System (January 6, 2026)
-import { useHelpVideo } from "@/hooks/useHelpVideo";
-import { VideoModal } from "@/components/help/VideoModal";
 
 // Public Beta Prompt Banner added (January 1, 2026)
 
@@ -59,16 +54,6 @@ export default function Dashboard() {
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
-
-  // Help Video Hook - triggers on "Enhance Lesson" tab when ready to create
-  const { 
-    showVideo, 
-    setShowVideo, 
-    currentVideo, 
-    triggerHelp 
-  } = useHelpVideo('lesson.create.ready', { 
-    disabled: activeTab !== 'enhance' || selectedLesson !== null 
-  });
 
   // Handle URL query parameters (SSOT: routes.ts)
   useEffect(() => {
@@ -262,21 +247,6 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
-            {/* Help Button - shows only on Enhance tab when creating (not viewing) */}
-            {!selectedLesson && (
-              <div className="flex justify-end mb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={triggerHelp}
-                  className="text-slate-500 hover:text-slate-700 gap-1"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">How to Create a Lesson</span>
-                  <span className="sm:hidden">Help</span>
-                </Button>
-              </div>
-            )}
             <EnhanceLessonForm
               onLessonGenerated={(lesson) => {
                 setLastGeneratedLessonId(lesson?.id || null);
@@ -368,13 +338,6 @@ export default function Dashboard() {
         open={showBetaFeedbackModal}
         onOpenChange={setShowBetaFeedbackModal}
         lessonId={lastGeneratedLessonId}
-      />
-
-      {/* Help Video Modal */}
-      <VideoModal
-        open={showVideo}
-        onClose={() => setShowVideo(false)}
-        video={currentVideo}
       />
     </div>
   );
