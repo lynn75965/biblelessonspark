@@ -2,20 +2,21 @@
  * Help Videos Registry - SSOT for Explainer Video System
  * 
  * ARCHITECTURE NOTES:
- * - This file is the Single Source of Truth for all explainer videos
- * - Videos are triggered by frontend UI state, NOT routes or backend logic
+ * - This file provides helper functions and types for the help video system
+ * - Video configuration is stored in BRANDING.helpVideos (src/config/branding.ts)
+ * - White-label tenants customize videos via their branding config
  * - Frontend controls when help is allowed; backend never pushes videos
- * - Videos explain UI actions, not system/database logic
  * 
- * MODIFICATION RULES:
- * 1. Add new videos here ONLY after UI state is finalized
- * 2. Each video maps to ONE specific UI state
- * 3. Update this file BEFORE recording new videos
- * 4. Review videos when triggerState UI changes
+ * SSOT COMPLIANCE:
+ * - Master config: src/config/branding.ts → helpVideos section
+ * - This file: Helper functions and type definitions
+ * - No backend mirror needed (frontend-only feature)
  * 
  * @lastUpdated 2026-01-06
- * @version 1.0.0
+ * @version 2.0.0
  */
+
+import { BRANDING } from '@/config/branding';
 
 // ============================================================================
 // TYPES
@@ -28,115 +29,88 @@ export interface HelpVideo {
   /** Display title shown in modal header */
   title: string;
   
-  /** Vimeo embed URL (unlisted) - format: https://player.vimeo.com/video/XXXXXXX */
+  /** Brief description for Help menu listings */
+  description: string;
+  
+  /** Vimeo/YouTube embed URL */
   url: string;
-  
-  /** localStorage key for tracking "seen" state */
-  storageKey: string;
-  
-  /** Frontend UI state that triggers this video */
-  triggerState: HelpTriggerState;
-  
-  /** If true, auto-shows on first visit to trigger state */
-  autoShow: boolean;
   
   /** Estimated duration in seconds (for UI display) */
   durationSeconds: number;
   
-  /** Brief description for Help menu listings */
-  description: string;
+  /** localStorage key for tracking "seen" state */
+  storageKey: string;
 }
 
-export type HelpTriggerState =
-  | 'lesson.create.ready'        // User on Create Lesson page, ready to generate
-  | 'lesson.output.ready'        // Lesson generation complete, viewing output
-  | 'credits.exhausted'          // User has no credits remaining
-  | 'subscription.upgrade'       // User viewing pricing/upgrade options
-  | 'export.ready'               // User about to export lesson
-  | 'profile.setup'              // First-time profile configuration
-  | 'dashboard.empty'            // Dashboard with no lessons yet
-  | 'organization.setup';        // Org leader first-time setup
-
-// ============================================================================
-// VIDEO REGISTRY
-// ============================================================================
-
-export const HELP_VIDEOS: Record<string, HelpVideo> = {
-  createFirstLesson: {
-    id: 'create_first_lesson',
-    title: 'Create Your First Lesson',
-    url: '', // TODO: Add Vimeo embed URL after recording
-    storageKey: 'ls_help_create_first_lesson_seen',
-    triggerState: 'lesson.create.ready',
-    autoShow: true,
-    durationSeconds: 60,
-    description: 'Learn how to generate a customized Bible study lesson in under 2 minutes.',
-  },
-  
-  understandingOutput: {
-    id: 'understanding_output',
-    title: 'Understanding Your Lesson',
-    url: '', // TODO: Add Vimeo embed URL after recording
-    storageKey: 'ls_help_understanding_output_seen',
-    triggerState: 'lesson.output.ready',
-    autoShow: true,
-    durationSeconds: 45,
-    description: 'See how to navigate and use your generated lesson sections.',
-  },
-  
-  creditsAndUsage: {
-    id: 'credits_usage',
-    title: 'Credits & Subscription',
-    url: '', // TODO: Add Vimeo embed URL after recording
-    storageKey: 'ls_help_credits_usage_seen',
-    triggerState: 'credits.exhausted',
-    autoShow: true,
-    durationSeconds: 30,
-    description: 'Understand your lesson credits and subscription options.',
-  },
-  
-  exportLesson: {
-    id: 'export_lesson',
-    title: 'Export & Share Your Lesson',
-    url: '', // TODO: Add Vimeo embed URL after recording
-    storageKey: 'ls_help_export_lesson_seen',
-    triggerState: 'export.ready',
-    autoShow: false, // Manual trigger only - export flow is straightforward
-    durationSeconds: 30,
-    description: 'Download your lesson as PDF or Word document.',
-  },
-};
+export type HelpVideoKey = keyof typeof BRANDING.helpVideos.videos;
 
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
 /**
- * Get a help video by its trigger state
+ * Check if help videos feature is enabled
  */
-export function getVideoByTriggerState(state: HelpTriggerState): HelpVideo | undefined {
-  return Object.values(HELP_VIDEOS).find(video => video.triggerState === state);
+export function isHelpVideosEnabled(): boolean {
+  return BRANDING.helpVideos.enabled;
 }
 
 /**
- * Get a help video by its ID
+ * Check if the help banner should be shown
  */
-export function getVideoById(id: string): HelpVideo | undefined {
-  return Object.values(HELP_VIDEOS).find(video => video.id === id);
+export function shouldShowHelpBanner(): boolean {
+  return BRANDING.helpVideos.enabled && BRANDING.helpVideos.showBanner;
 }
 
 /**
- * Get all videos that should auto-show (for preloading or analytics)
+ * Check if the floating help button should be shown
  */
-export function getAutoShowVideos(): HelpVideo[] {
-  return Object.values(HELP_VIDEOS).filter(video => video.autoShow);
+export function shouldShowFloatingButton(): boolean {
+  return BRANDING.helpVideos.enabled && BRANDING.helpVideos.showFloatingButton;
 }
 
 /**
- * Get all available help videos (for Help menu)
+ * Check if auto-play on first visit is enabled
  */
-export function getAllHelpVideos(): HelpVideo[] {
-  return Object.values(HELP_VIDEOS);
+export function shouldAutoPlayOnFirstVisit(): boolean {
+  return BRANDING.helpVideos.enabled && BRANDING.helpVideos.autoPlayOnFirstVisit;
+}
+
+/**
+ * Get a help video by its key
+ */
+export function getVideo(key: HelpVideoKey): HelpVideo | null {
+  if (!BRANDING.helpVideos.enabled) return null;
+  
+  const videoConfig = BRANDING.helpVideos.videos[key];
+  if (!videoConfig) return null;
+  
+  return {
+    id: videoConfig.id,
+    title: videoConfig.title,
+    description: videoConfig.description,
+    url: videoConfig.url,
+    durationSeconds: videoConfig.durationSeconds,
+    storageKey: videoConfig.storageKey,
+  };
+}
+
+/**
+ * Get the primary "Create Lesson" video (most commonly used)
+ */
+export function getCreateLessonVideo(): HelpVideo | null {
+  return getVideo('createLesson');
+}
+
+/**
+ * Get all available help videos
+ */
+export function getAllVideos(): HelpVideo[] {
+  if (!BRANDING.helpVideos.enabled) return [];
+  
+  return Object.keys(BRANDING.helpVideos.videos).map(key => 
+    getVideo(key as HelpVideoKey)
+  ).filter((v): v is HelpVideo => v !== null);
 }
 
 /**
@@ -168,7 +142,29 @@ export function resetVideoSeen(video: HelpVideo): void {
  */
 export function resetAllVideosSeen(): void {
   if (typeof window === 'undefined') return;
-  Object.values(HELP_VIDEOS).forEach(video => {
+  
+  Object.values(BRANDING.helpVideos.videos).forEach(video => {
     localStorage.removeItem(video.storageKey);
   });
+}
+
+/**
+ * Check if a video has a valid URL configured
+ */
+export function hasVideoUrl(video: HelpVideo): boolean {
+  return Boolean(video.url && video.url.length > 0);
+}
+
+/**
+ * Get banner styles from branding config
+ */
+export function getBannerStyles() {
+  return BRANDING.helpVideos.bannerStyles;
+}
+
+/**
+ * Get floating button styles from branding config
+ */
+export function getFloatingButtonStyles() {
+  return BRANDING.helpVideos.floatingButtonStyles;
 }

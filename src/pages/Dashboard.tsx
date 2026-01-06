@@ -23,7 +23,9 @@ import {
   Settings,
   MessageSquare,
   UserCircle,
-  HelpCircle
+  HelpCircle,
+  PlayCircle,
+  X
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
@@ -36,8 +38,10 @@ import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 
 // Help Video System (January 6, 2026)
+// Configuration in BRANDING.helpVideos controls visibility
 import { useHelpVideo } from "@/hooks/useHelpVideo";
 import { VideoModal } from "@/components/help/VideoModal";
+import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
 
 // Public Beta Prompt Banner added (January 1, 2026)
 
@@ -50,6 +54,7 @@ export default function Dashboard() {
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // HOOKS
   const [searchParams] = useSearchParams();
@@ -60,13 +65,15 @@ export default function Dashboard() {
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
 
-  // Help Video Hook - triggers on "Enhance Lesson" tab when ready to create
+  // Help Video Hook - respects BRANDING.helpVideos.enabled
   const { 
     showVideo, 
     setShowVideo, 
     currentVideo, 
-    triggerHelp 
-  } = useHelpVideo('lesson.create.ready', { 
+    triggerHelp,
+    hasBeenSeen,
+    isEnabled: helpVideosEnabled
+  } = useHelpVideo({ 
     disabled: activeTab !== 'enhance' || selectedLesson !== null 
   });
 
@@ -167,6 +174,28 @@ export default function Dashboard() {
     await loadUserProfile();
   };
 
+  // Handle banner dismiss
+  const handleDismissBanner = () => {
+    setBannerDismissed(true);
+    // Also mark video as seen so it doesn't auto-play
+    if (currentVideo) {
+      localStorage.setItem(currentVideo.storageKey, 'true');
+    }
+  };
+
+  // Help video visibility checks (respects BRANDING.helpVideos settings)
+  const showHelpBanner = helpVideosEnabled && 
+    shouldShowHelpBanner() && 
+    activeTab === 'enhance' && 
+    !selectedLesson && 
+    !hasBeenSeen && 
+    !bannerDismissed;
+
+  const showFloatingHelp = helpVideosEnabled && 
+    shouldShowFloatingButton() && 
+    activeTab === 'enhance' && 
+    !selectedLesson;
+
   return (
     <div className={BRANDING.layout.pageWrapper}>
       <Header isAuthenticated hideOrgContext />
@@ -262,21 +291,42 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
-            {/* Help Button - shows only on Enhance tab when creating (not viewing) */}
-            {!selectedLesson && (
-              <div className="flex justify-end mb-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={triggerHelp}
-                  className="text-slate-500 hover:text-slate-700 gap-1"
-                >
-                  <HelpCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">How to Create a Lesson</span>
-                  <span className="sm:hidden">Help</span>
-                </Button>
+            {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
+            {showHelpBanner && (
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 shrink-0">
+                      <PlayCircle className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-blue-900">New here? Learn how to create your first lesson</p>
+                      <p className="text-sm text-blue-700">Watch a quick 60-second walkthrough</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      onClick={triggerHelp}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <PlayCircle className="h-4 w-4 mr-1" />
+                      Watch Video
+                    </Button>
+                    <Button
+                      onClick={handleDismissBanner}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="sr-only">Dismiss</span>
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
+
             <EnhanceLessonForm
               onLessonGenerated={(lesson) => {
                 setLastGeneratedLessonId(lesson?.id || null);
@@ -348,6 +398,19 @@ export default function Dashboard() {
 
       <Footer />
 
+      {/* Floating Help Button - Only shows when BRANDING.helpVideos.enabled = true */}
+      {showFloatingHelp && (
+        <Button
+          onClick={triggerHelp}
+          size="icon"
+          className="fixed bottom-4 left-4 h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg z-40"
+          title="How to Create a Lesson"
+        >
+          <HelpCircle className="h-6 w-6" />
+          <span className="sr-only">Help</span>
+        </Button>
+      )}
+
       <Button
         variant="hero"
         size="sm"
@@ -370,12 +433,14 @@ export default function Dashboard() {
         lessonId={lastGeneratedLessonId}
       />
 
-      {/* Help Video Modal */}
-      <VideoModal
-        open={showVideo}
-        onClose={() => setShowVideo(false)}
-        video={currentVideo}
-      />
+      {/* Help Video Modal - Only renders when help videos are enabled */}
+      {helpVideosEnabled && (
+        <VideoModal
+          open={showVideo}
+          onClose={() => setShowVideo(false)}
+          video={currentVideo}
+        />
+      )}
     </div>
   );
 }

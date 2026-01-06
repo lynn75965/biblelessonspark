@@ -2,32 +2,29 @@
  * useHelpVideo - Custom Hook for Help Video Logic
  * 
  * ARCHITECTURE NOTES:
+ * - Checks BRANDING.helpVideos.enabled before any action
  * - Handles auto-show on first visit (localStorage-based)
  * - Provides manual trigger for "Help" buttons
  * - Frontend-only state management (no backend involvement)
- * - Respects SSOT registry from helpVideos.ts
  * 
  * USAGE:
  * ```tsx
- * // In a page component
- * const { showVideo, setShowVideo, currentVideo, triggerHelp } = useHelpVideo('lesson.create.ready');
+ * const { showVideo, setShowVideo, currentVideo, triggerHelp, isEnabled } = useHelpVideo();
  * 
- * // Auto-show happens automatically on mount if video.autoShow is true
- * // Manual trigger via Help button:
- * <button onClick={triggerHelp}>Help</button>
- * 
- * // Render the modal:
- * <VideoModal open={showVideo} onClose={() => setShowVideo(false)} video={currentVideo} />
+ * // Only render help UI if enabled
+ * {isEnabled && <VideoModal ... />}
  * ```
  * 
  * @lastUpdated 2026-01-06
+ * @version 2.0.0
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   type HelpVideo,
-  type HelpTriggerState,
-  getVideoByTriggerState,
+  getCreateLessonVideo,
+  isHelpVideosEnabled,
+  shouldAutoPlayOnFirstVisit,
   isVideoSeen,
   markVideoSeen,
 } from '@/constants/helpVideos';
@@ -39,7 +36,7 @@ interface UseHelpVideoReturn {
   /** Function to manually control modal visibility */
   setShowVideo: (show: boolean) => void;
   
-  /** The current video object (or null if none for this state) */
+  /** The current video object (or null if disabled/not configured) */
   currentVideo: HelpVideo | null;
   
   /** Function to manually trigger the help video (for Help buttons) */
@@ -50,28 +47,32 @@ interface UseHelpVideoReturn {
   
   /** Function to reset the "seen" status (for testing) */
   resetSeen: () => void;
+  
+  /** Whether help videos feature is enabled */
+  isEnabled: boolean;
 }
 
 /**
- * Hook to manage help video display for a specific UI state
+ * Hook to manage help video display
  * 
- * @param triggerState - The UI state this hook is managing (from HelpTriggerState)
  * @param options - Optional configuration
  * @param options.disabled - If true, disables auto-show (useful during loading states)
  */
 export function useHelpVideo(
-  triggerState: HelpTriggerState,
   options?: { disabled?: boolean }
 ): UseHelpVideoReturn {
   const [showVideo, setShowVideo] = useState(false);
   const [hasBeenSeen, setHasBeenSeen] = useState(true); // Default true to prevent flash
   
-  // Get the video for this trigger state
-  const currentVideo = getVideoByTriggerState(triggerState) ?? null;
+  // Check if feature is enabled
+  const isEnabled = isHelpVideosEnabled();
+  
+  // Get the create lesson video (primary onboarding video)
+  const currentVideo = isEnabled ? getCreateLessonVideo() : null;
   
   // Check seen status and auto-show on mount
   useEffect(() => {
-    if (!currentVideo || options?.disabled) {
+    if (!isEnabled || !currentVideo || options?.disabled) {
       return;
     }
     
@@ -79,7 +80,7 @@ export function useHelpVideo(
     setHasBeenSeen(seen);
     
     // Auto-show if configured and not yet seen
-    if (currentVideo.autoShow && !seen) {
+    if (shouldAutoPlayOnFirstVisit() && !seen) {
       // Small delay to let page render first
       const timer = setTimeout(() => {
         setShowVideo(true);
@@ -89,26 +90,26 @@ export function useHelpVideo(
       
       return () => clearTimeout(timer);
     }
-  }, [currentVideo, options?.disabled]);
+  }, [isEnabled, currentVideo, options?.disabled]);
   
   // Manual trigger function (for Help buttons)
   const triggerHelp = useCallback(() => {
-    if (currentVideo) {
-      setShowVideo(true);
-      // Mark as seen even on manual trigger
-      if (!hasBeenSeen) {
-        markVideoSeen(currentVideo);
-        setHasBeenSeen(true);
-      }
+    if (!isEnabled || !currentVideo) return;
+    
+    setShowVideo(true);
+    // Mark as seen even on manual trigger
+    if (!hasBeenSeen) {
+      markVideoSeen(currentVideo);
+      setHasBeenSeen(true);
     }
-  }, [currentVideo, hasBeenSeen]);
+  }, [isEnabled, currentVideo, hasBeenSeen]);
   
   // Reset function (for testing/admin)
   const resetSeen = useCallback(() => {
-    if (currentVideo) {
-      localStorage.removeItem(currentVideo.storageKey);
-      setHasBeenSeen(false);
-    }
+    if (!currentVideo) return;
+    
+    localStorage.removeItem(currentVideo.storageKey);
+    setHasBeenSeen(false);
   }, [currentVideo]);
   
   return {
@@ -118,6 +119,7 @@ export function useHelpVideo(
     triggerHelp,
     hasBeenSeen,
     resetSeen,
+    isEnabled,
   };
 }
 

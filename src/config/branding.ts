@@ -471,6 +471,118 @@ export const BRANDING = {
   },
 
   // ==========================================================================
+  // HELP VIDEOS (Explainer/Onboarding Videos)
+  // ==========================================================================
+  
+  /**
+   * Help video configuration for user onboarding.
+   * White-label tenants can customize video URLs and content.
+   * 
+   * USAGE:
+   *   - Set enabled: true when videos are ready
+   *   - Replace URLs with your Vimeo/YouTube embed links
+   *   - Each tenant can have their own voice/branding in videos
+   */
+  helpVideos: {
+    /**
+     * Master switch - set to true when videos are ready
+     * When false, all help video UI is hidden
+     */
+    enabled: false,
+    
+    /**
+     * Show first-time user banner above lesson creation form
+     */
+    showBanner: true,
+    
+    /**
+     * Show floating help button on Enhance Lesson tab
+     */
+    showFloatingButton: true,
+    
+    /**
+     * Auto-play video on first visit (if enabled and video exists)
+     */
+    autoPlayOnFirstVisit: false,
+    
+    /**
+     * Video definitions - add more as needed
+     */
+    videos: {
+      /**
+       * Create Your First Lesson - primary onboarding video
+       */
+      createLesson: {
+        id: 'create_first_lesson',
+        title: 'Create Your First Lesson',
+        description: 'Learn how to generate a customized Bible study lesson in under 2 minutes.',
+        url: '', // Vimeo embed URL: https://player.vimeo.com/video/XXXXXXX
+        durationSeconds: 60,
+        storageKey: 'ls_help_create_first_lesson_seen',
+      },
+      
+      /**
+       * Understanding Your Lesson Output
+       */
+      understandingOutput: {
+        id: 'understanding_output',
+        title: 'Understanding Your Lesson',
+        description: 'See how to navigate and use your generated lesson sections.',
+        url: '', // Vimeo embed URL
+        durationSeconds: 45,
+        storageKey: 'ls_help_understanding_output_seen',
+      },
+      
+      /**
+       * Credits & Subscription
+       */
+      creditsAndUsage: {
+        id: 'credits_usage',
+        title: 'Credits & Subscription',
+        description: 'Understand your lesson credits and subscription options.',
+        url: '', // Vimeo embed URL
+        durationSeconds: 30,
+        storageKey: 'ls_help_credits_usage_seen',
+      },
+      
+      /**
+       * Export & Share Your Lesson
+       */
+      exportLesson: {
+        id: 'export_lesson',
+        title: 'Export & Share Your Lesson',
+        description: 'Download your lesson as PDF or Word document.',
+        url: '', // Vimeo embed URL
+        durationSeconds: 30,
+        storageKey: 'ls_help_export_lesson_seen',
+      },
+    },
+    
+    /**
+     * Banner styling (can be customized per tenant)
+     */
+    bannerStyles: {
+      backgroundColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      iconBackgroundColor: 'bg-blue-100',
+      iconColor: 'text-blue-600',
+      titleColor: 'text-blue-900',
+      subtitleColor: 'text-blue-700',
+      buttonBackgroundColor: 'bg-blue-600',
+      buttonHoverColor: 'hover:bg-blue-700',
+    },
+    
+    /**
+     * Floating button styling
+     */
+    floatingButtonStyles: {
+      backgroundColor: 'bg-blue-600',
+      hoverColor: 'hover:bg-blue-700',
+      textColor: 'text-white',
+    },
+  },
+
+  // ==========================================================================
   // THEOLOGICAL IDENTITY (specific to LessonSpark)
   // ==========================================================================
   
@@ -943,6 +1055,7 @@ Click below to view the lesson:`,
 export type BrandingConfig = typeof BRANDING;
 export type BrandingColors = typeof BRANDING.colors;
 export type BrandingFeatures = typeof BRANDING.features;
+export type BrandingHelpVideos = typeof BRANDING.helpVideos;
 export type EmailStyles = typeof BRANDING.email.styles;
 export type EmailSubjects = typeof BRANDING.email.subjects;
 export type EmailTemplates = typeof BRANDING.email.templates;
