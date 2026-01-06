@@ -363,8 +363,8 @@ export default function Auth() {
   // Reset Password Completion View
   if (isResetMode) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-        <div className="w-full max-w-md px-4 sm:px-0">
+      <div className={BRANDING.layout.authPageWrapper}>
+        <div className={BRANDING.layout.authFormContainer}>
           <div className="text-center mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
@@ -451,8 +451,8 @@ export default function Auth() {
   // Forgot Password View
   if (showForgotPassword) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-        <div className="w-full max-w-md px-4 sm:px-0">
+      <div className={BRANDING.layout.authPageWrapper}>
+        <div className={BRANDING.layout.authFormContainer}>
           <div className="text-center mb-6 sm:mb-8">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
@@ -538,8 +538,8 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md px-4 sm:px-0">
+    <div className={BRANDING.layout.authPageWrapper}>
+      <div className={BRANDING.layout.authFormContainer}>
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">

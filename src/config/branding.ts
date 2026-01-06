@@ -345,6 +345,16 @@ export const BRANDING = {
      * Standard card padding
      */
     cardPadding: "p-4 sm:p-6",
+    
+    /**
+     * Auth page wrapper - centered form with gradient background
+     */
+    authPageWrapper: "min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4",
+    
+    /**
+     * Auth form container - max-width centered
+     */
+    authFormContainer: "w-full max-w-md px-4 sm:px-0",
   },
   // ==========================================================================
   // LEGAL & COPYRIGHT
