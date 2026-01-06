@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
 import { SITE } from '@/config/site';
+import { BRANDING } from '@/config/branding';
 import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { isBetaMode } from '@/constants/systemSettings';
