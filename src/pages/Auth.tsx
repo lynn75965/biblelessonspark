@@ -37,6 +37,7 @@ export default function Auth() {
   const [activeTab, setActiveTab] = useState(tabFromUrl === 'signin' || tabFromUrl === 'signup' ? tabFromUrl : 'signup');
   const [isLoading, setIsLoading] = useState(false);
   const [inviterName, setInviterName] = useState<string>('');
+  const [organizationName, setOrganizationName] = useState<string>('');
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -96,6 +97,18 @@ export default function Auth() {
 
           if (inviterProfile) {
             setInviterName(inviterProfile.full_name || 'LessonSpark USA');
+
+          // Get organization name if invite has org
+          if (invite.organization_id) {
+            const { data: org } = await supabase
+              .from('organizations')
+              .select('name')
+              .eq('id', invite.organization_id)
+              .single();
+            if (org) {
+              setOrganizationName(org.name);
+            }
+          }
           }
 
           toast({
@@ -550,7 +563,7 @@ export default function Auth() {
             <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold mb-2">
-            {isPublicBeta ? FORM_CONFIG.title : `Welcome to ${SITE.name}`}
+            {organizationName ? `Join ${organizationName} on ${SITE.name}` : (isPublicBeta ? FORM_CONFIG.title : `Welcome to ${SITE.name}`)}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
             {isPublicBeta ? FORM_CONFIG.subtitle : SITE.tagline}
@@ -564,7 +577,7 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-sm">
               {inviteToken
-                ? `Complete your sign up to join ${SITE.name}`
+                ? `Complete your sign up to join ${organizationName || SITE.name}`
                 : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>
@@ -792,3 +805,7 @@ export default function Auth() {
     </div>
   );
 }
+
+
+
+
