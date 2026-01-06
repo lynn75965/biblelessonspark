@@ -22,6 +22,7 @@ import { PROGRAM_CONFIG } from "@/constants/programConfig";
 import { isBetaMode } from "@/constants/systemSettings";
 import { AdminSecurityPanel } from "@/components/admin/AdminSecurityPanel";
 import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
+import { BRANDING } from "@/config/branding";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -165,7 +166,7 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className={`${BRANDING.layout.pageWrapper} items-center justify-center`}>
         <Card className="bg-gradient-card">
           <CardContent className="p-8 text-center">
             <Shield className="h-8 w-8 text-primary mx-auto mb-4 animate-pulse" />
@@ -177,9 +178,9 @@ export default function Admin() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={BRANDING.layout.pageWrapper}>
       <Header />
-      <main className="container mx-auto px-4 py-8">
+      <main className={`container ${BRANDING.layout.containerPadding}`}>
         {/* Admin Header */}
         <div className="flex items-center gap-4 mb-6">
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
