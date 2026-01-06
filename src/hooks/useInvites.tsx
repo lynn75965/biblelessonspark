@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,7 +26,7 @@ export function useInvites() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const sendInvite = async (options: SendInviteOptions): Promise<boolean> => {
+  const sendInvite = useCallback(async (options: SendInviteOptions): Promise<boolean> => {
     const { email, role = 'teacher', organization_id } = options;
 
     setLoading(true);
@@ -87,14 +87,14 @@ export function useInvites() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   // Legacy support: string email parameter
-  const sendInviteLegacy = async (email: string, role: string = 'teacher'): Promise<boolean> => {
+  const sendInviteLegacy = useCallback(async (email: string, role: string = 'teacher'): Promise<boolean> => {
     return sendInvite({ email, role });
-  };
+  }, [sendInvite]);
 
-  const getInviteByToken = async (token: string): Promise<Invite | null> => {
+  const getInviteByToken = useCallback(async (token: string): Promise<Invite | null> => {
     try {
       const { data, error } = await supabase
         .from('invites')
@@ -113,9 +113,9 @@ export function useInvites() {
       console.error('Error fetching invite:', error);
       return null;
     }
-  };
+  }, []);
 
-  const claimInvite = async (token: string): Promise<boolean> => {
+  const claimInvite = useCallback(async (token: string): Promise<boolean> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -187,9 +187,9 @@ export function useInvites() {
       console.error('Error claiming invite:', error);
       return false;
     }
-  };
+  }, [toast]);
 
-  const getMyInvites = async (): Promise<Invite[]> => {
+  const getMyInvites = useCallback(async (): Promise<Invite[]> => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -219,9 +219,9 @@ export function useInvites() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const getOrgInvites = async (organizationId: string): Promise<Invite[]> => {
+  const getOrgInvites = useCallback(async (organizationId: string): Promise<Invite[]> => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -252,9 +252,9 @@ export function useInvites() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const cancelInvite = async (inviteId: string): Promise<boolean> => {
+  const cancelInvite = useCallback(async (inviteId: string): Promise<boolean> => {
     setLoading(true);
     try {
       const { error } = await supabase
@@ -288,14 +288,14 @@ export function useInvites() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const resendInvite = async (invite: Invite): Promise<boolean> => {
+  const resendInvite = useCallback(async (invite: Invite): Promise<boolean> => {
     return sendInvite({
       email: invite.email,
       organization_id: invite.organization_id || undefined
     });
-  };
+  }, [sendInvite]);
 
   return {
     loading,

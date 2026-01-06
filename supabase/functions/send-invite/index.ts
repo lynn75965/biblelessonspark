@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { Resend } from "npm:resend@2.0.0";
 import React from "npm:react@18.3.1";
@@ -190,7 +190,7 @@ const handler = async (req: Request): Promise<Response> => {
       from: "LessonSpark USA <noreply@lessonsparkusa.com>",
       to: email,
       subject: orgName
-        ? \You've been invited to join \ on LessonSpark USA\
+        ? `You've been invited to join ${orgName} on LessonSpark USA`
         : "You've been invited to LessonSpark USA",
       html: emailHtml,
     });
@@ -203,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: \Invite sent to \\,
+        message: `Invite sent to ${email}`,
         invite_id: invite.id,
         organization_id: finalOrgId,
       }),
