@@ -88,32 +88,17 @@ export default function Auth() {
           setFormData(prev => ({ ...prev, email: invite.email }));
           setActiveTab('signup');
 
-          // Get inviter name
-          const { data: inviterProfile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', invite.created_by)
-            .single();
-
-          if (inviterProfile) {
-            setInviterName(inviterProfile.full_name || 'LessonSpark USA');
-
-          // Get organization name if invite has org
-          if (invite.organization_id) {
-            const { data: org } = await supabase
-              .from('organizations')
-              .select('name')
-              .eq('id', invite.organization_id)
-              .single();
-            if (org) {
-              setOrganizationName(org.name);
-            }
+          // Read inviter and org names directly from invite record
+          if (invite.inviter_name) {
+            setInviterName(invite.inviter_name);
           }
+          if (invite.organization_name) {
+            setOrganizationName(invite.organization_name);
           }
 
           toast({
             title: "You've been invited!",
-            description: `${inviterProfile?.full_name || 'Someone'} has invited you to join ${SITE.name}.`,
+            description: `${invite.inviter_name || 'Someone'} has invited you to join ${invite.organization_name || SITE.name}.`,
           });
         } else {
           toast({
@@ -805,6 +790,7 @@ export default function Auth() {
     </div>
   );
 }
+
 
 
 

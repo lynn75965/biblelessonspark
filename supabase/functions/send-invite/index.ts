@@ -129,10 +129,30 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Get organization name if applicable
+    let orgName: string | null = null;
+    if (finalOrgId) {
+      const { data: org } = await supabaseClient
+        .from("organizations")
+        .select("name")
+        .eq("id", finalOrgId)
+        .single();
+      orgName = org?.name || null;
+    }
+
+    // Get inviter name
+    const { data: inviterProfile } = await supabaseClient
+      .from("profiles")
+      .select("full_name")
+      .eq("id", user.id)
+      .single();
+
+    const inviterName = inviterProfile?.full_name || "A LessonSpark USA administrator";
+
     // Create invite token
     const inviteToken = crypto.randomUUID();
 
-    // Insert invite record
+    // Insert invite record with inviter_name and organization_name
     const { data: invite, error: inviteError } = await supabaseClient
       .from("invites")
       .insert({
@@ -140,6 +160,8 @@ const handler = async (req: Request): Promise<Response> => {
         token: inviteToken,
         created_by: user.id,
         organization_id: finalOrgId || null,
+        inviter_name: inviterName,
+        organization_name: orgName,
       })
       .select()
       .single();
@@ -151,26 +173,6 @@ const handler = async (req: Request): Promise<Response> => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Get organization name if applicable
-    let orgName = null;
-    if (finalOrgId) {
-      const { data: org } = await supabaseClient
-        .from("organizations")
-        .select("name")
-        .eq("id", finalOrgId)
-        .single();
-      orgName = org?.name;
-    }
-
-    // Get inviter name
-    const { data: inviterProfile } = await supabaseClient
-      .from("profiles")
-      .select("full_name")
-      .eq("id", user.id)
-      .single();
-
-    const inviterName = inviterProfile?.full_name || "A LessonSpark USA administrator";
 
     // Build invite URL using SSOT helper function
     const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";

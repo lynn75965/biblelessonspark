@@ -14,6 +14,8 @@ interface Invite {
   claimed_by: string | null;
   created_by: string;
   organization_id: string | null;
+  inviter_name: string | null;
+  organization_name: string | null;
 }
 
 interface SendInviteOptions {
@@ -168,16 +170,12 @@ export function useInvites() {
             variant: 'destructive',
           });
         } else {
-          // Get org name for toast
-          const { data: org } = await supabase
-            .from('organizations')
-            .select('name')
-            .eq('id', invite.organization_id)
-            .single();
+          // Use organization_name from invite if available
+          const orgName = invite.organization_name || 'the organization';
 
           toast({
             title: 'Welcome to the team!',
-            description: `You've joined ${org?.name || 'the organization'}.`,
+            description: `You've joined ${orgName}.`,
           });
         }
       }
