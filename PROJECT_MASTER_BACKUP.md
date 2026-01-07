@@ -1,0 +1,2920 @@
+# LessonSparkUSA - Project Master Document
+
+---
+
+## ⚠️ CRITICAL: DUAL ROLE SYSTEM ARCHITECTURE
+
+> **THIS SECTION IS MANDATORY READING BEFORE ANY ROLE-RELATED CHANGES**
+
+### Overview
+
+LessonSparkUSA uses TWO distinct role systems that serve different purposes. These are intentionally separate and must remain synchronized through documented mapping.
+
+### Database Roles (user_roles.role - app_role enum)
+
+**Purpose:** Capability-based permissions (what a user CAN do)
+
+| Role | Description |
+|------|-------------|
+| admin | Platform administrator - full system access |
+| teacher | Standard user - create/manage own lessons |
+| moderator | Future: content moderation capabilities |
+
+**Location:** user_roles table, column role (type: app_role enum)
+
+### Frontend Roles (accessControl.ts - ROLES constant)
+
+**Purpose:** Access scope (what a user CAN SEE)
+
+| Role | Description |
+|------|-------------|
+| platformAdmin | Lynn - sees all platform data, all users, all analytics |
+| orgLeader | Organization admin - sees org-scoped data |
+| orgMember | Org teacher - sees own lessons within org context |
+| individual | Personal workspace - sees only own lessons |
+
+**Location:** src/constants/accessControl.ts
+
+### Role Mapping (Database to Frontend)
+
+The getEffectiveRole() function in accessControl.ts performs this mapping:
+
+| Database Role | Context | Frontend Role |
+|---------------|---------|---------------|
+| admin | any | platformAdmin |
+| teacher/moderator | hasOrganization + org admin | orgLeader |
+| teacher/moderator | hasOrganization + org member | orgMember |
+| teacher/moderator | no organization | individual |
+
+### Why Two Systems?
+
+1. **Separation of Concerns:**
+   - Database roles = security/capability (enforced by RLS)
+   - Frontend roles = UI visibility (enforced by React components)
+
+2. **Flexibility:**
+   - A teacher in database can be orgLeader OR orgMember OR individual depending on context
+   - An admin is always platformAdmin regardless of context
+
+3. **Future-Proofing:**
+   - Organization features will use context, not new database roles
+   - Adding org context does not require database migration
+
+### SSOT Compliance
+
+| System | SSOT Location | Sync Method |
+|--------|---------------|-------------|
+| Database roles | app_role enum in PostgreSQL | Manual migration |
+| Frontend roles | src/constants/accessControl.ts | Code changes |
+| Role mapping | getEffectiveRole() in accessControl.ts | Code changes |
+
+### MODIFICATION RULES
+
+1. **To add a new DATABASE role:**
+   - Add to app_role enum via SQL migration
+   - Update getEffectiveRole() mapping
+   - Update this documentation
+
+2. **To add a new FRONTEND role:**
+   - Add to ROLES constant in accessControl.ts
+   - Update TAB_ACCESS and FEATURE_ACCESS
+   - Update getEffectiveRole() mapping
+   - Update this documentation
+
+3. **NEVER:**
+   - Assume database role = frontend role
+   - Change one system without updating the mapping
+   - Skip updating this documentation
+
+### Related Files
+
+- src/constants/accessControl.ts - Frontend role definitions and mapping
+- src/integrations/supabase/types.ts - Generated types including app_role
+- Database: user_roles table, app_role enum
+- Database: has_role() function for RLS checks
+
+---
+
+**Last Updated: 2026-01-01**
+**Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
+**Repository:** C:\Users\Lynn\lesson-spark-usa
+**Framework Version:** 2.1.2
+
+---
+
+## Project Overview
+
+LessonSparkUSA is a Baptist Bible study lesson generator platform serving volunteer teachers in Baptist churches. Built with React/TypeScript on Lovable.dev, Supabase backend, and Claude AI integration.
+
+**Developer:** Lynn - retired Baptist minister with PhD from SWBTS, 55 years ministry experience, non-programmer solopreneur
+**Target Users:** Volunteer teachers in Baptist churches
+**Core Value:** Generate theologically-sound, age-appropriate Bible study lessons aligned with Baptist beliefs and distinctives as practiced in local Baptist congregations
+
+---
+
+## Guiding Principles
+
+| Principle | Implementation |
+|-----------|----------------|
+| **Christian values guide all decisions** | Development choices honor biblical standards |
+| **Admin controls boundaries** | Lynn manages all constants files; only admin can add/modify options |
+| **Users select, not create** | Dropdowns populated from constants; no free-form structural input |
+| **Frontend is SSOT** | Constants live in src/constants/; synced to backend via script |
+| **Claude creative within bounds** | AI generates fresh content but MUST follow structure and parameters |
+| **Export-ready architecture** | All logic portable; no platform-specific dependencies |
+
+---
+
+## Current Architecture
+
+### Frontend
+- **Platform:** Netlify (automatic GitHub deployment) � DO NOT use Lovable.dev for deployment
+- **Stack:** React, TypeScript, Vite
+- **UI:** Shadcn/ui components, Tailwind CSS
+- **State:** React hooks, Supabase client
+
+### Backend
+- **Database:** Supabase PostgreSQL
+- **AI Processing:** Supabase Edge Functions (Deno) + Anthropic Claude API (claude-sonnet-4-20250514 for lessons, claude-sonnet-4-5-20250929 for parables)
+- **Authentication:** Supabase Auth
+- **Storage:** Supabase Storage
+
+### Key Integrations
+- Stripe (payment processing - Phase 14)
+- Anthropic Claude API (lesson generation)
+- Canva (design export)
+- Vercel (potential deployment target)
+
+---
+
+## Single Source of Truth (SSOT) Architecture
+
+### Master Vision Principle: Frontend Drives Backend
+
+**All data definitions originate from frontend constants:**
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/lessonStructure.ts | supabase/functions/_shared/lessonStructure.ts | Lesson framework (8 sections) |
+| src/constants/lessonTiers.ts | supabase/functions/_shared/lessonTiers.ts | Basic/Full tier definitions |
+| src/constants/ageGroups.ts | supabase/functions/_shared/ageGroups.ts | Age group definitions |
+| src/constants/theologyProfiles.ts | supabase/functions/_shared/theologyProfiles.ts | 10 profiles with guardrails |
+| src/constants/teacherPreferences.ts | supabase/functions/_shared/teacherPreferences.ts | Teacher customization options |
+| src/constants/bibleVersions.ts | supabase/functions/_shared/bibleVersions.ts | 7 versions with copyright guardrails |
+| src/constants/generationMetrics.ts | supabase/functions/_shared/generationMetrics.ts | Device/timing tracking |
+| src/constants/accessControl.ts | — | Role definitions (frontend only) |
+| src/constants/validation.ts | supabase/functions/_shared/validation.ts | Input validation rules |
+| src/constants/routes.ts | supabase/functions/_shared/routes.ts | Application route definitions |
+| src/constants/navigationConfig.ts | � | Navigation menu items by role |
+| src/constants/dashboardConfig.ts | � | Dashboard tab configuration |
+| src/constants/orgManagerConfig.ts | � | Org detail drill-down tabs |
+| src/config/site.ts | — | Site branding constants |
+
+### SSOT Exception: Pricing
+
+**Pricing is NOT managed via frontend constants.** See "Pricing Architecture" section below.
+
+**Sync Process:**
+```bash
+npm run sync-constants
+```
+
+**Build-Time Validation:**
+- Script: `scripts/sync-constants.cjs`
+- Auto-generates backend mirrors with timestamps
+- Prevents backend-only edits
+- Maintains architectural integrity
+
+---
+
+## Beta Program Configuration
+
+### Current Beta Settings
+
+| Setting | Value |
+|---------|-------|
+| Rate Limit | 7 lessons per 24-hour period |
+| Tier Access | Full (8 sections + teaser) for all beta testers |
+| Pricing Display | Hidden - no pricing shown during beta |
+| Payment Required | No - all beta testers use platform free |
+| Admin Limit | Unlimited (exempt from rate limit) |
+
+### Beta Scope
+
+| Included in Beta | Excluded (Post-Beta) |
+|------------------|----------------------|
+| Individual users | Organization features |
+| Full lesson generation | Organization billing |
+| All theology profiles | Org leader dashboard |
+| All Bible versions | Member management |
+| Export (PDF/DOCX) | Lesson pool limits |
+| Device/timing logging | Paid tier enforcement |
+
+---
+
+## Beta Feedback System
+
+### Architecture (SSOT Compliant)
+
+**SSOT Exception:** Feedback questions are stored in database (not frontend constants) because:
+- Admin needs to modify questions without code deployment
+- Questions evolve during beta based on feedback patterns
+- FeedbackQuestionsManager provides UI for question management
+
+| Layer | SSOT Location | Purpose |
+|-------|---------------|---------|
+| Questions | `feedback_questions` table | Question definitions, ordering, options |
+| Mode/Timing | `src/constants/feedbackConfig.ts` | Beta vs production mode, trigger delays |
+| Styling | `src/constants/feedbackConfig.ts` | Shared form styles, NPS button classes |
+| Analytics Config | `src/constants/feedbackConfig.ts` | Summary cards, table columns, chart config |
+
+### Database Schema
+
+**Table:** `feedback_questions`
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | UUID | Primary key |
+| question_key | TEXT | Unique identifier (e.g., 'overall_rating') |
+| column_name | TEXT | Maps to `feedback` table column |
+| label | TEXT | Display label |
+| description | TEXT | Help text shown below question |
+| placeholder | TEXT | Placeholder for textarea inputs |
+| question_type | TEXT | stars, nps, select, boolean, textarea |
+| options | JSONB | Options array for select types |
+| is_required | BOOLEAN | Required field flag |
+| min_value | INTEGER | Min value for numeric types |
+| max_value | INTEGER | Max value for numeric types |
+| max_length | INTEGER | Max chars for textarea |
+| display_order | INTEGER | Sort order in form |
+| is_active | BOOLEAN | Show/hide question |
+| feedback_mode | TEXT | 'beta' or 'production' |
+
+**RPC Function:** `get_feedback_questions(p_mode TEXT)`
+- Returns questions filtered by mode
+- Aliases columns to camelCase for TypeScript compatibility
+- Used by `BetaFeedbackForm.tsx`
+
+### Trigger Points
+
+| Trigger | Behavior |
+|---------|----------|
+| "Give Feedback" button | Opens modal immediately |
+| After lesson export | 3-second delay, then modal (configurable via FEEDBACK_TRIGGER.exportDelayMs) |
+
+### Admin Management
+
+**Location:** Admin Panel → Beta Program tab → Scroll to "Beta Feedback Questions"
+
+**Capabilities:**
+- Add new questions
+- Edit existing questions (label, description, options)
+- Reorder questions (drag-and-drop or display_order)
+- Toggle active/inactive
+- Preview question types
+
+---
+
+## Database Triggers & Sync Functions
+
+### Email Synchronization (profiles.email)
+
+**Purpose:** Keep `profiles.email` in sync with `auth.users.email` to avoid direct joins to Supabase's auth schema.
+
+| Component | Type | Description |
+|-----------|------|-------------|
+| `profiles.email` | Column | User's email address, synced from auth.users |
+| `sync_user_email()` | Function | Trigger function that copies email on INSERT or UPDATE |
+| `on_auth_user_email_update` | Trigger | Fires on auth.users changes, calls sync function |
+
+**Why This Exists:**
+- Supabase Security Advisor flagged views joining `auth.users` as "Exposed Auth Users"
+- SSOT principle: User data should live in tables we control (`profiles`), not auth schema
+- Views now join `profiles.email` instead of `auth.users.email`
+
+**Affected Views (updated December 10, 2025):**
+
+| View | Change |
+|------|--------|
+| `beta_feedback_view` | Now joins `profiles.email` instead of `auth.users.email` |
+| `production_feedback_view` | Now joins `profiles.email` instead of `auth.users.email` |
+| `guardrail_violation_summary` | No email join (aggregates only), security_invoker added |
+
+**Security Properties Applied:**
+- All three views set to `security_invoker = true` (respects RLS)
+- All database functions set with explicit `search_path = public`
+
+---
+
+## Current Lesson Structure (Version 2.1.2)
+
+### Required Sections (8 sections)
+1. **Lens + Lesson Overview** (150-250 words)
+2. **Learning Objectives + Key Scriptures** (150-250 words)
+3. **Theological Background (Deep-Dive)** (450-600 words)
+4. **Opening Activities** (120-200 words)
+5. **Main Teaching Content (Teacher Transcript)** (630-840 words) - SPOKEN WORDS with depth
+6. **Interactive Activities** (150-250 words)
+7. **Discussion & Assessment** (200-300 words)
+8. **Student Handout (Standalone)** (250-400 words)
+
+**Total Word Target:** 2,100-2,790 words
+
+### Optional Section
+9. **Student Teaser (Pre-Lesson)** (50-100 words) - Displays at top of lesson, not as Section 9
+
+### Key Architecture Principles
+- **Section 3 = ALL deep theology** (prevents redundancy)
+- **Section 5 = SPOKEN classroom delivery** (what teacher actually says)
+- **Section 8 = FRESH student content** (not copied from teacher sections)
+- **Teaser = FELT NEEDS ONLY** (zero content revelation, time-neutral signoff)
+- **No word count metadata in output**
+
+---
+
+## Lesson Tiers (2 Tiers)
+
+### Tier Structure
+
+| Tier ID | Display Name | Sections | Teaser | Word Target | Est. Time | Post-Beta Access |
+|---------|--------------|----------|--------|-------------|-----------|------------------|
+| `basic` | Quick Lesson | 3 (1, 5, 8) | No | 1,030-1,490 | 30-60 sec | Free users |
+| `full` | Complete Lesson | 8 (all) | Yes | 2,100-2,790 | 60-90 sec | Paid users |
+
+**Beta:** All users have Full tier access.
+
+### Basic Tier Sections
+
+| Section # | Name | Word Target |
+|-----------|------|-------------|
+| 1 | Lens + Lesson Overview | 150-250 |
+| 5 | Main Teaching Content (Teacher Transcript) | 630-840 |
+| 8 | Student Handout (Standalone) | 250-400 |
+
+**Rationale:** These three sections provide the irreducible core - teacher context (1), spoken classroom delivery (5), and student takeaway (8).
+
+### Full Tier Sections
+
+All 8 sections as defined in Current Lesson Structure, plus optional Student Teaser.
+
+### SSOT Location
+
+**Master:** `src/constants/lessonTiers.ts`
+**Mirror:** `supabase/functions/_shared/lessonTiers.ts`
+
+### Post-Beta Tier Access Logic
+
+| User Type | Frontend Role | Tier Access |
+|-----------|---------------|-------------|
+| Free Individual | individual | Basic only |
+| Paid Individual | individual | Basic + Full (choice) |
+| Org Member | orgMember | Basic + Full (shared pool) |
+| Org Leader | orgLeader | Basic + Full (always) |
+| Platform Admin | platformAdmin | Basic + Full (unlimited) |
+
+---
+
+## Pricing Architecture (Phase 14 - Post-Beta)
+
+### SSOT Exception: Stripe as Source of Truth
+
+**Pricing does NOT follow the "frontend drives backend" principle.**
+
+| Principle | Standard Approach | Pricing Exception |
+|-----------|-------------------|-------------------|
+| SSOT Location | Frontend constants | Stripe Dashboard |
+| Change Origin | Edit .ts file, deploy | Edit in Stripe |
+| Sync Direction | Frontend → Backend | Stripe → Supabase (webhook) |
+| Lynn's Workflow | Code change required | No code change needed |
+
+### Rationale for Exception
+
+Lynn rarely changes pricing, but when changes happen:
+- Change should be made in ONE place (Stripe)
+- Change should automatically reflect in LessonSparkUSA
+- No manual sync to Supabase or code files required
+
+### Pricing Data Ownership
+
+| Data Type | SSOT Location | Managed By |
+|-----------|---------------|------------|
+| Plan prices | Stripe | Lynn via Stripe Dashboard |
+| Plan names | Stripe | Lynn via Stripe Dashboard |
+| Discounts/coupons | Stripe | Lynn via Stripe Dashboard |
+| Lessons per month | Supabase | Lynn via Supabase Dashboard |
+| Tier access (basic/full) | Supabase | Lynn via Supabase Dashboard |
+| Features list | Supabase | Lynn via Supabase Dashboard |
+| Best for description | Supabase | Lynn via Supabase Dashboard |
+| Display order | Supabase | Lynn via Supabase Dashboard |
+
+### Planned Pricing (Post-Beta Implementation)
+
+**Individual Plans:**
+
+| Plan | Lessons/Month | Tier Access | Monthly | Annual (2 mo. free) |
+|------|---------------|-------------|---------|---------------------|
+| **Free** | 5 | Basic only | $0 | — |
+| **Personal** | 20 | Full | $9 | $90 |
+
+**Organization Plans (Phase 13):**
+
+| Plan | Lessons/Month | Monthly | Annual (2 mo. free) | Best For |
+|------|---------------|---------|---------------------|----------|
+| **Starter** | 25 | $29 | $290 | 5-8 teachers |
+| **Growth** | 60 | $59 | $590 | 10-15 teachers |
+| **Ministry** | 120 | $99 | $990 | 20-30 teachers |
+| **Enterprise** | 250 | $179 | $1,790 | 40+ teachers |
+
+**Organization Model:** Lesson Pool (unlimited members, shared lesson count per billing period)
+
+### Implementation Plan (Phase 14)
+
+| Step | Who | Action |
+|------|-----|--------|
+| 1 | Lynn | Create/update Stripe products and prices |
+| 2 | Lynn | Note Stripe product and price IDs |
+| 3 | Claude | Create `pricing_plans` table in Supabase |
+| 4 | Claude | Create `stripe-webhook` Edge Function |
+| 5 | Lynn | Register webhook URL in Stripe Dashboard |
+| 6 | Lynn | Populate Supabase table with Stripe IDs + app data |
+| 7 | Claude | Create frontend hook to read pricing from Supabase |
+| 8 | Claude | Build pricing display UI |
+
+---
+
+## Generation Metrics Tracking
+
+### Purpose
+
+Track device/browser information and generation timing to:
+1. Identify mobile timeout patterns
+2. Inform Quick tier necessity decision (post-beta)
+3. Optimize generation performance
+
+### Tracked Data
+
+| Category | Fields |
+|----------|--------|
+| **Device** | user_agent, device_type, browser, os |
+| **Timing** | generation_start, generation_end, generation_duration_ms |
+| **Request** | tier_requested, sections_requested, sections_generated |
+| **Outcome** | status (started/completed/timeout/error), error_message |
+| **Network** | connection_type |
+
+### Valid Values (SSOT-Defined)
+
+| Field | Valid Values |
+|-------|--------------|
+| device_type | mobile, tablet, desktop, unknown |
+| status | started, completed, timeout, error |
+| connection_type | slow-2g, 2g, 3g, 4g, wifi, ethernet, unknown |
+
+### SSOT Location
+
+**Master:** `src/constants/generationMetrics.ts`
+**Mirror:** `supabase/functions/_shared/generationMetrics.ts`
+
+### Database Table
+
+**Table:** `generation_metrics` (to be created)
+**RLS:** Users view own; Service role insert/update; Admin view all
+
+### Admin Views (Planned)
+
+- `generation_metrics_summary` - Aggregated stats by device/tier/status
+- `mobile_timeout_analysis` - 30-day mobile timeout patterns
+
+---
+
+## Bible Versions (7 Versions with Copyright Guardrails)
+
+### Available Bible Versions
+
+| # | ID | Name | Abbreviation | Copyright Status |
+|---|-----|------|--------------|------------------|
+| 1 | `kjv` | King James Version | KJV | Public Domain |
+| 2 | `nkjv` | New King James Version | NKJV | Copyrighted |
+| 3 | `nasb` | New American Standard Bible | NASB | Copyrighted |
+| 4 | `esv` | English Standard Version | ESV | Copyrighted |
+| 5 | `niv` | New International Version | NIV | Copyrighted |
+| 6 | `csb` | Christian Standard Bible | CSB | Copyrighted |
+| 7 | `web` | World English Bible | WEB | Public Domain |
+
+### Copyright Guardrails System
+
+| Copyright Status | AI Behavior |
+|------------------|-------------|
+| **Public Domain** (KJV, WEB) | Direct Scripture quotation permitted |
+| **Copyrighted** (NKJV, NASB, ESV, NIV, CSB) | Paraphrase only with verse references |
+
+### SSOT Location: `src/constants/bibleVersions.ts`
+
+**Structure:**
+```typescript
+interface BibleVersion {
+  id: string;
+  name: string;
+  abbreviation: string;
+  copyrightStatus: 'public_domain' | 'copyrighted';
+  description: string;
+  displayOrder: number;
+  isDefault: boolean;
+}
+```
+
+### Helper Functions (SSOT-compliant)
+
+| Function | Purpose |
+|----------|---------|
+| `getBibleVersion(id)` | Get single version by ID |
+| `getDefaultBibleVersion()` | Returns KJV (default) |
+| `getBibleVersionsSorted()` | Returns versions in displayOrder |
+| `generateCopyrightGuardrails(versionId)` | Generates copyright rules for AI prompt |
+
+---
+
+## Theology Profiles (10 Profiles with Guardrails)
+
+### Available Profiles
+
+| # | Profile ID | Display Name | Default |
+|---|------------|--------------|---------|
+| 1 | `baptist-core-beliefs` | Baptist Core Beliefs | YES |
+| 2 | `southern-baptist-bfm-1963` | Southern Baptist (BF&M 1963) | |
+| 3 | `southern-baptist-bfm-2000` | Southern Baptist (BF&M 2000) | |
+| 4 | `national-baptist-convention` | National Baptist Convention (USA) | |
+| 5 | `independent-baptist` | Independent Baptist | |
+| 6 | `missionary-baptist` | Missionary Baptist | |
+| 7 | `general-baptist` | General Baptist | |
+| 8 | `free-will-baptist` | Free Will Baptist | |
+| 9 | `primitive-baptist` | Primitive Baptist | |
+| 10 | `reformed-baptist` | Reformed Baptist | |
+
+### Theological Stance Categories
+
+| Category | Profiles |
+|----------|----------|
+| **Anti-TULIP** (8) | Baptist Core, SBC 1963, SBC 2000, National, Independent, Missionary, General, Free Will |
+| **Pro-TULIP** (2) | Reformed Baptist, Primitive Baptist |
+
+### Security Doctrine Categories
+
+| Doctrine | Profiles |
+|----------|----------|
+| **Eternal Security** | Baptist Core, SBC 1963, SBC 2000, National, Independent, Missionary, General |
+| **Conditional Security** | Free Will Baptist |
+| **Perseverance of Saints** | Reformed Baptist, Primitive Baptist |
+
+### SSOT Location: `src/constants/theologyProfiles.ts`
+
+---
+
+## Age Groups (11 groups)
+
+1. Preschoolers (Ages 3-5)
+2. Elementary Kids (Ages 6-10)
+3. Preteens & Middle Schoolers (Ages 11-14)
+4. High School Students (Ages 15-18)
+5. College & Early Career (Ages 19-25)
+6. Young Adults (Ages 26-35)
+7. Mid-Life Adults (Ages 36-50)
+8. Experienced Adults (Ages 51-65)
+9. Active Seniors (Ages 66-75)
+10. Senior Adults (Ages 76+)
+11. Mixed Groups (Multi-generational)
+
+Each includes: vocabulary level, conceptual depth, teaching profile, description
+
+---
+
+## Teacher Customization (13 preference fields)
+
+### SSOT Location: `src/constants/teacherPreferences.ts`
+
+| # | Field | Options |
+|---|-------|---------|
+| 1 | Teaching Style | 7 options (incl. Socratic Method with tooltip) |
+| 2 | Learning Style | 4 options |
+| 3 | Lesson Length | 6 options (15, 30, 45, 60, 75, 90 minutes) |
+| 4 | Group Size | 5 options |
+| 5 | Learning Environment | 4 options |
+| 6 | Student Experience Level | 4 options |
+| 7 | Education Experience | 5 options (incl. Preschool) |
+| 8 | Cultural Context | 3 options |
+| 9 | Special Needs | 6 options |
+| 10 | Lesson Sequence | 2 options: Single Lesson, Part of Series |
+| 11 | Assessment Style | 4 options |
+| 12 | Language | 3 options: English, Spanish, French |
+| 13 | Activity Types | 7 checkboxes |
+
+All preferences dynamically inserted into AI prompt generation.
+
+---
+
+## Development Protocols
+
+### Claude Debugging Protocol
+1. **Root-cause diagnosis BEFORE solutions**
+2. **Complete solutions over piecemeal fixes**
+3. **Verify file changes before proceeding**
+4. **Explicit permission required for code changes**
+5. **Copy-paste ready PowerShell commands**
+
+### File Update Process
+1. Present complete file contents
+2. Provide PowerShell Set-Content command
+3. Await user confirmation before next step
+4. Build and test after changes
+
+### Deployment Process
+```bash
+# Frontend
+npm run build
+npm run dev
+
+# Backend (Edge Functions)
+npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs
+
+# Constants Sync
+npm run sync-constants
+```
+
+---
+
+## Project Status
+
+**Current Phase: Phase 18 Complete - Subscription & Payment System
+**Overall Completion:** ~97% (Core product + feedback + security ready)
+**Production Readiness:** Beta (Individual users, no payment)
+
+### Phase 12 Summary
+
+| Task | Status |
+|------|--------|
+| Teacher Preference Profiles | ✅ Complete |
+| Auth Bug Fixes | ✅ Complete |
+| UI Improvements (Create Lesson 3-step cards) | ✅ Complete |
+| Prompt Caching Implementation | ✅ Complete |
+| 10 Theology Profiles with Guardrails | ✅ Complete |
+| SSOT Compliance Audit & Fixes | ✅ Complete |
+| Filter Matching Bug Fix | ✅ Complete |
+| Edge Function Guardrails Integration | ✅ Complete |
+| Bible Version Selection with Copyright Guardrails | ✅ Complete |
+| Security Advisor Clean (0 errors, 0 warnings) | ✅ Complete |
+| Mobile Responsiveness Audit (30+ files) | ✅ Complete |
+| Guardrail Violation Logging System | ✅ Complete |
+| Admin Panel Guardrails Tab | ✅ Complete |
+| Email SMTP Configuration | ✅ Complete |
+| Password Validation SSOT | ✅ Complete |
+| Forgot Password Flow | ✅ Complete |
+| Beta Feedback System (Database-driven) | ✅ Complete |
+| FeedbackQuestionsManager Admin | ✅ Complete |
+| Security Advisor Fixes (0 errors, 0 warnings) | ✅ Complete |
+| Lesson Tiers SSOT | 🔄 In Progress |
+| Generation Metrics SSOT | 🔄 In Progress |
+| Beta Tester Onboarding | 🔄 In Progress |
+
+---
+
+## Key Files Reference
+
+### Frontend Constants (MASTER)
+
+| File | Purpose |
+|------|---------|
+| src/constants/lessonStructure.ts | Lesson framework (8 sections) |
+| src/constants/lessonTiers.ts | Basic/Full tier definitions |
+| src/constants/ageGroups.ts | Age group definitions |
+| src/constants/theologyProfiles.ts | 10 profiles with guardrails |
+| src/constants/teacherPreferences.ts | Teacher customization options |
+| src/constants/bibleVersions.ts | 7 versions with copyright guardrails |
+| src/constants/generationMetrics.ts | Device/timing tracking |
+| src/constants/feedbackConfig.ts | Beta feedback mode, timing, styling, analytics |
+| src/constants/accessControl.ts | Role definitions and mapping |
+| src/constants/validation.ts | Input validation rules |
+| src/constants/routes.ts | Application route definitions |
+| src/config/site.ts | Site branding constants |
+| src/lib/fileValidation.ts | File upload validation |
+
+### Backend Mirrors (AUTO-GENERATED)
+
+| File | Purpose |
+|------|---------|
+| supabase/functions/_shared/lessonStructure.ts | Lesson framework mirror |
+| supabase/functions/_shared/lessonTiers.ts | Tier definitions mirror |
+| supabase/functions/_shared/ageGroups.ts | Age groups mirror |
+| supabase/functions/_shared/theologyProfiles.ts | Theology profiles + guardrails mirror |
+| supabase/functions/_shared/bibleVersions.ts | Bible versions + copyright guardrails mirror |
+| supabase/functions/_shared/generationMetrics.ts | Metrics tracking mirror |
+| supabase/functions/_shared/validation.ts | Validation rules mirror |
+| supabase/functions/_shared/routes.ts | Routes mirror |
+
+### Core Components
+
+| File | Purpose |
+|------|---------|
+| src/components/dashboard/EnhanceLessonForm.tsx | Profile/age summaries, Bible version dropdown, 3-step cards |
+| src/components/dashboard/LessonLibrary.tsx | SSOT badge colors, snake_case filters |
+| src/components/dashboard/LessonExportButtons.tsx | Export functionality |
+| src/components/dashboard/TeacherCustomization.tsx | "None" option, profile management |
+| src/components/landing/FeaturesSection.tsx | 10 theology profiles with mobile popovers |
+
+### Admin Components
+
+| File | Purpose |
+|------|---------|
+| src/pages/Admin.tsx | Admin panel with 8 tabs including Guardrails |
+| src/components/admin/GuardrailViolationsPanel.tsx | Violation monitoring dashboard |
+| src/components/admin/FeedbackQuestionsManager.tsx | Beta feedback questions CRUD |
+| src/components/admin/UserManagement.tsx | User management |
+| src/components/admin/OrganizationManagement.tsx | Organization management |
+| src/components/admin/PricingPlansManager.tsx | Pricing plans management |
+| src/components/analytics/BetaAnalyticsDashboard.tsx | Beta analytics |
+
+### Edge Functions
+
+| File | Purpose |
+|------|---------|
+| supabase/functions/generate-lesson/index.ts | Lesson generation with guardrails |
+| supabase/functions/extract-lesson/index.ts | File extraction |
+| supabase/functions/send-invite/index.ts | Invite emails |
+| supabase/functions/setup-lynn-admin/index.ts | Admin setup |
+
+---
+
+## Admin Panel Tabs (8 Tabs)
+
+| Tab | Icon | Component | Status |
+|-----|------|-----------|--------|
+| User Management | Users | UserManagement | Active |
+| Organizations | Building2 | OrganizationManagement | Active |
+| Beta Program | Rocket | BetaAnalyticsDashboard | Active |
+| Pricing & Plans | DollarSign | PricingPlansManager | Active |
+| Guardrails | ShieldAlert | GuardrailViolationsPanel | Active |
+| System Analytics | BarChart3 | Placeholder | Coming Soon |
+| System Settings | Settings | Placeholder | Coming Soon |
+| Security | Shield | Placeholder | Coming Soon |
+
+---
+
+## Technical Debt Backlog
+
+| Item | Priority | Status |
+|------|----------|--------|
+| SSOT Compliance Audit (see below) | HIGH | ? COMPLETE (Dec 13, 2025) |
+| Security Monitoring & Logging | LOW | Deferred |
+| Failed Access Logging | LOW | Deferred |
+| Frontend warning toast for guardrail violations | MEDIUM | Pending |
+| System Analytics dashboard implementation | MEDIUM | ? COMPLETE (Dec 17, 2025) |
+| System Settings panel implementation | LOW | ? COMPLETE (Dec 16, 2025) |
+| Quick Tier evaluation (post-beta data) | MEDIUM | Pending beta data |
+
+---
+
+## SSOT Compliance Audit (COMPLETE December 13, 2025)
+
+**Status:** ? COMPLETE - All findings remediated
+
+### Finding 1: Backend Files Without Frontend MASTER
+
+These files exist in `supabase/functions/_shared/` but have no frontend source in `src/constants/`:
+
+| Backend File | Risk Level | Action Needed |
+|--------------|------------|---------------|
+| customizationDirectives.ts | MEDIUM | Investigate: Move to frontend or delete |
+| rateLimit.ts | HIGH | Investigate: Actively used by generate-lesson |
+| theologicalPreferences.ts | MEDIUM | Delete after verifying no imports |
+
+**Violation:** These files originated in backend, violating "frontend drives backend" principle.
+
+### Finding 2: Frontend Files NOT in Sync Script
+
+These files exist in `src/constants/` but are NOT in `sync-constants.cjs`:
+
+| Frontend File | Backend Exists? | Risk Level | Action Needed |
+|---------------|-----------------|------------|---------------|
+| contracts.ts | Yes | MEDIUM | Add to sync after comparing versions |
+| validation.ts | Yes | HIGH | Compare versions before syncing |
+| routes.ts | Yes | MEDIUM | Add to sync after comparing versions |
+| programConfig.ts | No | LOW | Determine if backend mirror needed |
+
+**Violation:** Backend versions may have diverged from frontend. Sync would overwrite.
+
+### Finding 3: Hardcoded Values in Edge Functions
+
+| File | Hardcoded Value | Should Import From |
+|------|-----------------|-------------------|
+| setup-lynn-admin/index.ts | validRoles = ['admin', 'teacher', 'moderator'] | accessControl.ts |
+
+**Violation:** Role definitions defined in backend, not imported from SSOT.
+
+### Current Sync Script Coverage
+
+**Files in sync-constants.cjs (7 files):**
+- ageGroups.ts
+- bibleVersions.ts
+- generationMetrics.ts
+- lessonStructure.ts
+- lessonTiers.ts
+- teacherPreferences.ts
+- theologyProfiles.ts
+
+**Files NOT in sync (need investigation):**
+- contracts.ts
+- validation.ts
+- routes.ts
+- programConfig.ts (may not need backend mirror)
+
+### Post-Beta Remediation Plan
+
+| Step | Action | Risk Mitigation |
+|------|--------|-----------------|
+| 1 | Compare frontend/backend validation.ts line-by-line | Document differences |
+| 2 | Compare frontend/backend routes.ts line-by-line | Document differences |
+| 3 | Compare frontend/backend contracts.ts line-by-line | Document differences |
+| 4 | Check all Edge Function imports for theologicalPreferences.ts | Grep for imports |
+| 5 | Decide: Move rateLimit.ts to frontend or document exception | Architectural decision |
+| 6 | Decide: Move customizationDirectives.ts to frontend or delete | Architectural decision |
+| 7 | Add verified files to sync-constants.cjs | One at a time with testing |
+| 8 | Remove theologicalPreferences.ts if no imports found | After verification |
+| 9 | Refactor hardcoded arrays to use SSOT imports | Edge Function updates |
+
+### Why NOT Fix During Beta
+
+1. **rateLimit.ts** - Actively controls lesson limits. Breaking this disrupts all users.
+2. **validation.ts** - Backend may have validation logic not in frontend. Overwriting breaks Edge Function.
+3. **System is working** - These are architectural issues, not functional bugs.
+4. **Risk vs. Reward** - High risk of disruption, zero user-facing benefit.
+## Contact & Support
+
+**Developer:** Lynn (Nacogdoches, Texas)
+**Repository Path:** C:\Users\Lynn\lesson-spark-usa
+**Documentation:** This file (PROJECT_MASTER.md)
+
+---
+
+## Debugging Resources
+
+### Supabase Dashboard
+- **Project ID:** hphebzdftpjbiudpfcrs
+- **Functions:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/functions
+- **Logs:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/logs
+- **Security Advisor:** https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/advisors/security
+
+### GitHub
+- **Repository:** https://github.com/lynn75965/lesson-spark-usa
+
+### Production
+- **Domain:** https://lessonsparkusa.com
+- **Hosting:** Netlify (auto-deploy from GitHub)
+
+---
+
+## Supported File Types
+
+### Curriculum Upload
+- **PDF** - Claude Sonnet 4 document API (60-90 seconds)
+- **TXT** - Direct read (less than 1 second)
+- **JPG/JPEG/PNG** - Claude Sonnet 4 vision API (15-30 seconds)
+- **DOCX** - Not supported (save as PDF)
+
+### Export Formats
+- **PDF** - Supported
+- **DOCX** - Supported
+- **Print** - Supported
+
+---
+
+# PHASE HISTORY
+
+---
+
+## Phase 7: AI Output & Export (November 2025) - COMPLETE
+
+### AI Output Quality Improvements
+- **Section 5 Enforcement:** 630-840 word minimum with depth requirements
+- **Student Teaser:** Time-neutral signoff, felt-needs only, displays at top
+- **No Word Counts:** Removed from section headers
+- **No Section 9 Duplication:** Teaser extracted and displayed separately
+
+### Export Features
+- **PDF Export:** Calibri 11pt, compact professional spacing, correct title extraction
+- **DOCX Export:** Renamed "Document (editable)", correct parameters
+- **Print Function:** Calibri 11pt, 1.5 line spacing, 1-inch margins
+
+---
+
+## Phase 8: Security Audit & Hardening (November 25, 2025) - 90% COMPLETE
+
+**Status:** 9 of 10 security domains completed
+
+### Security Domains Completed
+- 8.1 API Key & Secrets Management
+- 8.2 Row Level Security (RLS) Policies
+- 8.3 Edge Function Authentication
+- 8.4 Authentication Hardening
+- 8.5 Input Validation & Sanitization
+- 8.6 Rate Limiting & Abuse Prevention
+- 8.7 Data Privacy & Compliance
+- 8.8 CORS & Domain Security
+- 8.9 Backup & Disaster Recovery
+- 8.10 Security Monitoring & Logging - DEFERRED
+
+---
+
+## Phase 9: Beta Testing & User Feedback (November 25, 2025) - COMPLETE
+
+### Rate Limiting Feature
+- Beta testers: 7 lessons per 24-hour period
+- Admin exempt (unlimited)
+- Display: "X of 7 lessons used (resets in Y hours)"
+- At limit: Red banner, Generate button disabled
+
+---
+
+## Phase 10: RLS Policy Standardization (November 30, 2025) - COMPLETE
+
+- Dropped all 80 existing `{public}` role policies
+- Created 66 new SSOT-aligned policies across 22 tables
+- All policies now use `authenticated` or `service_role`
+
+---
+
+## Phase 11: Org Leader Activation (November 30 - December 1, 2025) - COMPLETE
+
+- Search Path Security Hardening
+- File Extraction Pipeline (PDF, TXT, JPG, PNG)
+- Members Tab & Invite System
+
+---
+
+## Phase 12: Teacher Profiles & UX Improvements (December 2-7, 2025) - COMPLETE
+
+### Session 1-6: Core Improvements
+- PDF Extraction Bug Fix (Claude API)
+- Text Paste Input Option
+- Teacher Preference Profiles System (up to 7 profiles)
+- UI Redesign (3-step cards)
+- Prompt Caching Implementation
+- My Lesson Library Improvements
+
+### Session 7: Theological Guardrails & SSOT Compliance
+- 10 Theology Profiles with Complete Guardrails
+- Edge Function Integration
+- SSOT Compliance Fixes
+
+### Session 8: Bible Version Selection with Copyright Guardrails
+- 7 Bible Versions with copyright detection
+- Public domain: direct quotation
+- Copyrighted: paraphrase only
+
+### Session 9: Mobile Responsiveness Audit
+- 30+ files updated for mobile compatibility
+
+### Session 10: Guardrail Violation Logging System
+- Database table and admin panel for violation monitoring
+
+### Session 11: Email Infrastructure & Invite System Fixes
+- Google Workspace + Resend SMTP configuration
+- Invite system bug fix
+
+### Session 12: Auth Improvements & SSOT Compliance
+- PreferencesLens SSOT fix
+- Email support button fixes
+- Password validation SSOT
+- Forgot password flow
+
+### Session 12 Continued: Mobile Timeout & Tier Strategy (December 7, 2025)
+
+**Decisions Made:**
+
+| Decision | Outcome |
+|----------|---------|
+| Tier Structure | 2 tiers: Basic (3 sections) + Full (8 sections) |
+| Quick Tier | DEFERRED - evaluate after beta mobile testing data |
+| Basic Sections | 1 (Overview), 5 (Teaching), 8 (Handout) |
+| Logging Approach | New `generation_metrics` table for device/timing data |
+| Org Pricing Model | Lesson Pool (unlimited members, shared count) |
+| Beta Scope | Individuals only; Organizations deferred to Phase 13 |
+| Pricing Implementation | Deferred to Phase 14 (post-beta) |
+| Pricing Architecture | Stripe as SSOT, webhook sync to Supabase |
+
+**SSOT Constants to Create:**
+
+| File | Purpose | Status |
+|------|---------|--------|
+| src/constants/lessonTiers.ts | Basic/Full tier definitions | Ready |
+| src/constants/generationMetrics.ts | Device/timing tracking enums | Ready |
+
+**NOT Creating (Deferred to Phase 14):**
+- `src/constants/pricingPlans.ts` - Pricing managed via Stripe + Supabase
+
+### Session 13: Beta Feedback System (December 9, 2025) - COMPLETE
+
+**Database-Driven Beta Survey Implementation:**
+
+| Component | Description |
+|-----------|-------------|
+| Database Table | `feedback_questions` - stores all survey questions |
+| RPC Function | `get_feedback_questions(p_mode)` - returns questions with camelCase aliases |
+| Form Component | `BetaFeedbackForm.tsx` - fetches questions dynamically from database |
+| Modal Wrapper | `BetaFeedbackModal.tsx` - SSOT wrapper for form display |
+| Admin Manager | `FeedbackQuestionsManager.tsx` - add/edit/reorder questions |
+| Config SSOT | `src/constants/feedbackConfig.ts` - mode, timing, styling |
+
+**Beta Survey Questions (9 questions):**
+
+| # | Question Key | Type | Required |
+|---|--------------|------|----------|
+| 1 | overall_rating | stars (1-5) | Yes |
+| 2 | ease_of_use | select | Yes |
+| 3 | lesson_quality | select | Yes |
+| 4 | time_saved | select | No |
+| 5 | nps_score | NPS (0-10) | Yes |
+| 6 | would_pay | select | Yes |
+| 7 | best_feature | textarea | No |
+| 8 | improvements | textarea | No |
+| 9 | ui_issues | textarea | No |
+
+**SSOT Architecture:**
+
+| Layer | SSOT Location | Purpose |
+|-------|---------------|---------|
+| Questions | `feedback_questions` table (database) | Question definitions, ordering, options |
+| Mode/Timing | `src/constants/feedbackConfig.ts` | Beta vs production mode, trigger delays |
+| Styling | `src/constants/feedbackConfig.ts` | Shared form styles, NPS button classes |
+| Analytics | `src/constants/feedbackConfig.ts` | Summary cards, table columns, chart config |
+
+**Trigger Points:**
+- Floating "Give Feedback" button (bottom-right of Dashboard)
+- 3-second delay after any lesson export (Copy, Print, Download)
+
+**SSOT Fixes Applied:**
+- Unified to single `showBetaFeedbackModal` state in Dashboard
+- Removed duplicate modal in BetaFeedbackButton
+- BetaFeedbackButton accepts `onClick` prop instead of containing modal
+- Export delay configured in `feedbackConfig.ts` (FEEDBACK_TRIGGER.exportDelayMs)
+
+**UX Improvements:**
+- Responsive NPS buttons (single row desktop, 2 rows mobile)
+- Removed "Not at all likely" label, kept only "Extremely likely"
+- 3-second delay after export before feedback modal appears
+
+### Session 14: Security Advisor Fixes (December 10, 2025) - COMPLETE
+
+**Issue:** Supabase Security Advisor flagged 5 errors (sent monthly alert email)
+- 2x "Exposed Auth Users" — views joining `auth.users` directly
+- 3x "Security Definer View" — views bypassing RLS
+
+**Resolution:**
+
+| Step | Action |
+|------|--------|
+| 1 | Added `email` column to `profiles` table |
+| 2 | Created `sync_user_email()` trigger function |
+| 3 | Created `on_auth_user_email_update` trigger on `auth.users` |
+| 4 | Backfilled existing profiles with email from auth.users |
+| 5 | Recreated `beta_feedback_view` to join `profiles` instead of `auth.users` |
+| 6 | Recreated `production_feedback_view` to join `profiles` instead of `auth.users` |
+| 7 | Recreated `guardrail_violation_summary` (no auth.users reference) |
+| 8 | Set all three views to `security_invoker = true` |
+| 9 | Set 7 flagged functions to explicit `search_path = public` |
+
+**Functions with search_path fixed:**
+
+| Function | Signature |
+|----------|-----------|
+| `sync_user_email` | () |
+| `update_feedback_questions_timestamp` | () |
+| `get_all_feedback_questions` | (p_mode text) |
+| `get_feedback_questions` | (p_mode text) |
+| `get_beta_feedback_analytics` | (p_start_date timestamptz, p_end_date timestamptz) |
+| `get_production_feedback_analytics` | (p_start_date timestamptz, p_end_date timestamptz) |
+| `get_feedback_analytics` | (p_mode text, p_start_date timestamptz, p_end_date timestamptz) |
+
+**Result:** 0 errors, 0 warnings in Security Advisor
+
+**SSOT Impact:**
+- `profiles` table now includes `email` column (synced automatically from auth.users)
+- Frontend/backend code should reference `profiles.email`, not `auth.users.email`
+- Email sync is automatic via database trigger (no code changes needed)
+
+### Session 15: SSOT Compliance Audit & Lesson Formatting (December 11-12, 2025) - COMPLETE
+
+**Objective:** Comprehensive audit and remediation of SSOT violations across codebase
+
+**SSOT Violations Found & Fixed:**
+
+| Violation Type | Files Affected | Resolution |
+|----------------|----------------|------------|
+| Duplicate type definitions | 4 files | Centralized in contracts.ts |
+| Hardcoded theology options | 3 files | Import from theologyProfiles.ts |
+| Hardcoded age groups | 2 files | Import from ageGroups.ts |
+| Duplicate formatting logic | 2 files | Centralized in formatLessonContent.ts |
+
+**New SSOT Source Files Created:**
+
+| File | Purpose | Consumers |
+|------|---------|-----------|
+| src/constants/contracts.ts | Type definitions (Lesson, Organization, OrganizationMember) | useLessons, useOrganization, AllLessonsPanel, OrganizationManagement |
+| src/utils/formatLessonContent.ts | Lesson content HTML formatting | AllLessonsPanel, LessonExportButtons, EnhanceLessonForm |
+
+**formatLessonContent.ts Exports:**
+
+| Export | Purpose |
+|--------|---------|
+| formatLessonContentToHtml() | Convert markdown to HTML (screen display) |
+| formatLessonContentForPrint() | Convert markdown to HTML (print/export) |
+| LESSON_CONTENT_CONTAINER_CLASSES | Tailwind classes for content wrapper |
+| LESSON_CONTENT_CONTAINER_STYLES | Inline styles for scrollbar customization |
+
+**Key Features of formatLessonContent.ts:**
+- Normalizes line endings (Windows \r\n to Unix \n)
+- Pre-processes AI content lacking line breaks
+- Converts ## headers, **bold**, --- rules to HTML
+- Supports both screen display (Tailwind) and print (inline styles)
+
+**Commits (8 total):**
+
+| Commit | Description |
+|--------|-------------|
+| e5b0d9d | Centralize lesson formatting in shared utility |
+| f588951 | Organization components use THEOLOGY_PROFILE_OPTIONS |
+| 8aa26f4 | Age groups use AGE_GROUPS constant |
+| 06a7639 | BetaSignup uses THEOLOGY_PROFILE_OPTIONS |
+| 93e21b5 | OrganizationManagement imports Organization from contracts |
+| 9442183 | Add line ending normalization to lesson formatting |
+| b83113d | Handle AI content lacking line breaks |
+| 6e6b384 | Apply lesson content container classes and type imports |
+
+**Files Modified (10 total):**
+- src/constants/contracts.ts
+- src/utils/formatLessonContent.ts
+- src/hooks/useLessons.tsx
+- src/hooks/useOrganization.tsx
+- src/components/admin/AllLessonsPanel.tsx
+- src/components/admin/OrganizationManagement.tsx
+- src/components/dashboard/LessonExportButtons.tsx
+- src/components/dashboard/OrganizationSettingsModal.tsx
+- src/components/organization/OrganizationSetup.tsx
+- src/pages/BetaSignup.tsx
+
+**Deployment Architecture Confirmed:**
+
+| Stage | System |
+|-------|--------|
+| Local Development | C:\Users\Lynn\lesson-spark-usa |
+| Version Control | GitHub (lynn75965/lesson-spark-usa) |
+| Deployment | Netlify (automatic from main branch) |
+| Production | lessonsparkusa.com |
+
+**CRITICAL:** DO NOT use Lovable.dev for deployment or editing - causes unauthorized code modifications.
+
+**Lesson Learned:**
+- Always run git status after modifications to verify all files are staged
+- Never assume code is deployed without checking Netlify dashboard
+- Include verification commands after every change
+
+---
+
+## Phase 13: Organization Features (Post-Beta) - PLANNED
+
+**Status:** Deferred until beta feedback stabilizes core product
+
+**Prerequisites:**
+- Beta testing complete with individual users
+- Mobile timeout data analyzed
+- Core lesson generation stable
+
+### Phase 13.1: Organization Database Schema
+- Add org subscription fields
+- Add billing period tracking
+- Add subscription status
+
+### Phase 13.2: Stripe Organization Integration
+- Create org products in Stripe (Starter, Growth, Ministry, Enterprise)
+- Org checkout flow
+- Webhook handling
+
+### Phase 13.3: Organization Creation Flow
+- Self-service org creation
+- Plan selection based on teacher count
+
+### Phase 13.4: Organization Leader Dashboard
+- Usage tracker
+- Member management
+- Invite system
+- Billing management
+
+### Phase 13.5: Organization Member Experience
+- Org context display
+- Pool awareness
+- Limit warnings
+
+### Phase 13.6: Lesson Pool Tracking
+- Count lessons by org
+- Reset on billing period
+- Enforce limits
+
+**Estimated Effort:** 18-26 hours
+
+### Phase 13.7: Organization Beta Phase Infrastructure (COMPLETE 2025-12-13)
+
+**Purpose:** Allow Org Leaders to run pilot programs when first launching their organization, with Admin-controlled activation.
+
+**Design Principle:** Reuse platform beta infrastructure at organization scope. Admin controls activation; Org Leader views analytics.
+
+#### Database Schema Additions
+
+**organizations table additions:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| beta_mode | BOOLEAN DEFAULT false | Is org currently in beta phase? |
+| beta_start_date | TIMESTAMPTZ | When beta was activated |
+| beta_end_date | TIMESTAMPTZ | When beta ended (or scheduled end) |
+| beta_activated_by | UUID FK profiles | Admin who enabled beta mode |
+
+**organization_members table additions:**
+| Column | Type | Purpose |
+|--------|------|---------|
+| joined_during_beta | BOOLEAN DEFAULT false | Auto-set true if org.beta_mode = true at join time |
+
+#### Access Control
+
+| Feature | Allowed Roles | Notes |
+|---------|---------------|-------|
+| activateOrgBeta | platformAdmin | Only Admin can enable |
+| deactivateOrgBeta | platformAdmin | Only Admin can disable |
+| viewOrgBetaAnalytics | platformAdmin, orgLeader | Both can view org-scoped analytics |
+
+#### Component Reusability
+
+| Component | Platform Beta | Org Beta | Modification |
+|-----------|---------------|----------|--------------|
+| feedbackConfig.ts | ✅ | ✅ | Add scope parameter |
+| BetaAnalyticsDashboard.tsx | ✅ | ✅ | Add org_id filter prop |
+| feedback_questions table | ✅ | ✅ | Add scope column |
+| beta_feedback_view | ✅ | ✅ | Add org join condition |
+| Summary card definitions | ✅ | ✅ | No change needed |
+
+#### Admin Workflow
+```
+Admin Panel → Organizations → [Org Name] → Actions → Enable Beta Mode
+```
+
+This sets:
+- organizations.beta_mode = true
+- organizations.beta_start_date = now()
+- organizations.beta_activated_by = admin user id
+
+New members joining while beta_mode = true automatically get:
+- organization_members.joined_during_beta = true
+
+#### Org Leader Workflow
+
+When org beta is active, Org Leader sees:
+- "Org Beta Analytics" tab in their dashboard
+- Metrics scoped to their organization only
+- Feedback from their org members only
+
+#### Grandfathering Support
+
+`joined_during_beta = true` persists after org beta ends, enabling:
+- Recognition of early adopters within organization
+- Potential org-level loyalty discounts
+- Testimonial identification
+
+#### Transition Command
+
+Admin ends org beta via:
+```
+Admin Panel → Organizations → [Org Name] → Actions → End Beta Mode
+```
+
+This sets:
+- organizations.beta_mode = false
+- organizations.beta_end_date = now()
+
+Members retain joined_during_beta = true for historical tracking.
+
+**Estimated Effort:** 4-6 hours (leverages platform beta infrastructure)
+
+**Dependencies:** Phase 13.1-13.6 must be complete (organization tables exist)
+
+### Phase 13.8: Context-Based Navigation Architecture (COMPLETE 2025-12-12)
+
+**Purpose:** Establish three distinct contexts with dedicated routes, eliminating current Dashboard conflation.
+
+**Terminology Standards:**
+| Code Constant | Display Name | Scope |
+|---------------|--------------|-------|
+| platformAdmin | Administrator | Platform-wide (Lynn only) |
+| orgLeader | Organization Manager | Organization-scoped |
+| orgMember | Organization Member | Org context, personal lessons |
+| individual | Individual User | Personal scope only |
+
+**Route Architecture:**
+| Route | Name | Access | Data Scope |
+|-------|------|--------|------------|
+| /admin | Administrator Panel | Administrator only | All platform data |
+| /org | Organization Manager | Org Managers + Administrator | Org-scoped data |
+| /workspace | My Workspace | All authenticated users | Personal data only |
+
+**Header Navigation by Role:**
+
+*Administrator:*
+- Administrator Panel -> /admin
+- Organization Manager -> /org
+- My Workspace -> /workspace
+- Settings -> /account
+
+*Organization Manager (non-admin):*
+- Organization Manager -> /org
+- My Workspace -> /workspace
+- Settings -> /account
+
+*Individual User:*
+- My Workspace -> /workspace
+- Settings -> /account
+
+**Data Scoping Matrix:**
+| Context | Lessons | Members | Analytics | Settings |
+|---------|---------|---------|-----------|----------|
+| Administrator Panel | All platform | All users | Platform-wide | System |
+| Organization Manager | Org only | Org members | Org-scoped | Org settings |
+| My Workspace | My lessons | None | Personal stats | My preferences |
+
+**Implementation Tasks:**
+
+**13.8.1:** ? Create src/constants/navigationConfig.ts (SSOT for menu items by role)
+
+**13.8.2:** ? Refactor /dashboard to /workspace (personal-only view)
+
+**13.8.3:** ? Create Organization Manager page at /org
+
+**13.8.4:** ? Update Header.tsx to use navigationConfig.ts
+
+**13.8.5:** ? Add redirect /dashboard -> /workspace for backward compatibility
+
+**Estimated Effort:** 8-12 hours
+
+
+### Phase 13.9: Admin Organization Drill-Down (COMPLETE 2025-12-13)
+
+**Purpose:** Enable Platform Admin to access ALL organization data (members, lessons, analytics) directly from Admin Panel Organizations tab via drill-down interface.
+
+**Principle:** Admin Panel = Universal Access. Platform Admin can perform ANY operation without navigating elsewhere.
+
+**Drill-Down Structure:**
+- Organizations Tab (default): Table of all orgs
+- Click org row ? Org Detail View with sub-tabs:
+  - **Details:** Edit name, denomination, status, description
+  - **Members:** View all, add ANY user, remove ANY user, change roles
+  - **Lessons:** View metadata AND full content, edit capability
+  - **Analytics:** Org-scoped metrics (lesson count, active users, etc.)
+
+**Implementation Tasks:**
+- **13.9.1:** ? Add drill-down state management to OrganizationManagement.tsx
+- **13.9.2:** ? Create OrgDetailView component with sub-tabs (SSOT: orgManagerConfig.ts)
+- **13.9.3:** ? Refactor OrgMemberManagement (SSOT + Add Existing User) for admin context (add any user to org)
+- **13.9.4:** ? Create OrgLessonsPanel (metadata table + view/edit modal)
+- **13.9.5:** ? Create OrgAnalyticsPanel (org-scoped metrics)
+
+**Estimated Effort:** 6-10 hours
+**Dependencies:** Can implement navigation structure immediately; Org Manager content builds incrementally
+
+---
+
+## Phase 14: Pricing & Billing Implementation (Post-Beta) - PLANNED
+
+**Status:** Deferred until after Phase 13
+
+### Phase 14.1: Stripe Setup
+- Create/update individual products (Free, Personal)
+- Create monthly and annual prices
+- Note all Stripe IDs
+
+### Phase 14.2: Supabase Pricing Table
+- Create `pricing_plans` table
+- Columns for Stripe IDs (synced via webhook)
+- Columns for app data (lessons_per_month, tier_access, features)
+
+### Phase 14.3: Stripe Webhook
+- Create `stripe-webhook` Edge Function
+- Handle price.updated, product.updated events
+- Auto-sync changes to Supabase
+
+### Phase 14.4: Frontend Pricing Display
+- Create `usePricingPlans()` hook (reads from Supabase)
+- Update pricing page to use dynamic data
+- Remove any hardcoded prices
+
+### Phase 14.5: Checkout Integration
+- Connect tier selection to Stripe checkout
+- Handle successful payment
+- Update user subscription status
+
+**Estimated Effort:** 8-12 hours
+
+---
+
+# ACTION ITEMS
+
+## Immediate (Beta Launch)
+
+| Task | Priority | Status |
+|------|----------|--------|
+| Create lessonTiers.ts SSOT | HIGH | ? COMPLETE |
+| Create generationMetrics.ts SSOT | HIGH | ? COMPLETE |
+| Update sync-constants.cjs | HIGH | Pending |
+| Create generation_metrics table | MEDIUM | ? COMPLETE (used by System Analytics) |
+| Beta tester onboarding | HIGH | In Progress |
+
+## Post-Beta
+
+| Task | Priority | Phase |
+|------|----------|-------|
+| Analyze mobile timeout data | HIGH | Post-Beta |
+| Decide on Quick tier necessity | MEDIUM | Post-Beta |
+| Organization features | HIGH | Phase 13 |
+| Stripe pricing setup | HIGH | Phase 14 |
+| Pricing webhook integration | HIGH | Phase 14 |
+
+---
+
+## Phase 15: Perpetual Freshness - COMPLETE
+
+**Status:** Completed December 17, 2025
+
+**Purpose:** Ensure every lesson generation produces meaningfully different content, even for the same passage with the same settings. Prevent stale, repetitive outputs.
+
+### Three-Tier Architecture Context
+
+| Tier | Name | Freshness Impact |
+|------|------|------------------|
+| Tier 1 | Foundational Structure | None - intentionally stable (section names, order, word budgets) |
+| Tier 2 | User Customizations | Some variation - different age/theology produces different output |
+| Tier 3 | Perpetual Freshness | Claude generates creative content WITHIN Tier 1 structure |
+
+**Principle:** Same structure, fresh content every time.
+
+### Phase 15.1: Freshen Up User Control
+
+- Add "Freshen Up" checkbox to lesson generation form
+- Default: OFF (standard generation)
+- When ON: Claude explicitly varies approach
+- Store preference in user profile (optional persistence)
+
+### Phase 15.2: Varied Content Elements
+
+Instruct Claude to vary these elements across generations:
+
+| Element | Variation Approach |
+|---------|-------------------|
+| Illustrations/Stories | Different examples for same theological point |
+| Teaching Angles | Rotate: evangelistic, discipleship, apologetic, narrative |
+| Activity Types | Different activities for same learning objective |
+| Opening Hooks | Varied introductions (question, story, statistic, quote) |
+| Application Examples | Different real-world scenarios |
+
+### Phase 15.3: Contextual Awareness
+
+- **Date awareness:** Pass current date to Claude
+- **Holiday/Seasonal themes:** Christmas, Easter, Thanksgiving, back-to-school, New Year
+- **Christian calendar:** Advent, Lent, Pentecost awareness
+- **Current events:** Tasteful, non-political references (limited by Claude's training cutoff)
+
+### Phase 15.4: Edge Function Prompt Updates
+
+Add freshness instructions to lesson generation prompt:
+
+- "Vary your illustrations and examples from previous generations"
+- "Use different teaching angles when appropriate"
+- "Never repeat the same opening hook for the same passage"
+- "Consider current date for seasonal relevance: {current_date}"
+
+### Phase 15.5: Freshness Tracking (Optional)
+
+- Log illustration/example themes used per passage
+- Avoid repetition for same user generating same passage
+- Analytics: Track freshness satisfaction in feedback
+
+**Estimated Effort:** 6-10 hours
+
+**Dependencies:** 
+- Core lesson generation stable
+- Feedback system in place to measure satisfaction
+
+---
+
+## Phase 17: Modern Parable Generator - COMPLETE
+
+**Status:** Completed December 25, 2025
+
+**Purpose:** Generate contemporary parables inspired by current news events, crafted in the teaching style of Jesus, serving both LessonSparkUSA users (teaching context) and standalone users (personal devotional context).
+
+### Dual Context Architecture
+
+| Context | Entry Point | User Type | Directive |
+|---------|-------------|-----------|-----------|
+| **LessonSpark** | Sparkle button in Lesson Library | Authenticated LessonSpark user | LESSONSPARK_DIRECTIVE (teaching parables) |
+| **Standalone** | Direct navigation to /parables | Anyone (including anonymous) | STANDALONE_DIRECTIVE (contemplative parables) |
+
+### 8-Section Jesus-Style Parable Structure
+
+| # | Section Name | Intent |
+|---|--------------|--------|
+| 1 | A Scene from Everyday Life | Recognition |
+| 2 | A Moment of Offense or Loss | Discomfort |
+| 3 | The Struggle of the Human Heart | Tension |
+| 4 | The Turning of the Will | Decision |
+| 5 | The Unexpected Way of Grace | Surprise |
+| 6 | The Matter of the Heart Revealed | Exposure |
+| 7 | The Question That Searches the Listener | Conviction |
+| 8 | The Scripture That Anchors the Truth | Authority |
+
+### SSOT Constants Files
+
+| File | Exports |
+|------|---------|
+| `src/constants/parableConfig.ts` | AUDIENCE_LENSES, MODERN_SETTINGS, WORD_COUNT_TARGETS, getter functions |
+| `src/constants/parableDirectives.ts` | STANDALONE_DIRECTIVE, LESSONSPARK_DIRECTIVE, getParableDirective() |
+| `src/constants/theologyProfiles.ts` | 10 Baptist theology profiles with guardrails |
+| `src/constants/bibleVersions.ts` | 7 Bible versions with copyright guardrails |
+| `src/constants/ageGroups.ts` | Age group definitions with vocabulary levels |
+
+### Database Tables
+
+| Table | Purpose |
+|-------|---------|
+| `modern_parables` | Stores generated parables (22 columns) |
+| `anonymous_parable_usage` | Tracks anonymous user daily limits by IP |
+| `user_parable_usage` | Tracks authenticated user monthly limits |
+
+### Rate Limits
+
+| User Type | Limit | Period |
+|-----------|-------|--------|
+| Anonymous | 3 parables | Per day (by IP address) |
+| Authenticated | 7 parables | Per month (billing period) |
+| Admin | Unlimited | N/A |
+
+### Edge Function
+
+**File:** `supabase/functions/generate-parable/index.ts`
+**Model:** `claude-sonnet-4-5-20250929`
+**News API:** NewsData.io (48-hour window, FREE tier)
+
+**Key Features:**
+- Dual context support (standalone vs lessonspark)
+- Anonymous user rate limiting by IP
+- Authenticated user monthly tracking
+- News integration for contemporary relevance
+- Debug logging for troubleshooting
+- Fail-open error handling on limit checks
+
+### Frontend Components
+
+| File | Purpose |
+|------|---------|
+| `src/pages/Parables.tsx` | Page component - determines context from URL |
+| `src/components/ParableGenerator.tsx` | Main generator UI with all dropdowns |
+| `src/components/dashboard/LessonLibrary.tsx` | Sparkle button navigation to parable generator |
+
+### Verification Commands
+
+```powershell
+# Check deployed function
+npx supabase functions list --project-ref hphebzdftpjbiudpfcrs
+
+# Verify model name in local file
+Select-String -Path "C:\Users\Lynn\lesson-spark-usa\supabase\functions\generate-parable\index.ts" -Pattern "const model"
+
+# Verify secrets
+npx supabase secrets list --project-ref hphebzdftpjbiudpfcrs
+```
+
+### Git Commits (December 24-25, 2025)
+
+| Date | Description |
+|------|-------------|
+| 2025-12-24 | Edge Function deployed with correct model name |
+| 2025-12-25 | Debug logging added, anonymous limit fix verified |
+
+---
+
+*End of Document*
+
+
+
+
+
+
+
+
+
+---
+
+## Recent Updates (December 24-25, 2025)
+
+### Phase 17: Modern Parable Generator - COMPLETE
+
+After extensive debugging across multiple sessions, the Modern Parable Generator is now fully operational.
+
+**Root Cause Analysis:**
+
+| Issue | Description | Resolution |
+|-------|-------------|------------|
+| Wrong model name | Original file had `claude-3-5-sonnet-20241022` | Corrected to `claude-sonnet-4-5-20250929` |
+| Silent crashes | `checkAnonymousLimit` failing without logs | Added 8-point debug logging |
+| Rate limit confusion | Error displayed as generic failure | Anonymous IP had hit 3/day limit |
+
+**Verification Process Established:**
+
+All future Edge Function debugging must verify:
+1. Supabase secrets present (`npx supabase secrets list`)
+2. Frontend constants files exist with correct exports
+3. Database tables have correct columns
+4. Model name is current and valid
+5. Debug logging reveals crash location
+
+**Files Deployed:**
+- `supabase/functions/generate-parable/index.ts` (Version 32)
+
+**Tested and Working:**
+- Anonymous user generation
+- Authenticated user generation
+- Usage tracking and rate limiting
+- Both LessonSpark and Standalone contexts
+
+---
+
+## Recent Updates (December 16, 2025)
+
+### Bible Book Autocomplete (SSOT Compliant)
+
+Dropdown suggestions for Bible book names when typing in Scripture passage fields.
+
+| Location | File | Trigger |
+|----------|------|---------|
+| Enhance Lesson | EnhanceLessonForm.tsx | "Start from a Bible passage" input |
+| My Lesson Library | LessonLibrary.tsx | Bible Passage search field |
+| Org Shared Focus | OrgSharedFocusPanel.tsx | New Focus passage input |
+
+**SSOT Sources:**
+- `src/constants/bibleBooks.ts` - BIBLE_BOOKS array (66 books), findMatchingBooks(prefix, limit, minChars)
+- `src/constants/formConfig.ts` - FORM_STYLING.autocompleteMinChars (2), autocompleteDropdown, autocompleteItem
+
+### Enhanced STEP Badges
+
+Step badges made more prominent for better visibility:
+- Size: px-4 py-1.5 (increased from px-2.5 py-0.5)
+- Font: text-sm font-bold (increased from text-xs font-medium)
+- Added: shadow-md border-2 border-sky-600
+
+### Step 3 Click Instruction
+
+TeacherCustomization header updated:
+- **Old:** "Optional customizations that make your lesson unique"
+- **New:** "Click here to describe your teaching environment" (amber color)
+
+### Passage + Topic Combined Input
+
+Users can now enter BOTH a Bible passage AND a topic/theme simultaneously.
+
+**Frontend Changes (EnhanceLessonForm.tsx):**
+- Both input fields visible when either "Bible passage" or "Topic" radio selected
+- Both values always sent to backend (no radio-dependent filtering)
+- Use Focus applies BOTH passage AND theme from org shared focus
+
+**Backend Changes (generate-lesson Edge Function):**
+```javascript
+} else if (bible_passage && focused_topic) {
+  // BOTH passage AND topic provided
+  userPrompt = `...Bible Passage: ${bible_passage}\nTheme/Topic: ${focused_topic}...`;
+} else if (bible_passage) {
+  // Passage only
+} else {
+  // Topic only
+}
+```
+
+**User Experience:**
+- Enter "John 3:16" + "God's Love" ? Lesson addresses both
+- Use Focus button populates both passage AND theme from org settings
+- Either field optional, but at least one required
+
+---
+
+### Session: December 16, 2025
+
+#### Completed Items
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Phase 15: Perpetual Freshness Checkboxes | ? Fixed | Liturgical/Cultural opt-in checkboxes were missing from UI despite documentation claiming implementation. Root cause: state variables never saved to file. Properly implemented with commits 4208b26 and 560c46a |
+| System Analytics Tab | ? Fixed | RPC function existed but PostgREST schema cache was stale. Fixed with `NOTIFY pgrst, 'reload schema';` |
+| System Settings Tab | ? Verified | Working - Visibility and System categories displaying correctly |
+| Security Tab | ? Implemented | New SSOT-compliant implementation with AdminSecurityPanel.tsx |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `src/constants/securityConfig.ts` | SSOT for security events, categories, display limits, metadata |
+| `src/components/admin/AdminSecurityPanel.tsx` | Admin security panel - reads all config from SSOT |
+
+#### Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Added includeLiturgical/includeCultural state and checkboxes |
+| `src/pages/Admin.tsx` | Wired AdminSecurityPanel to Security tab |
+
+#### Git Commits (December 16, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `4208b26` | Add Liturgical and Cultural season opt-in checkboxes to UI |
+| `560c46a` | Fix: Add missing useState declarations for includeLiturgical/includeCultural |
+| `5bbfccf` | feat: implement Security tab with SSOT-compliant AdminSecurityPanel |
+
+#### Key Learnings
+
+1. **PostgREST Schema Cache**: After creating/modifying database functions, always run `NOTIFY pgrst, 'reload schema';` in SQL Editor
+2. **SSOT Compliance Pattern**: Create constant file FIRST, then component imports from it
+3. **Debugging Protocol**: Diagnose ? Verify data access ? Apply minimal fix ? Test end-to-end
+
+#### Technical Debt Identified
+
+| Item | Priority | Description |
+|------|----------|-------------|
+| admin_full_access RLS on events | LOW | ? FIXED Dec 17 - Now uses `has_role('admin')` |
+| Generation Metrics Viewer | HIGH | ? COMPLETE Dec 17 - Merged into System Analytics |
+| Program Status category | MEDIUM | System Settings may be missing Program Status section |
+
+#### Security Tab Documentation
+
+**Component:** `AdminSecurityPanel.tsx`
+**SSOT:** `src/constants/securityConfig.ts`
+
+**Event Categories Monitored:**
+- security: security_role_changed, security_login_failed, security_access_denied
+- lessons: lesson_created, lesson_viewed, lesson_downloaded, lesson_copied, lesson_printed
+- feedback: feedback_submitted
+
+**Admin Display Settings:** 50 events default, shows all users with email, 30-second refresh interval
+
+---
+
+## Recent Updates (December 17, 2025)
+
+### Generation Metrics Merged into System Analytics
+
+Generation performance metrics now display in the System Analytics tab (Admin Panel).
+
+**Features:**
+- Summary cards: Total Generations, Completed, Avg Duration, Timeouts/Errors
+- Device breakdown: Desktop, Tablet, Mobile percentages
+- Sortable history table: Timestamp, Device, Browser, OS, Duration, Status, Sections
+
+**SSOT Files:**
+- `src/constants/metricsViewerConfig.ts` - Column definitions, status badges, duration thresholds
+- `src/components/admin/SystemAnalyticsDashboard.tsx` - Combined user analytics + generation metrics
+
+**Git Commits:**
+- `726fd0b` - feat: merge Generation Metrics into System Analytics tab (SSOT compliant)
+- `bf9856d` - chore: remove unused GenerationMetricsPanel
+
+### RLS Policy Fix: admin_full_access
+
+Fixed `admin_full_access` policy on `events` table to use `has_role()` function instead of hardcoded UUID.
+
+**Before:** `auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid`
+**After:** `has_role(auth.uid(), 'admin'::app_role)`
+
+### Phase 15: Perpetual Freshness - COMPLETE
+
+All Phase 15 items implemented:
+- ? Perpetual Freshness (always ON) - varied illustrations, teaching angles, hooks
+- ? Consistent Style Mode (series only) - checkbox in Series Position popdown
+- ? Liturgical Calendar Themes (opt-in checkbox)
+- ? Cultural Season Themes (opt-in checkbox)
+- ? Edge Function integration with `buildFreshnessContext()`
+
+
+### Session: December 17, 2025 (Afternoon)
+
+#### API Usage Monitoring - Admin Panel
+
+New section added to System Analytics tab for tracking Claude API token usage and costs.
+
+**Features Implemented:**
+
+| Card | Data Displayed |
+|------|----------------|
+| Active Now | In-progress generations (spinning indicator if any) |
+| Tokens Today | Total with input/output breakdown on hover |
+| Est. Cost (Period) | Dropdown: 7d / 30d / 365d / All-time, color-coded thresholds |
+| Rate Limit Hits | Today count + all-time total (red warning if any) |
+
+**Cost Calculation (Anthropic Claude Sonnet 4):**
+- Input tokens: $3.00 per million
+- Output tokens: $15.00 per million
+- Thresholds: Green < $10/day < Amber < $50/day < Red
+
+**Database Columns Added (Phase A - already deployed):**
+- `generation_metrics.tokens_input` INTEGER
+- `generation_metrics.tokens_output` INTEGER  
+- `generation_metrics.rate_limited` BOOLEAN
+- `generation_metrics.anthropic_model` TEXT
+
+**SSOT Updates:**
+- `src/constants/metricsViewerConfig.ts` - Added API_USAGE_CONFIG, formatTokens(), calculateCost()
+
+#### Table Pagination - Admin Panel
+
+Added pagination controls to large tables:
+
+| Table | Location | Options |
+|-------|----------|---------|
+| Users | System Analytics | 10 / 25 / 50 / 100 per page |
+| Security Events | Security Tab | 10 / 25 / 50 / 100 per page |
+| Generation History | System Analytics | Already had pagination |
+
+**UI Pattern:** Dropdown selector + Previous/Next buttons + "X of Y" indicator
+
+#### Mobile-Friendly Use Focus Banner
+
+Redesigned ActiveFocusBanner for mobile responsiveness:
+
+**Mobile Layout (< 640px):**
+- Stacked vertical layout
+- Full-width "Use Focus" button at bottom
+- Dismiss X button positioned top-right
+- Icon hidden to save space
+
+**Desktop Layout (>= 640px):**
+- Original horizontal layout with icon
+- Side-by-side button placement
+
+**File:** `src/components/org/ActiveFocusBanner.tsx`
+
+**Bug Fixed:** Emoji characters (book, church) corrupted to `??` during file write. Replaced with text labels: "Bible:", "Doctrine:"
+
+**Lesson Learned:** Never use emoji characters in code files - they corrupt during PowerShell file operations.
+
+#### Feedback Button Styling
+
+Reduced feedback button size on mobile for better thumb accessibility.
+
+#### Git Commits (December 17, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `393c139` | Feedback button styling fix |
+| `8e348c4` | feat: add API usage monitoring with token tracking and pagination |
+| `18492f9` | fix: mobile-friendly Use Focus banner with stacked layout |
+
+---
+
+
+## Phase 18: Subscription & Payment System - COMPLETE
+
+**Status:** Completed December 27, 2025
+
+**Purpose:** Implement full Stripe-based subscription system with tiered pricing, usage tracking, and self-service subscription management.
+
+### Tier Structure
+
+| Tier | Price | Lessons/Month | Sections | Teaser |
+|------|-------|---------------|----------|--------|
+| Free | ## Session: December 28, 2025
+
+### Lesson Generation 403 Error - Critical Bug Fix
+
+**Problem:** Lesson generation returning "Edge Function returned a non-2xx status code" (403 Forbidden) with `{"error":"Lesson limit reached","code":"LIMIT_REACHED"}` even for admin users.
+
+**Root Cause:** The `check_lesson_limit` PostgreSQL RPC function returns an **array** `[{...}]` instead of a single object `{...}`. The code was checking `[{...}].can_generate` which evaluated to `undefined` (falsy), triggering the limit error for ALL users.
+
+**Fix Applied:**
+
+| File | Change |
+|------|--------|
+| `supabase/functions/_shared/subscriptionCheck.ts` | Added `Array.isArray()` check: `return (Array.isArray(data) ? data[0] : data)` |
+
+### LIMIT_REACHED Error Handling - User Experience Improvement
+
+**Problem:** When users hit their lesson limit, they saw a generic error toast instead of the existing `UpgradePromptModal`.
+
+**Solution:** Implemented structured error handling with tier-aware responses:
+
+| File | Change |
+|------|--------|
+| `src/hooks/useEnhanceLesson.tsx` | Returns structured result with `code`, `tier`, `lessons_used`, etc. |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Checks for `LIMIT_REACHED` code and triggers modal |
+| `src/constants/apiErrorCodes.ts` | **Created** - SSOT for API error codes |
+
+### Admin Tier Support - SSOT Compliance
+
+**Problem:** Admin tier was not properly defined in SSOT constants, and `UpgradePromptModal` showed wrong content for different tiers.
+
+**Changes:**
+
+| File | Change |
+|------|--------|
+| `src/constants/pricingConfig.ts` | Added `'admin'` to `SubscriptionTier` type and `TIER_SECTIONS` |
+| `supabase/functions/_shared/subscriptionCheck.ts` | `getSectionsForTier()` now handles admin tier |
+| `src/components/subscription/UpgradePromptModal.tsx` | Tier-aware display logic |
+
+### UpgradePromptModal - Tier-Based Behavior
+
+| Tier | Hits Limit? | Modal Behavior |
+|------|-------------|----------------|
+| **Admin** | Never (9999 limit) | Modal closes immediately if triggered |
+| **Personal** | Yes, monthly cap | Shows "wait for reset" message (no upgrade push) |
+| **Free** | Yes, 3/month | Shows upgrade comparison (Free vs Personal) |
+
+### New SSOT File: apiErrorCodes.ts
+
+**Location:** `src/constants/apiErrorCodes.ts`
+```typescript
+export const API_ERROR_CODES = {
+  LIMIT_REACHED: 'LIMIT_REACHED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+} as const;
+```
+
+**Used by:**
+- `src/hooks/useEnhanceLesson.tsx`
+- `src/components/dashboard/EnhanceLessonForm.tsx`
+
+### Git Commits (December 28, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `d045bdf` | Fix: Handle array response from check_lesson_limit RPC |
+| `ae9bf76` | SSOT: Add API_ERROR_CODES constant for error code handling |
+| `a7cf75c` | SSOT: Add admin tier support and improve limit handling |
+
+### Architecture Compliance
+
+| Principle | Status |
+|-----------|--------|
+| Frontend drives backend | ? UI decides display based on tier data from backend |
+| SSOT for error codes | ? apiErrorCodes.ts is single source |
+| SSOT for tier definitions | ? pricingConfig.ts includes admin |
+| Admin unlimited access | ? 9999 limit, no upgrade prompts |
+
+---
+## Future Planning: UI/UX Configuration System | 5 | 3 (1, 5, 8) | No |
+| Personal | $9/mo or $90/yr | 20 | 8 (all) | Yes |
+| Admin | N/A | Unlimited (9999) | 8 (all) | Yes |
+
+### Components Implemented
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| create-portal-session | supabase/functions/create-portal-session/index.ts | Creates Stripe Customer Portal session |
+| useSubscription hook | src/hooks/useSubscription.tsx | Subscription state, checkout, portal functions |
+| SubscriptionManagement | src/components/subscription/SubscriptionManagement.tsx | Account page subscription UI |
+| UsageDisplay | src/components/dashboard/UsageDisplay.tsx | Dashboard usage card with progress bar |
+
+### Database Functions
+
+| Function | Purpose |
+|----------|---------|
+| check_lesson_limit(uuid) | Returns tier, usage, limits; **Admin exemption added** |
+| increment_lesson_usage(uuid) | Increments lessons_used counter |
+
+### Admin Exemption
+
+Admin users (role = 'admin' in user_roles table) bypass all lesson limits:
+- 9999 lesson limit (effectively unlimited)
+- Full 8 sections + teaser access
+- No upgrade prompts
+
+### Stripe Integration
+
+| Feature | Status |
+|---------|--------|
+| Checkout session creation | ? Working |
+| Webhook subscription sync | ? Deployed |
+| Customer Portal (cancel/update) | ? Working |
+| Price IDs configured | ? In pricingConfig.ts |
+
+### Navigation Updates (SSOT Compliant)
+
+Added "Pricing" link to navigation via src/constants/navigationConfig.ts:
+- All roles see Pricing link
+- Uses CreditCard icon from lucide-react
+- Routes to /pricing
+
+### Files Created/Modified
+
+| File | Action | Purpose |
+|------|--------|---------|
+| supabase/functions/create-portal-session/index.ts | Created | Stripe portal session |
+| src/hooks/useSubscription.tsx | Modified | Added openCustomerPortal() |
+| src/components/subscription/SubscriptionManagement.tsx | Created | Account page UI |
+| src/pages/Account.tsx | Modified | Uses SubscriptionManagement |
+| src/constants/navigationConfig.ts | Modified | Added Pricing nav item |
+| src/components/dashboard/UsageDisplay.tsx | Created | Dashboard usage card |
+| src/pages/Dashboard.tsx | Modified | Uses UsageDisplay |
+| Database: check_lesson_limit | Modified | Added admin exemption |
+
+### Git Commits (December 27, 2025)
+
+| Hash | Description |
+|------|-------------|
+| c3f3132 | feat: add Manage Subscription button with Stripe Customer Portal |
+| 714ca68 | fix: add missing openCustomerPortal function to useSubscription hook |
+| 2cadf6a | feat: add Pricing link to navigation menu (SSOT) |
+| bd919b9 | feat: add UsageDisplay component to Dashboard showing subscription tier and usage |
+
+### User Experience Flow
+
+**Free User:**
+1. Dashboard shows "Free" badge, 5 lesson limit
+2. "Upgrade for 20 lessons/month" button visible
+3. At limit: Upgrade modal appears
+4. Click upgrade ? /pricing ? Stripe checkout
+
+**Personal Subscriber:**
+1. Dashboard shows "Personal" badge, 20 lesson limit
+2. Account page shows "Manage Subscription" button
+3. Click manage ? Stripe Customer Portal
+4. Can cancel, update payment, view invoices
+
+**Admin:**
+1. Dashboard shows "Personal" badge, 9999 limit
+2. No upgrade prompts
+3. Unlimited generation access
+
+---
+
+## Session: December 28, 2025
+
+### Lesson Generation 403 Error - Critical Bug Fix
+
+**Problem:** Lesson generation returning "Edge Function returned a non-2xx status code" (403 Forbidden) with `{"error":"Lesson limit reached","code":"LIMIT_REACHED"}` even for admin users.
+
+**Root Cause:** The `check_lesson_limit` PostgreSQL RPC function returns an **array** `[{...}]` instead of a single object `{...}`. The code was checking `[{...}].can_generate` which evaluated to `undefined` (falsy), triggering the limit error for ALL users.
+
+**Fix Applied:**
+
+| File | Change |
+|------|--------|
+| `supabase/functions/_shared/subscriptionCheck.ts` | Added `Array.isArray()` check: `return (Array.isArray(data) ? data[0] : data)` |
+
+### LIMIT_REACHED Error Handling - User Experience Improvement
+
+**Problem:** When users hit their lesson limit, they saw a generic error toast instead of the existing `UpgradePromptModal`.
+
+**Solution:** Implemented structured error handling with tier-aware responses:
+
+| File | Change |
+|------|--------|
+| `src/hooks/useEnhanceLesson.tsx` | Returns structured result with `code`, `tier`, `lessons_used`, etc. |
+| `src/components/dashboard/EnhanceLessonForm.tsx` | Checks for `LIMIT_REACHED` code and triggers modal |
+| `src/constants/apiErrorCodes.ts` | **Created** - SSOT for API error codes |
+
+### Admin Tier Support - SSOT Compliance
+
+**Problem:** Admin tier was not properly defined in SSOT constants, and `UpgradePromptModal` showed wrong content for different tiers.
+
+**Changes:**
+
+| File | Change |
+|------|--------|
+| `src/constants/pricingConfig.ts` | Added `'admin'` to `SubscriptionTier` type and `TIER_SECTIONS` |
+| `supabase/functions/_shared/subscriptionCheck.ts` | `getSectionsForTier()` now handles admin tier |
+| `src/components/subscription/UpgradePromptModal.tsx` | Tier-aware display logic |
+
+### UpgradePromptModal - Tier-Based Behavior
+
+| Tier | Hits Limit? | Modal Behavior |
+|------|-------------|----------------|
+| **Admin** | Never (9999 limit) | Modal closes immediately if triggered |
+| **Personal** | Yes, monthly cap | Shows "wait for reset" message (no upgrade push) |
+| **Free** | Yes, 3/month | Shows upgrade comparison (Free vs Personal) |
+
+### New SSOT File: apiErrorCodes.ts
+
+**Location:** `src/constants/apiErrorCodes.ts`
+```typescript
+export const API_ERROR_CODES = {
+  LIMIT_REACHED: 'LIMIT_REACHED',
+  RATE_LIMITED: 'RATE_LIMITED',
+  UNAUTHORIZED: 'UNAUTHORIZED',
+} as const;
+```
+
+**Used by:**
+- `src/hooks/useEnhanceLesson.tsx`
+- `src/components/dashboard/EnhanceLessonForm.tsx`
+
+### Git Commits (December 28, 2025)
+
+| Hash | Description |
+|------|-------------|
+| `d045bdf` | Fix: Handle array response from check_lesson_limit RPC |
+| `ae9bf76` | SSOT: Add API_ERROR_CODES constant for error code handling |
+| `a7cf75c` | SSOT: Add admin tier support and improve limit handling |
+
+### Architecture Compliance
+
+| Principle | Status |
+|-----------|--------|
+| Frontend drives backend | ? UI decides display based on tier data from backend |
+| SSOT for error codes | ? apiErrorCodes.ts is single source |
+| SSOT for tier definitions | ? pricingConfig.ts includes admin |
+| Admin unlimited access | ? 9999 limit, no upgrade prompts |
+
+---
+## Future Planning: UI/UX Configuration System
+
+### Progressive Disclosure (Proposed)
+
+Discussed concept of simplified form for new users:
+
+| Mode | Visible Fields |
+|------|----------------|
+| Simple | Passage + Age Group only (fastest path) |
+| Standard | Steps 1 & 2 visible, Step 3 collapsed (current) |
+| Advanced | All options expanded by default |
+
+### Admin-Controlled Experience Profiles (Proposed)
+
+Future capability for A/B testing and subscription-based UI:
+
+**Experience Profiles Table (not yet implemented):**
+- Form mode (simple/standard/advanced)
+- Feature toggles (curriculum upload, topic mode, etc.)
+- Daily limits per tier
+- User permission flags
+
+**Profile Assignments (not yet implemented):**
+- System default
+- Subscription tier override
+- Organization override
+- User override
+- A/B experiment assignment
+
+**Priority Cascade:** User > Org > Subscription > A/B Test > System Default
+
+### Development Environment Verified
+
+Confirmed no subscription upgrades needed for feature branch workflow:
+
+| Service | Current Plan | Branch Workflow Impact |
+|---------|--------------|------------------------|
+| Supabase | Pro ($25/mo) | No change - uses same DB |
+| Netlify | Free | No change - includes preview deploys |
+| GitHub | Free | No change - unlimited branches |
+| Claude API | Pay-as-you-go | No change |
+
+**Recommended Approach:** Git feature branch + Netlify preview URL (zero additional cost)
+
+---
+
+**Last Updated: 2025-12-31
+
+
+
+---
+
+## DevotionalSpark Feature
+
+### Overview
+
+DevotionalSpark generates personal devotionals anchored to lessons. Unlike lessons (classroom instruction), devotionals speak directly to the reader's heart in second-person voice.
+
+### SSOT Configuration
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/devotionalConfig.ts | supabase/functions/_shared/devotionalConfig.ts | Target audiences, lengths, sections |
+
+### Devotional Targets (SSOT: devotionalConfig.ts)
+
+| ID | Label | Description | Vocabulary |
+|----|-------|-------------|------------|
+| preschool | Preschool | Parent reads aloud (ages 3-5) | Simple |
+| children | Children | Child reads independently (ages 6-10) | Simple |
+| youth | Youth | Teen personal devotion (ages 11-18) | Moderate |
+| adult | Adult | Standard devotional (ages 19+) | Advanced |
+
+### Devotional Lengths (SSOT: devotionalConfig.ts)
+
+| ID | Label | Minutes | Word Range |
+|----|-------|---------|------------|
+| short | 3 minutes | 3 | 300-400 |
+| medium | 5 minutes | 5 | 500-600 |
+| long | 10 minutes | 10 | 900-1100 |
+
+### Usage Limits
+
+| User Type | Monthly Limit |
+|-----------|---------------|
+| Regular User | 7 devotionals |
+| Admin | Unlimited (9999) |
+
+### Database Schema
+
+**Table: devotionals**
+- user_id, source_lesson_id, bible_passage
+- target_id, length_id, theology_profile_id, bible_version_id
+- title, content, word_count
+- section_contemporary_connection, section_scripture_in_context
+- section_theological_insights, section_reflection_questions, section_prayer_prompt
+- detected_valence (internal only - not shown to users)
+
+**Table: devotional_usage**
+- user_id, period_start, period_end, devotionals_generated
+- Reset: 12:00 a.m. on 1st of each month
+
+**RPC Functions:**
+- check_devotional_limit(p_user_id) - Returns can_generate, devotionals_used, devotionals_limit, period_end
+- increment_devotional_usage(p_user_id) - Increments counter after generation
+
+### Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| DevotionalGenerator | src/components/DevotionalGenerator.tsx | Generate new devotionals |
+| DevotionalLibrary | src/components/dashboard/DevotionalLibrary.tsx | Browse/manage devotionals |
+| generate-devotional | supabase/functions/generate-devotional/index.ts | Edge function for AI generation |
+
+### User Flow
+
+1. Lesson Library → Select lesson → Click sparkle button
+2. DevotionalGenerator shows passage/theme (read-only from lesson)
+3. User selects Target (age group) and Length
+4. Click Generate → Edge function calls Claude AI
+5. Devotional saved and displayed with copy/print options
+
+---
+
+## Session: December 31, 2025
+
+### Stripe Subscription Fix - Cornerstone Products
+
+**Problem:** User purchased Personal plan ($90/year) via Stripe but account showed "Free" with 5 lesson limit instead of 20.
+
+**Root Cause:** Stripe webhook `stripe-webhook` had incorrect schema assumptions. The webhook was not properly inserting subscription records.
+
+**Fix Applied:**
+
+| Action | Details |
+|--------|---------|
+| Manual subscription insert | Inserted record into `subscriptions` table for user `13afe118-7094-45d4-baf4-df4def09e9a5` |
+| Updated EnhanceLessonForm | Now uses `useSubscription` hook as SSOT for subscription data |
+| Fixed UsageDisplay | Removed corrupted bullet character (line 66) |
+
+### DevotionalSpark Fixes
+
+**Issue 1: Auth Header Missing**
+
+DevotionalGenerator failed with "Auth session missing!" when calling edge function.
+
+| File | Fix |
+|------|-----|
+| src/components/DevotionalGenerator.tsx | Added `headers: { Authorization: \`Bearer \${session.access_token}\` }` to edge function invocation |
+
+**Issue 2: Usage Display Missing**
+
+Users had no visibility into devotional usage until hitting limit.
+
+| File | Fix |
+|------|-----|
+| src/components/DevotionalGenerator.tsx | Added usage indicator: "X of 7 devotionals used this month - Resets [date]" |
+| Database: check_devotional_limit | Fixed ambiguous column reference error (added table alias `du`) |
+
+**Issue 3: Detected Valence Confusion**
+
+AI output showed "**Detected Valence:** virtue" which confused users.
+
+| File | Fix |
+|------|-----|
+| supabase/functions/generate-devotional/index.ts | Changed prompt from "Detected Valence" to "Age Group" |
+| src/components/dashboard/DevotionalLibrary.tsx | Removed all valence display (filter, badges) |
+
+**Issue 4: Age Group Filter Not Working**
+
+Filter dropdown used `option.value` but SSOT returns `option.id`.
+
+| File | Fix |
+|------|-----|
+| src/components/dashboard/DevotionalLibrary.tsx | Changed `option.value` to `option.id` per SSOT |
+
+### Git Commits (December 31, 2025)
+
+| Hash | Description |
+|------|-------------|
+| deefac7 | Fix corrupted bullet character in UsageDisplay |
+| 507505d | Add usage display to DevotionalGenerator |
+| 3dc0cce | Add auth header to DevotionalGenerator |
+| 9ca30c6 | Remove valence display, rename filter to Age Groups |
+| 9d3c643 | Fix Age Group filter - use option.id per SSOT |
+
+### Edge Function Deployment
+
+**Correct Project Reference:** `hphebzdftpjbiudpfcrs`
+
+```bash
+npx supabase functions deploy generate-devotional --project-ref hphebzdftpjbiudpfcrs
+```
+
+Note: Other project references found in Supabase are inactive/old projects.
+
+### Architecture Compliance
+
+| Principle | Status |
+|-----------|--------|
+| SSOT for devotional config | ✅ devotionalConfig.ts is master |
+| Frontend drives backend | ✅ Edge function reads target.label from SSOT |
+| Filter uses SSOT property | ✅ option.id matches database target_id |
+| Usage tracking | ✅ RPC functions handle limits and resets |
+
+---
+
+**Last Updated: 2025-12-31**
+**Current Phase: Phase 18 Complete + DevotionalSpark Feature**
+
+## Session: December 31, 2025 (Evening) - Beta-to-Production Architecture
+
+### Overview
+
+Implemented complete beta-to-production transition architecture with SSOT compliance. System now supports platform mode switching from Admin Panel.
+
+### New SSOT Constants Created
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/organizationConfig.ts | supabase/functions/_shared/organizationConfig.ts | Org types, hierarchy, platform modes |
+| src/constants/trialConfig.ts | supabase/functions/_shared/trialConfig.ts | Trial feature logic, reset rules |
+
+### Organization Configuration (organizationConfig.ts)
+
+**Organization Types:**
+
+| Type | Label | Allow Sub-Orgs | Rate Limit |
+|------|-------|----------------|------------|
+| beta_program | Beta Program | No | 3/day |
+| church | Church | Yes | Tier-based |
+| enterprise | Enterprise | Yes | Tier-based |
+
+**Beta Access Levels:**
+
+| Level | Label | Open Enrollment |
+|-------|-------|-----------------|
+| private | Private Beta | No (invitation only) |
+| public | Public Beta | Yes (self-join) |
+
+**Platform Modes:**
+
+| Mode | Tier Enforcement | All Sections | Org Types Allowed |
+|------|------------------|--------------|-------------------|
+| private_beta | OFF | Yes (8 sections for all) | beta_program only |
+| public_beta | OFF | Yes (8 sections for all) | beta_program only |
+| production | ON | No (tier-based) | beta_program, church, enterprise |
+
+### Trial Configuration (trialConfig.ts)
+
+| Setting | Value |
+|---------|-------|
+| Enabled | true |
+| Sections Granted | 8 (full lesson) |
+| Reset Period | Monthly (1st of month) |
+| Applies To | Free tier only |
+| Admin Can Grant | Yes (30 days default) |
+
+**Trial Logic:**
+- Free users get 1 full lesson per month (trial)
+- Resets at 12:00 AM on 1st of each month
+- Admin can override via `trial_full_lesson_granted_until` column
+
+### Database Schema Changes
+
+**Organizations Table - New Columns:**
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| org_type | TEXT | beta_program, church, enterprise |
+| parent_org_id | UUID | Hierarchy support (max depth 2) |
+| beta_access_level | TEXT | private, public |
+| org_level | INTEGER | 1 = org, 2 = sub-org |
+
+**Profiles Table - New Columns:**
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| trial_full_lesson_last_used | TIMESTAMPTZ | When user last used monthly trial |
+| trial_full_lesson_granted_until | TIMESTAMPTZ | Admin override expiration |
+
+### Beta Organizations Seeded
+
+| Organization | ID | Status | Members |
+|--------------|-----|--------|---------|
+| LessonSparkUSA Private Beta | 00cf6e5e-fa0d-4077-b64d-bce5ee822ff9 | approved | 20 |
+| LessonSparkUSA Public Beta | 9a5da69e-adf2-4661-8833-197940c255e0 | approved | 0 |
+
+### Edge Function Updates
+
+**File:** `supabase/functions/generate-lesson/index.ts`
+
+**Changes:**
+1. Imports platform mode config from `_shared/organizationConfig.ts`
+2. Imports trial config from `_shared/trialConfig.ts`
+3. Fetches `current_phase` from `system_settings` table
+4. Applies tier enforcement only when `platformMode = production`
+5. Checks trial availability for free users in production mode
+6. Records `isTrialLesson` in metadata
+7. Consumes trial after successful generation
+
+### OrgMemberManagement Updates
+
+**New Feature:** Demote Co-Leader to Member
+
+| Function | Purpose |
+|----------|---------|
+| handleDemoteToMember() | Updates `organization_role` to `ORG_ROLES.member` |
+
+**SSOT Compliance:** Uses `ORG_ROLES.member` from `accessControl.ts`
+
+### Current System State
+
+| Setting | Value |
+|---------|-------|
+| Platform Mode | private_beta |
+| Tier Enforcement | OFF |
+| All Users Get | 8 sections |
+| Private Beta Members | 20 |
+| Public Beta Members | 0 |
+
+### Git Commits (December 31, 2025 Evening)
+
+| Hash | Description |
+|------|-------------|
+| 1781abf | Add organizationConfig.ts and trialConfig.ts SSOT constants |
+| 87a57b4 | Update generate-lesson Edge Function with platform mode logic |
+| 3ac6743 | Fix Edge Function syntax error |
+| b0082f5 | Add demote co-leader to member action - SSOT compliant |
+
+### How to Go to Production
+
+1. Open Admin Panel → System Settings
+2. Change Platform Mode from `private_beta` to `production`
+3. This enables:
+   - Tier enforcement (Free: 3 sections, Personal: 8 sections)
+   - Monthly trial for free users (1 full lesson)
+   - Church and Enterprise org types
+
+### Outstanding Items (Next Session)
+
+| Priority | Item | Description |
+|----------|------|-------------|
+| ~~HIGH~~ | ~~Admin UI for Platform Mode~~ | ✅ Already working |
+| ~~MEDIUM~~ | ~~Admin UI for Trial Grant~~ | ✅ Completed 2026-01-01 |
+| ~~LOW~~ | ~~Public Beta Enrollment~~ | ✅ Completed 2026-01-01 |
+
+---
+
+**Last Updated: 2025-12-31**
+**Current Phase: Phase 19 - Beta-to-Production Architecture**
+
+## Session: January 1, 2026 - Admin Trial Management & Public Beta Enrollment
+
+### Overview
+
+Completed all outstanding items from Phase 19: Admin Trial Grant/Revoke UI and Public Beta Enrollment Flow. All implementations follow strict SSOT architecture with configuration-driven UI.
+
+### Task 1: Admin Trial Grant Feature ✅
+
+**Purpose:** Allow admin to grant trial full-lesson access to specific users for a specified duration.
+
+**SSOT Configuration Added to trialConfig.ts:**
+
+| Config Key | Purpose |
+|------------|---------|
+| adminGrant.enabled | Toggle grant feature on/off |
+| adminGrant.defaultDays | Default dropdown selection (30 days) |
+| adminGrant.dayOptions[] | Dropdown choices (7, 14, 30, 60, 90 days) |
+| adminGrant.ui.* | All dialog text, button labels, toast messages |
+| adminGrant.badge.show | Display trial expiration badge in Status column |
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/constants/trialConfig.ts | Added adminGrant configuration section |
+| src/components/admin/UserManagement.tsx | Added Gift button, grant dialog, trial badge |
+| supabase/functions/_shared/trialConfig.ts | Manual sync of SSOT |
+
+**Database Changes:**
+
+```sql
+-- Updated RPC function to return trial column
+DROP FUNCTION IF EXISTS get_all_users_for_admin();
+CREATE OR REPLACE FUNCTION get_all_users_for_admin()
+RETURNS TABLE (
+  id UUID,
+  full_name TEXT,
+  user_role TEXT,
+  founder_status TEXT,
+  created_at TIMESTAMPTZ,
+  trial_full_lesson_granted_until TIMESTAMPTZ  -- Added
+)
+```
+
+**UI Features:**
+- Green Gift icon in Actions column
+- Dialog with day selector dropdown (7/14/30/60/90 days)
+- Shows calculated expiration date preview
+- Warning displayed if user already has active trial
+- Updates `profiles.trial_full_lesson_granted_until`
+
+### Task 2: Admin Trial Revoke Feature ✅
+
+**Purpose:** Allow admin to revoke trial access from users.
+
+**SSOT Configuration Added to trialConfig.ts:**
+
+| Config Key | Purpose |
+|------------|---------|
+| adminRevoke.enabled | Toggle revoke feature on/off |
+| adminRevoke.ui.* | All revoke dialog text, button labels |
+
+**UI Features:**
+- Orange X button (only visible for users with active trials)
+- Confirmation dialog before revocation
+- Sets `trial_full_lesson_granted_until` to NULL
+
+### Task 3: Public Beta Enrollment Flow ✅
+
+**Purpose:** Allow users to self-enroll in Public Beta when platform is in `public_beta` mode.
+
+**New SSOT File Created:**
+
+| Frontend (MASTER) | Backend (MIRROR) | Purpose |
+|-------------------|------------------|---------|
+| src/constants/betaEnrollmentConfig.ts | supabase/functions/_shared/betaEnrollmentConfig.ts | Beta enrollment UI and behavior |
+
+**betaEnrollmentConfig.ts Structure:**
+
+| Section | Purpose |
+|---------|---------|
+| features.* | Toggle fields on/off (collectChurchName, collectReferralSource) |
+| referralSources[] | Dropdown options for "How did you hear about us?" |
+| landingPage.* | CTA text, button labels, trust indicators |
+| form.* | All form field labels, placeholders, validation messages |
+| dashboardPrompt.* | Banner for orphan users (future use) |
+| messages.* | Success/error toast messages |
+| validation.* | Form validation error messages |
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/constants/betaEnrollmentConfig.ts | NEW - SSOT for enrollment flow |
+| src/components/landing/HeroSection.tsx | Dynamic CTA based on platform mode |
+| src/pages/Auth.tsx | Optional fields + auto-enroll logic |
+
+**Database Changes:**
+
+```sql
+-- Added optional enrollment fields to profiles
+ALTER TABLE profiles 
+ADD COLUMN IF NOT EXISTS church_name TEXT,
+ADD COLUMN IF NOT EXISTS referral_source TEXT;
+```
+
+**Platform Mode Behavior:**
+
+| Mode | Landing Page Badge | Sign Up Form |
+|------|-------------------|--------------|
+| private_beta | "Welcome to the Beta • Exclusive for Baptist Teachers" | Name, Email, Password only |
+| public_beta | "Public Beta • Free for Baptist Teachers" | + Church Name (optional) + Referral Source (optional) |
+
+**Auto-Enrollment Logic:**
+- When platform is in `public_beta` mode
+- New users without invite tokens are automatically added to:
+  - `organization_members` table (Public Beta org)
+  - `profiles.organization_id` updated
+  - Optional fields saved: `church_name`, `referral_source`
+
+**Public Beta Organization:**
+
+| Name | ID |
+|------|-----|
+| LessonSparkUSA Public Beta | 9a5da69e-adf2-4661-8833-197940c255e0 |
+
+### Git Commits (January 1, 2026)
+
+| Hash | Description |
+|------|-------------|
+| a0d3855 | Add Grant Trial feature with full SSOT compliance |
+| b908c9d | Add Revoke Trial feature with SSOT compliance |
+| 1bb3c40 | Add Public Beta enrollment flow with SSOT config |
+
+### SSOT Summary - New Constants
+
+| Constant File | Key Configurations |
+|---------------|-------------------|
+| trialConfig.ts | adminGrant.*, adminRevoke.*, badge.* |
+| betaEnrollmentConfig.ts | features.*, referralSources[], landingPage.*, form.*, messages.* |
+
+### Testing Completed
+
+| Feature | Test Result |
+|---------|-------------|
+| Grant Trial (Gift icon) | ✅ Dialog opens, days selectable, trial granted |
+| Trial Badge display | ✅ Shows "Trial until [date]" in Status column |
+| Revoke Trial (X icon) | ✅ Only shows for active trials, revokes successfully |
+| Landing page (private_beta) | ✅ Shows "Exclusive for Baptist Teachers" |
+| Landing page (public_beta) | ✅ Shows "Free for Baptist Teachers" |
+| Sign Up (private_beta) | ✅ Basic fields only |
+| Sign Up (public_beta) | ✅ Shows Church Name + Referral Source fields |
+| Auto-enrollment | ✅ New users added to Public Beta org |
+
+### Current System State
+
+| Setting | Value |
+|---------|-------|
+| Platform Mode | private_beta |
+| Tier Enforcement | OFF |
+| Trial Grant UI | Enabled |
+| Trial Revoke UI | Enabled |
+| Public Beta Enrollment | Ready (activates when mode = public_beta) |
+
+### Outstanding Items (Next Session)
+
+| Priority | Item | Description |
+|----------|------|-------------|
+| MEDIUM | Dashboard Prompt for Orphan Users | Banner prompting org-less users to join Public Beta |
+| LOW | Referral Source Analytics | Admin view of how users discovered platform |
+| LOW | Church Name Directory | Admin view of churches represented |
+
+---
+
+**Last Updated: 2026-01-01**
+**Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
+
+
+## Session: January 2, 2026 - Admin Panel Consolidation & Enrollment Analytics
+
+### Overview
+
+Completed all outstanding items from Phase 19: Admin Panel tab consolidation (Guardrails merged into Security), Public Beta Prompt Banner for orphan users, and Enrollment Analytics (Referral Sources + Church Directory). All implementations follow strict SSOT architecture.
+
+### Task 1: Merge Guardrails Tab into Security Tab ✅
+
+**Purpose:** Reduce Admin Panel nav clutter by consolidating related functionality.
+
+**Changes:**
+- Security tab now contains two sub-tabs: "Security Events" and "Guardrail Violations"
+- Admin Panel reduced from 10 tabs to 9 tabs
+- GuardrailViolationsPanel.tsx unchanged (imported into AdminSecurityPanel)
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/components/admin/AdminSecurityPanel.tsx | Added internal Tabs with sub-tabs for Security Events and Guardrail Violations |
+| src/pages/Admin.tsx | Removed separate Guardrails tab and import |
+
+### Task 2: Public Beta Prompt Banner for Orphan Users ✅
+
+**Purpose:** Prompt users without an organization to join Public Beta when platform is in `public_beta` mode.
+
+**New SSOT Constants Added to organizationConfig.ts:**
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| PRIVATE_BETA_ORG_ID | 00cf6e5e-fa0d-4077-b64d-bce5ee822ff9 | Private Beta org reference |
+| PUBLIC_BETA_ORG_ID | 9a5da69e-adf2-4661-8833-197940c255e0 | Public Beta org for auto-enrollment |
+
+**New Component Created:**
+
+| File | Purpose |
+|------|---------|
+| src/components/dashboard/PublicBetaPromptBanner.tsx | Banner shown to orphan users on Dashboard |
+
+**Banner Behavior:**
+- Only shows when `platform_mode = public_beta`
+- Only shows when user has no `organization_id`
+- "Join Now" button enrolls user in Public Beta org automatically
+- "Maybe Later" dismisses for 7 days (localStorage)
+- Uses SSOT config from `betaEnrollmentConfig.ts → dashboardPrompt.*`
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/constants/organizationConfig.ts | Added PRIVATE_BETA_ORG_ID and PUBLIC_BETA_ORG_ID constants |
+| src/pages/Dashboard.tsx | Imports and renders PublicBetaPromptBanner |
+
+### Task 3: Enrollment Analytics Panel ✅
+
+**Purpose:** Admin view of how users discovered the platform and which churches are represented.
+
+**New Component Created:**
+
+| File | Purpose |
+|------|---------|
+| src/components/admin/EnrollmentAnalyticsPanel.tsx | Referral Sources + Church Directory analytics |
+
+**Features:**
+
+| Sub-Tab | Features |
+|---------|----------|
+| Referral Sources | Pie chart, bar chart, table with percentages, CSV export |
+| Church Directory | Table with church names, teacher counts, latest join dates, CSV export |
+
+**SSOT Compliance:**
+- Referral source labels pulled from `betaEnrollmentConfig.ts → referralSources[]`
+- Data sourced from `profiles.referral_source` and `profiles.church_name`
+
+**Location in Admin Panel:**
+- Beta Program tab → Enrollment Analytics card (between header and Beta Analytics Dashboard)
+
+**Files Modified:**
+
+| File | Changes |
+|------|---------|
+| src/pages/Admin.tsx | Imports and renders EnrollmentAnalyticsPanel in Beta Program tab |
+
+### Git Commits (January 2, 2026)
+
+| Hash | Description |
+|------|-------------|
+| f6f6d69 | Merge Guardrails tab into Security tab - reduce Admin nav clutter |
+| 84d82bd | Add Public Beta Prompt Banner for orphan users on Dashboard |
+| 69fe1d2 | Add Enrollment Analytics - Referral Sources and Church Directory in Beta Program tab |
+
+### Current Admin Panel Structure
+
+| Tab | Contents |
+|-----|----------|
+| User Management | User list, roles, trial grant/revoke |
+| Organizations | Org management, member lists |
+| All Lessons | Platform-wide lesson browser |
+| Beta Program | Stats, Enrollment Analytics, Feedback Analytics, Feedback Questions |
+| Pricing & Plans | Subscription tier management |
+| System Analytics | Usage metrics, generation stats |
+| System Settings | Platform mode, launch targets |
+| Security | Security Events + Guardrail Violations (sub-tabs) |
+| Branding | White-label tenant branding |
+
+### Current System State
+
+| Setting | Value |
+|---------|-------|
+| Platform Mode | private_beta |
+| Tier Enforcement | OFF |
+| Admin Panel Tabs | 9 |
+| Security Sub-tabs | Security Events, Guardrail Violations |
+| Public Beta Banner | Ready (activates when mode = public_beta) |
+| Enrollment Analytics | Active (shows data as users enroll) |
+
+### Outstanding Items
+
+**All Phase 19 items complete!** ✅
+
+| Item | Status |
+|------|--------|
+| ~~Dashboard Prompt for Orphan Users~~ | ✅ Completed |
+| ~~Referral Source Analytics~~ | ✅ Completed |
+| ~~Church Name Directory~~ | ✅ Completed |
+
+---
+
+**Last Updated: 2026-01-02**
+**Current Phase: Phase 19 Complete - All Beta-to-Production Admin Features**
+
+
+## Session: January 2, 2026 - Stripe Integration Audit & Production Preparation
+
+### Overview
+
+Completed full audit of Stripe integration, verified end-to-end payment flow, granted trials to beta testers, and prepared for production launch.
+
+### Task 1: Stripe Integration Audit ✅
+
+**Components Verified:**
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `pricing_plans` table | ✅ Correct | Free + Personal with correct Stripe price IDs |
+| `user_subscriptions` table | ✅ Working | Stores subscription data correctly |
+| `profiles.subscription_tier` | ✅ Synced | Updated by webhook |
+| `create-checkout-session` function | ✅ Working | Passes user_id in metadata |
+| `stripe-webhook` function | ✅ Working | Recovered from earlier signature issue |
+| Webhook events | ✅ All 9 configured | checkout, subscription, invoice events |
+
+**Current Stripe Configuration:**
+
+| Plan | Monthly | Annual | Monthly Price ID | Annual Price ID |
+|------|---------|--------|------------------|-----------------|
+| Free | $0 | $0 | NULL | NULL |
+| Personal | $9 | $90 | `price_1Sj3bRI4GLksxBfVfGVrgZXP` | `price_1SMpypI4GLksxBfV6tytRIAO` |
+
+**Product ID:** `prod_TJF2M7plp379IV`
+
+**Verified Purchase:**
+- User: cornerstoneproducts2911@gmail.com
+- Tier: personal ✅
+- Status: active ✅
+- Both `user_subscriptions.tier` and `profiles.subscription_tier` in sync ✅
+
+### Task 2: Beta Tester Trial Extension ✅
+
+**Action:** Granted all Private Beta members full access until January 10, 2026
+
+**SQL Executed:**
+```sql
+UPDATE profiles
+SET trial_full_lesson_granted_until = '2026-01-10T23:59:59Z'
+WHERE organization_id = '00cf6e5e-fa0d-4077-b64d-bce5ee822ff9'
+  AND id NOT IN (SELECT user_id FROM user_subscriptions WHERE tier = 'personal' AND status = 'active');
+```
+
+**Result:** 19 beta testers updated (1 excluded - already has Personal subscription)
+
+### Task 3: In-App Notifications ✅
+
+**Action:** Created notifications for all 20 Private Beta members
+
+**Notification Content:**
+- Title: "Thank You Beta Tester! 🎉"
+- Body: "LessonSparkUSA is going live! Your full access has been extended through January 10, 2026. After that, continue free (3 sections) or upgrade to Personal ($9/mo) for full lessons."
+- Link: /pricing
+
+### Task 4: Email Draft Prepared ✅
+
+**Subject:** LessonSparkUSA is Going Live – Your Beta Access Extended!
+
+**Body:**
+```
+Dear Beta Tester,
+
+Thank you for helping test LessonSparkUSA! Your feedback has been invaluable in shaping this tool for Baptist Bible teachers.
+
+We're excited to announce that LessonSparkUSA is now live!
+
+As a thank-you for your participation, your full access has been extended through January 10, 2026.
+
+After that date, you can:
+- Continue using LessonSparkUSA with our Free plan (3-section Quick Lessons)
+- Upgrade to Personal ($9/month or $90/year) for full 8-section Complete Lessons
+
+Visit https://lessonsparkusa.com/pricing to see plan details.
+
+God bless your teaching ministry,
+Lynn
+```
+
+**Status:** Ready to send manually (BCC all 20 beta tester emails)
+
+### Production Launch Checklist
+
+| Item | Status |
+|------|--------|
+| Stripe integration verified | ✅ Complete |
+| Tier enforcement logic (Edge Function) | ✅ Built |
+| Beta testers granted trial | ✅ Until Jan 10, 2026 |
+| In-app notifications sent | ✅ 20 created |
+| Email draft prepared | ✅ Ready to send |
+| Platform mode switch | ⏳ Ready (delayed 24 hours) |
+
+### To Flip to Production
+
+1. Go to **Admin Panel → System Settings**
+2. Change **Platform Mode** from `private_beta` to `production`
+3. Save
+
+### What Happens When Production Mode Enabled
+
+| User Type | Result |
+|-----------|--------|
+| Free user (no trial) | 3 sections (Quick Lesson) |
+| Free user (with trial) | Full lessons until trial expires |
+| Personal subscriber | 8 sections (Full Lesson) always |
+| Beta testers | Full access until Jan 10, 2026 |
+
+### Earlier Session Work (January 2, 2026)
+
+| Task | Git Commit |
+|------|------------|
+| Merge Guardrails into Security tab | `f6f6d69` |
+| Public Beta Prompt Banner for orphan users | `84d82bd` |
+| Enrollment Analytics (Referral Sources + Church Directory) | `69fe1d2` |
+| Update PROJECT_MASTER.md (Phase 19 complete) | `52553a8` |
+
+---
+
+**Last Updated: 2026-01-02**
+**Current Phase: Production Launch Preparation**
+**Production Switch: Pending (delayed 24 hours per Lynn's request)**

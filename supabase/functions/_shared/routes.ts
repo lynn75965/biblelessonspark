@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/routes.ts
- * Generated: 2026-01-01T13:23:43.681Z
+ * Generated: 2026-01-07T21:58:49.921Z
  */
 // SSOT MASTER: Frontend route definitions
 // Backend mirror: supabase/functions/_shared/routes.ts
