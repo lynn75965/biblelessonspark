@@ -24,6 +24,7 @@ import {
   FEATURE_FLAGS,
   CONTACT_FIELDS,
   BETA_FIELD_GROUPS,
+  PRODUCTION_FIELD_GROUPS,
   mapRowToConfig,
   mapConfigToRow,
   validateTenantConfig,
@@ -202,6 +203,21 @@ export function TenantBrandingPanel() {
       beta: {
         ...form.beta,
         validation: { ...form.beta.validation, [key]: value },
+      },
+    });
+  }
+
+  // Production section update handler
+  function updateProductionLandingPage<K extends keyof TenantConfig["production"]["landingPage"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      production: {
+        ...form.production,
+        landingPage: { ...form.production.landingPage, [key]: value },
       },
     });
   }
@@ -673,6 +689,47 @@ export function TenantBrandingPanel() {
               </div>
             </CollapsibleContent>
           </Collapsible>
+
+        </CardContent>
+      </Card>
+
+      {/* Production Mode Text Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
+            Production Mode Text
+          </CardTitle>
+          <CardDescription>
+            Text shown when Platform Mode is set to "production" (not beta). Customize for your launched product.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          
+          {/* Landing Page */}
+          <div className="space-y-4 p-4 border rounded-lg">
+            <div>
+              <p className="font-medium">{PRODUCTION_FIELD_GROUPS.landingPage.label}</p>
+              <p className="text-sm text-muted-foreground">{PRODUCTION_FIELD_GROUPS.landingPage.description}</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              {PRODUCTION_FIELD_GROUPS.landingPage.fields.map((field) => (
+                <div key={field.key} className="space-y-2">
+                  <Label htmlFor={`prod-landing-${field.key}`}>{field.label}</Label>
+                  <Input
+                    id={`prod-landing-${field.key}`}
+                    value={form.production.landingPage[field.key as keyof TenantConfig["production"]["landingPage"]]}
+                    onChange={(e) => updateProductionLandingPage(field.key as keyof TenantConfig["production"]["landingPage"], e.target.value)}
+                    placeholder={field.placeholder}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
 
         </CardContent>
       </Card>

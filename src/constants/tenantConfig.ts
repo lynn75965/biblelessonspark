@@ -108,6 +108,19 @@ export type TenantConfig = {
       passwordMinLength: string;
     };
   };
+
+  /**
+   * Production mode text configuration.
+   * Used when platform_mode is NOT 'public_beta'.
+   * White-label tenants customize this for their launched product.
+   */
+  production: {
+    landingPage: {
+      badgeText: string;
+      ctaButton: string;
+      trustText: string;
+    };
+  };
 };
 
 // Database row type (snake_case as stored in Supabase)
@@ -187,6 +200,11 @@ export interface TenantConfigRow {
   beta_val_email_invalid: string;
   beta_val_password_required: string;
   beta_val_password_min: string;
+  
+  // Production - Landing Page
+  prod_landing_badge_text: string;
+  prod_landing_cta_button: string;
+  prod_landing_trust_text: string;
   
   // Timestamps
   created_at: string;
@@ -279,6 +297,14 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       emailInvalid: "Please enter a valid email address",
       passwordRequired: "Please create a password",
       passwordMinLength: "Password must be at least 8 characters",
+    },
+  },
+
+  production: {
+    landingPage: {
+      badgeText: "AI-Powered Baptist Bible Study Curriculum",
+      ctaButton: "Get Started",
+      trustText: "Trusted by Baptist teachers across the country",
     },
   },
 };
@@ -449,6 +475,22 @@ export const BETA_FIELD_GROUPS = {
 } as const;
 
 // =============================================================================
+// PRODUCTION FIELD DEFINITIONS (for Admin UI)
+// =============================================================================
+
+export const PRODUCTION_FIELD_GROUPS = {
+  landingPage: {
+    label: "Landing Page",
+    description: "Text shown on the landing page when in production mode",
+    fields: [
+      { key: "badgeText", label: "Badge Text", placeholder: "AI-Powered Baptist Bible Study Curriculum" },
+      { key: "ctaButton", label: "CTA Button Text", placeholder: "Get Started" },
+      { key: "trustText", label: "Trust Text", placeholder: "Trusted by Baptist teachers across the country" },
+    ],
+  },
+} as const;
+
+// =============================================================================
 // MAPPING FUNCTIONS (Database ↔ Frontend)
 // =============================================================================
 
@@ -531,6 +573,13 @@ export function mapRowToConfig(row: TenantConfigRow): TenantConfig {
         emailInvalid: row.beta_val_email_invalid ?? DEFAULT_TENANT_CONFIG.beta.validation.emailInvalid,
         passwordRequired: row.beta_val_password_required ?? DEFAULT_TENANT_CONFIG.beta.validation.passwordRequired,
         passwordMinLength: row.beta_val_password_min ?? DEFAULT_TENANT_CONFIG.beta.validation.passwordMinLength,
+      },
+    },
+    production: {
+      landingPage: {
+        badgeText: row.prod_landing_badge_text ?? DEFAULT_TENANT_CONFIG.production.landingPage.badgeText,
+        ctaButton: row.prod_landing_cta_button ?? DEFAULT_TENANT_CONFIG.production.landingPage.ctaButton,
+        trustText: row.prod_landing_trust_text ?? DEFAULT_TENANT_CONFIG.production.landingPage.trustText,
       },
     },
   };
@@ -616,6 +665,11 @@ export function mapConfigToRow(config: TenantConfig): Omit<TenantConfigRow, 'id'
     beta_val_email_invalid: config.beta.validation.emailInvalid,
     beta_val_password_required: config.beta.validation.passwordRequired,
     beta_val_password_min: config.beta.validation.passwordMinLength,
+    
+    // Production - Landing Page
+    prod_landing_badge_text: config.production.landingPage.badgeText,
+    prod_landing_cta_button: config.production.landingPage.ctaButton,
+    prod_landing_trust_text: config.production.landingPage.trustText,
   };
 }
 

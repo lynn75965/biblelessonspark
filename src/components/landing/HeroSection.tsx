@@ -19,14 +19,19 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
   const isPublicBeta = shouldShowPublicBetaEnrollment(platformMode);
   
   // SSOT: Get TEXT from tenant_config (database), BEHAVIOR from betaEnrollmentConfig
+  // Beta mode: reads from tenant.beta.landingPage
+  // Production mode: reads from tenant.production.landingPage
   const ctaButtonText = isPublicBeta 
     ? tenant.beta.landingPage.ctaButton 
-    : 'Get Started';
+    : tenant.production.landingPage.ctaButton;
   
-  // SSOT: Get badge text based on platform mode
   const badgeText = isPublicBeta
-    ? 'Public Beta • Free for Baptist Teachers'
-    : 'Welcome to the Beta • Exclusive for Baptist Teachers';
+    ? `Public Beta • Free for Baptist Teachers`
+    : tenant.production.landingPage.badgeText;
+  
+  const trustText = isPublicBeta
+    ? tenant.beta.landingPage.trustText
+    : tenant.production.landingPage.trustText;
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary-light/20">
@@ -96,9 +101,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             {/* Social proof */}
             <div className="pt-4 sm:pt-6 lg:pt-8 space-y-2">
               <p className="text-xs sm:text-sm text-muted-foreground">
-                {isPublicBeta 
-                  ? tenant.beta.landingPage.trustText
-                  : 'Trusted by Baptist teachers across the country'}
+                {trustText}
               </p>
               <div className="flex items-center justify-center lg:justify-start gap-0.5 sm:gap-1">
                 {[...Array(5)].map((_, i) => (
