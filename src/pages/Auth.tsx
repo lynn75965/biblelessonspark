@@ -60,8 +60,9 @@ export default function Auth() {
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
 
-  // SSOT: Get form config
-  const FORM_CONFIG = BETA_ENROLLMENT_CONFIG.form;
+  // SSOT: Text from BRANDING.beta, behavior from BETA_ENROLLMENT_CONFIG
+  const FORM_TEXT = BRANDING.beta.form;
+  const MESSAGES = BRANDING.beta.messages;
 
   // Handle password reset mode - must check BEFORE auth redirect
   useEffect(() => {
@@ -237,8 +238,8 @@ export default function Auth() {
         }
 
         toast({
-          title: BETA_ENROLLMENT_CONFIG.messages.enrollmentSuccess.title,
-          description: BETA_ENROLLMENT_CONFIG.messages.enrollmentSuccess.description,
+          title: MESSAGES.enrollmentSuccess.title,
+          description: MESSAGES.enrollmentSuccess.description,
         });
       }
     } catch (error) {
@@ -501,7 +502,7 @@ export default function Auth() {
                       <Input
                         id="reset-email"
                         type="email"
-                        placeholder="you@yourplace.com"
+                        placeholder={FORM_TEXT.emailPlaceholder}
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -548,10 +549,10 @@ export default function Auth() {
             <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold mb-2">
-            {organizationName ? `Join ${organizationName} on ${SITE.name}` : (isPublicBeta ? FORM_CONFIG.title : `Welcome to ${SITE.name}`)}
+            {organizationName ? `Join ${organizationName} on ${SITE.name}` : (isPublicBeta ? FORM_TEXT.title : `Welcome to ${SITE.name}`)}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {isPublicBeta ? FORM_CONFIG.subtitle : SITE.tagline}
+            {isPublicBeta ? FORM_TEXT.subtitle : SITE.tagline}
           </p>
         </div>
 
@@ -569,20 +570,20 @@ export default function Auth() {
           <CardContent className="px-4 sm:px-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="grid w-full grid-cols-2 text-sm">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
+                <TabsTrigger value="signin">{FORM_TEXT.signInLink}</TabsTrigger>
                 <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
 
               <TabsContent value="signin" className="space-y-3 sm:space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-sm">Email</Label>
+                    <Label htmlFor="signin-email" className="text-sm">{FORM_TEXT.emailLabel}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signin-email"
                         type="email"
-                        placeholder="you@yourplace.com"
+                        placeholder={FORM_TEXT.emailPlaceholder}
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -592,7 +593,7 @@ export default function Auth() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="signin-password" className="text-sm">Password</Label>
+                      <Label htmlFor="signin-password" className="text-sm">{FORM_TEXT.passwordLabel}</Label>
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
@@ -606,7 +607,7 @@ export default function Auth() {
                       <Input
                         id="signin-password"
                         type={showSignInPassword ? "text" : "password"}
-                        placeholder="Enter your password"
+                        placeholder={FORM_TEXT.passwordPlaceholder}
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-9 sm:pl-10 pr-10 text-sm sm:text-base"
@@ -641,7 +642,7 @@ export default function Auth() {
                     size="lg"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Signing In...' : 'Sign In'}
+                    {isLoading ? 'Signing In...' : FORM_TEXT.signInLink}
                   </Button>
                   <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
                     Enter your email and password to access your account
@@ -652,12 +653,12 @@ export default function Auth() {
               <TabsContent value="signup" className="space-y-3 sm:space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-3 sm:space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-sm">{FORM_CONFIG.fullNameLabel}</Label>
+                    <Label htmlFor="signup-name" className="text-sm">{FORM_TEXT.fullNameLabel}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
-                        placeholder={FORM_CONFIG.fullNamePlaceholder}
+                        placeholder={FORM_TEXT.fullNamePlaceholder}
                         value={formData.fullName}
                         onChange={(e) => handleInputChange('fullName', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -666,13 +667,13 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-sm">{FORM_CONFIG.emailLabel}</Label>
+                    <Label htmlFor="signup-email" className="text-sm">{FORM_TEXT.emailLabel}</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder={FORM_CONFIG.emailPlaceholder}
+                        placeholder={FORM_TEXT.emailPlaceholder}
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -681,13 +682,13 @@ export default function Auth() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-sm">{FORM_CONFIG.passwordLabel}</Label>
+                    <Label htmlFor="signup-password" className="text-sm">{FORM_TEXT.passwordLabel}</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type={showSignUpPassword ? "text" : "password"}
-                        placeholder={FORM_CONFIG.passwordPlaceholder}
+                        placeholder={FORM_TEXT.passwordPlaceholder}
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-9 sm:pl-10 pr-10 text-sm sm:text-base"
@@ -717,15 +718,15 @@ export default function Auth() {
                     </div>
                   </div>
 
-                  {/* Optional fields for Public Beta mode - SSOT controlled */}
+                  {/* Optional fields for Public Beta mode - behavior from BETA_ENROLLMENT_CONFIG */}
                   {isPublicBeta && BETA_ENROLLMENT_CONFIG.features.collectChurchName && (
                     <div className="space-y-2">
-                      <Label htmlFor="signup-church" className="text-sm">{FORM_CONFIG.churchNameLabel}</Label>
+                      <Label htmlFor="signup-church" className="text-sm">{FORM_TEXT.churchNameLabel}</Label>
                       <div className="relative">
                         <Church className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         <Input
                           id="signup-church"
-                          placeholder={FORM_CONFIG.churchNamePlaceholder}
+                          placeholder={FORM_TEXT.churchNamePlaceholder}
                           value={formData.churchName}
                           onChange={(e) => handleInputChange('churchName', e.target.value)}
                           className="pl-9 sm:pl-10 text-sm sm:text-base"
@@ -736,13 +737,13 @@ export default function Auth() {
 
                   {isPublicBeta && BETA_ENROLLMENT_CONFIG.features.collectReferralSource && (
                     <div className="space-y-2">
-                      <Label htmlFor="signup-referral" className="text-sm">{FORM_CONFIG.referralSourceLabel}</Label>
+                      <Label htmlFor="signup-referral" className="text-sm">{FORM_TEXT.referralSourceLabel}</Label>
                       <Select 
                         value={formData.referralSource} 
                         onValueChange={(value) => setFormData(prev => ({ ...prev, referralSource: value }))}
                       >
                         <SelectTrigger id="signup-referral" className="text-sm sm:text-base">
-                          <SelectValue placeholder={FORM_CONFIG.referralSourcePlaceholder} />
+                          <SelectValue placeholder={FORM_TEXT.referralSourcePlaceholder} />
                         </SelectTrigger>
                         <SelectContent>
                           {BETA_ENROLLMENT_CONFIG.referralSources.map((source) => (
@@ -762,10 +763,13 @@ export default function Auth() {
                     size="lg"
                     disabled={isLoading}
                   >
-                    {isLoading ? FORM_CONFIG.submittingButton : FORM_CONFIG.submitButton}
+                    {isLoading ? FORM_TEXT.submittingButton : FORM_TEXT.submitButton}
                   </Button>
                   <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-                    By signing up, you agree to our <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">{FORM_CONFIG.termsLink}</button> and <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">{FORM_CONFIG.privacyLink}</button>
+                    {FORM_TEXT.termsText}{' '}
+                    <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">{FORM_TEXT.termsLink}</button>
+                    {' '}and{' '}
+                    <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">{FORM_TEXT.privacyLink}</button>
                   </p>
                 </form>
               </TabsContent>
@@ -790,8 +794,3 @@ export default function Auth() {
     </div>
   );
 }
-
-
-
-
-

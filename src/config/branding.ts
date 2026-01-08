@@ -1046,6 +1046,107 @@ Click below to view the lesson:`,
     },
   },
 
+  // ==========================================================================
+  // BETA PROGRAM UI TEXT (for white-label customization)
+  // ==========================================================================
+  
+  /**
+   * Beta program display text.
+   * Controls what the UI SAYS about beta features.
+   * 
+   * ARCHITECTURAL NOTE:
+   * - TEXT lives here in BRANDING.beta (what UI displays)
+   * - BEHAVIOR lives in betaEnrollmentConfig.ts (toggles, logic, form options)
+   * 
+   * White-label tenants edit THIS section to customize beta messaging.
+   */
+  beta: {
+    /**
+     * Landing page beta CTA section text
+     */
+    landingPage: {
+      ctaTitle: 'Join the Free Public Beta',
+      ctaSubtitle: 'Create engaging Bible study lessons for your Sunday School class in minutes.',
+      ctaButton: 'Get Started Free',
+      features: [
+        'AI-powered lesson generation',
+        'Theologically sound Baptist content',
+        'Age-appropriate for any class',
+        'Ready in under 2 minutes',
+      ],
+      trustText: 'Join hundreds of Baptist teachers already using LessonSpark USA',
+    },
+    
+    /**
+     * Beta enrollment form labels and placeholders
+     */
+    form: {
+      title: 'Join the LessonSpark USA Beta',
+      subtitle: 'Start creating Bible study lessons in minutes.',
+      fullNameLabel: 'Full Name',
+      fullNamePlaceholder: 'Enter your full name',
+      emailLabel: 'Email Address',
+      emailPlaceholder: 'you@church.org',
+      passwordLabel: 'Password',
+      passwordPlaceholder: 'Create a secure password',
+      churchNameLabel: 'Church Name (optional)',
+      churchNamePlaceholder: 'First Baptist Church',
+      referralSourceLabel: 'How did you hear about us? (optional)',
+      referralSourcePlaceholder: 'Select an option',
+      submitButton: 'Create My Free Account',
+      submittingButton: 'Creating Account...',
+      alreadyHaveAccount: 'Already have an account?',
+      signInLink: 'Sign in',
+      termsText: 'By creating an account, you agree to our',
+      termsLink: 'Terms of Service',
+      privacyLink: 'Privacy Policy',
+    },
+    
+    /**
+     * Dashboard prompt for users without an organization
+     */
+    dashboardPrompt: {
+      title: 'Join the Public Beta Program',
+      description: 'Get access to all features by joining our public beta program.',
+      button: 'Join Now',
+      dismissButton: 'Maybe Later',
+    },
+    
+    /**
+     * Success, error, and status messages
+     */
+    messages: {
+      enrollmentSuccess: {
+        title: 'Welcome to LessonSpark USA!',
+        description: 'Your account has been created. Check your email to verify your account.',
+      },
+      enrollmentError: {
+        title: 'Enrollment Failed',
+        description: 'Something went wrong. Please try again or contact support.',
+      },
+      alreadyEnrolled: {
+        title: 'Already Enrolled',
+        description: 'You are already part of the beta program.',
+      },
+      verificationSent: {
+        title: 'Verification Email Sent',
+        description: 'Please check your inbox and click the verification link.',
+      },
+    },
+    
+    /**
+     * Form validation messages
+     */
+    validation: {
+      fullNameRequired: 'Please enter your full name',
+      fullNameMinLength: 'Name must be at least 2 characters',
+      emailRequired: 'Please enter your email address',
+      emailInvalid: 'Please enter a valid email address',
+      passwordRequired: 'Please create a password',
+      passwordMinLength: 'Password must be at least 8 characters',
+    },
+  },
+
 } as const;
 
 // ============================================================================
@@ -1056,6 +1157,7 @@ export type BrandingConfig = typeof BRANDING;
 export type BrandingColors = typeof BRANDING.colors;
 export type BrandingFeatures = typeof BRANDING.features;
 export type BrandingHelpVideos = typeof BRANDING.helpVideos;
+export type BrandingBeta = typeof BRANDING.beta;
 export type EmailStyles = typeof BRANDING.email.styles;
 export type EmailSubjects = typeof BRANDING.email.subjects;
 export type EmailTemplates = typeof BRANDING.email.templates;

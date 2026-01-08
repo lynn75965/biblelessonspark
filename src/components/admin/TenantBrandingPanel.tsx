@@ -3,6 +3,7 @@
  * 
  * ARCHITECTURE: Imports types, defaults, and utilities from SSOT (tenantConfig.ts)
  * Added to Admin Panel: December 19, 2025
+ * Updated: January 8, 2026 - Added beta text editing section
  */
 
 import { useEffect, useState } from "react";
@@ -13,13 +14,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Palette, Type, ToggleRight, Save, RefreshCw } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Palette, Type, ToggleRight, Save, RefreshCw, FlaskConical, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   TenantConfig,
   TenantConfigRow,
   FONT_OPTIONS,
   FEATURE_FLAGS,
+  CONTACT_FIELDS,
+  BETA_FIELD_GROUPS,
   mapRowToConfig,
   mapConfigToRow,
   validateTenantConfig,
@@ -34,6 +38,15 @@ export function TenantBrandingPanel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<TenantConfig | null>(null);
+  
+  // Collapsible state for beta sections
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    landingPage: false,
+    form: false,
+    dashboardPrompt: false,
+    messages: false,
+    validation: false,
+  });
 
   // ---------------------------------------------------------------------------
   // LOAD TENANT CONFIG
@@ -108,6 +121,93 @@ export function TenantBrandingPanel() {
       ...form,
       features: { ...form.features, [key]: value },
     });
+  }
+
+  // Contact section update handler
+  function updateContact<K extends keyof TenantConfig["contact"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      contact: { ...form.contact, [key]: value },
+    });
+  }
+
+  // Beta section update handlers
+  function updateBetaLandingPage<K extends keyof TenantConfig["beta"]["landingPage"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      beta: {
+        ...form.beta,
+        landingPage: { ...form.beta.landingPage, [key]: value },
+      },
+    });
+  }
+
+  function updateBetaForm<K extends keyof TenantConfig["beta"]["form"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      beta: {
+        ...form.beta,
+        form: { ...form.beta.form, [key]: value },
+      },
+    });
+  }
+
+  function updateBetaDashboardPrompt<K extends keyof TenantConfig["beta"]["dashboardPrompt"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      beta: {
+        ...form.beta,
+        dashboardPrompt: { ...form.beta.dashboardPrompt, [key]: value },
+      },
+    });
+  }
+
+  function updateBetaMessages<K extends keyof TenantConfig["beta"]["messages"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      beta: {
+        ...form.beta,
+        messages: { ...form.beta.messages, [key]: value },
+      },
+    });
+  }
+
+  function updateBetaValidation<K extends keyof TenantConfig["beta"]["validation"]>(
+    key: K,
+    value: string
+  ) {
+    if (!form) return;
+    setForm({
+      ...form,
+      beta: {
+        ...form.beta,
+        validation: { ...form.beta.validation, [key]: value },
+      },
+    });
+  }
+
+  function toggleSection(section: string) {
+    setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   }
 
   // ---------------------------------------------------------------------------
@@ -390,6 +490,190 @@ export function TenantBrandingPanel() {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Contact & Email Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2" />
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+            </svg>
+            {CONTACT_FIELDS.label}
+          </CardTitle>
+          <CardDescription>{CONTACT_FIELDS.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {CONTACT_FIELDS.fields.map((field) => (
+            <div key={field.key} className="space-y-2">
+              <Label htmlFor={`contact-${field.key}`}>{field.label}</Label>
+              <Input
+                id={`contact-${field.key}`}
+                value={form.contact[field.key as keyof TenantConfig["contact"]]}
+                onChange={(e) => updateContact(field.key as keyof TenantConfig["contact"], e.target.value)}
+                placeholder={field.placeholder}
+              />
+              <p className="text-xs text-muted-foreground">{field.description}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* Beta Program Text Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <FlaskConical className="h-4 w-4" />
+            Beta Program Text
+          </CardTitle>
+          <CardDescription>
+            Customize all text for your beta program. Visibility controlled by Platform Mode in System Settings.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          
+          {/* Landing Page CTA */}
+          <Collapsible open={openSections.landingPage} onOpenChange={() => toggleSection("landingPage")}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                <div className="text-left">
+                  <p className="font-medium">{BETA_FIELD_GROUPS.landingPage.label}</p>
+                  <p className="text-sm text-muted-foreground">{BETA_FIELD_GROUPS.landingPage.description}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.landingPage ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                {BETA_FIELD_GROUPS.landingPage.fields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={`beta-landing-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`beta-landing-${field.key}`}
+                      value={form.beta.landingPage[field.key as keyof typeof form.beta.landingPage] ?? ""}
+                      onChange={(e) => updateBetaLandingPage(field.key as keyof TenantConfig["beta"]["landingPage"], e.target.value)}
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Enrollment Form */}
+          <Collapsible open={openSections.form} onOpenChange={() => toggleSection("form")}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                <div className="text-left">
+                  <p className="font-medium">{BETA_FIELD_GROUPS.form.label}</p>
+                  <p className="text-sm text-muted-foreground">{BETA_FIELD_GROUPS.form.description}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.form ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                {BETA_FIELD_GROUPS.form.fields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={`beta-form-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`beta-form-${field.key}`}
+                      value={form.beta.form[field.key as keyof typeof form.beta.form] ?? ""}
+                      onChange={(e) => updateBetaForm(field.key as keyof TenantConfig["beta"]["form"], e.target.value)}
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Dashboard Prompt */}
+          <Collapsible open={openSections.dashboardPrompt} onOpenChange={() => toggleSection("dashboardPrompt")}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                <div className="text-left">
+                  <p className="font-medium">{BETA_FIELD_GROUPS.dashboardPrompt.label}</p>
+                  <p className="text-sm text-muted-foreground">{BETA_FIELD_GROUPS.dashboardPrompt.description}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.dashboardPrompt ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                {BETA_FIELD_GROUPS.dashboardPrompt.fields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={`beta-dashboard-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`beta-dashboard-${field.key}`}
+                      value={form.beta.dashboardPrompt[field.key as keyof typeof form.beta.dashboardPrompt] ?? ""}
+                      onChange={(e) => updateBetaDashboardPrompt(field.key as keyof TenantConfig["beta"]["dashboardPrompt"], e.target.value)}
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Status Messages */}
+          <Collapsible open={openSections.messages} onOpenChange={() => toggleSection("messages")}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                <div className="text-left">
+                  <p className="font-medium">{BETA_FIELD_GROUPS.messages.label}</p>
+                  <p className="text-sm text-muted-foreground">{BETA_FIELD_GROUPS.messages.description}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.messages ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                {BETA_FIELD_GROUPS.messages.fields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={`beta-msg-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`beta-msg-${field.key}`}
+                      value={form.beta.messages[field.key as keyof typeof form.beta.messages] ?? ""}
+                      onChange={(e) => updateBetaMessages(field.key as keyof TenantConfig["beta"]["messages"], e.target.value)}
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Validation Messages */}
+          <Collapsible open={openSections.validation} onOpenChange={() => toggleSection("validation")}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-4 h-auto">
+                <div className="text-left">
+                  <p className="font-medium">{BETA_FIELD_GROUPS.validation.label}</p>
+                  <p className="text-sm text-muted-foreground">{BETA_FIELD_GROUPS.validation.description}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 transition-transform ${openSections.validation ? "rotate-180" : ""}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-4 pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                {BETA_FIELD_GROUPS.validation.fields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={`beta-val-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`beta-val-${field.key}`}
+                      value={form.beta.validation[field.key as keyof typeof form.beta.validation] ?? ""}
+                      onChange={(e) => updateBetaValidation(field.key as keyof TenantConfig["beta"]["validation"], e.target.value)}
+                      placeholder={field.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
         </CardContent>
       </Card>
 

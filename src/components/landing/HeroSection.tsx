@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles, Users, Clock, Star } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
+import { shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
+import { useTenant } from "@/contexts/TenantContext";
 
 interface HeroSectionProps {
   onRequestAccess?: () => void;
@@ -13,12 +14,13 @@ interface HeroSectionProps {
 
 export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
   const { settings } = useSystemSettings();
+  const tenant = useTenant();
   const platformMode = settings.current_phase as string;
   const isPublicBeta = shouldShowPublicBetaEnrollment(platformMode);
   
-  // SSOT: Get CTA text based on platform mode
+  // SSOT: Get TEXT from tenant_config (database), BEHAVIOR from betaEnrollmentConfig
   const ctaButtonText = isPublicBeta 
-    ? BETA_ENROLLMENT_CONFIG.landingPage.ctaButton 
+    ? tenant.beta.landingPage.ctaButton 
     : 'Get Started';
   
   // SSOT: Get badge text based on platform mode
@@ -95,7 +97,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             <div className="pt-4 sm:pt-6 lg:pt-8 space-y-2">
               <p className="text-xs sm:text-sm text-muted-foreground">
                 {isPublicBeta 
-                  ? BETA_ENROLLMENT_CONFIG.landingPage.trustText
+                  ? tenant.beta.landingPage.trustText
                   : 'Trusted by Baptist teachers across the country'}
               </p>
               <div className="flex items-center justify-center lg:justify-start gap-0.5 sm:gap-1">
