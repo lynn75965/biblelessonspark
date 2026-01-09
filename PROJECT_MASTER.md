@@ -1,9 +1,9 @@
 # PROJECT_MASTER.md
 # LessonSparkUSA - Single Source of Truth
 
-**Last Updated:** January 7, 2026  
-**Current Phase:** 21 Complete (UI/UX Consistency & Help Videos)  
-**Platform Mode:** Private Beta  
+**Last Updated:** January 8, 2026  
+**Current Phase:** 22 Complete (Tenant Configuration Architecture)  
+**Platform Mode:** Public Beta  
 **Production Readiness:** Ready (pending mode switch)
 
 ---
@@ -51,9 +51,9 @@
 ### Enterprise Vision
 
 **Spark Platform Family** - White-label architecture enables enterprise sales:
-- Large churches ($15,000 - $50,000 perpetual licenses)
-- Baptist conventions ($100,000 - $250,000 perpetual licenses)
-- Single `branding.ts` file for complete customization
+- Large churches ($15,000 - $50,000 annual licenses)
+- Baptist conventions ($75,000 - $150,000+ annual licenses)
+- Two deployment models: Managed (subdomain) and Independent (separate deployment)
 
 ---
 
@@ -75,13 +75,29 @@ Backend Shared Constants (DERIVED)
 
 - Frontend constants define all business logic, validation rules, and UI text
 - Backend stores data with minimal constraints
-- Database uses JSONB for flexible storage without content validation
+- Database schema MIRRORS frontend type definitions
 - RLS policies enforce security at database level
+
+### Tenant Configuration Flow
+
+```
+tenantConfig.ts (SSOT - defines types, defaults, mappings)
+        ↓
+tenant_config table (Database - mirrors SSOT structure)
+        ↓
+useTenantConfig hook (loads from database)
+        ↓
+TenantProvider in App.tsx (wraps app)
+        ↓
+useTenant() (components consume)
+        ↓
+TenantBrandingPanel (Admin edits, saves to database)
+```
 
 ### Key Rules
 
 1. **Never duplicate constants** - Import from SSOT files
-2. **Never hardcode text** - All UI text comes from `branding.ts`
+2. **Never hardcode text** - All UI text comes from tenant config or branding.ts
 3. **Complete solutions only** - Full copy-paste ready PowerShell commands
 4. **Root-cause diagnosis first** - Identify problem before proposing solutions
 5. **Verify SSOT compliance** - Check that changes follow architecture
@@ -119,7 +135,8 @@ Backend Shared Constants (DERIVED)
 
 | File | Purpose | Location |
 |------|---------|----------|
-| `branding.ts` | All UI text, colors, fonts, features | `src/config/` |
+| `branding.ts` | Design system (colors, fonts, layouts) - STATIC | `src/config/` |
+| `tenantConfig.ts` | Tenant content (text, features, contact) - DATABASE-BACKED | `src/constants/` |
 | `lessonStructure.ts` | 8-section lesson framework | `src/constants/` |
 | `theologyProfiles.ts` | 10 Baptist theology profiles | `src/constants/` |
 | `ageGroups.ts` | 11 age group definitions | `src/constants/` |
@@ -132,12 +149,28 @@ Backend Shared Constants (DERIVED)
 | File | Purpose | Location |
 |------|---------|----------|
 | `devotionalConfig.ts` | DevotionalSpark configuration | `src/constants/` |
-| `betaEnrollmentConfig.ts` | Beta behavior toggles | `src/constants/` |
+| `betaEnrollmentConfig.ts` | Beta BEHAVIOR toggles (not text) | `src/constants/` |
 | `trialConfig.ts` | Trial duration options | `src/constants/` |
 | `organizationConfig.ts` | Organization types | `src/constants/` |
 | `accessControl.ts` | Role definitions and permissions | `src/constants/` |
-| `tenantConfig.ts` | White-label tenant configuration | `src/constants/` |
 | `helpVideos.ts` | Help video registry | `src/constants/` |
+
+### Tenant Configuration (NEW - Phase 22)
+
+| File | Purpose | Location |
+|------|---------|----------|
+| `tenantConfig.ts` | SSOT for tenant settings (types, defaults, mappings) | `src/constants/` |
+| `useTenantConfig.ts` | Hook to load tenant config from database | `src/hooks/` |
+| `TenantContext.tsx` | Context provider for tenant config | `src/contexts/` |
+| `TenantBrandingPanel.tsx` | Admin UI for editing tenant settings | `src/components/admin/` |
+
+### SSOT Separation (branding.ts vs tenantConfig.ts)
+
+| File | Contains | Editable Via | Changes Require |
+|------|----------|--------------|-----------------|
+| `branding.ts` | Design system (colors, fonts, CSS, layouts) | Code only | Developer deploy |
+| `tenantConfig.ts` | Content (text, messages, feature flags) | Admin Panel | Database update |
+| `betaEnrollmentConfig.ts` | Behavior (toggles, helpers, referral options) | Code only | Developer deploy |
 
 ### Backend Shared (Auto-generated)
 
@@ -351,6 +384,19 @@ DevotionalSpark generates personal devotional content aligned with generated les
 | Security | `AdminSecurityPanel` | Security events + Guardrail violations |
 | Branding | `TenantBrandingPanel` | White-label configuration |
 
+### Branding Tab Sections (NEW - Phase 22)
+
+| Section | Fields | Purpose |
+|---------|--------|---------|
+| Identity | App name, logo URL | Basic branding |
+| Colors | Primary, secondary colors | Visual theming |
+| Typography | Font family | Text styling |
+| UI Text | App title, tagline, primary CTA | Core messaging |
+| Contact & Email | Support email, from email, from name | Tenant email config |
+| Feature Flags | Devotionals, PDF export, white-label | Feature toggles |
+| Beta Text | 5 subsections (41 fields) | Beta mode messaging |
+| Production Text | Badge, CTA button, trust text | Production mode messaging |
+
 ### Tab Consolidation Notes
 
 - **Guardrails** merged into Security tab (as sub-tab)
@@ -361,21 +407,53 @@ DevotionalSpark generates personal devotional content aligned with generated les
 
 ## White-Label Architecture
 
-### Single-File Customization
+### Two Deployment Models
 
-White-label buyers edit only `src/config/branding.ts`:
+| Model | Description | Best For |
+|-------|-------------|----------|
+| **Model A: Subdomain** | yourchurch.lessonsparkusa.com | Churches wanting turnkey simplicity |
+| **Model B: Separate** | Your own domain, your own infrastructure | Conventions wanting full control |
 
-| Section | Customizations |
-|---------|---------------|
-| `identity` | appName, tagline, description, keywords |
-| `colors` | primary, secondary, accent, semantic colors |
-| `typography` | fontFamily.primary, fontFamily.secondary |
-| `assets` | logo.light, logo.dark, favicon |
-| `layout` | pageWrapper, containerPadding, gridGap |
-| `features` | enableDevotionals, enablePdfExport, etc. |
-| `email` | styles, subjects, templates |
-| `helpVideos` | enabled flag, video URLs |
-| `beta` | all beta-related text and labels |
+### Model A: Subdomain (Multi-Tenant)
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| tenant_config table | ✅ Exists | 47+ columns for full customization |
+| TenantContext/Provider | ✅ Wired | App.tsx wraps with TenantProvider |
+| useTenantConfig hook | ✅ Exists | Loads from database, falls back to defaults |
+| resolveTenantFromHost() | ✅ Exists | In tenantConfig.ts |
+| Wildcard DNS | ❌ Not configured | Needs *.lessonsparkusa.com |
+| tenant_id on tables | ⚠️ Partial | Needs adding to profiles, lessons, organizations |
+| Multi-tenant RLS | ❌ Not built | Needs tenant-scoped policies |
+| Usage tracking | ❌ Not built | For billing per tenant |
+| Tenant admin role | ❌ Not built | Restrict admin to own tenant |
+
+### Model B: Separate Deployment
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Codebase | ✅ Ready | GitHub repository |
+| Environment variables | ⚠️ Partial | Some hardcoded values |
+| Setup documentation | ❌ Not written | Deployment guide needed |
+| Supabase schema export | ❌ Not packaged | Migration scripts needed |
+| Branding reset | ❌ Not built | Fresh tenant defaults |
+
+### Tenant Configuration Database Columns
+
+| Category | Column Count | Examples |
+|----------|--------------|----------|
+| Branding | 5 | brand_name, logo_url, primary_color |
+| UI Text | 3 | app_title, tagline, primary_cta |
+| Features | 3 | feature_devotionals, feature_pdf_export |
+| Contact | 3 | contact_support_email, contact_from_email |
+| Beta Landing | 4 | beta_landing_cta_title, beta_landing_trust_text |
+| Beta Form | 19 | beta_form_title, beta_form_email_label |
+| Beta Dashboard | 4 | beta_dashboard_title, beta_dashboard_button |
+| Beta Messages | 8 | beta_msg_enrollment_success_title |
+| Beta Validation | 6 | beta_val_email_required |
+| Production | 3 | prod_landing_badge_text, prod_landing_cta_button |
+
+**Total: 58 columns** (including id, tenant_id, timestamps)
 
 ### Tenant Admin Visibility Matrix
 
@@ -389,13 +467,6 @@ White-label buyers edit only `src/config/branding.ts`:
 | System Settings | ✅ Full edit | ✅ Scoped to tenant |
 | Security | ✅ Platform-wide | ✅ Their events |
 | Branding | ✅ Any tenant | ✅ Their branding |
-
-### Database Support
-
-| Table | Purpose |
-|-------|---------|
-| `tenant_config` | Per-tenant branding and settings |
-| `organizations` | Tenant organization records |
 
 ---
 
@@ -420,70 +491,40 @@ White-label buyers edit only `src/config/branding.ts`:
 | `user_subscriptions` | Active subscriptions |
 | `stripe_customers` | Stripe customer mapping |
 
-### Usage Tables
-
-| Table | Purpose |
-|-------|---------|
-| `lesson_usage` | Lesson generation tracking |
-| `devotional_usage` | Devotional generation tracking |
-
 ### Configuration Tables
 
 | Table | Purpose |
 |-------|---------|
-| `system_settings` | Platform-wide settings |
-| `tenant_config` | Per-tenant configuration |
+| `system_settings` | Platform-wide settings (platform_mode, maintenance_mode) |
+| `tenant_config` | Per-tenant branding and settings (47+ columns) |
+| `user_roles` | User permission assignments |
 
 ### Security Tables
 
 | Table | Purpose |
 |-------|---------|
-| `user_roles` | Role assignments |
-| `security_events` | Audit logging |
-| `guardrail_violations` | Theological guardrail breaches |
-
-### RLS Policies
-
-All tables use Row Level Security:
-- User isolation enforced at database level
-- Admin bypass for platform management
-- Tenant scoping for white-label isolation
+| `security_events` | Admin action logging |
+| `guardrail_violations` | Theological guardrail tracking |
 
 ---
 
 ## Edge Functions
 
-### Lesson Generation
+### Active Functions
 
-| Function | Purpose |
-|----------|---------|
-| `generate-lesson` | AI lesson generation with guardrails |
-| `extract-lesson` | PDF/image text extraction |
+| Function | Purpose | Auth Required |
+|----------|---------|---------------|
+| `generate-lesson` | Lesson generation | Yes |
+| `generate-devotional` | Devotional generation | Yes |
+| `send-invite` | Organization invitations | Yes |
+| `stripe-webhook` | Payment processing | No (webhook secret) |
+| `create-checkout-session` | Stripe checkout | Yes |
+| `create-customer-portal` | Subscription management | Yes |
 
-### Devotional Generation
+### Deprecated Functions
 
-| Function | Purpose |
-|----------|---------|
-| `generate-devotional` | AI devotional with moral valence check |
-
-### Organization
-
-| Function | Purpose |
-|----------|---------|
-| `send-invite` | Email organization invitations |
-
-### Payments
-
-| Function | Purpose |
-|----------|---------|
-| `create-checkout-session` | Stripe checkout |
-| `create-portal-session` | Stripe customer portal |
-| `stripe-webhook` | Subscription event handling |
-
-### Admin
-
-| Function | Purpose |
-|----------|---------|
+| Function | Status |
+|----------|--------|
 | `setup-lynn-admin` | Initial admin setup |
 
 ---
@@ -632,18 +673,29 @@ git push
 - Data integrity fix (lessons follow user)
 - Auth.tsx BRANDING import fix
 
+### Phase 22: Tenant Configuration Architecture (January 8, 2026) ✅
+
+- Complete tenant config system with database backing
+- useTenantConfig hook for loading from database
+- TenantProvider wired into App.tsx
+- Contact & Email section (support email, from email, from name)
+- Beta text moved from branding.ts to tenantConfig.ts (Admin-editable)
+- Production text section (badge, CTA button, trust text)
+- HeroSection reads from tenant config based on platform mode
+- 47+ database columns for full tenant customization
+- SSOT separation: branding.ts (design), tenantConfig.ts (content), betaEnrollmentConfig.ts (behavior)
+- White-label tenants can customize all text via Admin Panel
+
 ---
 
-## Recent Bug Fixes
+## Recent Commits
 
-### January 6, 2026
+### January 8, 2026
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Invitation 404 error | Route didn't exist | Updated routing + Edge Function |
-| Infinite loop on invite page | Non-memoized functions | Added useCallback to useInvites |
-| Inviter name blank | RLS blocked anon access | Store names in invite record |
-| Lessons/user org mismatch | Lessons retained old org_id | Trigger + immediate sync |
+| Commit | Description |
+|--------|-------------|
+| `6a76cb4` | feat: add production mode text to tenant config for white-label self-service |
+| `2287fb4` | feat: complete tenant configuration architecture with contact email support |
 
 ---
 
@@ -656,6 +708,19 @@ git push
 | Schema cleanup | Migrate `user_roles.role` from enum to text |
 | Failed access logging | RLS silent filtering by design |
 | Chunk size warnings | Build optimization (non-critical) |
+
+### White-Label Implementation Needed
+
+| Item | Model | Priority |
+|------|-------|----------|
+| Wildcard DNS configuration | A | High (for subdomain model) |
+| tenant_id on all tables | A | High |
+| Multi-tenant RLS policies | A | High |
+| Usage tracking per tenant | A | Medium |
+| Tenant admin role restrictions | A | Medium |
+| Environment variable externalization | B | High (for separate deployment) |
+| Deployment documentation | B | High |
+| Supabase migration scripts | B | Medium |
 
 ---
 
@@ -718,9 +783,10 @@ Test-Path "path\to\file.ts"
 
 ## Next Priorities
 
-1. **Complete Beta BRANDING Migration**
-   - Move text from betaEnrollmentConfig.ts to BRANDING.beta
-   - Architecture: BRANDING = what UI SAYS, betaEnrollmentConfig = what UI DOES
+1. **White-Label Architecture Decision**
+   - Choose which model to build first: Model A (Subdomain) or Model B (Separate)
+   - Model A requires: wildcard DNS, multi-tenant RLS, usage tracking
+   - Model B requires: deployment docs, migration scripts, env externalization
 
 2. **Help Video Activation**
    - Record first video in Camtasia
@@ -729,7 +795,8 @@ Test-Path "path\to\file.ts"
 
 3. **Production Launch**
    - Final testing of tier enforcement
-   - Switch platform_mode to `production`
+   - Review PRE_LAUNCH_CHECKLIST.md
+   - Switch platform_mode to `production` in System Settings
 
 ---
 
