@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+ï»¿import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,7 @@ const Community = () => {
     {
       icon: Sparkles,
       title: "Innovation-Embracing",
-      description: "We leverage modern tools to enhance—never replace—the timeless truths of God's Word."
+      description: "We leverage modern tools to enhance - never replace - the timeless truths of God's Word."
     }
   ];
 
@@ -69,7 +69,7 @@ const Community = () => {
     },
     {
       title: "Partner With Us",
-      description: "Associations, seminaries, and church networks—let's discuss how we can serve your teachers together.",
+      description: "Associations, seminaries, and church networks - let's discuss how we can serve your teachers together.",
       action: "Explore Partnership",
       href: `mailto:${SITE.supportEmail}?subject=Partnership Inquiry`
     }
