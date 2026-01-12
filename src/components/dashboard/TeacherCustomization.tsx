@@ -83,6 +83,9 @@ const StepBadge = ({ number }: { number: number }) => (
 // ============================================================================
 
 interface TeacherCustomizationProps {
+  // SSOT: Expansion controlled by parent (EnhanceLessonForm)
+  isExpanded: boolean;
+  onToggleExpand: () => void;
   // Field values and setters (13 profile fields)
   teachingStyle: string;
   setTeachingStyle: (value: string) => void;
@@ -139,6 +142,8 @@ interface TeacherCustomizationProps {
 // ============================================================================
 
 export function TeacherCustomization({
+  isExpanded,
+  onToggleExpand,
   teachingStyle,
   setTeachingStyle,
   learningStyle,
@@ -181,8 +186,7 @@ export function TeacherCustomization({
   isSavingProfile,
   disabled = false,
 }: TeacherCustomizationProps) {
-  // Smart Collapse: Expanded if user has profiles
-  const [isExpanded, setIsExpanded] = useState(profiles.length > 0);
+  // SSOT: isExpanded is now controlled by parent via props
 
   // Save modal state
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -195,9 +199,7 @@ export function TeacherCustomization({
 
   // Update expansion when profiles load
   useEffect(() => {
-    if (profiles.length > 0) {
-      setIsExpanded(true);
-    }
+    // SSOT: Expansion now controlled by parent
   }, [profiles.length]);
 
   // ============================================================================
@@ -305,7 +307,7 @@ export function TeacherCustomization({
     <Card className="w-full border shadow-sm">
       <CardHeader
         className="cursor-pointer hover:bg-accent/50 transition-colors pb-3"
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={onToggleExpand}
       >
         <div className="flex items-center justify-between">
           <div>

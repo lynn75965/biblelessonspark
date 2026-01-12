@@ -1263,6 +1263,8 @@ export function EnhanceLessonForm({
           {/* ================================================================ */}
           {step1Complete && step2Complete && (
             <TeacherCustomization
+              isExpanded={expandedStep === 3}
+              onToggleExpand={() => setExpandedStep(expandedStep === 3 ? 2 : 3)}
               teachingStyle={teachingStyle}
               setTeachingStyle={setTeachingStyle}
               learningStyle={learningStyle}
