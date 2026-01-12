@@ -39,7 +39,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
       <div className="absolute inset-0 bg-grid-pattern opacity-5" />
       
       <div className="container relative px-4 sm:px-6">
-        <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 py-8 sm:py-12 lg:py-16">
+        <div className="flex flex-col lg:flex-row items-center gap-6 sm:gap-8 py-6 sm:py-8 lg:py-10">
           {/* Left side - Content */}
           <div className="flex-1 space-y-4 sm:space-y-6 lg:space-y-8 text-center lg:text-left w-full">
             {/* Beta badge */}

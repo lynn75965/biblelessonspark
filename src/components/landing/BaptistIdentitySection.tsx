@@ -3,7 +3,7 @@ import { Heart, Shield, Users } from "lucide-react";
 
 export function BaptistIdentitySection() {
   return (
-    <section className="py-12 sm:py-16 lg:py-20 bg-muted/30">
+    <section className="py-8 sm:py-12 lg:py-12 bg-muted/30">
       <div className="container px-4 sm:px-6">
         <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-10">
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold px-2">
