@@ -1,7 +1,8 @@
-import { Sparkles, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { SITE } from "@/config/site";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { BRANDING } from "@/config/branding";
 
 export function Footer() {
   const { settings } = useSystemSettings();
@@ -12,15 +13,17 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
-                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
-              </div>
-              <span className="font-semibold text-base sm:text-lg">
-                Lesson<span className="text-secondary">Spark</span> USA
+              <img 
+                src={BRANDING.logo.icon} 
+                alt={BRANDING.logo.altText}
+                className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg object-contain"
+              />
+              <span className="font-semibold text-base sm:text-lg text-primary">
+                {BRANDING.appName}
               </span>
             </div>
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Baptist Bible Study Enhancement Platform
+              {BRANDING.tagline}
             </p>
           </div>
 
@@ -105,8 +108,8 @@ export function Footer() {
 
         {/* Copyright */}
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-6 sm:pt-8 border-t text-xs sm:text-sm text-muted-foreground gap-3 sm:gap-0">
-          <p>&copy; {new Date().getFullYear()} LessonSpark USA. All rights reserved.</p>
-          <a 
+          <p>&copy; {new Date().getFullYear()} {BRANDING.copyrightHolder}. All rights reserved.</p>
+          <a
             href={`mailto:${SITE.supportEmail}`}
             className="flex items-center gap-1.5 hover:text-primary transition-colors"
           >
