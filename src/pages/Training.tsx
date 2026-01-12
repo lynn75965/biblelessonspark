@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +24,7 @@ const Training = () => {
     {
       step: 1,
       title: "Sign In to Your Dashboard",
-      description: "Access your account at lessonsparkusa.com and navigate to the Dashboard. Your credits and recent lessons will be displayed.",
+      description: "Access your account at biblelessonspark.com and navigate to the Dashboard. Your credits and recent lessons will be displayed.",
       time: "1 minute"
     },
     {
@@ -128,7 +128,7 @@ const Training = () => {
   const videoPlaceholders = [
     {
       title: "Platform Overview",
-      description: "A 3-minute tour of LessonSpark USA features and navigation.",
+      description: "A 3-minute tour of BibleLessonSpark features and navigation.",
       thumbnail: "overview"
     },
     {
@@ -154,7 +154,7 @@ const Training = () => {
             </div>
             <h1 className="text-4xl font-bold gradient-text">Training Resources</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to master LessonSpark USA and create impactful Bible study lessons for your class.
+              Everything you need to master BibleLessonSpark and create impactful Bible study lessons for your class.
             </p>
             <Button asChild variant="secondary" size="sm">
               <Link to="/">Back to Home</Link>

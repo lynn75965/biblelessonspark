@@ -1,5 +1,5 @@
 // ============================================================
-// LESSONSPARK USA - SUBSCRIPTION HOOK
+// BibleLessonSpark - SUBSCRIPTION HOOK
 // Location: src/hooks/useSubscription.tsx
 // ============================================================
 

@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -155,7 +155,7 @@ const Setup = () => {
             </div>
             <h1 className="text-4xl font-bold gradient-text">Setup Guide</h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Get started with LessonSpark USA in just a few minutes. Follow this guide to set up your account and create your first lesson.
+              Get started with BibleLessonSpark in just a few minutes. Follow this guide to set up your account and create your first lesson.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button asChild variant="secondary" size="sm">
@@ -317,7 +317,7 @@ const Setup = () => {
           </div>
           <h2 className="text-xl font-bold mb-2">Need Setup Assistance?</h2>
           <p className="text-muted-foreground mb-6">
-            Our team is happy to help you get started with LessonSpark USA.
+            Our team is happy to help you get started with BibleLessonSpark.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="outline" size="lg" asChild>

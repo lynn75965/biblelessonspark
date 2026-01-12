@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { BRANDING } from "@/config/branding";
 import { Link } from "react-router-dom";
@@ -116,7 +116,7 @@ const Help = () => {
       questions: [
         {
           q: "How do subscriptions work?",
-          a: "A Personal subscription provides 20 lessons monthly. Additional subscription options are available. Contact support@lessonsparkusa.com for details."
+          a: "A Personal subscription provides 20 lessons monthly. Additional subscription options are available. Contact support@biblelessonspark.com for details."
         },
         {
           q: "What happens if I reach my monthly lesson limit?",
@@ -203,7 +203,7 @@ const Help = () => {
                 <CardContent>
                   <CardDescription>{link.description}</CardDescription>
                   <Button asChild variant="link" className="px-0 mt-2">
-                    <Link to={link.href}>Learn more →</Link>
+                    <Link to={link.href}>Learn more ?</Link>
                   </Button>
                 </CardContent>
               </Card>

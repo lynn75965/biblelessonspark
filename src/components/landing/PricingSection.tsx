@@ -1,5 +1,5 @@
 // ============================================================
-// LESSONSPARK USA - LANDING PAGE PRICING SECTION (SSOT-COMPLIANT)
+// BibleLessonSpark - LANDING PAGE PRICING SECTION (SSOT-COMPLIANT)
 // Location: src/components/landing/PricingSection.tsx
 // Uses usePricingPlans hook - same SSOT as PricingPage.tsx
 // ============================================================

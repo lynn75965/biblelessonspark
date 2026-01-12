@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { ArrowLeft } from "lucide-react";
@@ -191,7 +191,7 @@ export default function TermsOfService() {
               For questions about these Terms of Service, please contact us at:
             </p>
             <p className="text-gray-700 mt-2">
-              <strong>Email:</strong> support@lessonsparkusa.com<br />
+              <strong>Email:</strong> support@biblelessonspark.com<br />
               <strong>Address:</strong> LessonSparkUSA, EckBros Media LLC<br />
               Nacogdoches, Texas, USA
             </p>

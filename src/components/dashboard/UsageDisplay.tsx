@@ -1,5 +1,5 @@
 // ============================================================
-// LESSONSPARK USA - USAGE DISPLAY COMPONENT
+// BibleLessonSpark - USAGE DISPLAY COMPONENT
 // Location: src/components/dashboard/UsageDisplay.tsx
 // Shows subscription tier and lesson usage on Dashboard
 // ============================================================

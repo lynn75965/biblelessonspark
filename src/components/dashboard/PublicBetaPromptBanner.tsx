@@ -125,7 +125,7 @@ export function PublicBetaPromptBanner({
       // Success!
       toast({
         title: messages.enrollmentSuccess.title,
-        description: 'You are now part of the LessonSpark USA Public Beta!',
+        description: 'You are now part of the BibleLessonSpark Public Beta!',
       });
 
       setIsVisible(false);

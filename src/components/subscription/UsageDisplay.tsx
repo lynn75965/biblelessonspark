@@ -1,5 +1,5 @@
 // ============================================================
-// LESSONSPARK USA - USAGE DISPLAY COMPONENT
+// BibleLessonSpark - USAGE DISPLAY COMPONENT
 // Location: src/components/subscription/UsageDisplay.tsx
 // ============================================================
 

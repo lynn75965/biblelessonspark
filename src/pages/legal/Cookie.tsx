@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Cookie as CookieIcon, Mail } from "lucide-react";
@@ -22,7 +22,7 @@ const Cookie = () => {
 
           <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
             <p className="text-lg">
-              This Cookie Policy explains how LessonSpark USA uses cookies and similar technologies to recognize you when you visit our platform.
+              This Cookie Policy explains how BibleLessonSpark uses cookies and similar technologies to recognize you when you visit our platform.
             </p>
 
             <h2 className="text-2xl font-semibold mt-8">What Are Cookies</h2>

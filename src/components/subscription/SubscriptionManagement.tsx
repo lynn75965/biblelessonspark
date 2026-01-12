@@ -1,5 +1,5 @@
 // ============================================================
-// LESSONSPARK USA - SUBSCRIPTION MANAGEMENT COMPONENT
+// BibleLessonSpark - SUBSCRIPTION MANAGEMENT COMPONENT
 // Location: src/components/subscription/SubscriptionManagement.tsx
 // ============================================================
 

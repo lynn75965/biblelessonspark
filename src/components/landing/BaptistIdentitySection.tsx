@@ -11,7 +11,7 @@ export function BaptistIdentitySection() {
           </h2>
           <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-3xl mx-auto px-4">
             We understand Baptist theology, traditions, and the unique needs of your ministry. 
-            LessonSpark USA is designed by Baptists, for Baptists.
+            BibleLessonSpark is designed by Baptists, for Baptists.
           </p>
         </div>
 

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { SITE } from '@/config/site';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -273,7 +273,7 @@ const BetaSignup = () => {
               <p>Questions? Contact Lynn Eckeberger at</p>
               <p className="font-semibold">
                 <a href={`mailto:${SITE.supportEmail}`} className="text-blue-600 hover:underline">
-                  lynn@lessonsparkusa.com
+                  lynn@biblelessonspark.com
                 </a>
                 {" "}| 214.893.5179
               </p>

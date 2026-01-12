@@ -1,5 +1,5 @@
-﻿// ============================================================
-// LESSONSPARK USA - PRICING PAGE (SSOT-COMPLIANT)
+// ============================================================
+// BibleLessonSpark - PRICING PAGE (SSOT-COMPLIANT)
 // Location: src/pages/PricingPage.tsx
 // Prices come FROM Supabase database (synced via Stripe webhook)
 // ============================================================

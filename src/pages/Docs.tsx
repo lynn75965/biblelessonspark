@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -173,7 +173,7 @@ const Docs = () => {
     },
     {
       question: "Can I use my own curriculum as a starting point?",
-      answer: "Yes! You can upload existing curriculum (PDF, DOCX, TXT, or JPG up to 10MB) and LessonSpark USA will enhance it with age-appropriate activities, discussion questions, and applications."
+      answer: "Yes! You can upload existing curriculum (PDF, DOCX, TXT, or JPG up to 10MB) and BibleLessonSpark will enhance it with age-appropriate activities, discussion questions, and applications."
     },
     {
       question: "What Bible translations are supported?",
@@ -181,7 +181,7 @@ const Docs = () => {
     },
     {
       question: "Can I generate lessons in Spanish or French?",
-      answer: "Yes! LessonSpark USA supports English, Spanish, and French. Set your preferred language in your account settings."
+      answer: "Yes! BibleLessonSpark supports English, Spanish, and French. Set your preferred language in your account settings."
     },
     {
       question: "What is the Student Teaser feature?",

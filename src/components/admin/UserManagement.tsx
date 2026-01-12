@@ -882,7 +882,7 @@ export function UserManagement() {
               Invite New User
             </DialogTitle>
             <DialogDescription>
-              Send an invitation email to a new user to join LessonSpark USA.
+              Send an invitation email to a new user to join BibleLessonSpark.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">

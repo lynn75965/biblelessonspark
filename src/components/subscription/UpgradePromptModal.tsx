@@ -1,5 +1,5 @@
-﻿// ============================================================
-// LESSONSPARK USA - UPGRADE PROMPT MODAL (SSOT-COMPLIANT)
+// ============================================================
+// BibleLessonSpark - UPGRADE PROMPT MODAL (SSOT-COMPLIANT)
 // Location: src/components/subscription/UpgradePromptModal.tsx
 // ============================================================
 

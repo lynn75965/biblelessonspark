@@ -66,7 +66,7 @@ export function FeaturesSection() {
             <span className="gradient-text">Exceptional Bible Studies</span>
           </h2>
           <p className="text-sm sm:text-base lg:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-            LessonSpark USA equips any teacher to make every lesson specifically applicable to the class, 
+            BibleLessonSpark equips any teacher to make every lesson specifically applicable to the class, 
             honoring God's Word and engaging every age group.
           </p>
         </div>

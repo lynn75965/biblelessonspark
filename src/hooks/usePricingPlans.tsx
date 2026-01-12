@@ -1,5 +1,5 @@
 // ============================================================
-// LESSONSPARK USA - PRICING PLANS HOOK (SSOT-COMPLIANT)
+// BibleLessonSpark - PRICING PLANS HOOK (SSOT-COMPLIANT)
 // Location: src/hooks/usePricingPlans.tsx
 //
 // Prices come FROM Supabase (which got them from Stripe webhook)
