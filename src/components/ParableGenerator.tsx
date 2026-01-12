@@ -199,7 +199,7 @@ function formatNewsDate(dateString: string): string {
 interface ParableGeneratorProps {
   /** Context determines directive and UI mode */
   context: ParableContext;
-  /** Lesson settings when coming from LessonSparkUSA */
+  /** Lesson settings when coming from BibleLessonSpark */
   lessonSettings?: LessonSettings;
   /** Callback when parable is generated */
   onParableGenerated?: (parable: GeneratedParable) => void;

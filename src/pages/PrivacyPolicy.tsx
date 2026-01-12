@@ -25,7 +25,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Introduction</h2>
             <p className="text-gray-700">
-              LessonSparkUSA ("we", "our", or "us") is committed to protecting your privacy. 
+              BibleLessonSpark ("we", "our", or "us") is committed to protecting your privacy. 
               This Privacy Policy explains how we collect, use, disclose, and safeguard your 
               information when you use our Baptist Bible study lesson generator platform.
             </p>
@@ -118,7 +118,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Children's Privacy</h2>
             <p className="text-gray-700">
-              LessonSparkUSA is intended for use by adults (teachers, ministry leaders). We do not 
+              BibleLessonSpark is intended for use by adults (teachers, ministry leaders). We do not 
               knowingly collect personal information from children under 13. If you believe a child 
               has provided us with personal information, please contact us immediately.
             </p>
@@ -129,7 +129,7 @@ export default function PrivacyPolicy() {
             <p className="text-gray-700">
               We may update this Privacy Policy from time to time. We will notify you of significant 
               changes by email or through a prominent notice on our platform. Your continued use of 
-              LessonSparkUSA after changes constitutes acceptance of the updated policy.
+              BibleLessonSpark after changes constitutes acceptance of the updated policy.
             </p>
           </section>
 
@@ -141,7 +141,7 @@ export default function PrivacyPolicy() {
             </p>
             <p className="text-gray-700 mt-2">
               <strong>Email:</strong> privacy@biblelessonspark.com<br />
-              <strong>Address:</strong> LessonSparkUSA, EckBros Media LLC<br />
+              <strong>Address:</strong> BibleLessonSpark, EckBros Media LLC<br />
               Nacogdoches, Texas, USA
             </p>
           </section>

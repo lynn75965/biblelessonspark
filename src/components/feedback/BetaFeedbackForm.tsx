@@ -171,7 +171,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
       setIsSubmitted(true);
       toast({
         title: 'Thank You!',
-        description: 'Your feedback helps us improve LessonSparkUSA.',
+        description: 'Your feedback helps us improve BibleLessonSpark.',
       });
 
     } catch (error) {

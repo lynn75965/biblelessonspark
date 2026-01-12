@@ -27,7 +27,7 @@ const Help = () => {
   const quickLinks = [
     {
       title: "Getting Started",
-      description: "New to LessonSparkUSA? Start here",
+      description: "New to BibleLessonSpark? Start here",
       icon: BookOpen,
       href: "/docs"
     },
@@ -82,11 +82,11 @@ const Help = () => {
         },
         {
           q: "Can I use my own curriculum materials?",
-          a: "Yes! You can upload PDF, DOCX, TXT, or image files (up to 10MB) of your existing curriculum. LessonSparkUSA will enhance and expand your materials while maintaining theological consistency."
+          a: "Yes! You can upload PDF, DOCX, TXT, or image files (up to 10MB) of your existing curriculum. BibleLessonSpark will enhance and expand your materials while maintaining theological consistency."
         },
         {
           q: "What Bible translations are supported?",
-          a: "LessonSparkUSA supports all major Bible translations including KJV, NIV, ESV, NASB, NLT, and CSB. Select your preferred translation in your account settings."
+          a: "BibleLessonSpark supports all major Bible translations including KJV, NIV, ESV, NASB, NLT, and CSB. Select your preferred translation in your account settings."
         }
       ]
     },
@@ -150,7 +150,7 @@ const Help = () => {
   const troubleshooting = [
     {
       issue: "Page won't load",
-      solution: "Clear your browser cache, disable extensions, or try a different browser. Chrome works best with LessonSparkUSA."
+      solution: "Clear your browser cache, disable extensions, or try a different browser. Chrome works best with BibleLessonSpark."
     },
     {
       issue: "Can't sign in",

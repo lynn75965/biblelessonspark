@@ -112,7 +112,7 @@ const BetaSignup = () => {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold text-blue-900">
-              Join the LessonSparkUSA Beta Program
+              Join the BibleLessonSpark Beta Program
             </CardTitle>
             <CardDescription className="text-lg mt-2">
               Help shape the future of Baptist Bible study lesson creation

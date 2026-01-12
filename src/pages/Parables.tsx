@@ -49,7 +49,7 @@ export default function Parables() {
   const contextParam = searchParams.get("context") as ParableContext | null;
   const isLessonSparkContext = contextParam === "lessonspark";
   
-  // Extract lesson settings if coming from LessonSparkUSA
+  // Extract lesson settings if coming from BibleLessonSpark
   const lessonSettings: LessonSettings | undefined = isLessonSparkContext ? {
     lessonId: searchParams.get("lessonId") || "",
     lessonTitle: searchParams.get("lessonTitle") || "Untitled Lesson",

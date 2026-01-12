@@ -1,4 +1,4 @@
-﻿import {
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -30,8 +30,8 @@ export const BetaFeedbackModal = ({ open, onOpenChange, lessonId }: BetaFeedback
   // Mode-aware text
   const title = isInBetaMode ? "Beta Feedback" : "Share Your Feedback";
   const description = isInBetaMode 
-    ? "Help us improve LessonSparkUSA by sharing your beta experience"
-    : "Help us improve LessonSparkUSA by sharing your experience";
+    ? "Help us improve BibleLessonSpark by sharing your beta experience"
+    : "Help us improve BibleLessonSpark by sharing your experience";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

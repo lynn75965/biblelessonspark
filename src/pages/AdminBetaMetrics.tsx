@@ -116,7 +116,7 @@ const AdminBetaMetrics = () => {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-blue-900">Beta Testing Metrics</h1>
-          <p className="text-gray-600 mt-2">LessonSparkUSA Beta Program Dashboard</p>
+          <p className="text-gray-600 mt-2">BibleLessonSpark Beta Program Dashboard</p>
         </div>
 
         {/* Overview Cards */}

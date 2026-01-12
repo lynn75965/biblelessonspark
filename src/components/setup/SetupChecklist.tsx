@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,7 +49,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
   const [canResendEmail, setCanResendEmail] = useState(true);
 
   useEffect(() => {
-    console.log("âœ… VERIFIED_BUILD: Interactive Setup Checklist working in preview", {
+    console.log("✅ VERIFIED_BUILD: Interactive Setup Checklist working in preview", {
       completedCount,
       totalSteps,
       progressPercentage,
@@ -60,7 +60,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
   const steps: SetupStep[] = [
     {
       id: 'create_account',
-      title: 'Create your LessonSparkUSA account',
+      title: 'Create your BibleLessonSpark account',
       description: 'Sign up and create your teacher profile',
       icon: <User className="h-6 w-6" />,
       action: () => {
@@ -164,7 +164,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
     {
       id: 'invite_teacher',
       title: 'Invite another teacher (optional)',
-      description: 'Share LessonSparkUSA with your ministry team',
+      description: 'Share BibleLessonSpark with your ministry team',
       icon: <UserPlus className="h-6 w-6" />,
       action: () => navigate('/account'),
       actionLabel: 'Invite Teachers',
@@ -177,7 +177,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       icon: <CheckCheck className="h-6 w-6" />,
       action: async () => {
         await updateStep('mark_complete', 'complete');
-        toast.success('Setup complete! Welcome to LessonSparkUSA!');
+        toast.success('Setup complete! Welcome to BibleLessonSpark!');
       },
       actionLabel: 'Complete',
       showAction: false,
@@ -192,7 +192,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
           <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-primary shadow-lg mx-auto mb-4">
             <BookOpen className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to LessonSparkUSA!</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to BibleLessonSpark!</h2>
           <p className="text-muted-foreground mb-6">Please sign in to access your setup checklist and start creating amazing Bible study lessons.</p>
           <Button onClick={() => navigate('/auth')} className="bg-gradient-primary">
             Sign In to Continue
@@ -222,7 +222,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
               <BookOpen className="h-7 w-7 sm:h-8 sm:w-8 text-white" />
             </div>
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome to LessonSparkUSA!</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Welcome to BibleLessonSpark!</h2>
               <p className="text-base sm:text-lg text-muted-foreground">Let's get you started with these simple steps!</p>
             </div>
           </div>
@@ -345,7 +345,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                 <Sparkles className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-2">
-                Congratulations! ðŸŽ‰
+                Congratulations! 🎉
               </h3>
               <p className="text-muted-foreground mb-4">
                 You're all set to start creating amazing Baptist Bible study lessons!

@@ -127,7 +127,7 @@ export function PricingPlansManager() {
                 <li>In Stripe Dashboard: Create a new Price for the product with the new amount</li>
                 <li>Move the canonical lookup_key to the new Price (clear from old, set on new)</li>
                 <li>Mark the old Price inactive (optional)</li>
-                <li>In LessonSparkUSA Admin: Click "Sync from Stripe"</li>
+                <li>In BibleLessonSpark Admin: Click "Sync from Stripe"</li>
                 <li>Verify new amounts updated, adjust credits if needed</li>
               </ol>
               <p className="text-muted-foreground mt-2">

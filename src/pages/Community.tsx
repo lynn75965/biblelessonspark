@@ -1,4 +1,4 @@
-ï»¿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,16 +44,16 @@ const Community = () => {
     {
       icon: Sparkles,
       title: "Innovation-Embracing",
-      description: "We leverage modern tools to enhanceâ€”never replaceâ€”the timeless truths of God's Word."
+      description: "We leverage modern tools to enhance—never replace—the timeless truths of God's Word."
     }
   ];
 
   const connectionOpportunities = [
     {
       title: "Share Your Experience",
-      description: "Tell us how LessonSparkUSA has impacted your teaching ministry. Your story could encourage other teachers.",
+      description: "Tell us how BibleLessonSpark has impacted your teaching ministry. Your story could encourage other teachers.",
       action: "Share Your Story",
-      href: `mailto:${SITE.supportEmail}?subject=My LessonSparkUSA Story`
+      href: `mailto:${SITE.supportEmail}?subject=My BibleLessonSpark Story`
     },
     {
       title: "Suggest Features",
@@ -69,7 +69,7 @@ const Community = () => {
     },
     {
       title: "Partner With Us",
-      description: "Associations, seminaries, and church networksâ€”let's discuss how we can serve your teachers together.",
+      description: "Associations, seminaries, and church networks—let's discuss how we can serve your teachers together.",
       action: "Explore Partnership",
       href: `mailto:${SITE.supportEmail}?subject=Partnership Inquiry`
     }
@@ -132,7 +132,7 @@ const Community = () => {
           <Badge variant="secondary" className="mb-4">Our Vision</Badge>
           <h2 className="text-2xl font-bold mb-4">Strengthening Baptist Teaching Together</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            LessonSparkUSA exists to serve the thousands of volunteer Sunday School teachers, 
+            BibleLessonSpark exists to serve the thousands of volunteer Sunday School teachers, 
             small group leaders, and Bible study facilitators who faithfully prepare lessons 
             week after week. We believe that when teachers are equipped with excellent resources, 
             students encounter God's Word more deeply.
@@ -189,7 +189,7 @@ const Community = () => {
               <Share2 className="h-6 w-6 text-primary" />
               Ways to Connect
             </h2>
-            <p className="text-muted-foreground mt-2">Get involved and help shape the future of LessonSparkUSA</p>
+            <p className="text-muted-foreground mt-2">Get involved and help shape the future of BibleLessonSpark</p>
           </div>
           
           <div className="grid sm:grid-cols-2 gap-4">
@@ -259,7 +259,7 @@ const Community = () => {
               <h2 className="text-xl font-bold mb-2">Join Our Beta Testing Community</h2>
               <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
                 As a beta tester, you get early access to new features, direct input on development priorities, 
-                and the opportunity to shape how LessonSparkUSA serves Baptist teachers everywhere.
+                and the opportunity to shape how BibleLessonSpark serves Baptist teachers everywhere.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button asChild size="lg">

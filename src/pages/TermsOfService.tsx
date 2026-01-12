@@ -25,7 +25,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Acceptance of Terms</h2>
             <p className="text-gray-700">
-              By accessing and using LessonSparkUSA ("Service", "Platform"), you accept and agree to 
+              By accessing and using BibleLessonSpark ("Service", "Platform"), you accept and agree to 
               be bound by these Terms of Service. If you do not agree to these terms, please do not 
               use the Service.
             </p>
@@ -34,7 +34,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Description of Service</h2>
             <p className="text-gray-700">
-              LessonSparkUSA is an Personalized Baptist Bible study lesson generator designed to help 
+              BibleLessonSpark is an Personalized Baptist Bible study lesson generator designed to help 
               volunteer teachers and ministry leaders create educational content. The Service generates 
               lessons based on your inputs and preferences, aligned with Baptist theological traditions.
             </p>
@@ -91,7 +91,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 mt-4">Platform Content</h3>
             <p className="text-gray-700">
-              The LessonSparkUSA platform, including its design, code, and technology, is owned by 
+              The BibleLessonSpark platform, including its design, code, and technology, is owned by 
               EckBros Media LLC and protected by copyright and intellectual property laws.
             </p>
 
@@ -106,7 +106,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Content Disclaimer</h2>
             <p className="text-gray-700 mb-3">
-              LessonSparkUSA generates content using advanced technology. While we strive for theological 
+              BibleLessonSpark generates content using advanced technology. While we strive for theological 
               accuracy aligned with Baptist traditions:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-1">
@@ -134,7 +134,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Limitation of Liability</h2>
             <p className="text-gray-700">
-              TO THE MAXIMUM EXTENT PERMITTED BY LAW, LESSONSPARKUSA AND ITS OPERATORS SHALL NOT BE 
+              TO THE MAXIMUM EXTENT PERMITTED BY LAW, BibleLessonSpark AND ITS OPERATORS SHALL NOT BE 
               LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, 
               INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, USE, OR OTHER INTANGIBLE LOSSES 
               RESULTING FROM YOUR USE OF THE SERVICE.
@@ -153,7 +153,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Indemnification</h2>
             <p className="text-gray-700">
-              You agree to indemnify and hold harmless LessonSparkUSA and EckBros Media LLC from any 
+              You agree to indemnify and hold harmless BibleLessonSpark and EckBros Media LLC from any 
               claims, damages, liabilities, and expenses arising from your use of the Service or 
               violation of these Terms.
             </p>
@@ -192,7 +192,7 @@ export default function TermsOfService() {
             </p>
             <p className="text-gray-700 mt-2">
               <strong>Email:</strong> support@biblelessonspark.com<br />
-              <strong>Address:</strong> LessonSparkUSA, EckBros Media LLC<br />
+              <strong>Address:</strong> BibleLessonSpark, EckBros Media LLC<br />
               Nacogdoches, Texas, USA
             </p>
           </section>
