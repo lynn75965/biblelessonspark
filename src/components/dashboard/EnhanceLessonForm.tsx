@@ -28,6 +28,8 @@ import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
 import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { useTeacherProfiles, TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { useToast } from "@/hooks/use-toast";
@@ -309,6 +311,7 @@ export function EnhanceLessonForm({
   // ACCORDION STATE
   // ============================================================================
   
+  const navigate = useNavigate();
   const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1);
 
   // ============================================================================
@@ -1699,7 +1702,10 @@ export function EnhanceLessonForm({
                   <p className="text-sm text-slate-600 mb-4">
                     You'll still get the overview, teaching script, and student handout—but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
                   </p>
-                  <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                  <Button 
+                    type="button"
+                    onClick={() => navigate(ROUTES.PRICING)}
+                    className="bg-amber-500 hover:bg-amber-600 text-white">
                     {PRICING_DISPLAY.personal.upgradeButton} — {PRICING_DISPLAY.personal.ctaFull}
                   </Button>
                 </div>
