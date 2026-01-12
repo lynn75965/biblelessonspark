@@ -64,6 +64,12 @@ export default {
           foreground: "hsl(var(--destructive-foreground))",
           light: "hsl(var(--destructive-light))",
         },
+        // Burgundy - Baptist Heritage color (Reverence, Importance, Tradition)
+        burgundy: {
+          DEFAULT: "hsl(var(--burgundy))",
+          hover: "hsl(var(--burgundy-hover))",
+          light: "hsl(var(--burgundy-light))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -89,7 +95,7 @@ export default {
       },
       spacing: {
         'xs': 'var(--spacing-xs)',
-        'sm': 'var(--spacing-sm)', 
+        'sm': 'var(--spacing-sm)',
         'md': 'var(--spacing-md)',
         'lg': 'var(--spacing-lg)',
         'xl': 'var(--spacing-xl)',

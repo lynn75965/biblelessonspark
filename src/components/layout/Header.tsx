@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { BookOpen, User } from "lucide-react";
+import { User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -22,6 +22,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 // SSOT Imports
 import { getEffectiveRole } from "@/constants/accessControl";
 import { getNavigationForRole, NavigationItem } from "@/constants/navigationConfig";
+import { BRANDING } from "@/config/branding";
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -80,10 +81,12 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
           <Link to="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-90 transition-opacity shrink-0" title="Return to Home">
-            <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-            </div>
-            <span className="text-base sm:text-lg lg:text-xl font-bold gradient-text hidden xs:inline">LessonSpark USA</span>
+            <img 
+              src={BRANDING.logo.icon} 
+              alt={BRANDING.logo.altText}
+              className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg object-contain"
+            />
+            <span className="text-base sm:text-lg lg:text-xl font-bold text-primary hidden xs:inline">{BRANDING.appName}</span>
           </Link>
 
           {authenticated && displayOrgName && (
@@ -106,8 +109,8 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-gradient-secondary shrink-0">
-                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary shrink-0">
+                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
                     </div>
                     <span className="hidden sm:block text-sm lg:text-base max-w-[100px] lg:max-w-none truncate">{displayName}</span>
                   </Button>
@@ -122,10 +125,10 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  
+
                   {navigationItems.map((item, index) => {
                     const IconComponent = item.icon;
-                    
+
                     // Handle Sign Out specially (onClick, not Link)
                     if (item.id === 'signOut') {
                       return (
@@ -135,7 +138,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
                         </DropdownMenuItem>
                       );
                     }
-                    
+
                     // Render navigation link
                     return (
                       <div key={item.id}>
@@ -159,7 +162,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
                   Sign In
                 </Button>
               )}
-              <Button variant="hero" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={() => window.location.href = settings.show_join_beta_button ? '/auth?tab=signup' : '/auth'}>
+              <Button variant="default" size="sm" className="min-h-[36px] sm:min-h-[40px] text-xs sm:text-sm px-3 sm:px-4" onClick={() => window.location.href = settings.show_join_beta_button ? '/auth?tab=signup' : '/auth'}>
                 {settings.show_join_beta_button ? "Join Beta" : "Sign In"}
               </Button>
             </>

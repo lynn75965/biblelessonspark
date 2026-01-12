@@ -1,16 +1,19 @@
-﻿/**
- * LessonSparkUSA Branding Configuration
- * ======================================
- * 
+/**
+ * BibleLessonSpark Branding Configuration
+ * ========================================
+ *
  * This file centralizes ALL branding elements for the application.
  * For white-label deployments, modify ONLY this file to rebrand the entire app.
- * 
+ *
  * Location: src/config/branding.ts
- * 
+ *
  * USAGE:
  *   import { BRANDING } from '@/config/branding';
  *   <h1>{BRANDING.appName}</h1>
  *   <img src={BRANDING.logo.primary} alt={BRANDING.appName} />
+ * 
+ * REBRAND: January 2026 - LessonSparkUSA → BibleLessonSpark
+ * Color palette derived from logo: forest green book, golden flame, cream background
  */
 
 // ============================================================================
@@ -21,23 +24,23 @@ export const BRANDING = {
   /**
    * Application name - appears in headers, titles, emails, etc.
    */
-  appName: "LessonSpark USA",
-  
+  appName: "BibleLessonSpark",
+
   /**
    * Short name for compact displays (mobile nav, favicon title, etc.)
    */
-  appNameShort: "LessonSparkUSA",
-  
+  appNameShort: "BibleLessonSpark",
+
   /**
    * Primary tagline - used on landing page, meta descriptions
    */
-  tagline: "Baptist Bible Study Enhancement Platform",
-  
+  tagline: "Personalized Bible Study Lessons for Baptist Teachers",
+
   /**
    * Extended description for marketing/SEO
    */
   description: "Personalized Bible study lesson generator for Baptist Sunday School teachers. Create customized, theologically sound lessons in minutes.",
-  
+
   /**
    * Keywords for SEO (array format for flexibility)
    */
@@ -48,99 +51,100 @@ export const BRANDING = {
     "lesson generator",
     "Southern Baptist",
     "church curriculum",
-    "teacher resources"
+    "teacher resources",
+    "Bible lesson"
   ],
 
   // ==========================================================================
   // DOMAIN & URLS
   // ==========================================================================
-  
+
   urls: {
     /**
      * Primary domain (without protocol)
      */
-    domain: "lessonsparkusa.com",
-    
+    domain: "biblelessonspark.com",
+
     /**
      * Full base URL (with protocol)
      */
-    baseUrl: "https://lessonsparkusa.com",
-    
+    baseUrl: "https://biblelessonspark.com",
+
     /**
      * Support/help page URL
      */
-    support: "https://lessonsparkusa.com/support",
-    
+    support: "https://biblelessonspark.com/support",
+
     /**
      * Terms of Service URL
      */
-    termsOfService: "https://lessonsparkusa.com/terms",
-    
+    termsOfService: "https://biblelessonspark.com/terms",
+
     /**
      * Privacy Policy URL
      */
-    privacyPolicy: "https://lessonsparkusa.com/privacy",
-    
+    privacyPolicy: "https://biblelessonspark.com/privacy",
+
     /**
      * Documentation/Help URL (if separate)
      */
-    documentation: "https://lessonsparkusa.com/help",
-    
+    documentation: "https://biblelessonspark.com/help",
+
     /**
      * Unsubscribe URL template (for email compliance)
      * {token} will be replaced with user-specific unsubscribe token
      */
-    unsubscribe: "https://lessonsparkusa.com/unsubscribe?token={token}",
-    
+    unsubscribe: "https://biblelessonspark.com/unsubscribe?token={token}",
+
     /**
      * Email preferences URL
      */
-    emailPreferences: "https://lessonsparkusa.com/settings/notifications",
+    emailPreferences: "https://biblelessonspark.com/settings/notifications",
   },
 
   // ==========================================================================
   // CONTACT INFORMATION
   // ==========================================================================
-  
+
   contact: {
     /**
      * Primary support email
      */
-    supportEmail: "support@lessonsparkusa.com",
-    
+    supportEmail: "support@biblelessonspark.com",
+
     /**
      * General inquiries email
      */
-    infoEmail: "info@lessonsparkusa.com",
-    
+    infoEmail: "info@biblelessonspark.com",
+
     /**
      * No-reply email for automated messages
      */
-    noReplyEmail: "noreply@lessonsparkusa.com",
-    
+    noReplyEmail: "noreply@biblelessonspark.com",
+
     /**
      * Display name for email sender
      */
-    emailSenderName: "LessonSpark USA",
-    
+    emailSenderName: "BibleLessonSpark",
+
     /**
      * Phone number (optional - set to null if not used)
      */
     phone: null,
-    
+
     /**
      * Physical address (REQUIRED for CAN-SPAM compliance in emails)
      * Even a PO Box is acceptable
      */
     address: {
-      line1: "LessonSpark USA",
+      line1: "BibleLessonSpark",
       line2: null,  // Optional second line
       city: "Nacogdoches",
       state: "TX",
       zip: "75965",
       country: "USA",
     },
-    
+
     /**
      * Formatted address for email footer (single line)
      */
@@ -154,127 +158,139 @@ export const BRANDING = {
   // ==========================================================================
   // VISUAL IDENTITY - LOGOS
   // ==========================================================================
-  
+
   logo: {
     /**
      * Primary logo (for light backgrounds)
      * Recommended: SVG format, ~200px width
      */
-    primary: "/assets/logo-primary.svg",
-    
+    primary: "/assets/logo-primary.png",
+
     /**
      * Logo for dark backgrounds
      */
-    light: "/assets/logo-light.svg",
-    
+    light: "/assets/logo-light.png",
+
     /**
      * Small logo/icon for compact spaces (navbar, mobile)
      * Recommended: Square format, ~40px
      */
-    icon: "/assets/logo-icon.svg",
-    
+    icon: "/assets/logo-icon.png",
+
     /**
      * Favicon (browser tab icon)
      */
     favicon: "/favicon.ico",
-    
+
     /**
      * Apple touch icon (iOS home screen)
      */
     appleTouchIcon: "/apple-touch-icon.png",
-    
+
     /**
      * Open Graph image (social media sharing)
      * Recommended: 1200x630px
      */
     ogImage: "/assets/og-image.png",
-    
+
     /**
      * Logo alt text for accessibility
      */
-    altText: "LessonSpark USA Logo",
+    altText: "BibleLessonSpark Logo - Golden flame rising from open Bible",
   },
 
   // ==========================================================================
   // VISUAL IDENTITY - COLORS
   // ==========================================================================
-  
+  // Derived from logo: Forest green book, golden flame, warm cream background
+
   colors: {
     /**
-     * Primary brand color
-     * Used for: buttons, links, primary actions
-     * Current: Indigo (adjust to match your Tailwind config)
+     * Primary brand color - Forest Green (from Bible/book in logo)
+     * Used for: buttons, links, primary actions, headers
      */
     primary: {
-      DEFAULT: "#4F46E5",  // indigo-600
-      light: "#818CF8",    // indigo-400
-      dark: "#3730A3",     // indigo-800
+      DEFAULT: "#3D5C3D",  // Forest green - main
+      light: "#4A7A4A",    // Lighter forest green
+      dark: "#2D4A2D",     // Darker forest green
     },
-    
+
     /**
-     * Secondary brand color
-     * Used for: secondary buttons, accents
+     * Secondary brand color - Antique Gold (from flame in logo)
+     * Used for: secondary buttons, accents, highlights
      */
     secondary: {
-      DEFAULT: "#10B981",  // emerald-500
-      light: "#34D399",    // emerald-400
-      dark: "#059669",     // emerald-600
+      DEFAULT: "#D4A74B",  // Antique gold - main
+      light: "#E4BE6A",    // Lighter gold
+      dark: "#B8923E",     // Deeper gold
     },
-    
+
     /**
-     * Accent color
-     * Used for: highlights, notifications, badges
+     * Accent color - Deep Gold (from ring around logo)
+     * Used for: highlights, notifications, badges, hover states
      */
     accent: {
-      DEFAULT: "#F59E0B",  // amber-500
-      light: "#FBBF24",    // amber-400
-      dark: "#D97706",     // amber-600
+      DEFAULT: "#C9A754",  // Deep gold
+      light: "#DBBF6E",    // Light gold
+      dark: "#A88B3D",     // Dark gold
     },
-    
+
+    /**
+     * Tertiary color - Burgundy (Baptist heritage, reverence, importance)
+     * Used for: errors, warnings, important badges, heritage elements
+     * Strategic use: communion themes, sacrifice/redemption tags, footer accents
+     */
+    burgundy: {
+      DEFAULT: "#661A33",  // Deep burgundy - primary accent (hsl 345, 60%, 25%)
+      light: "#995266",    // Muted burgundy - softer accents (hsl 345, 40%, 40%)
+      dark: "#4D1426",     // Darker burgundy - pressed states
+      hover: "#8C3352",    // Wine - hover states (hsl 345, 55%, 35%)
+    },
+
     /**
      * Success color (confirmations, completions)
      */
-    success: "#22C55E",    // green-500
-    
+    success: "#3D5C3D",    // Using primary green for success
+
     /**
      * Warning color (cautions, alerts)
      */
-    warning: "#F59E0B",    // amber-500
-    
+    warning: "#D4A74B",    // Using secondary gold for warnings
+
     /**
-     * Error/Danger color
+     * Error/Danger color - Using burgundy for Baptist heritage feel
      */
-    error: "#EF4444",      // red-500
-    
+    error: "#661A33",      // Deep burgundy (replaces harsh red)
+
     /**
      * Info color
      */
-    info: "#3B82F6",       // blue-500
-    
+    info: "#4A7A4A",       // Light green for info
+
     /**
      * Background colors
      */
     background: {
-      primary: "#FFFFFF",
-      secondary: "#F9FAFB",  // gray-50
-      dark: "#111827",       // gray-900
+      primary: "#FFFEF9",    // Warm cream (from logo background)
+      secondary: "#FAF8F3",  // Slightly darker cream
+      dark: "#2D4A2D",       // Dark forest green
     },
-    
+
     /**
      * Text colors
      */
     text: {
-      primary: "#111827",    // gray-900
-      secondary: "#6B7280",  // gray-500
-      light: "#9CA3AF",      // gray-400
-      inverse: "#FFFFFF",
+      primary: "#2D2D2D",    // Dark charcoal
+      secondary: "#5C5C5C",  // Medium gray
+      light: "#8A8A8A",      // Light gray
+      inverse: "#FFFEF9",    // Cream for dark backgrounds
     },
   },
 
   // ==========================================================================
   // TYPOGRAPHY (if using custom fonts)
   // ==========================================================================
-  
+
   typography: {
     /**
      * Primary font family (headings, UI)
@@ -283,7 +299,7 @@ export const BRANDING = {
       primary: '"Inter", system-ui, sans-serif',
       secondary: '"Merriweather", Georgia, serif',  // For Scripture text
     },
-    
+
     /**
      * Google Fonts URL (if loading external fonts)
      * Set to null if using system fonts only
@@ -294,73 +310,73 @@ export const BRANDING = {
   // ==========================================================================
   // LAYOUT & STRUCTURE (Page-level styling for white-label customization)
   // ==========================================================================
-  
+
   layout: {
     /**
      * Page wrapper - outermost container for all pages
      */
     pageWrapper: "min-h-screen bg-background flex flex-col",
-    
+
     /**
      * Main content area - flex-1 to fill available space
      */
     mainContent: "flex-1",
-    
+
     /**
      * Container padding (responsive)
      */
     containerPadding: "py-6 sm:py-8 px-4 sm:px-6",
-    
+
     /**
      * Container max-width for centered content
      */
     containerNarrow: "max-w-2xl mx-auto",
-    
+
     /**
      * Container max-width for wider content
      */
     containerWide: "max-w-6xl mx-auto",
-    
+
     /**
      * Page header bottom margin
      */
     pageHeaderMargin: "mb-6 sm:mb-8",
-    
+
     /**
      * Section vertical spacing
      */
     sectionSpacing: "mb-6 sm:mb-8",
-    
+
     /**
      * Card/grid gaps (responsive)
      */
     gridGap: "gap-4 sm:gap-6",
-    
+
     /**
      * Stats card grid columns
      */
     statsGrid: "grid grid-cols-2 gap-3 sm:gap-4",
-    
+
     /**
      * Standard card padding
      */
     cardPadding: "p-4 sm:p-6",
-    
+
     /**
      * Auth page wrapper - centered form with gradient background
      */
     authPageWrapper: "min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4",
-    
+
     /**
      * Auth form container - max-width centered
      */
     authFormContainer: "w-full max-w-md px-4 sm:px-0",
-    
+
     /**
      * Legal pages wrapper - gradient background for Privacy/Terms
      */
-    legalPageWrapper: "min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 py-12 px-4",
-    
+    legalPageWrapper: "min-h-screen bg-gradient-to-br from-green-50 to-amber-50 py-12 px-4",
+
     /**
      * Legal page content card
      */
@@ -369,34 +385,34 @@ export const BRANDING = {
   // ==========================================================================
   // LEGAL & COPYRIGHT
   // ==========================================================================
-  
+
   legal: {
     /**
      * Copyright holder name
      */
-    copyrightHolder: "LessonSpark USA",
-    
+    copyrightHolder: "BibleLessonSpark",
+
     /**
      * Copyright start year
      */
     copyrightYear: "2024",
-    
+
     /**
      * Full copyright notice (auto-generated with current year)
      */
     get copyrightNotice() {
       const currentYear = new Date().getFullYear();
-      const yearRange = this.copyrightYear === String(currentYear) 
-        ? this.copyrightYear 
+      const yearRange = this.copyrightYear === String(currentYear)
+        ? this.copyrightYear
         : `${this.copyrightYear}-${currentYear}`;
-      return `Â© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
+      return `© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
     },
-    
+
     /**
      * Company/Organization legal name (for ToS, etc.)
      */
-    legalEntityName: "LessonSpark USA",
-    
+    legalEntityName: "BibleLessonSpark",
+
     /**
      * State/Jurisdiction for legal purposes
      */
@@ -406,7 +422,7 @@ export const BRANDING = {
   // ==========================================================================
   // SOCIAL MEDIA (optional)
   // ==========================================================================
-  
+
   social: {
     /**
      * Set any to null if not used
@@ -421,49 +437,49 @@ export const BRANDING = {
   // ==========================================================================
   // FEATURE FLAGS (White-label customization options)
   // ==========================================================================
-  
+
   features: {
     /**
-     * Show "Powered by LessonSpark USA" badge in footer
+     * Show "Powered by BibleLessonSpark" badge in footer
      * White-label customers may want this false
      */
     showPoweredBy: false,
-    
+
     /**
      * Allow public user registration
      * Some organizations may want invite-only
      */
     allowPublicSignup: true,
-    
+
     /**
      * Enable multi-language support
      */
     multiLanguage: true,
-    
+
     /**
      * Available languages (if multiLanguage is true)
      */
     availableLanguages: [
-      { code: "en", name: "English", flag: "ðŸ‡ºðŸ‡¸" },
-      { code: "es", name: "EspaÃ±ol", flag: "ðŸ‡²ðŸ‡½" },
-      { code: "fr", name: "FranÃ§ais", flag: "ðŸ‡«ðŸ‡·" },
+      { code: "en", name: "English", flag: "🇺🇸" },
+      { code: "es", name: "Español", flag: "🇲🇽" },
+      { code: "fr", name: "Français", flag: "🇫🇷" },
     ],
-    
+
     /**
      * Default language
      */
     defaultLanguage: "en",
-    
+
     /**
      * Enable organization/church features
      */
     organizationsEnabled: true,
-    
+
     /**
      * Enable beta features
      */
     betaFeaturesEnabled: false,
-    
+
     /**
      * Show feedback button
      */
@@ -473,11 +489,11 @@ export const BRANDING = {
   // ==========================================================================
   // HELP VIDEOS (Explainer/Onboarding Videos)
   // ==========================================================================
-  
+
   /**
    * Help video configuration for user onboarding.
    * White-label tenants can customize video URLs and content.
-   * 
+   *
    * USAGE:
    *   - Set enabled: true when videos are ready
    *   - Replace URLs with your Vimeo/YouTube embed links
@@ -489,22 +505,22 @@ export const BRANDING = {
      * When false, all help video UI is hidden
      */
     enabled: false,
-    
+
     /**
      * Show first-time user banner above lesson creation form
      */
     showBanner: true,
-    
+
     /**
      * Show floating help button on Enhance Lesson tab
      */
     showFloatingButton: true,
-    
+
     /**
      * Auto-play video on first visit (if enabled and video exists)
      */
     autoPlayOnFirstVisit: false,
-    
+
     /**
      * Video definitions - add more as needed
      */
@@ -518,9 +534,9 @@ export const BRANDING = {
         description: 'Learn how to generate a customized Bible study lesson in under 2 minutes.',
         url: '', // Vimeo embed URL: https://player.vimeo.com/video/XXXXXXX
         durationSeconds: 60,
-        storageKey: 'ls_help_create_first_lesson_seen',
+        storageKey: 'bls_help_create_first_lesson_seen',
       },
-      
+
       /**
        * Understanding Your Lesson Output
        */
@@ -530,9 +546,9 @@ export const BRANDING = {
         description: 'See how to navigate and use your generated lesson sections.',
         url: '', // Vimeo embed URL
         durationSeconds: 45,
-        storageKey: 'ls_help_understanding_output_seen',
+        storageKey: 'bls_help_understanding_output_seen',
       },
-      
+
       /**
        * Credits & Subscription
        */
@@ -542,9 +558,9 @@ export const BRANDING = {
         description: 'Understand your lesson credits and subscription options.',
         url: '', // Vimeo embed URL
         durationSeconds: 30,
-        storageKey: 'ls_help_credits_usage_seen',
+        storageKey: 'bls_help_credits_usage_seen',
       },
-      
+
       /**
        * Export & Share Your Lesson
        */
@@ -554,9 +570,9 @@ export const BRANDING = {
         description: 'Download your lesson as PDF or Word document.',
         url: '', // Vimeo embed URL
         durationSeconds: 30,
-        storageKey: 'ls_help_export_lesson_seen',
+        storageKey: 'bls_help_export_lesson_seen',
       },
-      
+
       /**
        * Step 1: Choose Your Scripture
        * Accordion workspace video for scripture input
@@ -567,9 +583,9 @@ export const BRANDING = {
         description: 'Learn how to enter Bible passages or paste curriculum content.',
         url: '', // Vimeo embed URL - populate when video is ready
         durationSeconds: 45,
-        storageKey: 'ls_help_step1_seen',
+        storageKey: 'bls_help_step1_seen',
       },
-      
+
       /**
        * Step 2: Set Teaching Context
        * Accordion workspace video for age group, theology, Bible version
@@ -580,9 +596,9 @@ export const BRANDING = {
         description: 'Configure age group, theology profile, and Bible version.',
         url: '', // Vimeo embed URL - populate when video is ready
         durationSeconds: 60,
-        storageKey: 'ls_help_step2_seen',
+        storageKey: 'bls_help_step2_seen',
       },
-      
+
       /**
        * Step 3: Personalize Your Lesson
        * Accordion workspace video for teacher customization options
@@ -593,87 +609,88 @@ export const BRANDING = {
         description: 'Save teacher profiles and customize lesson generation settings.',
         url: '', // Vimeo embed URL - populate when video is ready
         durationSeconds: 90,
-        storageKey: 'ls_help_step3_seen',
+        storageKey: 'bls_help_step3_seen',
       },
     },
-    
+
     /**
      * Banner styling (can be customized per tenant)
+     * Using BibleLessonSpark color palette
      */
     bannerStyles: {
-      backgroundColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-      iconBackgroundColor: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      titleColor: 'text-blue-900',
-      subtitleColor: 'text-blue-700',
-      buttonBackgroundColor: 'bg-blue-600',
-      buttonHoverColor: 'hover:bg-blue-700',
+      backgroundColor: 'bg-amber-50',
+      borderColor: 'border-amber-200',
+      iconBackgroundColor: 'bg-amber-100',
+      iconColor: 'text-amber-700',
+      titleColor: 'text-green-900',
+      subtitleColor: 'text-green-700',
+      buttonBackgroundColor: 'bg-green-700',
+      buttonHoverColor: 'hover:bg-green-800',
     },
-    
+
     /**
      * Floating button styling
      */
     floatingButtonStyles: {
-      backgroundColor: 'bg-blue-600',
-      hoverColor: 'hover:bg-blue-700',
+      backgroundColor: 'bg-green-700',
+      hoverColor: 'hover:bg-green-800',
       textColor: 'text-white',
     },
   },
 
   // ==========================================================================
-  // THEOLOGICAL IDENTITY (specific to LessonSpark)
+  // THEOLOGICAL IDENTITY (specific to BibleLessonSpark)
   // ==========================================================================
-  
+
   theological: {
     /**
      * Primary denominational identity
      */
     denomination: "Baptist",
-    
+
     /**
      * Theological tradition description
      */
     tradition: "Southern Baptist",
-    
+
     /**
      * Default Bible translation
      */
     defaultBibleTranslation: "KJV",
-    
+
     /**
      * Tagline for theological positioning
      */
     theologicalTagline: "Rooted in Baptist Heritage, Relevant for Today",
-    
+
     /**
      * Statement shown to users about theological approach
      */
-    theologicalStatement: "LessonSpark USA creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
+    theologicalStatement: "BibleLessonSpark creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
   },
 
   // ==========================================================================
   // RESEND EMAIL CONFIGURATION
   // ==========================================================================
-  
+
   email: {
     /**
      * =========================================
      * SENDER CONFIGURATION
      * =========================================
      */
-    
+
     /**
      * Default "From" email address
      * Must be verified in Resend dashboard
      */
-    fromEmail: "noreply@lessonsparkusa.com",
-    
+    fromEmail: "noreply@biblelessonspark.com",
+
     /**
      * Default "From" name that appears in inbox
      */
-    fromName: "LessonSpark USA",
-    
+    fromName: "BibleLessonSpark",
+
     /**
      * Combined "From" field for Resend API
      * Format: "Name <email@domain.com>"
@@ -681,211 +698,211 @@ export const BRANDING = {
     get from() {
       return `${this.fromName} <${this.fromEmail}>`;
     },
-    
+
     /**
      * Reply-To email address
      * Where replies should go (usually support)
      */
-    replyTo: "support@lessonsparkusa.com",
-    
+    replyTo: "support@biblelessonspark.com",
+
     /**
      * =========================================
      * EMAIL TEMPLATE STYLING
      * =========================================
      */
-    
+
     styles: {
       /**
-       * Email header background color
+       * Email header background color - Forest Green
        */
-      headerBackground: "#4F46E5",  // Match primary brand color
-      
+      headerBackground: "#3D5C3D",
+
       /**
        * Email header text color
        */
       headerTextColor: "#FFFFFF",
-      
+
       /**
-       * Email body background color
+       * Email body background color - Warm cream
        */
-      bodyBackground: "#F9FAFB",
-      
+      bodyBackground: "#FAF8F3",
+
       /**
        * Email content area background
        */
       contentBackground: "#FFFFFF",
-      
+
       /**
        * Primary text color in emails
        */
-      textColor: "#111827",
-      
+      textColor: "#2D2D2D",
+
       /**
        * Secondary/muted text color
        */
-      mutedTextColor: "#6B7280",
-      
+      mutedTextColor: "#5C5C5C",
+
       /**
-       * Link color in emails
+       * Link color in emails - Forest green
        */
-      linkColor: "#4F46E5",
-      
+      linkColor: "#3D5C3D",
+
       /**
-       * Primary button background
+       * Primary button background - Forest green
        */
-      buttonBackground: "#4F46E5",
-      
+      buttonBackground: "#3D5C3D",
+
       /**
        * Primary button text color
        */
       buttonTextColor: "#FFFFFF",
-      
+
       /**
-       * Secondary button background
+       * Secondary button background - Antique gold
        */
-      secondaryButtonBackground: "#E5E7EB",
-      
+      secondaryButtonBackground: "#D4A74B",
+
       /**
        * Secondary button text color
        */
-      secondaryButtonTextColor: "#374151",
-      
+      secondaryButtonTextColor: "#2D2D2D",
+
       /**
        * Footer background color
        */
-      footerBackground: "#F3F4F6",
-      
+      footerBackground: "#FAF8F3",
+
       /**
        * Footer text color
        */
-      footerTextColor: "#6B7280",
-      
+      footerTextColor: "#5C5C5C",
+
       /**
        * Border color for cards/sections
        */
-      borderColor: "#E5E7EB",
-      
+      borderColor: "#E5E2D9",
+
       /**
        * Border radius for buttons/cards
        */
       borderRadius: "6px",
-      
+
       /**
        * Font family for emails (use web-safe fonts)
        */
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
-    
+
     /**
      * =========================================
      * EMAIL LOGO & IMAGES
      * =========================================
      */
-    
+
     images: {
       /**
        * Logo for email header
        * MUST be full URL (not relative path) for email clients
        * Recommended: PNG format, ~200px width, transparent background
        */
-      headerLogo: "https://lessonsparkusa.com/assets/email-logo.png",
-      
+      headerLogo: "https://biblelessonspark.com/assets/email-logo.png",
+
       /**
        * Logo width in pixels
        */
       headerLogoWidth: 180,
-      
+
       /**
        * Logo height in pixels (maintain aspect ratio)
        */
       headerLogoHeight: 40,
-      
+
       /**
        * Logo alt text
        */
-      headerLogoAlt: "LessonSpark USA",
-      
+      headerLogoAlt: "BibleLessonSpark",
+
       /**
        * Icon for transactional emails (smaller logo)
        */
-      iconLogo: "https://lessonsparkusa.com/assets/email-icon.png",
-      
+      iconLogo: "https://biblelessonspark.com/assets/email-icon.png",
+
       /**
        * Social media icons (if used in footer)
        */
       socialIcons: {
-        facebook: "https://lessonsparkusa.com/assets/email/icon-facebook.png",
-        twitter: "https://lessonsparkusa.com/assets/email/icon-twitter.png",
-        instagram: "https://lessonsparkusa.com/assets/email/icon-instagram.png",
+        facebook: "https://biblelessonspark.com/assets/email/icon-facebook.png",
+        twitter: "https://biblelessonspark.com/assets/email/icon-twitter.png",
+        instagram: "https://biblelessonspark.com/assets/email/icon-instagram.png",
       },
     },
-    
+
     /**
      * =========================================
      * EMAIL SUBJECTS
      * =========================================
      * Use {placeholders} for dynamic content
      */
-    
+
     subjects: {
       // Authentication emails
-      welcome: "Welcome to LessonSpark USA! ðŸŽ‰",
-      emailVerification: "Verify your LessonSpark USA email address",
-      passwordReset: "Reset your LessonSpark USA password",
-      passwordChanged: "Your LessonSpark USA password has been changed",
-      
+      welcome: "Welcome to BibleLessonSpark! 🎉",
+      emailVerification: "Verify your BibleLessonSpark email address",
+      passwordReset: "Reset your BibleLessonSpark password",
+      passwordChanged: "Your BibleLessonSpark password has been changed",
+
       // Organization emails
-      orgInvitation: "You've been invited to join {orgName} on LessonSpark USA",
+      orgInvitation: "You've been invited to join {orgName} on BibleLessonSpark",
       orgInvitationAccepted: "{userName} has joined {orgName}",
       orgRoleChanged: "Your role in {orgName} has been updated",
       orgRemoved: "You've been removed from {orgName}",
-      
+
       // Lesson emails
       lessonShared: "{userName} shared a lesson with you",
       lessonComplete: "Your lesson is ready: {lessonTitle}",
-      
+
       // Admin/System emails
       feedbackReceived: "New feedback received from {userName}",
-      weeklyDigest: "Your LessonSpark USA weekly summary",
-      systemNotice: "Important notice from LessonSpark USA",
-      
+      weeklyDigest: "Your BibleLessonSpark weekly summary",
+      systemNotice: "Important notice from BibleLessonSpark",
+
       // Beta/Special
-      betaInvitation: "You're invited to try LessonSpark USA!",
+      betaInvitation: "You're invited to try BibleLessonSpark!",
       featureAnnouncement: "New feature: {featureName}",
     },
-    
+
     /**
      * =========================================
      * EMAIL CONTENT / COPY
      * =========================================
      */
-    
+
     content: {
       /**
        * Footer tagline (appears above address)
        */
       footerTagline: "Helping Baptist teachers create engaging Bible studies",
-      
+
       /**
        * Unsubscribe text
        */
       unsubscribeText: "Unsubscribe from these emails",
-      
+
       /**
        * Email preferences text
        */
       preferencesText: "Manage email preferences",
-      
+
       /**
        * Legal disclaimer for footer
        */
-      disclaimer: "This email was sent by LessonSpark USA. You received this email because you have an account with us or someone invited you to join.",
-      
+      disclaimer: "This email was sent by BibleLessonSpark. You received this email because you have an account with us or someone invited you to join.",
+
       /**
        * Support prompt
        */
       supportPrompt: "Questions? Contact us at",
-      
+
       /**
        * Common greetings
        */
@@ -895,7 +912,7 @@ export const BRANDING = {
         friendly: "Hi {firstName}!",
         noName: "Hello,",
       },
-      
+
       /**
        * Common sign-offs
        */
@@ -903,9 +920,9 @@ export const BRANDING = {
         default: "Blessings,",
         formal: "Sincerely,",
         friendly: "God bless,",
-        team: "The LessonSpark USA Team",
+        team: "The BibleLessonSpark Team",
       },
-      
+
       /**
        * Button labels
        */
@@ -919,56 +936,56 @@ export const BRANDING = {
         learnMore: "Learn More",
       },
     },
-    
+
     /**
      * =========================================
      * EMAIL TEMPLATES - FULL CONTENT
      * =========================================
      * Complete email body content with {placeholders}
      */
-    
+
     templates: {
       /**
        * Welcome email body
        */
       welcome: {
-        heading: "Welcome to LessonSpark USA!",
-        body: `Thank you for joining LessonSpark USA! We're excited to help you create engaging, theologically sound Bible study lessons for your Sunday School class.
+        heading: "Welcome to BibleLessonSpark!",
+        body: `Thank you for joining BibleLessonSpark! We're excited to help you create engaging, theologically sound Bible study lessons for your Sunday School class.
 
-With LessonSpark USA, you can:
-â€¢ Generate customized lessons in minutes
-â€¢ Tailor content to your specific teaching context
-â€¢ Access lessons aligned with Baptist theology
+With BibleLessonSpark, you can:
+• Generate customized lessons in minutes
+• Tailor content to your specific teaching context
+• Access lessons aligned with Baptist theology
 
 Ready to create your first lesson?`,
         buttonText: "Create Your First Lesson",
         buttonUrl: "{baseUrl}/dashboard",
       },
-      
+
       /**
        * Organization invitation email body
        */
       orgInvitation: {
         heading: "You've Been Invited!",
-        body: `{inviterName} has invited you to join {orgName} on LessonSpark USA.
+        body: `{inviterName} has invited you to join {orgName} on BibleLessonSpark.
 
 As a member of {orgName}, you'll be able to:
-â€¢ Access shared lesson resources
-â€¢ Collaborate with other teachers
-â€¢ Use organization-wide settings and preferences
+• Access shared lesson resources
+• Collaborate with other teachers
+• Use organization-wide settings and preferences
 
 Click the button below to accept this invitation:`,
         buttonText: "Accept Invitation",
         buttonUrl: "{invitationUrl}",
         expirationNote: "This invitation will expire in {expirationDays} days.",
       },
-      
+
       /**
        * Password reset email body
        */
       passwordReset: {
         heading: "Reset Your Password",
-        body: `We received a request to reset your password for your LessonSpark USA account.
+        body: `We received a request to reset your password for your BibleLessonSpark account.
 
 Click the button below to create a new password:`,
         buttonText: "Reset Password",
@@ -976,26 +993,26 @@ Click the button below to create a new password:`,
         expirationNote: "This link will expire in 1 hour.",
         securityNote: "If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.",
       },
-      
+
       /**
        * Email verification body
        */
       emailVerification: {
         heading: "Verify Your Email Address",
-        body: `Please verify your email address to complete your LessonSpark USA registration.
+        body: `Please verify your email address to complete your BibleLessonSpark registration.
 
 Click the button below to verify:`,
         buttonText: "Verify Email",
         buttonUrl: "{verificationUrl}",
         expirationNote: "This link will expire in 24 hours.",
       },
-      
+
       /**
        * Lesson shared email body
        */
       lessonShared: {
         heading: "A Lesson Has Been Shared With You",
-        body: `{sharerName} has shared a Bible study lesson with you on LessonSpark USA.
+        body: `{sharerName} has shared a Bible study lesson with you on BibleLessonSpark.
 
 Lesson: {lessonTitle}
 Scripture: {lessonScripture}
@@ -1005,27 +1022,27 @@ Click below to view the lesson:`,
         buttonUrl: "{lessonUrl}",
       },
     },
-    
+
     /**
      * =========================================
      * RESEND-SPECIFIC SETTINGS
      * =========================================
      */
-    
+
     resend: {
       /**
        * Tags to apply to all emails (for Resend analytics)
        */
       defaultTags: [
-        { name: "app", value: "lessonspark" },
+        { name: "app", value: "biblelessonspark" },
         { name: "environment", value: "production" },  // Change per environment
       ],
-      
+
       /**
        * Webhook endpoint for Resend events (optional)
        */
-      webhookEndpoint: "https://lessonsparkusa.com/api/webhooks/resend",
-      
+      webhookEndpoint: "https://biblelessonspark.com/api/webhooks/resend",
+
       /**
        * Enable email tracking
        */
@@ -1037,28 +1054,28 @@ Click below to view the lesson:`,
   // ==========================================================================
   // UI TEXT / MICROCOPY
   // ==========================================================================
-  
+
   text: {
     /**
      * Landing page hero headline
      */
     heroHeadline: "Create Engaging Bible Studies in Minutes",
-    
+
     /**
      * Landing page hero subheadline
      */
     heroSubheadline: "Personalized lesson generation for Baptist Sunday School teachers",
-    
+
     /**
      * Primary call-to-action button text
      */
     ctaPrimary: "Get Started Free",
-    
+
     /**
      * Secondary CTA text
      */
     ctaSecondary: "See How It Works",
-    
+
     /**
      * Loading state messages
      */
@@ -1066,7 +1083,7 @@ Click below to view the lesson:`,
       lessons: "Generating your lesson...",
       default: "Loading...",
     },
-    
+
     /**
      * Empty state messages
      */
@@ -1074,7 +1091,7 @@ Click below to view the lesson:`,
       lessons: "No lessons yet. Create your first lesson to get started!",
       organizations: "You haven't joined any organizations yet.",
     },
-    
+
     /**
      * Success messages
      */
@@ -1088,15 +1105,15 @@ Click below to view the lesson:`,
   // ==========================================================================
   // BETA PROGRAM UI TEXT (for white-label customization)
   // ==========================================================================
-  
+
   /**
    * Beta program display text.
    * Controls what the UI SAYS about beta features.
-   * 
+   *
    * ARCHITECTURAL NOTE:
    * - TEXT lives here in BRANDING.beta (what UI displays)
    * - BEHAVIOR lives in betaEnrollmentConfig.ts (toggles, logic, form options)
-   * 
+   *
    * White-label tenants edit THIS section to customize beta messaging.
    */
   beta: {
@@ -1113,14 +1130,14 @@ Click below to view the lesson:`,
         'Age-appropriate for any class',
         'Ready in under 2 minutes',
       ],
-      trustText: 'Join hundreds of Baptist teachers already using LessonSpark USA',
+      trustText: 'Trusted by Baptist teachers across the country',
     },
-    
+
     /**
      * Beta enrollment form labels and placeholders
      */
     form: {
-      title: 'Join LessonSpark USA',
+      title: 'Join BibleLessonSpark',
       subtitle: 'Start creating Bible study lessons in minutes.',
       fullNameLabel: 'Full Name',
       fullNamePlaceholder: 'Enter your full name',
@@ -1140,7 +1157,7 @@ Click below to view the lesson:`,
       termsLink: 'Terms of Service',
       privacyLink: 'Privacy Policy',
     },
-    
+
     /**
      * Dashboard prompt for users without an organization
      */
@@ -1150,13 +1167,13 @@ Click below to view the lesson:`,
       button: 'Join Now',
       dismissButton: 'Maybe Later',
     },
-    
+
     /**
      * Success, error, and status messages
      */
     messages: {
       enrollmentSuccess: {
-        title: 'Welcome to LessonSpark USA!',
+        title: 'Welcome to BibleLessonSpark!',
         description: 'Your account has been created. Check your email to verify your account.',
       },
       enrollmentError: {
@@ -1172,7 +1189,7 @@ Click below to view the lesson:`,
         description: 'Please check your inbox and click the verification link.',
       },
     },
-    
+
     /**
      * Form validation messages
      */
@@ -1208,7 +1225,7 @@ export type EmailTemplates = typeof BRANDING.email.templates;
 /**
  * Get full page title with app name
  * @param pageTitle - The specific page title
- * @returns Formatted title like "Dashboard | LessonSpark USA"
+ * @returns Formatted title like "Dashboard | BibleLessonSpark"
  */
 export function getPageTitle(pageTitle?: string): string {
   if (!pageTitle) return BRANDING.appName;
@@ -1254,11 +1271,11 @@ export function getEmailSubject(
   replacements: Record<string, string> = {}
 ): string {
   let subject = BRANDING.email.subjects[templateKey];
-  
+
   Object.entries(replacements).forEach(([key, value]) => {
     subject = subject.replace(new RegExp(`{${key}}`, 'g'), value);
   });
-  
+
   return subject;
 }
 
@@ -1279,7 +1296,7 @@ export function getEmailTemplate(
   replacements: Record<string, string> = {}
 ): typeof BRANDING.email.templates[typeof templateKey] {
   const template = { ...BRANDING.email.templates[templateKey] };
-  
+
   // Replace placeholders in all string properties
   Object.keys(template).forEach((key) => {
     const typedKey = key as keyof typeof template;
@@ -1291,7 +1308,7 @@ export function getEmailTemplate(
       (template as any)[typedKey] = value;
     }
   });
-  
+
   return template;
 }
 
@@ -1350,38 +1367,44 @@ export function getResendEmailOptions(overrides: {
 export function generateCSSVariables(): string {
   return `
 :root {
-  /* Primary Colors */
+  /* Primary Colors - Forest Green */
   --color-primary: ${BRANDING.colors.primary.DEFAULT};
   --color-primary-light: ${BRANDING.colors.primary.light};
   --color-primary-dark: ${BRANDING.colors.primary.dark};
-  
-  /* Secondary Colors */
+
+  /* Secondary Colors - Antique Gold */
   --color-secondary: ${BRANDING.colors.secondary.DEFAULT};
   --color-secondary-light: ${BRANDING.colors.secondary.light};
   --color-secondary-dark: ${BRANDING.colors.secondary.dark};
-  
-  /* Accent Colors */
+
+  /* Accent Colors - Deep Gold */
   --color-accent: ${BRANDING.colors.accent.DEFAULT};
   --color-accent-light: ${BRANDING.colors.accent.light};
   --color-accent-dark: ${BRANDING.colors.accent.dark};
-  
+
+  /* Tertiary Colors - Burgundy (Baptist Heritage) */
+  --color-burgundy: ${BRANDING.colors.burgundy.DEFAULT};
+  --color-burgundy-light: ${BRANDING.colors.burgundy.light};
+  --color-burgundy-dark: ${BRANDING.colors.burgundy.dark};
+  --color-burgundy-hover: ${BRANDING.colors.burgundy.hover};
+
   /* Semantic Colors */
   --color-success: ${BRANDING.colors.success};
   --color-warning: ${BRANDING.colors.warning};
   --color-error: ${BRANDING.colors.error};
   --color-info: ${BRANDING.colors.info};
-  
-  /* Background Colors */
+
+  /* Background Colors - Warm Cream */
   --color-bg-primary: ${BRANDING.colors.background.primary};
   --color-bg-secondary: ${BRANDING.colors.background.secondary};
   --color-bg-dark: ${BRANDING.colors.background.dark};
-  
+
   /* Text Colors */
   --color-text-primary: ${BRANDING.colors.text.primary};
   --color-text-secondary: ${BRANDING.colors.text.secondary};
   --color-text-light: ${BRANDING.colors.text.light};
   --color-text-inverse: ${BRANDING.colors.text.inverse};
-  
+
   /* Typography */
   --font-primary: ${BRANDING.typography.fontFamily.primary};
   --font-secondary: ${BRANDING.typography.fontFamily.secondary};
@@ -1395,7 +1418,7 @@ export function generateCSSVariables(): string {
  */
 export function getEmailInlineStyles() {
   const s = BRANDING.email.styles;
-  
+
   return {
     wrapper: `background-color: ${s.bodyBackground}; padding: 40px 20px; font-family: ${s.fontFamily};`,
     container: `max-width: 600px; margin: 0 auto; background-color: ${s.contentBackground}; border-radius: ${s.borderRadius}; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);`,
@@ -1419,4 +1442,3 @@ export function getEmailInlineStyles() {
 // ============================================================================
 
 export default BRANDING;
-
