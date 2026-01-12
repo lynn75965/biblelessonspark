@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // SSOT: Beta Enrollment Configuration
 // LessonSparkUSA - Master Definition
 // Controls Public Beta enrollment flow UI and behavior
@@ -46,7 +46,7 @@ export const BETA_ENROLLMENT_CONFIG = {
     
     // Features to highlight
     features: [
-      'AI-powered lesson generation',
+      'Personalized lesson generation',
       'Theologically sound Baptist content',
       'Age-appropriate for any class',
       'Ready in under 2 minutes',
@@ -173,3 +173,4 @@ export const shouldPromptOrgEnrollment = (
   if (!BETA_ENROLLMENT_CONFIG.features.showDashboardPrompt) return false;
   return !userOrgId;
 };
+

@@ -2,18 +2,38 @@
 // BetaAnalyticsDashboard.tsx
 // ============================================================================
 // Analytics dashboard for beta feedback - reads from SSOT config
-// Features: Summary cards, charts, individual response viewer, CSV export
+// Features: Trial Management, Summary cards, charts, individual response viewer, CSV export
 // ============================================================================
 
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   BarChart, Bar, PieChart, Pie,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
@@ -21,8 +41,11 @@ import {
 } from 'recharts';
 import { 
   MessageSquare, Star, TrendingUp, DollarSign, 
-  Clock, ThumbsUp, Download, RefreshCw, Calendar
+  Clock, ThumbsUp, Download, RefreshCw, Calendar,
+  Gift, AlertTriangle, X, Loader2, Users
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { format, addDays } from 'date-fns';
 import {
   ANALYTICS_CHARTS,
   ANALYTICS_SUMMARY_CARDS,
@@ -34,6 +57,69 @@ import {
   type DateFilterValue,
   type BetaFeedbackStats,
 } from '@/constants/feedbackConfig';
+
+// ============================================================================
+// SSOT: Beta Trial Management Configuration
+// ============================================================================
+const BETA_TRIAL_CONFIG = {
+  enabled: true,
+  
+  // Preset date options for quick selection
+  presetDates: [
+    { value: 7, label: '1 week from today' },
+    { value: 14, label: '2 weeks from today' },
+    { value: 30, label: '1 month from today' },
+    { value: 60, label: '2 months from today' },
+    { value: 90, label: '3 months from today' },
+  ],
+  
+  defaultPresetIndex: 2, // 1 month
+  
+  // UI Text (SSOT for white-label customization)
+  ui: {
+    cardTitle: 'Beta Trial Management',
+    cardDescription: 'Manage trial access for all beta testers. Extend or set a new expiration date for all users with active trials.',
+    
+    // Stats display
+    statsTitle: 'Current Trial Status',
+    activeTrialsLabel: 'Active Trials',
+    expiringTrialsLabel: 'Expiring in 7 days',
+    noTrialLabel: 'No Active Trial',
+    
+    // Extend action
+    extendButtonText: 'Extend All Trials',
+    extendDialogTitle: 'Extend All Beta Trials',
+    extendDialogDescription: 'Set a new expiration date for all users who currently have an active trial.',
+    newExpirationLabel: 'New Expiration Date:',
+    presetLabel: 'Quick Select',
+    customDateLabel: 'Or choose a specific date',
+    affectedUsersLabel: 'Users affected:',
+    
+    // Confirmation
+    cancelButton: 'Cancel',
+    confirmButton: 'Extend All Trials',
+    confirmingButton: 'Extending...',
+    
+    // Success/Error
+    successTitle: 'Trials Extended',
+    successDescription: (count: number, date: string) =>
+      `Successfully extended trials for ${count} user${count === 1 ? '' : 's'} until ${date}.`,
+    errorTitle: 'Error',
+    errorDescription: 'Failed to extend trials. Please try again.',
+    
+    // Revoke all action
+    revokeAllButtonText: 'Revoke All Trials',
+    revokeAllDialogTitle: 'Revoke All Trials',
+    revokeAllDialogDescription: 'This will immediately remove trial access from all users. They will lose access to full lessons.',
+    revokeAllConfirmButton: 'Revoke All',
+    revokeAllSuccessTitle: 'Trials Revoked',
+    revokeAllSuccessDescription: (count: number) =>
+      `Successfully revoked trials for ${count} user${count === 1 ? '' : 's'}.`,
+  },
+};
+
+const TRIAL_UI = BETA_TRIAL_CONFIG.ui;
+const TRIAL_PRESETS = BETA_TRIAL_CONFIG.presetDates;
 
 // Icon mapping
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -53,6 +139,19 @@ const NPS_COLORS = {
   detractor: '#ef4444',
 };
 
+// ============================================================================
+// Types
+// ============================================================================
+interface TrialStats {
+  active_trials: number;
+  expiring_soon: number;
+  no_trial: number;
+  total_users: number;
+}
+
+// ============================================================================
+// Component
+// ============================================================================
 export function BetaAnalyticsDashboard() {
   const [stats, setStats] = useState<BetaFeedbackStats | null>(null);
   const [responses, setResponses] = useState<FeedbackResponse[]>([]);
@@ -62,6 +161,124 @@ export function BetaAnalyticsDashboard() {
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [sortColumn, setSortColumn] = useState<string>('submitted_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // Trial management state
+  const [trialStats, setTrialStats] = useState<TrialStats | null>(null);
+  const [trialStatsLoading, setTrialStatsLoading] = useState(true);
+  const [extendDialogOpen, setExtendDialogOpen] = useState(false);
+  const [revokeDialogOpen, setRevokeDialogOpen] = useState(false);
+  const [extending, setExtending] = useState(false);
+  const [revoking, setRevoking] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string>(
+    TRIAL_PRESETS[BETA_TRIAL_CONFIG.defaultPresetIndex].value.toString()
+  );
+  const [trialCustomDate, setTrialCustomDate] = useState<string>('');
+  
+  const { toast } = useToast();
+
+  // --------------------------------------------------------------------------
+  // Fetch trial statistics
+  // --------------------------------------------------------------------------
+  const fetchTrialStats = async () => {
+    setTrialStatsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_trial_stats');
+      
+      if (error) {
+        console.error('Error fetching trial stats:', error);
+        setTrialStats({ active_trials: 0, expiring_soon: 0, no_trial: 0, total_users: 0 });
+      } else {
+        const stats = Array.isArray(data) ? data[0] : data;
+        setTrialStats(stats);
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setTrialStats({ active_trials: 0, expiring_soon: 0, no_trial: 0, total_users: 0 });
+    } finally {
+      setTrialStatsLoading(false);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // Calculate the new expiration date based on selection
+  // --------------------------------------------------------------------------
+  const getNewExpirationDate = (): Date => {
+    if (trialCustomDate) {
+      return new Date(trialCustomDate);
+    }
+    const days = parseInt(selectedPreset) || TRIAL_PRESETS[BETA_TRIAL_CONFIG.defaultPresetIndex].value;
+    return addDays(new Date(), days);
+  };
+
+  // --------------------------------------------------------------------------
+  // Handle bulk extend
+  // --------------------------------------------------------------------------
+  const handleBulkExtend = async () => {
+    setExtending(true);
+    try {
+      const newExpiration = getNewExpirationDate();
+      
+      const { data, error } = await supabase.rpc('bulk_extend_trials', {
+        p_new_expiration: newExpiration.toISOString(),
+        p_extend_mode: 'active_only'
+      });
+
+      if (error) throw error;
+
+      const result = Array.isArray(data) ? data[0] : data;
+      const count = result?.affected_count || 0;
+      
+      toast({
+        title: TRIAL_UI.successTitle,
+        description: TRIAL_UI.successDescription(Number(count), format(newExpiration, 'MMMM d, yyyy')),
+      });
+
+      setExtendDialogOpen(false);
+      setTrialCustomDate('');
+      setSelectedPreset(TRIAL_PRESETS[BETA_TRIAL_CONFIG.defaultPresetIndex].value.toString());
+      await fetchTrialStats();
+    } catch (err) {
+      console.error('Error extending trials:', err);
+      toast({
+        title: TRIAL_UI.errorTitle,
+        description: TRIAL_UI.errorDescription,
+        variant: 'destructive',
+      });
+    } finally {
+      setExtending(false);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // Handle bulk revoke
+  // --------------------------------------------------------------------------
+  const handleBulkRevoke = async () => {
+    setRevoking(true);
+    try {
+      const { data, error } = await supabase.rpc('bulk_revoke_trials');
+      if (error) throw error;
+
+      const result = Array.isArray(data) ? data[0] : data;
+      const count = result?.affected_count || 0;
+      
+      toast({
+        title: TRIAL_UI.revokeAllSuccessTitle,
+        description: TRIAL_UI.revokeAllSuccessDescription(Number(count)),
+      });
+
+      setRevokeDialogOpen(false);
+      await fetchTrialStats();
+    } catch (err) {
+      console.error('Error revoking trials:', err);
+      toast({
+        title: TRIAL_UI.errorTitle,
+        description: TRIAL_UI.errorDescription,
+        variant: 'destructive',
+      });
+    } finally {
+      setRevoking(false);
+    }
+  };
 
   // Calculate date range
   const getDateRange = (): { start: string | null; end: string | null } => {
@@ -150,6 +367,12 @@ export function BetaAnalyticsDashboard() {
   useEffect(() => {
     fetchData();
   }, [dateFilter, customStartDate, customEndDate, sortColumn, sortDirection]);
+
+  useEffect(() => {
+    if (BETA_TRIAL_CONFIG.enabled) {
+      fetchTrialStats();
+    }
+  }, []);
 
   // Chart data transformations
   const ratingChartData = useMemo(() => {
@@ -353,6 +576,82 @@ export function BetaAnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* ====================================================================
+          BETA TRIAL MANAGEMENT CARD
+          ==================================================================== */}
+      {BETA_TRIAL_CONFIG.enabled && (
+        <Card className="bg-gradient-card border-amber-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-amber-600" />
+              {TRIAL_UI.cardTitle}
+            </CardTitle>
+            <CardDescription>{TRIAL_UI.cardDescription}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Trial Statistics */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">{TRIAL_UI.statsTitle}</Label>
+              {trialStatsLoading ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading statistics...
+                </div>
+              ) : trialStats ? (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-green-700">{trialStats.active_trials}</div>
+                    <div className="text-xs text-green-600">{TRIAL_UI.activeTrialsLabel}</div>
+                  </div>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-700">{trialStats.expiring_soon}</div>
+                    <div className="text-xs text-amber-600">{TRIAL_UI.expiringTrialsLabel}</div>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-slate-700">{trialStats.no_trial}</div>
+                    <div className="text-xs text-slate-600">{TRIAL_UI.noTrialLabel}</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-blue-700">{trialStats.total_users}</div>
+                    <div className="text-xs text-blue-600">Total Users</div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button
+                onClick={() => setExtendDialogOpen(true)}
+                className="bg-green-600 hover:bg-green-700"
+                disabled={!trialStats || trialStats.active_trials === 0}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {TRIAL_UI.extendButtonText}
+              </Button>
+              <Button
+                onClick={() => setRevokeDialogOpen(true)}
+                variant="outline"
+                className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                disabled={!trialStats || trialStats.active_trials === 0}
+              >
+                <X className="h-4 w-4 mr-2" />
+                {TRIAL_UI.revokeAllButtonText}
+              </Button>
+              <Button
+                onClick={fetchTrialStats}
+                variant="ghost"
+                size="sm"
+                disabled={trialStatsLoading}
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${trialStatsLoading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-2xl font-bold">
@@ -428,12 +727,12 @@ export function BetaAnalyticsDashboard() {
 
         {/* Charts Tab */}
         <TabsContent value="charts" className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Rating Distribution */}
             <Card>
               <CardHeader>
                 <CardTitle>Overall Rating Distribution</CardTitle>
-                <CardDescription>How testers rated their experience</CardDescription>
+                <CardDescription>Star ratings from beta users</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
@@ -635,6 +934,144 @@ export function BetaAnalyticsDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* ====================================================================
+          EXTEND ALL TRIALS DIALOG
+          ==================================================================== */}
+      <Dialog open={extendDialogOpen} onOpenChange={setExtendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gift className="h-5 w-5 text-green-600" />
+              {TRIAL_UI.extendDialogTitle}
+            </DialogTitle>
+            <DialogDescription>
+              {TRIAL_UI.extendDialogDescription}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Preset Selection */}
+            <div className="space-y-2">
+              <Label>{TRIAL_UI.presetLabel}</Label>
+              <Select 
+                value={selectedPreset} 
+                onValueChange={(val) => {
+                  setSelectedPreset(val);
+                  setTrialCustomDate('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TRIAL_PRESETS.map((preset) => (
+                    <SelectItem key={preset.value} value={preset.value.toString()}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Custom Date */}
+            <div className="space-y-2">
+              <Label>{TRIAL_UI.customDateLabel}</Label>
+              <Input
+                type="date"
+                value={trialCustomDate}
+                onChange={(e) => {
+                  setTrialCustomDate(e.target.value);
+                  if (e.target.value) {
+                    setSelectedPreset('');
+                  }
+                }}
+                min={format(new Date(), 'yyyy-MM-dd')}
+              />
+            </div>
+
+            {/* Preview */}
+            <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+              <div className="text-sm">
+                <span className="text-muted-foreground">{TRIAL_UI.newExpirationLabel}</span>{' '}
+                <strong>{format(getNewExpirationDate(), 'MMMM d, yyyy')}</strong>
+              </div>
+              <div className="text-sm">
+                <span className="text-muted-foreground">{TRIAL_UI.affectedUsersLabel}</span>{' '}
+                <Badge variant="secondary">{trialStats?.active_trials || 0} users</Badge>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setExtendDialogOpen(false);
+                setTrialCustomDate('');
+                setSelectedPreset(TRIAL_PRESETS[BETA_TRIAL_CONFIG.defaultPresetIndex].value.toString());
+              }}
+              disabled={extending}
+            >
+              {TRIAL_UI.cancelButton}
+            </Button>
+            <Button
+              onClick={handleBulkExtend}
+              disabled={extending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {extending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {TRIAL_UI.confirmingButton}
+                </>
+              ) : (
+                <>
+                  <Gift className="mr-2 h-4 w-4" />
+                  {TRIAL_UI.confirmButton}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ====================================================================
+          REVOKE ALL TRIALS CONFIRMATION
+          ==================================================================== */}
+      <AlertDialog open={revokeDialogOpen} onOpenChange={setRevokeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              {TRIAL_UI.revokeAllDialogTitle}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {TRIAL_UI.revokeAllDialogDescription}
+              <div className="mt-3">
+                <Badge variant="secondary">{trialStats?.active_trials || 0} users will be affected</Badge>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={revoking}>{TRIAL_UI.cancelButton}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRevoke}
+              disabled={revoking}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              {revoking ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Revoking...
+                </>
+              ) : (
+                TRIAL_UI.revokeAllConfirmButton
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

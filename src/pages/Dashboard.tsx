@@ -12,15 +12,12 @@ import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
-import LanguageSelector from "@/components/settings/LanguageSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen,
   Sparkles,
-  Settings,
   MessageSquare,
   UserCircle,
   HelpCircle,
@@ -284,10 +281,6 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Devotional Library</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Settings className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
@@ -349,6 +342,7 @@ export default function Dashboard() {
                 setActiveTab("library");
               }}
               initialFocusData={focusDataToApply || undefined}
+              lessonCount={lessons.length}
             />
           </TabsContent>
 
@@ -361,37 +355,6 @@ export default function Dashboard() {
 
           <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
-          </TabsContent>
-
-          <TabsContent value="settings" className="mt-6 relative z-0">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card className="bg-gradient-card md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Language Preferences</CardTitle>
-                  <CardDescription>Choose your preferred language for lesson plans and content</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <LanguageSelector />
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-card">
-                <CardHeader>
-                  <CardTitle>User Profile</CardTitle>
-                  <CardDescription>Manage your account and preferences</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">Workspace</span>
-                      <Badge variant="outline">Personal</Badge>
-                    </div>
-                    <Button variant="outline" className="w-full" onClick={() => setShowProfileModal(true)}>
-                      Update Profile
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </TabsContent>
         </Tabs>
       </main>

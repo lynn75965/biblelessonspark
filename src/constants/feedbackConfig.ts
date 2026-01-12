@@ -21,7 +21,7 @@
 
 export type FeedbackMode = 'beta' | 'production';
 
-export const CURRENT_FEEDBACK_MODE: FeedbackMode = 'beta';
+export const CURRENT_FEEDBACK_MODE: FeedbackMode = 'production';
 
 // Beta period dates
 export const BETA_PERIOD = {

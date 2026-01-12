@@ -2,14 +2,17 @@
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
- * Updated: December 2025
- * - Redesigned with 3-step card layout
- * - Step 1: What Lesson Are You Teaching? (radio selection for content input)
- * - Step 2: Who Are You Teaching? (age group + theology + Bible version)
- * - Step 3: Personalize Your Lesson (TeacherCustomization - collapsible)
+ * Updated: January 2026
+ * - ACCORDION REDESIGN: Steps now collapse/expand for focused user experience
+ * - Step 1: Choose Your Scripture (expanded by default for new users)
+ * - Step 2: Set Your Teaching Context (unlocks after Step 1 complete)
+ * - Step 3: Customize Your Style (unlocks after Step 2 complete)
+ * - Welcome banner for first-time users
+ * - Watch Video links in each step header
+ * - Completion indicators (checkmarks) for finished steps
  * - Brand colors matching landing page (gold accents, teal buttons/badges)
  * - Bible Version selection with copyright-aware guardrails
- * - Mobile responsiveness fixes (December 4, 2025)
+ * - Mobile responsiveness fixes
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -21,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useRateLimit } from "@/hooks/useRateLimit";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -37,10 +40,12 @@ import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from 
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { API_ERROR_CODES } from "@/constants/apiErrorCodes";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
+import { FREE_TIER_SECTION_NUMBERS, PRICING_DISPLAY } from "@/constants/pricingConfig";
+import { getVideo, hasVideoUrl } from "@/constants/helpVideos";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
-import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
+import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 
 // ============================================================================
 // INTERFACES
@@ -56,6 +61,7 @@ interface EnhanceLessonFormProps {
   viewingLesson?: any;
   onClearViewing?: () => void;
   initialFocusData?: FocusApplicationData;
+  lessonCount?: number; // Used to conditionally show welcome banner for new users only
 }
 
 // ============================================================================
@@ -68,11 +74,130 @@ const GoldAccent = ({ children }: { children: React.ReactNode }) => (
 );
 
 // Step badge component - prominent teal pill with border
-const StepBadge = ({ number }: { number: number }) => (
-  <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold bg-sky-500 text-white shadow-md border-2 border-sky-600">
+const StepBadge = ({ number, isComplete }: { number: number; isComplete?: boolean }) => (
+  <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold shadow-md border-2 ${
+    isComplete 
+      ? "bg-green-500 text-white border-green-600" 
+      : "bg-sky-500 text-white border-sky-600"
+  }`}>
+    {isComplete ? <Check className="h-4 w-4 mr-1" /> : null}
     STEP {number}
   </span>
 );
+
+// ============================================================================
+// ACCORDION STEP COMPONENT
+// ============================================================================
+
+interface AccordionStepProps {
+  stepNumber: number;
+  title: React.ReactNode;
+  description: string;
+  isExpanded: boolean;
+  isComplete: boolean;
+  isLocked: boolean;
+  completeSummary?: string;
+  videoUrl?: string;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+const AccordionStep = ({
+  stepNumber,
+  title,
+  description,
+  isExpanded,
+  isComplete,
+  isLocked,
+  completeSummary,
+  videoUrl,
+  onToggle,
+  children,
+}: AccordionStepProps) => {
+  return (
+    <Card className={`border shadow-sm transition-all duration-200 ${isLocked ? "opacity-60" : ""}`}>
+      {/* Clickable Header */}
+      <CardHeader 
+        className={`pb-3 cursor-pointer select-none ${isLocked ? "cursor-not-allowed" : "hover:bg-muted/50"}`}
+        onClick={() => !isLocked && onToggle()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Expand/Collapse Icon */}
+            {isExpanded ? (
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            )}
+            <StepBadge number={stepNumber} isComplete={isComplete} />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Watch Video Link */}
+            {videoUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-sky-600 hover:text-sky-700 hover:bg-sky-50 gap-1"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(videoUrl, "_blank");
+                }}
+              >
+                <Play className="h-3 w-3" />
+                Watch
+              </Button>
+            )}
+            
+            {/* Completion/Lock Indicator */}
+            {isComplete && !isExpanded && (
+              <span className="text-green-600 text-sm font-medium">✓ Done</span>
+            )}
+            {isLocked && (
+              <span className="text-muted-foreground text-sm">🔒</span>
+            )}
+          </div>
+        </div>
+        
+        <div className="ml-10 mt-2">
+          <CardTitle className="text-lg text-slate-800">{title}</CardTitle>
+          {/* Show description when collapsed, or summary when complete and collapsed */}
+          {!isExpanded && (
+            <CardDescription className="mt-1">
+              {isComplete && completeSummary ? completeSummary : description}
+            </CardDescription>
+          )}
+          {isExpanded && (
+            <CardDescription className="mt-1">{description}</CardDescription>
+          )}
+        </div>
+        
+        {/* Edit button when collapsed and complete */}
+        {!isExpanded && isComplete && (
+          <div className="ml-10 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle();
+              }}
+            >
+              Edit
+            </Button>
+          </div>
+        )}
+      </CardHeader>
+      
+      {/* Expandable Content */}
+      {isExpanded && !isLocked && (
+        <CardContent className="pt-0">
+          {children}
+        </CardContent>
+      )}
+    </Card>
+  );
+};
 
 // ============================================================================
 // HELPERS
@@ -86,6 +211,82 @@ const extractLessonTitle = (content: string): string | null => {
     if (match) return match[1].replace(/[""\*]/g, "").trim();
   }
   return null;
+};
+
+// Parse lesson content into sections for Full/Free toggle display
+interface LessonSection {
+  sectionNumber: number;
+  title: string;
+  content: string;
+  isFreeTier: boolean;
+}
+
+const parseLessonSections = (content: string, freeSections: number[]): LessonSection[] => {
+  if (!content) return [];
+  
+  const sections: LessonSection[] = [];
+  
+  // Match section header formats - MUST have "Section" keyword OR "##" prefix
+  // This prevents matching numbered questions like "1. Paul says..."
+  // Valid: "Section 1: Title" or "## 1. Title" or "## Section 1:" or "**Section 1:**"
+  // Invalid: "1. Question text" (no Section keyword or ##)
+  const sectionRegex = /(?:^|\n)(?:\*\*)?(?:(?:##\s*)?Section\s*|##\s*)(\d+)[\.\:\-\s]+([^\n\*]+?)(?:\*\*)?(?=\n)/gi;
+  
+  let match;
+  const matches: { index: number; sectionNumber: number; title: string; fullMatch: string }[] = [];
+  
+  // Find all section headers
+  while ((match = sectionRegex.exec(content)) !== null) {
+    matches.push({
+      index: match.index,
+      sectionNumber: parseInt(match[1], 10),
+      title: match[2].trim().replace(/\*+$/, ''), // Remove trailing asterisks
+      fullMatch: match[0]
+    });
+  }
+  
+  // Extract content for each section
+  for (let i = 0; i < matches.length; i++) {
+    const currentMatch = matches[i];
+    const nextMatch = matches[i + 1];
+    const startIndex = currentMatch.index;
+    const endIndex = nextMatch ? nextMatch.index : content.length;
+    
+    const sectionContent = content.slice(startIndex, endIndex).trim();
+    
+    sections.push({
+      sectionNumber: currentMatch.sectionNumber,
+      title: currentMatch.title,
+      content: sectionContent,
+      isFreeTier: freeSections.includes(currentMatch.sectionNumber)
+    });
+  }
+  
+  // If no sections found, return the whole content as section 0
+  if (sections.length === 0 && content.trim()) {
+    sections.push({
+      sectionNumber: 0,
+      title: "Lesson Content",
+      content: content,
+      isFreeTier: true
+    });
+  }
+  
+  return sections;
+};
+
+// Format section content for display (remove header line since we display it separately)
+const formatSectionContent = (content: string): string => {
+  // First normalize legacy content (## headers → **bold:**, 1. → **1.**)
+  const normalized = normalizeLegacyContent(content);
+  return normalized
+    // Remove section header line in various formats
+    .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[\.\:\-\s]+[^\n]+\n?/i, '')
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+    .replace(/\n\n/g, "<br><br>")
+    .replace(/\n/g, "<br>")
+    .trim();
 };
 
 // ============================================================================
@@ -102,7 +303,24 @@ export function EnhanceLessonForm({
   viewingLesson,
   onClearViewing,
   initialFocusData,
+  lessonCount = 0,
 }: EnhanceLessonFormProps) {
+  // ============================================================================
+  // ACCORDION STATE
+  // ============================================================================
+  
+  const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1);
+
+  // ============================================================================
+  // LESSON VIEW MODE TOGGLE (Full vs Free comparison)
+  // ============================================================================
+  
+  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">("full");
+
+  // Free tier shows only sections 1, 5, 8
+  // Free tier sections - imported from SSOT (pricingConfig.ts)
+  const FREE_SECTIONS = FREE_TIER_SECTION_NUMBERS;
+
   // ============================================================================
   // STEP 1: LESSON CONTENT STATE
   // ============================================================================
@@ -161,6 +379,69 @@ export function EnhanceLessonForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
+
+  // ============================================================================
+  // STEP COMPLETION DETECTION
+  // ============================================================================
+
+  const isStep1Complete = (): boolean => {
+    if (contentInputType === "curriculum") {
+      return (curriculumInputMode === "paste" && pastedContent.trim().length > 0) ||
+             (curriculumInputMode === "file" && extractedContent !== null);
+    }
+    return biblePassage.trim().length > 0 || focusedTopic.trim().length > 0;
+  };
+
+  const isStep2Complete = (): boolean => {
+    return ageGroup !== "" && theologyProfileId !== "" && bibleVersionId !== "";
+  };
+
+  const isStep3Complete = (): boolean => {
+    // Step 3 is optional, so we consider it complete if at least lesson length is set
+    // or if the user has a profile loaded
+    return lessonLength !== "" || currentProfileId !== null;
+  };
+
+  // Generate summary text for collapsed steps
+  const getStep1Summary = (): string => {
+    if (contentInputType === "curriculum") {
+      if (curriculumInputMode === "paste" && pastedContent.trim()) {
+        return `Pasted content (${pastedContent.length} chars)`;
+      }
+      if (curriculumInputMode === "file" && extractedContent) {
+        return `Uploaded file (${extractedContent.length} chars)`;
+      }
+    }
+    const parts = [];
+    if (biblePassage.trim()) parts.push(biblePassage.trim());
+    if (focusedTopic.trim()) parts.push(`"${focusedTopic.trim()}"`);
+    return parts.join(" • ") || "";
+  };
+
+  const getStep2Summary = (): string => {
+    const parts = [];
+    if (ageGroup) {
+      const group = getAgeGroupById(ageGroup);
+      parts.push(group?.label || ageGroup);
+    }
+    if (theologyProfileId) {
+      const profile = getTheologyProfile(theologyProfileId);
+      parts.push(profile?.shortName || profile?.name || "");
+    }
+    if (bibleVersionId) {
+      const version = getBibleVersion(bibleVersionId);
+      parts.push(version?.abbreviation || "");
+    }
+    return parts.filter(Boolean).join(" • ");
+  };
+
+  const getStep3Summary = (): string => {
+    const parts = [];
+    if (teachingStyle) parts.push(teachingStyle);
+    if (learningStyle) parts.push(learningStyle);
+    if (lessonLength) parts.push(lessonLength);
+    return parts.filter(Boolean).join(" • ") || "Optional customizations";
+  };
 
   // ============================================================================
   // HOOKS
@@ -575,6 +856,11 @@ export function EnhanceLessonForm({
     ? extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson"
     : "Generated Lesson";
 
+  // Step completion states
+  const step1Complete = isStep1Complete();
+  const step2Complete = isStep2Complete();
+  const step3Complete = isStep3Complete();
+
   return (
     <>
       {/* Main Form Container */}
@@ -605,16 +891,27 @@ export function EnhanceLessonForm({
           </>
         ) : (
           <>
-            {/* Page Header - Create Mode - MOBILE FIX: flex-wrap + span wrapper */}
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-bold text-slate-800 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
-                <Sparkles className="h-6 w-6 text-sky-500 flex-shrink-0" />
-                <span>Create Baptist-Enhanced <GoldAccent>Lesson</GoldAccent></span>
-              </h1>
-              <p className="text-slate-600 mt-1">
-                Generate a theologically-sound Bible study lesson tailored to your class
-              </p>
-            </div>
+            {/* Welcome Banner for NEW Users Only (0 lessons) */}
+            {lessonCount === 0 && !step1Complete && !step2Complete && (
+              <div className="bg-gradient-to-r from-sky-50 to-amber-50 border border-sky-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🎉</span>
+                  <div>
+                    <h3 className="font-semibold text-slate-800">Welcome! Create your first lesson in 3 simple steps.</h3>
+                    <p className="text-sm text-slate-600 mt-1">Estimated time: 3 minutes</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Returning User Tip (optional - shows occasionally for users with lessons) */}
+            {lessonCount > 0 && lessonCount % 5 === 0 && !step1Complete && (
+              <div className="bg-sky-50 border border-sky-100 rounded-lg p-3 mb-4">
+                <p className="text-sm text-sky-700">
+                  💡 <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
+                </p>
+              </div>
+            )}
           </>
         )}
 
@@ -624,19 +921,20 @@ export function EnhanceLessonForm({
         {!viewingLesson && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ================================================================ */}
-          {/* STEP 1: What Lesson Are You Teaching? */}
+          {/* STEP 1: Choose Your Scripture (Accordion) */}
           {/* ================================================================ */}
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 mb-1">
-                <StepBadge number={1} />
-              </div>
-              <CardTitle className="text-lg text-slate-800">
-                What <GoldAccent>Lesson</GoldAccent> Are You Teaching?
-              </CardTitle>
-              <CardDescription>Choose one way to describe your lesson content</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <AccordionStep
+            stepNumber={1}
+            title={<>Choose Your <GoldAccent>Scripture</GoldAccent></>}
+            description="Enter a Bible passage or paste content from your existing curriculum. This becomes the foundation of your lesson."
+            isExpanded={expandedStep === 1}
+            isComplete={step1Complete}
+            isLocked={false}
+            completeSummary={getStep1Summary()}
+            videoUrl={getVideo('step1')?.url || undefined}
+            onToggle={() => setExpandedStep(1)}
+          >
+            <div className="space-y-4">
               {/* Radio selection for content type */}
               <RadioGroup
                 value={contentInputType}
@@ -821,23 +1119,37 @@ export function EnhanceLessonForm({
                   </div>
                 </div>
               </RadioGroup>
-            </CardContent>
-          </Card>
+
+              {/* Continue Button */}
+              {step1Complete && (
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => setExpandedStep(2)}
+                    className="bg-sky-500 hover:bg-sky-600"
+                  >
+                    Continue to Step 2 →
+                  </Button>
+                </div>
+              )}
+            </div>
+          </AccordionStep>
 
           {/* ================================================================ */}
-          {/* STEP 2: Who Are You Teaching? */}
+          {/* STEP 2: Set Your Teaching Context (Accordion) */}
           {/* ================================================================ */}
-          <Card className="border shadow-sm">
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2 mb-1">
-                <StepBadge number={2} />
-              </div>
-              <CardTitle className="text-lg text-slate-800">
-                Who Are You <GoldAccent>Teaching</GoldAccent>?
-              </CardTitle>
-              <CardDescription>Select your audience, theological tradition, and Bible version</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <AccordionStep
+            stepNumber={2}
+            title={<>Set Your <GoldAccent>Teaching Context</GoldAccent></>}
+            description="Tell us about your class — age group, theology profile, and Bible version. We'll tailor the lesson to fit."
+            isExpanded={expandedStep === 2}
+            isComplete={step2Complete}
+            isLocked={!step1Complete}
+            completeSummary={getStep2Summary()}
+            videoUrl={getVideo('step2')?.url || undefined}
+            onToggle={() => step1Complete && setExpandedStep(2)}
+          >
+            <div className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Age Group */}
                 <div className="space-y-2">
@@ -895,7 +1207,7 @@ export function EnhanceLessonForm({
               </div>
 
               {/* Bible Version - Full width below the 2-column grid */}
-              <div className="space-y-2 mt-4">
+              <div className="space-y-2">
                 <Label htmlFor="bible-version">
                   Bible Version <span className="text-red-500">*</span>
                 </Label>
@@ -925,53 +1237,93 @@ export function EnhanceLessonForm({
                   </p>
                 )}
               </div>
-            </CardContent>
-          </Card>
+
+              {/* Continue Button */}
+              {step2Complete && (
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="button"
+                    onClick={() => setExpandedStep(3)}
+                    className="bg-sky-500 hover:bg-sky-600"
+                  >
+                    Continue to Step 3 →
+                  </Button>
+                </div>
+              )}
+            </div>
+          </AccordionStep>
 
           {/* ================================================================ */}
-          {/* STEP 3: Personalize Your Lesson (TeacherCustomization) */}
+          {/* STEP 3: Customize Your Style */}
+          {/* Note: TeacherCustomization has its own collapsible header, so we */}
+          {/* only show/hide it based on step completion, not wrap in accordion */}
           {/* ================================================================ */}
-          <TeacherCustomization
-            teachingStyle={teachingStyle}
-            setTeachingStyle={setTeachingStyle}
-            learningStyle={learningStyle}
-            setLearningStyle={setLearningStyle}
-            lessonLength={lessonLength}
-            setLessonLength={setLessonLength}
-            classSetting={classSetting}
-            setClassSetting={setClassSetting}
-            learningEnvironment={learningEnvironment}
-            setLearningEnvironment={setLearningEnvironment}
-            studentExperience={studentExperience}
-            setStudentExperience={setStudentExperience}
-            educationExperience={educationExperience}
-            setEducationExperience={setEducationExperience}
-            culturalContext={culturalContext}
-            setCulturalContext={setCulturalContext}
-            specialNeeds={specialNeeds}
-            setSpecialNeeds={setSpecialNeeds}
-            lessonSequence={lessonSequence}
-            setLessonSequence={setLessonSequence}
-            assessmentStyle={assessmentStyle}
-            setAssessmentStyle={setAssessmentStyle}
-            language={language}
-            setLanguage={setLanguage}
-            activityTypes={activityTypes}
-            setActivityTypes={setActivityTypes}
-            lessonNumber={lessonNumber}
-            setLessonNumber={setLessonNumber}
-            totalLessons={totalLessons}
-            setTotalLessons={setTotalLessons}
-            profiles={profiles}
-            currentProfileId={currentProfileId}
-            onSaveProfile={handleSaveProfile}
-            onUpdateProfile={handleUpdateProfile}
-            onLoadProfile={handleLoadProfile}
-            onClearProfile={() => setCurrentProfileId(null)}
-            onDeleteProfile={handleDeleteProfile}
-            isSavingProfile={isSavingProfile}
-            disabled={isSubmitting}
-          />
+          {step1Complete && step2Complete && (
+            <TeacherCustomization
+              teachingStyle={teachingStyle}
+              setTeachingStyle={setTeachingStyle}
+              learningStyle={learningStyle}
+              setLearningStyle={setLearningStyle}
+              lessonLength={lessonLength}
+              setLessonLength={setLessonLength}
+              classSetting={classSetting}
+              setClassSetting={setClassSetting}
+              learningEnvironment={learningEnvironment}
+              setLearningEnvironment={setLearningEnvironment}
+              studentExperience={studentExperience}
+              setStudentExperience={setStudentExperience}
+              educationExperience={educationExperience}
+              setEducationExperience={setEducationExperience}
+              culturalContext={culturalContext}
+              setCulturalContext={setCulturalContext}
+              specialNeeds={specialNeeds}
+              setSpecialNeeds={setSpecialNeeds}
+              lessonSequence={lessonSequence}
+              setLessonSequence={setLessonSequence}
+              assessmentStyle={assessmentStyle}
+              setAssessmentStyle={setAssessmentStyle}
+              language={language}
+              setLanguage={setLanguage}
+              activityTypes={activityTypes}
+              setActivityTypes={setActivityTypes}
+              lessonNumber={lessonNumber}
+              setLessonNumber={setLessonNumber}
+              totalLessons={totalLessons}
+              setTotalLessons={setTotalLessons}
+              profiles={profiles}
+              currentProfileId={currentProfileId}
+              onSaveProfile={handleSaveProfile}
+              onUpdateProfile={handleUpdateProfile}
+              onLoadProfile={handleLoadProfile}
+              onClearProfile={() => setCurrentProfileId(null)}
+              onDeleteProfile={handleDeleteProfile}
+              isSavingProfile={isSavingProfile}
+              disabled={isSubmitting}
+            />
+          )}
+          
+          {/* Locked Step 3 placeholder when prerequisites not met */}
+          {(!step1Complete || !step2Complete) && (
+            <Card className="border shadow-sm opacity-60">
+              <CardHeader className="pb-3 cursor-not-allowed">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                    <StepBadge number={3} />
+                  </div>
+                  <span className="text-muted-foreground text-sm">🔒</span>
+                </div>
+                <div className="ml-10 mt-2">
+                  <CardTitle className="text-lg text-slate-800">
+                    Customize Your <GoldAccent>Style</GoldAccent>
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    Fine-tune how the lesson matches your teaching personality and your students' learning preferences.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+            </Card>
+          )}
 
           {/* ================================================================ */}
           {/* ADDITIONAL OPTIONS (Notes + Teaser) */}
@@ -1015,13 +1367,12 @@ export function EnhanceLessonForm({
                 </div>
               </div>
 
-              {/* Seasonal Theme Options - Opt-in */}
+              {/* Seasonal Theme Options - Hidden for now
               <div className="pt-3 border-t space-y-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Optional Seasonal Themes
                 </p>
                 
-                {/* Liturgical Calendar Checkbox */}
                 <div className="flex items-start space-x-2">
                   <Checkbox
                     id="include-liturgical"
@@ -1042,7 +1393,6 @@ export function EnhanceLessonForm({
                   </div>
                 </div>
 
-                {/* Cultural Seasons Checkbox */}
                 <div className="flex items-start space-x-2">
                   <Checkbox
                     id="include-cultural"
@@ -1063,6 +1413,7 @@ export function EnhanceLessonForm({
                   </div>
                 </div>
               </div>
+              */}
             </CardContent>
           </Card>
 
@@ -1100,7 +1451,7 @@ export function EnhanceLessonForm({
               type="submit"
               className="w-full bg-sky-500 hover:bg-sky-600"
               size="lg"
-              disabled={isSubmitting || isEnhancing || isLimitReached || isExtracting}
+              disabled={isSubmitting || isEnhancing || isLimitReached || isExtracting || !step1Complete || !step2Complete}
             >
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
@@ -1115,7 +1466,7 @@ export function EnhanceLessonForm({
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Lesson
+                  Generate My Lesson
                 </>
               )}
             </Button>
@@ -1124,6 +1475,13 @@ export function EnhanceLessonForm({
             <p className="text-xs text-center text-amber-600">
               Warning: Must remain on this page until lesson is fully generated
             </p>
+
+            {/* Readiness indicator */}
+            {(!step1Complete || !step2Complete) && (
+              <p className="text-xs text-center text-muted-foreground">
+                Complete Steps 1 and 2 to generate your lesson
+              </p>
+            )}
           </div>
         </form>
         )}
@@ -1184,10 +1542,51 @@ export function EnhanceLessonForm({
                 </Button>
               </div>
             </div>
+
+            {/* ============================================================ */}
+            {/* FULL LESSON / FREE LESSON TOGGLE */}
+            {/* ============================================================ */}
+            <div className="mt-4 p-3 bg-gradient-to-r from-sky-50 to-amber-50 border border-sky-200 rounded-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-4 w-4 text-sky-600" />
+                  <span className="text-sm font-medium text-slate-700">Preview Mode:</span>
+                </div>
+                <div className="flex rounded-lg border border-sky-300 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setLessonViewMode("full")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      lessonViewMode === "full"
+                        ? "bg-sky-500 text-white"
+                        : "bg-white text-slate-600 hover:bg-sky-50"
+                    }`}
+                  >
+                    Full Lesson (8 sections)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLessonViewMode("free")}
+                    className={`px-4 py-2 text-sm font-medium transition-colors ${
+                      lessonViewMode === "free"
+                        ? "bg-amber-500 text-white"
+                        : "bg-white text-slate-600 hover:bg-amber-50"
+                    }`}
+                  >
+                    What Free Looks Like
+                  </button>
+                </div>
+              </div>
+              {lessonViewMode === "free" && (
+                <p className="text-xs text-amber-700 mt-2">
+                  Showing sections 1, 5, and 8 only — this is what free accounts receive after complimentary lessons expire.
+                </p>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            {/* Teaser Section */}
-            {currentLesson.metadata?.teaser && (
+            {/* Teaser Section - Only show in Full mode */}
+            {currentLesson.metadata?.teaser && lessonViewMode === "full" && (
               <div className="mb-3 p-2.5 bg-sky-50 border border-sky-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="h-4 w-4 text-sky-500" />
@@ -1202,28 +1601,110 @@ export function EnhanceLessonForm({
               </div>
             )}
 
-            {/* Lesson Content */}
-            <div className="prose-sm max-w-none">
-              <div
-                className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px] md:[&::-webkit-scrollbar]:w-4 md:[&::-webkit-scrollbar-track]:bg-gray-200 md:[&::-webkit-scrollbar-track]:rounded-full md:[&::-webkit-scrollbar-thumb]:bg-sky-400 md:[&::-webkit-scrollbar-thumb]:rounded-full md:[&::-webkit-scrollbar-thumb]:border-2 md:[&::-webkit-scrollbar-thumb]:border-gray-200 hover:md:[&::-webkit-scrollbar-thumb]:bg-sky-500"
-                style={{ lineHeight: "1.3", scrollbarWidth: "thick", scrollbarColor: "#38bdf8 #e5e7eb" }}
-                dangerouslySetInnerHTML={{
-                  __html: (currentLesson.original_text || "")
-                    .replace(
-                      /## (.*?)(?=\n|$)/g,
-                      '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>'
-                    )
-                    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                    .replace(
-                      /\n---\n/g,
-                      '<hr class="my-1.5 border-t border-muted-foreground/20">'
-                    )
-                    .replace(/\x95/g, "\x95")
-                    .replace(/\n\n/g, "<br><br>")
-                    .replace(/\n/g, "<br>"),
-                }}
-              />
+            {/* Teaser - Locked indicator in Free mode */}
+            {currentLesson.metadata?.teaser && lessonViewMode === "free" && (
+              <div className="mb-3 p-2.5 bg-slate-100 border border-slate-300 rounded-lg opacity-60">
+                <div className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm font-medium text-slate-500">
+                    Student Teaser — Premium Feature
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Lesson Content - Section by Section */}
+            <div className="prose-sm max-w-none space-y-3">
+              {(() => {
+                const sections = parseLessonSections(currentLesson.original_text || "", FREE_SECTIONS);
+                
+                // If no structured sections found, show original content
+                if (sections.length === 1 && sections[0].sectionNumber === 0) {
+                  return (
+                    <div
+                      className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
+                      style={{ lineHeight: "1.3" }}
+                      dangerouslySetInnerHTML={{
+                        __html: normalizeLegacyContent(currentLesson.original_text || "")
+                          .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
+                          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                          .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+                          .replace(/\n\n/g, "<br><br>")
+                          .replace(/\n/g, "<br>"),
+                      }}
+                    />
+                  );
+                }
+
+                // Render sections with toggle logic
+                return sections.map((section) => {
+                  const isVisible = lessonViewMode === "full" || section.isFreeTier;
+                  
+                  if (isVisible) {
+                    // Show full section
+                    return (
+                      <div
+                        key={section.sectionNumber}
+                        className="bg-muted p-3 rounded-lg"
+                      >
+                        <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-sky-500 text-white text-xs font-bold">
+                            {section.sectionNumber}
+                          </span>
+                          {section.title}
+                          {section.isFreeTier && lessonViewMode === "free" && (
+                            <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                              ✓ Included in Free
+                            </span>
+                          )}
+                        </h3>
+                        <div
+                          className="whitespace-pre-wrap text-sm overflow-auto"
+                          style={{ lineHeight: "1.4" }}
+                          dangerouslySetInnerHTML={{
+                            __html: formatSectionContent(section.content),
+                          }}
+                        />
+                      </div>
+                    );
+                  } else {
+                    // Show locked/collapsed section
+                    return (
+                      <div
+                        key={section.sectionNumber}
+                        className="bg-slate-100 border border-slate-300 p-3 rounded-lg opacity-60"
+                      >
+                        <h3 className="text-base font-medium text-slate-500 flex items-center gap-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-white text-xs font-bold">
+                            {section.sectionNumber}
+                          </span>
+                          <Lock className="h-4 w-4 text-slate-400" />
+                          {section.title}
+                          <span className="ml-auto text-xs text-slate-400">Premium Only</span>
+                        </h3>
+                      </div>
+                    );
+                  }
+                });
+              })()}
             </div>
+
+            {/* Upgrade CTA - Only show in Free mode */}
+            {lessonViewMode === "free" && (
+              <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-sky-50 border border-amber-200 rounded-lg">
+                <div className="text-center">
+                  <h4 className="font-semibold text-slate-800 mb-2">
+                    This is what free accounts receive after your {PRICING_DISPLAY.free.complimentaryFullLessons} complimentary lessons.
+                  </h4>
+                  <p className="text-sm text-slate-600 mb-4">
+                    You'll still get the overview, teaching script, and student handout—but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
+                  </p>
+                  <Button className="bg-amber-500 hover:bg-amber-600 text-white">
+                    {PRICING_DISPLAY.personal.upgradeButton} — {PRICING_DISPLAY.personal.ctaFull}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Export buttons at bottom */}
             <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-4 border-t">
@@ -1250,8 +1731,3 @@ export function EnhanceLessonForm({
     </>
   );
 }
-
-
-
-
-

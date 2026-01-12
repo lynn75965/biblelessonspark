@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { ArrowLeft } from "lucide-react";
@@ -34,7 +34,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Description of Service</h2>
             <p className="text-gray-700">
-              LessonSparkUSA is an AI-powered Baptist Bible study lesson generator designed to help 
+              LessonSparkUSA is an Personalized Baptist Bible study lesson generator designed to help 
               volunteer teachers and ministry leaders create educational content. The Service generates 
               lessons based on your inputs and preferences, aligned with Baptist theological traditions.
             </p>
@@ -91,7 +91,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2 mt-4">Platform Content</h3>
             <p className="text-gray-700">
-              The LessonSparkUSA platform, including its design, code, and AI technology, is owned by 
+              The LessonSparkUSA platform, including its design, code, and technology, is owned by 
               EckBros Media LLC and protected by copyright and intellectual property laws.
             </p>
 
@@ -106,11 +106,11 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-3">Content Disclaimer</h2>
             <p className="text-gray-700 mb-3">
-              LessonSparkUSA generates content using AI technology. While we strive for theological 
+              LessonSparkUSA generates content using advanced technology. While we strive for theological 
               accuracy aligned with Baptist traditions:
             </p>
             <ul className="list-disc pl-6 text-gray-700 space-y-1">
-              <li>AI-generated content should be reviewed before use</li>
+              <li>Generated content should be reviewed before use</li>
               <li>We do not guarantee theological perfection</li>
               <li>Teachers are responsible for verifying content accuracy</li>
               <li>The Service is a tool to assist, not replace, human judgment</li>
@@ -201,3 +201,5 @@ export default function TermsOfService() {
     </div>
   );
 }
+
+

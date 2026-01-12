@@ -1,12 +1,12 @@
 /**
  * NAVIGATION CONFIGURATION
  * Single Source of Truth for header menu items by role
- * 
+ *
  * ARCHITECTURE:
  * - Defines which menu items each role sees
  * - Header.tsx consumes this config
  * - Routes must exist in App.tsx
- * 
+ *
  * TERMINOLOGY:
  * - Administrator = platformAdmin (Lynn only)
  * - Organization Manager = orgLeader (church leaders)
@@ -110,13 +110,13 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
 
 /**
  * Defines which menu items each role sees, in display order
+ * NOTE: 'parables' is defined but not included in any role menu (hidden feature)
  */
 export const MENU_BY_ROLE: Record<Role, string[]> = {
   [ROLES.platformAdmin]: [
     'adminPanel',
     'orgManager',
     'workspace',
-    'parables',
     'pricing',
     'settings',
     'signOut',
@@ -124,21 +124,18 @@ export const MENU_BY_ROLE: Record<Role, string[]> = {
   [ROLES.orgLeader]: [
     'orgManager',
     'workspace',
-    'parables',
     'pricing',
     'settings',
     'signOut',
   ],
   [ROLES.orgMember]: [
     'workspace',
-    'parables',
     'pricing',
     'settings',
     'signOut',
   ],
   [ROLES.individual]: [
     'workspace',
-    'parables',
     'pricing',
     'settings',
     'signOut',

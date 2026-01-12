@@ -371,6 +371,11 @@ Then provide the five sections. Do not include word counts in the output.`;
     // Calculate word count
     const wordCount = generatedContent.split(/\s+/).filter(w => w.length > 0).length;
 
+    // Append copyright notice if Bible version requires it
+    if (bibleVersion.copyrightNotice && !generatedContent.includes(bibleVersion.copyrightNotice)) {
+      generatedContent = generatedContent + "\n\n---\n\n*" + bibleVersion.copyrightNotice + "*";
+    }
+
     const generationDuration = Date.now() - startTime;
 
     // ========================================================================

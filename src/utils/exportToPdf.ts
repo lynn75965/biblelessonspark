@@ -1,4 +1,5 @@
-﻿// src/utils/exportToPdf.ts
+// src/utils/exportToPdf.ts
+// Updated: January 2026 - Added Bible version copyright attribution footer
 import jsPDF from "jspdf";
 import { EXPORT_FORMATTING, isBoldLabel, isSkipLabel } from "../constants/lessonStructure";
 
@@ -19,7 +20,14 @@ const extractLessonTitle = (content: string): string | null => {
 interface ExportToPdfOptions {
   title: string;
   content: string;
-  metadata?: { passage?: string; ageGroup?: string; theology?: string; };
+  metadata?: { 
+    passage?: string; 
+    ageGroup?: string; 
+    theology?: string;
+    bibleVersion?: string;
+    bibleVersionAbbreviation?: string;
+    copyrightNotice?: string;
+  };
   teaserContent?: string;
 }
 
@@ -29,6 +37,8 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
+  // Reserve more space at bottom for two-line footer (LessonSpark + copyright)
+  const footerHeight = 18;
   let yPosition = margin;
 
   const lessonTitle = extractLessonTitle(content);
@@ -40,7 +50,7 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
     doc.setFont("helvetica", isBold ? "bold" : "normal");
     const lines = doc.splitTextToSize(sanitizedText, contentWidth);
     const textHeight = (fontSize * lineHeight * lines.length) / 2.83;
-    if (yPosition + textHeight > pageHeight - margin - 10) {
+    if (yPosition + textHeight > pageHeight - margin - footerHeight) {
       doc.addPage();
       yPosition = margin;
     }
@@ -55,7 +65,7 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
     doc.setFont("helvetica", "bold");
     const labelWidth = doc.getTextWidth(sanitizedLabel + " ");
     const remainingWidth = contentWidth - labelWidth;
-    if (yPosition + 5 > pageHeight - margin - 10) {
+    if (yPosition + 5 > pageHeight - margin - footerHeight) {
       doc.addPage();
       yPosition = margin;
     }
@@ -69,7 +79,7 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
       doc.text(valueLines[0], margin + labelWidth, yPosition);
       yPosition += (fontSize * 1.2) / 2.83;
       for (let i = 1; i < valueLines.length; i++) {
-        if (yPosition + 5 > pageHeight - margin - 10) {
+        if (yPosition + 5 > pageHeight - margin - footerHeight) {
           doc.addPage();
           yPosition = margin;
         }
@@ -80,7 +90,7 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
   };
 
   const addLine = (): void => {
-    if (yPosition + 3 > pageHeight - margin - 10) {
+    if (yPosition + 3 > pageHeight - margin - footerHeight) {
       doc.addPage();
       yPosition = margin;
     }
@@ -118,7 +128,7 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
     doc.setFontSize(10);
     const teaserLines = doc.splitTextToSize(teaserText, contentWidth - 10);
     const teaserHeight = (10 * 1.2 * teaserLines.length) / 2.83 + 10;
-    if (yPosition + teaserHeight > pageHeight - margin - 10) {
+    if (yPosition + teaserHeight > pageHeight - margin - footerHeight) {
       doc.addPage();
       yPosition = margin;
     }
@@ -188,7 +198,7 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         const bulletLines = doc.splitTextToSize("• " + sanitizeText(bulletText), contentWidth - 5);
-        if (yPosition + 5 > pageHeight - margin - 10) {
+        if (yPosition + 5 > pageHeight - margin - footerHeight) {
           doc.addPage();
           yPosition = margin;
         }
@@ -226,15 +236,50 @@ export const exportToPdf = async ({ title, content, metadata, teaserContent }: E
     i++;
   }
 
+  // Build copyright notice text
+  let copyrightText = '';
+  if (metadata?.copyrightNotice) {
+    copyrightText = sanitizeText(metadata.copyrightNotice);
+  } else if (metadata?.bibleVersion) {
+    // Fallback: construct basic attribution
+    copyrightText = `Scripture quotations are from the ${sanitizeText(metadata.bibleVersion)}${metadata.bibleVersionAbbreviation ? ` (${sanitizeText(metadata.bibleVersionAbbreviation)})` : ''}.`;
+  }
+
+  // Add footer to all pages
   const totalPages = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150, 150, 150);
+    
+    // Line 1: LessonSpark footer + page number
     const footerText = `${EXPORT_FORMATTING.footerText}  |  Page ${p} of ${totalPages}`;
     const footerWidth = doc.getTextWidth(footerText);
-    doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 10);
+    doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 14);
+    
+    // Line 2: Bible version copyright notice (if present)
+    if (copyrightText) {
+      doc.setFontSize(7);
+      // Wrap long copyright text
+      const copyrightLines = doc.splitTextToSize(copyrightText, contentWidth);
+      
+      if (p === totalPages) {
+        // Last page: show full copyright (may be multi-line)
+        const startY = pageHeight - 10;
+        for (let ci = 0; ci < Math.min(copyrightLines.length, 2); ci++) {
+          const lineWidth = doc.getTextWidth(copyrightLines[ci]);
+          doc.text(copyrightLines[ci], (pageWidth - lineWidth) / 2, startY + (ci * 3));
+        }
+      } else {
+        // Other pages: show abbreviated version
+        const shortNotice = metadata?.bibleVersionAbbreviation 
+          ? `Scripture: ${metadata.bibleVersionAbbreviation}` 
+          : (copyrightLines[0].length > 70 ? copyrightLines[0].substring(0, 67) + '...' : copyrightLines[0]);
+        const shortWidth = doc.getTextWidth(shortNotice);
+        doc.text(shortNotice, (pageWidth - shortWidth) / 2, pageHeight - 10);
+      }
+    }
   }
 
   const sanitizedTitle = sanitizeText(documentTitle).replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_").substring(0, 50);

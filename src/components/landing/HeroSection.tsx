@@ -26,7 +26,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     : tenant.production.landingPage.ctaButton;
   
   const badgeText = isPublicBeta
-    ? `Public Beta • Free for Baptist Teachers`
+    ? tenant.beta.landingPage.badgeText
     : tenant.production.landingPage.badgeText;
   
   const trustText = isPublicBeta
@@ -158,3 +158,5 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     </section>
   );
 }
+
+

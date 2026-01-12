@@ -6,6 +6,8 @@
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BetaFeedbackForm } from "@/components/feedback/BetaFeedbackForm";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { isBetaMode } from "@/constants/systemSettings";
 
 interface BetaFeedbackModalProps {
   open: boolean;
@@ -14,6 +16,9 @@ interface BetaFeedbackModalProps {
 }
 
 export const BetaFeedbackModal = ({ open, onOpenChange, lessonId }: BetaFeedbackModalProps) => {
+  const { settings } = useSystemSettings();
+  const isInBetaMode = isBetaMode(settings.current_phase as string);
+
   const handleSuccess = () => {
     onOpenChange(false);
   };
@@ -22,14 +27,18 @@ export const BetaFeedbackModal = ({ open, onOpenChange, lessonId }: BetaFeedback
     onOpenChange(false);
   };
 
+  // Mode-aware text
+  const title = isInBetaMode ? "Beta Feedback" : "Share Your Feedback";
+  const description = isInBetaMode 
+    ? "Help us improve LessonSparkUSA by sharing your beta experience"
+    : "Help us improve LessonSparkUSA by sharing your experience";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Beta Feedback</DialogTitle>
-          <DialogDescription>
-            Help us improve LessonSparkUSA by sharing your experience
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <BetaFeedbackForm 
           lessonId={lessonId} 

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LessonExportButtons Component
  * Export buttons for lessons: Copy, Print, PDF, DOCX
  * 
@@ -6,7 +6,9 @@
  * - formatLessonContentForPrint imported from @/utils/formatLessonContent (shared utility)
  * - No inline formatting logic - all formatting centralized in utility
  * 
- * Updated: December 2025
+ * Updated: January 2026
+ * - Added Bible version attribution to all exports (Copy, Print, PDF, DOCX)
+ * - copyrightNotice now included in all output formats
  */
 
 import { useState } from "react";
@@ -19,10 +21,20 @@ import { exportToDocx } from "@/utils/exportToDocx";
 import { EXPORT_FORMATTING } from "@/constants/lessonStructure";
 import { formatLessonContentForPrint } from "@/utils/formatLessonContent";
 
+interface LessonMetadata {
+  teaser?: string | null;
+  ageGroup?: string;
+  theologyProfile?: string;
+  bibleVersion?: string;
+  bibleVersionAbbreviation?: string;
+  copyrightStatus?: string;
+  copyrightNotice?: string | null;
+}
+
 interface LessonData {
   title: string;
   original_text: string;
-  metadata?: { teaser?: string | null; ageGroup?: string; theologyProfile?: string; } | null;
+  metadata?: LessonMetadata | null;
 }
 
 export function LessonExportButtons({ lesson, disabled = false, onExport }: { lesson: LessonData; disabled?: boolean; onExport?: () => void }) {
@@ -30,11 +42,33 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const { toast } = useToast();
 
+  // Build copyright attribution line for text-based exports
+  const getCopyrightLine = (): string => {
+    if (lesson.metadata?.copyrightNotice) {
+      return lesson.metadata.copyrightNotice;
+    }
+    // Fallback for public domain or missing notice
+    if (lesson.metadata?.bibleVersion) {
+      if (lesson.metadata.copyrightStatus === 'public_domain') {
+        return `Scripture quotations are from the ${lesson.metadata.bibleVersion} (${lesson.metadata.bibleVersionAbbreviation || ''}).`;
+      }
+      return `Scripture quotations are from the ${lesson.metadata.bibleVersion}.`;
+    }
+    return '';
+  };
+
   const handleCopy = async () => {
     try {
       let textContent = `${lesson.title}\n${"=".repeat(50)}\n\n`;
       if (lesson.metadata?.teaser) textContent += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n${"-".repeat(50)}\n\n`;
       textContent += lesson.original_text;
+      
+      // Add copyright attribution at the end
+      const copyrightLine = getCopyrightLine();
+      if (copyrightLine) {
+        textContent += `\n\n${"-".repeat(50)}\n${copyrightLine}`;
+      }
+      
       await navigator.clipboard.writeText(textContent);
       setCopied(true);
       if (onExport) onExport();
@@ -60,7 +94,14 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     
     const lessonTitleMatch = lesson.original_text.match(/Lesson Title:?\s*[""]?(.+?)[""]?\s*(?:\n|$)/i);
     const documentTitle = lessonTitleMatch ? lessonTitleMatch[1].replace(/[""\*]/g, "").trim() : lesson.title;
-    const printContent = `<!DOCTYPE html><html><head><title>${documentTitle}</title><style>@page{margin:1in}body{font-family:Calibri,sans-serif;font-size:11pt;line-height:1.5;max-width:8.5in;margin:0 auto;padding:0}h1{font-size:18pt;margin-bottom:12pt;line-height:1.3}h2{font-size:14pt;margin-top:18pt;margin-bottom:12pt;line-height:1.3}hr{margin:18px 0;border:none;border-top:1px solid #ccc}.metadata{color:#666;font-size:10pt;margin-bottom:18pt;line-height:1.3}.teaser-box{background:#F0F7FF;border:1px solid #3B82F6;border-radius:8px;padding:12pt;margin:18pt 0}.teaser-box h3{color:#3B82F6;margin:0 0 6pt 0;font-size:12pt}.teaser-box p{font-style:italic;margin:0;line-height:1.5}p{margin-bottom:12pt}</style></head><body><h1>${documentTitle}</h1><div class="metadata">${metaItems.join(" | ")}</div>${lesson.metadata?.teaser ? `<div class="teaser-box"><h3>${EXPORT_FORMATTING.teaserLabel}</h3><p>${lesson.metadata.teaser}</p></div>` : ""}<div>${formattedContent}</div></body></html>`;
+    
+    // Get copyright notice for footer
+    const copyrightLine = getCopyrightLine();
+    const copyrightFooter = copyrightLine 
+      ? `<div class="copyright-notice">${copyrightLine}</div>` 
+      : '';
+    
+    const printContent = `<!DOCTYPE html><html><head><title>${documentTitle}</title><style>@page{margin:1in}body{font-family:Calibri,sans-serif;font-size:11pt;line-height:1.5;max-width:8.5in;margin:0 auto;padding:0}h1{font-size:18pt;margin-bottom:12pt;line-height:1.3}h2{font-size:14pt;margin-top:18pt;margin-bottom:12pt;line-height:1.3}hr{margin:18px 0;border:none;border-top:1px solid #ccc}.metadata{color:#666;font-size:10pt;margin-bottom:18pt;line-height:1.3}.teaser-box{background:#F0F7FF;border:1px solid #3B82F6;border-radius:8px;padding:12pt;margin:18pt 0}.teaser-box h3{color:#3B82F6;margin:0 0 6pt 0;font-size:12pt}.teaser-box p{font-style:italic;margin:0;line-height:1.5}p{margin-bottom:12pt}.copyright-notice{margin-top:36pt;padding-top:12pt;border-top:1px solid #ccc;font-size:9pt;color:#666;font-style:italic;line-height:1.4;text-align:center}</style></head><body><h1>${documentTitle}</h1><div class="metadata">${metaItems.join(" | ")}</div>${lesson.metadata?.teaser ? `<div class="teaser-box"><h3>${EXPORT_FORMATTING.teaserLabel}</h3><p>${lesson.metadata.teaser}</p></div>` : ""}<div>${formattedContent}</div>${copyrightFooter}</body></html>`;
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.onload = () => printWindow.print();
@@ -70,7 +111,19 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
   const handleExportPdf = async () => {
     setExporting("pdf");
     try {
-      await exportToPdf({ title: lesson.title, content: lesson.original_text, teaserContent: lesson.metadata?.teaser || undefined, metadata: { passage: lesson.title, ageGroup: lesson.metadata?.ageGroup, theology: lesson.metadata?.theologyProfile } });
+      await exportToPdf({ 
+        title: lesson.title, 
+        content: lesson.original_text, 
+        teaserContent: lesson.metadata?.teaser || undefined, 
+        metadata: { 
+          passage: lesson.title, 
+          ageGroup: lesson.metadata?.ageGroup, 
+          theology: lesson.metadata?.theologyProfile,
+          bibleVersion: lesson.metadata?.bibleVersion,
+          bibleVersionAbbreviation: lesson.metadata?.bibleVersionAbbreviation,
+          copyrightNotice: lesson.metadata?.copyrightNotice || undefined
+        } 
+      });
       if (onExport) onExport();
       toast({ title: "PDF exported", description: "Your lesson has been downloaded." });
     } catch (error) {
@@ -81,7 +134,19 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
   const handleExportDocx = async () => {
     setExporting("docx");
     try {
-      await exportToDocx({ title: lesson.title, content: lesson.original_text, teaserContent: lesson.metadata?.teaser || undefined, metadata: { passage: lesson.title, ageGroup: lesson.metadata?.ageGroup, theology: lesson.metadata?.theologyProfile } });
+      await exportToDocx({ 
+        title: lesson.title, 
+        content: lesson.original_text, 
+        teaserContent: lesson.metadata?.teaser || undefined, 
+        metadata: { 
+          passage: lesson.title, 
+          ageGroup: lesson.metadata?.ageGroup, 
+          theology: lesson.metadata?.theologyProfile,
+          bibleVersion: lesson.metadata?.bibleVersion,
+          bibleVersionAbbreviation: lesson.metadata?.bibleVersionAbbreviation,
+          copyrightNotice: lesson.metadata?.copyrightNotice || undefined
+        } 
+      });
       if (onExport) onExport();
       toast({ title: "Document exported", description: "Your lesson has been downloaded." });
     } catch (error) {

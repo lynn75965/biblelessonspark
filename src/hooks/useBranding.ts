@@ -1,4 +1,4 @@
-/**
+﻿/**
  * useBranding Hook
  * =================
  * 
@@ -23,9 +23,9 @@ import { BrandingConfig } from '@/types/branding';
 
 const FALLBACK_BRANDING: BrandingConfig = {
   appName: "LessonSpark USA",
-  appNameShort: "LessonSpark",
+  appNameShort: "LessonSparkUSA",
   tagline: "Baptist Bible Study Enhancement Platform",
-  description: "AI-powered Bible study lesson generator for Baptist Sunday School teachers.",
+  description: "Personalized Bible study lesson generator for Baptist Sunday School teachers.",
   keywords: ["Baptist", "Bible study", "Sunday School"],
   
   urls: {
@@ -105,9 +105,9 @@ const FALLBACK_BRANDING: BrandingConfig = {
     allowPublicSignup: true,
     multiLanguage: true,
     availableLanguages: [
-      { code: "en", name: "English", flag: "🇺🇸" },
-      { code: "es", name: "Español", flag: "🇲🇽" },
-      { code: "fr", name: "Français", flag: "🇫🇷" },
+      { code: "en", name: "English", flag: "ðŸ‡ºðŸ‡¸" },
+      { code: "es", name: "EspaÃ±ol", flag: "ðŸ‡²ðŸ‡½" },
+      { code: "fr", name: "FranÃ§ais", flag: "ðŸ‡«ðŸ‡·" },
     ],
     defaultLanguage: "en",
     organizationsEnabled: true,
@@ -158,7 +158,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
       },
     },
     subjects: {
-      welcome: "Welcome to LessonSpark USA! 🎉",
+      welcome: "Welcome to LessonSpark USA! ðŸŽ‰",
       emailVerification: "Verify your LessonSpark USA email address",
       signup: "Welcome to LessonSpark USA - Confirm Your Email",
       magiclink: "Your LessonSpark USA Login Link",
@@ -254,7 +254,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
   
   text: {
     heroHeadline: "Create Engaging Bible Studies in Minutes",
-    heroSubheadline: "AI-powered lesson generation for Baptist Sunday School teachers",
+    heroSubheadline: "Personalized lesson generation for Baptist Sunday School teachers",
     ctaPrimary: "Get Started Free",
     ctaSecondary: "See How It Works",
     loading: {
@@ -423,7 +423,7 @@ export function getCopyrightNotice(branding: BrandingConfig): string {
   const yearRange = startYear === String(currentYear)
     ? startYear
     : `${startYear}-${currentYear}`;
-  return `© ${yearRange} ${branding.legal.copyrightHolder}. All rights reserved.`;
+  return `Â© ${yearRange} ${branding.legal.copyrightHolder}. All rights reserved.`;
 }
 
 /**
@@ -467,3 +467,4 @@ export default useBranding;
 
 // Also export the fallback for testing/Edge Functions
 export { FALLBACK_BRANDING };
+

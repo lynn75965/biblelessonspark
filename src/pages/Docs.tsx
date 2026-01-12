@@ -161,7 +161,7 @@ const Docs = () => {
   const faqs = [
     {
       question: "How long does lesson generation take?",
-      answer: "Approximately 76 seconds. The AI generates a complete 8-section lesson with 2,000-2,800 words of original content tailored to your specifications."
+      answer: "Approximately 76 seconds. LessonSparkUSA generates a complete 8-section lesson with 2,000-2,800 words of original content tailored to your specifications."
     },
     {
       question: "Can I edit the generated lessons?",
@@ -177,7 +177,7 @@ const Docs = () => {
     },
     {
       question: "What Bible translations are supported?",
-      answer: "We support all major translations. The AI will use Scripture references appropriate for your selected age group and theological tradition."
+      answer: "We support all major translations. LessonSparkUSA will use Scripture references appropriate for your selected age group and theological tradition."
     },
     {
       question: "Can I generate lessons in Spanish or French?",
@@ -189,7 +189,7 @@ const Docs = () => {
     },
     {
       question: "How do the theological lenses work?",
-      answer: "Your selected theological lens invisibly guides the AI to align all content with your tradition's distinctives. The theology is woven naturally into the lesson rather than stated explicitly."
+      answer: "Your selected theological lens invisibly guides LessonSparkUSA to align all content with your tradition's distinctives. The theology is woven naturally into the lesson rather than stated explicitly."
     }
   ];
 
@@ -523,3 +523,4 @@ const Docs = () => {
 };
 
 export default Docs;
+

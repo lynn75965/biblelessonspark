@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // LESSONSPARK USA - SUBSCRIPTION CHECK (SHARED)
 // Location: supabase/functions/_shared/subscriptionCheck.ts
 // ============================================================
@@ -47,4 +47,3 @@ export function getSectionsForTier(tier: string): number[] {
   // Free tier gets core sections only
   return [1, 5, 8];
 }
-

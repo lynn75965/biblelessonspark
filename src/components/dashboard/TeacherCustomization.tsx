@@ -38,8 +38,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ChevronDown, ChevronUp, Info, Save, Trash2, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Info, Save, Trash2, Loader2, Play } from "lucide-react";
 import { FORM_STYLING } from "@/constants/formConfig";
+import { getVideo } from "@/constants/helpVideos";
 
 // SSOT Imports
 import {
@@ -315,14 +316,32 @@ export function TeacherCustomization({
               <GoldAccent>Personalize</GoldAccent> Your Lesson
             </CardTitle>
             <CardDescription className="text-amber-700 font-medium">
-              Click here to describe your teaching environment
+              Check off each one below to describe your teaching environment
+            </CardDescription>
+            <CardDescription className="text-slate-500 text-xs mt-1">
+              Hint: You can save up to 7 profiles — choose a saved profile & it preloads
             </CardDescription>
           </div>
-          {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-muted-foreground" />
-          ) : (
-            <ChevronDown className="h-5 w-5 text-muted-foreground" />
-          )}
+          <div className="flex items-center gap-3">
+            {/* Watch Video Link - Only shows when video URL is configured (SSOT) */}
+            {getVideo('step3')?.url && (
+              <a
+                href={getVideo('step3')?.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Play className="h-3 w-3" />
+                <span>Watch</span>
+              </a>
+            )}
+            {isExpanded ? (
+              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
         </div>
       </CardHeader>
 

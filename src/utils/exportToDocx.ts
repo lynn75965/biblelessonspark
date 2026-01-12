@@ -1,4 +1,5 @@
-﻿// src/utils/exportToDocx.ts
+// src/utils/exportToDocx.ts
+// Updated: January 2026 - Added Bible version copyright attribution footer
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
 import { saveAs } from "file-saver";
 import { EXPORT_FORMATTING } from "../constants/lessonStructure";
@@ -15,7 +16,14 @@ const extractLessonTitle = (content: string): string | null => {
 interface ExportToDocxOptions {
   title: string;
   content: string;
-  metadata?: { passage?: string; ageGroup?: string; theology?: string; };
+  metadata?: { 
+    passage?: string; 
+    ageGroup?: string; 
+    theology?: string;
+    bibleVersion?: string;
+    bibleVersionAbbreviation?: string;
+    copyrightNotice?: string;
+  };
   teaserContent?: string;
 }
 
@@ -76,6 +84,51 @@ export const exportToDocx = async ({ title, content, metadata, teaserContent }: 
       }
       sections.push(new Paragraph({ children: runs, spacing: { after: 100 } }));
     }
+  }
+
+  // Add separator before footer
+  sections.push(new Paragraph({ 
+    spacing: { before: 400 },
+    border: {
+      top: { color: "CCCCCC", size: 6, style: BorderStyle.SINGLE }
+    }
+  }));
+
+  // Add LessonSpark footer
+  sections.push(new Paragraph({ 
+    children: [
+      new TextRun({ 
+        text: EXPORT_FORMATTING.footerText, 
+        size: 18, // 9pt
+        color: "999999"
+      })
+    ],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 100, after: 50 }
+  }));
+
+  // Add Bible version copyright notice (if present)
+  let copyrightText = '';
+  if (metadata?.copyrightNotice) {
+    copyrightText = metadata.copyrightNotice;
+  } else if (metadata?.bibleVersion) {
+    // Fallback: construct basic attribution
+    copyrightText = `Scripture quotations are from the ${metadata.bibleVersion}${metadata.bibleVersionAbbreviation ? ` (${metadata.bibleVersionAbbreviation})` : ''}.`;
+  }
+
+  if (copyrightText) {
+    sections.push(new Paragraph({ 
+      children: [
+        new TextRun({ 
+          text: copyrightText, 
+          size: 16, // 8pt
+          color: "999999",
+          italics: true
+        })
+      ],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 50, after: 100 }
+    }));
   }
 
   const doc = new Document({ sections: [{ properties: {}, children: sections }] });

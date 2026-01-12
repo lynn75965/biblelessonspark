@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LessonSparkUSA Constants - Tenant Configuration
  *
  * SINGLE SOURCE OF TRUTH for tenant/white-label configuration.
@@ -40,27 +40,19 @@ export type TenantConfig = {
     whiteLabel: boolean;
   };
 
-  /**
-   * Contact and email configuration.
-   * White-label tenants set their own support and transactional email addresses.
-   */
   contact: {
     supportEmail: string;
     fromEmail: string;
     fromName: string;
   };
 
-  /**
-   * Beta program text configuration.
-   * White-label tenants customize this section to run their own beta programs.
-   * Visibility controlled by platform_mode in system_settings.
-   */
   beta: {
     landingPage: {
       ctaTitle: string;
       ctaSubtitle: string;
       ctaButton: string;
       trustText: string;
+      badgeText: string;
     };
     form: {
       title: string;
@@ -109,11 +101,6 @@ export type TenantConfig = {
     };
   };
 
-  /**
-   * Production mode text configuration.
-   * Used when platform_mode is NOT 'public_beta'.
-   * White-label tenants customize this for their launched product.
-   */
   production: {
     landingPage: {
       badgeText: string;
@@ -123,40 +110,28 @@ export type TenantConfig = {
   };
 };
 
-// Database row type (snake_case as stored in Supabase)
 export interface TenantConfigRow {
   id: string;
   tenant_id: string;
-  
-  // Branding
   brand_name: string;
   logo_url: string | null;
   primary_color: string;
   secondary_color: string;
   font_family: string;
-  
-  // UI Text
   app_title: string;
   tagline: string;
   primary_cta: string;
-  
-  // Features
   feature_devotionals: boolean;
   feature_pdf_export: boolean;
   feature_white_label: boolean;
-  
-  // Contact
   contact_support_email: string;
   contact_from_email: string;
   contact_from_name: string;
-  
-  // Beta - Landing Page
   beta_landing_cta_title: string;
   beta_landing_cta_subtitle: string;
   beta_landing_cta_button: string;
   beta_landing_trust_text: string;
-  
-  // Beta - Form
+  beta_landing_badge_text: string;
   beta_form_title: string;
   beta_form_subtitle: string;
   beta_form_fullname_label: string;
@@ -176,14 +151,10 @@ export interface TenantConfigRow {
   beta_form_terms_text: string;
   beta_form_terms_link: string;
   beta_form_privacy_link: string;
-  
-  // Beta - Dashboard Prompt
   beta_dashboard_title: string;
   beta_dashboard_description: string;
   beta_dashboard_button: string;
   beta_dashboard_dismiss_button: string;
-  
-  // Beta - Messages
   beta_msg_success_title: string;
   beta_msg_success_description: string;
   beta_msg_error_title: string;
@@ -192,34 +163,23 @@ export interface TenantConfigRow {
   beta_msg_already_enrolled_description: string;
   beta_msg_verification_title: string;
   beta_msg_verification_description: string;
-  
-  // Beta - Validation
   beta_val_fullname_required: string;
   beta_val_fullname_min: string;
   beta_val_email_required: string;
   beta_val_email_invalid: string;
   beta_val_password_required: string;
   beta_val_password_min: string;
-  
-  // Production - Landing Page
   prod_landing_badge_text: string;
   prod_landing_cta_button: string;
   prod_landing_trust_text: string;
-  
-  // Timestamps
   created_at: string;
   updated_at: string;
 }
-
-// =============================================================================
-// DEFAULT VALUES
-// =============================================================================
 
 export const DEFAULT_TENANT_ID = "lessonsparkusa";
 
 export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   tenantId: DEFAULT_TENANT_ID,
-
   branding: {
     name: "LessonSparkUSA",
     logoUrl: null,
@@ -227,34 +187,31 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     secondaryColor: "#1F2937",
     fontFamily: "Inter",
   },
-
   uiText: {
     appTitle: "LessonSparkUSA",
     tagline: "Teach the way God equipped you to teach",
     primaryCta: "Create Lesson",
   },
-
   features: {
     devotionals: true,
     pdfExport: true,
     whiteLabel: false,
   },
-
   contact: {
     supportEmail: "support@lessonsparkusa.com",
     fromEmail: "noreply@lessonsparkusa.com",
     fromName: "LessonSpark USA",
   },
-
   beta: {
     landingPage: {
-      ctaTitle: "Join the Free Public Beta",
+      ctaTitle: "Get Started Free",
       ctaSubtitle: "Create engaging Bible study lessons for your Sunday School class in minutes.",
       ctaButton: "Get Started Free",
       trustText: "Join hundreds of Baptist teachers already using LessonSpark USA",
+      badgeText: "Public Beta • Free for Baptist Teachers",
     },
     form: {
-      title: "Join the LessonSpark USA Beta",
+      title: "Join LessonSpark USA",
       subtitle: "Start creating Bible study lessons in minutes.",
       fullNameLabel: "Full Name",
       fullNamePlaceholder: "Enter your full name",
@@ -275,8 +232,8 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       privacyLink: "Privacy Policy",
     },
     dashboardPrompt: {
-      title: "Join the Public Beta Program",
-      description: "Get access to all features by joining our public beta program.",
+      title: "Complete Your Registration",
+      description: "Complete your registration to access all features.",
       button: "Join Now",
       dismissButton: "Maybe Later",
     },
@@ -286,7 +243,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       enrollmentErrorTitle: "Enrollment Failed",
       enrollmentErrorDescription: "Something went wrong. Please try again or contact support.",
       alreadyEnrolledTitle: "Already Enrolled",
-      alreadyEnrolledDescription: "You are already part of the beta program.",
+      alreadyEnrolledDescription: "You already have an account.",
       verificationSentTitle: "Verification Email Sent",
       verificationSentDescription: "Please check your inbox and click the verification link.",
     },
@@ -299,19 +256,14 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       passwordMinLength: "Password must be at least 8 characters",
     },
   },
-
   production: {
     landingPage: {
-      badgeText: "AI-Powered Baptist Bible Study Curriculum",
+      badgeText: "Personalized Baptist Bible Study Curriculum",
       ctaButton: "Get Started",
       trustText: "Trusted by Baptist teachers across the country",
     },
   },
 };
-
-// =============================================================================
-// FONT OPTIONS (for Admin UI dropdown)
-// =============================================================================
 
 export const FONT_OPTIONS = [
   { value: "Inter", label: "Inter (Modern)" },
@@ -320,10 +272,6 @@ export const FONT_OPTIONS = [
   { value: "Georgia", label: "Georgia (Serif)" },
   { value: "Times New Roman", label: "Times New Roman" },
 ] as const;
-
-// =============================================================================
-// COLOR PRESETS (for Admin UI)
-// =============================================================================
 
 export const COLOR_PRESETS = {
   primary: [
@@ -341,10 +289,6 @@ export const COLOR_PRESETS = {
     { value: "#4B5563", label: "Gray" },
   ],
 } as const;
-
-// =============================================================================
-// FEATURE FLAG DEFINITIONS
-// =============================================================================
 
 export const FEATURE_FLAGS = [
   {
@@ -367,55 +311,33 @@ export const FEATURE_FLAGS = [
   },
 ] as const;
 
-// =============================================================================
-// CONTACT FIELD DEFINITIONS (for Admin UI)
-// =============================================================================
-
 export const CONTACT_FIELDS = {
   label: "Contact & Email",
   description: "Email addresses used for support and transactional emails",
   fields: [
-    { 
-      key: "supportEmail", 
-      label: "Support Email", 
-      placeholder: "support@yourchurch.org",
-      description: "Displayed in UI for users to contact support"
-    },
-    { 
-      key: "fromEmail", 
-      label: "From Email", 
-      placeholder: "noreply@yourchurch.org",
-      description: "Sender address for transactional emails"
-    },
-    { 
-      key: "fromName", 
-      label: "From Name", 
-      placeholder: "Your Church Name",
-      description: "Sender name for transactional emails"
-    },
+    { key: "supportEmail", label: "Support Email", placeholder: "support@yourchurch.org", description: "Displayed in UI for users to contact support" },
+    { key: "fromEmail", label: "From Email", placeholder: "noreply@yourchurch.org", description: "Sender address for transactional emails" },
+    { key: "fromName", label: "From Name", placeholder: "Your Church Name", description: "Sender name for transactional emails" },
   ],
 } as const;
-
-// =============================================================================
-// BETA FIELD DEFINITIONS (for Admin UI)
-// =============================================================================
 
 export const BETA_FIELD_GROUPS = {
   landingPage: {
     label: "Landing Page CTA",
     description: "Text shown on the landing page beta call-to-action",
     fields: [
-      { key: "ctaTitle", label: "CTA Title", placeholder: "Join the Free Public Beta" },
+      { key: "ctaTitle", label: "CTA Title", placeholder: "Get Started Free" },
       { key: "ctaSubtitle", label: "CTA Subtitle", placeholder: "Create engaging Bible study lessons..." },
       { key: "ctaButton", label: "CTA Button Text", placeholder: "Get Started Free" },
       { key: "trustText", label: "Trust Text", placeholder: "Join hundreds of Baptist teachers..." },
+      { key: "badgeText", label: "Badge Text", placeholder: "Public Beta • Free for Baptist Teachers" },
     ],
   },
   form: {
     label: "Enrollment Form",
-    description: "Labels and placeholders for the beta enrollment form",
+    description: "Labels and placeholders for the enrollment form",
     fields: [
-      { key: "title", label: "Form Title", placeholder: "Join the LessonSpark USA Beta" },
+      { key: "title", label: "Form Title", placeholder: "Join LessonSpark USA" },
       { key: "subtitle", label: "Form Subtitle", placeholder: "Start creating Bible study lessons..." },
       { key: "fullNameLabel", label: "Full Name Label", placeholder: "Full Name" },
       { key: "fullNamePlaceholder", label: "Full Name Placeholder", placeholder: "Enter your full name" },
@@ -440,8 +362,8 @@ export const BETA_FIELD_GROUPS = {
     label: "Dashboard Prompt",
     description: "Banner shown to users without an organization",
     fields: [
-      { key: "title", label: "Prompt Title", placeholder: "Join the Public Beta Program" },
-      { key: "description", label: "Prompt Description", placeholder: "Get access to all features..." },
+      { key: "title", label: "Prompt Title", placeholder: "Complete Your Registration" },
+      { key: "description", label: "Prompt Description", placeholder: "Complete your registration to access all features." },
       { key: "button", label: "Join Button", placeholder: "Join Now" },
       { key: "dismissButton", label: "Dismiss Button", placeholder: "Maybe Later" },
     ],
@@ -455,7 +377,7 @@ export const BETA_FIELD_GROUPS = {
       { key: "enrollmentErrorTitle", label: "Error Title", placeholder: "Enrollment Failed" },
       { key: "enrollmentErrorDescription", label: "Error Description", placeholder: "Something went wrong..." },
       { key: "alreadyEnrolledTitle", label: "Already Enrolled Title", placeholder: "Already Enrolled" },
-      { key: "alreadyEnrolledDescription", label: "Already Enrolled Description", placeholder: "You are already part of the beta..." },
+      { key: "alreadyEnrolledDescription", label: "Already Enrolled Description", placeholder: "You already have an account." },
       { key: "verificationSentTitle", label: "Verification Title", placeholder: "Verification Email Sent" },
       { key: "verificationSentDescription", label: "Verification Description", placeholder: "Please check your inbox..." },
     ],
@@ -474,29 +396,18 @@ export const BETA_FIELD_GROUPS = {
   },
 } as const;
 
-// =============================================================================
-// PRODUCTION FIELD DEFINITIONS (for Admin UI)
-// =============================================================================
-
 export const PRODUCTION_FIELD_GROUPS = {
   landingPage: {
     label: "Landing Page",
     description: "Text shown on the landing page when in production mode",
     fields: [
-      { key: "badgeText", label: "Badge Text", placeholder: "AI-Powered Baptist Bible Study Curriculum" },
+      { key: "badgeText", label: "Badge Text", placeholder: "Personalized Baptist Bible Study Curriculum" },
       { key: "ctaButton", label: "CTA Button Text", placeholder: "Get Started" },
       { key: "trustText", label: "Trust Text", placeholder: "Trusted by Baptist teachers across the country" },
     ],
   },
 } as const;
 
-// =============================================================================
-// MAPPING FUNCTIONS (Database ↔ Frontend)
-// =============================================================================
-
-/**
- * Convert database row (snake_case) to frontend config (nested structure)
- */
 export function mapRowToConfig(row: TenantConfigRow): TenantConfig {
   return {
     tenantId: row.tenant_id,
@@ -528,6 +439,7 @@ export function mapRowToConfig(row: TenantConfigRow): TenantConfig {
         ctaSubtitle: row.beta_landing_cta_subtitle ?? DEFAULT_TENANT_CONFIG.beta.landingPage.ctaSubtitle,
         ctaButton: row.beta_landing_cta_button ?? DEFAULT_TENANT_CONFIG.beta.landingPage.ctaButton,
         trustText: row.beta_landing_trust_text ?? DEFAULT_TENANT_CONFIG.beta.landingPage.trustText,
+        badgeText: row.beta_landing_badge_text ?? DEFAULT_TENANT_CONFIG.beta.landingPage.badgeText,
       },
       form: {
         title: row.beta_form_title ?? DEFAULT_TENANT_CONFIG.beta.form.title,
@@ -585,43 +497,28 @@ export function mapRowToConfig(row: TenantConfigRow): TenantConfig {
   };
 }
 
-/**
- * Convert frontend config (nested) to database row (snake_case)
- * For updates - excludes id, created_at, updated_at
- */
 export function mapConfigToRow(config: TenantConfig): Omit<TenantConfigRow, 'id' | 'created_at' | 'updated_at'> {
   return {
     tenant_id: config.tenantId,
-    
-    // Branding
     brand_name: config.branding.name,
     logo_url: config.branding.logoUrl,
     primary_color: config.branding.primaryColor,
     secondary_color: config.branding.secondaryColor,
     font_family: config.branding.fontFamily,
-    
-    // UI Text
     app_title: config.uiText.appTitle,
     tagline: config.uiText.tagline,
     primary_cta: config.uiText.primaryCta,
-    
-    // Features
     feature_devotionals: config.features.devotionals,
     feature_pdf_export: config.features.pdfExport,
     feature_white_label: config.features.whiteLabel,
-    
-    // Contact
     contact_support_email: config.contact.supportEmail,
     contact_from_email: config.contact.fromEmail,
     contact_from_name: config.contact.fromName,
-    
-    // Beta - Landing Page
     beta_landing_cta_title: config.beta.landingPage.ctaTitle,
     beta_landing_cta_subtitle: config.beta.landingPage.ctaSubtitle,
     beta_landing_cta_button: config.beta.landingPage.ctaButton,
     beta_landing_trust_text: config.beta.landingPage.trustText,
-    
-    // Beta - Form
+    beta_landing_badge_text: config.beta.landingPage.badgeText,
     beta_form_title: config.beta.form.title,
     beta_form_subtitle: config.beta.form.subtitle,
     beta_form_fullname_label: config.beta.form.fullNameLabel,
@@ -641,14 +538,10 @@ export function mapConfigToRow(config: TenantConfig): Omit<TenantConfigRow, 'id'
     beta_form_terms_text: config.beta.form.termsText,
     beta_form_terms_link: config.beta.form.termsLink,
     beta_form_privacy_link: config.beta.form.privacyLink,
-    
-    // Beta - Dashboard Prompt
     beta_dashboard_title: config.beta.dashboardPrompt.title,
     beta_dashboard_description: config.beta.dashboardPrompt.description,
     beta_dashboard_button: config.beta.dashboardPrompt.button,
     beta_dashboard_dismiss_button: config.beta.dashboardPrompt.dismissButton,
-    
-    // Beta - Messages
     beta_msg_success_title: config.beta.messages.enrollmentSuccessTitle,
     beta_msg_success_description: config.beta.messages.enrollmentSuccessDescription,
     beta_msg_error_title: config.beta.messages.enrollmentErrorTitle,
@@ -657,25 +550,17 @@ export function mapConfigToRow(config: TenantConfig): Omit<TenantConfigRow, 'id'
     beta_msg_already_enrolled_description: config.beta.messages.alreadyEnrolledDescription,
     beta_msg_verification_title: config.beta.messages.verificationSentTitle,
     beta_msg_verification_description: config.beta.messages.verificationSentDescription,
-    
-    // Beta - Validation
     beta_val_fullname_required: config.beta.validation.fullNameRequired,
     beta_val_fullname_min: config.beta.validation.fullNameMinLength,
     beta_val_email_required: config.beta.validation.emailRequired,
     beta_val_email_invalid: config.beta.validation.emailInvalid,
     beta_val_password_required: config.beta.validation.passwordRequired,
     beta_val_password_min: config.beta.validation.passwordMinLength,
-    
-    // Production - Landing Page
     prod_landing_badge_text: config.production.landingPage.badgeText,
     prod_landing_cta_button: config.production.landingPage.ctaButton,
     prod_landing_trust_text: config.production.landingPage.trustText,
   };
 }
-
-// =============================================================================
-// VALIDATION
-// =============================================================================
 
 export function isValidHexColor(color: string): boolean {
   return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
@@ -683,29 +568,12 @@ export function isValidHexColor(color: string): boolean {
 
 export function validateTenantConfig(config: TenantConfig): string[] {
   const errors: string[] = [];
-
-  if (!config.branding.name.trim()) {
-    errors.push("Brand name cannot be empty");
-  }
-
-  if (!config.uiText.appTitle.trim()) {
-    errors.push("App title cannot be empty");
-  }
-
-  if (!isValidHexColor(config.branding.primaryColor)) {
-    errors.push("Primary color must be a valid hex color (e.g., #E4572E)");
-  }
-
-  if (!isValidHexColor(config.branding.secondaryColor)) {
-    errors.push("Secondary color must be a valid hex color (e.g., #1F2937)");
-  }
-
+  if (!config.branding.name.trim()) errors.push("Brand name cannot be empty");
+  if (!config.uiText.appTitle.trim()) errors.push("App title cannot be empty");
+  if (!isValidHexColor(config.branding.primaryColor)) errors.push("Primary color must be a valid hex color (e.g., #E4572E)");
+  if (!isValidHexColor(config.branding.secondaryColor)) errors.push("Secondary color must be a valid hex color (e.g., #1F2937)");
   return errors;
 }
-
-// =============================================================================
-// CSS VARIABLE HELPERS
-// =============================================================================
 
 export function applyTenantStyles(config: TenantConfig): void {
   document.documentElement.style.setProperty("--tenant-primary", config.branding.primaryColor);
@@ -719,21 +587,9 @@ export const CSS_VARIABLES = {
   font: "--tenant-font",
 } as const;
 
-// =============================================================================
-// TENANT ID RESOLUTION
-// =============================================================================
-
-/**
- * Resolve tenant ID from hostname
- * Example:
- *   lessonsparkusa.com        -> lessonsparkusa
- *   firstbaptist.lessonsparkusa.com -> firstbaptist
- */
 export function resolveTenantFromHost(host: string): string {
   const parts = host.split(".");
-  // If subdomain exists (3+ parts), use first part
-  if (parts.length >= 3 && parts[0] !== "www") {
-    return parts[0];
-  }
+  if (parts.length >= 3 && parts[0] !== "www") return parts[0];
   return DEFAULT_TENANT_ID;
 }
+

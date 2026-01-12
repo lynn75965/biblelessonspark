@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { BRANDING } from "@/config/branding";
 import { Link } from "react-router-dom";
@@ -14,7 +14,7 @@ import {
   Mail, 
   BookOpen, 
   Sparkles, 
-  CreditCard, 
+  Receipt, 
   Download,
   Settings,
   AlertCircle,
@@ -27,7 +27,7 @@ const Help = () => {
   const quickLinks = [
     {
       title: "Getting Started",
-      description: "New to LessonSpark? Start here",
+      description: "New to LessonSparkUSA? Start here",
       icon: BookOpen,
       href: "/docs"
     },
@@ -38,10 +38,10 @@ const Help = () => {
       href: "/docs#generate"
     },
     {
-      title: "Manage Credits",
-      description: "Understanding your credit balance",
-      icon: CreditCard,
-      href: "/docs#credits"
+      title: "Subscription Plans",
+      description: "Understanding your lesson allowance",
+      icon: Receipt,
+      href: "/docs#subscription"
     },
     {
       title: "Export Options",
@@ -82,11 +82,11 @@ const Help = () => {
         },
         {
           q: "Can I use my own curriculum materials?",
-          a: "Yes! You can upload PDF, DOCX, TXT, or image files (up to 10MB) of your existing curriculum. LessonSpark will enhance and expand your materials while maintaining theological consistency."
+          a: "Yes! You can upload PDF, DOCX, TXT, or image files (up to 10MB) of your existing curriculum. LessonSparkUSA will enhance and expand your materials while maintaining theological consistency."
         },
         {
           q: "What Bible translations are supported?",
-          a: "LessonSpark supports all major Bible translations including KJV, NIV, ESV, NASB, NLT, and CSB. Select your preferred translation in your account settings."
+          a: "LessonSparkUSA supports all major Bible translations including KJV, NIV, ESV, NASB, NLT, and CSB. Select your preferred translation in your account settings."
         }
       ]
     },
@@ -112,15 +112,15 @@ const Help = () => {
       ]
     },
     {
-      category: "Credits & Billing",
+      category: "Subscription & Billing",
       questions: [
         {
-          q: "How do credits work?",
-          a: "Each lesson generation uses one credit. Credits are included with your subscription plan. Beta testers receive complimentary credits to explore the platform."
+          q: "How do subscriptions work?",
+          a: "A Personal subscription provides 20 lessons monthly. Additional subscription options are available. Contact support@lessonsparkusa.com for details."
         },
         {
-          q: "What happens if I run out of credits?",
-          a: "You'll be notified when credits are low. You can purchase additional credits or upgrade your plan. Your existing lessons remain accessible regardless of credit balance."
+          q: "What happens if I reach my monthly lesson limit?",
+          a: "You'll be notified when approaching your limit. You can upgrade your plan for additional lessons. Your existing lessons remain accessible regardless of your current allowance."
         },
         {
           q: "Can I get a refund?",
@@ -133,7 +133,7 @@ const Help = () => {
       questions: [
         {
           q: "My lesson is taking too long to generate. What should I do?",
-          a: "If generation exceeds 2 minutes, try refreshing the page and starting again. If the problem persists, your credit will not be deducted. Contact support if issues continue."
+          a: "If generation exceeds 2 minutes, try refreshing the page and starting again. If the problem persists, your lesson will not be counted against your allowance. Contact support if issues continue."
         },
         {
           q: "The exported PDF looks different than the preview.",
@@ -150,7 +150,7 @@ const Help = () => {
   const troubleshooting = [
     {
       issue: "Page won't load",
-      solution: "Clear your browser cache, disable extensions, or try a different browser. Chrome works best with LessonSpark."
+      solution: "Clear your browser cache, disable extensions, or try a different browser. Chrome works best with LessonSparkUSA."
     },
     {
       issue: "Can't sign in",
@@ -158,7 +158,7 @@ const Help = () => {
     },
     {
       issue: "Lesson generation fails",
-      solution: "Check your internet connection, ensure you have available credits, and try with a simpler passage first."
+      solution: "Check your internet connection, verify your subscription is active, and try with a simpler passage first."
     },
     {
       issue: "Export not downloading",
@@ -203,7 +203,7 @@ const Help = () => {
                 <CardContent>
                   <CardDescription>{link.description}</CardDescription>
                   <Button asChild variant="link" className="px-0 mt-2">
-                    <Link to={link.href}>Learn more ?</Link>
+                    <Link to={link.href}>Learn more →</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -288,3 +288,5 @@ const Help = () => {
 };
 
 export default Help;
+
+

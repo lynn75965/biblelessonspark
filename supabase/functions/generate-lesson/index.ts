@@ -14,6 +14,9 @@ import { buildFreshnessContext, selectFreshElements, buildFreshnessSuggestionsPr
 import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
 import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
 
+import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } from '../_shared/corsConfig.ts';
+
+// Legacy corsHeaders for backward compatibility - dynamic version preferred
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -189,9 +192,12 @@ REMEMBER:
 
 serve(async (req) => {
   const functionStartTime = Date.now();
+  
+  // Get dynamic CORS headers based on request origin
+  const dynamicCorsHeaders = getCorsHeadersFromRequest(req);
 
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 200, headers: dynamicCorsHeaders });
   }
 
   // Declare metricId and supabase at function scope for error handling
@@ -225,26 +231,54 @@ serve(async (req) => {
 
     checkpoint = logTiming('Auth completed', checkpoint);
 
-    // Check subscription tier and lesson limit
-    const limitCheck = await checkLessonLimit(supabase, user.id);
-    console.log('Subscription check:', limitCheck);
+    // =========================================================================
+    // ADMIN BYPASS CHECK
+    // Admins have NO restrictions - no tier limits, no trial system, all sections
+    // This applies to Platform Admins and White-Label Tenant Admins
+    // =========================================================================
+    const { data: adminCheck } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
     
-    if (!limitCheck.can_generate) {
-      return new Response(JSON.stringify({
-        error: 'Lesson limit reached',
-        code: 'LIMIT_REACHED',
-        lessons_used: limitCheck.lessons_used,
-        lessons_limit: limitCheck.lessons_limit,
-        tier: limitCheck.tier,
-        reset_date: limitCheck.reset_date
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    const isAdmin = !!adminCheck;
+    
+    if (isAdmin) {
+      console.log('ADMIN BYPASS: User is admin, skipping all tier/limit checks');
     }
+
+    // =========================================================================
+    // SUBSCRIPTION & LIMIT CHECK (skipped for admins)
+    // =========================================================================
+    let userTier = isAdmin ? 'admin' : 'free';
+    let allowedSections: number[] = [];
     
-    const userTier = limitCheck.tier;
-    const allowedSections = limitCheck.sections_allowed;
+    if (!isAdmin) {
+      // Check subscription tier and lesson limit
+      const limitCheck = await checkLessonLimit(supabase, user.id);
+      console.log('Subscription check:', limitCheck);
+      
+      if (!limitCheck.can_generate) {
+        return new Response(JSON.stringify({
+          error: 'Lesson limit reached',
+          code: 'LIMIT_REACHED',
+          lessons_used: limitCheck.lessons_used,
+          lessons_limit: limitCheck.lessons_limit,
+          tier: limitCheck.tier,
+          reset_date: limitCheck.reset_date
+        }), {
+          status: 403,
+          headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      userTier = limitCheck.tier;
+      allowedSections = limitCheck.sections_allowed;
+    }
+
+    checkpoint = logTiming('Subscription check completed', checkpoint);
 
     // =========================================================================
     // PLATFORM MODE & SECTION FILTERING (SSOT: organizationConfig.ts, trialConfig.ts)
@@ -260,13 +294,17 @@ serve(async (req) => {
     const platformMode = (platformModeRow?.value || 'private_beta') as keyof typeof PLATFORM_MODE_ACCESS;
     const modeConfig = PLATFORM_MODE_ACCESS[platformMode] || PLATFORM_MODE_ACCESS.private_beta;
     
-    console.log('Platform mode:', platformMode, 'Tier enforcement:', modeConfig.tierEnforcement);
+    console.log('Platform mode:', platformMode, 'Tier enforcement:', modeConfig.tierEnforcement, 'Is Admin:', isAdmin);
     
     // Determine sections to generate based on platform mode
     let sectionsToGenerate: number[];
     let isTrialLesson = false;
     
-    if (!modeConfig.tierEnforcement) {
+    // ADMIN BYPASS: Always get all sections, no restrictions
+    if (isAdmin) {
+      sectionsToGenerate = getRequiredSections().map(s => s.id);
+      console.log('Admin bypass: Full access to all sections');
+    } else if (!modeConfig.tierEnforcement) {
       // BETA MODE: Everyone gets all sections
       sectionsToGenerate = getRequiredSections().map(s => s.id);
       console.log('Beta mode: All users get all sections');
@@ -701,7 +739,7 @@ Meet ALL word minimums. Respect ALL word maximums.
         metadata: lessonData.metadata
       }), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
       });
 
     } catch (fetchError) {
@@ -749,7 +787,7 @@ Meet ALL word minimums. Respect ALL word maximums.
       details: error.toString()
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });

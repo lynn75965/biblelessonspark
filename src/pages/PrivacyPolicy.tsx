@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { ArrowLeft } from "lucide-react";
@@ -85,7 +85,7 @@ export default function PrivacyPolicy() {
             <p className="text-gray-700 mb-2">We use the following third-party services:</p>
             <ul className="list-disc pl-6 text-gray-700 space-y-2">
               <li><strong>Supabase:</strong> Database and authentication services (hosted in US)</li>
-              <li><strong>Anthropic Claude:</strong> AI lesson generation (content is not stored by Anthropic)</li>
+              <li><strong>Anthropic Claude:</strong> lesson generation (content is not stored by Anthropic)</li>
               <li><strong>Netlify:</strong> Website hosting and delivery</li>
             </ul>
             <p className="text-gray-700 mt-3">
@@ -150,3 +150,4 @@ export default function PrivacyPolicy() {
     </div>
   );
 }
+

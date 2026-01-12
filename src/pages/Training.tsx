@@ -77,7 +77,7 @@ const Training = () => {
     },
     {
       title: "Uploading Your Own Curriculum",
-      description: "How to enhance existing curriculum materials with AI-powered insights and activities.",
+      description: "How to enhance existing curriculum materials with personalized insights and activities.",
       duration: "6 min read",
       level: "Intermediate",
       icon: BookOpen
@@ -331,3 +331,5 @@ const Training = () => {
 };
 
 export default Training;
+
+

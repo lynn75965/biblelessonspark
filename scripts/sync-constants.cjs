@@ -90,8 +90,3 @@ function main() {
   log(`Synced: ${successCount} of ${FILES_TO_SYNC.length} files\n`);
 }
 main();
-
-
-
-
-

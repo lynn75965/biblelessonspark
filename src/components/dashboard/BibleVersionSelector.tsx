@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,7 +141,7 @@ export function BibleVersionSelector({
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-blue-700" />
               <CardTitle className="text-sm font-semibold text-blue-900">
-                PARAPHRASE (AI Summary with References)
+                PARAPHRASE (Dynamic Summary with References)
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-blue-700">
@@ -211,9 +211,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                ✓ Perfect for memorization<br />
-                ✓ Exact quotes in handouts<br />
-                ✓ No paraphrasing
+                âœ“ Perfect for memorization<br />
+                âœ“ Exact quotes in handouts<br />
+                âœ“ No paraphrasing
               </p>
             </div>
           </div>
@@ -234,7 +234,7 @@ function ParaphraseExplainerDialog() {
                   <strong>Ephesians 2:8 (CSB)</strong>
                 </p>
                 <p className="text-xs">
-                  Paul teaches that we are saved by God's grace through faith—this salvation 
+                  Paul teaches that we are saved by God's grace through faithâ€”this salvation 
                   is not from ourselves but is God's gift.
                 </p>
                 <p className="text-xs italic mt-2">
@@ -242,9 +242,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                ✓ Doctrinally faithful summaries<br />
-                ✓ Clear verse references included<br />
-                ✓ Read exact text from your own Bible in class
+                âœ“ Doctrinally faithful summaries<br />
+                âœ“ Clear verse references included<br />
+                âœ“ Read exact text from your own Bible in class
               </p>
             </div>
           </div>

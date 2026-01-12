@@ -31,6 +31,40 @@ export const TIER_SECTIONS = {
   admin: ['1', '2', '3', '4', '5', '6', '7', '8'],
 } as const;
 
+// Free tier sections as numbers (for comparison/display logic)
+export const FREE_TIER_SECTION_NUMBERS = [1, 5, 8] as const;
+
+// ============================================================
+// PRICING DISPLAY TEXT (SSOT for UI)
+// ============================================================
+
+export const PRICING_DISPLAY = {
+  personal: {
+    monthly: {
+      amount: 9,
+      interval: 'month' as const,
+      displayText: '$9/month',
+    },
+    annual: {
+      amount: 90,
+      monthlyEquivalent: 7.50,
+      interval: 'year' as const,
+      displayText: '$90/year',
+      displayTextWithSavings: '$7.50/month (billed $90/year)',
+    },
+    // Formatted strings for CTAs
+    ctaShort: '$9/mo or $90/yr',
+    ctaFull: '$9 monthly or $7.50 monthly (paid $90 yearly)',
+    upgradeButton: 'Upgrade to Personal Plan',
+  },
+  free: {
+    displayText: 'Free',
+    sectionsIncluded: 3,
+    lessonsPerMonth: 5,
+    complimentaryFullLessons: 2,
+  },
+} as const;
+
 // Section names for display
 export const SECTION_NAMES: Record<string, string> = {
   '1': 'Lens + Lesson Overview',

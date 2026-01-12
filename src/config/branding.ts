@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LessonSparkUSA Branding Configuration
  * ======================================
  * 
@@ -26,7 +26,7 @@ export const BRANDING = {
   /**
    * Short name for compact displays (mobile nav, favicon title, etc.)
    */
-  appNameShort: "LessonSpark",
+  appNameShort: "LessonSparkUSA",
   
   /**
    * Primary tagline - used on landing page, meta descriptions
@@ -36,7 +36,7 @@ export const BRANDING = {
   /**
    * Extended description for marketing/SEO
    */
-  description: "AI-powered Bible study lesson generator for Baptist Sunday School teachers. Create customized, theologically sound lessons in minutes.",
+  description: "Personalized Bible study lesson generator for Baptist Sunday School teachers. Create customized, theologically sound lessons in minutes.",
   
   /**
    * Keywords for SEO (array format for flexibility)
@@ -389,7 +389,7 @@ export const BRANDING = {
       const yearRange = this.copyrightYear === String(currentYear) 
         ? this.copyrightYear 
         : `${this.copyrightYear}-${currentYear}`;
-      return `© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
+      return `Â© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
     },
     
     /**
@@ -444,9 +444,9 @@ export const BRANDING = {
      * Available languages (if multiLanguage is true)
      */
     availableLanguages: [
-      { code: "en", name: "English", flag: "🇺🇸" },
-      { code: "es", name: "Español", flag: "🇲🇽" },
-      { code: "fr", name: "Français", flag: "🇫🇷" },
+      { code: "en", name: "English", flag: "ðŸ‡ºðŸ‡¸" },
+      { code: "es", name: "EspaÃ±ol", flag: "ðŸ‡²ðŸ‡½" },
+      { code: "fr", name: "FranÃ§ais", flag: "ðŸ‡«ðŸ‡·" },
     ],
     
     /**
@@ -555,6 +555,45 @@ export const BRANDING = {
         url: '', // Vimeo embed URL
         durationSeconds: 30,
         storageKey: 'ls_help_export_lesson_seen',
+      },
+      
+      /**
+       * Step 1: Choose Your Scripture
+       * Accordion workspace video for scripture input
+       */
+      step1: {
+        id: 'step1_scripture',
+        title: 'Step 1: Choose Your Scripture',
+        description: 'Learn how to enter Bible passages or paste curriculum content.',
+        url: '', // Vimeo embed URL - populate when video is ready
+        durationSeconds: 45,
+        storageKey: 'ls_help_step1_seen',
+      },
+      
+      /**
+       * Step 2: Set Teaching Context
+       * Accordion workspace video for age group, theology, Bible version
+       */
+      step2: {
+        id: 'step2_context',
+        title: 'Step 2: Set Your Teaching Context',
+        description: 'Configure age group, theology profile, and Bible version.',
+        url: '', // Vimeo embed URL - populate when video is ready
+        durationSeconds: 60,
+        storageKey: 'ls_help_step2_seen',
+      },
+      
+      /**
+       * Step 3: Personalize Your Lesson
+       * Accordion workspace video for teacher customization options
+       */
+      step3: {
+        id: 'step3_personalize',
+        title: 'Step 3: Personalize Your Lesson',
+        description: 'Save teacher profiles and customize lesson generation settings.',
+        url: '', // Vimeo embed URL - populate when video is ready
+        durationSeconds: 90,
+        storageKey: 'ls_help_step3_seen',
       },
     },
     
@@ -790,7 +829,7 @@ export const BRANDING = {
     
     subjects: {
       // Authentication emails
-      welcome: "Welcome to LessonSpark USA! 🎉",
+      welcome: "Welcome to LessonSpark USA! ðŸŽ‰",
       emailVerification: "Verify your LessonSpark USA email address",
       passwordReset: "Reset your LessonSpark USA password",
       passwordChanged: "Your LessonSpark USA password has been changed",
@@ -811,7 +850,7 @@ export const BRANDING = {
       systemNotice: "Important notice from LessonSpark USA",
       
       // Beta/Special
-      betaInvitation: "You're invited to try LessonSpark USA Beta!",
+      betaInvitation: "You're invited to try LessonSpark USA!",
       featureAnnouncement: "New feature: {featureName}",
     },
     
@@ -897,9 +936,9 @@ export const BRANDING = {
         body: `Thank you for joining LessonSpark USA! We're excited to help you create engaging, theologically sound Bible study lessons for your Sunday School class.
 
 With LessonSpark USA, you can:
-• Generate customized lessons in minutes
-• Tailor content to your specific teaching context
-• Access lessons aligned with Baptist theology
+â€¢ Generate customized lessons in minutes
+â€¢ Tailor content to your specific teaching context
+â€¢ Access lessons aligned with Baptist theology
 
 Ready to create your first lesson?`,
         buttonText: "Create Your First Lesson",
@@ -914,9 +953,9 @@ Ready to create your first lesson?`,
         body: `{inviterName} has invited you to join {orgName} on LessonSpark USA.
 
 As a member of {orgName}, you'll be able to:
-• Access shared lesson resources
-• Collaborate with other teachers
-• Use organization-wide settings and preferences
+â€¢ Access shared lesson resources
+â€¢ Collaborate with other teachers
+â€¢ Use organization-wide settings and preferences
 
 Click the button below to accept this invitation:`,
         buttonText: "Accept Invitation",
@@ -1008,7 +1047,7 @@ Click below to view the lesson:`,
     /**
      * Landing page hero subheadline
      */
-    heroSubheadline: "AI-powered lesson generation for Baptist Sunday School teachers",
+    heroSubheadline: "Personalized lesson generation for Baptist Sunday School teachers",
     
     /**
      * Primary call-to-action button text
@@ -1065,11 +1104,11 @@ Click below to view the lesson:`,
      * Landing page beta CTA section text
      */
     landingPage: {
-      ctaTitle: 'Join the Free Public Beta',
+      ctaTitle: 'Get Started Free',
       ctaSubtitle: 'Create engaging Bible study lessons for your Sunday School class in minutes.',
       ctaButton: 'Get Started Free',
       features: [
-        'AI-powered lesson generation',
+        'Personalized lesson generation',
         'Theologically sound Baptist content',
         'Age-appropriate for any class',
         'Ready in under 2 minutes',
@@ -1081,7 +1120,7 @@ Click below to view the lesson:`,
      * Beta enrollment form labels and placeholders
      */
     form: {
-      title: 'Join the LessonSpark USA Beta',
+      title: 'Join LessonSpark USA',
       subtitle: 'Start creating Bible study lessons in minutes.',
       fullNameLabel: 'Full Name',
       fullNamePlaceholder: 'Enter your full name',
@@ -1106,8 +1145,8 @@ Click below to view the lesson:`,
      * Dashboard prompt for users without an organization
      */
     dashboardPrompt: {
-      title: 'Join the Public Beta Program',
-      description: 'Get access to all features by joining our public beta program.',
+      title: 'Complete Your Registration',
+      description: 'Complete your registration to access all features.',
       button: 'Join Now',
       dismissButton: 'Maybe Later',
     },
@@ -1126,7 +1165,7 @@ Click below to view the lesson:`,
       },
       alreadyEnrolled: {
         title: 'Already Enrolled',
-        description: 'You are already part of the beta program.',
+        description: 'You already have an account.',
       },
       verificationSent: {
         title: 'Verification Email Sent',
@@ -1380,3 +1419,4 @@ export function getEmailInlineStyles() {
 // ============================================================================
 
 export default BRANDING;
+

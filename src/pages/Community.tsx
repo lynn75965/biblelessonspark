@@ -18,8 +18,13 @@ import {
   ArrowRight
 } from "lucide-react";
 import { SITE } from "@/config/site";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { isBetaMode } from "@/constants/systemSettings";
 
 const Community = () => {
+  const { settings } = useSystemSettings();
+  const isInBetaMode = isBetaMode(settings.current_phase as string);
+
   const communityValues = [
     {
       icon: Heart,
@@ -46,9 +51,9 @@ const Community = () => {
   const connectionOpportunities = [
     {
       title: "Share Your Experience",
-      description: "Tell us how LessonSpark has impacted your teaching ministry. Your story could encourage other teachers.",
+      description: "Tell us how LessonSparkUSA has impacted your teaching ministry. Your story could encourage other teachers.",
       action: "Share Your Story",
-      href: `mailto:${SITE.supportEmail}?subject=My LessonSpark Story`
+      href: `mailto:${SITE.supportEmail}?subject=My LessonSparkUSA Story`
     },
     {
       title: "Suggest Features",
@@ -127,7 +132,7 @@ const Community = () => {
           <Badge variant="secondary" className="mb-4">Our Vision</Badge>
           <h2 className="text-2xl font-bold mb-4">Strengthening Baptist Teaching Together</h2>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            LessonSpark USA exists to serve the thousands of volunteer Sunday School teachers, 
+            LessonSparkUSA exists to serve the thousands of volunteer Sunday School teachers, 
             small group leaders, and Bible study facilitators who faithfully prepare lessons 
             week after week. We believe that when teachers are equipped with excellent resources, 
             students encounter God's Word more deeply.
@@ -184,7 +189,7 @@ const Community = () => {
               <Share2 className="h-6 w-6 text-primary" />
               Ways to Connect
             </h2>
-            <p className="text-muted-foreground mt-2">Get involved and help shape the future of LessonSpark</p>
+            <p className="text-muted-foreground mt-2">Get involved and help shape the future of LessonSparkUSA</p>
           </div>
           
           <div className="grid sm:grid-cols-2 gap-4">
@@ -244,27 +249,50 @@ const Community = () => {
           </div>
         </section>
 
-        {/* Beta Testers Call */}
+        {/* Get Started Call - Mode-aware */}
         <section className="bg-muted rounded-lg p-8 text-center">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary mb-4">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
-          <h2 className="text-xl font-bold mb-2">Join Our Beta Testing Community</h2>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            As a beta tester, you get early access to new features, direct input on development priorities, 
-            and the opportunity to shape how LessonSpark serves Baptist teachers everywhere.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg">
-              <Link to="/beta-signup" className="flex items-center gap-2">
-                Apply for Beta Access
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/dashboard">Current User? Go to Dashboard</Link>
-            </Button>
-          </div>
+          {isInBetaMode ? (
+            <>
+              <h2 className="text-xl font-bold mb-2">Join Our Beta Testing Community</h2>
+              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                As a beta tester, you get early access to new features, direct input on development priorities, 
+                and the opportunity to shape how LessonSparkUSA serves Baptist teachers everywhere.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg">
+                  <Link to="/auth?tab=signup" className="flex items-center gap-2">
+                    Apply for Beta Access
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link to="/dashboard">Current User? Go to Dashboard</Link>
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold mb-2">Ready to Transform Your Lesson Prep?</h2>
+              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                Join thousands of Baptist teachers who are creating engaging, theologically sound 
+                Bible study lessons in minutes instead of hours.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button asChild size="lg">
+                  <Link to="/auth?tab=signup" className="flex items-center gap-2">
+                    Get Started Free
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link to="/dashboard">Current User? Go to Dashboard</Link>
+                </Button>
+              </div>
+            </>
+          )}
         </section>
 
         {/* Contact */}
@@ -292,3 +320,5 @@ const Community = () => {
 };
 
 export default Community;
+
+

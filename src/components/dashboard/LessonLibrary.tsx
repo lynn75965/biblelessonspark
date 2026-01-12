@@ -152,7 +152,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
       passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
       age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
       theology_profile_id: filters?.theology_profile_id || getDefaultTheologyProfile().id,
-      bible_version_id: filters?.bible_version || "kjv",
+      bible_version_id: filters?.bible_version_id || "kjv",
       created_by_name: "Teacher",
       has_content: !!lesson.original_text,
       updated_at: lesson.created_at,
