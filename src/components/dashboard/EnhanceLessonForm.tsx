@@ -318,7 +318,7 @@ export function EnhanceLessonForm({
   // LESSON VIEW MODE TOGGLE (Full vs Free comparison)
   // ============================================================================
   
-  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">("full");
+  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">("free");
 
   // Free tier shows only sections 1, 5, 8
   // Free tier sections - imported from SSOT (pricingConfig.ts)
@@ -1675,16 +1675,25 @@ export function EnhanceLessonForm({
                     return (
                       <div
                         key={section.sectionNumber}
-                        className="bg-slate-100 border border-slate-300 p-3 rounded-lg opacity-60"
+                        className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
                       >
-                        <h3 className="text-base font-medium text-slate-500 flex items-center gap-2">
+                        <h3 className="text-base font-medium text-slate-500 flex items-center gap-2 mb-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-white text-xs font-bold">
                             {section.sectionNumber}
                           </span>
                           <Lock className="h-4 w-4 text-slate-400" />
                           {section.title}
-                          <span className="ml-auto text-xs text-slate-400">Premium Only</span>
                         </h3>
+                        <p className="text-sm text-slate-500 mb-2">
+                          This section includes valuable teaching content to deepen your lesson.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigate(ROUTES.PRICING)}
+                          className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
+                        >
+                          ? See what the full lesson includes
+                        </button>
                       </div>
                     );
                   }
