@@ -42,7 +42,7 @@ export function HowItWorksSection() {
             How It <span className="gradient-text">Works</span>
           </h2>
           <p className="text-sm sm:text-base lg:text-lg text-primary font-bold max-w-2xl mx-auto px-4">
-            In Less Than 7 Minutes Compose A Bible Study By The Way You Teach, What You Teach, To Whom You Teach
+            In Less Than 3 Minutes Compose A Bible Study By The Way You Teach, What You Teach, To Whom You Teach
           </p>
         </div>
 

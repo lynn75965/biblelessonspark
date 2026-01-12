@@ -49,7 +49,7 @@ export function FeaturesSection() {
       icon: <Clock className="h-6 w-6" />,
       title: "Time-Saving Workflow",
       description: "Transform hours of lesson prep into minutes while maintaining quality and biblical accuracy.",
-      benefits: ["Under 8 minutes", "Print-ready format", "Easy editing"],
+      benefits: ["Under 3 minutes", "Print-ready format", "Easy editing"],
       gradient: "bg-gradient-secondary"
     }
   ];
