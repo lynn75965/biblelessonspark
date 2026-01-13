@@ -290,6 +290,18 @@ const formatSectionContent = (content: string): string => {
     .trim();
 };
 
+// Extract only free tier sections (1, 5, 8) for export
+// Used when user has exhausted complimentary full lessons
+const getFreeTierContentForExport = (content: string, freeSections: number[]): string => {
+  if (!content) return '';
+  
+  const sections = parseLessonSections(content, freeSections);
+  const freeTierSections = sections.filter(s => s.isFreeTier);
+  
+  // Rebuild content with only free sections
+  return freeTierSections.map(s => s.content).join('\n\n---\n\n');
+};
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -849,6 +861,17 @@ export function EnhanceLessonForm({
   const displayTitle = currentLesson
     ? extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson"
     : "Generated Lesson";
+
+  // Free output mode: After complimentary full lessons, exports only show sections 1, 5, 8
+  // SSOT: Business rule from pricingConfig.ts
+  const isFreeOutputOnly = subLessonsUsed > PRICING_DISPLAY.free.complimentaryFullLessons;
+  
+  // Compute lesson content for export based on subscription status
+  const lessonContentForExport = currentLesson?.original_text 
+    ? (isFreeOutputOnly 
+        ? getFreeTierContentForExport(currentLesson.original_text, FREE_SECTIONS)
+        : currentLesson.original_text)
+    : "";
 
   // Step completion states
   const step1Complete = isStep1Complete();
@@ -1510,7 +1533,7 @@ export function EnhanceLessonForm({
                   onExport={onExport}
                   lesson={{
                     title: currentLesson.title || "Generated Lesson",
-                    original_text: currentLesson.original_text || "",
+                    original_text: lessonContentForExport,
                     metadata: currentLesson.metadata,
                   }}
                 />
@@ -1720,11 +1743,23 @@ export function EnhanceLessonForm({
                 onExport={onExport}
                 lesson={{
                   title: currentLesson.title || "Generated Lesson",
-                  original_text: currentLesson.original_text || "",
+                  original_text: lessonContentForExport,
                   metadata: currentLesson.metadata,
                 }}
               />
             </div>
+            {isFreeOutputOnly && (
+              <p className="text-xs text-amber-700 text-center mt-3">
+                Free tier export includes sections 1, 5, and 8 only.{" "}
+                <button
+                  type="button"
+                  onClick={() => navigate(ROUTES.PRICING)}
+                  className="text-sky-600 hover:text-sky-700 underline"
+                >
+                  Upgrade for full lessons
+                </button>
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
