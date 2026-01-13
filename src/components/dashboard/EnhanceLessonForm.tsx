@@ -827,6 +827,7 @@ export function EnhanceLessonForm({
         if (onLessonGenerated) {
           onLessonGenerated(result.data);
         }
+        await incrementUsage();
         refreshRateLimit();
       }
 
