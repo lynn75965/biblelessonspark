@@ -1691,10 +1691,10 @@ export function EnhanceLessonForm({
                         </p>
                         <button
                           type="button"
-                          onClick={() => navigate(ROUTES.PRICING)}
+                          onClick={() => setLessonViewMode("full")}
                           className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
                         >
-                          ? See what the full lesson includes
+                          → See what the full lesson includes
                         </button>
                       </div>
                     );
