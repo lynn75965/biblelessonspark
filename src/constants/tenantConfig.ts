@@ -1,5 +1,5 @@
 ﻿/**
- * LessonSparkUSA Constants - Tenant Configuration
+ * BibleLessonSpark Constants - Tenant Configuration
  *
  * SINGLE SOURCE OF TRUTH for tenant/white-label configuration.
  * This is Tier 1 (Supreme/Foundational).
@@ -11,7 +11,13 @@
  * - This file defines the structure
  * - Database schema mirrors this structure
  * - TenantBrandingPanel reads/writes via this SSOT
+ * 
+ * SSOT COLORS: Default branding imports from branding.ts
+ * - Do NOT hardcode colors here
+ * - All defaults flow from BRANDING constant
  */
+
+import { BRANDING } from "@/config/branding";
 
 // =============================================================================
 // TYPE DEFINITIONS (Nested structure for organized access)
@@ -181,15 +187,15 @@ export const DEFAULT_TENANT_ID = "lessonsparkusa";
 export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   tenantId: DEFAULT_TENANT_ID,
   branding: {
-    name: "LessonSparkUSA",
+    name: BRANDING.appName,
     logoUrl: null,
-    primaryColor: "#E4572E",
-    secondaryColor: "#1F2937",
-    fontFamily: "Inter",
+    primaryColor: BRANDING.colors.primary.DEFAULT,
+    secondaryColor: BRANDING.colors.secondary.DEFAULT,
+    fontFamily: BRANDING.typography.fontFamily.primary,
   },
   uiText: {
-    appTitle: "LessonSparkUSA",
-    tagline: "Teach the way God equipped you to teach",
+    appTitle: BRANDING.appName,
+    tagline: BRANDING.tagline,
     primaryCta: "Create Lesson",
   },
   features: {
@@ -198,9 +204,9 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
     whiteLabel: false,
   },
   contact: {
-    supportEmail: "support@lessonsparkusa.com",
-    fromEmail: "noreply@lessonsparkusa.com",
-    fromName: "LessonSpark USA",
+    supportEmail: BRANDING.contact.supportEmail,
+    fromEmail: BRANDING.contact.noReplyEmail,
+    fromName: BRANDING.contact.emailSenderName,
   },
   beta: {
     landingPage: {
@@ -275,18 +281,18 @@ export const FONT_OPTIONS = [
 
 export const COLOR_PRESETS = {
   primary: [
-    { value: "#E4572E", label: "LessonSpark Orange" },
+    { value: BRANDING.colors.primary.DEFAULT, label: "BibleLessonSpark Green" },
     { value: "#2563EB", label: "Baptist Blue" },
     { value: "#059669", label: "Ministry Green" },
     { value: "#7C3AED", label: "Royal Purple" },
     { value: "#DC2626", label: "Classic Red" },
   ],
   secondary: [
+    { value: BRANDING.colors.secondary.DEFAULT, label: "Antique Gold" },
     { value: "#1F2937", label: "Charcoal" },
     { value: "#374151", label: "Slate" },
     { value: "#1E3A5F", label: "Navy" },
     { value: "#064E3B", label: "Forest" },
-    { value: "#4B5563", label: "Gray" },
   ],
 } as const;
 
@@ -570,7 +576,7 @@ export function validateTenantConfig(config: TenantConfig): string[] {
   const errors: string[] = [];
   if (!config.branding.name.trim()) errors.push("Brand name cannot be empty");
   if (!config.uiText.appTitle.trim()) errors.push("App title cannot be empty");
-  if (!isValidHexColor(config.branding.primaryColor)) errors.push("Primary color must be a valid hex color (e.g., #E4572E)");
+  if (!isValidHexColor(config.branding.primaryColor)) errors.push("Primary color must be a valid hex color (e.g., #3D5C3D)");
   if (!isValidHexColor(config.branding.secondaryColor)) errors.push("Secondary color must be a valid hex color (e.g., #1F2937)");
   return errors;
 }
