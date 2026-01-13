@@ -1534,7 +1534,9 @@ export function EnhanceLessonForm({
                   lesson={{
                     title: currentLesson.title || "Generated Lesson",
                     original_text: lessonContentForExport,
-                    metadata: currentLesson.metadata,
+                    metadata: isFreeOutputOnly 
+                      ? { ...currentLesson.metadata, teaser: null }
+                      : currentLesson.metadata,
                   }}
                 />
                 <Button
@@ -1744,7 +1746,9 @@ export function EnhanceLessonForm({
                 lesson={{
                   title: currentLesson.title || "Generated Lesson",
                   original_text: lessonContentForExport,
-                  metadata: currentLesson.metadata,
+                  metadata: isFreeOutputOnly 
+                    ? { ...currentLesson.metadata, teaser: null }
+                    : currentLesson.metadata,
                 }}
               />
             </div>
