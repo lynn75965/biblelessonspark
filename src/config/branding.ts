@@ -2,19 +2,111 @@
  * BibleLessonSpark Branding Configuration
  * ========================================
  *
- * This file centralizes ALL branding elements for the application.
+ * This file is the SINGLE SOURCE OF TRUTH for ALL branding elements.
  * For white-label deployments, modify ONLY this file to rebrand the entire app.
  *
  * Location: src/config/branding.ts
+ *
+ * ARCHITECTURE (SSOT):
+ *   branding.ts (this file) → generateTailwindCSSVariables() → BrandingProvider → CSS Variables → Tailwind
  *
  * USAGE:
  *   import { BRANDING } from '@/config/branding';
  *   <h1>{BRANDING.appName}</h1>
  *   <img src={BRANDING.logo.primary} alt={BRANDING.appName} />
- * 
+ *
  * REBRAND: January 2026 - LessonSparkUSA → BibleLessonSpark
  * Color palette derived from logo: forest green book, golden flame, cream background
  */
+
+// ============================================================================
+// COLOR UTILITY FUNCTIONS (HEX to HSL conversion for Tailwind)
+// ============================================================================
+
+/**
+ * Convert HEX color to HSL values
+ * @param hex - Hex color string (e.g., "#3D5C3D" or "3D5C3D")
+ * @returns HSL string in format "H S% L%" (e.g., "120 20% 30%")
+ */
+export function hexToHsl(hex: string): string {
+  // Remove # if present
+  hex = hex.replace(/^#/, '');
+  
+  // Parse hex to RGB
+  const r = parseInt(hex.slice(0, 2), 16) / 255;
+  const g = parseInt(hex.slice(2, 4), 16) / 255;
+  const b = parseInt(hex.slice(4, 6), 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      case b:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+  
+  // Convert to degrees and percentages, round to reasonable precision
+  const hDeg = Math.round(h * 360);
+  const sPercent = Math.round(s * 100);
+  const lPercent = Math.round(l * 100);
+  
+  return `${hDeg} ${sPercent}% ${lPercent}%`;
+}
+
+/**
+ * Adjust lightness of an HSL color string
+ * @param hsl - HSL string in format "H S% L%"
+ * @param adjustment - Amount to adjust lightness (positive = lighter, negative = darker)
+ * @returns Adjusted HSL string
+ */
+export function adjustLightness(hsl: string, adjustment: number): string {
+  const parts = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  if (!parts) return hsl;
+  
+  const h = parseInt(parts[1]);
+  const s = parseInt(parts[2]);
+  let l = parseInt(parts[3]) + adjustment;
+  
+  // Clamp lightness to valid range
+  l = Math.max(0, Math.min(100, l));
+  
+  return `${h} ${s}% ${l}%`;
+}
+
+/**
+ * Adjust saturation of an HSL color string
+ * @param hsl - HSL string in format "H S% L%"
+ * @param adjustment - Amount to adjust saturation
+ * @returns Adjusted HSL string
+ */
+export function adjustSaturation(hsl: string, adjustment: number): string {
+  const parts = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  if (!parts) return hsl;
+  
+  const h = parseInt(parts[1]);
+  let s = parseInt(parts[2]) + adjustment;
+  const l = parseInt(parts[3]);
+  
+  // Clamp saturation to valid range
+  s = Math.max(0, Math.min(100, s));
+  
+  return `${h} ${s}% ${l}%`;
+}
 
 // ============================================================================
 // CORE IDENTITY
@@ -60,45 +152,13 @@ export const BRANDING = {
   // ==========================================================================
 
   urls: {
-    /**
-     * Primary domain (without protocol)
-     */
     domain: "biblelessonspark.com",
-
-    /**
-     * Full base URL (with protocol)
-     */
     baseUrl: "https://biblelessonspark.com",
-
-    /**
-     * Support/help page URL
-     */
     support: "https://biblelessonspark.com/support",
-
-    /**
-     * Terms of Service URL
-     */
     termsOfService: "https://biblelessonspark.com/terms",
-
-    /**
-     * Privacy Policy URL
-     */
     privacyPolicy: "https://biblelessonspark.com/privacy",
-
-    /**
-     * Documentation/Help URL (if separate)
-     */
     documentation: "https://biblelessonspark.com/help",
-
-    /**
-     * Unsubscribe URL template (for email compliance)
-     * {token} will be replaced with user-specific unsubscribe token
-     */
     unsubscribe: "https://biblelessonspark.com/unsubscribe?token={token}",
-
-    /**
-     * Email preferences URL
-     */
     emailPreferences: "https://biblelessonspark.com/settings/notifications",
   },
 
@@ -107,47 +167,19 @@ export const BRANDING = {
   // ==========================================================================
 
   contact: {
-    /**
-     * Primary support email
-     */
     supportEmail: "support@biblelessonspark.com",
-
-    /**
-     * General inquiries email
-     */
     infoEmail: "info@biblelessonspark.com",
-
-    /**
-     * No-reply email for automated messages
-     */
     noReplyEmail: "noreply@biblelessonspark.com",
-
-    /**
-     * Display name for email sender
-     */
     emailSenderName: "BibleLessonSpark",
-
-    /**
-     * Phone number (optional - set to null if not used)
-     */
     phone: null,
-
-    /**
-     * Physical address (REQUIRED for CAN-SPAM compliance in emails)
-     * Even a PO Box is acceptable
-     */
     address: {
       line1: "BibleLessonSpark",
-      line2: null,  // Optional second line
+      line2: null,
       city: "Nacogdoches",
       state: "TX",
       zip: "75965",
       country: "USA",
     },
-
-    /**
-     * Formatted address for email footer (single line)
-     */
     get formattedAddress() {
       const addr = this.address;
       const line2 = addr.line2 ? `, ${addr.line2}` : '';
@@ -160,49 +192,21 @@ export const BRANDING = {
   // ==========================================================================
 
   logo: {
-    /**
-     * Primary logo (for light backgrounds)
-     * Recommended: SVG format, ~200px width
-     */
     primary: "/assets/logo-primary.png",
-
-    /**
-     * Logo for dark backgrounds
-     */
     light: "/assets/logo-light.png",
-
-    /**
-     * Small logo/icon for compact spaces (navbar, mobile)
-     * Recommended: Square format, ~40px
-     */
     icon: "/assets/logo-icon.png",
-
-    /**
-     * Favicon (browser tab icon)
-     */
     favicon: "/favicon.ico",
-
-    /**
-     * Apple touch icon (iOS home screen)
-     */
     appleTouchIcon: "/apple-touch-icon.png",
-
-    /**
-     * Open Graph image (social media sharing)
-     * Recommended: 1200x630px
-     */
     ogImage: "/assets/og-image.png",
-
-    /**
-     * Logo alt text for accessibility
-     */
     altText: "BibleLessonSpark Logo - Golden flame rising from open Bible",
   },
 
   // ==========================================================================
-  // VISUAL IDENTITY - COLORS
+  // VISUAL IDENTITY - COLORS (SINGLE SOURCE OF TRUTH)
   // ==========================================================================
-  // Derived from logo: Forest green book, golden flame, warm cream background
+  // All colors defined in HEX for human readability.
+  // generateTailwindCSSVariables() converts to HSL for Tailwind consumption.
+  // WHITE-LABEL: Change these HEX values to rebrand the entire app.
 
   colors: {
     /**
@@ -213,6 +217,7 @@ export const BRANDING = {
       DEFAULT: "#3D5C3D",  // Forest green - main
       light: "#4A7A4A",    // Lighter forest green
       dark: "#2D4A2D",     // Darker forest green
+      foreground: "#FFFEF9", // Text on primary background
     },
 
     /**
@@ -223,6 +228,7 @@ export const BRANDING = {
       DEFAULT: "#D4A74B",  // Antique gold - main
       light: "#E4BE6A",    // Lighter gold
       dark: "#B8923E",     // Deeper gold
+      foreground: "#2D2D2D", // Text on secondary background
     },
 
     /**
@@ -233,47 +239,27 @@ export const BRANDING = {
       DEFAULT: "#C9A754",  // Deep gold
       light: "#DBBF6E",    // Light gold
       dark: "#A88B3D",     // Dark gold
+      foreground: "#2D2D2D", // Text on accent background
     },
 
     /**
      * Tertiary color - Burgundy (Baptist heritage, reverence, importance)
      * Used for: errors, warnings, important badges, heritage elements
-     * Strategic use: communion themes, sacrifice/redemption tags, footer accents
      */
     burgundy: {
-      DEFAULT: "#661A33",  // Deep burgundy - primary accent (hsl 345, 60%, 25%)
-      light: "#995266",    // Muted burgundy - softer accents (hsl 345, 40%, 40%)
-      dark: "#4D1426",     // Darker burgundy - pressed states
-      hover: "#8C3352",    // Wine - hover states (hsl 345, 55%, 35%)
+      DEFAULT: "#661A33",  // Deep burgundy
+      light: "#995266",    // Muted burgundy
+      dark: "#4D1426",     // Darker burgundy
+      hover: "#8C3352",    // Wine - hover states
     },
 
     /**
-     * Success color (confirmations, completions)
-     */
-    success: "#3D5C3D",    // Using primary green for success
-
-    /**
-     * Warning color (cautions, alerts)
-     */
-    warning: "#D4A74B",    // Using secondary gold for warnings
-
-    /**
-     * Error/Danger color - Using burgundy for Baptist heritage feel
-     */
-    error: "#661A33",      // Deep burgundy (replaces harsh red)
-
-    /**
-     * Info color
-     */
-    info: "#4A7A4A",       // Light green for info
-
-    /**
-     * Background colors
+     * Background colors - Warm Cream theme
      */
     background: {
-      primary: "#FFFEF9",    // Warm cream (from logo background)
+      primary: "#FFFEF9",    // Warm cream (main background)
       secondary: "#FAF8F3",  // Slightly darker cream
-      dark: "#2D4A2D",       // Dark forest green
+      dark: "#2D4A2D",       // Dark forest green (for dark mode)
     },
 
     /**
@@ -285,6 +271,23 @@ export const BRANDING = {
       light: "#8A8A8A",      // Light gray
       inverse: "#FFFEF9",    // Cream for dark backgrounds
     },
+
+    /**
+     * UI Element colors (derived from above for semantic use)
+     */
+    card: {
+      DEFAULT: "#FFFFFF",    // White cards
+      foreground: "#2D2D2D", // Card text
+    },
+
+    muted: {
+      DEFAULT: "#F5F3EE",    // Warm muted background
+      foreground: "#5C5C5C", // Muted text
+    },
+
+    border: "#E8E4DB",       // Warm border color
+    input: "#E8E4DB",        // Input border color
+    ring: "#3D5C3D",         // Focus ring (primary)
   },
 
   // ==========================================================================
@@ -292,114 +295,80 @@ export const BRANDING = {
   // ==========================================================================
 
   typography: {
-    /**
-     * Primary font family (headings, UI)
-     */
     fontFamily: {
       primary: '"Inter", system-ui, sans-serif',
-      secondary: '"Merriweather", Georgia, serif',  // For Scripture text
+      secondary: '"Merriweather", Georgia, serif',
     },
-
-    /**
-     * Google Fonts URL (if loading external fonts)
-     * Set to null if using system fonts only
-     */
     googleFontsUrl: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap",
   },
 
   // ==========================================================================
-  // LAYOUT & STRUCTURE (Page-level styling for white-label customization)
+  // LAYOUT & STRUCTURE
   // ==========================================================================
 
   layout: {
-    /**
-     * Page wrapper - outermost container for all pages
-     */
     pageWrapper: "min-h-screen bg-background flex flex-col",
-
-    /**
-     * Main content area - flex-1 to fill available space
-     */
     mainContent: "flex-1",
-
-    /**
-     * Container padding (responsive)
-     */
     containerPadding: "py-6 sm:py-8 px-4 sm:px-6",
-
-    /**
-     * Container max-width for centered content
-     */
     containerNarrow: "max-w-2xl mx-auto",
-
-    /**
-     * Container max-width for wider content
-     */
     containerWide: "max-w-6xl mx-auto",
-
-    /**
-     * Page header bottom margin
-     */
     pageHeaderMargin: "mb-6 sm:mb-8",
-
-    /**
-     * Section vertical spacing
-     */
     sectionSpacing: "mb-6 sm:mb-8",
-
-    /**
-     * Card/grid gaps (responsive)
-     */
     gridGap: "gap-4 sm:gap-6",
-
-    /**
-     * Stats card grid columns
-     */
     statsGrid: "grid grid-cols-2 gap-3 sm:gap-4",
-
-    /**
-     * Standard card padding
-     */
     cardPadding: "p-4 sm:p-6",
-
-    /**
-     * Auth page wrapper - centered form with gradient background
-     */
     authPageWrapper: "min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4",
-
-    /**
-     * Auth form container - max-width centered
-     */
     authFormContainer: "w-full max-w-md px-4 sm:px-0",
-
-    /**
-     * Legal pages wrapper - gradient background for Privacy/Terms
-     */
     legalPageWrapper: "min-h-screen bg-gradient-to-br from-green-50 to-amber-50 py-12 px-4",
-
-    /**
-     * Legal page content card
-     */
     legalPageCard: "max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8",
   },
+
+  // ==========================================================================
+  // DESIGN TOKENS (non-color)
+  // ==========================================================================
+
+  tokens: {
+    radius: {
+      sm: "0.5rem",
+      DEFAULT: "0.75rem",
+      lg: "1rem",
+    },
+    spacing: {
+      xs: "0.25rem",
+      sm: "0.5rem",
+      md: "1rem",
+      lg: "1.5rem",
+      xl: "2rem",
+      "2xl": "3rem",
+    },
+    fontSize: {
+      xs: "0.75rem",
+      sm: "0.875rem",
+      base: "1rem",
+      lg: "1.125rem",
+      xl: "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem",
+    },
+    transition: {
+      fast: "150ms cubic-bezier(0.4, 0, 0.2, 1)",
+      normal: "300ms cubic-bezier(0.4, 0, 0.2, 1)",
+      slow: "500ms cubic-bezier(0.4, 0, 0.2, 1)",
+    },
+    section: {
+      y: "2.5rem",
+      yLg: "3.5rem",
+    },
+  },
+
   // ==========================================================================
   // LEGAL & COPYRIGHT
   // ==========================================================================
 
   legal: {
-    /**
-     * Copyright holder name
-     */
     copyrightHolder: "BibleLessonSpark",
-
-    /**
-     * Copyright start year
-     */
     copyrightYear: "2024",
-
-    /**
-     * Full copyright notice (auto-generated with current year)
-     */
     get copyrightNotice() {
       const currentYear = new Date().getFullYear();
       const yearRange = this.copyrightYear === String(currentYear)
@@ -407,15 +376,7 @@ export const BRANDING = {
         : `${this.copyrightYear}-${currentYear}`;
       return `© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
     },
-
-    /**
-     * Company/Organization legal name (for ToS, etc.)
-     */
     legalEntityName: "BibleLessonSpark",
-
-    /**
-     * State/Jurisdiction for legal purposes
-     */
     jurisdiction: "Texas, United States",
   },
 
@@ -424,9 +385,6 @@ export const BRANDING = {
   // ==========================================================================
 
   social: {
-    /**
-     * Set any to null if not used
-     */
     facebook: null,
     twitter: null,
     instagram: null,
@@ -435,188 +393,91 @@ export const BRANDING = {
   },
 
   // ==========================================================================
-  // FEATURE FLAGS (White-label customization options)
+  // FEATURE FLAGS
   // ==========================================================================
 
   features: {
-    /**
-     * Show "Powered by BibleLessonSpark" badge in footer
-     * White-label customers may want this false
-     */
     showPoweredBy: false,
-
-    /**
-     * Allow public user registration
-     * Some organizations may want invite-only
-     */
     allowPublicSignup: true,
-
-    /**
-     * Enable multi-language support
-     */
     multiLanguage: true,
-
-    /**
-     * Available languages (if multiLanguage is true)
-     */
     availableLanguages: [
       { code: "en", name: "English", flag: "🇺🇸" },
       { code: "es", name: "Español", flag: "🇲🇽" },
       { code: "fr", name: "Français", flag: "🇫🇷" },
     ],
-
-    /**
-     * Default language
-     */
     defaultLanguage: "en",
-
-    /**
-     * Enable organization/church features
-     */
     organizationsEnabled: true,
-
-    /**
-     * Enable beta features
-     */
     betaFeaturesEnabled: false,
-
-    /**
-     * Show feedback button
-     */
     showFeedbackButton: true,
   },
 
   // ==========================================================================
-  // HELP VIDEOS (Explainer/Onboarding Videos)
+  // HELP VIDEOS
   // ==========================================================================
 
-  /**
-   * Help video configuration for user onboarding.
-   * White-label tenants can customize video URLs and content.
-   *
-   * USAGE:
-   *   - Set enabled: true when videos are ready
-   *   - Replace URLs with your Vimeo/YouTube embed links
-   *   - Each tenant can have their own voice/branding in videos
-   */
   helpVideos: {
-    /**
-     * Master switch - set to true when videos are ready
-     * When false, all help video UI is hidden
-     */
     enabled: false,
-
-    /**
-     * Show first-time user banner above lesson creation form
-     */
     showBanner: true,
-
-    /**
-     * Show floating help button on Enhance Lesson tab
-     */
     showFloatingButton: true,
-
-    /**
-     * Auto-play video on first visit (if enabled and video exists)
-     */
     autoPlayOnFirstVisit: false,
-
-    /**
-     * Video definitions - add more as needed
-     */
     videos: {
-      /**
-       * Create Your First Lesson - primary onboarding video
-       */
       createLesson: {
         id: 'create_first_lesson',
         title: 'Create Your First Lesson',
         description: 'Learn how to generate a customized Bible study lesson in under 2 minutes.',
-        url: '', // Vimeo embed URL: https://player.vimeo.com/video/XXXXXXX
+        url: '',
         durationSeconds: 60,
         storageKey: 'bls_help_create_first_lesson_seen',
       },
-
-      /**
-       * Understanding Your Lesson Output
-       */
       understandingOutput: {
         id: 'understanding_output',
         title: 'Understanding Your Lesson',
         description: 'See how to navigate and use your generated lesson sections.',
-        url: '', // Vimeo embed URL
+        url: '',
         durationSeconds: 45,
         storageKey: 'bls_help_understanding_output_seen',
       },
-
-      /**
-       * Credits & Subscription
-       */
       creditsAndUsage: {
         id: 'credits_usage',
         title: 'Credits & Subscription',
         description: 'Understand your lesson credits and subscription options.',
-        url: '', // Vimeo embed URL
+        url: '',
         durationSeconds: 30,
         storageKey: 'bls_help_credits_usage_seen',
       },
-
-      /**
-       * Export & Share Your Lesson
-       */
       exportLesson: {
         id: 'export_lesson',
         title: 'Export & Share Your Lesson',
         description: 'Download your lesson as PDF or Word document.',
-        url: '', // Vimeo embed URL
+        url: '',
         durationSeconds: 30,
         storageKey: 'bls_help_export_lesson_seen',
       },
-
-      /**
-       * Step 1: Choose Your Scripture
-       * Accordion workspace video for scripture input
-       */
       step1: {
         id: 'step1_scripture',
         title: 'Step 1: Choose Your Scripture',
         description: 'Learn how to enter Bible passages or paste curriculum content.',
-        url: '', // Vimeo embed URL - populate when video is ready
+        url: '',
         durationSeconds: 45,
         storageKey: 'bls_help_step1_seen',
       },
-
-      /**
-       * Step 2: Set Teaching Context
-       * Accordion workspace video for age group, theology, Bible version
-       */
       step2: {
         id: 'step2_context',
         title: 'Step 2: Set Your Teaching Context',
         description: 'Configure age group, theology profile, and Bible version.',
-        url: '', // Vimeo embed URL - populate when video is ready
+        url: '',
         durationSeconds: 60,
         storageKey: 'bls_help_step2_seen',
       },
-
-      /**
-       * Step 3: Personalize Your Lesson
-       * Accordion workspace video for teacher customization options
-       */
       step3: {
         id: 'step3_personalize',
         title: 'Step 3: Personalize Your Lesson',
         description: 'Save teacher profiles and customize lesson generation settings.',
-        url: '', // Vimeo embed URL - populate when video is ready
+        url: '',
         durationSeconds: 90,
         storageKey: 'bls_help_step3_seen',
       },
     },
-
-    /**
-     * Banner styling (can be customized per tenant)
-     * Using BibleLessonSpark color palette
-     */
     bannerStyles: {
       backgroundColor: 'bg-amber-50',
       borderColor: 'border-amber-200',
@@ -627,10 +488,6 @@ export const BRANDING = {
       buttonBackgroundColor: 'bg-green-700',
       buttonHoverColor: 'hover:bg-green-800',
     },
-
-    /**
-     * Floating button styling
-     */
     floatingButtonStyles: {
       backgroundColor: 'bg-green-700',
       hoverColor: 'hover:bg-green-800',
@@ -639,197 +496,55 @@ export const BRANDING = {
   },
 
   // ==========================================================================
-  // THEOLOGICAL IDENTITY (specific to BibleLessonSpark)
+  // THEOLOGICAL IDENTITY
   // ==========================================================================
 
   theological: {
-    /**
-     * Primary denominational identity
-     */
     denomination: "Baptist",
-
-    /**
-     * Theological tradition description
-     */
     tradition: "Southern Baptist",
-
-    /**
-     * Default Bible translation
-     */
     defaultBibleTranslation: "KJV",
-
-    /**
-     * Tagline for theological positioning
-     */
     theologicalTagline: "Rooted in Baptist Heritage, Relevant for Today",
-
-    /**
-     * Statement shown to users about theological approach
-     */
     theologicalStatement: "BibleLessonSpark creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
   },
 
   // ==========================================================================
-  // RESEND EMAIL CONFIGURATION
+  // EMAIL CONFIGURATION
   // ==========================================================================
 
   email: {
-    /**
-     * =========================================
-     * SENDER CONFIGURATION
-     * =========================================
-     */
-
-    /**
-     * Default "From" email address
-     * Must be verified in Resend dashboard
-     */
     fromEmail: "noreply@biblelessonspark.com",
-
-    /**
-     * Default "From" name that appears in inbox
-     */
     fromName: "BibleLessonSpark",
-
-    /**
-     * Combined "From" field for Resend API
-     * Format: "Name <email@domain.com>"
-     */
     get from() {
       return `${this.fromName} <${this.fromEmail}>`;
     },
-
-    /**
-     * Reply-To email address
-     * Where replies should go (usually support)
-     */
     replyTo: "support@biblelessonspark.com",
 
-    /**
-     * =========================================
-     * EMAIL TEMPLATE STYLING
-     * =========================================
-     */
-
+    // Email styles reference brand colors (will use HEX for email compatibility)
     styles: {
-      /**
-       * Email header background color - Forest Green
-       */
       headerBackground: "#3D5C3D",
-
-      /**
-       * Email header text color
-       */
       headerTextColor: "#FFFFFF",
-
-      /**
-       * Email body background color - Warm cream
-       */
       bodyBackground: "#FAF8F3",
-
-      /**
-       * Email content area background
-       */
       contentBackground: "#FFFFFF",
-
-      /**
-       * Primary text color in emails
-       */
       textColor: "#2D2D2D",
-
-      /**
-       * Secondary/muted text color
-       */
       mutedTextColor: "#5C5C5C",
-
-      /**
-       * Link color in emails - Forest green
-       */
       linkColor: "#3D5C3D",
-
-      /**
-       * Primary button background - Forest green
-       */
       buttonBackground: "#3D5C3D",
-
-      /**
-       * Primary button text color
-       */
       buttonTextColor: "#FFFFFF",
-
-      /**
-       * Secondary button background - Antique gold
-       */
       secondaryButtonBackground: "#D4A74B",
-
-      /**
-       * Secondary button text color
-       */
       secondaryButtonTextColor: "#2D2D2D",
-
-      /**
-       * Footer background color
-       */
       footerBackground: "#FAF8F3",
-
-      /**
-       * Footer text color
-       */
       footerTextColor: "#5C5C5C",
-
-      /**
-       * Border color for cards/sections
-       */
       borderColor: "#E5E2D9",
-
-      /**
-       * Border radius for buttons/cards
-       */
       borderRadius: "6px",
-
-      /**
-       * Font family for emails (use web-safe fonts)
-       */
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
 
-    /**
-     * =========================================
-     * EMAIL LOGO & IMAGES
-     * =========================================
-     */
-
     images: {
-      /**
-       * Logo for email header
-       * MUST be full URL (not relative path) for email clients
-       * Recommended: PNG format, ~200px width, transparent background
-       */
       headerLogo: "https://biblelessonspark.com/assets/email-logo.png",
-
-      /**
-       * Logo width in pixels
-       */
       headerLogoWidth: 180,
-
-      /**
-       * Logo height in pixels (maintain aspect ratio)
-       */
       headerLogoHeight: 40,
-
-      /**
-       * Logo alt text
-       */
       headerLogoAlt: "BibleLessonSpark",
-
-      /**
-       * Icon for transactional emails (smaller logo)
-       */
       iconLogo: "https://biblelessonspark.com/assets/email-icon.png",
-
-      /**
-       * Social media icons (if used in footer)
-       */
       socialIcons: {
         facebook: "https://biblelessonspark.com/assets/email/icon-facebook.png",
         twitter: "https://biblelessonspark.com/assets/email/icon-twitter.png",
@@ -837,95 +552,42 @@ export const BRANDING = {
       },
     },
 
-    /**
-     * =========================================
-     * EMAIL SUBJECTS
-     * =========================================
-     * Use {placeholders} for dynamic content
-     */
-
     subjects: {
-      // Authentication emails
       welcome: "Welcome to BibleLessonSpark! 🎉",
       emailVerification: "Verify your BibleLessonSpark email address",
       passwordReset: "Reset your BibleLessonSpark password",
       passwordChanged: "Your BibleLessonSpark password has been changed",
-
-      // Organization emails
       orgInvitation: "You've been invited to join {orgName} on BibleLessonSpark",
       orgInvitationAccepted: "{userName} has joined {orgName}",
       orgRoleChanged: "Your role in {orgName} has been updated",
       orgRemoved: "You've been removed from {orgName}",
-
-      // Lesson emails
       lessonShared: "{userName} shared a lesson with you",
       lessonComplete: "Your lesson is ready: {lessonTitle}",
-
-      // Admin/System emails
       feedbackReceived: "New feedback received from {userName}",
       weeklyDigest: "Your BibleLessonSpark weekly summary",
       systemNotice: "Important notice from BibleLessonSpark",
-
-      // Beta/Special
       betaInvitation: "You're invited to try BibleLessonSpark!",
       featureAnnouncement: "New feature: {featureName}",
     },
 
-    /**
-     * =========================================
-     * EMAIL CONTENT / COPY
-     * =========================================
-     */
-
     content: {
-      /**
-       * Footer tagline (appears above address)
-       */
       footerTagline: "Helping Baptist teachers create engaging Bible studies",
-
-      /**
-       * Unsubscribe text
-       */
       unsubscribeText: "Unsubscribe from these emails",
-
-      /**
-       * Email preferences text
-       */
       preferencesText: "Manage email preferences",
-
-      /**
-       * Legal disclaimer for footer
-       */
       disclaimer: "This email was sent by BibleLessonSpark. You received this email because you have an account with us or someone invited you to join.",
-
-      /**
-       * Support prompt
-       */
       supportPrompt: "Questions? Contact us at",
-
-      /**
-       * Common greetings
-       */
       greetings: {
         default: "Hello {firstName},",
         formal: "Dear {firstName},",
         friendly: "Hi {firstName}!",
         noName: "Hello,",
       },
-
-      /**
-       * Common sign-offs
-       */
       signoffs: {
         default: "Blessings,",
         formal: "Sincerely,",
         friendly: "God bless,",
         team: "The BibleLessonSpark Team",
       },
-
-      /**
-       * Button labels
-       */
       buttons: {
         verifyEmail: "Verify Email Address",
         resetPassword: "Reset Password",
@@ -937,17 +599,7 @@ export const BRANDING = {
       },
     },
 
-    /**
-     * =========================================
-     * EMAIL TEMPLATES - FULL CONTENT
-     * =========================================
-     * Complete email body content with {placeholders}
-     */
-
     templates: {
-      /**
-       * Welcome email body
-       */
       welcome: {
         heading: "Welcome to BibleLessonSpark!",
         body: `Thank you for joining BibleLessonSpark! We're excited to help you create engaging, theologically sound Bible study lessons for your Sunday School class.
@@ -961,10 +613,6 @@ Ready to create your first lesson?`,
         buttonText: "Create Your First Lesson",
         buttonUrl: "{baseUrl}/dashboard",
       },
-
-      /**
-       * Organization invitation email body
-       */
       orgInvitation: {
         heading: "You've Been Invited!",
         body: `{inviterName} has invited you to join {orgName} on BibleLessonSpark.
@@ -979,10 +627,6 @@ Click the button below to accept this invitation:`,
         buttonUrl: "{invitationUrl}",
         expirationNote: "This invitation will expire in {expirationDays} days.",
       },
-
-      /**
-       * Password reset email body
-       */
       passwordReset: {
         heading: "Reset Your Password",
         body: `We received a request to reset your password for your BibleLessonSpark account.
@@ -993,10 +637,6 @@ Click the button below to create a new password:`,
         expirationNote: "This link will expire in 1 hour.",
         securityNote: "If you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.",
       },
-
-      /**
-       * Email verification body
-       */
       emailVerification: {
         heading: "Verify Your Email Address",
         body: `Please verify your email address to complete your BibleLessonSpark registration.
@@ -1006,10 +646,6 @@ Click the button below to verify:`,
         buttonUrl: "{verificationUrl}",
         expirationNote: "This link will expire in 24 hours.",
       },
-
-      /**
-       * Lesson shared email body
-       */
       lessonShared: {
         heading: "A Lesson Has Been Shared With You",
         body: `{sharerName} has shared a Bible study lesson with you on BibleLessonSpark.
@@ -1023,29 +659,12 @@ Click below to view the lesson:`,
       },
     },
 
-    /**
-     * =========================================
-     * RESEND-SPECIFIC SETTINGS
-     * =========================================
-     */
-
     resend: {
-      /**
-       * Tags to apply to all emails (for Resend analytics)
-       */
       defaultTags: [
         { name: "app", value: "biblelessonspark" },
-        { name: "environment", value: "production" },  // Change per environment
+        { name: "environment", value: "production" },
       ],
-
-      /**
-       * Webhook endpoint for Resend events (optional)
-       */
       webhookEndpoint: "https://biblelessonspark.com/api/webhooks/resend",
-
-      /**
-       * Enable email tracking
-       */
       trackOpens: true,
       trackClicks: true,
     },
@@ -1056,45 +675,18 @@ Click below to view the lesson:`,
   // ==========================================================================
 
   text: {
-    /**
-     * Landing page hero headline
-     */
     heroHeadline: "Create Engaging Bible Studies in Minutes",
-
-    /**
-     * Landing page hero subheadline
-     */
     heroSubheadline: "Personalized lesson generation for Baptist Sunday School teachers",
-
-    /**
-     * Primary call-to-action button text
-     */
     ctaPrimary: "Get Started Free",
-
-    /**
-     * Secondary CTA text
-     */
     ctaSecondary: "See How It Works",
-
-    /**
-     * Loading state messages
-     */
     loading: {
       lessons: "Generating your lesson...",
       default: "Loading...",
     },
-
-    /**
-     * Empty state messages
-     */
     empty: {
       lessons: "No lessons yet. Create your first lesson to get started!",
       organizations: "You haven't joined any organizations yet.",
     },
-
-    /**
-     * Success messages
-     */
     success: {
       lessonCreated: "Your lesson has been created successfully!",
       lessonSaved: "Lesson saved.",
@@ -1103,23 +695,10 @@ Click below to view the lesson:`,
   },
 
   // ==========================================================================
-  // BETA PROGRAM UI TEXT (for white-label customization)
+  // BETA PROGRAM UI TEXT
   // ==========================================================================
 
-  /**
-   * Beta program display text.
-   * Controls what the UI SAYS about beta features.
-   *
-   * ARCHITECTURAL NOTE:
-   * - TEXT lives here in BRANDING.beta (what UI displays)
-   * - BEHAVIOR lives in betaEnrollmentConfig.ts (toggles, logic, form options)
-   *
-   * White-label tenants edit THIS section to customize beta messaging.
-   */
   beta: {
-    /**
-     * Landing page beta CTA section text
-     */
     landingPage: {
       ctaTitle: 'Get Started Free',
       ctaSubtitle: 'Create engaging Bible study lessons for your Sunday School class in minutes.',
@@ -1132,10 +711,6 @@ Click below to view the lesson:`,
       ],
       trustText: 'Trusted by Baptist teachers across the country',
     },
-
-    /**
-     * Beta enrollment form labels and placeholders
-     */
     form: {
       title: 'Join BibleLessonSpark',
       subtitle: 'Start creating Bible study lessons in minutes.',
@@ -1157,20 +732,12 @@ Click below to view the lesson:`,
       termsLink: 'Terms of Service',
       privacyLink: 'Privacy Policy',
     },
-
-    /**
-     * Dashboard prompt for users without an organization
-     */
     dashboardPrompt: {
       title: 'Complete Your Registration',
       description: 'Complete your registration to access all features.',
       button: 'Join Now',
       dismissButton: 'Maybe Later',
     },
-
-    /**
-     * Success, error, and status messages
-     */
     messages: {
       enrollmentSuccess: {
         title: 'Welcome to BibleLessonSpark!',
@@ -1189,10 +756,6 @@ Click below to view the lesson:`,
         description: 'Please check your inbox and click the verification link.',
       },
     },
-
-    /**
-     * Form validation messages
-     */
     validation: {
       fullNameRequired: 'Please enter your full name',
       fullNameMinLength: 'Name must be at least 2 characters',
@@ -1206,7 +769,286 @@ Click below to view the lesson:`,
 } as const;
 
 // ============================================================================
-// TYPE EXPORTS (for TypeScript support)
+// TAILWIND CSS VARIABLES GENERATOR (SSOT OUTPUT)
+// ============================================================================
+
+/**
+ * Generate CSS variables for Tailwind consumption
+ * This is the SSOT output - all colors flow from BRANDING.colors
+ * 
+ * Format: CSS variables in "H S% L%" format (no hsl() wrapper)
+ * Tailwind config uses: hsl(var(--primary))
+ * 
+ * @returns Full CSS string to inject into document head
+ */
+export function generateTailwindCSSVariables(): string {
+  const c = BRANDING.colors;
+  
+  // Convert all brand colors to HSL
+  const primary = hexToHsl(c.primary.DEFAULT);
+  const primaryLight = hexToHsl(c.primary.light);
+  const primaryDark = hexToHsl(c.primary.dark);
+  const primaryForeground = hexToHsl(c.primary.foreground);
+  
+  const secondary = hexToHsl(c.secondary.DEFAULT);
+  const secondaryLight = hexToHsl(c.secondary.light);
+  const secondaryDark = hexToHsl(c.secondary.dark);
+  const secondaryForeground = hexToHsl(c.secondary.foreground);
+  
+  const accent = hexToHsl(c.accent.DEFAULT);
+  const accentForeground = hexToHsl(c.accent.foreground);
+  
+  const burgundy = hexToHsl(c.burgundy.DEFAULT);
+  const burgundyLight = hexToHsl(c.burgundy.light);
+  const burgundyHover = hexToHsl(c.burgundy.hover);
+  
+  const background = hexToHsl(c.background.primary);
+  const backgroundSecondary = hexToHsl(c.background.secondary);
+  const backgroundDark = hexToHsl(c.background.dark);
+  
+  const textPrimary = hexToHsl(c.text.primary);
+  const textSecondary = hexToHsl(c.text.secondary);
+  const textLight = hexToHsl(c.text.light);
+  const textInverse = hexToHsl(c.text.inverse);
+  
+  const card = hexToHsl(c.card.DEFAULT);
+  const cardForeground = hexToHsl(c.card.foreground);
+  
+  const muted = hexToHsl(c.muted.DEFAULT);
+  const mutedForeground = hexToHsl(c.muted.foreground);
+  
+  const border = hexToHsl(c.border);
+  const input = hexToHsl(c.input);
+  const ring = hexToHsl(c.ring);
+  
+  // Design tokens
+  const t = BRANDING.tokens;
+
+  return `
+:root {
+  /* ========================================
+   * GENERATED FROM branding.ts (SSOT)
+   * Do not edit - change branding.ts instead
+   * ======================================== */
+
+  /* Background: Warm Cream */
+  --background: ${background};
+  --foreground: ${textPrimary};
+
+  /* Card System */
+  --card: ${card};
+  --card-foreground: ${cardForeground};
+
+  /* Popover */
+  --popover: ${card};
+  --popover-foreground: ${cardForeground};
+
+  /* Primary - Forest Green */
+  --primary: ${primary};
+  --primary-foreground: ${primaryForeground};
+  --primary-hover: ${primaryLight};
+  --primary-light: ${adjustLightness(primary, 65)};
+
+  /* Secondary - Antique Gold */
+  --secondary: ${secondary};
+  --secondary-foreground: ${secondaryForeground};
+  --secondary-hover: ${secondaryDark};
+  --secondary-light: ${adjustLightness(secondary, 39)};
+
+  /* Success - Forest Green */
+  --success: ${primary};
+  --success-foreground: ${primaryForeground};
+  --success-light: ${adjustLightness(primary, 65)};
+
+  /* Warning - Antique Gold */
+  --warning: ${secondary};
+  --warning-foreground: ${secondaryForeground};
+  --warning-light: ${adjustLightness(secondary, 39)};
+
+  /* Destructive - Burgundy */
+  --destructive: ${burgundy};
+  --destructive-foreground: ${primaryForeground};
+  --destructive-light: ${adjustLightness(burgundy, 70)};
+
+  /* Burgundy variants */
+  --burgundy: ${burgundy};
+  --burgundy-hover: ${burgundyHover};
+  --burgundy-light: ${burgundyLight};
+
+  /* Muted Tones */
+  --muted: ${muted};
+  --muted-foreground: ${mutedForeground};
+
+  /* Accent - Deep Gold */
+  --accent: ${accent};
+  --accent-foreground: ${accentForeground};
+
+  /* Borders & Inputs */
+  --border: ${border};
+  --input: ${input};
+  --ring: ${ring};
+
+  /* Design Tokens */
+  --radius: ${t.radius.DEFAULT};
+  --radius-sm: ${t.radius.sm};
+  --radius-lg: ${t.radius.lg};
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, hsl(${primary}), hsl(${primaryLight}));
+  --gradient-secondary: linear-gradient(135deg, hsl(${secondary}), hsl(${secondaryLight}));
+  --gradient-hero: linear-gradient(135deg, hsl(${primaryDark}) 0%, hsl(${primary}) 50%, hsl(${secondary}) 100%);
+  --gradient-card: linear-gradient(145deg, hsl(${card}) 0%, hsl(${backgroundSecondary}) 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 hsl(${primary} / 0.05);
+  --shadow-md: 0 4px 6px -1px hsl(${primary} / 0.1), 0 2px 4px -1px hsl(${primary} / 0.06);
+  --shadow-lg: 0 10px 15px -3px hsl(${primary} / 0.1), 0 4px 6px -2px hsl(${primary} / 0.05);
+  --shadow-glow: 0 0 0 1px hsl(${primary} / 0.05), 0 8px 32px -8px hsl(${primary} / 0.3);
+
+  /* Typography Scale */
+  --font-size-xs: ${t.fontSize.xs};
+  --font-size-sm: ${t.fontSize.sm};
+  --font-size-base: ${t.fontSize.base};
+  --font-size-lg: ${t.fontSize.lg};
+  --font-size-xl: ${t.fontSize.xl};
+  --font-size-2xl: ${t.fontSize['2xl']};
+  --font-size-3xl: ${t.fontSize['3xl']};
+  --font-size-4xl: ${t.fontSize['4xl']};
+
+  /* Spacing */
+  --spacing-xs: ${t.spacing.xs};
+  --spacing-sm: ${t.spacing.sm};
+  --spacing-md: ${t.spacing.md};
+  --spacing-lg: ${t.spacing.lg};
+  --spacing-xl: ${t.spacing.xl};
+  --spacing-2xl: ${t.spacing['2xl']};
+
+  /* Transitions */
+  --transition-fast: ${t.transition.fast};
+  --transition-normal: ${t.transition.normal};
+  --transition-slow: ${t.transition.slow};
+
+  /* Section Spacing */
+  --section-y: ${t.section.y};
+  --section-y-lg: ${t.section.yLg};
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --section-y: 3rem;
+    --section-y-lg: 4rem;
+  }
+}
+
+.dark {
+  /* Dark mode - Deep forest green background */
+  --background: ${backgroundDark};
+  --foreground: ${textInverse};
+
+  --card: ${adjustLightness(backgroundDark, 2)};
+  --card-foreground: ${textInverse};
+
+  --popover: ${adjustLightness(backgroundDark, 2)};
+  --popover-foreground: ${textInverse};
+
+  --primary: ${adjustLightness(primary, 10)};
+  --primary-foreground: ${primaryForeground};
+  --primary-hover: ${adjustLightness(primary, 15)};
+  --primary-light: ${adjustLightness(backgroundDark, -12)};
+
+  --secondary: ${adjustLightness(secondary, 4)};
+  --secondary-foreground: ${backgroundDark};
+  --secondary-hover: ${adjustLightness(secondary, -1)};
+  --secondary-light: ${adjustLightness(backgroundDark, -12)};
+
+  --success: ${adjustLightness(primary, 10)};
+  --success-foreground: ${primaryForeground};
+  --success-light: ${adjustLightness(backgroundDark, -12)};
+
+  --warning: ${adjustLightness(secondary, 4)};
+  --warning-foreground: ${backgroundDark};
+  --warning-light: ${adjustLightness(backgroundDark, -12)};
+
+  --destructive: ${adjustLightness(burgundy, 15)};
+  --destructive-foreground: ${primaryForeground};
+  --destructive-light: ${adjustLightness(backgroundDark, -12)};
+
+  --burgundy: ${adjustLightness(burgundy, 10)};
+  --burgundy-hover: ${adjustLightness(burgundyHover, 7)};
+  --burgundy-light: ${adjustLightness(burgundyLight, 5)};
+
+  --muted: ${adjustLightness(backgroundDark, -12)};
+  --muted-foreground: ${adjustLightness(secondary, 9)};
+
+  --accent: ${adjustLightness(accent, -6)};
+  --accent-foreground: ${textInverse};
+
+  --border: ${adjustLightness(backgroundDark, -8)};
+  --input: ${adjustLightness(backgroundDark, -8)};
+  --ring: ${adjustLightness(primary, 10)};
+
+  /* Dark mode gradients */
+  --gradient-primary: linear-gradient(135deg, hsl(${adjustLightness(primary, -2)}), hsl(${adjustLightness(primary, 8)}));
+  --gradient-secondary: linear-gradient(135deg, hsl(${adjustLightness(secondary, -6)}), hsl(${adjustLightness(secondary, 4)}));
+  --gradient-hero: linear-gradient(135deg, hsl(${adjustLightness(primary, -5)}) 0%, hsl(${adjustLightness(primary, 5)}) 50%, hsl(${adjustLightness(secondary, -6)}) 100%);
+  --gradient-card: linear-gradient(145deg, hsl(${adjustLightness(backgroundDark, 2)}) 0%, hsl(${adjustLightness(backgroundDark, 4)}) 100%);
+}
+  `.trim();
+}
+
+// ============================================================================
+// LEGACY CSS VARIABLES GENERATOR (for reference/email)
+// ============================================================================
+
+/**
+ * Generate CSS custom properties with HEX values
+ * Used for contexts where HSL isn't needed (emails, static exports)
+ */
+export function generateCSSVariables(): string {
+  const c = BRANDING.colors;
+  return `
+:root {
+  /* Primary Colors - Forest Green */
+  --color-primary: ${c.primary.DEFAULT};
+  --color-primary-light: ${c.primary.light};
+  --color-primary-dark: ${c.primary.dark};
+
+  /* Secondary Colors - Antique Gold */
+  --color-secondary: ${c.secondary.DEFAULT};
+  --color-secondary-light: ${c.secondary.light};
+  --color-secondary-dark: ${c.secondary.dark};
+
+  /* Accent Colors - Deep Gold */
+  --color-accent: ${c.accent.DEFAULT};
+  --color-accent-light: ${c.accent.light};
+  --color-accent-dark: ${c.accent.dark};
+
+  /* Tertiary Colors - Burgundy */
+  --color-burgundy: ${c.burgundy.DEFAULT};
+  --color-burgundy-light: ${c.burgundy.light};
+  --color-burgundy-dark: ${c.burgundy.dark};
+  --color-burgundy-hover: ${c.burgundy.hover};
+
+  /* Background Colors - Warm Cream */
+  --color-bg-primary: ${c.background.primary};
+  --color-bg-secondary: ${c.background.secondary};
+  --color-bg-dark: ${c.background.dark};
+
+  /* Text Colors */
+  --color-text-primary: ${c.text.primary};
+  --color-text-secondary: ${c.text.secondary};
+  --color-text-light: ${c.text.light};
+  --color-text-inverse: ${c.text.inverse};
+
+  /* Typography */
+  --font-primary: ${BRANDING.typography.fontFamily.primary};
+  --font-secondary: ${BRANDING.typography.fontFamily.secondary};
+}
+  `.trim();
+}
+
+// ============================================================================
+// TYPE EXPORTS
 // ============================================================================
 
 export type BrandingConfig = typeof BRANDING;
@@ -1222,34 +1064,20 @@ export type EmailTemplates = typeof BRANDING.email.templates;
 // HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Get full page title with app name
- * @param pageTitle - The specific page title
- * @returns Formatted title like "Dashboard | BibleLessonSpark"
- */
 export function getPageTitle(pageTitle?: string): string {
   if (!pageTitle) return BRANDING.appName;
   return `${pageTitle} | ${BRANDING.appName}`;
 }
 
-/**
- * Get copyright notice with current year
- */
 export function getCopyrightNotice(): string {
   return BRANDING.legal.copyrightNotice;
 }
 
-/**
- * Check if a feature is enabled
- */
 export function isFeatureEnabled(feature: keyof typeof BRANDING.features): boolean {
   const value = BRANDING.features[feature];
   return typeof value === 'boolean' ? value : Boolean(value);
 }
 
-/**
- * Get available languages (if multi-language is enabled)
- */
 export function getAvailableLanguages() {
   if (!BRANDING.features.multiLanguage) {
     return [BRANDING.features.availableLanguages[0]];
@@ -1261,43 +1089,26 @@ export function getAvailableLanguages() {
 // EMAIL HELPER FUNCTIONS
 // ============================================================================
 
-/**
- * Get email subject with placeholders replaced
- * @param templateKey - Key from BRANDING.email.subjects
- * @param replacements - Object with placeholder values
- */
 export function getEmailSubject(
   templateKey: keyof typeof BRANDING.email.subjects,
   replacements: Record<string, string> = {}
 ): string {
   let subject = BRANDING.email.subjects[templateKey];
-
   Object.entries(replacements).forEach(([key, value]) => {
     subject = subject.replace(new RegExp(`{${key}}`, 'g'), value);
   });
-
   return subject;
 }
 
-/**
- * Get formatted "From" field for Resend
- */
 export function getEmailFrom(): string {
   return BRANDING.email.from;
 }
 
-/**
- * Get email template with placeholders replaced
- * @param templateKey - Key from BRANDING.email.templates
- * @param replacements - Object with placeholder values
- */
 export function getEmailTemplate(
   templateKey: keyof typeof BRANDING.email.templates,
   replacements: Record<string, string> = {}
 ): typeof BRANDING.email.templates[typeof templateKey] {
   const template = { ...BRANDING.email.templates[templateKey] };
-
-  // Replace placeholders in all string properties
   Object.keys(template).forEach((key) => {
     const typedKey = key as keyof typeof template;
     if (typeof template[typedKey] === 'string') {
@@ -1308,13 +1119,9 @@ export function getEmailTemplate(
       (template as any)[typedKey] = value;
     }
   });
-
   return template;
 }
 
-/**
- * Get greeting with user's name
- */
 export function getEmailGreeting(
   firstName?: string,
   style: keyof typeof BRANDING.email.content.greetings = 'default'
@@ -1325,18 +1132,12 @@ export function getEmailGreeting(
   return BRANDING.email.content.greetings[style].replace('{firstName}', firstName);
 }
 
-/**
- * Get email sign-off
- */
 export function getEmailSignoff(
   style: keyof typeof BRANDING.email.content.signoffs = 'default'
 ): string {
   return BRANDING.email.content.signoffs[style];
 }
 
-/**
- * Generate Resend email options with branding defaults
- */
 export function getResendEmailOptions(overrides: {
   to: string | string[];
   subject: string;
@@ -1356,69 +1157,11 @@ export function getResendEmailOptions(overrides: {
   };
 }
 
-// ============================================================================
-// CSS VARIABLES GENERATOR (for dynamic theming)
-// ============================================================================
-
-/**
- * Generate CSS custom properties from branding colors
- * Use in your root CSS or inject via JavaScript
- */
-export function generateCSSVariables(): string {
-  return `
-:root {
-  /* Primary Colors - Forest Green */
-  --color-primary: ${BRANDING.colors.primary.DEFAULT};
-  --color-primary-light: ${BRANDING.colors.primary.light};
-  --color-primary-dark: ${BRANDING.colors.primary.dark};
-
-  /* Secondary Colors - Antique Gold */
-  --color-secondary: ${BRANDING.colors.secondary.DEFAULT};
-  --color-secondary-light: ${BRANDING.colors.secondary.light};
-  --color-secondary-dark: ${BRANDING.colors.secondary.dark};
-
-  /* Accent Colors - Deep Gold */
-  --color-accent: ${BRANDING.colors.accent.DEFAULT};
-  --color-accent-light: ${BRANDING.colors.accent.light};
-  --color-accent-dark: ${BRANDING.colors.accent.dark};
-
-  /* Tertiary Colors - Burgundy (Baptist Heritage) */
-  --color-burgundy: ${BRANDING.colors.burgundy.DEFAULT};
-  --color-burgundy-light: ${BRANDING.colors.burgundy.light};
-  --color-burgundy-dark: ${BRANDING.colors.burgundy.dark};
-  --color-burgundy-hover: ${BRANDING.colors.burgundy.hover};
-
-  /* Semantic Colors */
-  --color-success: ${BRANDING.colors.success};
-  --color-warning: ${BRANDING.colors.warning};
-  --color-error: ${BRANDING.colors.error};
-  --color-info: ${BRANDING.colors.info};
-
-  /* Background Colors - Warm Cream */
-  --color-bg-primary: ${BRANDING.colors.background.primary};
-  --color-bg-secondary: ${BRANDING.colors.background.secondary};
-  --color-bg-dark: ${BRANDING.colors.background.dark};
-
-  /* Text Colors */
-  --color-text-primary: ${BRANDING.colors.text.primary};
-  --color-text-secondary: ${BRANDING.colors.text.secondary};
-  --color-text-light: ${BRANDING.colors.text.light};
-  --color-text-inverse: ${BRANDING.colors.text.inverse};
-
-  /* Typography */
-  --font-primary: ${BRANDING.typography.fontFamily.primary};
-  --font-secondary: ${BRANDING.typography.fontFamily.secondary};
-}
-  `.trim();
-}
-
 /**
  * Generate inline CSS for email templates
- * (Email clients often strip <style> tags, so inline styles are needed)
  */
 export function getEmailInlineStyles() {
   const s = BRANDING.email.styles;
-
   return {
     wrapper: `background-color: ${s.bodyBackground}; padding: 40px 20px; font-family: ${s.fontFamily};`,
     container: `max-width: 600px; margin: 0 auto; background-color: ${s.contentBackground}; border-radius: ${s.borderRadius}; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);`,

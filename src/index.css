@@ -2,176 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* BibleLessonSpark Design System - Baptist Bible Study Platform */
-/* Color Palette: Forest Green, Antique Gold, Burgundy, Warm Cream */
-/* Rebrand: January 2026 */
-
-@layer base {
-  :root {
-    /* Core Brand Colors - Baptist Heritage Theme */
-    /* Background: Warm Cream */
-    --background: 50 100% 98%;
-    --foreground: 0 0% 18%;
-
-    /* Card System - Clean white cards on cream background */
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 18%;
-
-    /* Popover */
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 18%;
-
-    /* Primary - Forest Green (Growth, Scripture, Action) */
-    --primary: 120 20% 30%;
-    --primary-foreground: 50 100% 98%;
-    --primary-hover: 120 20% 35%;
-    --primary-light: 120 20% 95%;
-
-    /* Secondary - Antique Gold (Excellence, Heritage, Highlights) */
-    --secondary: 42 60% 56%;
-    --secondary-foreground: 0 0% 18%;
-    --secondary-hover: 42 60% 50%;
-    --secondary-light: 42 60% 95%;
-
-    /* Success - Forest Green (matches primary for cohesion) */
-    --success: 120 20% 30%;
-    --success-foreground: 50 100% 98%;
-    --success-light: 120 20% 95%;
-
-    /* Warning - Antique Gold */
-    --warning: 42 60% 56%;
-    --warning-foreground: 0 0% 18%;
-    --warning-light: 42 60% 95%;
-
-    /* Destructive - Burgundy (Reverence, Importance, Tradition) */
-    --destructive: 345 60% 25%;
-    --destructive-foreground: 50 100% 98%;
-    --destructive-light: 345 40% 95%;
-
-    /* Burgundy variants for specific use */
-    --burgundy: 345 60% 25%;
-    --burgundy-hover: 345 55% 37%;
-    --burgundy-light: 345 40% 50%;
-
-    /* Muted Tones - Warm gray with cream undertone */
-    --muted: 42 20% 96%;
-    --muted-foreground: 0 0% 36%;
-
-    /* Accent - Deep Gold */
-    --accent: 42 50% 56%;
-    --accent-foreground: 0 0% 18%;
-
-    /* Borders & Inputs - Warm borders */
-    --border: 42 20% 88%;
-    --input: 42 20% 88%;
-    --ring: 120 20% 30%;
-
-    /* Design Tokens */
-    --radius: 0.75rem;
-    --radius-sm: 0.5rem;
-    --radius-lg: 1rem;
-
-    /* Gradients - Forest Green to Gold */
-    --gradient-primary: linear-gradient(135deg, hsl(120 20% 30%), hsl(120 20% 38%));
-    --gradient-secondary: linear-gradient(135deg, hsl(42 60% 56%), hsl(42 60% 65%));
-    --gradient-hero: linear-gradient(135deg, hsl(120 20% 28%) 0%, hsl(120 20% 35%) 50%, hsl(42 60% 56%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(42 20% 98%) 100%);
-
-    /* Shadows - Using forest green base */
-    --shadow-sm: 0 1px 2px 0 hsl(120 20% 30% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(120 20% 30% / 0.1), 0 2px 4px -1px hsl(120 20% 30% / 0.06);
-    --shadow-lg: 0 10px 15px -3px hsl(120 20% 30% / 0.1), 0 4px 6px -2px hsl(120 20% 30% / 0.05);
-    --shadow-glow: 0 0 0 1px hsl(120 20% 30% / 0.05), 0 8px 32px -8px hsl(120 20% 30% / 0.3);
-
-    /* Typography Scale */
-    --font-size-xs: 0.75rem;
-    --font-size-sm: 0.875rem;
-    --font-size-base: 1rem;
-    --font-size-lg: 1.125rem;
-    --font-size-xl: 1.25rem;
-    --font-size-2xl: 1.5rem;
-    --font-size-3xl: 1.875rem;
-    --font-size-4xl: 2.25rem;
-
-    /* Spacing */
-    --spacing-xs: 0.25rem;
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --spacing-xl: 2rem;
-    --spacing-2xl: 3rem;
-
-    /* Transitions */
-    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
-
-    /* Section Spacing Tokens */
-    --section-y: 2.5rem; /* ~40px */
-    --section-y-lg: 3.5rem; /* ~56px */
-  }
-
-  @media (min-width: 1024px) {
-    :root {
-      --section-y: 3rem; /* ~48px */
-      --section-y-lg: 4rem; /* ~64px */
-    }
-  }
-
-  .dark {
-    /* Dark mode - Deep forest green background */
-    --background: 120 20% 10%;
-    --foreground: 50 100% 95%;
-
-    --card: 120 20% 12%;
-    --card-foreground: 50 100% 95%;
-
-    --popover: 120 20% 12%;
-    --popover-foreground: 50 100% 95%;
-
-    --primary: 120 20% 40%;
-    --primary-foreground: 50 100% 98%;
-    --primary-hover: 120 20% 45%;
-    --primary-light: 120 20% 18%;
-
-    --secondary: 42 60% 60%;
-    --secondary-foreground: 120 20% 10%;
-    --secondary-hover: 42 60% 55%;
-    --secondary-light: 42 60% 18%;
-
-    --success: 120 20% 40%;
-    --success-foreground: 50 100% 98%;
-    --success-light: 120 20% 18%;
-
-    --warning: 42 60% 60%;
-    --warning-foreground: 120 20% 10%;
-    --warning-light: 42 60% 18%;
-
-    --destructive: 345 55% 40%;
-    --destructive-foreground: 50 100% 98%;
-    --destructive-light: 345 40% 18%;
-
-    --burgundy: 345 55% 35%;
-    --burgundy-hover: 345 55% 42%;
-    --burgundy-light: 345 40% 45%;
-
-    --muted: 120 20% 18%;
-    --muted-foreground: 42 20% 65%;
-
-    --accent: 42 50% 50%;
-    --accent-foreground: 50 100% 95%;
-
-    --border: 120 20% 22%;
-    --input: 120 20% 22%;
-    --ring: 120 20% 40%;
-
-    /* Dark mode gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(120 20% 28%), hsl(120 20% 38%));
-    --gradient-secondary: linear-gradient(135deg, hsl(42 60% 50%), hsl(42 60% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(120 20% 25%) 0%, hsl(120 20% 35%) 50%, hsl(42 60% 50%) 100%);
-    --gradient-card: linear-gradient(145deg, hsl(120 20% 12%) 0%, hsl(120 20% 14%) 100%);
-  }
-}
+/* ============================================================================
+ * BibleLessonSpark Design System
+ * ============================================================================
+ * 
+ * SSOT ARCHITECTURE:
+ *   Colors are generated from src/config/branding.ts via BrandingProvider.
+ *   Do NOT define color variables here - edit branding.ts instead.
+ *   
+ *   branding.ts (SSOT) → generateTailwindCSSVariables() → BrandingProvider → CSS Variables
+ *   
+ * This file contains ONLY:
+ *   - Tailwind directives
+ *   - Base element styles
+ *   - Component utilities (that reference CSS variables)
+ *   - NO color definitions (those are injected at runtime)
+ * 
+ * WHITE-LABEL: To rebrand colors, edit ONLY src/config/branding.ts
+ * ============================================================================ */
 
 @layer base {
   * {
@@ -180,12 +28,12 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* iOS safe area support for portrait */
+    /* iOS safe area support */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Custom scrollbars - using forest green accent */
+  /* Custom scrollbars */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -205,25 +53,25 @@
 }
 
 @layer components {
-  /* Status indicator utilities - Updated for BibleLessonSpark palette */
+  /* Status indicator utilities */
   .status-indicator {
     @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
   }
 
   .status-success {
-    @apply bg-green-50 text-green-800 border border-green-200;
+    @apply bg-success-light text-primary border border-success/20;
   }
 
   .status-warning {
-    @apply bg-amber-50 text-amber-800 border border-amber-200;
+    @apply bg-warning-light text-secondary-foreground border border-warning/20;
   }
 
   .status-error {
-    @apply bg-rose-50 text-rose-900 border border-rose-200;
+    @apply bg-destructive-light text-destructive border border-destructive/20;
   }
 
   .status-pending {
-    @apply bg-amber-50 text-amber-700 border border-amber-200;
+    @apply bg-warning-light text-secondary-foreground border border-warning/20;
   }
 
   /* Glass effect utilities */
@@ -248,7 +96,7 @@
   /* Important badge - Using burgundy for gravitas */
   .important-badge {
     background-color: hsl(var(--burgundy));
-    color: hsl(50 100% 98%);
+    color: hsl(var(--primary-foreground));
     @apply px-3 py-1 rounded-full text-xs font-semibold;
   }
 

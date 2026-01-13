@@ -2,6 +2,7 @@
 // BibleLessonSpark - PRICING PAGE (SSOT-COMPLIANT)
 // Location: src/pages/PricingPage.tsx
 // Prices come FROM Supabase database (synced via Stripe webhook)
+// Colors: BibleLessonSpark palette (Forest Green, Antique Gold, Burgundy, Warm Cream)
 // ============================================================
 
 import React, { useState } from 'react';
@@ -90,10 +91,10 @@ export default function PricingPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-sky-50 to-white">
+        <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-primary/5 to-background">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto text-sky-600" />
-            <p className="mt-2 text-gray-600">Loading pricing...</p>
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="mt-2 text-muted-foreground">Loading pricing...</p>
           </div>
         </main>
         <Footer />
@@ -105,10 +106,10 @@ export default function PricingPage() {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-sky-50 to-white">
-          <Alert className="max-w-md border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-700">
+        <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-primary/5 to-background">
+          <Alert className="max-w-md border-destructive/50 bg-destructive/10">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-destructive">
               Unable to load pricing information. Please refresh the page.
             </AlertDescription>
           </Alert>
@@ -126,41 +127,42 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 bg-gradient-to-b from-sky-50 to-white">
+      <main className="flex-1 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4 py-12">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            <h1 className="text-4xl font-bold text-foreground mb-4">
               Simple, Transparent Pricing
             </h1>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-muted-foreground mb-8">
               Start free, upgrade when you need complete lessons. 
               No hidden fees, cancel anytime.
             </p>
 
             {paymentStatus === 'success' && (
-              <Alert className="mb-6 border-green-200 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-700">
+              <Alert className="mb-6 border-success/50 bg-success/10">
+                <CheckCircle className="h-4 w-4 text-success" />
+                <AlertDescription className="text-primary">
                   Payment successful! Your subscription is now active.
                 </AlertDescription>
               </Alert>
             )}
             {paymentStatus === 'canceled' && (
-              <Alert className="mb-6 border-amber-200 bg-amber-50">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-amber-700">
+              <Alert className="mb-6 border-secondary/50 bg-secondary/10">
+                <AlertCircle className="h-4 w-4 text-secondary" />
+                <AlertDescription className="text-secondary-foreground">
                   Checkout was canceled. You can try again when you are ready.
                 </AlertDescription>
               </Alert>
             )}
 
-            <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-white shadow-sm mb-8">
+            {/* Billing Toggle */}
+            <div className="inline-flex rounded-lg border border-border p-1 bg-card shadow-sm mb-8">
               <button
                 onClick={() => setBillingInterval('month')}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                   billingInterval === 'month'
-                    ? 'bg-sky-100 text-sky-700'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Monthly
@@ -169,13 +171,13 @@ export default function PricingPage() {
                 onClick={() => setBillingInterval('year')}
                 className={`px-6 py-2 rounded-md text-sm font-medium transition-colors ${
                   billingInterval === 'year'
-                    ? 'bg-sky-100 text-sky-700'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 Yearly
                 {annualSavings > 0 && (
-                  <span className="ml-2 text-xs text-green-600 font-semibold">
+                  <span className="ml-2 text-xs text-secondary font-semibold">
                     Save {annualSavingsDisplay}
                   </span>
                 )}
@@ -185,9 +187,9 @@ export default function PricingPage() {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* FREE PLAN */}
-            <Card className={`relative ${currentTier === 'free' && user ? 'ring-2 ring-gray-300' : ''}`}>
+            <Card className={`relative ${currentTier === 'free' && user ? 'ring-2 ring-muted-foreground/30' : ''}`}>
               {currentTier === 'free' && user && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gray-600">
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-muted-foreground">
                   Current Plan
                 </Badge>
               )}
@@ -198,25 +200,25 @@ export default function PricingPage() {
               <CardContent className="text-center">
                 <div className="mb-6">
                   <span className="text-5xl font-bold">$0</span>
-                  <span className="text-gray-500">/month</span>
+                  <span className="text-muted-foreground">/month</span>
                 </div>
                 <ul className="space-y-3 text-left">
                   <li className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <Check className="h-5 w-5 text-primary flex-shrink-0" />
                     <span><strong>{freePlan.lessonsPerMonth}</strong> lessons per month</span>
                   </li>
                   <li className="flex items-center gap-3">
-                    <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <Check className="h-5 w-5 text-primary flex-shrink-0" />
                     <span><strong>3</strong> core sections</span>
                   </li>
                   {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
-                    <li key={section} className="flex items-center gap-3 text-gray-600">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <li key={section} className="flex items-center gap-3 text-muted-foreground">
+                      <Check className="h-5 w-5 text-primary flex-shrink-0" />
                       <span>{section}</span>
                     </li>
                   ))}
                   {UPGRADE_PROMPTS.sections.personalAdds.slice(0, 3).map((section) => (
-                    <li key={section} className="flex items-center gap-3 text-gray-400">
+                    <li key={section} className="flex items-center gap-3 text-muted-foreground/50">
                       <X className="h-5 w-5 flex-shrink-0" />
                       <span>{section}</span>
                     </li>
@@ -238,10 +240,10 @@ export default function PricingPage() {
             {/* PERSONAL PLAN */}
             <Card className={`relative border-2 ${
               currentTier === 'personal' && user 
-                ? 'ring-2 ring-sky-500 border-sky-500' 
-                : 'border-sky-500'
+                ? 'ring-2 ring-primary border-primary' 
+                : 'border-primary'
             }`}>
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-500">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground">
                 {currentTier === 'personal' && user ? 'Current Plan' : 'Most Popular'}
               </Badge>
               <CardHeader className="text-center pb-2">
@@ -253,34 +255,34 @@ export default function PricingPage() {
                   <span className="text-5xl font-bold">
                     {billingInterval === 'year' ? personalAnnualMonthlyDisplay : personalMonthlyDisplay}
                   </span>
-                  <span className="text-gray-500">/month</span>
+                  <span className="text-muted-foreground">/month</span>
                 </div>
                 {billingInterval === 'year' && annualSavings > 0 && (
-                  <p className="text-sm text-green-600 font-medium mb-4">
+                  <p className="text-sm text-secondary font-medium mb-4">
                     Billed annually at {formatPrice(personalPlan.priceAnnual)} (Save {annualSavingsDisplay})
                   </p>
                 )}
                 {billingInterval === 'month' && (
-                  <p className="text-sm text-gray-500 mb-4">Billed monthly</p>
+                  <p className="text-sm text-muted-foreground mb-4">Billed monthly</p>
                 )}
                 <ul className="space-y-3 text-left">
-                  <li className="flex items-center gap-3 font-medium text-sky-700">
-                    <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                  <li className="flex items-center gap-3 font-medium text-primary">
+                    <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
                     <span><strong>{personalPlan.lessonsPerMonth}</strong> lessons per month</span>
                   </li>
-                  <li className="flex items-center gap-3 font-medium text-sky-700">
-                    <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                  <li className="flex items-center gap-3 font-medium text-primary">
+                    <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
                     <span><strong>All 8</strong> lesson sections</span>
                   </li>
                   {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
-                    <li key={section} className="flex items-center gap-3 text-gray-600">
-                      <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <li key={section} className="flex items-center gap-3 text-muted-foreground">
+                      <Check className="h-5 w-5 text-primary flex-shrink-0" />
                       <span>{section}</span>
                     </li>
                   ))}
                   {UPGRADE_PROMPTS.sections.personalAdds.map((section) => (
-                    <li key={section} className="flex items-center gap-3 font-medium text-sky-700">
-                      <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                    <li key={section} className="flex items-center gap-3 font-medium text-primary">
+                      <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
                       <span>{section}</span>
                     </li>
                   ))}
@@ -288,7 +290,7 @@ export default function PricingPage() {
               </CardContent>
               <CardFooter>
                 <Button
-                  className="w-full bg-sky-600 hover:bg-sky-700"
+                  className="w-full bg-primary hover:bg-primary-hover"
                   onClick={() => handleSelectPlan('personal')}
                   disabled={isButtonDisabled('personal')}
                 >
@@ -314,7 +316,7 @@ export default function PricingPage() {
             <div className="space-y-6 text-left">
               <div>
                 <h3 className="font-semibold text-lg">What is included in a section?</h3>
-                <p className="text-gray-600 mt-1">
+                <p className="text-muted-foreground mt-1">
                   Each lesson can have up to 8 sections covering different aspects: from theological 
                   background to interactive activities. Free users get the 3 core sections, while 
                   Personal users get all 8 for complete, well-rounded lessons.
@@ -322,11 +324,11 @@ export default function PricingPage() {
               </div>
               <div>
                 <h3 className="font-semibold text-lg">Can I cancel anytime?</h3>
-                <p className="text-gray-600 mt-1">Yes! You can {!isFreeTier ? <a href={ROUTES.ACCOUNT} className="text-sky-600 hover:text-sky-700 underline">cancel</a> : "cancel"} your subscription at any time. You will continue to have access until the end of your billing period.</p>
+                <p className="text-muted-foreground mt-1">Yes! You can {!isFreeTier ? <a href={ROUTES.ACCOUNT} className="text-primary hover:text-primary-hover underline">cancel</a> : "cancel"} your subscription at any time. You will continue to have access until the end of your billing period.</p>
               </div>
               <div>
                 <h3 className="font-semibold text-lg">What payment methods do you accept?</h3>
-                <p className="text-gray-600 mt-1">
+                <p className="text-muted-foreground mt-1">
                   We accept all major credit cards through our secure payment processor, Stripe.
                 </p>
               </div>
@@ -338,10 +340,3 @@ export default function PricingPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
