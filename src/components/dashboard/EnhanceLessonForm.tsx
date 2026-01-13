@@ -26,7 +26,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
-import { useRateLimit } from "@/hooks/useRateLimit";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
@@ -463,14 +462,6 @@ export function EnhanceLessonForm({
     isLoading: subscriptionLoading,
   } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const {
-    isLimitReached,
-    lessonsUsed,
-    lessonsAllowed,
-    hoursUntilReset,
-    errorMessage: rateLimitError,
-    refreshRateLimit,
-  } = useRateLimit();
   const { toast } = useToast();
 
   // Teacher Profiles Hook
@@ -828,7 +819,6 @@ export function EnhanceLessonForm({
           onLessonGenerated(result.data);
         }
         await incrementUsage();
-        refreshRateLimit();
       }
 
       setGenerationProgress(100);
@@ -1437,17 +1427,16 @@ export function EnhanceLessonForm({
             {/* Rate Limit Indicator */}
             <div
               className={`text-sm text-center p-2 rounded-lg ${
-                isLimitReached ? "bg-destructive/10 text-destructive" : "bg-muted"
+                subLessonsUsed >= subLessonsLimit ? "bg-destructive/10 text-destructive" : "bg-muted"
               }`}
             >
-              {isLimitReached ? (
+              {subLessonsUsed >= subLessonsLimit ? (
                 <span>
-                  Limit reached — resets in {hoursUntilReset} hour
-                  {hoursUntilReset === 1 ? "" : "s"}
+                  Limit reached — resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
                 </span>
               ) : (
                 <span>
-                  {subLessonsUsed} of {subLessonsLimit} lessons used this month
+                  {subLessonsLimit - subLessonsUsed} / {subLessonsLimit} lessons remaining
                 </span>
               )}
             </div>
@@ -1457,7 +1446,7 @@ export function EnhanceLessonForm({
               type="submit"
               className="w-full bg-sky-500 hover:bg-sky-600"
               size="lg"
-              disabled={isSubmitting || isEnhancing || isLimitReached || isExtracting || !step1Complete || !step2Complete}
+              disabled={isSubmitting || isEnhancing || subLessonsUsed >= subLessonsLimit || isExtracting || !step1Complete || !step2Complete}
             >
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
