@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -220,8 +220,8 @@ const Docs = () => {
         {/* Getting Started */}
         <section id="getting-started">
           <div className="flex items-center gap-3 mb-6">
-            <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-green-600" />
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <h2 className="text-2xl font-bold">Getting Started</h2>
           </div>
@@ -389,7 +389,7 @@ const Docs = () => {
         <section id="theology">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
-              <Shield className="h-5 w-5 text-red-600" />
+              <Shield className="h-5 w-5 text-destructive" />
             </div>
             <h2 className="text-2xl font-bold">Theological Lenses</h2>
           </div>
@@ -432,15 +432,15 @@ const Docs = () => {
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Print-ready formatting</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Consistent appearance on all devices</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Easy to email or share</span>
                 </div>
               </CardContent>
@@ -453,15 +453,15 @@ const Docs = () => {
               </CardHeader>
               <CardContent className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Editable in Microsoft Word or Google Docs</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Add your own notes and modifications</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <CheckCircle className="h-4 w-4 text-primary" />
                   <span>Reformat to match your church's style</span>
                 </div>
               </CardContent>

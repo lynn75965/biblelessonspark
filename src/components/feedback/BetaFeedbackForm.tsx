@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // BetaFeedbackForm.tsx (Database-Driven)
 // ============================================================================
 // Reads questions dynamically from feedback_questions table
@@ -238,7 +238,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
             </button>
           ))}
         </div>
-        <div className="flex justify-between text-xs text-gray-500">
+        <div className="flex justify-between text-xs text-muted-foreground">
           <span></span>
             <span>Extremely likely</span>
         </div>
@@ -356,10 +356,10 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <AlertCircle className="h-12 w-12 text-amber-500 mb-4" />
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           Unable to Load Feedback Form
         </h3>
-        <p className="text-gray-600 mb-4">{loadError}</p>
+        <p className="text-muted-foreground mb-4">{loadError}</p>
         <Button variant="outline" onClick={() => window.location.reload()}>
           Try Again
         </Button>
@@ -383,11 +383,11 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
   if (isSubmitted) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
-        <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+        <CheckCircle className="h-16 w-16 text-primary mb-4" />
+        <h3 className="text-xl font-semibold text-foreground mb-2">
           Thank You for Your Feedback!
         </h3>
-        <p className="text-gray-600 mb-6">
+        <p className="text-muted-foreground mb-6">
           Your input is invaluable in helping us serve Sunday School teachers better.
         </p>
         <div className="flex gap-3">

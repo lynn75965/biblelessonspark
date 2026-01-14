@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
@@ -74,7 +74,7 @@ export const NotificationsDropdown = () => {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 rounded-xl border bg-white dark:bg-gray-900 shadow-lg z-[70]">
+        <div className="absolute right-0 mt-2 w-80 rounded-xl border bg-card dark:bg-gray-900 shadow-lg z-[70]">
           <div className="flex items-center justify-between px-4 py-2 border-b">
             <h3 className="font-semibold">Notifications</h3>
             {unreadCount > 0 && (

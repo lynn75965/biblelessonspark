@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -81,11 +81,11 @@ export default function Settings() {
           Back to Dashboard
         </Button>
 
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Account Settings</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-6">Account Settings</h1>
 
-        <Card className="border-red-200">
+        <Card className="border-destructive/30">
           <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
+            <CardTitle className="text-destructive flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
               Delete Account
             </CardTitle>
@@ -94,9 +94,9 @@ export default function Settings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <div className="bg-red-50 border border-destructive/30 rounded-lg p-4 mb-4">
               <h3 className="font-semibold text-red-800 mb-2">What will be deleted:</h3>
-              <ul className="list-disc list-inside text-red-700 space-y-1">
+              <ul className="list-disc list-inside text-destructive space-y-1">
                 <li>Your account and login credentials</li>
                 <li>All generated Bible study lessons</li>
                 <li>Your preferences and settings</li>

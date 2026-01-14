@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DevotionalLibrary Component
  *
  * Displays and manages user's generated devotionals.
@@ -60,9 +60,9 @@ import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 
 const TARGET_BADGE_COLORS: Record<string, string> = {
   preschool: "bg-pink-100 text-pink-800 border-pink-200",
-  children: "bg-blue-100 text-blue-800 border-blue-200",
+  children: "bg-blue-100 text-blue-800 border-accent/50",
   youth: "bg-purple-100 text-purple-800 border-purple-200",
-  adult: "bg-green-100 text-green-800 border-green-200",
+  adult: "bg-primary/10 text-green-800 border-primary/30",
 };
 
 const LENGTH_BADGE_COLORS: Record<string, string> = {
@@ -323,7 +323,7 @@ export function DevotionalLibrary() {
               </DialogHeader>
               <div className="flex gap-2 py-2">
                 <Button variant="outline" size="sm" onClick={() => handleCopy(selectedDevotional.content || "")}>
-                  {copied ? <CheckCircle className="h-4 w-4 mr-1.5 text-green-600" /> : <Copy className="h-4 w-4 mr-1.5" />}
+                  {copied ? <CheckCircle className="h-4 w-4 mr-1.5 text-primary" /> : <Copy className="h-4 w-4 mr-1.5" />}
                   {copied ? "Copied" : "Copy"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => handlePrint(selectedDevotional)}>

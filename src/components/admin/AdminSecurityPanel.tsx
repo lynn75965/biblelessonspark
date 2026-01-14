@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Admin Security Panel
  *
  * SSOT COMPLIANCE:
@@ -182,7 +182,7 @@ export function AdminSecurityPanel() {
             </CardHeader>
             <CardContent>
               {error && (
-                <div className="text-center py-8 text-red-600">
+                <div className="text-center py-8 text-destructive">
                   <p>{error}</p>
                   <Button variant="outline" onClick={fetchEvents} className="mt-4">
                     Try Again

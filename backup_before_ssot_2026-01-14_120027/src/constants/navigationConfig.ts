@@ -1,0 +1,163 @@
+/**
+ * NAVIGATION CONFIGURATION
+ * Single Source of Truth for header menu items by role
+ *
+ * ARCHITECTURE:
+ * - Defines which menu items each role sees
+ * - Header.tsx consumes this config
+ * - Routes must exist in App.tsx
+ *
+ * TERMINOLOGY:
+ * - Administrator = platformAdmin (Lynn only)
+ * - Organization Manager = orgLeader (church leaders)
+ * - Organization Member = orgMember
+ * - Individual User = individual
+ */
+
+import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard } from "lucide-react";
+import { ROLES, Role } from "./accessControl";
+import { ROUTES as APP_ROUTES } from "./routes";
+
+// =============================================================================
+// ROUTE DEFINITIONS
+// =============================================================================
+
+const NAV_ROUTES = {
+  admin: APP_ROUTES.ADMIN,
+  org: APP_ROUTES.ORG,
+  workspace: APP_ROUTES.WORKSPACE,
+  parables: '/parables',
+  pricing: '/pricing',
+  account: '/account',
+  home: APP_ROUTES.HOME,
+} as const;
+
+// =============================================================================
+// MENU ITEM DEFINITIONS
+// =============================================================================
+
+export interface NavigationItem {
+  id: string;
+  label: string;
+  route: string;
+  icon: typeof Shield;
+  description?: string;
+  dividerAfter?: boolean;
+}
+
+export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
+  adminPanel: {
+    id: 'adminPanel',
+    label: 'Administrator Panel',
+    route: NAV_ROUTES.admin,
+    icon: Shield,
+    description: 'Platform-wide administration',
+    dividerAfter: false,
+  },
+  orgManager: {
+    id: 'orgManager',
+    label: 'Organization Manager',
+    route: NAV_ROUTES.org,
+    icon: Building2,
+    description: 'Manage your organization',
+    dividerAfter: false,
+  },
+  workspace: {
+    id: 'workspace',
+    label: 'My Workspace',
+    route: NAV_ROUTES.workspace,
+    icon: LayoutDashboard,
+    description: 'Your personal lessons',
+    dividerAfter: false,
+  },
+  parables: {
+    id: 'parables',
+    label: 'Parable Generator',
+    route: NAV_ROUTES.parables,
+    icon: Sparkles,
+    description: 'Create modern parables',
+    dividerAfter: false,
+  },
+  pricing: {
+    id: 'pricing',
+    label: 'Pricing',
+    route: NAV_ROUTES.pricing,
+    icon: CreditCard,
+    description: 'View plans and pricing',
+    dividerAfter: true,
+  },
+  settings: {
+    id: 'settings',
+    label: 'Settings',
+    route: NAV_ROUTES.account,
+    icon: Settings,
+    description: 'Account settings',
+    dividerAfter: true,
+  },
+  signOut: {
+    id: 'signOut',
+    label: 'Sign Out',
+    route: '', // Handled by onClick, not navigation
+    icon: LogOut,
+    description: 'Sign out of your account',
+    dividerAfter: false,
+  },
+} as const;
+
+// =============================================================================
+// ROLE-BASED MENU CONFIGURATION
+// =============================================================================
+
+/**
+ * Defines which menu items each role sees, in display order
+ * NOTE: 'parables' is defined but not included in any role menu (hidden feature)
+ */
+export const MENU_BY_ROLE: Record<Role, string[]> = {
+  [ROLES.platformAdmin]: [
+    'adminPanel',
+    'orgManager',
+    'workspace',
+    'pricing',
+    'settings',
+    'signOut',
+  ],
+  [ROLES.orgLeader]: [
+    'orgManager',
+    'workspace',
+    'pricing',
+    'settings',
+    'signOut',
+  ],
+  [ROLES.orgMember]: [
+    'workspace',
+    'pricing',
+    'settings',
+    'signOut',
+  ],
+  [ROLES.individual]: [
+    'workspace',
+    'pricing',
+    'settings',
+    'signOut',
+  ],
+} as const;
+
+// =============================================================================
+// HELPER FUNCTIONS
+// =============================================================================
+
+/**
+ * Get navigation items for a given role
+ */
+export const getNavigationForRole = (role: Role): NavigationItem[] => {
+  const itemIds = MENU_BY_ROLE[role] || MENU_BY_ROLE[ROLES.individual];
+  return itemIds.map(id => NAVIGATION_ITEMS[id]).filter(Boolean);
+};
+
+/**
+ * Check if a role has access to a specific navigation item
+ */
+export const canAccessNavItem = (role: Role, itemId: string): boolean => {
+  const allowedItems = MENU_BY_ROLE[role] || [];
+  return allowedItems.includes(itemId);
+};

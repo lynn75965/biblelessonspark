@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LessonLibrary Component
  * Browse and manage saved Baptist Bible study lessons
  * 
@@ -61,16 +61,16 @@ interface LessonDisplay extends Lesson {
 
 const AGE_GROUP_BADGE_COLOR_MAP: Record<string, string> = {
   "preschool": "bg-pink-100 text-pink-800 border-pink-200",
-  "elementary": "bg-blue-100 text-blue-800 border-blue-200",
+  "elementary": "bg-blue-100 text-blue-800 border-accent/50",
   "preteen": "bg-purple-100 text-purple-800 border-purple-200",
   "highschool": "bg-indigo-100 text-indigo-800 border-indigo-200",
   "college": "bg-cyan-100 text-cyan-800 border-cyan-200",
   "youngadult": "bg-teal-100 text-teal-800 border-teal-200",
-  "midlife": "bg-green-100 text-green-800 border-green-200",
+  "midlife": "bg-primary/10 text-green-800 border-primary/30",
   "experienced": "bg-yellow-100 text-yellow-800 border-yellow-200",
   "activesenior": "bg-orange-100 text-orange-800 border-orange-200",
-  "senior": "bg-red-100 text-red-800 border-red-200",
-  "mixed": "bg-gray-100 text-gray-800 border-gray-200",
+  "senior": "bg-red-100 text-red-800 border-destructive/30",
+  "mixed": "bg-muted text-foreground border-border",
 };
 
 const THEOLOGY_BADGE_COLOR_MAP: Record<string, string> = {
@@ -78,7 +78,7 @@ const THEOLOGY_BADGE_COLOR_MAP: Record<string, string> = {
   "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
   "southern-baptist-bfm-2000": "bg-primary-light text-primary border-primary/20",
   "national-baptist-convention": "bg-emerald-100 text-emerald-800 border-emerald-200",
-  "independent-baptist": "bg-blue-100 text-blue-800 border-blue-200",
+  "independent-baptist": "bg-blue-100 text-blue-800 border-accent/50",
   "missionary-baptist": "bg-cyan-100 text-cyan-800 border-cyan-200",
   "general-baptist": "bg-teal-100 text-teal-800 border-teal-200",
   "free-will-baptist": "bg-violet-100 text-violet-800 border-violet-200",
@@ -86,7 +86,7 @@ const THEOLOGY_BADGE_COLOR_MAP: Record<string, string> = {
   "reformed-baptist": "bg-secondary-light text-secondary border-secondary/20",
 };
 
-const DEFAULT_BADGE_COLOR = "bg-gray-100 text-gray-800 border-gray-200";
+const DEFAULT_BADGE_COLOR = "bg-muted text-foreground border-border";
 
 // ============================================================================
 // UTILITY FUNCTIONS

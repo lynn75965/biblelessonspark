@@ -186,8 +186,8 @@ export function getEventMetadata(eventType: string) {
  */
 export function getSeverityColor(severity: 'info' | 'warning' | 'critical'): string {
   switch (severity) {
-    case 'critical': return 'text-red-600 bg-red-50';
+    case 'critical': return 'text-destructive bg-red-50';
     case 'warning': return 'text-amber-600 bg-amber-50';
-    default: return 'text-gray-600 bg-gray-50';
+    default: return 'text-muted-foreground bg-muted/50';
   }
 }

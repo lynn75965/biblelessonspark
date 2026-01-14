@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ParableGenerator.tsx
  * Phase 17.6: Modern Parable Generator UI Component
  * 
@@ -585,7 +585,7 @@ export function ParableGenerator({
             )}
             {/* Admin bypass notice */}
             {isAuthenticated && usageInfo?.bypassed && (
-              <span className="block mt-1 text-xs font-medium text-green-600">
+              <span className="block mt-1 text-xs font-medium text-primary">
                 Admin: Unlimited parables
               </span>
             )}
@@ -598,7 +598,7 @@ export function ParableGenerator({
             {/* Static message for anonymous users (before generation) */}
             {!isAuthenticated && !usageInfo && (
               <span className="block mt-1 text-xs text-muted-foreground">
-                Anonymous users: 3 parables per day • Create a free account for more
+                Anonymous users: 3 parables per day â€¢ Create a free account for more
               </span>
             )}
           </CardDescription>
@@ -612,7 +612,7 @@ export function ParableGenerator({
           {isLessonSparkContext && (
             <>
               {/* Lesson Context Banner */}
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-accent/50 dark:border-blue-800 rounded-lg">
                 <div className="flex items-start gap-2">
                   <BookOpen className="h-4 w-4 mt-0.5 text-blue-600 dark:text-blue-400" />
                   <div className="space-y-1">
@@ -620,7 +620,7 @@ export function ParableGenerator({
                       Using Lesson Settings
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-300">
-                      Passage: {lessonSettings?.passage || 'Not specified'} • 
+                      Passage: {lessonSettings?.passage || 'Not specified'} â€¢ 
                       Age: {getAgeGroupById(lessonSettings?.ageGroup || '')?.label || 'Default'}
                     </p>
                   </div>
@@ -859,7 +859,7 @@ export function ParableGenerator({
             </div>
             <CardDescription className="flex items-center gap-4 text-xs">
               <span>{generatedParable.word_count} words</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span>{(generatedParable.generation_time_ms / 1000).toFixed(1)}s</span>
             </CardDescription>
           </CardHeader>
@@ -890,7 +890,7 @@ export function ParableGenerator({
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       <span className="font-medium">Source:</span> {generatedParable.news_source}
                       {generatedParable.news_headline && (
-                        <> — "{generatedParable.news_headline.slice(0, 80)}{generatedParable.news_headline.length > 80 ? '...' : ''}"</>
+                        <> â€” "{generatedParable.news_headline.slice(0, 80)}{generatedParable.news_headline.length > 80 ? '...' : ''}"</>
                       )}
                     </p>
                     {generatedParable.news_url && (
@@ -900,7 +900,7 @@ export function ParableGenerator({
                         rel="noopener noreferrer"
                         className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline"
                       >
-                        View original article →
+                        View original article â†’
                       </a>
                     )}
                   </div>

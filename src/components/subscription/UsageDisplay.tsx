@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BibleLessonSpark - USAGE DISPLAY COMPONENT
 // Location: src/components/subscription/UsageDisplay.tsx
 // ============================================================
@@ -32,9 +32,9 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
 
   if (isLoading) {
     return (
-      <div className="animate-pulse bg-gray-100 rounded-lg p-4">
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-        <div className="h-2 bg-gray-200 rounded w-full"></div>
+      <div className="animate-pulse bg-muted rounded-lg p-4">
+        <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
+        <div className="h-2 bg-muted rounded w-full"></div>
       </div>
     );
   }
@@ -58,11 +58,11 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
       <div className="flex items-center gap-2">
         <Badge 
           variant={isFreeTier ? "secondary" : "default"}
-          className={isFreeTier ? "bg-gray-100" : "bg-sky-100 text-sky-700"}
+          className={isFreeTier ? "bg-muted" : "bg-accent/10 text-accent"}
         >
           {planName}
         </Badge>
-        <span className={`text-sm ${isAtLimit ? 'text-red-600 font-medium' : 'text-gray-600'}`}>
+        <span className={`text-sm ${isAtLimit ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
           {lessonsUsed}/{lessonsLimit}
         </span>
         {isAtLimit && isFreeTier && onUpgradeClick && (
@@ -70,7 +70,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
             variant="ghost"
             size="sm"
             onClick={onUpgradeClick}
-            className="text-sky-600 hover:text-sky-700 p-1 h-auto"
+            className="text-sky-600 hover:text-accent p-1 h-auto"
           >
             <Sparkles className="h-4 w-4" />
           </Button>
@@ -81,20 +81,20 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
 
   return (
     <div className={`rounded-lg border p-4 ${
-      isAtLimit ? 'border-red-200 bg-red-50' : 
+      isAtLimit ? 'border-destructive/30 bg-red-50' : 
       isNearLimit ? 'border-amber-200 bg-amber-50' : 
-      'border-gray-200 bg-white'
+      'border-border bg-card'
     }`}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Badge 
             variant={isFreeTier ? "secondary" : "default"}
-            className={isFreeTier ? "bg-gray-100" : "bg-sky-100 text-sky-700"}
+            className={isFreeTier ? "bg-muted" : "bg-accent/10 text-accent"}
           >
             {planName} Plan
           </Badge>
           {!isFreeTier && (
-            <Badge variant="outline" className="text-green-600 border-green-200">
+            <Badge variant="outline" className="text-primary border-primary/30">
               <Zap className="h-3 w-3 mr-1" />
               8 sections
             </Badge>
@@ -105,7 +105,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
             variant="ghost"
             size="sm"
             onClick={onUpgradeClick}
-            className="text-sky-600 hover:text-sky-700"
+            className="text-sky-600 hover:text-accent"
           >
             <Sparkles className="h-4 w-4 mr-1" />
             Upgrade
@@ -115,10 +115,10 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
 
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
-          <span className={isAtLimit ? 'text-red-700 font-medium' : 'text-gray-600'}>
+          <span className={isAtLimit ? 'text-destructive font-medium' : 'text-muted-foreground'}>
             {lessonsUsed} of {lessonsLimit} lessons used
           </span>
-          <span className="text-gray-500">
+          <span className="text-muted-foreground">
             {lessonsRemaining > 0 ? `${lessonsRemaining} remaining` : 'Limit reached'}
           </span>
         </div>
@@ -126,26 +126,26 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
           value={usagePercentage} 
           className={`h-2 ${
             isAtLimit ? '[&>div]:bg-red-500' : 
-            isNearLimit ? '[&>div]:bg-amber-500' : 
-            '[&>div]:bg-sky-500'
+            isNearLimit ? '[&>div]:bg-secondary' : 
+            '[&>div]:bg-accent'
           }`}
         />
       </div>
 
-      <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
         <Calendar className="h-3 w-3" />
         <span>Resets {formatResetDate()}</span>
       </div>
 
       {isAtLimit && isFreeTier && (
-        <div className="mt-3 p-3 bg-white rounded-md border border-red-200">
+        <div className="mt-3 p-3 bg-card rounded-md border border-destructive/30">
           <div className="flex items-start gap-2">
             <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
             <div className="text-sm">
-              <p className="text-red-700 font-medium">
+              <p className="text-destructive font-medium">
                 You have reached your monthly limit
               </p>
-              <p className="text-gray-600 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Upgrade to {personalPlan?.planName || 'Personal'} for {personalPlan?.lessonsPerMonth || 20} lessons/month 
                 and access to all 8 lesson sections.
               </p>
@@ -175,7 +175,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
 
       {isFreeTier && !isAtLimit && !isNearLimit && (
         <div className="mt-3 p-2 bg-sky-50 rounded-md">
-          <p className="text-xs text-sky-700">
+          <p className="text-xs text-accent">
             <Sparkles className="h-3 w-3 inline mr-1" />
             Upgrade to Personal for complete 8-section lessons with Theological Background, 
             Activities, and Discussion guides.

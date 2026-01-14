@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -96,7 +96,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
             {/* ============================================================
                 BRANDING: App name from database (SSOT)
                 ============================================================ */}
-            <span className="text-base sm:text-lg lg:text-xl font-bold gradient-text hidden xs:inline">
+            <span className="text-base sm:text-lg lg:text-xl font-bold gradient-text hidden xs:inline" style={{ fontFamily: 'var(--font-secondary)' }}>
               {branding.appName}
             </span>
           </Link>
@@ -184,3 +184,4 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
     </header>
   );
 }
+

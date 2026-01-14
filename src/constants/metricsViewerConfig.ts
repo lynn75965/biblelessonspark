@@ -1,4 +1,4 @@
-// =====================================================
+﻿// =====================================================
 // METRICS VIEWER CONFIG - Single Source of Truth
 // =====================================================
 // Location: src/constants/metricsViewerConfig.ts (MASTER)
@@ -55,7 +55,7 @@ export const DEVICE_ICON_MAP: Record<string, string> = {
 // DURATION DISPLAY HELPERS
 // -----------------------------------------------------
 export function formatDuration(ms: number | null): string {
-  if (ms === null || ms === undefined) return '—';
+  if (ms === null || ms === undefined) return 'â€”';
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -65,16 +65,16 @@ export function formatDuration(ms: number | null): string {
 
 export function getDurationColor(ms: number | null): string {
   if (ms === null) return 'text-muted-foreground';
-  if (ms >= TIMEOUT_THRESHOLDS.critical) return 'text-red-600 font-semibold';
+  if (ms >= TIMEOUT_THRESHOLDS.critical) return 'text-destructive font-semibold';
   if (ms >= TIMEOUT_THRESHOLDS.warning) return 'text-amber-600';
-  return 'text-green-600';
+  return 'text-primary';
 }
 
 // -----------------------------------------------------
 // TOKEN DISPLAY HELPERS
 // -----------------------------------------------------
 export function formatTokens(count: number | null): string {
-  if (count === null || count === undefined) return '—';
+  if (count === null || count === undefined) return 'â€”';
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
   return count.toString();
@@ -114,7 +114,7 @@ export function formatCost(amount: number): string {
 // -----------------------------------------------------
 export const SUMMARY_CARDS = [
   { key: 'total', label: 'Total Generations', icon: 'Activity', colorClass: 'text-primary' },
-  { key: 'completed', label: 'Completed', icon: 'CheckCircle', colorClass: 'text-green-600' },
+  { key: 'completed', label: 'Completed', icon: 'CheckCircle', colorClass: 'text-primary' },
   { key: 'avgDuration', label: 'Avg Duration', icon: 'Clock', colorClass: 'text-blue-600' },
   { key: 'timeouts', label: 'Timeouts/Errors', icon: 'AlertTriangle', colorClass: 'text-amber-600' },
 ] as const;
@@ -125,8 +125,8 @@ export const SUMMARY_CARDS = [
 export const API_USAGE_CARDS = [
   { key: 'activeNow', label: 'Active Now', icon: 'Loader', colorClass: 'text-blue-600' },
   { key: 'tokensToday', label: 'Tokens Today', icon: 'Zap', colorClass: 'text-purple-600' },
-  { key: 'costToday', label: 'Est. Cost Today', icon: 'DollarSign', colorClass: 'text-green-600' },
-  { key: 'rateLimits', label: 'Rate Limit Hits', icon: 'AlertOctagon', colorClass: 'text-red-600' },
+  { key: 'costToday', label: 'Est. Cost Today', icon: 'DollarSign', colorClass: 'text-primary' },
+  { key: 'rateLimits', label: 'Rate Limit Hits', icon: 'AlertOctagon', colorClass: 'text-destructive' },
 ] as const;
 
 // -----------------------------------------------------
@@ -136,8 +136,8 @@ export const DEVICE_BREAKDOWN = {
   showPercentages: true,
   colorScheme: {
     desktop: 'bg-blue-500',
-    tablet: 'bg-green-500',
-    mobile: 'bg-amber-500',
+    tablet: 'bg-primary',
+    mobile: 'bg-secondary',
     unknown: 'bg-gray-400',
   },
 } as const;

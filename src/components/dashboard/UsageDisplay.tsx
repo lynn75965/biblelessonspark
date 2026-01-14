@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BibleLessonSpark - USAGE DISPLAY COMPONENT
 // Location: src/components/dashboard/UsageDisplay.tsx
 // Shows subscription tier and lesson usage on Dashboard
@@ -73,7 +73,7 @@ export function UsageDisplay() {
           </div>
           <Progress
             value={usagePercentage}
-            className={`h-2 ${usagePercentage >= 90 ? '[&>div]:bg-destructive' : usagePercentage >= 70 ? '[&>div]:bg-amber-500' : ''}`}
+            className={`h-2 ${usagePercentage >= 90 ? '[&>div]:bg-destructive' : usagePercentage >= 70 ? '[&>div]:bg-secondary' : ''}`}
           />
         </div>
         {isFreeTier && (

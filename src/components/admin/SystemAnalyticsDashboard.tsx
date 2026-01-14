@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -571,7 +571,7 @@ export function SystemAnalyticsDashboard() {
 
         <Card className="bg-gradient-card">
           <CardContent className="p-4 text-center">
-            <TrendingUp className="h-6 w-6 mx-auto mb-2 text-green-600" />
+            <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
             <p className="text-2xl font-bold">{platformStats.activeUsersThisWeek}</p>
             <p className="text-xs text-muted-foreground">Active This Week</p>
           </CardContent>
@@ -664,7 +664,7 @@ export function SystemAnalyticsDashboard() {
                       </TableCell>
                       <TableCell className="text-center">
                         {user.beta_participant ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
+                          <Badge variant="secondary" className="bg-primary/10 text-green-800">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Yes
                           </Badge>
@@ -793,10 +793,10 @@ export function SystemAnalyticsDashboard() {
             <CardContent className="p-4 text-center">
               <DollarSign className={`h-6 w-6 mx-auto mb-2 ${
                 apiUsage.costToday >= API_USAGE_CONFIG.thresholds.dailyCostCritical 
-                  ? 'text-red-600' 
+                  ? 'text-destructive' 
                   : apiUsage.costToday >= API_USAGE_CONFIG.thresholds.dailyCostWarning 
                     ? 'text-amber-600' 
-                    : 'text-green-600'
+                    : 'text-primary'
               }`} />
               <p className="text-2xl font-bold">{formatCost(apiUsage.costToday)}</p>
               <p className="text-xs text-muted-foreground">Est. Cost Today</p>
@@ -826,12 +826,12 @@ export function SystemAnalyticsDashboard() {
           <Card className="bg-gradient-card">
             <CardContent className="p-4 text-center">
               <AlertOctagon className={`h-6 w-6 mx-auto mb-2 ${
-                apiUsage.rateLimitHitsTotal > 0 ? 'text-red-600' : 'text-green-600'
+                apiUsage.rateLimitHitsTotal > 0 ? 'text-destructive' : 'text-primary'
               }`} />
               <p className="text-2xl font-bold">{apiUsage.rateLimitHitsToday}</p>
               <p className="text-xs text-muted-foreground">Rate Limits Today</p>
               {apiUsage.rateLimitHitsTotal > 0 && (
-                <p className="text-[10px] text-red-600 mt-1">
+                <p className="text-[10px] text-destructive mt-1">
                   {apiUsage.rateLimitHitsTotal} total (all time)
                 </p>
               )}
@@ -870,7 +870,7 @@ export function SystemAnalyticsDashboard() {
 
             <Card className="bg-gradient-card">
               <CardContent className="p-4 text-center">
-                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-green-600" />
+                <CheckCircle className="h-6 w-6 mx-auto mb-2 text-primary" />
                 <p className="text-2xl font-bold">{metricsSummary.completed}</p>
                 <p className="text-xs text-muted-foreground">Completed</p>
               </CardContent>
@@ -973,8 +973,8 @@ export function SystemAnalyticsDashboard() {
                               <span className="capitalize">{record.device_type}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{record.browser || '—'}</TableCell>
-                          <TableCell>{record.os || '—'}</TableCell>
+                          <TableCell>{record.browser || 'â€”'}</TableCell>
+                          <TableCell>{record.os || 'â€”'}</TableCell>
                           <TableCell className={getDurationColor(record.generation_duration_ms)}>
                             {formatDuration(record.generation_duration_ms)}
                           </TableCell>
@@ -984,7 +984,7 @@ export function SystemAnalyticsDashboard() {
                                 {STATUS_BADGES[record.status]?.label || record.status}
                               </Badge>
                               {record.rate_limited && (
-                                <AlertOctagon className="h-3 w-3 text-red-600" title="Rate limited" />
+                                <AlertOctagon className="h-3 w-3 text-destructive" title="Rate limited" />
                               )}
                             </div>
                           </TableCell>
@@ -994,7 +994,7 @@ export function SystemAnalyticsDashboard() {
                                 {formatTokens((record.tokens_input || 0) + (record.tokens_output || 0))}
                               </span>
                             ) : (
-                              '—'
+                              'â€”'
                             )}
                           </TableCell>
                         </TableRow>

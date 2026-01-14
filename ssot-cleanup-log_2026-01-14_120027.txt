@@ -1,0 +1,594 @@
+[INFO] 12:00:27 - ========================================
+[INFO] 12:00:27 - SSOT COLOR CLEANUP SCRIPT
+[INFO] 12:00:27 - ========================================
+[INFO] 12:00:27 - Project Path: C:\Users\Lynn\lesson-spark-usa
+[INFO] 12:00:27 - Dry Run Mode: False
+[INFO] 12:00:27 - Timestamp: 2026-01-14_120027
+[INFO] 12:00:27 - 
+[SUCCESS] 12:00:27 - Project path verified
+[INFO] 12:00:27 - 
+[INFO] 12:00:27 - Creating backup at: C:\Users\Lynn\lesson-spark-usa\backup_before_ssot_2026-01-14_120027
+[SUCCESS] 12:00:29 - Backup created successfully
+[INFO] 12:00:29 - 
+[INFO] 12:00:29 - Found 224 files to process
+[INFO] 12:00:29 - 
+[INFO] 12:00:29 - ========================================
+[INFO] 12:00:29 - BEFORE STATE - Counting hardcoded values
+[INFO] 12:00:29 - ========================================
+[INFO] 12:00:31 - BEFORE: Total hardcoded color instances: 383
+[INFO] 12:00:31 - 
+[INFO] 12:00:31 - ========================================
+[INFO] 12:00:31 - PROCESSING FILES
+[INFO] 12:00:31 - ========================================
+[INFO] 12:00:31 -   Line 185 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:31 - 
+[SUCCESS] 12:00:31 - FILE: src\components\admin\AdminSecurityPanel.tsx - 1 changes
+[SUCCESS] 12:00:31 -   File saved
+[INFO] 12:00:31 -   Line 236 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:31 - 
+[SUCCESS] 12:00:31 - FILE: src\components\admin\EnrollmentAnalyticsPanel.tsx - 1 changes
+[SUCCESS] 12:00:31 -   File saved
+[INFO] 12:00:31 -   Line 323 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:31 -   Line 324 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:31 -   Line 324 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:32 - 
+[SUCCESS] 12:00:32 - FILE: src\components\admin\FeedbackQuestionsManager.tsx - 3 changes
+[SUCCESS] 12:00:32 -   File saved
+[INFO] 12:00:32 -   Line 191 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:32 -   Line 198 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:32 -   Line 268 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:32 - 
+[SUCCESS] 12:00:32 - FILE: src\components\admin\GuardrailViolationsPanel.tsx - 3 changes
+[SUCCESS] 12:00:32 -   File saved
+[INFO] 12:00:32 -   Line 322 : 'bg-green-500' -> 'bg-primary'
+[INFO] 12:00:32 -   Line 542 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:32 -   Line 550 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:32 - 
+[SUCCESS] 12:00:32 - FILE: src\components\admin\OrganizationManagement.tsx - 3 changes
+[SUCCESS] 12:00:32 -   File saved
+[INFO] 12:00:32 -   Line 574 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:32 -   Line 667 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:32 -   Line 796 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:32 -   Line 799 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:32 -   Line 829 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:32 -   Line 829 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:32 -   Line 834 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:32 -   Line 873 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:33 -   Line 987 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:33 - 
+[SUCCESS] 12:00:33 - FILE: src\components\admin\SystemAnalyticsDashboard.tsx - 9 changes
+[SUCCESS] 12:00:33 -   File saved
+[INFO] 12:00:33 -   Line 523 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:33 -   Line 529 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:33 -   Line 538 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:33 -   Line 602 : 'bg-green-50' -> 'bg-primary/5'
+[INFO] 12:00:33 -   Line 602 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:33 -   Line 603 : 'text-green-700' -> 'text-primary'
+[INFO] 12:00:33 -   Line 604 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:33 -   Line 610 : 'bg-slate-50' -> 'bg-muted/50'
+[INFO] 12:00:33 -   Line 610 : 'border-slate-200' -> 'border-border'
+[INFO] 12:00:33 -   Line 611 : 'text-slate-700' -> 'text-foreground'
+[INFO] 12:00:33 -   Line 612 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:33 -   Line 614 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:33 -   Line 626 : 'bg-green-700' -> 'bg-primary'
+[INFO] 12:00:33 -   Line 626 : 'bg-green-600' -> 'bg-primary'
+[INFO] 12:00:34 -   Line 945 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:34 -   Line 994 : 'bg-slate-50' -> 'bg-muted/50'
+[INFO] 12:00:34 -   Line 1021 : 'bg-green-700' -> 'bg-primary'
+[INFO] 12:00:34 -   Line 1021 : 'bg-green-600' -> 'bg-primary'
+[INFO] 12:00:34 - 
+[SUCCESS] 12:00:34 - FILE: src\components\analytics\BetaAnalyticsDashboard.tsx - 18 changes
+[SUCCESS] 12:00:34 -   File saved
+[INFO] 12:00:34 -   Line 103 : 'bg-green-50' -> 'bg-primary/5'
+[INFO] 12:00:34 -   Line 103 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:34 -   Line 106 : 'text-green-700' -> 'text-primary'
+[INFO] 12:00:34 -   Line 111 : 'text-green-700' -> 'text-primary'
+[INFO] 12:00:34 -   Line 119 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:34 -   Line 119 : 'border-green-400' -> 'border-primary/70'
+[INFO] 12:00:34 -   Line 119 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:34 -   Line 139 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:34 -   Line 155 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:34 -   Line 155 : 'border-blue-400' -> 'border-accent'
+[INFO] 12:00:34 -   Line 155 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:34 -   Line 199 : 'text-green-700' -> 'text-primary'
+[INFO] 12:00:34 -   Line 207 : 'bg-green-50' -> 'bg-primary/5'
+[INFO] 12:00:34 -   Line 207 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:34 -   Line 232 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:34 - 
+[SUCCESS] 12:00:34 - FILE: src\components\dashboard\BibleVersionSelector.tsx - 15 changes
+[SUCCESS] 12:00:34 -   File saved
+[INFO] 12:00:34 -   Line 63 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:34 -   Line 65 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:34 -   Line 65 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:34 -   Line 326 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:34 - 
+[SUCCESS] 12:00:34 - FILE: src\components\dashboard\DevotionalLibrary.tsx - 4 changes
+[SUCCESS] 12:00:34 -   File saved
+[INFO] 12:00:34 -   Line 81 : 'bg-green-600' -> 'bg-primary'
+[INFO] 12:00:34 -   Line 81 : 'border-green-700' -> 'border-primary'
+[INFO] 12:00:34 -   Line 155 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:34 -   Line 164 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:34 -   Line 900 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:34 -   Line 904 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:34 -   Line 917 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:34 -   Line 918 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1034 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:35 -   Line 1055 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:35 -   Line 1244 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:35 -   Line 1336 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 1573 : 'text-slate-700' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 1582 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:35 -   Line 1582 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1592 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:35 -   Line 1593 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:35 -   Line 1593 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1626 : 'bg-slate-100' -> 'bg-muted'
+[INFO] 12:00:35 -   Line 1626 : 'border-slate-300' -> 'border-border'
+[INFO] 12:00:35 -   Line 1628 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1629 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1670 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 1676 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:35 -   Line 1676 : 'text-green-700' -> 'text-primary'
+[INFO] 12:00:35 -   Line 1695 : 'bg-slate-50' -> 'bg-muted/50'
+[INFO] 12:00:35 -   Line 1695 : 'border-slate-200' -> 'border-border'
+[INFO] 12:00:35 -   Line 1697 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1698 : 'bg-slate-400' -> 'bg-muted-foreground'
+[INFO] 12:00:35 -   Line 1701 : 'text-slate-400' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1704 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1725 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 1728 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 1734 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:35 -   Line 1734 : 'hover:bg-amber-600' -> 'hover:bg-secondary'
+[INFO] 12:00:35 - 
+[SUCCESS] 12:00:35 - FILE: src\components\dashboard\EnhanceLessonForm.tsx - 35 changes
+[SUCCESS] 12:00:35 -   File saved
+[INFO] 12:00:35 -   Line 64 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:35 -   Line 69 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:35 -   Line 69 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:35 -   Line 72 : 'border-red-200' -> 'border-destructive/30'
+[INFO] 12:00:35 -   Line 73 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:35 -   Line 73 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 73 : 'border-gray-200' -> 'border-border'
+[INFO] 12:00:35 -   Line 81 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:35 -   Line 89 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:35 -   Line 89 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 89 : 'border-gray-200' -> 'border-border'
+[INFO] 12:00:35 - 
+[SUCCESS] 12:00:35 - FILE: src\components\dashboard\LessonLibrary.tsx - 11 changes
+[SUCCESS] 12:00:35 -   File saved
+[INFO] 12:00:35 -   Line 76 : 'bg-sky-500' -> 'bg-accent'
+[INFO] 12:00:35 -   Line 76 : 'border-sky-600' -> 'border-accent'
+[INFO] 12:00:35 -   Line 317 : 'text-slate-800' -> 'text-foreground'
+[INFO] 12:00:35 -   Line 323 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:35 -   Line 334 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:36 - 
+[SUCCESS] 12:00:36 - FILE: src\components\dashboard\TeacherCustomization.tsx - 5 changes
+[SUCCESS] 12:00:36 -   File saved
+[INFO] 12:00:36 -   Line 76 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:36 - 
+[SUCCESS] 12:00:36 - FILE: src\components\dashboard\UsageDisplay.tsx - 1 changes
+[SUCCESS] 12:00:36 -   File saved
+[INFO] 12:00:36 -   Line 241 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:36 -   Line 359 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:36 -   Line 362 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:36 -   Line 386 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:36 -   Line 387 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:36 -   Line 390 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:36 - 
+[SUCCESS] 12:00:36 - FILE: src\components\feedback\BetaFeedbackForm.tsx - 6 changes
+[SUCCESS] 12:00:36 -   File saved
+[INFO] 12:00:36 -   Line 66 : 'bg-slate-50' -> 'bg-muted/50'
+[INFO] 12:00:36 -   Line 73 : 'text-slate-900' -> 'text-foreground'
+[INFO] 12:00:36 -   Line 76 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:36 -   Line 95 : 'bg-slate-900' -> 'bg-foreground'
+[INFO] 12:00:36 -   Line 106 : 'text-slate-400' -> 'text-muted-foreground'
+[INFO] 12:00:36 -   Line 109 : 'text-slate-500' -> 'text-muted-foreground'
+[INFO] 12:00:36 -   Line 117 : 'bg-slate-50' -> 'bg-muted/50'
+[INFO] 12:00:36 -   Line 118 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:36 - 
+[SUCCESS] 12:00:36 - FILE: src\components\help\VideoModal.tsx - 8 changes
+[SUCCESS] 12:00:36 -   File saved
+[INFO] 12:00:36 -   Line 138 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:36 -   Line 142 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:36 -   Line 147 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:36 -   Line 173 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:36 -   Line 192 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:36 -   Line 200 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:36 -   Line 204 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:36 -   Line 210 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:36 -   Line 215 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:36 -   Line 249 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:36 - 
+[SUCCESS] 12:00:36 - FILE: src\components\landing\PricingSection.tsx - 10 changes
+[SUCCESS] 12:00:36 -   File saved
+[INFO] 12:00:37 -   Line 77 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:37 - 
+[SUCCESS] 12:00:37 - FILE: src\components\notifications\NotificationsDropdown.tsx - 1 changes
+[SUCCESS] 12:00:37 -   File saved
+[INFO] 12:00:37 -   Line 115 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:37 -   Line 138 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:37 -   Line 138 : 'hover:bg-amber-600' -> 'hover:bg-secondary'
+[INFO] 12:00:37 - 
+[SUCCESS] 12:00:37 - FILE: src\components\org\OrgAnalyticsPanel.tsx - 3 changes
+[SUCCESS] 12:00:37 -   File saved
+[INFO] 12:00:37 -   Line 480 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:37 -   Line 501 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:37 -   Line 557 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:37 - 
+[SUCCESS] 12:00:37 - FILE: src\components\org\OrgMemberManagement.tsx - 3 changes
+[SUCCESS] 12:00:37 -   File saved
+[INFO] 12:00:38 -   Line 58 : 'bg-green-500' -> 'bg-primary'
+[INFO] 12:00:38 -   Line 64 : 'bg-gray-500' -> 'bg-muted-foreground'
+[INFO] 12:00:38 -   Line 66 : 'bg-gray-500' -> 'bg-muted-foreground'
+[INFO] 12:00:38 -   Line 109 : 'bg-gray-200' -> 'bg-muted'
+[INFO] 12:00:38 -   Line 111 : 'bg-sky-500' -> 'bg-accent'
+[INFO] 12:00:38 - 
+[SUCCESS] 12:00:38 - FILE: src\components\subscription\SubscriptionManagement.tsx - 5 changes
+[SUCCESS] 12:00:38 -   File saved
+[INFO] 12:00:38 -   Line 103 : 'text-slate-700' -> 'text-foreground'
+[INFO] 12:00:38 -   Line 106 : 'text-slate-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 136 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:38 -   Line 146 : 'bg-gray-50' -> 'bg-muted/50'
+[INFO] 12:00:38 -   Line 150 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 154 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 158 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 162 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 163 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 168 : 'text-gray-400' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 173 : 'text-gray-400' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 180 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:38 -   Line 189 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 192 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 198 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 202 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 208 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 213 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 228 : 'bg-sky-100' -> 'bg-accent/10'
+[INFO] 12:00:38 -   Line 228 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 229 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:38 -   Line 229 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 238 : 'bg-sky-100' -> 'bg-accent/10'
+[INFO] 12:00:38 -   Line 238 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 239 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:38 -   Line 239 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 244 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 273 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:38 - 
+[SUCCESS] 12:00:38 - FILE: src\components\subscription\UpgradePromptModal.tsx - 28 changes
+[SUCCESS] 12:00:38 -   File saved
+[INFO] 12:00:38 -   Line 35 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:38 -   Line 36 : 'bg-gray-200' -> 'bg-muted'
+[INFO] 12:00:38 -   Line 37 : 'bg-gray-200' -> 'bg-muted'
+[INFO] 12:00:38 -   Line 61 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:38 -   Line 61 : 'bg-sky-100' -> 'bg-accent/10'
+[INFO] 12:00:38 -   Line 61 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 65 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 65 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:38 -   Line 73 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 84 : 'border-red-200' -> 'border-destructive/30'
+[INFO] 12:00:38 -   Line 86 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:38 -   Line 86 : 'border-gray-200' -> 'border-border'
+[INFO] 12:00:38 -   Line 92 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:38 -   Line 92 : 'bg-sky-100' -> 'bg-accent/10'
+[INFO] 12:00:38 -   Line 92 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 97 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:38 -   Line 97 : 'border-green-200' -> 'border-primary/30'
+[INFO] 12:00:38 -   Line 108 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 -   Line 118 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 118 : 'text-red-700' -> 'text-destructive'
+[INFO] 12:00:38 -   Line 121 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 129 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:38 -   Line 130 : 'bg-sky-500' -> 'bg-accent'
+[INFO] 12:00:38 -   Line 135 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 141 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:38 -   Line 141 : 'border-red-200' -> 'border-destructive/30'
+[INFO] 12:00:38 -   Line 145 : 'text-red-700' -> 'text-destructive'
+[INFO] 12:00:38 -   Line 148 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:38 -   Line 178 : 'text-sky-700' -> 'text-accent'
+[INFO] 12:00:38 - 
+[SUCCESS] 12:00:38 - FILE: src\components\subscription\UsageDisplay.tsx - 29 changes
+[SUCCESS] 12:00:38 -   File saved
+[INFO] 12:00:40 -   Line 424 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:40 - 
+[SUCCESS] 12:00:40 - FILE: src\components\workspace\WorkspaceSettingsPanel.tsx - 1 changes
+[SUCCESS] 12:00:40 -   File saved
+[INFO] 12:00:40 -   Line 561 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:40 - 
+[SUCCESS] 12:00:40 - FILE: src\components\DevotionalGenerator.tsx - 1 changes
+[SUCCESS] 12:00:40 -   File saved
+[INFO] 12:00:40 -   Line 25 : 'bg-gray-50' -> 'bg-muted/50'
+[INFO] 12:00:40 -   Line 28 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:40 -   Line 31 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:40 -   Line 34 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:40 - 
+[SUCCESS] 12:00:40 - FILE: src\components\MaintenanceWrapper.tsx - 4 changes
+[SUCCESS] 12:00:40 -   File saved
+[INFO] 12:00:41 -   Line 588 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:41 -   Line 615 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:41 - 
+[SUCCESS] 12:00:41 - FILE: src\components\ParableGenerator.tsx - 2 changes
+[SUCCESS] 12:00:41 -   File saved
+[INFO] 12:00:41 -   Line 396 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:41 -   Line 560 : 'text-green-700' -> 'text-primary'
+[INFO] 12:00:41 -   Line 561 : 'bg-green-700' -> 'bg-primary'
+[INFO] 12:00:41 -   Line 565 : 'bg-green-700' -> 'bg-primary'
+[INFO] 12:00:41 - 
+[SUCCESS] 12:00:41 - FILE: src\config\branding.ts - 4 changes
+[SUCCESS] 12:00:41 -   File saved
+[INFO] 12:00:42 -   Line 88 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:42 -   Line 89 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:42 -   Line 94 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:42 -   Line 94 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:42 -   Line 94 : 'border-gray-300' -> 'border-border'
+[INFO] 12:00:43 - 
+[SUCCESS] 12:00:43 - FILE: src\constants\feedbackConfig.ts - 5 changes
+[SUCCESS] 12:00:43 -   File saved
+[INFO] 12:00:43 -   Line 17 : 'bg-white' -> 'bg-card'
+[INFO] 12:00:43 -   Line 18 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:43 - 
+[SUCCESS] 12:00:43 - FILE: src\constants\formConfig.ts - 2 changes
+[SUCCESS] 12:00:43 -   File saved
+[INFO] 12:00:43 -   Line 68 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:43 -   Line 70 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:43 -   Line 117 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:43 -   Line 128 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:43 -   Line 129 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:43 -   Line 139 : 'bg-green-500' -> 'bg-primary'
+[INFO] 12:00:43 -   Line 140 : 'bg-amber-500' -> 'bg-secondary'
+[INFO] 12:00:43 - 
+[SUCCESS] 12:00:43 - FILE: src\constants\metricsViewerConfig.ts - 7 changes
+[SUCCESS] 12:00:43 -   File saved
+[INFO] 12:00:44 -   Line 189 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:44 -   Line 191 : 'bg-gray-50' -> 'bg-muted/50'
+[INFO] 12:00:44 -   Line 191 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:44 - 
+[SUCCESS] 12:00:44 - FILE: src\constants\securityConfig.ts - 3 changes
+[SUCCESS] 12:00:44 -   File saved
+[INFO] 12:00:47 -   Line 101 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:47 -   Line 119 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:47 -   Line 131 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:47 -   Line 138 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:47 -   Line 142 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:48 -   Line 155 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:48 -   Line 166 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:48 -   Line 207 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:48 -   Line 210 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:48 -   Line 210 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:48 -   Line 246 : 'text-gray-300' -> 'text-muted-foreground/70'
+[INFO] 12:00:48 -   Line 257 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:48 -   Line 257 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:48 -   Line 263 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:48 -   Line 267 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:48 -   Line 269 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:48 -   Line 274 : 'text-gray-500' -> 'text-muted-foreground'
+[INFO] 12:00:48 - 
+[SUCCESS] 12:00:48 - FILE: src\pages\AdminBetaMetrics.tsx - 17 changes
+[SUCCESS] 12:00:48 -   File saved
+[INFO] 12:00:48 -   Line 265 : 'bg-blue-700' -> 'bg-accent'
+[INFO] 12:00:48 -   Line 265 : 'bg-blue-600' -> 'bg-accent'
+[INFO] 12:00:48 -   Line 272 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:48 - 
+[SUCCESS] 12:00:48 - FILE: src\pages\BetaSignup.tsx - 3 changes
+[SUCCESS] 12:00:48 -   File saved
+[INFO] 12:00:48 -   Line 289 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:48 -   Line 304 : 'bg-blue-700' -> 'bg-accent'
+[INFO] 12:00:48 -   Line 304 : 'bg-blue-600' -> 'bg-accent'
+[INFO] 12:00:48 -   Line 369 : 'bg-blue-700' -> 'bg-accent'
+[INFO] 12:00:48 -   Line 369 : 'bg-blue-600' -> 'bg-accent'
+[INFO] 12:00:48 - 
+[SUCCESS] 12:00:48 - FILE: src\pages\Dashboard.tsx - 5 changes
+[SUCCESS] 12:00:48 -   File saved
+[INFO] 12:00:48 -   Line 223 : 'bg-green-100' -> 'bg-primary/10'
+[INFO] 12:00:48 -   Line 224 : 'text-green-600' -> 'text-primary'
+[INFO] 12:00:48 -   Line 392 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:48 -   Line 435 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:48 -   Line 439 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:48 -   Line 443 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:48 -   Line 456 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:48 -   Line 460 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:48 -   Line 464 : 'text-green-500' -> 'text-primary'
+[INFO] 12:00:48 - 
+[SUCCESS] 12:00:48 - FILE: src\pages\Docs.tsx - 9 changes
+[SUCCESS] 12:00:48 -   File saved
+[INFO] 12:00:49 -   Line 12 : 'bg-gray-100' -> 'bg-muted'
+[INFO] 12:00:49 -   Line 15 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:49 - 
+[SUCCESS] 12:00:49 - FILE: src\pages\NotFound.tsx - 2 changes
+[SUCCESS] 12:00:49 -   File saved
+[INFO] 12:00:49 -   Line 79 : 'border-blue-200' -> 'border-accent/50'
+[INFO] 12:00:49 - 
+[SUCCESS] 12:00:49 - FILE: src\pages\Parables.tsx - 1 changes
+[SUCCESS] 12:00:49 -   File saved
+[INFO] 12:00:49 -   Line 22 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 23 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:49 -   Line 27 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 28 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 36 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 38 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 39 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 45 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 46 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 52 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 53 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 61 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 62 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 72 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 73 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 76 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 85 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 86 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 87 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 92 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 99 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 100 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 101 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 111 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 112 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 120 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 121 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 129 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 130 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 138 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 139 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 143 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 - 
+[SUCCESS] 12:00:49 - FILE: src\pages\PrivacyPolicy.tsx - 32 changes
+[SUCCESS] 12:00:49 -   File saved
+[INFO] 12:00:49 -   Line 84 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 86 : 'border-red-200' -> 'border-destructive/30'
+[INFO] 12:00:49 -   Line 88 : 'text-red-600' -> 'text-destructive'
+[INFO] 12:00:49 -   Line 97 : 'border-red-200' -> 'border-destructive/30'
+[INFO] 12:00:49 -   Line 99 : 'text-red-700' -> 'text-destructive'
+[INFO] 12:00:49 - 
+[SUCCESS] 12:00:49 - FILE: src\pages\Settings.tsx - 5 changes
+[SUCCESS] 12:00:49 -   File saved
+[INFO] 12:00:49 -   Line 22 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 23 : 'text-gray-600' -> 'text-muted-foreground'
+[INFO] 12:00:49 -   Line 27 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 28 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 36 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 37 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 45 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 47 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 48 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 55 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 56 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 63 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 65 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 66 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 73 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 74 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 85 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 87 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 88 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 93 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 94 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 99 : 'text-gray-800' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 100 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 108 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 109 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 113 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 122 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 123 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 126 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 130 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 136 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 137 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 146 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 147 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 155 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 156 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 164 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:49 -   Line 165 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 173 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 174 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 182 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 183 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 190 : 'text-gray-900' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 191 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:50 -   Line 194 : 'text-gray-700' -> 'text-foreground'
+[INFO] 12:00:50 - 
+[SUCCESS] 12:00:50 - FILE: src\pages\TermsOfService.tsx - 45 changes
+[SUCCESS] 12:00:50 -   File saved
+[INFO] 12:00:50 -   Line 213 : 'bg-white/80' -> 'bg-card/80'
+[INFO] 12:00:50 - 
+[SUCCESS] 12:00:50 - FILE: src\index.css - 1 changes
+[SUCCESS] 12:00:50 -   File saved
+[INFO] 12:00:50 - 
+[INFO] 12:00:50 - Deleting unused App.css (Vite boilerplate)
+[SUCCESS] 12:00:50 - App.css deleted
+[INFO] 12:00:50 - 
+[INFO] 12:00:50 - ========================================
+[INFO] 12:00:50 - AFTER STATE - Verifying changes
+[INFO] 12:00:50 - ========================================
+[INFO] 12:00:52 - AFTER: Total hardcoded color instances: 89
+[INFO] 12:00:52 - 
+[INFO] 12:00:52 - ========================================
+[INFO] 12:00:52 - SUMMARY
+[INFO] 12:00:52 - ========================================
+[INFO] 12:00:52 - 
+[INFO] 12:00:52 - BEFORE: 383 hardcoded instances
+[INFO] 12:00:52 - AFTER:  89 hardcoded instances
+[SUCCESS] 12:00:52 - FIXED:  294 instances
+[INFO] 12:00:52 - 
+[INFO] 12:00:52 - Total replacements made: 351
+[INFO] 12:00:52 - Files modified: 41
+[INFO] 12:00:52 - 
+[INFO] 12:00:52 - FILES MODIFIED:
+[INFO] 12:00:52 -   src\components\admin\AdminSecurityPanel.tsx : 1 changes
+[INFO] 12:00:52 -   src\components\admin\EnrollmentAnalyticsPanel.tsx : 1 changes
+[INFO] 12:00:52 -   src\components\admin\FeedbackQuestionsManager.tsx : 3 changes
+[INFO] 12:00:52 -   src\components\admin\GuardrailViolationsPanel.tsx : 3 changes
+[INFO] 12:00:52 -   src\components\admin\OrganizationManagement.tsx : 3 changes
+[INFO] 12:00:52 -   src\components\admin\SystemAnalyticsDashboard.tsx : 9 changes
+[INFO] 12:00:52 -   src\components\analytics\BetaAnalyticsDashboard.tsx : 18 changes
+[INFO] 12:00:52 -   src\components\dashboard\BibleVersionSelector.tsx : 15 changes
+[INFO] 12:00:52 -   src\components\dashboard\DevotionalLibrary.tsx : 4 changes
+[INFO] 12:00:52 -   src\components\dashboard\EnhanceLessonForm.tsx : 35 changes
+[INFO] 12:00:52 -   src\components\dashboard\LessonLibrary.tsx : 11 changes
+[INFO] 12:00:52 -   src\components\dashboard\TeacherCustomization.tsx : 5 changes
+[INFO] 12:00:52 -   src\components\dashboard\UsageDisplay.tsx : 1 changes
+[INFO] 12:00:52 -   src\components\DevotionalGenerator.tsx : 1 changes
+[INFO] 12:00:52 -   src\components\feedback\BetaFeedbackForm.tsx : 6 changes
+[INFO] 12:00:52 -   src\components\help\VideoModal.tsx : 8 changes
+[INFO] 12:00:52 -   src\components\landing\PricingSection.tsx : 10 changes
+[INFO] 12:00:52 -   src\components\MaintenanceWrapper.tsx : 4 changes
+[INFO] 12:00:52 -   src\components\notifications\NotificationsDropdown.tsx : 1 changes
+[INFO] 12:00:52 -   src\components\org\OrgAnalyticsPanel.tsx : 3 changes
+[INFO] 12:00:52 -   src\components\org\OrgMemberManagement.tsx : 3 changes
+[INFO] 12:00:52 -   src\components\ParableGenerator.tsx : 2 changes
+[INFO] 12:00:52 -   src\components\subscription\SubscriptionManagement.tsx : 5 changes
+[INFO] 12:00:52 -   src\components\subscription\UpgradePromptModal.tsx : 28 changes
+[INFO] 12:00:52 -   src\components\subscription\UsageDisplay.tsx : 29 changes
+[INFO] 12:00:52 -   src\components\workspace\WorkspaceSettingsPanel.tsx : 1 changes
+[INFO] 12:00:52 -   src\config\branding.ts : 4 changes
+[INFO] 12:00:52 -   src\constants\feedbackConfig.ts : 5 changes
+[INFO] 12:00:52 -   src\constants\formConfig.ts : 2 changes
+[INFO] 12:00:52 -   src\constants\metricsViewerConfig.ts : 7 changes
+[INFO] 12:00:52 -   src\constants\securityConfig.ts : 3 changes
+[INFO] 12:00:52 -   src\index.css : 1 changes
+[INFO] 12:00:52 -   src\pages\AdminBetaMetrics.tsx : 17 changes
+[INFO] 12:00:52 -   src\pages\BetaSignup.tsx : 3 changes
+[INFO] 12:00:52 -   src\pages\Dashboard.tsx : 5 changes
+[INFO] 12:00:52 -   src\pages\Docs.tsx : 9 changes
+[INFO] 12:00:52 -   src\pages\NotFound.tsx : 2 changes
+[INFO] 12:00:52 -   src\pages\Parables.tsx : 1 changes
+[INFO] 12:00:52 -   src\pages\PrivacyPolicy.tsx : 32 changes
+[INFO] 12:00:52 -   src\pages\Settings.tsx : 5 changes
+[INFO] 12:00:52 -   src\pages\TermsOfService.tsx : 45 changes
+[INFO] 12:00:52 - 
+[WARN] 12:00:52 - REMAINING (need manual review):
+[WARN] 12:00:52 -   src\components\admin\EnrollmentAnalyticsPanel.tsx : 1 instances
+[WARN] 12:00:52 -   src\components\admin\FeedbackQuestionsManager.tsx : 5 instances
+[WARN] 12:00:52 -   src\components\admin\GuardrailViolationsPanel.tsx : 1 instances
+[WARN] 12:00:52 -   src\components\admin\SystemAnalyticsDashboard.tsx : 4 instances
+[WARN] 12:00:52 -   src\components\analytics\BetaAnalyticsDashboard.tsx : 8 instances
+[WARN] 12:00:52 -   src\components\dashboard\BibleVersionSelector.tsx : 9 instances
+[WARN] 12:00:52 -   src\components\dashboard\DevotionalLibrary.tsx : 7 instances
+[WARN] 12:00:52 -   src\components\dashboard\LessonLibrary.tsx : 5 instances
+[WARN] 12:00:52 -   src\components\help\VideoModal.tsx : 2 instances
+[WARN] 12:00:52 -   src\components\notifications\NotificationsDropdown.tsx : 1 instances
+[WARN] 12:00:52 -   src\components\org\OrgAnalyticsPanel.tsx : 1 instances
+[WARN] 12:00:52 -   src\components\org\OrgMemberManagement.tsx : 1 instances
+[WARN] 12:00:52 -   src\components\ParableGenerator.tsx : 9 instances
+[WARN] 12:00:52 -   src\config\branding.ts : 3 instances
+[WARN] 12:00:52 -   src\constants\metricsViewerConfig.ts : 4 instances
+[WARN] 12:00:52 -   src\pages\AdminBetaMetrics.tsx : 8 instances
+[WARN] 12:00:52 -   src\pages\BetaSignup.tsx : 3 instances
+[WARN] 12:00:52 -   src\pages\Dashboard.tsx : 8 instances
+[WARN] 12:00:52 -   src\pages\Docs.tsx : 2 instances
+[WARN] 12:00:52 -   src\pages\NotFound.tsx : 2 instances
+[WARN] 12:00:52 -   src\pages\Parables.tsx : 3 instances
+[WARN] 12:00:52 -   src\utils\formatLessonContent.ts : 2 instances
+[INFO] 12:00:52 - 
+[SUCCESS] 12:00:52 - Detailed changes exported to: C:\Users\Lynn\lesson-spark-usa\ssot-changes-detail_2026-01-14_120027.csv
+[INFO] 12:00:52 - 
+[INFO] 12:00:52 - ========================================
+[SUCCESS] 12:00:52 - SCRIPT COMPLETE
+[INFO] 12:00:52 - ========================================
+[INFO] 12:00:52 - Log file: C:\Users\Lynn\lesson-spark-usa\ssot-cleanup-log_2026-01-14_120027.txt
+[INFO] 12:00:52 - 
+[INFO] 12:00:52 - Run this command to verify:
+[INFO] 12:00:52 - $patterns = @("bg-white","bg-gray-","bg-slate-","text-gray-","text-slate-","border-gray-","text-green-","bg-green-","border-green-")
+[INFO] 12:00:52 - $regex = ($patterns -join "|")
+[INFO] 12:00:52 - (Get-ChildItem -Path "src" -Recurse -Include "*.tsx","*.ts","*.css" | Select-String -Pattern $regex).Count

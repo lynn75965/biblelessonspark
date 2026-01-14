@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // BetaAnalyticsDashboard.tsx
 // ============================================================================
 // Analytics dashboard for beta feedback - reads from SSOT config
@@ -520,13 +520,13 @@ export function BetaAnalyticsDashboard() {
         );
       case 'nps_score':
         const nps = value as number;
-        const npsColor = nps >= 9 ? 'bg-green-100 text-green-800' 
+        const npsColor = nps >= 9 ? 'bg-primary/10 text-green-800' 
           : nps >= 7 ? 'bg-yellow-100 text-yellow-800' 
           : 'bg-red-100 text-red-800';
         return <Badge className={npsColor}>{nps}</Badge>;
       case 'ease_of_use':
         const easeColors: Record<string, string> = {
-          'very-easy': 'bg-green-100 text-green-800',
+          'very-easy': 'bg-primary/10 text-green-800',
           'easy': 'bg-lime-100 text-lime-800',
           'moderate': 'bg-yellow-100 text-yellow-800',
           'difficult': 'bg-orange-100 text-orange-800',
@@ -535,7 +535,7 @@ export function BetaAnalyticsDashboard() {
         return <Badge className={easeColors[value as string] || 'bg-gray-100'}>{value}</Badge>;
       case 'lesson_quality':
         const qualityColors: Record<string, string> = {
-          'excellent': 'bg-green-100 text-green-800',
+          'excellent': 'bg-primary/10 text-green-800',
           'good': 'bg-lime-100 text-lime-800',
           'fair': 'bg-yellow-100 text-yellow-800',
           'poor': 'bg-red-100 text-red-800',
@@ -599,19 +599,19 @@ export function BetaAnalyticsDashboard() {
                 </div>
               ) : trialStats ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-green-700">{trialStats.active_trials}</div>
-                    <div className="text-xs text-green-600">{TRIAL_UI.activeTrialsLabel}</div>
+                  <div className="bg-primary/5 border border-primary/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-primary">{trialStats.active_trials}</div>
+                    <div className="text-xs text-primary">{TRIAL_UI.activeTrialsLabel}</div>
                   </div>
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-amber-700">{trialStats.expiring_soon}</div>
                     <div className="text-xs text-amber-600">{TRIAL_UI.expiringTrialsLabel}</div>
                   </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-slate-700">{trialStats.no_trial}</div>
-                    <div className="text-xs text-slate-600">{TRIAL_UI.noTrialLabel}</div>
+                  <div className="bg-muted/50 border border-border rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-foreground">{trialStats.no_trial}</div>
+                    <div className="text-xs text-muted-foreground">{TRIAL_UI.noTrialLabel}</div>
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                  <div className="bg-blue-50 border border-accent/50 rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-blue-700">{trialStats.total_users}</div>
                     <div className="text-xs text-blue-600">Total Users</div>
                   </div>
@@ -623,7 +623,7 @@ export function BetaAnalyticsDashboard() {
             <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 onClick={() => setExtendDialogOpen(true)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-primary hover:bg-primary"
                 disabled={!trialStats || trialStats.active_trials === 0}
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -896,7 +896,7 @@ export function BetaAnalyticsDashboard() {
                         >
                           {col.label}
                           {sortColumn === col.key && (
-                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                            <span className="ml-1">{sortDirection === 'asc' ? 'â†‘' : 'â†“'}</span>
                           )}
                         </TableHead>
                       ))}
@@ -942,7 +942,7 @@ export function BetaAnalyticsDashboard() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Gift className="h-5 w-5 text-green-600" />
+              <Gift className="h-5 w-5 text-primary" />
               {TRIAL_UI.extendDialogTitle}
             </DialogTitle>
             <DialogDescription>
@@ -991,7 +991,7 @@ export function BetaAnalyticsDashboard() {
             </div>
 
             {/* Preview */}
-            <div className="bg-slate-50 rounded-lg p-3 space-y-1">
+            <div className="bg-muted/50 rounded-lg p-3 space-y-1">
               <div className="text-sm">
                 <span className="text-muted-foreground">{TRIAL_UI.newExpirationLabel}</span>{' '}
                 <strong>{format(getNewExpirationDate(), 'MMMM d, yyyy')}</strong>
@@ -1018,7 +1018,7 @@ export function BetaAnalyticsDashboard() {
             <Button
               onClick={handleBulkExtend}
               disabled={extending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-primary hover:bg-primary"
             >
               {extending ? (
                 <>

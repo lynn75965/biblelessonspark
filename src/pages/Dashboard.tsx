@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -286,7 +286,7 @@ export default function Dashboard() {
           <TabsContent value="enhance" className="mt-6 relative z-0">
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
             {showHelpBanner && (
-              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="mb-6 bg-blue-50 border border-accent/50 rounded-lg p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 shrink-0">
@@ -301,7 +301,7 @@ export default function Dashboard() {
                     <Button
                       onClick={triggerHelp}
                       size="sm"
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="bg-accent hover:bg-accent text-white"
                     >
                       <PlayCircle className="h-4 w-4 mr-1" />
                       Watch Video
@@ -366,7 +366,7 @@ export default function Dashboard() {
         <Button
           onClick={triggerHelp}
           size="icon"
-          className="fixed bottom-4 left-4 h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg z-40"
+          className="fixed bottom-4 left-4 h-12 w-12 rounded-full bg-accent hover:bg-accent text-white shadow-lg z-40"
           title="How to Create a Lesson"
         >
           <HelpCircle className="h-6 w-6" />

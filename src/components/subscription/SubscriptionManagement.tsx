@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BibleLessonSpark - SUBSCRIPTION MANAGEMENT COMPONENT
 // Location: src/components/subscription/SubscriptionManagement.tsx
 // ============================================================
@@ -55,15 +55,15 @@ export function SubscriptionManagement() {
 
   const getStatusBadge = () => {
     if (status === 'active') {
-      return <Badge className="bg-green-500">Active</Badge>;
+      return <Badge className="bg-primary">Active</Badge>;
     }
     if (status === 'past_due') {
       return <Badge className="bg-red-500">Past Due</Badge>;
     }
     if (status === 'canceled') {
-      return <Badge className="bg-gray-500">Canceled</Badge>;
+      return <Badge className="bg-muted-foreground">Canceled</Badge>;
     }
-    return <Badge className="bg-gray-500">{status || 'Free'}</Badge>;
+    return <Badge className="bg-muted-foreground">{status || 'Free'}</Badge>;
   };
 
   if (isLoading) {
@@ -106,9 +106,9 @@ export function SubscriptionManagement() {
           <p className="text-lg font-semibold">
             {lessonsUsed} of {lessonsLimit} used
           </p>
-          <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
             <div 
-              className="h-full bg-sky-500 transition-all"
+              className="h-full bg-accent transition-all"
               style={{ width: `${Math.min((lessonsUsed / lessonsLimit) * 100, 100)}%` }}
             />
           </div>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DevotionalGenerator Component
  * 
  * Generates personal devotionals anchored to lessons.
@@ -115,9 +115,9 @@ export function DevotionalGenerator() {
       setProgress(0);
       
       // Calculate increment based on length to reach ~95% at estimated time
-      // short (3 min): ~4 sec generation → 95/4 = 24% per sec
-      // medium (5 min): ~11 sec generation → 95/11 = 8.6% per sec  
-      // long (10 min): ~34 sec generation → 95/34 = 2.8% per sec
+      // short (3 min): ~4 sec generation â†’ 95/4 = 24% per sec
+      // medium (5 min): ~11 sec generation â†’ 95/11 = 8.6% per sec  
+      // long (10 min): ~34 sec generation â†’ 95/34 = 2.8% per sec
       const incrementPerSecond = lengthId === 'short' ? 24 
         : lengthId === 'long' ? 2.8 
         : 8.6; // medium default
@@ -552,13 +552,13 @@ export function DevotionalGenerator() {
               <div>
                 <CardTitle className="text-xl">{devotional.title}</CardTitle>
                 <CardDescription className="mt-1">
-                  {devotional.bible_passage} • {devotional.word_count} words
+                  {devotional.bible_passage} â€¢ {devotional.word_count} words
                 </CardDescription>
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleCopy}>
                   {copied ? (
-                    <CheckCircle className="h-4 w-4 mr-1.5 text-green-600" />
+                    <CheckCircle className="h-4 w-4 mr-1.5 text-primary" />
                   ) : (
                     <Copy className="h-4 w-4 mr-1.5" />
                   )}

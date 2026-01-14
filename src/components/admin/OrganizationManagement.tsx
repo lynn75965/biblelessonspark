@@ -319,7 +319,7 @@ export function OrganizationManagement() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case ORG_STATUS.APPROVED:
-        return <Badge className="bg-green-500">Approved</Badge>;
+        return <Badge className="bg-primary">Approved</Badge>;
       case ORG_STATUS.PENDING:
         return <Badge variant="outline" className="text-yellow-600 border-yellow-600">Pending</Badge>;
       case ORG_STATUS.REJECTED:
@@ -539,7 +539,7 @@ export function OrganizationManagement() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-green-600"
+                              className="text-primary"
                               onClick={() => handleApproveOrg(org.id)}
                             >
                               <Check className="h-4 w-4" />
@@ -547,7 +547,7 @@ export function OrganizationManagement() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-red-600"
+                              className="text-destructive"
                               onClick={() => handleRejectOrg(org.id)}
                             >
                               <X className="h-4 w-4" />

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BibleLessonSpark - UPGRADE PROMPT MODAL (SSOT-COMPLIANT)
 // Location: src/components/subscription/UpgradePromptModal.tsx
 // ============================================================
@@ -100,10 +100,10 @@ export function UpgradePromptModal({
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 p-4 bg-sky-50 rounded-lg border border-sky-200">
-            <p className="text-sm text-slate-700">
+            <p className="text-sm text-foreground">
               Your lesson limit will reset on <strong>{formatResetDate()}</strong>.
             </p>
-            <p className="text-sm text-slate-600 mt-2">
+            <p className="text-sm text-muted-foreground mt-2">
               Thank you for being a Personal subscriber! If you need more lessons, 
               please contact support.
             </p>
@@ -133,7 +133,7 @@ export function UpgradePromptModal({
           </DialogTitle>
           <DialogDescription className="text-base">
             {trigger === 'limit_reached' && (
-              <span className="text-red-600 font-medium">
+              <span className="text-destructive font-medium">
                 You have used {lessonsUsed} of {lessonsLimit} lessons. 
                 Your limit resets on {formatResetDate()}.
               </span>
@@ -143,41 +143,41 @@ export function UpgradePromptModal({
         </DialogHeader>
 
         <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="border rounded-lg p-4 bg-gray-50">
+          <div className="border rounded-lg p-4 bg-muted/50">
             <div className="text-center mb-4">
               <h3 className="font-semibold text-lg">{freePlan.planName}</h3>
               <p className="text-2xl font-bold">$0</p>
-              <p className="text-sm text-gray-500">Your current plan</p>
+              <p className="text-sm text-muted-foreground">Your current plan</p>
             </div>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-600" />
+                <Check className="h-4 w-4 text-primary" />
                 {freePlan.lessonsPerMonth} lessons/month
               </li>
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-600" />
+                <Check className="h-4 w-4 text-primary" />
                 {freePlan.sectionsIncluded.length} sections
               </li>
               {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
-                <li key={section} className="flex items-center gap-2 text-gray-600">
-                  <Check className="h-4 w-4 text-green-600" />
+                <li key={section} className="flex items-center gap-2 text-muted-foreground">
+                  <Check className="h-4 w-4 text-primary" />
                   {section}
                 </li>
               ))}
               {UPGRADE_PROMPTS.sections.personalAdds.slice(0, 3).map((section) => (
-                <li key={section} className="flex items-center gap-2 text-gray-400">
+                <li key={section} className="flex items-center gap-2 text-muted-foreground">
                   <X className="h-4 w-4" />
                   {section}
                 </li>
               ))}
-              <li className="text-gray-400 text-xs ml-6">
+              <li className="text-muted-foreground text-xs ml-6">
                 + {UPGRADE_PROMPTS.sections.personalAdds.length - 3} more sections...
               </li>
             </ul>
           </div>
 
           <div className="border-2 border-sky-500 rounded-lg p-4 bg-sky-50 relative">
-            <Badge className="absolute -top-2 -right-2 bg-amber-500">
+            <Badge className="absolute -top-2 -right-2 bg-secondary">
               Recommended
             </Badge>
             <div className="text-center mb-4">
@@ -186,31 +186,31 @@ export function UpgradePromptModal({
                 <p className="text-2xl font-bold">
                   {billingInterval === 'year' ? annualMonthlyPrice : monthlyPrice}
                 </p>
-                <span className="text-sm text-gray-500">/month</span>
+                <span className="text-sm text-muted-foreground">/month</span>
               </div>
               {billingInterval === 'year' && annualSavings > 0 && (
-                <p className="text-xs text-green-600 font-medium">
+                <p className="text-xs text-primary font-medium">
                   Save {annualSavingsDisplay}/year
                 </p>
               )}
             </div>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2 font-medium text-sky-700">
+              <li className="flex items-center gap-2 font-medium text-accent">
                 <Check className="h-4 w-4 text-sky-600" />
                 {personalPlan.lessonsPerMonth} lessons/month
               </li>
-              <li className="flex items-center gap-2 font-medium text-sky-700">
+              <li className="flex items-center gap-2 font-medium text-accent">
                 <Check className="h-4 w-4 text-sky-600" />
                 {personalPlan.sectionsIncluded.length} sections (all!)
               </li>
               {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                 <li key={section} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-600" />
+                  <Check className="h-4 w-4 text-primary" />
                   {section}
                 </li>
               ))}
               {UPGRADE_PROMPTS.sections.personalAdds.map((section) => (
-                <li key={section} className="flex items-center gap-2 text-sky-700 font-medium">
+                <li key={section} className="flex items-center gap-2 text-accent font-medium">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   {section}
                 </li>
@@ -225,8 +225,8 @@ export function UpgradePromptModal({
               onClick={() => setBillingInterval('month')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 billingInterval === 'month'
-                  ? 'bg-sky-100 text-sky-700'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Monthly ({monthlyPrice})
@@ -235,13 +235,13 @@ export function UpgradePromptModal({
               onClick={() => setBillingInterval('year')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 billingInterval === 'year'
-                  ? 'bg-sky-100 text-sky-700'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Yearly ({formatPrice(personalPlan.priceAnnual)})
               {annualSavings > 0 && (
-                <span className="ml-1 text-xs text-green-600">Save {annualSavingsDisplay}</span>
+                <span className="ml-1 text-xs text-primary">Save {annualSavingsDisplay}</span>
               )}
             </button>
           </div>
@@ -270,7 +270,7 @@ export function UpgradePromptModal({
           </Button>
         </div>
 
-        <p className="text-xs text-center text-gray-500 mt-2">
+        <p className="text-xs text-center text-muted-foreground mt-2">
           Cancel anytime. No questions asked.
         </p>
       </DialogContent>

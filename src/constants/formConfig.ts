@@ -1,4 +1,4 @@
-// SSOT MASTER: Form field styling configuration
+﻿// SSOT MASTER: Form field styling configuration
 // Controls consistent form element appearance across the platform
 
 export const FORM_STYLING = {
@@ -14,7 +14,7 @@ export const FORM_STYLING = {
   // Bible passage input: narrower width + hide datalist dropdown arrow
   biblePassageInput: "max-w-md",
   // Autocomplete dropdown styling
-  autocompleteDropdown: "absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow-lg",
-  autocompleteItem: "cursor-pointer px-3 py-2 hover:bg-gray-100",
+  autocompleteDropdown: "absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-card shadow-lg",
+  autocompleteItem: "cursor-pointer px-3 py-2 hover:bg-muted",
   autocompleteMinChars: 2,
 } as const;

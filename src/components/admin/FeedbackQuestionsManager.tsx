@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // FeedbackQuestionsManager.tsx
 // ============================================================================
 // Admin Panel component for managing feedback survey questions
@@ -320,8 +320,8 @@ export function FeedbackQuestionsManager() {
       stars: 'bg-amber-100 text-amber-800',
       nps: 'bg-blue-100 text-blue-800',
       select: 'bg-purple-100 text-purple-800',
-      boolean: 'bg-green-100 text-green-800',
-      textarea: 'bg-gray-100 text-gray-800',
+      boolean: 'bg-primary/10 text-green-800',
+      textarea: 'bg-muted text-foreground',
     };
     return colors[type] || 'bg-gray-100 text-gray-800';
   };
@@ -399,7 +399,7 @@ export function FeedbackQuestionsManager() {
                       <div className="font-medium">{question.label}</div>
                       <div className="text-sm text-muted-foreground">{question.description}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Key: {question.questionKey} → Column: {question.columnName}
+                        Key: {question.questionKey} â†’ Column: {question.columnName}
                       </div>
                     </div>
                   </TableCell>

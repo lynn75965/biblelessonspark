@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles, Users, Clock, Star } from "lucide-react";
@@ -49,7 +49,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             
             {/* Main headline */}
             <div className="space-y-3 sm:space-y-4">
-              <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
+              <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight" style={{ fontFamily: 'var(--font-secondary)' }}>
                 <span className="gradient-text">Use 3 Simple Steps</span>{" "}
                 <span className="block sm:inline">To Transform Your Lesson Prep</span>
               </h1>
@@ -146,7 +146,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-xs sm:text-sm truncate">Baptist Aligned</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">SBC • RB • IND</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">SBC â€¢ RB â€¢ IND</p>
                     </div>
                   </div>
                 </CardContent>
@@ -158,5 +158,6 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     </section>
   );
 }
+
 
 

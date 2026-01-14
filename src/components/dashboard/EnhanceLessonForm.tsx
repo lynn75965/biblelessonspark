@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -78,7 +78,7 @@ const GoldAccent = ({ children }: { children: React.ReactNode }) => (
 const StepBadge = ({ number, isComplete }: { number: number; isComplete?: boolean }) => (
   <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold shadow-md border-2 ${
     isComplete 
-      ? "bg-green-600 text-white border-green-700" 
+      ? "bg-primary text-white border-primary" 
       : "bg-primary text-primary-foreground border-primary"
   }`}>
     {isComplete ? <Check className="h-4 w-4 mr-1" /> : null}
@@ -152,16 +152,16 @@ const AccordionStep = ({
             
             {/* Completion/Lock Indicator */}
             {isComplete && !isExpanded && (
-              <span className="text-green-600 text-sm font-medium">✓ Done</span>
+              <span className="text-primary text-sm font-medium">âœ“ Done</span>
             )}
             {isLocked && (
-              <span className="text-muted-foreground text-sm">🔒</span>
+              <span className="text-muted-foreground text-sm">ðŸ”’</span>
             )}
           </div>
         </div>
         
         <div className="ml-10 mt-2">
-          <CardTitle className="text-lg text-slate-800">{title}</CardTitle>
+          <CardTitle className="text-lg text-foreground">{title}</CardTitle>
           {/* Show description when collapsed, or summary when complete and collapsed */}
           {!isExpanded && (
             <CardDescription className="mt-1">
@@ -278,7 +278,7 @@ const parseLessonSections = (content: string, freeSections: number[]): LessonSec
 
 // Format section content for display (remove header line since we display it separately)
 const formatSectionContent = (content: string): string => {
-  // First normalize legacy content (## headers → **bold:**, 1. → **1.**)
+  // First normalize legacy content (## headers â†’ **bold:**, 1. â†’ **1.**)
   const normalized = normalizeLegacyContent(content);
   return normalized
     // Remove section header line in various formats
@@ -429,7 +429,7 @@ export function EnhanceLessonForm({
     const parts = [];
     if (biblePassage.trim()) parts.push(biblePassage.trim());
     if (focusedTopic.trim()) parts.push(`"${focusedTopic.trim()}"`);
-    return parts.join(" • ") || "";
+    return parts.join(" â€¢ ") || "";
   };
 
   const getStep2Summary = (): string => {
@@ -446,7 +446,7 @@ export function EnhanceLessonForm({
       const version = getBibleVersion(bibleVersionId);
       parts.push(version?.abbreviation || "");
     }
-    return parts.filter(Boolean).join(" • ");
+    return parts.filter(Boolean).join(" â€¢ ");
   };
 
   const getStep3Summary = (): string => {
@@ -454,7 +454,7 @@ export function EnhanceLessonForm({
     if (teachingStyle) parts.push(teachingStyle);
     if (learningStyle) parts.push(learningStyle);
     if (lessonLength) parts.push(lessonLength);
-    return parts.filter(Boolean).join(" • ") || "Optional customizations";
+    return parts.filter(Boolean).join(" â€¢ ") || "Optional customizations";
   };
 
   // ============================================================================
@@ -897,11 +897,11 @@ export function EnhanceLessonForm({
                 <ArrowLeft className="h-4 w-4" />
                 Back to My Lesson Library
               </Button>
-              <h1 className="text-2xl font-bold text-slate-800 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <h1 className="text-2xl font-bold text-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                 <BookOpen className="h-6 w-6 text-primary flex-shrink-0" />
                 <span className="break-words">{displayTitle}</span>
               </h1>
-              <p className="text-slate-600 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Viewing saved lesson from your library
               </p>
             </div>
@@ -912,10 +912,10 @@ export function EnhanceLessonForm({
             {lessonCount === 0 && !step1Complete && !step2Complete && (
               <div className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">🎉</span>
+                  <span className="text-2xl">ðŸŽ‰</span>
                   <div>
-                    <h3 className="font-semibold text-slate-800">Welcome! Create your first lesson in 3 simple steps.</h3>
-                    <p className="text-sm text-slate-600 mt-1">Estimated time: 3 minutes</p>
+                    <h3 className="font-semibold text-foreground">Welcome! Create your first lesson in 3 simple steps.</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
                   </div>
                 </div>
               </div>
@@ -925,7 +925,7 @@ export function EnhanceLessonForm({
             {lessonCount > 0 && lessonCount % 5 === 0 && !step1Complete && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
                 <p className="text-sm text-primary">
-                  💡 <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
+                  ðŸ’¡ <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
                 </p>
               </div>
             )}
@@ -1031,8 +1031,8 @@ export function EnhanceLessonForm({
                               </div>
                             )}
                             {extractedContent && (
-                              <div className="text-sm text-green-600">
-                                ✓ File content extracted ({extractedContent.length} characters)
+                              <div className="text-sm text-primary">
+                                âœ“ File content extracted ({extractedContent.length} characters)
                               </div>
                             )}
                           </div>
@@ -1052,8 +1052,8 @@ export function EnhanceLessonForm({
                             {/* MOBILE FIX: flex-wrap on pasted content row */}
                             {pastedContent.trim() && (
                               <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-sm text-green-600">
-                                  ✓ {pastedContent.length} characters entered
+                                <span className="text-sm text-primary">
+                                  âœ“ {pastedContent.length} characters entered
                                 </span>
                                 <Button
                                   type="button"
@@ -1145,7 +1145,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(2)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 2 →
+                    Continue to Step 2 â†’
                   </Button>
                 </div>
               )}
@@ -1158,7 +1158,7 @@ export function EnhanceLessonForm({
           <AccordionStep
             stepNumber={2}
             title={<>Set Your <GoldAccent>Teaching Context</GoldAccent></>}
-            description="Tell us about your class — age group, theology profile, and Bible version. We'll tailor the lesson to fit."
+            description="Tell us about your class â€” age group, theology profile, and Bible version. We'll tailor the lesson to fit."
             isExpanded={expandedStep === 2}
             isComplete={step2Complete}
             isLocked={!step1Complete}
@@ -1241,7 +1241,7 @@ export function EnhanceLessonForm({
                       <SelectItem key={version.id} value={version.id}>
                         {version.name} ({version.abbreviation})
                         {version.copyrightStatus === 'public_domain' && (
-                          <span className="ml-2 text-xs text-green-600">• Direct quotes</span>
+                          <span className="ml-2 text-xs text-primary">â€¢ Direct quotes</span>
                         )}
                       </SelectItem>
                     ))}
@@ -1263,7 +1263,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(3)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 3 →
+                    Continue to Step 3 â†’
                   </Button>
                 </div>
               )}
@@ -1330,10 +1330,10 @@ export function EnhanceLessonForm({
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     <StepBadge number={3} />
                   </div>
-                  <span className="text-muted-foreground text-sm">🔒</span>
+                  <span className="text-muted-foreground text-sm">ðŸ”’</span>
                 </div>
                 <div className="ml-10 mt-2">
-                  <CardTitle className="text-lg text-slate-800">
+                  <CardTitle className="text-lg text-foreground">
                     Customize Your <GoldAccent>Style</GoldAccent>
                   </CardTitle>
                   <CardDescription className="mt-1">
@@ -1353,7 +1353,7 @@ export function EnhanceLessonForm({
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add specific requests — describe your focus or primary thought
+                  Add specific requests â€” describe your focus or primary thought
                 </p>
                 <Textarea
                   id="notes"
@@ -1443,7 +1443,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">📱 Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">ðŸ“± Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
               </p>
             </div>
 
@@ -1455,7 +1455,7 @@ export function EnhanceLessonForm({
             >
               {subLessonsUsed >= subLessonsLimit ? (
                 <span>
-                  Limit reached — resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
+                  Limit reached â€” resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
                 </span>
               ) : (
                 <span>
@@ -1570,7 +1570,7 @@ export function EnhanceLessonForm({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Eye className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-slate-700">Preview Mode:</span>
+                  <span className="text-sm font-medium text-foreground">Preview Mode:</span>
                 </div>
                 <div className="flex rounded-lg border border-primary/40 overflow-hidden">
                   <button
@@ -1579,7 +1579,7 @@ export function EnhanceLessonForm({
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                       lessonViewMode === "full"
                         ? "bg-primary text-white"
-                        : "bg-white text-slate-600 hover:bg-primary/10"
+                        : "bg-card text-muted-foreground hover:bg-primary/10"
                     }`}
                   >
                     Full Lesson (8 sections)
@@ -1589,8 +1589,8 @@ export function EnhanceLessonForm({
                     onClick={() => setLessonViewMode("free")}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                       lessonViewMode === "free"
-                        ? "bg-amber-500 text-white"
-                        : "bg-white text-slate-600 hover:bg-amber-50"
+                        ? "bg-secondary text-white"
+                        : "bg-card text-muted-foreground hover:bg-amber-50"
                     }`}
                   >
                     What Free Looks Like
@@ -1599,7 +1599,7 @@ export function EnhanceLessonForm({
               </div>
               {lessonViewMode === "free" && (
                 <p className="text-xs text-amber-700 mt-2">
-                  Showing sections 1, 5, and 8 only — this is what free accounts receive after complimentary lessons expire.
+                  Showing sections 1, 5, and 8 only â€” this is what free accounts receive after complimentary lessons expire.
                 </p>
               )}
             </div>
@@ -1623,11 +1623,11 @@ export function EnhanceLessonForm({
 
             {/* Teaser - Locked indicator in Free mode */}
             {currentLesson.metadata?.teaser && lessonViewMode === "free" && (
-              <div className="mb-3 p-2.5 bg-slate-100 border border-slate-300 rounded-lg opacity-60">
+              <div className="mb-3 p-2.5 bg-muted border border-border rounded-lg opacity-60">
                 <div className="flex items-center gap-2">
-                  <Lock className="h-4 w-4 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-500">
-                    Student Teaser — Premium Feature
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Student Teaser â€” Premium Feature
                   </span>
                 </div>
               </div>
@@ -1667,14 +1667,14 @@ export function EnhanceLessonForm({
                         key={section.sectionNumber}
                         className="bg-muted p-3 rounded-lg"
                       >
-                        <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
+                        <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
                           <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">
                             {section.sectionNumber}
                           </span>
                           {section.title}
                           {section.isFreeTier && lessonViewMode === "free" && (
-                            <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                              ✓ Included in Free
+                            <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                              âœ“ Included in Free
                             </span>
                           )}
                         </h3>
@@ -1692,16 +1692,16 @@ export function EnhanceLessonForm({
                     return (
                       <div
                         key={section.sectionNumber}
-                        className="bg-slate-50 border border-slate-200 p-4 rounded-lg"
+                        className="bg-muted/50 border border-border p-4 rounded-lg"
                       >
-                        <h3 className="text-base font-medium text-slate-500 flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-400 text-white text-xs font-bold">
+                        <h3 className="text-base font-medium text-muted-foreground flex items-center gap-2 mb-2">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted-foreground text-white text-xs font-bold">
                             {section.sectionNumber}
                           </span>
-                          <Lock className="h-4 w-4 text-slate-400" />
+                          <Lock className="h-4 w-4 text-muted-foreground" />
                           {section.title}
                         </h3>
-                        <p className="text-sm text-slate-500 mb-2">
+                        <p className="text-sm text-muted-foreground mb-2">
                           This section includes valuable teaching content to deepen your lesson.
                         </p>
                         <button
@@ -1709,7 +1709,7 @@ export function EnhanceLessonForm({
                           onClick={() => setLessonViewMode("full")}
                           className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
                         >
-                          → See what the full lesson includes
+                          â†’ See what the full lesson includes
                         </button>
                       </div>
                     );
@@ -1722,17 +1722,17 @@ export function EnhanceLessonForm({
             {lessonViewMode === "free" && (
               <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-primary/5 border border-amber-200 rounded-lg">
                 <div className="text-center">
-                  <h4 className="font-semibold text-slate-800 mb-2">
+                  <h4 className="font-semibold text-foreground mb-2">
                     This is what free accounts receive after your {PRICING_DISPLAY.free.complimentaryFullLessons} complimentary lessons.
                   </h4>
-                  <p className="text-sm text-slate-600 mb-4">
-                    You'll still get the overview, teaching script, and student handout—but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
+                  <p className="text-sm text-muted-foreground mb-4">
+                    You'll still get the overview, teaching script, and student handoutâ€”but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
                   </p>
                   <Button 
                     type="button"
                     onClick={() => navigate(ROUTES.PRICING)}
-                    className="bg-amber-500 hover:bg-amber-600 text-white">
-                    {PRICING_DISPLAY.personal.upgradeButton} — {PRICING_DISPLAY.personal.ctaFull}
+                    className="bg-secondary hover:bg-secondary text-white">
+                    {PRICING_DISPLAY.personal.upgradeButton} â€” {PRICING_DISPLAY.personal.ctaFull}
                   </Button>
                 </div>
               </div>

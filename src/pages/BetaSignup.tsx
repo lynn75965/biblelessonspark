@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { SITE } from '@/config/site';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -262,14 +262,14 @@ const BetaSignup = () => {
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
+                className="w-full bg-accent hover:bg-accent"
                 disabled={loading}
               >
                 {loading ? "Joining..." : "Join Beta Program"}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-gray-600">
+            <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>Questions? Contact Lynn Eckeberger at</p>
               <p className="font-semibold">
                 <a href={`mailto:${SITE.supportEmail}`} className="text-blue-600 hover:underline">

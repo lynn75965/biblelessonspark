@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // WorkspaceSettingsPanel.tsx
 // ============================================================================
 // Comprehensive user settings panel for workspace
@@ -421,7 +421,7 @@ export function WorkspaceSettingsPanel() {
                   <SelectItem key={version.id} value={version.id}>
                     <div className="flex items-center gap-2">
                       <span>{version.name} ({version.abbreviation})</span>
-                      <span className="text-xs text-green-600">{version.usageHint}</span>
+                      <span className="text-xs text-primary">{version.usageHint}</span>
                     </div>
                   </SelectItem>
                 ))}

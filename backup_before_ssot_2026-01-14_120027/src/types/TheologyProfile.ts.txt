@@ -1,0 +1,42 @@
+/**
+ * Theology Profile Type Definition
+ * 
+ * INTERNAL USE ONLY - NOT FOR UI DISPLAY
+ * 
+ * This type defines the structure for theology profiles that control
+ * the tone, emphasis, and boundaries of AI-generated lesson content.
+ * 
+ * These profiles are the Single Source of Truth (SSOT) for theological
+ * guardrails in LessonSparkUSA.
+ */
+
+export interface TheologyProfile {
+  // Identification
+  id: string; // e.g. "sbc_bfm_2000", "reformed_baptist", "independent_baptist"
+  family: "sbc" | "reformed_baptist" | "independent_baptist";
+  confession_label: string; // Human-readable name of the confession
+  is_default_for_family: boolean; // Is this the default profile for this family?
+
+  // Core Teaching Framework
+  doctrinal_priorities: string[]; // Key doctrines to emphasize
+  interpretive_lens: string[]; // How Scripture should be approached
+  teaching_tone: string[]; // Tone and style of communication
+  key_distinctives_to_emphasize: string[]; // Unique theological emphases
+  boundaries: string[]; // What to avoid or exclude
+  scripture_use: string[]; // How to use and apply Scripture
+
+  // Theological Position Profiles
+  soteriology_profile: string; // Salvation theology approach
+  sovereignty_vs_responsibility: string; // God's sovereignty vs human responsibility balance
+  invitation_style: string; // How to invite people to Christ
+  worship_regulation: string; // What governs worship practices
+  gender_role_profile: string; // View on gender roles in church/family
+  holiness_separation_profile: string; // Approach to holiness and separation
+
+  // Vocabulary Control
+  allowed_vocabulary_tags: string[]; // Terms and concepts to favor
+  forbidden_vocabulary_tags: string[]; // Terms and concepts to avoid
+
+  // Internal Notes
+  notes?: string; // Optional human-readable notes for maintainers
+}

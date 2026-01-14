@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EnrollmentAnalyticsPanel - Admin Component
  * 
  * SSOT COMPLIANCE:
@@ -233,7 +233,7 @@ export function EnrollmentAnalyticsPanel() {
             <div className="text-sm text-muted-foreground">Referral Sources</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">{churchData.length}</div>
+            <div className="text-3xl font-bold text-primary">{churchData.length}</div>
             <div className="text-sm text-muted-foreground">Churches Represented</div>
           </div>
         </div>

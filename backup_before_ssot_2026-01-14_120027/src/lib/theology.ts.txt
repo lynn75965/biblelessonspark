@@ -1,0 +1,159 @@
+/**
+ * Theology Profile Helper Library
+ * 
+ * INTERNAL USE ONLY
+ * 
+ * This library provides functions to:
+ * 1. Look up theology profiles by ID
+ * 2. Map a user to their correct theology profile
+ * 
+ * These functions are used during lesson generation to ensure
+ * the correct theological guardrails are applied.
+ */
+
+import { THEOLOGY_PROFILES } from "@/config/theology_profiles";
+import type { TheologyProfile } from "@/types/TheologyProfile";
+
+/**
+ * Minimal shape of a user object that we need for theology mapping.
+ * The actual User object in your app may have many more fields,
+ * but this is all we care about for theology profile selection.
+ */
+export interface TheologyUserLike {
+  theology_family: "sbc" | "reformed_baptist" | "independent_baptist";
+  theology_choice?: string | null; // e.g. "sbc_bfm_1963" or "sbc_bfm_2000" for SBC users
+}
+
+/**
+ * Look up a theology profile by its ID.
+ * 
+ * @param id - The profile ID (e.g., "sbc_bfm_2000", "reformed_baptist")
+ * @returns The matching TheologyProfile
+ * @throws Error if the profile ID is not found
+ * 
+ * @example
+ * const profile = getTheologyProfileById("sbc_bfm_2000");
+ */
+export function getTheologyProfileById(id: string): TheologyProfile {
+  const profile = THEOLOGY_PROFILES.find((p) => p.id === id);
+  
+  if (!profile) {
+    throw new Error(`Unknown theology profile: ${id}`);
+  }
+  
+  return profile;
+}
+
+/**
+ * Get the correct theology profile for a user based on their preferences.
+ * 
+ * This is the main function used during lesson generation to determine
+ * which theology profile to apply.
+ * 
+ * Logic:
+ * - SBC users: Use their theology_choice if set, otherwise default to BF&M 2000
+ * - Reformed Baptist users: Always use the reformed_baptist profile
+ * - Independent Baptist users: Always use the independent_baptist profile
+ * - If family is unknown/invalid: Fall back to SBC BF&M 2000 (safest default)
+ * 
+ * @param user - User object with theology_family and optional theology_choice
+ * @returns The appropriate TheologyProfile for this user
+ * 
+ * @example
+ * // SBC user with explicit choice
+ * const profile1 = getTheologyProfileForUser({
+ *   theology_family: "sbc",
+ *   theology_choice: "sbc_bfm_1963"
+ * });
+ * 
+ * // SBC user without choice (defaults to BF&M 2000)
+ * const profile2 = getTheologyProfileForUser({
+ *   theology_family: "sbc",
+ *   theology_choice: null
+ * });
+ * 
+ * // Reformed Baptist user
+ * const profile3 = getTheologyProfileForUser({
+ *   theology_family: "reformed_baptist"
+ * });
+ */
+export function getTheologyProfileForUser(user: TheologyUserLike): TheologyProfile {
+  // Handle SBC family (has sub-choices)
+  if (user.theology_family === "sbc") {
+    if (user.theology_choice) {
+      // User has explicitly chosen BF&M 1963 or 2000
+      return getTheologyProfileById(user.theology_choice);
+    }
+    // Default SBC users to BF&M 2000
+    return getTheologyProfileById("sbc_bfm_2000");
+  }
+
+  // Handle Reformed Baptist family (no sub-choices)
+  if (user.theology_family === "reformed_baptist") {
+    return getTheologyProfileById("reformed_baptist");
+  }
+
+  // Handle Independent Baptist family (no sub-choices)
+  if (user.theology_family === "independent_baptist") {
+    return getTheologyProfileById("independent_baptist");
+  }
+
+  // Safety fallback: If theology_family is invalid or missing,
+  // default to SBC BF&M 2000 (most mainstream, safest default)
+  console.warn(
+    `Unknown theology_family: ${user.theology_family}. Falling back to SBC BF&M 2000.`
+  );
+  return getTheologyProfileById("sbc_bfm_2000");
+}
+
+/**
+ * Get all available theology profiles.
+ * This is primarily for internal testing or admin purposes.
+ * 
+ * @returns Array of all theology profiles
+ */
+export function getAllTheologyProfiles(): TheologyProfile[] {
+  return THEOLOGY_PROFILES;
+}
+
+/**
+ * Get all profiles for a specific family.
+ * Useful for UI that needs to show choices within a family (e.g., SBC user choosing between BF&M versions).
+ * 
+ * @param family - The theology family to filter by
+ * @returns Array of profiles matching the family
+ * 
+ * @example
+ * const sbcProfiles = getProfilesForFamily("sbc");
+ * // Returns both sbc_bfm_2000 and sbc_bfm_1963
+ */
+export function getProfilesForFamily(
+  family: "sbc" | "reformed_baptist" | "independent_baptist"
+): TheologyProfile[] {
+  return THEOLOGY_PROFILES.filter((p) => p.family === family);
+}
+
+/**
+ * Get the default profile for a family.
+ * 
+ * @param family - The theology family
+ * @returns The default profile for that family
+ * @throws Error if no default is found (should never happen with proper config)
+ * 
+ * @example
+ * const defaultSBC = getDefaultProfileForFamily("sbc");
+ * // Returns sbc_bfm_2000 profile
+ */
+export function getDefaultProfileForFamily(
+  family: "sbc" | "reformed_baptist" | "independent_baptist"
+): TheologyProfile {
+  const profile = THEOLOGY_PROFILES.find(
+    (p) => p.family === family && p.is_default_for_family
+  );
+  
+  if (!profile) {
+    throw new Error(`No default profile found for family: ${family}`);
+  }
+  
+  return profile;
+}

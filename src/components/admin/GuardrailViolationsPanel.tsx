@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GuardrailViolationsPanel - Admin Dashboard Component
  * Displays theological guardrail violation statistics and recent violations.
  */
@@ -188,14 +188,14 @@ export function GuardrailViolationsPanel() {
             <div className="text-sm text-muted-foreground">Unreviewed</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-green-600">{summary.length}</div>
+            <div className="text-3xl font-bold text-primary">{summary.length}</div>
             <div className="text-sm text-muted-foreground">Profiles Affected</div>
           </div>
         </div>
 
         {totalViolations === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-primary" />
             <p className="font-medium">No Violations Detected</p>
             <p className="text-sm">All generated lessons are following theological guardrails correctly.</p>
           </div>
@@ -217,7 +217,7 @@ export function GuardrailViolationsPanel() {
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {s.total_violations} violation{s.total_violations !== 1 ? 's' : ''} • {s.total_terms_violated} term{s.total_terms_violated !== 1 ? 's' : ''}
+                        {s.total_violations} violation{s.total_violations !== 1 ? 's' : ''} â€¢ {s.total_terms_violated} term{s.total_terms_violated !== 1 ? 's' : ''}
                       </div>
                     </div>
                   ))}
@@ -265,7 +265,7 @@ export function GuardrailViolationsPanel() {
                           </TableCell>
                           <TableCell>
                             {v.was_reviewed ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                              <Badge variant="secondary" className="bg-primary/10 text-green-800">
                                 <CheckCircle className="h-3 w-3 mr-1" />Reviewed
                               </Badge>
                             ) : (
@@ -282,7 +282,7 @@ export function GuardrailViolationsPanel() {
                               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Violation Details</DialogTitle>
-                                  <DialogDescription>{v.lesson_title} • {v.theology_profile_name}</DialogDescription>
+                                  <DialogDescription>{v.lesson_title} â€¢ {v.theology_profile_name}</DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 mt-4">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">

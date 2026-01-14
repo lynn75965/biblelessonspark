@@ -1,4 +1,4 @@
-// ============================================================================
+﻿// ============================================================================
 // SSOT: Feedback Configuration
 // ============================================================================
 // ARCHITECTURE CHANGE: Questions are now stored in the database and managed
@@ -10,7 +10,7 @@
 // - Analytics display configuration
 // - Type definitions
 //
-// To modify survey questions: Use Admin Panel → Beta Feedback Questions
+// To modify survey questions: Use Admin Panel â†’ Beta Feedback Questions
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -85,13 +85,13 @@ export const FEEDBACK_CATEGORY_LABELS: Record<FeedbackCategory, string> = {
 export const FEEDBACK_FORM_STYLES = {
   containerClass: 'space-y-6 p-6',
   sectionClass: 'space-y-4',
-  questionClass: 'text-sm font-medium text-gray-700',
-  descriptionClass: 'text-xs text-gray-500 mt-1',
+  questionClass: 'text-sm font-medium text-foreground',
+  descriptionClass: 'text-xs text-muted-foreground mt-1',
   starActiveColor: '#f59e0b',
   starInactiveColor: '#d1d5db',
   npsButtonClass: 'w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full border-2 transition-all text-xs sm:text-sm font-medium',
   npsSelectedClass: 'bg-primary text-white border-primary',
-  npsUnselectedClass: 'bg-white text-gray-600 border-gray-300 hover:border-primary',
+  npsUnselectedClass: 'bg-card text-muted-foreground border-border hover:border-primary',
 } as const;
 
 // ----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -477,7 +477,7 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600"
+                                className="text-destructive"
                                 onClick={() => handleRemoveMember(member.id)}
                                 title="Remove from organization"
                               >
@@ -498,7 +498,7 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-red-600"
+                                className="text-destructive"
                                 onClick={() => handleRemoveMember(member.id)}
                                 title="Remove from organization"
                               >
@@ -554,7 +554,7 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                           <Button
                             size="sm"
                             variant="outline"
-                            className="text-red-600"
+                            className="text-destructive"
                             onClick={() => handleCancelInvite(invite.id)}
                             disabled={inviteLoading}
                             title="Cancel invitation"

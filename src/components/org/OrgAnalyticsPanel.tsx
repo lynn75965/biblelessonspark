@@ -112,7 +112,7 @@ export function OrgAnalyticsPanel({
 
   const statCards = [
     { label: 'Total Members', value: stats.totalMembers, icon: Users, color: 'text-blue-500' },
-    { label: 'Total Lessons', value: stats.totalLessons, icon: BookOpen, color: 'text-green-500' },
+    { label: 'Total Lessons', value: stats.totalLessons, icon: BookOpen, color: 'text-primary' },
     { label: 'Lessons This Month', value: stats.lessonsThisMonth, icon: Calendar, color: 'text-purple-500' },
     { label: 'Active Authors', value: stats.activeAuthors, icon: UserCheck, color: 'text-orange-500' },
   ];
@@ -135,7 +135,7 @@ export function OrgAnalyticsPanel({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
-                <Badge className="bg-amber-500 hover:bg-amber-600 mt-1">Active</Badge>
+                <Badge className="bg-secondary hover:bg-secondary mt-1">Active</Badge>
               </div>
               {betaStartDate && (
                 <div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -98,7 +98,7 @@ const AdminBetaMetrics = () => {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -116,7 +116,7 @@ const AdminBetaMetrics = () => {
       <div className="max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-blue-900">Beta Testing Metrics</h1>
-          <p className="text-gray-600 mt-2">BibleLessonSpark Beta Program Dashboard</p>
+          <p className="text-muted-foreground mt-2">BibleLessonSpark Beta Program Dashboard</p>
         </div>
 
         {/* Overview Cards */}
@@ -128,18 +128,18 @@ const AdminBetaMetrics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{testers.length}</div>
-              <p className="text-xs text-gray-600 mt-1">{activeTesters} active</p>
+              <p className="text-xs text-muted-foreground mt-1">{activeTesters} active</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Lessons Generated</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-600" />
+              <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{totalLessons}</div>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 {testers.length > 0 ? (totalLessons / testers.length).toFixed(1) : 0} per tester
               </p>
             </CardContent>
@@ -152,7 +152,7 @@ const AdminBetaMetrics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{avgRating}</div>
-              <p className="text-xs text-gray-600 mt-1">out of 5 stars</p>
+              <p className="text-xs text-muted-foreground mt-1">out of 5 stars</p>
             </CardContent>
           </Card>
 
@@ -163,7 +163,7 @@ const AdminBetaMetrics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{feedback.length}</div>
-              <p className="text-xs text-gray-600 mt-1">{followupCount} want follow-up</p>
+              <p className="text-xs text-muted-foreground mt-1">{followupCount} want follow-up</p>
             </CardContent>
           </Card>
         </div>
@@ -204,10 +204,10 @@ const AdminBetaMetrics = () => {
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
                             tester.status === "active"
-                              ? "bg-green-100 text-green-800"
+                              ? "bg-primary/10 text-green-800"
                               : tester.status === "completed"
                               ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
+                              : "bg-muted text-foreground"
                           }`}
                         >
                           {tester.status}
@@ -243,7 +243,7 @@ const AdminBetaMetrics = () => {
                             className={`w-4 h-4 ${
                               star <= item.rating
                                 ? "fill-yellow-400 text-yellow-400"
-                                : "text-gray-300"
+                                : "text-muted-foreground/70"
                             }`}
                           />
                         ))}
@@ -254,24 +254,24 @@ const AdminBetaMetrics = () => {
                             ? "bg-red-100 text-red-800"
                             : item.category === "feature_request"
                             ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
+                            : "bg-muted text-foreground"
                         }`}
                       >
                         {item.category.replace("_", " ")}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(item.submitted_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-gray-700">{item.feedback_text}</p>
+                  <p className="text-foreground">{item.feedback_text}</p>
                   {item.allow_followup && (
-                    <p className="text-xs text-green-600 mt-2">? Open to follow-up</p>
+                    <p className="text-xs text-primary mt-2">? Open to follow-up</p>
                   )}
                 </div>
               ))}
               {feedback.length === 0 && (
-                <p className="text-gray-500 text-center py-4">No feedback received yet</p>
+                <p className="text-muted-foreground text-center py-4">No feedback received yet</p>
               )}
             </div>
           </CardContent>

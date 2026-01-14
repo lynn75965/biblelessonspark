@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // BibleLessonSpark - LANDING PAGE PRICING SECTION (SSOT-COMPLIANT)
 // Location: src/components/landing/PricingSection.tsx
 // Uses usePricingPlans hook - same SSOT as PricingPage.tsx
@@ -45,7 +45,7 @@ export function PricingSection() {
         <div className="container px-4 sm:px-6">
           <div className="text-center py-8 sm:py-12 lg:py-12">
             <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground mx-auto" />
-            <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4">Loading pricing plans…</p>
+            <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4">Loading pricing plansâ€¦</p>
           </div>
         </div>
       </section>
@@ -135,16 +135,16 @@ export function PricingSection() {
               </div>
               <ul className="space-y-3 text-left">
                 <li className="flex items-center gap-3 text-sm">
-                  <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-primary flex-shrink-0" />
                   <span><strong>{freePlan.lessonsPerMonth}</strong> lessons per month</span>
                 </li>
                 <li className="flex items-center gap-3 text-sm">
-                  <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-primary flex-shrink-0" />
                   <span><strong>3</strong> core sections</span>
                 </li>
                 {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                   <li key={section} className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <Check className="h-5 w-5 text-primary flex-shrink-0" />
                     <span>{section}</span>
                   </li>
                 ))}
@@ -170,7 +170,7 @@ export function PricingSection() {
           {/* PERSONAL PLAN */}
           <Card className="relative overflow-hidden transition-all duration-300 border-2 border-sky-500 shadow-xl md:scale-[1.02] bg-gradient-to-br from-white via-sky-50/50 to-white dark:from-card dark:via-sky-900/10 dark:to-card">
             <div className="absolute -top-0 left-1/2 transform -translate-x-1/2 z-10">
-              <Badge className="bg-amber-500 text-white px-4 py-1.5 rounded-b-lg text-xs sm:text-sm font-semibold shadow-md">
+              <Badge className="bg-secondary text-white px-4 py-1.5 rounded-b-lg text-xs sm:text-sm font-semibold shadow-md">
                 Most Popular
               </Badge>
             </div>
@@ -189,7 +189,7 @@ export function PricingSection() {
                 <span className="text-muted-foreground text-sm">/month</span>
               </div>
               {billingInterval === 'year' && annualSavings > 0 && (
-                <p className="text-sm text-green-600 font-medium mb-4">
+                <p className="text-sm text-primary font-medium mb-4">
                   Billed annually at {formatPrice(personalPlan.priceAnnual)} (Save {annualSavingsDisplay})
                 </p>
               )}
@@ -197,22 +197,22 @@ export function PricingSection() {
                 <p className="text-sm text-muted-foreground mb-4">Billed monthly</p>
               )}
               <ul className="space-y-3 text-left">
-                <li className="flex items-center gap-3 text-sm font-medium text-sky-700">
+                <li className="flex items-center gap-3 text-sm font-medium text-accent">
                   <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
                   <span><strong>{personalPlan.lessonsPerMonth}</strong> lessons per month</span>
                 </li>
-                <li className="flex items-center gap-3 text-sm font-medium text-sky-700">
+                <li className="flex items-center gap-3 text-sm font-medium text-accent">
                   <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
                   <span><strong>All 8</strong> lesson sections</span>
                 </li>
                 {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                   <li key={section} className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
+                    <Check className="h-5 w-5 text-primary flex-shrink-0" />
                     <span>{section}</span>
                   </li>
                 ))}
                 {UPGRADE_PROMPTS.sections.personalAdds.map((section) => (
-                  <li key={section} className="flex items-center gap-3 text-sm font-medium text-sky-700">
+                  <li key={section} className="flex items-center gap-3 text-sm font-medium text-accent">
                     <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
                     <span>{section}</span>
                   </li>
@@ -246,7 +246,7 @@ export function PricingSection() {
             <div>
               <h4 className="font-semibold text-base sm:text-lg">Can I cancel anytime?</h4>
               <p className="text-muted-foreground text-sm sm:text-base mt-1">
-                Yes! You can <a href="/account" className="text-sky-600 hover:text-sky-700 underline">cancel</a> your subscription at any time. You will continue to have access until the end of your billing period.
+                Yes! You can <a href="/account" className="text-sky-600 hover:text-accent underline">cancel</a> your subscription at any time. You will continue to have access until the end of your billing period.
               </p>
             </div>
             <div>

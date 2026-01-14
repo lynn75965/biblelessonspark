@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BibleLessonSpark Branding Configuration
  * ========================================
  *
@@ -8,14 +8,14 @@
  * Location: src/config/branding.ts
  *
  * ARCHITECTURE (SSOT):
- *   branding.ts (this file) → generateTailwindCSSVariables() → BrandingProvider → CSS Variables → Tailwind
+ *   branding.ts (this file) â†’ generateTailwindCSSVariables() â†’ BrandingProvider â†’ CSS Variables â†’ Tailwind
  *
  * USAGE:
  *   import { BRANDING } from '@/config/branding';
  *   <h1>{BRANDING.appName}</h1>
  *   <img src={BRANDING.logo.primary} alt={BRANDING.appName} />
  *
- * REBRAND: January 2026 - LessonSparkUSA → BibleLessonSpark
+ * REBRAND: January 2026 - LessonSparkUSA â†’ BibleLessonSpark
  * Color palette derived from logo: forest green book, golden flame, cream background
  */
 
@@ -393,7 +393,7 @@ export const BRANDING = {
     authPageWrapper: "min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4",
     authFormContainer: "w-full max-w-md px-4 sm:px-0",
     legalPageWrapper: "min-h-screen bg-gradient-to-br from-green-50 to-amber-50 py-12 px-4",
-    legalPageCard: "max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-4 sm:p-6 lg:p-8",
+    legalPageCard: "max-w-4xl mx-auto bg-card rounded-lg shadow-lg p-4 sm:p-6 lg:p-8",
   },
 
   // ==========================================================================
@@ -447,7 +447,7 @@ export const BRANDING = {
       const yearRange = this.copyrightYear === String(currentYear)
         ? this.copyrightYear
         : `${this.copyrightYear}-${currentYear}`;
-      return `© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
+      return `Â© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
     },
     legalEntityName: "BibleLessonSpark",
     jurisdiction: "Texas, United States",
@@ -474,9 +474,9 @@ export const BRANDING = {
     allowPublicSignup: true,
     multiLanguage: true,
     availableLanguages: [
-      { code: "en", name: "English", flag: "🇺🇸" },
-      { code: "es", name: "Español", flag: "🇲🇽" },
-      { code: "fr", name: "Français", flag: "🇫🇷" },
+      { code: "en", name: "English", flag: "ðŸ‡ºðŸ‡¸" },
+      { code: "es", name: "EspaÃ±ol", flag: "ðŸ‡²ðŸ‡½" },
+      { code: "fr", name: "FranÃ§ais", flag: "ðŸ‡«ðŸ‡·" },
     ],
     defaultLanguage: "en",
     organizationsEnabled: true,
@@ -557,12 +557,12 @@ export const BRANDING = {
       iconBackgroundColor: 'bg-amber-100',
       iconColor: 'text-amber-700',
       titleColor: 'text-green-900',
-      subtitleColor: 'text-green-700',
-      buttonBackgroundColor: 'bg-green-700',
+      subtitleColor: 'text-primary',
+      buttonBackgroundColor: 'bg-primary',
       buttonHoverColor: 'hover:bg-green-800',
     },
     floatingButtonStyles: {
-      backgroundColor: 'bg-green-700',
+      backgroundColor: 'bg-primary',
       hoverColor: 'hover:bg-green-800',
       textColor: 'text-white',
     },
@@ -626,7 +626,7 @@ export const BRANDING = {
     },
 
     subjects: {
-      welcome: "Welcome to BibleLessonSpark! 🎉",
+      welcome: "Welcome to BibleLessonSpark! ðŸŽ‰",
       emailVerification: "Verify your BibleLessonSpark email address",
       passwordReset: "Reset your BibleLessonSpark password",
       passwordChanged: "Your BibleLessonSpark password has been changed",
@@ -678,9 +678,9 @@ export const BRANDING = {
         body: `Thank you for joining BibleLessonSpark! We're excited to help you create engaging, theologically sound Bible study lessons for your Sunday School class.
 
 With BibleLessonSpark, you can:
-• Generate customized lessons in minutes
-• Tailor content to your specific teaching context
-• Access lessons aligned with Baptist theology
+â€¢ Generate customized lessons in minutes
+â€¢ Tailor content to your specific teaching context
+â€¢ Access lessons aligned with Baptist theology
 
 Ready to create your first lesson?`,
         buttonText: "Create Your First Lesson",
@@ -691,9 +691,9 @@ Ready to create your first lesson?`,
         body: `{inviterName} has invited you to join {orgName} on BibleLessonSpark.
 
 As a member of {orgName}, you'll be able to:
-• Access shared lesson resources
-• Collaborate with other teachers
-• Use organization-wide settings and preferences
+â€¢ Access shared lesson resources
+â€¢ Collaborate with other teachers
+â€¢ Use organization-wide settings and preferences
 
 Click the button below to accept this invitation:`,
         buttonText: "Accept Invitation",
@@ -1272,3 +1272,4 @@ export function getEmailInlineStyles() {
 // ============================================================================
 
 export default BRANDING;
+

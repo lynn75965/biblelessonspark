@@ -1,4 +1,4 @@
-/**
+﻿/**
  * VideoModal - Reusable Help Video Modal Component
  * 
  * ARCHITECTURE NOTES:
@@ -63,17 +63,17 @@ export function VideoModal({ open, onClose, video }: VideoModalProps) {
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="sm:max-w-[800px] p-0 gap-0 overflow-hidden">
         {/* Header */}
-        <DialogHeader className="px-6 py-4 border-b bg-slate-50">
+        <DialogHeader className="px-6 py-4 border-b bg-muted/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <HelpCircle className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-semibold text-slate-900">
+                <DialogTitle className="text-lg font-semibold text-foreground">
                   {video.title}
                 </DialogTitle>
-                <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                   <Clock className="h-3.5 w-3.5" />
                   <span>{formatDuration(video.durationSeconds)}</span>
                 </div>
@@ -92,7 +92,7 @@ export function VideoModal({ open, onClose, video }: VideoModalProps) {
         </DialogHeader>
         
         {/* Video Content */}
-        <div className="aspect-video bg-slate-900">
+        <div className="aspect-video bg-foreground">
           {hasVideoUrl ? (
             <iframe
               src={`${video.url}?autoplay=1&title=0&byline=0&portrait=0`}
@@ -103,10 +103,10 @@ export function VideoModal({ open, onClose, video }: VideoModalProps) {
             />
           ) : (
             /* Placeholder when video URL not yet configured */
-            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400">
+            <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground">
               <HelpCircle className="h-16 w-16 mb-4 opacity-50" />
               <p className="text-lg font-medium">Video Coming Soon</p>
-              <p className="text-sm mt-2 text-slate-500 max-w-md text-center px-4">
+              <p className="text-sm mt-2 text-muted-foreground max-w-md text-center px-4">
                 {video.description}
               </p>
             </div>
@@ -114,8 +114,8 @@ export function VideoModal({ open, onClose, video }: VideoModalProps) {
         </div>
         
         {/* Footer */}
-        <div className="px-6 py-4 border-t bg-slate-50 flex items-center justify-between">
-          <p className="text-sm text-slate-600">
+        <div className="px-6 py-4 border-t bg-muted/50 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
             {video.description}
           </p>
           <Button onClick={onClose} variant="outline" size="sm">

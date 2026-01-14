@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,15 +100,15 @@ export function BibleVersionSelector({
 
       <RadioGroup value={selectedVersion} onValueChange={onVersionChange}>
         {/* Direct Quote Section */}
-        <Card className="border-2 border-green-200 bg-green-50/50">
+        <Card className="border-2 border-primary/30 bg-primary/5/50">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-green-700" />
+              <BookOpen className="h-5 w-5 text-primary" />
               <CardTitle className="text-sm font-semibold text-green-900">
                 DIRECTLY QUOTED (Exact Text)
               </CardTitle>
             </div>
-            <CardDescription className="text-xs text-green-700">
+            <CardDescription className="text-xs text-primary">
               Lessons include word-for-word Bible text
             </CardDescription>
           </CardHeader>
@@ -116,7 +116,7 @@ export function BibleVersionSelector({
             {directQuoteVersions.map((version) => (
               <div
                 key={version.id}
-                className="flex items-start space-x-3 rounded-md border border-green-200 bg-white p-3 hover:border-green-400 transition-colors"
+                className="flex items-start space-x-3 rounded-md border border-primary/30 bg-card p-3 hover:border-primary/70 transition-colors"
               >
                 <RadioGroupItem value={version.id} id={version.id} className="mt-0.5" />
                 <Label
@@ -136,7 +136,7 @@ export function BibleVersionSelector({
         </Card>
 
         {/* Paraphrase Section */}
-        <Card className="border-2 border-blue-200 bg-blue-50/50">
+        <Card className="border-2 border-accent/50 bg-blue-50/50">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-blue-700" />
@@ -152,7 +152,7 @@ export function BibleVersionSelector({
             {paraphraseVersions.map((version) => (
               <div
                 key={version.id}
-                className="flex items-start space-x-3 rounded-md border border-blue-200 bg-white p-3 hover:border-blue-400 transition-colors"
+                className="flex items-start space-x-3 rounded-md border border-accent/50 bg-card p-3 hover:border-accent transition-colors"
               >
                 <RadioGroupItem value={version.id} id={version.id} className="mt-0.5" />
                 <Label
@@ -196,7 +196,7 @@ function ParaphraseExplainerDialog() {
           {/* Direct Quote Explanation */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-green-700" />
+              <BookOpen className="h-5 w-5 text-primary" />
               <h3 className="font-semibold text-green-900">Directly Quoted Versions</h3>
             </div>
             <div className="pl-7 space-y-2 text-sm text-muted-foreground">
@@ -204,16 +204,16 @@ function ParaphraseExplainerDialog() {
                 Your lessons will include the <strong>exact word-for-word text</strong> from these 
                 public domain translations.
               </p>
-              <div className="bg-green-50 border border-green-200 rounded-md p-3">
+              <div className="bg-primary/5 border border-primary/30 rounded-md p-3">
                 <p className="font-mono text-xs">
                   "For by grace are ye saved through faith; and that not of yourselves: 
                   it is the gift of God" (Ephesians 2:8, KJV)
                 </p>
               </div>
               <p className="text-xs">
-                ✓ Perfect for memorization<br />
-                ✓ Exact quotes in handouts<br />
-                ✓ No paraphrasing
+                âœ“ Perfect for memorization<br />
+                âœ“ Exact quotes in handouts<br />
+                âœ“ No paraphrasing
               </p>
             </div>
           </div>
@@ -229,12 +229,12 @@ function ParaphraseExplainerDialog() {
                 Your lessons will include <strong>faithful summaries</strong> with clear verse 
                 references for copyrighted translations.
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+              <div className="bg-blue-50 border border-accent/50 rounded-md p-3">
                 <p className="text-xs mb-2">
                   <strong>Ephesians 2:8 (CSB)</strong>
                 </p>
                 <p className="text-xs">
-                  Paul teaches that we are saved by God's grace through faith—this salvation 
+                  Paul teaches that we are saved by God's grace through faithâ€”this salvation 
                   is not from ourselves but is God's gift.
                 </p>
                 <p className="text-xs italic mt-2">
@@ -242,9 +242,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                ✓ Doctrinally faithful summaries<br />
-                ✓ Clear verse references included<br />
-                ✓ Read exact text from your own Bible in class
+                âœ“ Doctrinally faithful summaries<br />
+                âœ“ Clear verse references included<br />
+                âœ“ Read exact text from your own Bible in class
               </p>
             </div>
           </div>

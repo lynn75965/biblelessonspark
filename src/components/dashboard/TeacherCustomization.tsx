@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TeacherCustomization Component
  * Renders the 13 teacher preference fields with profile management
  *
@@ -73,7 +73,7 @@ const GoldAccent = ({ children }: { children: React.ReactNode }) => (
 
 // Step badge component (teal pill matching landing page "How It Works")
 const StepBadge = ({ number }: { number: number }) => (
-  <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold bg-sky-500 text-white shadow-md border-2 border-sky-600">
+  <span className="inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold bg-accent text-white shadow-md border-2 border-accent">
     STEP {number}
   </span>
 );
@@ -314,14 +314,14 @@ export function TeacherCustomization({
             <div className="flex items-center gap-2 mb-1">
               <StepBadge number={3} />
             </div>
-            <CardTitle className="text-lg text-slate-800">
+            <CardTitle className="text-lg text-foreground">
               <GoldAccent>Personalize</GoldAccent> Your Lesson
             </CardTitle>
             <CardDescription className="text-amber-700 font-medium">
               Check off each one below to describe your teaching environment
             </CardDescription>
-            <CardDescription className="text-slate-500 text-xs mt-1">
-              Hint: You can save up to 7 profiles — choose a saved profile & it preloads
+            <CardDescription className="text-muted-foreground text-xs mt-1">
+              Hint: You can save up to 7 profiles â€” choose a saved profile & it preloads
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -331,7 +331,7 @@ export function TeacherCustomization({
                 href={getVideo('step3')?.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-sm text-sky-600 hover:text-sky-700 hover:underline"
+                className="flex items-center gap-1 text-sm text-sky-600 hover:text-accent hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 <Play className="h-3 w-3" />
@@ -366,12 +366,12 @@ export function TeacherCustomization({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__" className="text-muted-foreground">
-                      — None —
+                      â€” None â€”
                     </SelectItem>
                     {profiles.map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
                         {profile.profile_name}
-                        {profile.is_default && " ★"}
+                        {profile.is_default && " â˜…"}
                       </SelectItem>
                     ))}
                   </SelectContent>
