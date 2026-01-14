@@ -1,6 +1,6 @@
-﻿# PROJECT_MASTER.md
+# PROJECT_MASTER.md
 ## LessonSparkUSA - Master Project Documentation
-**Last Updated:** January 10, 2026 (Beta → Production Transition Complete)
+**Last Updated:** January 13, 2026 (Phase 20 - SSOT Color System COMPLETE)
 
 ---
 
@@ -9,8 +9,9 @@
 | Item | Value |
 |------|-------|
 | **Local URL** | http://localhost:8080 |
-| **Production URL** | https://lessonsparkusa.com |
-| **Branch** | accordion-workspace |
+| **Production URL** | https://biblelessonspark.com |
+| **Legacy URL** | https://lessonsparkusa.com |
+| **Branch** | biblelessonspark |
 | **Local Path** | C:\Users\Lynn\lesson-spark-usa |
 | **Supabase Project** | hphebzdftpjbiudpfcrs |
 | **Platform Mode** | Production (as of Jan 10, 2026) |
@@ -33,11 +34,105 @@
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
 | `src/constants/pricingConfig.ts` | Tier sections (free vs personal) |
 | `src/constants/trialConfig.ts` | Trial system configuration |
-| `src/constants/tenantConfig.ts` | White-label tenant configuration (SSOT) |
+| `src/constants/tenantConfig.ts` | White-label tenant configuration (imports from branding.ts) |
 | `src/constants/feedbackConfig.ts` | Feedback mode (beta/production) |
 | `src/constants/systemSettings.ts` | Platform mode helpers |
-| `src/config/branding.ts` | White-label UI customization |
+| `src/config/branding.ts` | **SSOT for ALL colors** - HEX definitions, generates CSS variables |
+| `src/components/BrandingProvider.tsx` | Runtime CSS variable injection from branding.ts |
 | `src/utils/formatLessonContent.ts` | SSOT for lesson content HTML formatting |
+
+---
+
+## SSOT COLOR SYSTEM (Phase 20 - COMPLETE ✅)
+
+### Architecture
+```
+branding.ts (SSOT - HEX colors)
+    ↓ hexToHsl() converter
+    ↓ generateTailwindCSSVariables()
+    ↓
+BrandingProvider.tsx (runtime injection)
+    ↓ <style id="biblelessonspark-brand-variables">
+    ↓
+CSS Variables (--primary, --secondary, etc.)
+    ↓
+Tailwind classes (bg-primary, text-secondary)
+    ↓
+Components
+```
+
+### Tenant Override Flow
+```
+branding.ts (base HEX colors)
+    ↓
+DEFAULT_TENANT_CONFIG (imports BRANDING.colors)
+    ↓
+BrandingProvider.tsx (injects CSS variables)
+    ↓
+Admin Panel tenant overrides (optional)
+    ↓
+Final rendered colors
+```
+
+### BibleLessonSpark Brand Colors
+| Color | HEX | HSL | Usage |
+|-------|-----|-----|-------|
+| Forest Green | `#3D5C3D` | `120 20% 30%` | Primary - buttons, links, headers |
+| Antique Gold | `#D4A74B` | `43 62% 56%` | Secondary - accents, badges |
+| Burgundy | `#661A33` | `342 60% 25%` | Destructive - errors, warnings |
+| Warm Cream | `#FFFEF9` | `50 100% 99%` | Background |
+| Deep Gold | `#C9A754` | `43 50% 56%` | Accent |
+
+### Key Functions in branding.ts
+| Function | Purpose |
+|----------|---------|
+| `hexToHsl(hex)` | Converts HEX to HSL format for Tailwind |
+| `adjustLightness(hsl, amount)` | Creates lighter/darker variants |
+| `generateTailwindCSSVariables()` | Outputs complete CSS variable block |
+
+### CSS Debugging Protocol
+When colors appear wrong, run these in browser DevTools Console:
+```javascript
+// Check what --primary is set to
+getComputedStyle(document.documentElement).getPropertyValue('--primary')
+// Expected: "120 20% 30%" (Forest Green)
+
+// Find ALL style tags injecting CSS variables
+document.querySelectorAll('style').forEach((s, i) => {
+  if (s.textContent.includes('--primary')) {
+    console.log(`Style ${i}:`, s.id || 'no-id', s.textContent.substring(0, 200));
+  }
+});
+
+// Check for cascade conflicts
+const styles = getComputedStyle(document.documentElement);
+['--primary', '--secondary', '--background', '--foreground'].forEach(v => {
+  console.log(v, styles.getPropertyValue(v));
+});
+```
+
+### White-Label Override Flow
+1. BrandingProvider injects base CSS variables from branding.ts
+2. If tenant has custom colors in Admin Panel, they override `--primary`/`--secondary`
+3. Tailwind classes automatically use correct colors
+
+### Files Involved (SSOT Compliant)
+| File | Role | SSOT Status |
+|------|------|-------------|
+| `src/config/branding.ts` | SSOT - all HEX colors defined here | ✅ Source |
+| `src/constants/tenantConfig.ts` | Imports from BRANDING (line 186) | ✅ Compliant |
+| `src/components/BrandingProvider.tsx` | Injects CSS vars + applies tenant overrides | ✅ Compliant |
+| `src/main.tsx` | Wraps app with BrandingProvider | ✅ Compliant |
+| `src/index.css` | Stripped of color definitions (runtime generated) | ✅ Compliant |
+
+### To Rebrand Entire App
+Edit ONLY `src/config/branding.ts`:
+```typescript
+colors: {
+  primary: { DEFAULT: "#3D5C3D" },   // Change this → all primary elements update
+  secondary: { DEFAULT: "#D4A74B" }, // Change this → all secondary elements update
+}
+```
 
 ---
 
@@ -79,6 +174,7 @@ As of January 10, 2026, LessonSparkUSA.com is in **Production Mode**.
 - ✅ Admin bypass for rate limits
 - ✅ Mode-aware UI components (auto-switch beta/production text)
 - ✅ SSOT tenant configuration for white-label deployments
+- ✅ **SSOT Color System - Forest Green branding live** (Phase 20)
 
 ### What's Defined But NOT Enforced
 - ⏳ **Tier-based section filtering** - SSOT exists, edge function doesn't enforce
@@ -217,6 +313,7 @@ export const TIER_SECTIONS = {
 | **HeroSection.tsx SSOT Compliance** | ✅ | Jan 10, 2026 |
 | **Mode-aware components** | ✅ | Jan 10, 2026 |
 | **Help.tsx subscription model update** | ✅ | Jan 10, 2026 |
+| **SSOT Color System (Phase 20)** | ✅ | Jan 13, 2026 |
 
 ### 🔴 OUTSTANDING - Must Fix Before Full Launch
 | Item | Priority | Notes |
@@ -232,9 +329,57 @@ export const TIER_SECTIONS = {
 | Show Pricing | Set to `true` in Admin Panel when ready |
 | Support Email | Verify configured in tenant_config |
 
+### 🟢 MEDIUM PRIORITY - Post-Launch Polish
+| Item | Notes |
+|------|-------|
+| `useBranding.ts` fallback colors | Lines 14-15 have `#4F46E5` instead of `#3D5C3D` |
+| `TenantBrandingPanel.tsx` placeholder | Line 56 has `#E4572E` placeholder value |
+
 ---
 
-## COMPLETED THIS SESSION (Jan 10, 2026)
+## COMPLETED PHASE 20 (Jan 13, 2026)
+
+### SSOT Color System - ROOT CAUSE FIX
+
+**Problem:** Salmon color (`#E4572E` / `14 77% 54%`) persisted despite BrandingProvider correctly injecting Forest Green (`#3D5C3D` / `120 20% 30%`).
+
+**Root Cause:** `DEFAULT_TENANT_CONFIG` in `src/constants/tenantConfig.ts` (line 186) had hardcoded salmon color `#E4572E` instead of importing from `BRANDING`.
+
+**Solution Applied:**
+```typescript
+// BEFORE (line 186 tenantConfig.ts):
+primary_color: "#E4572E",  // ❌ Hardcoded salmon
+
+// AFTER:
+import { BRANDING } from '@/config/branding';
+primary_color: BRANDING.colors.primary.DEFAULT,  // ✅ SSOT compliant
+```
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| `src/constants/tenantConfig.ts` | Added `import { BRANDING }`, replaced all hardcoded color values with BRANDING references |
+
+**Verification:** 
+- Production live at biblelessonspark.com shows Forest Green
+- DevTools: `getComputedStyle(document.documentElement).getPropertyValue('--primary')` returns `120 20% 30%`
+
+**Git Commit:** `fe0bec5` - "Fix: tenantConfig imports from BRANDING SSOT"
+
+### Full Codebase Audit Results
+| File | Status | Notes |
+|------|--------|-------|
+| `branding.ts` | ✅ SSOT Source | All colors defined here |
+| `tenantConfig.ts` | ✅ Fixed | Now imports from BRANDING |
+| `BrandingProvider.tsx` | ✅ Compliant | Generates from branding.ts |
+| `tailwind.config.ts` | ✅ Compliant | References CSS variables only |
+| `index.css` | ✅ Compliant | No hardcoded colors |
+| `useBranding.ts` | ⚠️ Medium | Fallback `#4F46E5` (not user-facing) |
+| `TenantBrandingPanel.tsx` | ⚠️ Medium | Placeholder `#E4572E` (admin only) |
+
+---
+
+## COMPLETED PREVIOUS SESSION (Jan 10, 2026)
 
 ### Beta → Production Transition
 - ✅ Updated `system_settings.current_phase` → `production`
@@ -317,6 +462,7 @@ const isInBetaMode = isBetaMode(settings.current_phase as string);
 ```
 src/
 ├── components/
+│   ├── BrandingProvider.tsx         # Runtime CSS variable injection (SSOT colors)
 │   ├── dashboard/
 │   │   ├── EnhanceLessonForm.tsx    # 3-step accordion + section rendering
 │   │   ├── LessonExportButtons.tsx  # Export with copyright
@@ -326,16 +472,21 @@ src/
 │   │   └── HeroSection.tsx          # Mode-aware, reads from tenant_config
 │   ├── BetaFeedbackModal.tsx        # Mode-aware feedback title
 │   └── DevotionalGenerator.tsx      # Progress indicator + formatted display
+├── config/
+│   └── branding.ts                  # SSOT: All brand colors, generates CSS variables
 ├── constants/
-│   ├── tenantConfig.ts              # SSOT for tenant configuration
+│   ├── tenantConfig.ts              # SSOT for tenant configuration (imports BRANDING)
 │   ├── feedbackConfig.ts            # CURRENT_FEEDBACK_MODE
 │   ├── systemSettings.ts            # isBetaMode() helper
 │   ├── pricingConfig.ts             # TIER_SECTIONS defined here
 │   └── [other SSOT files]
 ├── pages/
+│   ├── PricingPage.tsx              # Uses brand-aware Tailwind classes
 │   ├── Community.tsx                # Mode-aware CTA section
 │   ├── Help.tsx                     # Subscription model FAQ
 │   └── Dashboard.tsx                # Settings tab removed
+├── index.css                        # Stripped of colors (runtime generated)
+├── main.tsx                         # BrandingProvider wrapper
 └── utils/
     ├── formatLessonContent.ts       # SSOT: normalizeLegacyContent() exported
     ├── exportToPdf.ts               # Copyright footer
@@ -397,6 +548,10 @@ npx supabase functions deploy
 
 **This enables:** White-label automatic monetization on Production switch
 
+### 3. (Medium Priority) Fix Remaining Fallback Colors
+- `src/hooks/useBranding.ts` lines 14-15: Change `#4F46E5` to `BRANDING.colors.primary.DEFAULT`
+- `src/components/admin/TenantBrandingPanel.tsx` line 56: Change `#E4572E` placeholder
+
 ---
 
 ## SESSION HANDOFF NOTES
@@ -408,3 +563,5 @@ npx supabase functions deploy
 - Test with actual data before declaring success
 - Platform is now in Production mode - all user-facing text should avoid "Beta" references
 - White-label beta infrastructure is preserved but hidden
+- **SSOT Color System is COMPLETE** - Forest Green (#3D5C3D) is live
+- If colors appear wrong, use CSS Debugging Protocol in this document

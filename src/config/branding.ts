@@ -108,6 +108,79 @@ export function adjustSaturation(hsl: string, adjustment: number): string {
   return `${h} ${s}% ${l}%`;
 }
 
+
+// ============================================================================
+// COLOR ADJUSTMENT CONSTANTS (SSOT)
+// ============================================================================
+// These values are used by generateTailwindCSSVariables() AND BrandingProvider
+// for tenant overrides. Change here to affect both.
+// ============================================================================
+
+/**
+ * Lightness adjustment values for generating color variants
+ * Used by: generateTailwindCSSVariables(), BrandingProvider tenant overrides
+ * SSOT: Change these values to adjust how light/dark variants are generated globally
+ */
+export const COLOR_ADJUSTMENTS = {
+  /** Light mode variant adjustments */
+  light: {
+    /** --primary-light adjustment */
+    primaryLight: 65,
+    /** --secondary-light adjustment */
+    secondaryLight: 39,
+    /** --destructive-light adjustment */
+    destructiveLight: 70,
+  },
+  /** Hover state adjustments */
+  hover: {
+    /** Primary hover - lighten */
+    primaryHover: 10,
+    /** Secondary hover - darken */
+    secondaryHover: -6,
+  },
+  /** Gradient adjustments */
+  gradient: {
+    /** gradient-primary start (darker) */
+    primaryStart: -2,
+    /** gradient-primary end (lighter) */
+    primaryEnd: 8,
+    /** gradient-hero start */
+    heroStart: -5,
+    /** gradient-hero middle */
+    heroMiddle: 5,
+    /** gradient-secondary start/hero end */
+    secondaryShift: -6,
+    /** gradient-card start */
+    cardStart: 2,
+    /** gradient-card end */
+    cardEnd: 4,
+  },
+  /** Dark mode adjustments */
+  dark: {
+    primaryShift: 10,
+    primaryHoverShift: 15,
+    secondaryShift: 4,
+    secondaryHoverShift: -1,
+    backgroundMuted: -12,
+    cardShift: 2,
+    borderShift: -8,
+    burgundyShift: 10,
+    burgundyHoverShift: 7,
+    burgundyLightShift: 5,
+    destructiveShift: 15,
+    mutedForegroundShift: 9,
+    accentShift: -6,
+  },
+  /** Layout tokens */
+  layout: {
+    /** Container max-width */
+    containerMaxWidth: '1400px',
+    /** Accent border width */
+    accentBorderWidth: '3px',
+    /** Standard border width */
+    borderWidth: '2px',
+  },
+} as const;
 // ============================================================================
 // CORE IDENTITY
 // ============================================================================
@@ -847,28 +920,28 @@ export function generateTailwindCSSVariables(): string {
   --primary: ${primary};
   --primary-foreground: ${primaryForeground};
   --primary-hover: ${primaryLight};
-  --primary-light: ${adjustLightness(primary, 65)};
+  --primary-light: ${adjustLightness(primary, COLOR_ADJUSTMENTS.light.primaryLight)};
 
   /* Secondary - Antique Gold */
   --secondary: ${secondary};
   --secondary-foreground: ${secondaryForeground};
   --secondary-hover: ${secondaryDark};
-  --secondary-light: ${adjustLightness(secondary, 39)};
+  --secondary-light: ${adjustLightness(secondary, COLOR_ADJUSTMENTS.light.secondaryLight)};
 
   /* Success - Forest Green */
   --success: ${primary};
   --success-foreground: ${primaryForeground};
-  --success-light: ${adjustLightness(primary, 65)};
+  --success-light: ${adjustLightness(primary, COLOR_ADJUSTMENTS.light.primaryLight)};
 
   /* Warning - Antique Gold */
   --warning: ${secondary};
   --warning-foreground: ${secondaryForeground};
-  --warning-light: ${adjustLightness(secondary, 39)};
+  --warning-light: ${adjustLightness(secondary, COLOR_ADJUSTMENTS.light.secondaryLight)};
 
   /* Destructive - Burgundy */
   --destructive: ${burgundy};
   --destructive-foreground: ${primaryForeground};
-  --destructive-light: ${adjustLightness(burgundy, 70)};
+  --destructive-light: ${adjustLightness(burgundy, COLOR_ADJUSTMENTS.light.destructiveLight)};
 
   /* Burgundy variants */
   --burgundy: ${burgundy};
@@ -931,6 +1004,20 @@ export function generateTailwindCSSVariables(): string {
   /* Section Spacing */
   --section-y: ${t.section.y};
   --section-y-lg: ${t.section.yLg};
+  /* Layout tokens from COLOR_ADJUSTMENTS (not already in branding.ts) */
+  --border-accent-width: ${COLOR_ADJUSTMENTS.layout.accentBorderWidth};
+  --border-standard-width: ${COLOR_ADJUSTMENTS.layout.borderWidth};
+  --container-max-width: ${COLOR_ADJUSTMENTS.layout.containerMaxWidth};
+  
+  /* Sidebar colors (derived from primary/secondary) */
+  --sidebar-background: ${background};
+  --sidebar-foreground: ${textPrimary};
+  --sidebar-primary: ${primary};
+  --sidebar-primary-foreground: ${primaryForeground};
+  --sidebar-accent: ${secondary};
+  --sidebar-accent-foreground: ${secondaryForeground};
+  --sidebar-border: ${border};
+  --sidebar-ring: ${primary};
 }
 
 @media (min-width: 1024px) {
@@ -945,53 +1032,53 @@ export function generateTailwindCSSVariables(): string {
   --background: ${backgroundDark};
   --foreground: ${textInverse};
 
-  --card: ${adjustLightness(backgroundDark, 2)};
+  --card: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.cardShift)};
   --card-foreground: ${textInverse};
 
-  --popover: ${adjustLightness(backgroundDark, 2)};
+  --popover: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.cardShift)};
   --popover-foreground: ${textInverse};
 
-  --primary: ${adjustLightness(primary, 10)};
+  --primary: ${adjustLightness(primary, COLOR_ADJUSTMENTS.dark.primaryShift)};
   --primary-foreground: ${primaryForeground};
-  --primary-hover: ${adjustLightness(primary, 15)};
-  --primary-light: ${adjustLightness(backgroundDark, -12)};
+  --primary-hover: ${adjustLightness(primary, COLOR_ADJUSTMENTS.dark.primaryHoverShift)};
+  --primary-light: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.backgroundMuted)};
 
-  --secondary: ${adjustLightness(secondary, 4)};
+  --secondary: ${adjustLightness(secondary, COLOR_ADJUSTMENTS.dark.secondaryShift)};
   --secondary-foreground: ${backgroundDark};
-  --secondary-hover: ${adjustLightness(secondary, -1)};
-  --secondary-light: ${adjustLightness(backgroundDark, -12)};
+  --secondary-hover: ${adjustLightness(secondary, COLOR_ADJUSTMENTS.dark.secondaryHoverShift)};
+  --secondary-light: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.backgroundMuted)};
 
-  --success: ${adjustLightness(primary, 10)};
+  --success: ${adjustLightness(primary, COLOR_ADJUSTMENTS.dark.primaryShift)};
   --success-foreground: ${primaryForeground};
-  --success-light: ${adjustLightness(backgroundDark, -12)};
+  --success-light: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.backgroundMuted)};
 
-  --warning: ${adjustLightness(secondary, 4)};
+  --warning: ${adjustLightness(secondary, COLOR_ADJUSTMENTS.dark.secondaryShift)};
   --warning-foreground: ${backgroundDark};
-  --warning-light: ${adjustLightness(backgroundDark, -12)};
+  --warning-light: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.backgroundMuted)};
 
-  --destructive: ${adjustLightness(burgundy, 15)};
+  --destructive: ${adjustLightness(burgundy, COLOR_ADJUSTMENTS.dark.destructiveShift)};
   --destructive-foreground: ${primaryForeground};
-  --destructive-light: ${adjustLightness(backgroundDark, -12)};
+  --destructive-light: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.backgroundMuted)};
 
-  --burgundy: ${adjustLightness(burgundy, 10)};
-  --burgundy-hover: ${adjustLightness(burgundyHover, 7)};
-  --burgundy-light: ${adjustLightness(burgundyLight, 5)};
+  --burgundy: ${adjustLightness(burgundy, COLOR_ADJUSTMENTS.dark.burgundyShift)};
+  --burgundy-hover: ${adjustLightness(burgundyHover, COLOR_ADJUSTMENTS.dark.burgundyHoverShift)};
+  --burgundy-light: ${adjustLightness(burgundyLight, COLOR_ADJUSTMENTS.dark.burgundyLightShift)};
 
-  --muted: ${adjustLightness(backgroundDark, -12)};
-  --muted-foreground: ${adjustLightness(secondary, 9)};
+  --muted: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.backgroundMuted)};
+  --muted-foreground: ${adjustLightness(secondary, COLOR_ADJUSTMENTS.dark.mutedForegroundShift)};
 
-  --accent: ${adjustLightness(accent, -6)};
+  --accent: ${adjustLightness(accent, COLOR_ADJUSTMENTS.dark.accentShift)};
   --accent-foreground: ${textInverse};
 
-  --border: ${adjustLightness(backgroundDark, -8)};
-  --input: ${adjustLightness(backgroundDark, -8)};
-  --ring: ${adjustLightness(primary, 10)};
+  --border: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.borderShift)};
+  --input: ${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.borderShift)};
+  --ring: ${adjustLightness(primary, COLOR_ADJUSTMENTS.dark.primaryShift)};
 
   /* Dark mode gradients */
-  --gradient-primary: linear-gradient(135deg, hsl(${adjustLightness(primary, -2)}), hsl(${adjustLightness(primary, 8)}));
-  --gradient-secondary: linear-gradient(135deg, hsl(${adjustLightness(secondary, -6)}), hsl(${adjustLightness(secondary, 4)}));
-  --gradient-hero: linear-gradient(135deg, hsl(${adjustLightness(primary, -5)}) 0%, hsl(${adjustLightness(primary, 5)}) 50%, hsl(${adjustLightness(secondary, -6)}) 100%);
-  --gradient-card: linear-gradient(145deg, hsl(${adjustLightness(backgroundDark, 2)}) 0%, hsl(${adjustLightness(backgroundDark, 4)}) 100%);
+  --gradient-primary: linear-gradient(135deg, hsl(${adjustLightness(primary, COLOR_ADJUSTMENTS.gradient.primaryStart)}), hsl(${adjustLightness(primary, COLOR_ADJUSTMENTS.gradient.primaryEnd)}));
+  --gradient-secondary: linear-gradient(135deg, hsl(${adjustLightness(secondary, COLOR_ADJUSTMENTS.gradient.secondaryShift)}), hsl(${adjustLightness(secondary, COLOR_ADJUSTMENTS.dark.secondaryShift)}));
+  --gradient-hero: linear-gradient(135deg, hsl(${adjustLightness(primary, COLOR_ADJUSTMENTS.gradient.heroStart)}) 0%, hsl(${adjustLightness(primary, COLOR_ADJUSTMENTS.gradient.heroMiddle)}) 50%, hsl(${adjustLightness(secondary, COLOR_ADJUSTMENTS.gradient.secondaryShift)}) 100%);
+  --gradient-card: linear-gradient(145deg, hsl(${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.dark.cardShift)}) 0%, hsl(${adjustLightness(backgroundDark, COLOR_ADJUSTMENTS.gradient.cardEnd)}) 100%);
 }
   `.trim();
 }

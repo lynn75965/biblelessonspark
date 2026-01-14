@@ -69,17 +69,17 @@ interface EnhanceLessonFormProps {
 // BRAND STYLING COMPONENTS
 // ============================================================================
 
-// Gold accent text for headers (matches landing page)
+// Gold accent text for headers (uses brand secondary - Antique Gold)
 const GoldAccent = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-amber-500">{children}</span>
+  <span className="text-secondary">{children}</span>
 );
 
-// Step badge component - prominent teal pill with border
+// Step badge component - prominent Forest Green pill with border (brand primary)
 const StepBadge = ({ number, isComplete }: { number: number; isComplete?: boolean }) => (
   <span className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-sm font-bold shadow-md border-2 ${
     isComplete 
-      ? "bg-green-500 text-white border-green-600" 
-      : "bg-sky-500 text-white border-sky-600"
+      ? "bg-green-600 text-white border-green-700" 
+      : "bg-primary text-primary-foreground border-primary"
   }`}>
     {isComplete ? <Check className="h-4 w-4 mr-1" /> : null}
     STEP {number}
@@ -139,7 +139,7 @@ const AccordionStep = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-sky-600 hover:text-sky-700 hover:bg-sky-50 gap-1"
+                className="text-primary hover:text-primary/80 hover:bg-primary/10 gap-1"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(videoUrl, "_blank");
@@ -898,7 +898,7 @@ export function EnhanceLessonForm({
                 Back to My Lesson Library
               </Button>
               <h1 className="text-2xl font-bold text-slate-800 flex flex-wrap items-center gap-x-2 gap-y-1">
-                <BookOpen className="h-6 w-6 text-sky-500 flex-shrink-0" />
+                <BookOpen className="h-6 w-6 text-primary flex-shrink-0" />
                 <span className="break-words">{displayTitle}</span>
               </h1>
               <p className="text-slate-600 mt-1">
@@ -910,7 +910,7 @@ export function EnhanceLessonForm({
           <>
             {/* Welcome Banner for NEW Users Only (0 lessons) */}
             {lessonCount === 0 && !step1Complete && !step2Complete && (
-              <div className="bg-gradient-to-r from-sky-50 to-amber-50 border border-sky-200 rounded-lg p-4 mb-4">
+              <div className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🎉</span>
                   <div>
@@ -923,8 +923,8 @@ export function EnhanceLessonForm({
 
             {/* Returning User Tip (optional - shows occasionally for users with lessons) */}
             {lessonCount > 0 && lessonCount % 5 === 0 && !step1Complete && (
-              <div className="bg-sky-50 border border-sky-100 rounded-lg p-3 mb-4">
-                <p className="text-sm text-sky-700">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
+                <p className="text-sm text-primary">
                   💡 <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
                 </p>
               </div>
@@ -1143,7 +1143,7 @@ export function EnhanceLessonForm({
                   <Button
                     type="button"
                     onClick={() => setExpandedStep(2)}
-                    className="bg-sky-500 hover:bg-sky-600"
+                    className="bg-primary hover:bg-primary-hover"
                   >
                     Continue to Step 2 →
                   </Button>
@@ -1261,7 +1261,7 @@ export function EnhanceLessonForm({
                   <Button
                     type="button"
                     onClick={() => setExpandedStep(3)}
-                    className="bg-sky-500 hover:bg-sky-600"
+                    className="bg-primary hover:bg-primary-hover"
                   >
                     Continue to Step 3 →
                   </Button>
@@ -1467,7 +1467,7 @@ export function EnhanceLessonForm({
             {/* Generate Button */}
             <Button
               type="submit"
-              className="w-full bg-sky-500 hover:bg-sky-600"
+              className="w-full bg-primary hover:bg-primary-hover"
               size="lg"
               disabled={isSubmitting || isEnhancing || subLessonsUsed >= subLessonsLimit || isExtracting || !step1Complete || !step2Complete}
             >
@@ -1513,7 +1513,7 @@ export function EnhanceLessonForm({
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex flex-wrap items-center gap-2">
-                <BookOpen className="h-5 w-5 text-sky-500 flex-shrink-0" />
+                <BookOpen className="h-5 w-5 text-primary flex-shrink-0" />
                 <span className="break-words">{displayTitle}</span>
               </CardTitle>
               {/* MOBILE FIX: flex-wrap on button container */}
@@ -1566,20 +1566,20 @@ export function EnhanceLessonForm({
             {/* ============================================================ */}
             {/* FULL LESSON / FREE LESSON TOGGLE */}
             {/* ============================================================ */}
-            <div className="mt-4 p-3 bg-gradient-to-r from-sky-50 to-amber-50 border border-sky-200 rounded-lg">
+            <div className="mt-4 p-3 bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-sky-600" />
+                  <Eye className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-slate-700">Preview Mode:</span>
                 </div>
-                <div className="flex rounded-lg border border-sky-300 overflow-hidden">
+                <div className="flex rounded-lg border border-primary/40 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setLessonViewMode("full")}
                     className={`px-4 py-2 text-sm font-medium transition-colors ${
                       lessonViewMode === "full"
-                        ? "bg-sky-500 text-white"
-                        : "bg-white text-slate-600 hover:bg-sky-50"
+                        ? "bg-primary text-white"
+                        : "bg-white text-slate-600 hover:bg-primary/10"
                     }`}
                   >
                     Full Lesson (8 sections)
@@ -1607,10 +1607,10 @@ export function EnhanceLessonForm({
           <CardContent>
             {/* Teaser Section - Only show in Full mode */}
             {currentLesson.metadata?.teaser && lessonViewMode === "full" && (
-              <div className="mb-3 p-2.5 bg-sky-50 border border-sky-200 rounded-lg">
+              <div className="mb-3 p-2.5 bg-primary/5 border border-primary/30 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-sky-500" />
-                  <h3 className="font-semibold text-sky-700 text-sm">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <h3 className="font-semibold text-primary text-sm">
                     Student Teaser (Pre-Lesson)
                   </h3>
                 </div>
@@ -1668,7 +1668,7 @@ export function EnhanceLessonForm({
                         className="bg-muted p-3 rounded-lg"
                       >
                         <h3 className="text-base font-bold text-slate-800 mb-2 flex items-center gap-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-sky-500 text-white text-xs font-bold">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">
                             {section.sectionNumber}
                           </span>
                           {section.title}
@@ -1720,7 +1720,7 @@ export function EnhanceLessonForm({
 
             {/* Upgrade CTA - Only show in Free mode */}
             {lessonViewMode === "free" && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-sky-50 border border-amber-200 rounded-lg">
+              <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-primary/5 border border-amber-200 rounded-lg">
                 <div className="text-center">
                   <h4 className="font-semibold text-slate-800 mb-2">
                     This is what free accounts receive after your {PRICING_DISPLAY.free.complimentaryFullLessons} complimentary lessons.
@@ -1758,7 +1758,7 @@ export function EnhanceLessonForm({
                 <button
                   type="button"
                   onClick={() => navigate(ROUTES.PRICING)}
-                  className="text-sky-600 hover:text-sky-700 underline"
+                  className="text-primary hover:text-primary underline"
                 >
                   Upgrade for full lessons
                 </button>

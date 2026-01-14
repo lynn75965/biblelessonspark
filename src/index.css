@@ -7,18 +7,20 @@
  * ============================================================================
  * 
  * SSOT ARCHITECTURE:
- *   Colors are generated from src/config/branding.ts via BrandingProvider.
- *   Do NOT define color variables here - edit branding.ts instead.
+ *   Colors are NOT defined here.
+ *   All colors flow from: branding.ts → generateTailwindCSSVariables() → BrandingProvider
  *   
- *   branding.ts (SSOT) → generateTailwindCSSVariables() → BrandingProvider → CSS Variables
+ *   To change colors: Edit ONLY src/config/branding.ts
  *   
  * This file contains ONLY:
  *   - Tailwind directives
- *   - Base element styles
+ *   - Base element styles  
  *   - Component utilities (that reference CSS variables)
- *   - NO color definitions (those are injected at runtime)
  * 
- * WHITE-LABEL: To rebrand colors, edit ONLY src/config/branding.ts
+ * NO hardcoded colors allowed. Use:
+ *   - Tailwind classes that reference CSS variables (bg-primary, text-foreground)
+ *   - hsl(var(--variable-name)) for inline styles
+ * 
  * ============================================================================ */
 
 @layer base {
@@ -28,15 +30,14 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* iOS safe area support */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Custom scrollbars */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    /* Uses spacing-sm from branding.ts tokens */
+    width: var(--spacing-sm);
+    height: var(--spacing-sm);
   }
 
   ::-webkit-scrollbar-track {
@@ -53,7 +54,6 @@
 }
 
 @layer components {
-  /* Status indicator utilities */
   .status-indicator {
     @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
   }
@@ -70,55 +70,35 @@
     @apply bg-destructive-light text-destructive border border-destructive/20;
   }
 
-  .status-pending {
-    @apply bg-warning-light text-secondary-foreground border border-warning/20;
-  }
-
-  /* Glass effect utilities */
+  /* Glass effect - uses card color from SSOT */
   .glass {
-    @apply backdrop-blur-sm bg-white/80 border border-white/20;
+    @apply backdrop-blur-sm bg-card/80 border border-card/20;
   }
 
-  .glass-dark {
-    @apply backdrop-blur-sm bg-black/80 border border-white/10;
-  }
-
-  /* Gradient text - Forest Green to Gold */
   .gradient-text {
     @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
   }
 
-  /* Beta ribbon - Using gold */
   .beta-ribbon {
     @apply absolute top-4 right-4 bg-gradient-to-r from-secondary to-accent text-foreground px-3 py-1 rounded-full text-xs font-semibold shadow-md transform rotate-12;
   }
 
-  /* Important badge - Using burgundy for gravitas */
   .important-badge {
     background-color: hsl(var(--burgundy));
     color: hsl(var(--primary-foreground));
     @apply px-3 py-1 rounded-full text-xs font-semibold;
   }
 
-  /* Scripture blockquote - Burgundy left border */
   .scripture-quote {
     @apply pl-4 italic;
-    border-left: 3px solid hsl(var(--burgundy-light));
+    border-left-width: var(--border-accent-width);
+    border-left-style: solid;
+    border-left-color: hsl(var(--burgundy-light));
   }
 
-  /* Section spacing utilities */
-  .section {
-    padding-top: var(--section-y);
-    padding-bottom: var(--section-y);
-  }
-
-  .section-lg {
-    padding-top: var(--section-y-lg);
-    padding-bottom: var(--section-y-lg);
-  }
-
-  /* Footer accent line - Burgundy for gravitas */
   .footer-accent {
-    border-top: 2px solid hsl(var(--burgundy));
+    border-top-width: var(--border-standard-width);
+    border-top-style: solid;
+    border-top-color: hsl(var(--burgundy));
   }
 }

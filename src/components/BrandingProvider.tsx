@@ -1,51 +1,41 @@
 /**
- * BrandingProvider - Runtime CSS Variable Injection with Tenant Support
- * =====================================================================
+ * BrandingProvider - SSOT Color System
+ * =====================================
  * 
- * This component injects CSS variables from branding.ts into the document head,
- * with support for tenant/white-label overrides from the Admin Panel.
+ * SSOT ARCHITECTURE:
+ *   1. branding.ts defines ALL colors (SINGLE SOURCE OF TRUTH)
+ *   2. generateTailwindCSSVariables() converts colors to CSS
+ *   3. This component injects that CSS into the document head
+ *   4. Tailwind reads the CSS variables
+ *   
+ * To change colors: Edit ONLY src/config/branding.ts
  * 
  * Location: src/components/BrandingProvider.tsx
- * 
- * ARCHITECTURE (SSOT with Tenant Override):
- *   1. branding.ts provides BASE brand colors (BibleLessonSpark defaults)
- *   2. TenantConfig can OVERRIDE primary/secondary colors via Admin Panel
- *   3. Final CSS variables = base + tenant overrides
- * 
- * USAGE:
- *   // In main.tsx - BrandingProvider wraps TenantProvider
- *   <BrandingProvider tenantBranding={tenant.branding}>
- *     <TenantProvider config={tenant}>
- *       <App />
- *     </TenantProvider>
- *   </BrandingProvider>
- * 
- * WHITE-LABEL FLOW:
- *   1. Default tenant (biblelessonspark) → uses branding.ts colors
- *   2. Custom tenant (e.g., firstbaptist) → Admin Panel colors override primary/secondary
  */
 
 import { useEffect, ReactNode } from 'react';
-import { generateTailwindCSSVariables, hexToHsl } from '@/config/branding';
+import { 
+  generateTailwindCSSVariables, 
+  BRANDING, 
+  COLOR_ADJUSTMENTS,
+  hexToHsl, 
+  adjustLightness 
+} from '@/config/branding';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
 interface TenantBranding {
-  primaryColor: string;
-  secondaryColor: string;
-  fontFamily: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  fontFamily?: string;
   name?: string;
   logoUrl?: string | null;
 }
 
 interface BrandingProviderProps {
   children: ReactNode;
-  /**
-   * Optional tenant branding overrides from Admin Panel.
-   * When provided, these colors replace the base branding.ts values.
-   */
   tenantBranding?: TenantBranding;
 }
 
@@ -53,166 +43,113 @@ interface BrandingProviderProps {
 // CONSTANTS
 // =============================================================================
 
-const STYLE_ID = 'biblelessonspark-brand-variables';
-const TENANT_OVERRIDE_STYLE_ID = 'biblelessonspark-tenant-overrides';
+const BASE_STYLE_ID = 'biblelessonspark-base-theme';
+const TENANT_STYLE_ID = 'biblelessonspark-tenant-overrides';
 
-// Default colors from branding.ts (for comparison to detect custom tenant)
-const DEFAULT_PRIMARY = '#3D5C3D';
-const DEFAULT_SECONDARY = '#D4A74B';
+/**
+ * Tenant override uses COLOR_ADJUSTMENTS from branding.ts (SSOT)
+ * This ensures tenant color variants match the base theme calculations exactly.
+ */
 
 // =============================================================================
 // COMPONENT
 // =============================================================================
 
 export function BrandingProvider({ children, tenantBranding }: BrandingProviderProps) {
+  
+  // Inject base theme CSS from branding.ts (SSOT)
   useEffect(() => {
-    // -------------------------------------------------------------------------
-    // Step 1: Inject base CSS variables from branding.ts
-    // -------------------------------------------------------------------------
-    let baseStyleElement = document.getElementById(STYLE_ID) as HTMLStyleElement | null;
+    let styleElement = document.getElementById(BASE_STYLE_ID) as HTMLStyleElement | null;
     
-    if (!baseStyleElement) {
-      baseStyleElement = document.createElement('style');
-      baseStyleElement.id = STYLE_ID;
-      document.head.appendChild(baseStyleElement);
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = BASE_STYLE_ID;
+      // Insert at beginning of head so tenant overrides can come after
+      document.head.insertBefore(styleElement, document.head.firstChild);
     }
     
-    // Generate and inject base CSS variables from branding.ts SSOT
-    baseStyleElement.textContent = generateTailwindCSSVariables();
-
-    // -------------------------------------------------------------------------
-    // Step 2: Apply tenant overrides if custom colors are set
-    // -------------------------------------------------------------------------
-    let tenantStyleElement = document.getElementById(TENANT_OVERRIDE_STYLE_ID) as HTMLStyleElement | null;
+    // Generate CSS from branding.ts (SSOT)
+    styleElement.textContent = generateTailwindCSSVariables();
     
-    if (tenantBranding) {
-      const hasCustomPrimary = tenantBranding.primaryColor && 
-        tenantBranding.primaryColor.toLowerCase() !== DEFAULT_PRIMARY.toLowerCase();
-      const hasCustomSecondary = tenantBranding.secondaryColor && 
-        tenantBranding.secondaryColor.toLowerCase() !== DEFAULT_SECONDARY.toLowerCase();
-      
-      if (hasCustomPrimary || hasCustomSecondary) {
-        // Create override style element if needed
-        if (!tenantStyleElement) {
-          tenantStyleElement = document.createElement('style');
-          tenantStyleElement.id = TENANT_OVERRIDE_STYLE_ID;
-          document.head.appendChild(tenantStyleElement);
-        }
-        
-        // Generate tenant override CSS
-        tenantStyleElement.textContent = generateTenantOverrides(tenantBranding);
-        
-        console.log('[BrandingProvider] Tenant overrides applied:', {
-          primary: hasCustomPrimary ? tenantBranding.primaryColor : '(default)',
-          secondary: hasCustomSecondary ? tenantBranding.secondaryColor : '(default)',
-        });
-      } else {
-        // No custom colors - remove any existing override element
-        if (tenantStyleElement) {
-          tenantStyleElement.remove();
-        }
-      }
-    }
-
-    // -------------------------------------------------------------------------
-    // Cleanup on unmount
-    // -------------------------------------------------------------------------
+    console.log('[BrandingProvider] Base theme injected from branding.ts (SSOT)');
+    console.log('[BrandingProvider] Primary:', BRANDING.colors.primary.DEFAULT);
+    
     return () => {
-      const baseEl = document.getElementById(STYLE_ID);
-      const tenantEl = document.getElementById(TENANT_OVERRIDE_STYLE_ID);
-      if (baseEl) baseEl.remove();
-      if (tenantEl) tenantEl.remove();
+      // Don't remove on unmount - theme should persist
+    };
+  }, []);
+
+  // Handle tenant overrides (white-label)
+  useEffect(() => {
+    // Remove any existing tenant overrides
+    const existingTenantStyle = document.getElementById(TENANT_STYLE_ID);
+    if (existingTenantStyle) {
+      existingTenantStyle.remove();
+    }
+
+    // If no tenant branding, we're done
+    if (!tenantBranding) return;
+
+    // Check if tenant has custom colors different from SSOT defaults
+    const hasCustomPrimary = tenantBranding.primaryColor && 
+      tenantBranding.primaryColor.toLowerCase() !== BRANDING.colors.primary.DEFAULT.toLowerCase();
+    const hasCustomSecondary = tenantBranding.secondaryColor && 
+      tenantBranding.secondaryColor.toLowerCase() !== BRANDING.colors.secondary.DEFAULT.toLowerCase();
+
+    // Only inject if tenant has different colors
+    if (!hasCustomPrimary && !hasCustomSecondary) {
+      console.log('[BrandingProvider] Tenant using default SSOT colors');
+      return;
+    }
+
+    // Create tenant override styles
+    const tenantStyle = document.createElement('style');
+    tenantStyle.id = TENANT_STYLE_ID;
+    
+    const overrides: string[] = [];
+
+    if (hasCustomPrimary && tenantBranding.primaryColor) {
+      const hsl = hexToHsl(tenantBranding.primaryColor);
+      overrides.push(`
+  /* Tenant Primary Override */
+  --primary: ${hsl};
+  --primary-hover: ${adjustLightness(hsl, COLOR_ADJUSTMENTS.hover.primaryHover)};
+  --primary-light: ${adjustLightness(hsl, COLOR_ADJUSTMENTS.light.primaryLight)};
+  --success: ${hsl};
+  --ring: ${hsl};`);
+    }
+
+    if (hasCustomSecondary && tenantBranding.secondaryColor) {
+      const hsl = hexToHsl(tenantBranding.secondaryColor);
+      overrides.push(`
+  /* Tenant Secondary Override */
+  --secondary: ${hsl};
+  --secondary-hover: ${adjustLightness(hsl, COLOR_ADJUSTMENTS.hover.secondaryHover)};
+  --secondary-light: ${adjustLightness(hsl, COLOR_ADJUSTMENTS.light.secondaryLight)};
+  --warning: ${hsl};
+  --accent: ${hsl};`);
+    }
+
+    tenantStyle.textContent = `
+/* Tenant Branding Override: ${tenantBranding.name || 'Custom'} */
+:root {${overrides.join('')}
+}`;
+
+    document.head.appendChild(tenantStyle);
+
+    console.log('[BrandingProvider] Tenant overrides applied:', {
+      tenant: tenantBranding.name || 'custom',
+      primary: hasCustomPrimary ? tenantBranding.primaryColor : 'SSOT default',
+      secondary: hasCustomSecondary ? tenantBranding.secondaryColor : 'SSOT default',
+    });
+
+    return () => {
+      const el = document.getElementById(TENANT_STYLE_ID);
+      if (el) el.remove();
     };
   }, [tenantBranding]);
 
   return <>{children}</>;
 }
-
-// =============================================================================
-// HELPER: Generate Tenant Override CSS
-// =============================================================================
-
-/**
- * Generate CSS that overrides base branding with tenant-specific colors.
- * Only overrides primary and secondary (the colors exposed in Admin Panel).
- */
-function generateTenantOverrides(branding: TenantBranding): string {
-  const overrides: string[] = [];
-  
-  // Override primary color if custom
-  if (branding.primaryColor && branding.primaryColor.toLowerCase() !== DEFAULT_PRIMARY.toLowerCase()) {
-    const primaryHsl = hexToHsl(branding.primaryColor);
-    const primaryLight = adjustLightness(primaryHsl, 10);
-    
-    overrides.push(`
-  /* Tenant Primary Color Override */
-  --primary: ${primaryHsl};
-  --primary-hover: ${primaryLight};
-  --primary-light: ${adjustLightness(primaryHsl, 65)};
-  --success: ${primaryHsl};
-  --ring: ${primaryHsl};
-    `);
-  }
-  
-  // Override secondary color if custom
-  if (branding.secondaryColor && branding.secondaryColor.toLowerCase() !== DEFAULT_SECONDARY.toLowerCase()) {
-    const secondaryHsl = hexToHsl(branding.secondaryColor);
-    const secondaryDark = adjustLightness(secondaryHsl, -6);
-    
-    overrides.push(`
-  /* Tenant Secondary Color Override */
-  --secondary: ${secondaryHsl};
-  --secondary-hover: ${secondaryDark};
-  --secondary-light: ${adjustLightness(secondaryHsl, 39)};
-  --warning: ${secondaryHsl};
-  --accent: ${secondaryHsl};
-    `);
-  }
-  
-  // Override font if custom
-  if (branding.fontFamily && branding.fontFamily !== '"Inter", system-ui, sans-serif') {
-    overrides.push(`
-  /* Tenant Font Override */
-  --font-primary: ${branding.fontFamily};
-    `);
-  }
-  
-  if (overrides.length === 0) {
-    return '';
-  }
-  
-  return `
-/* ============================================
- * TENANT BRANDING OVERRIDES
- * Generated from Admin Panel settings
- * These override base branding.ts values
- * ============================================ */
-:root {
-${overrides.join('\n')}
-}
-  `.trim();
-}
-
-/**
- * Adjust lightness of an HSL color string
- * (Duplicated here to avoid circular dependency with branding.ts)
- */
-function adjustLightness(hsl: string, adjustment: number): string {
-  const parts = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
-  if (!parts) return hsl;
-  
-  const h = parseInt(parts[1]);
-  const s = parseInt(parts[2]);
-  let l = parseInt(parts[3]) + adjustment;
-  
-  // Clamp lightness to valid range
-  l = Math.max(0, Math.min(100, l));
-  
-  return `${h} ${s}% ${l}%`;
-}
-
-// =============================================================================
-// EXPORTS
-// =============================================================================
 
 export default BrandingProvider;
