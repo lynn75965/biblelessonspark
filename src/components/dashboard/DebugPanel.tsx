@@ -1,4 +1,15 @@
+/**
+ * Debug Panel - Development/Admin overlay for job tracking
+ * Updated: January 15, 2026 - SSOT color compliance
+ */
 import React from 'react';
+import { BRANDING } from '@/config/branding';
+
+// SSOT: Debug panel styling uses brand dark color for consistent appearance
+const DEBUG_PANEL_STYLES = {
+  background: BRANDING.colors.accent.dark, // Dark background for visibility
+  shadow: `0 4px 12px ${BRANDING.colors.accent.dark}40`, // 25% opacity shadow
+};
 
 interface DebugPanelProps {
   job: {
@@ -16,15 +27,13 @@ export default function DebugPanel({ job }: DebugPanelProps) {
   if (!job || job.state === 'idle' || job.state === 'done' || job.state === 'failed') {
     return null;
   }
-
   const { jobId, sessionId, uploadId, fileHash, source, state, progress } = job;
-
   return (
     <div style={{
       position: 'fixed',
       bottom: '16px',
       right: '16px',
-      background: '#111827',
+      background: DEBUG_PANEL_STYLES.background,
       color: 'white',
       padding: '10px 14px',
       borderRadius: '8px',
@@ -32,15 +41,15 @@ export default function DebugPanel({ job }: DebugPanelProps) {
       zIndex: 9999,
       opacity: 0.9,
       width: '280px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.25)',
+      boxShadow: DEBUG_PANEL_STYLES.shadow,
     }}>
       <strong>Job Tracker</strong><br />
-      Job: {jobId || '–'}<br />
+      Job: {jobId || '—'}<br />
       State: {state} {progress ? `(${progress}%)` : ''}<br />
       sessionId: {sessionId?.slice(0, 8)}…<br />
       uploadId: {uploadId?.slice(0, 8)}…<br />
       fileHash: {fileHash?.slice(0, 8)}…<br />
-      source: {source || '–'}
+      source: {source || '—'}
     </div>
   );
 }

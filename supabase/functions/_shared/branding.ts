@@ -11,7 +11,10 @@
  *   import { getBranding, getEmailFrom, getEmailSubject } from '../_shared/branding.ts'
  *   
  *   const branding = await getBranding(supabaseClient);
- *   const subject = getEmailSubject(branding, 'signup');
+ *   const subject = getEmailSubject(branding, 'orgInvitation', { orgName: 'My Church' });
+ * 
+ * SSOT: Fallback values mirror src/config/branding.ts
+ * Last synced: January 15, 2026
  */
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -50,12 +53,22 @@ export interface BrandingEmail {
   [key: string]: any;
 }
 
+export interface BrandingUrls {
+  domain: string;
+  baseUrl: string;
+  support: string;
+  [key: string]: any;
+}
+
 export interface BrandingConfig {
   appName: string;
   appNameShort: string;
   tagline: string;
+  urls: BrandingUrls;
   contact: {
     supportEmail: string;
+    noReplyEmail: string;
+    emailSenderName: string;
     [key: string]: any;
   };
   email: BrandingEmail;
@@ -63,38 +76,48 @@ export interface BrandingConfig {
 }
 
 // ============================================================================
-// FALLBACK BRANDING (used if database fetch fails)
+// FALLBACK BRANDING (SSOT: mirrors src/config/branding.ts)
+// ============================================================================
+// These values must match the frontend SSOT in src/config/branding.ts
+// If you rebrand, update BOTH files (or implement database-driven branding)
 // ============================================================================
 
 const FALLBACK_BRANDING: BrandingConfig = {
-  appName: "LessonSpark USA",
-  appNameShort: "LessonSpark",
-  tagline: "Baptist Bible Study Enhancement Platform",
+  appName: "BibleLessonSpark",
+  appNameShort: "BibleLessonSpark",
+  tagline: "Personalized Bible Study Lessons for Baptist Teachers",
+  urls: {
+    domain: "biblelessonspark.com",
+    baseUrl: "https://biblelessonspark.com",
+    support: "https://biblelessonspark.com/support",
+  },
   contact: {
-    supportEmail: "support@lessonsparkusa.com",
+    supportEmail: "support@biblelessonspark.com",
+    noReplyEmail: "noreply@biblelessonspark.com",
+    emailSenderName: "BibleLessonSpark",
   },
   email: {
-    fromEmail: "noreply@lessonsparkusa.com",
-    fromName: "LessonSpark USA",
-    replyTo: "support@lessonsparkusa.com",
+    fromEmail: "noreply@biblelessonspark.com",
+    fromName: "BibleLessonSpark",
+    replyTo: "support@biblelessonspark.com",
     subjects: {
-      welcome: "Welcome to LessonSpark USA! 🎉",
-      emailVerification: "Verify your LessonSpark USA email address",
-      signup: "Welcome to LessonSpark USA - Confirm Your Email",
-      magiclink: "Your LessonSpark USA Login Link",
-      passwordReset: "Reset your LessonSpark USA password",
-      recovery: "Reset Your LessonSpark USA Password",
-      passwordChanged: "Your LessonSpark USA password has been changed",
-      orgInvitation: "You've been invited to join {orgName} on LessonSpark USA",
+      welcome: "Welcome to BibleLessonSpark! 🎉",
+      emailVerification: "Verify your BibleLessonSpark email address",
+      signup: "Welcome to BibleLessonSpark - Confirm Your Email",
+      magiclink: "Your BibleLessonSpark Login Link",
+      passwordReset: "Reset your BibleLessonSpark password",
+      recovery: "Reset Your BibleLessonSpark Password",
+      passwordChanged: "Your BibleLessonSpark password has been changed",
+      orgInvitation: "You've been invited to join {orgName} on BibleLessonSpark",
       orgInvitationAccepted: "{userName} has joined {orgName}",
       orgRoleChanged: "Your role in {orgName} has been updated",
       orgRemoved: "You've been removed from {orgName}",
       lessonShared: "{userName} shared a lesson with you",
       lessonComplete: "Your lesson is ready: {lessonTitle}",
       feedbackReceived: "New feedback received from {userName}",
-      weeklyDigest: "Your LessonSpark USA weekly summary",
-      systemNotice: "Important notice from LessonSpark USA",
-      betaInvitation: "You're invited to try LessonSpark USA Beta!",
+      weeklyDigest: "Your BibleLessonSpark weekly summary",
+      systemNotice: "Important notice from BibleLessonSpark",
+      betaInvitation: "You're invited to try BibleLessonSpark!",
       featureAnnouncement: "New feature: {featureName}",
     },
   },
@@ -176,6 +199,7 @@ export function clearBrandingCache(): void {
 
 /**
  * Get formatted "From" field for Resend emails
+ * Returns: "BibleLessonSpark <noreply@biblelessonspark.com>"
  */
 export function getEmailFrom(branding: BrandingConfig): string {
   return `${branding.email.fromName} <${branding.email.fromEmail}>`;
@@ -183,6 +207,10 @@ export function getEmailFrom(branding: BrandingConfig): string {
 
 /**
  * Get email subject with placeholders replaced
+ * 
+ * @example
+ * getEmailSubject(branding, 'orgInvitation', { orgName: 'First Baptist' })
+ * // Returns: "You've been invited to join First Baptist on BibleLessonSpark"
  */
 export function getEmailSubject(
   branding: BrandingConfig,
@@ -193,7 +221,7 @@ export function getEmailSubject(
   
   if (!subject) {
     console.warn(`Email subject template '${templateKey}' not found, using fallback`);
-    subject = FALLBACK_BRANDING.email.subjects[templateKey] || 'Notification from LessonSpark USA';
+    subject = FALLBACK_BRANDING.email.subjects[templateKey] || `Notification from ${branding.appName}`;
   }
   
   // Replace placeholders
@@ -209,6 +237,20 @@ export function getEmailSubject(
  */
 export function getReplyTo(branding: BrandingConfig): string {
   return branding.email.replyTo || branding.contact.supportEmail;
+}
+
+/**
+ * Get base URL for building links
+ */
+export function getBaseUrl(branding: BrandingConfig): string {
+  return branding.urls?.baseUrl || FALLBACK_BRANDING.urls.baseUrl;
+}
+
+/**
+ * Get app name for use in email templates
+ */
+export function getAppName(branding: BrandingConfig): string {
+  return branding.appName || FALLBACK_BRANDING.appName;
 }
 
 // ============================================================================

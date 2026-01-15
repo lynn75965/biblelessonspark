@@ -20,7 +20,7 @@ import {
   DEFAULT_TENANT_CONFIG,
   DEFAULT_TENANT_ID,
   mapRowToConfig,
-} from '@/constants/tenantConfig';
+} from '@/config/tenantConfig';
 
 interface UseTenantConfigResult {
   config: TenantConfig;

@@ -1,11 +1,7 @@
 // ============================================================
 // LESSONSPARK USA - SUBSCRIPTION CHECK (SHARED)
 // Location: supabase/functions/_shared/subscriptionCheck.ts
-//
-// SSOT COMPLIANT: Imports tier sections from pricingConfig.ts
 // ============================================================
-
-import { TIER_SECTIONS, type SubscriptionTier } from './pricingConfig.ts';
 
 export interface LessonLimitResult {
   can_generate: boolean;
@@ -22,13 +18,12 @@ export async function checkLessonLimit(supabase: any, userId: string): Promise<L
   if (error) {
     console.error('Error checking lesson limit:', error);
     // Fail open - allow generation if check fails
-    // Use SSOT for free tier sections
     return {
       can_generate: true,
       lessons_used: 0,
       lessons_limit: 999,
       tier: 'free',
-      sections_allowed: getSectionsForTier('free'),
+      sections_allowed: [1, 5, 8],
       reset_date: null
     };
   }
@@ -45,20 +40,10 @@ export async function incrementLessonUsage(supabase: any, userId: string): Promi
   }
 }
 
-/**
- * Get allowed section numbers for a subscription tier
- * SSOT: Reads from TIER_SECTIONS in pricingConfig.ts
- * 
- * @param tier - Subscription tier ('free', 'personal', 'admin')
- * @returns Array of section numbers (integers)
- */
 export function getSectionsForTier(tier: string): number[] {
-  // Normalize tier to valid key
-  const normalizedTier = (tier === 'admin' || tier === 'personal' || tier === 'free') 
-    ? tier as SubscriptionTier 
-    : 'free';
-  
-  // Get sections from SSOT and convert strings to numbers
-  const sections = TIER_SECTIONS[normalizedTier];
-  return sections.map(s => parseInt(s, 10));
+  if (tier === 'admin' || tier === 'personal') {
+    return [1, 2, 3, 4, 5, 6, 7, 8];
+  }
+  // Free tier gets core sections only
+  return [1, 5, 8];
 }

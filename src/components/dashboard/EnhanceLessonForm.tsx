@@ -1,4 +1,4 @@
-﻿/**
+/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -13,6 +13,7 @@
  * - Brand colors matching landing page (gold accents, teal buttons/badges)
  * - Bible Version selection with copyright-aware guardrails
  * - Mobile responsiveness fixes
+ * - PHASE 21: Paid users (Personal/Admin) never see Free/Full toggle
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -152,10 +153,10 @@ const AccordionStep = ({
             
             {/* Completion/Lock Indicator */}
             {isComplete && !isExpanded && (
-              <span className="text-primary text-sm font-medium">âœ“ Done</span>
+              <span className="text-primary text-sm font-medium">✓ Done</span>
             )}
             {isLocked && (
-              <span className="text-muted-foreground text-sm">ðŸ”’</span>
+              <span className="text-muted-foreground text-sm">🔒</span>
             )}
           </div>
         </div>
@@ -278,7 +279,7 @@ const parseLessonSections = (content: string, freeSections: number[]): LessonSec
 
 // Format section content for display (remove header line since we display it separately)
 const formatSectionContent = (content: string): string => {
-  // First normalize legacy content (## headers â†’ **bold:**, 1. â†’ **1.**)
+  // First normalize legacy content (## headers → **bold:**, 1. → **1.**)
   const normalized = normalizeLegacyContent(content);
   return normalized
     // Remove section header line in various formats
@@ -329,7 +330,7 @@ export function EnhanceLessonForm({
   // LESSON VIEW MODE TOGGLE (Full vs Free comparison)
   // ============================================================================
   
-  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">("free");
+  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">("full");
 
   // Free tier shows only sections 1, 5, 8
   // Free tier sections - imported from SSOT (pricingConfig.ts)
@@ -429,7 +430,7 @@ export function EnhanceLessonForm({
     const parts = [];
     if (biblePassage.trim()) parts.push(biblePassage.trim());
     if (focusedTopic.trim()) parts.push(`"${focusedTopic.trim()}"`);
-    return parts.join(" â€¢ ") || "";
+    return parts.join(" • ") || "";
   };
 
   const getStep2Summary = (): string => {
@@ -446,7 +447,7 @@ export function EnhanceLessonForm({
       const version = getBibleVersion(bibleVersionId);
       parts.push(version?.abbreviation || "");
     }
-    return parts.filter(Boolean).join(" â€¢ ");
+    return parts.filter(Boolean).join(" • ");
   };
 
   const getStep3Summary = (): string => {
@@ -454,7 +455,7 @@ export function EnhanceLessonForm({
     if (teachingStyle) parts.push(teachingStyle);
     if (learningStyle) parts.push(learningStyle);
     if (lessonLength) parts.push(lessonLength);
-    return parts.filter(Boolean).join(" â€¢ ") || "Optional customizations";
+    return parts.filter(Boolean).join(" • ") || "Optional customizations";
   };
 
   // ============================================================================
@@ -475,6 +476,14 @@ export function EnhanceLessonForm({
   } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const { toast } = useToast();
+
+  // ============================================================================
+  // PAID USER DETECTION (PHASE 21)
+  // Paid users (Personal/Admin) should never see the Free/Full toggle
+  // They always get full lessons - clean, premium UX
+  // ============================================================================
+  
+  const isPaidUser = tier === 'personal' || tier === 'admin';
 
   // Teacher Profiles Hook
   const {
@@ -625,6 +634,18 @@ export function EnhanceLessonForm({
       }
     }
   }, [initialFocusData]);
+
+  // ============================================================================
+  // PAID USER VIEW MODE ENFORCEMENT (PHASE 21)
+  // Paid subscribers should never see the "What Free Looks Like" comparison
+  // Force full view mode when user has paid subscription
+  // ============================================================================
+
+  useEffect(() => {
+    if (isPaidUser) {
+      setLessonViewMode("full");
+    }
+  }, [isPaidUser]);
 
   // ============================================================================
   // PROGRESS TIMER
@@ -864,7 +885,7 @@ export function EnhanceLessonForm({
 
   // Free output mode: After complimentary full lessons, exports only show sections 1, 5, 8
   // SSOT: Business rule from pricingConfig.ts
-  const isFreeOutputOnly = subLessonsUsed > PRICING_DISPLAY.free.complimentaryFullLessons;
+  const isFreeOutputOnly = !isPaidUser && subLessonsUsed > PRICING_DISPLAY.free.complimentaryFullLessons;
   
   // Compute lesson content for export based on subscription status
   const lessonContentForExport = currentLesson?.original_text 
@@ -912,7 +933,7 @@ export function EnhanceLessonForm({
             {lessonCount === 0 && !step1Complete && !step2Complete && (
               <div className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">ðŸŽ‰</span>
+                  <span className="text-2xl">🎉</span>
                   <div>
                     <h3 className="font-semibold text-foreground">Welcome! Create your first lesson in 3 simple steps.</h3>
                     <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
@@ -925,7 +946,7 @@ export function EnhanceLessonForm({
             {lessonCount > 0 && lessonCount % 5 === 0 && !step1Complete && (
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
                 <p className="text-sm text-primary">
-                  ðŸ’¡ <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
+                  💡 <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
                 </p>
               </div>
             )}
@@ -1032,7 +1053,7 @@ export function EnhanceLessonForm({
                             )}
                             {extractedContent && (
                               <div className="text-sm text-primary">
-                                âœ“ File content extracted ({extractedContent.length} characters)
+                                ✓ File content extracted ({extractedContent.length} characters)
                               </div>
                             )}
                           </div>
@@ -1053,7 +1074,7 @@ export function EnhanceLessonForm({
                             {pastedContent.trim() && (
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm text-primary">
-                                  âœ“ {pastedContent.length} characters entered
+                                  ✓ {pastedContent.length} characters entered
                                 </span>
                                 <Button
                                   type="button"
@@ -1145,7 +1166,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(2)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 2 â†’
+                    Continue to Step 2 →
                   </Button>
                 </div>
               )}
@@ -1158,7 +1179,7 @@ export function EnhanceLessonForm({
           <AccordionStep
             stepNumber={2}
             title={<>Set Your <GoldAccent>Teaching Context</GoldAccent></>}
-            description="Tell us about your class â€” age group, theology profile, and Bible version. We'll tailor the lesson to fit."
+            description="Tell us about your class — age group, theology profile, and Bible version. We'll tailor the lesson to fit."
             isExpanded={expandedStep === 2}
             isComplete={step2Complete}
             isLocked={!step1Complete}
@@ -1241,7 +1262,7 @@ export function EnhanceLessonForm({
                       <SelectItem key={version.id} value={version.id}>
                         {version.name} ({version.abbreviation})
                         {version.copyrightStatus === 'public_domain' && (
-                          <span className="ml-2 text-xs text-primary">â€¢ Direct quotes</span>
+                          <span className="ml-2 text-xs text-primary">• Direct quotes</span>
                         )}
                       </SelectItem>
                     ))}
@@ -1263,7 +1284,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(3)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 3 â†’
+                    Continue to Step 3 →
                   </Button>
                 </div>
               )}
@@ -1330,7 +1351,7 @@ export function EnhanceLessonForm({
                     <ChevronRight className="h-5 w-5 text-muted-foreground" />
                     <StepBadge number={3} />
                   </div>
-                  <span className="text-muted-foreground text-sm">ðŸ”’</span>
+                  <span className="text-muted-foreground text-sm">🔒</span>
                 </div>
                 <div className="ml-10 mt-2">
                   <CardTitle className="text-lg text-foreground">
@@ -1353,7 +1374,7 @@ export function EnhanceLessonForm({
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add specific requests â€” describe your focus or primary thought
+                  Add specific requests — describe your focus or primary thought
                 </p>
                 <Textarea
                   id="notes"
@@ -1443,7 +1464,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">ðŸ“± Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">📱 Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
               </p>
             </div>
 
@@ -1455,7 +1476,7 @@ export function EnhanceLessonForm({
             >
               {subLessonsUsed >= subLessonsLimit ? (
                 <span>
-                  Limit reached â€” resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
+                  Limit reached — resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
                 </span>
               ) : (
                 <span>
@@ -1565,44 +1586,48 @@ export function EnhanceLessonForm({
 
             {/* ============================================================ */}
             {/* FULL LESSON / FREE LESSON TOGGLE */}
+            {/* PHASE 21: Only shown for FREE users */}
+            {/* Paid users (Personal/Admin) never see this - always full lesson */}
             {/* ============================================================ */}
-            <div className="mt-4 p-3 bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium text-foreground">Preview Mode:</span>
+            {!isPaidUser && (
+              <div className="mt-4 p-3 bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Eye className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Preview Mode:</span>
+                  </div>
+                  <div className="flex rounded-lg border border-primary/40 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setLessonViewMode("full")}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        lessonViewMode === "full"
+                          ? "bg-primary text-white"
+                          : "bg-card text-muted-foreground hover:bg-primary/10"
+                      }`}
+                    >
+                      Full Lesson (8 sections)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLessonViewMode("free")}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        lessonViewMode === "free"
+                          ? "bg-secondary text-white"
+                          : "bg-card text-muted-foreground hover:bg-amber-50"
+                      }`}
+                    >
+                      What Free Looks Like
+                    </button>
+                  </div>
                 </div>
-                <div className="flex rounded-lg border border-primary/40 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setLessonViewMode("full")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      lessonViewMode === "full"
-                        ? "bg-primary text-white"
-                        : "bg-card text-muted-foreground hover:bg-primary/10"
-                    }`}
-                  >
-                    Full Lesson (8 sections)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLessonViewMode("free")}
-                    className={`px-4 py-2 text-sm font-medium transition-colors ${
-                      lessonViewMode === "free"
-                        ? "bg-secondary text-white"
-                        : "bg-card text-muted-foreground hover:bg-amber-50"
-                    }`}
-                  >
-                    What Free Looks Like
-                  </button>
-                </div>
+                {lessonViewMode === "free" && (
+                  <p className="text-xs text-amber-700 mt-2">
+                    Showing sections 1, 5, and 8 only — this is what free accounts receive after complimentary lessons expire.
+                  </p>
+                )}
               </div>
-              {lessonViewMode === "free" && (
-                <p className="text-xs text-amber-700 mt-2">
-                  Showing sections 1, 5, and 8 only â€” this is what free accounts receive after complimentary lessons expire.
-                </p>
-              )}
-            </div>
+            )}
           </CardHeader>
           <CardContent>
             {/* Teaser Section - Only show in Full mode */}
@@ -1622,12 +1647,12 @@ export function EnhanceLessonForm({
             )}
 
             {/* Teaser - Locked indicator in Free mode */}
-            {currentLesson.metadata?.teaser && lessonViewMode === "free" && (
+            {currentLesson.metadata?.teaser && lessonViewMode === "free" && !isPaidUser && (
               <div className="mb-3 p-2.5 bg-muted border border-border rounded-lg opacity-60">
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">
-                    Student Teaser â€” Premium Feature
+                    Student Teaser — Premium Feature
                   </span>
                 </div>
               </div>
@@ -1672,9 +1697,9 @@ export function EnhanceLessonForm({
                             {section.sectionNumber}
                           </span>
                           {section.title}
-                          {section.isFreeTier && lessonViewMode === "free" && (
+                          {section.isFreeTier && lessonViewMode === "free" && !isPaidUser && (
                             <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              âœ“ Included in Free
+                              ✓ Included in Free
                             </span>
                           )}
                         </h3>
@@ -1688,7 +1713,7 @@ export function EnhanceLessonForm({
                       </div>
                     );
                   } else {
-                    // Show locked/collapsed section
+                    // Show locked/collapsed section (only for free users in free view mode)
                     return (
                       <div
                         key={section.sectionNumber}
@@ -1709,7 +1734,7 @@ export function EnhanceLessonForm({
                           onClick={() => setLessonViewMode("full")}
                           className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
                         >
-                          â†’ See what the full lesson includes
+                          → See what the full lesson includes
                         </button>
                       </div>
                     );
@@ -1718,21 +1743,21 @@ export function EnhanceLessonForm({
               })()}
             </div>
 
-            {/* Upgrade CTA - Only show in Free mode */}
-            {lessonViewMode === "free" && (
+            {/* Upgrade CTA - Only show in Free mode for free users */}
+            {lessonViewMode === "free" && !isPaidUser && (
               <div className="mt-6 p-4 bg-gradient-to-r from-amber-50 to-primary/5 border border-amber-200 rounded-lg">
                 <div className="text-center">
                   <h4 className="font-semibold text-foreground mb-2">
                     This is what free accounts receive after your {PRICING_DISPLAY.free.complimentaryFullLessons} complimentary lessons.
                   </h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You'll still get the overview, teaching script, and student handoutâ€”but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
+                    You'll still get the overview, teaching script, and student handout—but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
                   </p>
                   <Button 
                     type="button"
                     onClick={() => navigate(ROUTES.PRICING)}
                     className="bg-secondary hover:bg-secondary text-white">
-                    {PRICING_DISPLAY.personal.upgradeButton} â€” {PRICING_DISPLAY.personal.ctaFull}
+                    {PRICING_DISPLAY.personal.upgradeButton} — {PRICING_DISPLAY.personal.ctaFull}
                   </Button>
                 </div>
               </div>

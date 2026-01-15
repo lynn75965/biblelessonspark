@@ -1,11 +1,18 @@
-﻿// =====================================================
+// =====================================================
 // LESSON TIERS - Single Source of Truth
 // =====================================================
 // Location: src/constants/lessonTiers.ts (MASTER)
 // Mirror: supabase/functions/_shared/lessonTiers.ts
 // DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants
-// Last Updated: 2025-12-07
+// Last Updated: 2026-01-15
 // =====================================================
+// SSOT COMPLIANCE: Section arrays imported from pricingConfig.ts
+// =====================================================
+
+import { 
+  FREE_TIER_SECTION_NUMBERS, 
+  FULL_TIER_SECTION_NUMBERS 
+} from './pricingConfig';
 
 export interface LessonTier {
   id: string;
@@ -26,7 +33,7 @@ export const LESSON_TIERS: LessonTier[] = [
     name: 'basic',
     displayName: 'Quick Lesson',
     description: 'Essential framework (3 sections) - faster generation',
-    sections: [1, 5, 8],
+    sections: [...FREE_TIER_SECTION_NUMBERS],  // SSOT: [1, 5, 8]
     includesTeaser: false,
     wordCountTarget: { min: 1030, max: 1490 },
     estimatedMinutes: { min: 0.5, max: 1 },
@@ -38,7 +45,7 @@ export const LESSON_TIERS: LessonTier[] = [
     name: 'full',
     displayName: 'Complete Lesson',
     description: 'Full framework (8 sections + optional teaser)',
-    sections: [1, 2, 3, 4, 5, 6, 7, 8],
+    sections: [...FULL_TIER_SECTION_NUMBERS],  // SSOT: [1, 2, 3, 4, 5, 6, 7, 8]
     includesTeaser: true,
     wordCountTarget: { min: 2100, max: 2790 },
     estimatedMinutes: { min: 1, max: 1.5 },

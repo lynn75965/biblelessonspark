@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -579,7 +579,7 @@ export function SystemAnalyticsDashboard() {
 
         <Card className="bg-gradient-card">
           <CardContent className="p-4 text-center">
-            <BookOpen className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+            <BookOpen className="h-6 w-6 mx-auto mb-2 text-secondary" />
             <p className="text-2xl font-bold">{platformStats.avgLessonsPerUser}</p>
             <p className="text-xs text-muted-foreground">Avg Lessons/User</p>
           </CardContent>
@@ -664,7 +664,7 @@ export function SystemAnalyticsDashboard() {
                       </TableCell>
                       <TableCell className="text-center">
                         {user.beta_participant ? (
-                          <Badge variant="secondary" className="bg-primary/10 text-green-800">
+                          <Badge variant="secondary" className="bg-primary/10 text-primary">
                             <CheckCircle className="h-3 w-3 mr-1" />
                             Yes
                           </Badge>
@@ -772,7 +772,7 @@ export function SystemAnalyticsDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-card">
             <CardContent className="p-4 text-center">
-              <Loader className={`h-6 w-6 mx-auto mb-2 text-blue-600 ${apiUsage.activeNow > 0 ? 'animate-spin' : ''}`} />
+              <Loader className={`h-6 w-6 mx-auto mb-2 text-secondary ${apiUsage.activeNow > 0 ? 'animate-spin' : ''}`} />
               <p className="text-2xl font-bold">{apiUsage.activeNow}</p>
               <p className="text-xs text-muted-foreground">Active Now</p>
             </CardContent>
@@ -780,7 +780,7 @@ export function SystemAnalyticsDashboard() {
 
           <Card className="bg-gradient-card">
             <CardContent className="p-4 text-center">
-              <Zap className="h-6 w-6 mx-auto mb-2 text-purple-600" />
+              <Zap className="h-6 w-6 mx-auto mb-2 text-accent" />
               <p className="text-2xl font-bold">{formatTokens(apiUsage.tokensTotalToday)}</p>
               <p className="text-xs text-muted-foreground">Tokens Today</p>
               <p className="text-[10px] text-muted-foreground mt-1">
@@ -795,7 +795,7 @@ export function SystemAnalyticsDashboard() {
                 apiUsage.costToday >= API_USAGE_CONFIG.thresholds.dailyCostCritical 
                   ? 'text-destructive' 
                   : apiUsage.costToday >= API_USAGE_CONFIG.thresholds.dailyCostWarning 
-                    ? 'text-amber-600' 
+                    ? 'text-secondary' 
                     : 'text-primary'
               }`} />
               <p className="text-2xl font-bold">{formatCost(apiUsage.costToday)}</p>
@@ -878,7 +878,7 @@ export function SystemAnalyticsDashboard() {
 
             <Card className="bg-gradient-card">
               <CardContent className="p-4 text-center">
-                <Clock className="h-6 w-6 mx-auto mb-2 text-blue-600" />
+                <Clock className="h-6 w-6 mx-auto mb-2 text-secondary" />
                 <p className="text-2xl font-bold">{formatDuration(metricsSummary.avgDuration)}</p>
                 <p className="text-xs text-muted-foreground">Avg Duration</p>
               </CardContent>
@@ -886,7 +886,7 @@ export function SystemAnalyticsDashboard() {
 
             <Card className="bg-gradient-card">
               <CardContent className="p-4 text-center">
-                <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-amber-600" />
+                <AlertTriangle className="h-6 w-6 mx-auto mb-2 text-secondary" />
                 <p className="text-2xl font-bold">{metricsSummary.timeouts + metricsSummary.errors}</p>
                 <p className="text-xs text-muted-foreground">Timeouts/Errors</p>
               </CardContent>
@@ -973,8 +973,8 @@ export function SystemAnalyticsDashboard() {
                               <span className="capitalize">{record.device_type}</span>
                             </div>
                           </TableCell>
-                          <TableCell>{record.browser || 'â€”'}</TableCell>
-                          <TableCell>{record.os || 'â€”'}</TableCell>
+                          <TableCell>{record.browser || '???'}</TableCell>
+                          <TableCell>{record.os || '???'}</TableCell>
                           <TableCell className={getDurationColor(record.generation_duration_ms)}>
                             {formatDuration(record.generation_duration_ms)}
                           </TableCell>
@@ -994,7 +994,7 @@ export function SystemAnalyticsDashboard() {
                                 {formatTokens((record.tokens_input || 0) + (record.tokens_output || 0))}
                               </span>
                             ) : (
-                              'â€”'
+                              '???'
                             )}
                           </TableCell>
                         </TableRow>

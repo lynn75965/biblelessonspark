@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -110,24 +110,25 @@ export function OrgAnalyticsPanel({
 
   useEffect(() => { fetchStats(); }, [organizationId, betaMode]);
 
+  // SSOT: Using semantic color classes from brand palette
   const statCards = [
-    { label: 'Total Members', value: stats.totalMembers, icon: Users, color: 'text-blue-500' },
+    { label: 'Total Members', value: stats.totalMembers, icon: Users, color: 'text-secondary' },
     { label: 'Total Lessons', value: stats.totalLessons, icon: BookOpen, color: 'text-primary' },
-    { label: 'Lessons This Month', value: stats.lessonsThisMonth, icon: Calendar, color: 'text-purple-500' },
-    { label: 'Active Authors', value: stats.activeAuthors, icon: UserCheck, color: 'text-orange-500' },
+    { label: 'Lessons This Month', value: stats.lessonsThisMonth, icon: Calendar, color: 'text-accent' },
+    { label: 'Active Authors', value: stats.activeAuthors, icon: UserCheck, color: 'text-secondary' },
   ];
 
   return (
     <div className="space-y-4">
-      {/* Beta Program Status Card */}
+      {/* Beta Program Status Card - Uses secondary (gold) for beta/warning styling */}
       {betaMode && (
-        <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+        <Card className="bg-secondary/10 dark:bg-secondary/20 border-secondary/30 dark:border-secondary/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+            <CardTitle className="flex items-center gap-2 text-secondary-foreground">
               <Rocket className="h-5 w-5" />
               Beta Program Active
             </CardTitle>
-            <CardDescription className="text-amber-700 dark:text-amber-300">
+            <CardDescription className="text-secondary-foreground/80">
               This organization is currently running a beta program
             </CardDescription>
           </CardHeader>

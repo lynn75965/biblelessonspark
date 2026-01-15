@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ParableGenerator.tsx
  * Phase 17.6: Modern Parable Generator UI Component
  * 
@@ -58,6 +58,7 @@ import {
   getDefaultAgeGroup,
   AGE_GROUPS,
 } from '@/constants/ageGroups';
+import { UI_SYMBOLS } from '@/constants/uiSymbols';
 
 import {
   AUDIENCE_LENSES,
@@ -598,7 +599,7 @@ export function ParableGenerator({
             {/* Static message for anonymous users (before generation) */}
             {!isAuthenticated && !usageInfo && (
               <span className="block mt-1 text-xs text-muted-foreground">
-                Anonymous users: 3 parables per day â€¢ Create a free account for more
+                Anonymous users: 3 parables per day {UI_SYMBOLS.BULLET} Create a free account for more
               </span>
             )}
           </CardDescription>
@@ -620,7 +621,7 @@ export function ParableGenerator({
                       Using Lesson Settings
                     </p>
                     <p className="text-xs text-blue-600 dark:text-blue-300">
-                      Passage: {lessonSettings?.passage || 'Not specified'} â€¢ 
+                      Passage: {lessonSettings?.passage || 'Not specified'} {UI_SYMBOLS.BULLET} 
                       Age: {getAgeGroupById(lessonSettings?.ageGroup || '')?.label || 'Default'}
                     </p>
                   </div>
@@ -859,7 +860,7 @@ export function ParableGenerator({
             </div>
             <CardDescription className="flex items-center gap-4 text-xs">
               <span>{generatedParable.word_count} words</span>
-              <span>â€¢</span>
+              <span>{UI_SYMBOLS.BULLET}</span>
               <span>{(generatedParable.generation_time_ms / 1000).toFixed(1)}s</span>
             </CardDescription>
           </CardHeader>
@@ -890,7 +891,7 @@ export function ParableGenerator({
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       <span className="font-medium">Source:</span> {generatedParable.news_source}
                       {generatedParable.news_headline && (
-                        <> â€” "{generatedParable.news_headline.slice(0, 80)}{generatedParable.news_headline.length > 80 ? '...' : ''}"</>
+                        <> {UI_SYMBOLS.EM_DASH} "{generatedParable.news_headline.slice(0, 80)}{generatedParable.news_headline.length > 80 ? '...' : ''}"</>
                       )}
                     </p>
                     {generatedParable.news_url && (

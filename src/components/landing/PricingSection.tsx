@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BibleLessonSpark - LANDING PAGE PRICING SECTION (SSOT-COMPLIANT)
 // Location: src/components/landing/PricingSection.tsx
 // Uses usePricingPlans hook - same SSOT as PricingPage.tsx
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Sparkles, Loader2 } from "lucide-react";
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from "@/hooks/usePricingPlans";
 import { UPGRADE_PROMPTS, formatPrice } from "@/constants/pricingConfig";
+import { formatLoading } from "@/constants/uiSymbols";
 
 export function PricingSection() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export function PricingSection() {
         <div className="container px-4 sm:px-6">
           <div className="text-center py-8 sm:py-12 lg:py-12">
             <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground mx-auto" />
-            <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4">Loading pricing plansâ€¦</p>
+            <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4">{formatLoading("Loading pricing plans")}</p>
           </div>
         </div>
       </section>

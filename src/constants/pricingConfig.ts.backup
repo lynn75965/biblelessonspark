@@ -7,7 +7,6 @@
 // - Stripe IDs (identifiers for checkout)
 // - Section mappings (app-controlled)
 // - Feature definitions (app-controlled)
-// Last Updated: 2026-01-15
 // ============================================================
 
 // Stripe IDs - Used for checkout redirect only
@@ -25,14 +24,7 @@ export type BillingInterval = 'month' | 'year';
 export const DEFAULT_BILLING_INTERVAL: BillingInterval = 'year';
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
 
-// ============================================================
-// SECTION ARRAYS - THE SINGLE SOURCE OF TRUTH
-// ============================================================
-// These arrays define which lesson sections each tier receives.
-// Import these constants - NEVER hardcode [1, 5, 8] or similar.
-// ============================================================
-
-// Section mappings - App-controlled (as strings)
+// Section mappings - App-controlled
 export const TIER_SECTIONS = {
   free: ['1', '5', '8'],
   personal: ['1', '2', '3', '4', '5', '6', '7', '8'],
@@ -41,9 +33,6 @@ export const TIER_SECTIONS = {
 
 // Free tier sections as numbers (for comparison/display logic)
 export const FREE_TIER_SECTION_NUMBERS = [1, 5, 8] as const;
-
-// Full tier sections as numbers (for lessonTiers.ts and other imports)
-export const FULL_TIER_SECTION_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
 // ============================================================
 // PRICING DISPLAY TEXT (SSOT for UI)
@@ -167,3 +156,5 @@ export interface PricingPlanFromDB {
   is_active: boolean;
   best_for: string | null;
 }
+
+

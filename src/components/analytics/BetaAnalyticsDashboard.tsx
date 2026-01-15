@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // BetaAnalyticsDashboard.tsx
 // ============================================================================
 // Analytics dashboard for beta feedback - reads from SSOT config
@@ -34,13 +34,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { 
+import {
   BarChart, Bar, PieChart, Pie,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
-  ResponsiveContainer, Cell 
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, Cell
 } from 'recharts';
-import { 
-  MessageSquare, Star, TrendingUp, DollarSign, 
+import {
+  MessageSquare, Star, TrendingUp, DollarSign,
   Clock, ThumbsUp, Download, RefreshCw, Calendar,
   Gift, AlertTriangle, X, Loader2, Users
 } from 'lucide-react';
@@ -57,13 +57,86 @@ import {
   type DateFilterValue,
   type BetaFeedbackStats,
 } from '@/constants/feedbackConfig';
+import { BRANDING } from '@/config/branding';
+
+// ============================================================================
+// SSOT: Chart Colors (derived from brand colors)
+// These must be hex values for Recharts compatibility
+// ============================================================================
+const CHART_COLORS_SSOT = {
+  // Semantic chart colors based on brand palette
+  primary: BRANDING.colors.primary.DEFAULT,
+  secondary: BRANDING.colors.secondary.DEFAULT,
+  accent: BRANDING.colors.accent.DEFAULT,
+  destructive: BRANDING.colors.burgundy.DEFAULT,
+  muted: BRANDING.colors.text.light,
+
+  // Scale colors for ratings/distributions (green to red spectrum)
+  scale: {
+    excellent: BRANDING.colors.primary.DEFAULT,    // Forest green
+    good: BRANDING.colors.primary.light,           // Light green
+    moderate: BRANDING.colors.secondary.DEFAULT,   // Gold/warning
+    poor: BRANDING.colors.secondary.dark,          // Dark gold
+    critical: BRANDING.colors.burgundy.DEFAULT,    // Burgundy/error
+  },
+
+  // NPS-specific colors
+  nps: {
+    promoter: BRANDING.colors.primary.DEFAULT,     // Forest green
+    passive: BRANDING.colors.secondary.DEFAULT,    // Gold
+    detractor: BRANDING.colors.burgundy.DEFAULT,   // Burgundy
+  },
+};
+
+// Array of colors for generic charts
+const CHART_COLORS = [
+  CHART_COLORS_SSOT.scale.excellent,
+  CHART_COLORS_SSOT.scale.good,
+  CHART_COLORS_SSOT.scale.moderate,
+  CHART_COLORS_SSOT.scale.poor,
+  CHART_COLORS_SSOT.scale.critical,
+];
+
+const NPS_COLORS = CHART_COLORS_SSOT.nps;
+
+// ============================================================================
+// SSOT: Badge Styling Classes (using semantic Tailwind classes)
+// ============================================================================
+const BADGE_STYLES = {
+  // NPS score badges
+  nps: {
+    promoter: 'bg-primary/10 text-primary',
+    passive: 'bg-secondary/20 text-secondary-foreground',
+    detractor: 'bg-destructive/10 text-destructive',
+  },
+
+  // Ease of use badges
+  easeOfUse: {
+    'very-easy': 'bg-primary/10 text-primary',
+    'easy': 'bg-primary/20 text-primary',
+    'moderate': 'bg-secondary/20 text-secondary-foreground',
+    'difficult': 'bg-destructive/10 text-destructive',
+    'very-difficult': 'bg-destructive/20 text-destructive',
+  },
+
+  // Quality badges
+  quality: {
+    'excellent': 'bg-primary/10 text-primary',
+    'good': 'bg-primary/20 text-primary',
+    'fair': 'bg-secondary/20 text-secondary-foreground',
+    'poor': 'bg-destructive/10 text-destructive',
+  },
+
+  // Default fallback
+  default: 'bg-muted text-muted-foreground',
+};
 
 // ============================================================================
 // SSOT: Beta Trial Management Configuration
 // ============================================================================
 const BETA_TRIAL_CONFIG = {
   enabled: true,
-  
+
   // Preset date options for quick selection
   presetDates: [
     { value: 7, label: '1 week from today' },
@@ -72,20 +145,20 @@ const BETA_TRIAL_CONFIG = {
     { value: 60, label: '2 months from today' },
     { value: 90, label: '3 months from today' },
   ],
-  
+
   defaultPresetIndex: 2, // 1 month
-  
+
   // UI Text (SSOT for white-label customization)
   ui: {
     cardTitle: 'Beta Trial Management',
     cardDescription: 'Manage trial access for all beta testers. Extend or set a new expiration date for all users with active trials.',
-    
+
     // Stats display
     statsTitle: 'Current Trial Status',
     activeTrialsLabel: 'Active Trials',
     expiringTrialsLabel: 'Expiring in 7 days',
     noTrialLabel: 'No Active Trial',
-    
+
     // Extend action
     extendButtonText: 'Extend All Trials',
     extendDialogTitle: 'Extend All Beta Trials',
@@ -94,19 +167,19 @@ const BETA_TRIAL_CONFIG = {
     presetLabel: 'Quick Select',
     customDateLabel: 'Or choose a specific date',
     affectedUsersLabel: 'Users affected:',
-    
+
     // Confirmation
     cancelButton: 'Cancel',
     confirmButton: 'Extend All Trials',
     confirmingButton: 'Extending...',
-    
+
     // Success/Error
     successTitle: 'Trials Extended',
     successDescription: (count: number, date: string) =>
       `Successfully extended trials for ${count} user${count === 1 ? '' : 's'} until ${date}.`,
     errorTitle: 'Error',
     errorDescription: 'Failed to extend trials. Please try again.',
-    
+
     // Revoke all action
     revokeAllButtonText: 'Revoke All Trials',
     revokeAllDialogTitle: 'Revoke All Trials',
@@ -131,14 +204,6 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   ThumbsUp,
 };
 
-// Chart colors
-const CHART_COLORS = ['#22c55e', '#84cc16', '#eab308', '#f97316', '#ef4444'];
-const NPS_COLORS = {
-  promoter: '#22c55e',
-  passive: '#eab308',
-  detractor: '#ef4444',
-};
-
 // ============================================================================
 // Types
 // ============================================================================
@@ -161,7 +226,7 @@ export function BetaAnalyticsDashboard() {
   const [customEndDate, setCustomEndDate] = useState<string>('');
   const [sortColumn, setSortColumn] = useState<string>('submitted_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-  
+
   // Trial management state
   const [trialStats, setTrialStats] = useState<TrialStats | null>(null);
   const [trialStatsLoading, setTrialStatsLoading] = useState(true);
@@ -173,7 +238,7 @@ export function BetaAnalyticsDashboard() {
     TRIAL_PRESETS[BETA_TRIAL_CONFIG.defaultPresetIndex].value.toString()
   );
   const [trialCustomDate, setTrialCustomDate] = useState<string>('');
-  
+
   const { toast } = useToast();
 
   // --------------------------------------------------------------------------
@@ -183,7 +248,7 @@ export function BetaAnalyticsDashboard() {
     setTrialStatsLoading(true);
     try {
       const { data, error } = await supabase.rpc('get_trial_stats');
-      
+
       if (error) {
         console.error('Error fetching trial stats:', error);
         setTrialStats({ active_trials: 0, expiring_soon: 0, no_trial: 0, total_users: 0 });
@@ -217,7 +282,7 @@ export function BetaAnalyticsDashboard() {
     setExtending(true);
     try {
       const newExpiration = getNewExpirationDate();
-      
+
       const { data, error } = await supabase.rpc('bulk_extend_trials', {
         p_new_expiration: newExpiration.toISOString(),
         p_extend_mode: 'active_only'
@@ -227,7 +292,7 @@ export function BetaAnalyticsDashboard() {
 
       const result = Array.isArray(data) ? data[0] : data;
       const count = result?.affected_count || 0;
-      
+
       toast({
         title: TRIAL_UI.successTitle,
         description: TRIAL_UI.successDescription(Number(count), format(newExpiration, 'MMMM d, yyyy')),
@@ -260,7 +325,7 @@ export function BetaAnalyticsDashboard() {
 
       const result = Array.isArray(data) ? data[0] : data;
       const count = result?.affected_count || 0;
-      
+
       toast({
         title: TRIAL_UI.revokeAllSuccessTitle,
         description: TRIAL_UI.revokeAllSuccessDescription(Number(count)),
@@ -284,7 +349,7 @@ export function BetaAnalyticsDashboard() {
   const getDateRange = (): { start: string | null; end: string | null } => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    
+
     switch (dateFilter) {
       case 'today':
         return { start: today.toISOString(), end: new Date(today.getTime() + 86400000).toISOString() };
@@ -306,9 +371,9 @@ export function BetaAnalyticsDashboard() {
         lastWeekEnd.setDate(lastWeekStart.getDate() + 7);
         return { start: lastWeekStart.toISOString(), end: lastWeekEnd.toISOString() };
       case 'custom':
-        return { 
-          start: customStartDate ? new Date(customStartDate).toISOString() : null, 
-          end: customEndDate ? new Date(customEndDate + 'T23:59:59').toISOString() : null 
+        return {
+          start: customStartDate ? new Date(customStartDate).toISOString() : null,
+          end: customEndDate ? new Date(customEndDate + 'T23:59:59').toISOString() : null
         };
       default:
         return { start: null, end: null };
@@ -320,7 +385,7 @@ export function BetaAnalyticsDashboard() {
     setIsLoading(true);
     try {
       const dateRange = getDateRange();
-      
+
       // Fetch stats
       const { data: statsData, error: statsError } = await supabase
         .rpc('get_feedback_analytics', {
@@ -334,7 +399,7 @@ export function BetaAnalyticsDashboard() {
 
       // Fetch individual responses
       const viewName = CURRENT_FEEDBACK_MODE === 'beta' ? 'beta_feedback_view' : 'production_feedback_view';
-      
+
       let query = supabase
         .from(viewName)
         .select('*')
@@ -403,17 +468,17 @@ export function BetaAnalyticsDashboard() {
       'very-difficult': 'Very Difficult',
     };
     const colors: Record<string, string> = {
-      'very-easy': '#22c55e',
-      'easy': '#84cc16',
-      'moderate': '#eab308',
-      'difficult': '#f97316',
-      'very-difficult': '#ef4444',
+      'very-easy': CHART_COLORS_SSOT.scale.excellent,
+      'easy': CHART_COLORS_SSOT.scale.good,
+      'moderate': CHART_COLORS_SSOT.scale.moderate,
+      'difficult': CHART_COLORS_SSOT.scale.poor,
+      'very-difficult': CHART_COLORS_SSOT.scale.critical,
     };
     return Object.entries(stats.easeOfUseDistribution)
       .map(([key, count]) => ({
         name: labels[key] || key,
         value: count as number,
-        fill: colors[key] || '#94a3b8',
+        fill: colors[key] || CHART_COLORS_SSOT.muted,
       }))
       .filter(d => d.value > 0);
   }, [stats]);
@@ -427,16 +492,16 @@ export function BetaAnalyticsDashboard() {
       'poor': 'Poor',
     };
     const colors: Record<string, string> = {
-      'excellent': '#22c55e',
-      'good': '#84cc16',
-      'fair': '#eab308',
-      'poor': '#ef4444',
+      'excellent': CHART_COLORS_SSOT.scale.excellent,
+      'good': CHART_COLORS_SSOT.scale.good,
+      'fair': CHART_COLORS_SSOT.scale.moderate,
+      'poor': CHART_COLORS_SSOT.scale.critical,
     };
     return Object.entries(stats.lessonQualityDistribution)
       .map(([key, count]) => ({
         name: labels[key] || key,
         value: count as number,
-        fill: colors[key] || '#94a3b8',
+        fill: colors[key] || CHART_COLORS_SSOT.muted,
       }))
       .filter(d => d.value > 0);
   }, [stats]);
@@ -450,16 +515,16 @@ export function BetaAnalyticsDashboard() {
       'no': 'No',
     };
     const colors: Record<string, string> = {
-      'yes-definitely': '#22c55e',
-      'yes-probably': '#84cc16',
-      'maybe': '#eab308',
-      'no': '#ef4444',
+      'yes-definitely': CHART_COLORS_SSOT.scale.excellent,
+      'yes-probably': CHART_COLORS_SSOT.scale.good,
+      'maybe': CHART_COLORS_SSOT.scale.moderate,
+      'no': CHART_COLORS_SSOT.scale.critical,
     };
     return Object.entries(stats.wouldPayDistribution)
       .map(([key, count]) => ({
         name: labels[key] || key,
         value: count as number,
-        fill: colors[key] || '#94a3b8',
+        fill: colors[key] || CHART_COLORS_SSOT.muted,
       }))
       .filter(d => d.value > 0);
   }, [stats]);
@@ -481,7 +546,7 @@ export function BetaAnalyticsDashboard() {
     if (responses.length === 0) return;
 
     const headers = RESPONSE_TABLE_COLUMNS.map(col => col.label).join(',');
-    const rows = responses.map(response => 
+    const rows = responses.map(response =>
       RESPONSE_TABLE_COLUMNS.map(col => {
         const value = response[col.key as keyof FeedbackResponse];
         if (value === null || value === undefined) return '';
@@ -505,7 +570,7 @@ export function BetaAnalyticsDashboard() {
   // Format cell value
   const formatCellValue = (key: string, value: unknown): React.ReactNode => {
     if (value === null || value === undefined) return '-';
-    
+
     switch (key) {
       case 'submitted_at':
         return new Date(value as string).toLocaleDateString('en-US', {
@@ -514,33 +579,22 @@ export function BetaAnalyticsDashboard() {
       case 'rating':
         return (
           <div className="flex items-center gap-1">
-            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            <Star className="h-4 w-4 fill-secondary text-secondary" />
             {value}
           </div>
         );
       case 'nps_score':
         const nps = value as number;
-        const npsColor = nps >= 9 ? 'bg-primary/10 text-green-800' 
-          : nps >= 7 ? 'bg-yellow-100 text-yellow-800' 
-          : 'bg-red-100 text-red-800';
-        return <Badge className={npsColor}>{nps}</Badge>;
+        const npsStyle = nps >= 9 ? BADGE_STYLES.nps.promoter
+          : nps >= 7 ? BADGE_STYLES.nps.passive
+          : BADGE_STYLES.nps.detractor;
+        return <Badge className={npsStyle}>{nps}</Badge>;
       case 'ease_of_use':
-        const easeColors: Record<string, string> = {
-          'very-easy': 'bg-primary/10 text-green-800',
-          'easy': 'bg-lime-100 text-lime-800',
-          'moderate': 'bg-yellow-100 text-yellow-800',
-          'difficult': 'bg-orange-100 text-orange-800',
-          'very-difficult': 'bg-red-100 text-red-800',
-        };
-        return <Badge className={easeColors[value as string] || 'bg-gray-100'}>{value}</Badge>;
+        const easeStyle = BADGE_STYLES.easeOfUse[value as keyof typeof BADGE_STYLES.easeOfUse] || BADGE_STYLES.default;
+        return <Badge className={easeStyle}>{value}</Badge>;
       case 'lesson_quality':
-        const qualityColors: Record<string, string> = {
-          'excellent': 'bg-primary/10 text-green-800',
-          'good': 'bg-lime-100 text-lime-800',
-          'fair': 'bg-yellow-100 text-yellow-800',
-          'poor': 'bg-red-100 text-red-800',
-        };
-        return <Badge className={qualityColors[value as string] || 'bg-gray-100'}>{value}</Badge>;
+        const qualityStyle = BADGE_STYLES.quality[value as keyof typeof BADGE_STYLES.quality] || BADGE_STYLES.default;
+        return <Badge className={qualityStyle}>{value}</Badge>;
       case 'minutes_saved':
         const labels: Record<number, string> = { 15: '15 min', 30: '30 min', 60: '1 hour', 120: '2+ hrs' };
         return labels[value as number] || `${value} min`;
@@ -580,10 +634,10 @@ export function BetaAnalyticsDashboard() {
           BETA TRIAL MANAGEMENT CARD
           ==================================================================== */}
       {BETA_TRIAL_CONFIG.enabled && (
-        <Card className="bg-gradient-card border-amber-200">
+        <Card className="bg-gradient-card border-secondary/30">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Gift className="h-5 w-5 text-amber-600" />
+              <Gift className="h-5 w-5 text-secondary" />
               {TRIAL_UI.cardTitle}
             </CardTitle>
             <CardDescription>{TRIAL_UI.cardDescription}</CardDescription>
@@ -603,17 +657,17 @@ export function BetaAnalyticsDashboard() {
                     <div className="text-2xl font-bold text-primary">{trialStats.active_trials}</div>
                     <div className="text-xs text-primary">{TRIAL_UI.activeTrialsLabel}</div>
                   </div>
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-amber-700">{trialStats.expiring_soon}</div>
-                    <div className="text-xs text-amber-600">{TRIAL_UI.expiringTrialsLabel}</div>
+                  <div className="bg-secondary/10 border border-secondary/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-secondary-foreground">{trialStats.expiring_soon}</div>
+                    <div className="text-xs text-secondary-foreground">{TRIAL_UI.expiringTrialsLabel}</div>
                   </div>
                   <div className="bg-muted/50 border border-border rounded-lg p-3 text-center">
                     <div className="text-2xl font-bold text-foreground">{trialStats.no_trial}</div>
                     <div className="text-xs text-muted-foreground">{TRIAL_UI.noTrialLabel}</div>
                   </div>
-                  <div className="bg-blue-50 border border-accent/50 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-blue-700">{trialStats.total_users}</div>
-                    <div className="text-xs text-blue-600">Total Users</div>
+                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-accent-foreground">{trialStats.total_users}</div>
+                    <div className="text-xs text-muted-foreground">Total Users</div>
                   </div>
                 </div>
               ) : null}
@@ -623,7 +677,7 @@ export function BetaAnalyticsDashboard() {
             <div className="flex flex-wrap gap-3 pt-2">
               <Button
                 onClick={() => setExtendDialogOpen(true)}
-                className="bg-primary hover:bg-primary"
+                className="bg-primary hover:bg-primary/90"
                 disabled={!trialStats || trialStats.active_trials === 0}
               >
                 <Calendar className="h-4 w-4 mr-2" />
@@ -632,7 +686,7 @@ export function BetaAnalyticsDashboard() {
               <Button
                 onClick={() => setRevokeDialogOpen(true)}
                 variant="outline"
-                className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                className="text-destructive border-destructive/30 hover:bg-destructive/5"
                 disabled={!trialStats || trialStats.active_trials === 0}
               >
                 <X className="h-4 w-4 mr-2" />
@@ -694,7 +748,7 @@ export function BetaAnalyticsDashboard() {
         {ANALYTICS_SUMMARY_CARDS.map((card) => {
           const Icon = ICON_MAP[card.icon];
           const value = stats?.[card.key as keyof BetaFeedbackStats];
-          
+
           let displayValue: string;
           if (value === undefined || value === null) displayValue = '-';
           else if (card.format === 'percent') displayValue = `${value}%`;
@@ -804,7 +858,7 @@ export function BetaAnalyticsDashboard() {
               <CardContent>
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
-                    <Pie data={npsChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} 
+                    <Pie data={npsChartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80}
                       paddingAngle={5} dataKey="value" labelLine={false}
                       label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}>
                       {npsChartData.map((entry, index) => (
@@ -879,7 +933,7 @@ export function BetaAnalyticsDashboard() {
                   <TableHeader>
                     <TableRow>
                       {RESPONSE_TABLE_COLUMNS.map((col) => (
-                        <TableHead 
+                        <TableHead
                           key={col.key}
                           style={{ width: col.width, minWidth: col.width }}
                           className={col.sortable ? 'cursor-pointer hover:bg-muted' : ''}
@@ -896,7 +950,7 @@ export function BetaAnalyticsDashboard() {
                         >
                           {col.label}
                           {sortColumn === col.key && (
-                            <span className="ml-1">{sortDirection === 'asc' ? 'â†‘' : 'â†“'}</span>
+                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
                           )}
                         </TableHead>
                       ))}
@@ -913,11 +967,11 @@ export function BetaAnalyticsDashboard() {
                       responses.map((response) => (
                         <TableRow key={response.id}>
                           {RESPONSE_TABLE_COLUMNS.map((col) => (
-                            <TableCell 
+                            <TableCell
                               key={col.key}
                               className={['positive_comments', 'improvement_suggestions', 'ui_issues'].includes(col.key) ? 'max-w-[200px] truncate' : ''}
-                              title={['positive_comments', 'improvement_suggestions', 'ui_issues'].includes(col.key) 
-                                ? (response[col.key as keyof FeedbackResponse] as string) || '' 
+                              title={['positive_comments', 'improvement_suggestions', 'ui_issues'].includes(col.key)
+                                ? (response[col.key as keyof FeedbackResponse] as string) || ''
                                 : undefined
                               }
                             >
@@ -949,13 +1003,13 @@ export function BetaAnalyticsDashboard() {
               {TRIAL_UI.extendDialogDescription}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             {/* Preset Selection */}
             <div className="space-y-2">
               <Label>{TRIAL_UI.presetLabel}</Label>
-              <Select 
-                value={selectedPreset} 
+              <Select
+                value={selectedPreset}
                 onValueChange={(val) => {
                   setSelectedPreset(val);
                   setTrialCustomDate('');
@@ -1018,7 +1072,7 @@ export function BetaAnalyticsDashboard() {
             <Button
               onClick={handleBulkExtend}
               disabled={extending}
-              className="bg-primary hover:bg-primary"
+              className="bg-primary hover:bg-primary/90"
             >
               {extending ? (
                 <>
@@ -1043,7 +1097,7 @@ export function BetaAnalyticsDashboard() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+              <AlertTriangle className="h-5 w-5 text-destructive" />
               {TRIAL_UI.revokeAllDialogTitle}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -1058,7 +1112,7 @@ export function BetaAnalyticsDashboard() {
             <AlertDialogAction
               onClick={handleBulkRevoke}
               disabled={revoking}
-              className="bg-amber-600 hover:bg-amber-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               {revoking ? (
                 <>

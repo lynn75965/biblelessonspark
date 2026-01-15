@@ -2,13 +2,18 @@
  * BibleLessonSpark Branding Configuration
  * ========================================
  *
- * This file is the SINGLE SOURCE OF TRUTH for ALL branding elements.
- * For white-label deployments, modify ONLY this file to rebrand the entire app.
+ * This file provides branding configuration for the application.
+ * Colors and typography are imported from the SINGLE SOURCE OF TRUTH:
+ *   src/config/brand-values.json
+ *
+ * For white-label deployments, modify brand-values.json to rebrand colors/fonts.
+ * Other branding elements (text, emails, features) are configured here.
  *
  * Location: src/config/branding.ts
  *
  * ARCHITECTURE (SSOT):
- *   branding.ts (this file) → generateTailwindCSSVariables() → BrandingProvider → CSS Variables → Tailwind
+ *   brand-values.json → branding.ts → BrandingProvider → CSS Variables → Tailwind
+ *   brand-values.json → generate-css.cjs → index.css → Tailwind → Build
  *
  * USAGE:
  *   import { BRANDING } from '@/config/branding';
@@ -18,6 +23,12 @@
  * REBRAND: January 2026 - LessonSparkUSA → BibleLessonSpark
  * Color palette derived from logo: forest green book, golden flame, cream background
  */
+
+// ============================================================================
+// IMPORT SSOT VALUES FROM JSON
+// ============================================================================
+
+import brandValues from './brand-values.json';
 
 // ============================================================================
 // COLOR UTILITY FUNCTIONS (HEX to HSL conversion for Tailwind)
@@ -31,22 +42,22 @@
 export function hexToHsl(hex: string): string {
   // Remove # if present
   hex = hex.replace(/^#/, '');
-  
+
   // Parse hex to RGB
   const r = parseInt(hex.slice(0, 2), 16) / 255;
   const g = parseInt(hex.slice(2, 4), 16) / 255;
   const b = parseInt(hex.slice(4, 6), 16) / 255;
-  
+
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   let h = 0;
   let s = 0;
   const l = (max + min) / 2;
-  
+
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    
+
     switch (max) {
       case r:
         h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
@@ -59,12 +70,12 @@ export function hexToHsl(hex: string): string {
         break;
     }
   }
-  
+
   // Convert to degrees and percentages, round to reasonable precision
   const hDeg = Math.round(h * 360);
   const sPercent = Math.round(s * 100);
   const lPercent = Math.round(l * 100);
-  
+
   return `${hDeg} ${sPercent}% ${lPercent}%`;
 }
 
@@ -77,14 +88,14 @@ export function hexToHsl(hex: string): string {
 export function adjustLightness(hsl: string, adjustment: number): string {
   const parts = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
   if (!parts) return hsl;
-  
+
   const h = parseInt(parts[1]);
   const s = parseInt(parts[2]);
   let l = parseInt(parts[3]) + adjustment;
-  
+
   // Clamp lightness to valid range
   l = Math.max(0, Math.min(100, l));
-  
+
   return `${h} ${s}% ${l}%`;
 }
 
@@ -97,14 +108,14 @@ export function adjustLightness(hsl: string, adjustment: number): string {
 export function adjustSaturation(hsl: string, adjustment: number): string {
   const parts = hsl.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
   if (!parts) return hsl;
-  
+
   const h = parseInt(parts[1]);
   let s = parseInt(parts[2]) + adjustment;
   const l = parseInt(parts[3]);
-  
+
   // Clamp saturation to valid range
   s = Math.max(0, Math.min(100, s));
-  
+
   return `${h} ${s}% ${l}%`;
 }
 
@@ -181,6 +192,7 @@ export const COLOR_ADJUSTMENTS = {
     borderWidth: '2px',
   },
 } as const;
+
 // ============================================================================
 // CORE IDENTITY
 // ============================================================================
@@ -275,11 +287,10 @@ export const BRANDING = {
   },
 
   // ==========================================================================
-  // VISUAL IDENTITY - COLORS (SINGLE SOURCE OF TRUTH)
+  // VISUAL IDENTITY - COLORS (FROM SSOT: brand-values.json)
   // ==========================================================================
-  // All colors defined in HEX for human readability.
-  // generateTailwindCSSVariables() converts to HSL for Tailwind consumption.
-  // WHITE-LABEL: Change these HEX values to rebrand the entire app.
+  // Colors are imported from brand-values.json for single source of truth.
+  // To change colors, edit src/config/brand-values.json
 
   colors: {
     /**
@@ -287,10 +298,10 @@ export const BRANDING = {
      * Used for: buttons, links, primary actions, headers
      */
     primary: {
-      DEFAULT: "#3D5C3D",  // Forest green - main
-      light: "#4A7A4A",    // Lighter forest green
-      dark: "#2D4A2D",     // Darker forest green
-      foreground: "#FFFEF9", // Text on primary background
+      DEFAULT: brandValues.colors.primary.DEFAULT,
+      light: brandValues.colors.primary.light,
+      dark: brandValues.colors.primary.dark,
+      foreground: brandValues.colors.background.primary, // Cream text on primary
     },
 
     /**
@@ -298,10 +309,10 @@ export const BRANDING = {
      * Used for: secondary buttons, accents, highlights
      */
     secondary: {
-      DEFAULT: "#D4A74B",  // Antique gold - main
-      light: "#E4BE6A",    // Lighter gold
-      dark: "#B8923E",     // Deeper gold
-      foreground: "#2D2D2D", // Text on secondary background
+      DEFAULT: brandValues.colors.secondary.DEFAULT,
+      light: brandValues.colors.secondary.light,
+      dark: brandValues.colors.secondary.dark,
+      foreground: brandValues.colors.text.primary, // Dark text on secondary
     },
 
     /**
@@ -309,10 +320,10 @@ export const BRANDING = {
      * Used for: highlights, notifications, badges, hover states
      */
     accent: {
-      DEFAULT: "#C9A754",  // Deep gold
-      light: "#DBBF6E",    // Light gold
-      dark: "#A88B3D",     // Dark gold
-      foreground: "#2D2D2D", // Text on accent background
+      DEFAULT: brandValues.colors.accent.DEFAULT,
+      light: "#DBBF6E",    // Light gold (derived)
+      dark: "#A88B3D",     // Dark gold (derived)
+      foreground: brandValues.colors.text.primary,
     },
 
     /**
@@ -320,29 +331,29 @@ export const BRANDING = {
      * Used for: errors, warnings, important badges, heritage elements
      */
     burgundy: {
-      DEFAULT: "#661A33",  // Deep burgundy
-      light: "#995266",    // Muted burgundy
-      dark: "#4D1426",     // Darker burgundy
-      hover: "#8C3352",    // Wine - hover states
+      DEFAULT: brandValues.colors.destructive.DEFAULT,
+      light: brandValues.colors.destructive.light,
+      dark: "#4D1426",     // Darker burgundy (derived)
+      hover: "#8C3352",    // Wine - hover states (derived)
     },
 
     /**
      * Background colors - Warm Cream theme
      */
     background: {
-      primary: "#FFFEF9",    // Warm cream (main background)
-      secondary: "#FAF8F3",  // Slightly darker cream
-      dark: "#2D4A2D",       // Dark forest green (for dark mode)
+      primary: brandValues.colors.background.primary,
+      secondary: brandValues.colors.background.secondary,
+      dark: brandValues.colors.background.dark,
     },
 
     /**
      * Text colors
      */
     text: {
-      primary: "#2D2D2D",    // Dark charcoal
-      secondary: "#5C5C5C",  // Medium gray
-      light: "#8A8A8A",      // Light gray
-      inverse: "#FFFEF9",    // Cream for dark backgrounds
+      primary: brandValues.colors.text.primary,
+      secondary: brandValues.colors.text.secondary,
+      light: brandValues.colors.text.light,
+      inverse: brandValues.colors.background.primary, // Cream for dark backgrounds
     },
 
     /**
@@ -350,29 +361,29 @@ export const BRANDING = {
      */
     card: {
       DEFAULT: "#FFFFFF",    // White cards
-      foreground: "#2D2D2D", // Card text
+      foreground: brandValues.colors.text.primary,
     },
 
     muted: {
       DEFAULT: "#F5F3EE",    // Warm muted background
-      foreground: "#5C5C5C", // Muted text
+      foreground: brandValues.colors.text.secondary,
     },
 
-    border: "#E8E4DB",       // Warm border color
-    input: "#E8E4DB",        // Input border color
-    ring: "#3D5C3D",         // Focus ring (primary)
+    border: brandValues.colors.border.DEFAULT,
+    input: brandValues.colors.border.DEFAULT,
+    ring: brandValues.colors.primary.DEFAULT,
   },
 
   // ==========================================================================
-  // TYPOGRAPHY (if using custom fonts)
+  // TYPOGRAPHY (FROM SSOT: brand-values.json)
   // ==========================================================================
 
   typography: {
     fontFamily: {
-      primary: '"Poppins", system-ui, sans-serif',
-      secondary: '"Merriweather", Georgia, serif',
+      primary: brandValues.typography.fontFamily.primary,
+      secondary: brandValues.typography.fontFamily.secondary,
     },
-    googleFontsUrl: "https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap",
+    googleFontsUrl: brandValues.typography.googleFontsUrl,
   },
 
   // ==========================================================================
@@ -397,7 +408,7 @@ export const BRANDING = {
   },
 
   // ==========================================================================
-  // DESIGN TOKENS (non-color)
+  // DESIGN TOKENS (non-color) - uses SSOT font sizes
   // ==========================================================================
 
   tokens: {
@@ -415,14 +426,14 @@ export const BRANDING = {
       "2xl": "3rem",
     },
     fontSize: {
-      xs: "0.75rem",
-      sm: "0.875rem",
-      base: "1rem",
-      lg: "1.125rem",
-      xl: "1.25rem",
-      "2xl": "1.5rem",
-      "3xl": "1.875rem",
-      "4xl": "2.25rem",
+      xs: brandValues.typography.fontSize.xs,
+      sm: brandValues.typography.fontSize.sm,
+      base: brandValues.typography.fontSize.base,
+      lg: brandValues.typography.fontSize.lg,
+      xl: brandValues.typography.fontSize.xl,
+      "2xl": brandValues.typography.fontSize["2xl"],
+      "3xl": brandValues.typography.fontSize["3xl"],
+      "4xl": brandValues.typography.fontSize["4xl"],
     },
     transition: {
       fast: "150ms cubic-bezier(0.4, 0, 0.2, 1)",
@@ -581,7 +592,7 @@ export const BRANDING = {
   },
 
   // ==========================================================================
-  // EMAIL CONFIGURATION
+  // EMAIL CONFIGURATION (uses SSOT colors)
   // ==========================================================================
 
   email: {
@@ -592,22 +603,22 @@ export const BRANDING = {
     },
     replyTo: "support@biblelessonspark.com",
 
-    // Email styles reference brand colors (will use HEX for email compatibility)
+    // Email styles reference brand colors from SSOT
     styles: {
-      headerBackground: "#3D5C3D",
+      headerBackground: brandValues.colors.primary.DEFAULT,
       headerTextColor: "#FFFFFF",
-      bodyBackground: "#FAF8F3",
+      bodyBackground: brandValues.colors.background.secondary,
       contentBackground: "#FFFFFF",
-      textColor: "#2D2D2D",
-      mutedTextColor: "#5C5C5C",
-      linkColor: "#3D5C3D",
-      buttonBackground: "#3D5C3D",
+      textColor: brandValues.colors.text.primary,
+      mutedTextColor: brandValues.colors.text.secondary,
+      linkColor: brandValues.colors.primary.DEFAULT,
+      buttonBackground: brandValues.colors.primary.DEFAULT,
       buttonTextColor: "#FFFFFF",
-      secondaryButtonBackground: "#D4A74B",
-      secondaryButtonTextColor: "#2D2D2D",
-      footerBackground: "#FAF8F3",
-      footerTextColor: "#5C5C5C",
-      borderColor: "#E5E2D9",
+      secondaryButtonBackground: brandValues.colors.secondary.DEFAULT,
+      secondaryButtonTextColor: brandValues.colors.text.primary,
+      footerBackground: brandValues.colors.background.secondary,
+      footerTextColor: brandValues.colors.text.secondary,
+      borderColor: brandValues.colors.border.DEFAULT,
       borderRadius: "6px",
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
@@ -847,61 +858,61 @@ Click below to view the lesson:`,
 
 /**
  * Generate CSS variables for Tailwind consumption
- * This is the SSOT output - all colors flow from BRANDING.colors
- * 
+ * This is the SSOT output - all colors flow from brand-values.json via BRANDING.colors
+ *
  * Format: CSS variables in "H S% L%" format (no hsl() wrapper)
  * Tailwind config uses: hsl(var(--primary))
- * 
+ *
  * @returns Full CSS string to inject into document head
  */
 export function generateTailwindCSSVariables(): string {
   const c = BRANDING.colors;
-  
+
   // Convert all brand colors to HSL
   const primary = hexToHsl(c.primary.DEFAULT);
   const primaryLight = hexToHsl(c.primary.light);
   const primaryDark = hexToHsl(c.primary.dark);
   const primaryForeground = hexToHsl(c.primary.foreground);
-  
+
   const secondary = hexToHsl(c.secondary.DEFAULT);
   const secondaryLight = hexToHsl(c.secondary.light);
   const secondaryDark = hexToHsl(c.secondary.dark);
   const secondaryForeground = hexToHsl(c.secondary.foreground);
-  
+
   const accent = hexToHsl(c.accent.DEFAULT);
   const accentForeground = hexToHsl(c.accent.foreground);
-  
+
   const burgundy = hexToHsl(c.burgundy.DEFAULT);
   const burgundyLight = hexToHsl(c.burgundy.light);
   const burgundyHover = hexToHsl(c.burgundy.hover);
-  
+
   const background = hexToHsl(c.background.primary);
   const backgroundSecondary = hexToHsl(c.background.secondary);
   const backgroundDark = hexToHsl(c.background.dark);
-  
+
   const textPrimary = hexToHsl(c.text.primary);
   const textSecondary = hexToHsl(c.text.secondary);
   const textLight = hexToHsl(c.text.light);
   const textInverse = hexToHsl(c.text.inverse);
-  
+
   const card = hexToHsl(c.card.DEFAULT);
   const cardForeground = hexToHsl(c.card.foreground);
-  
+
   const muted = hexToHsl(c.muted.DEFAULT);
   const mutedForeground = hexToHsl(c.muted.foreground);
-  
+
   const border = hexToHsl(c.border);
   const input = hexToHsl(c.input);
   const ring = hexToHsl(c.ring);
-  
+
   // Design tokens
   const t = BRANDING.tokens;
 
   return `
 :root {
   /* ========================================
-   * GENERATED FROM branding.ts (SSOT)
-   * Do not edit - change branding.ts instead
+   * GENERATED FROM brand-values.json (SSOT)
+   * Do not edit - change brand-values.json instead
    * ======================================== */
 
   /* Background: Warm Cream */
@@ -1004,11 +1015,12 @@ export function generateTailwindCSSVariables(): string {
   /* Section Spacing */
   --section-y: ${t.section.y};
   --section-y-lg: ${t.section.yLg};
-  /* Layout tokens from COLOR_ADJUSTMENTS (not already in branding.ts) */
+
+  /* Layout tokens from COLOR_ADJUSTMENTS */
   --border-accent-width: ${COLOR_ADJUSTMENTS.layout.accentBorderWidth};
   --border-standard-width: ${COLOR_ADJUSTMENTS.layout.borderWidth};
   --container-max-width: ${COLOR_ADJUSTMENTS.layout.containerMaxWidth};
-  
+
   /* Sidebar colors (derived from primary/secondary) */
   --sidebar-background: ${background};
   --sidebar-foreground: ${textPrimary};
@@ -1272,4 +1284,3 @@ export function getEmailInlineStyles() {
 // ============================================================================
 
 export default BRANDING;
-

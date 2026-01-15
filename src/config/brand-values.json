@@ -1,0 +1,67 @@
+{
+  "_comment": "SINGLE SOURCE OF TRUTH - All brand colors and typography",
+  "_updated": "2025-01-15",
+  "_instructions": "Edit values here, then run: npm run build",
+  
+  "colors": {
+    "primary": {
+      "DEFAULT": "#3D5C3D",
+      "light": "#4A7A4A",
+      "dark": "#2D4A2D",
+      "comment": "Forest Green"
+    },
+    "secondary": {
+      "DEFAULT": "#D4A74B",
+      "light": "#E5C97A",
+      "dark": "#B8923F",
+      "comment": "Antique Gold"
+    },
+    "accent": {
+      "DEFAULT": "#C9A754",
+      "comment": "Deep Gold"
+    },
+    "destructive": {
+      "DEFAULT": "#661A33",
+      "light": "#8B2244",
+      "comment": "Burgundy"
+    },
+    "background": {
+      "primary": "#FFFEF9",
+      "secondary": "#FAF8F3",
+      "dark": "#2D4A2D",
+      "comment": "Warm Cream"
+    },
+    "text": {
+      "primary": "#1A1A1A",
+      "secondary": "#6B6B6B",
+      "muted": "#9CA3AF",
+      "light": "#8A8A8A"
+    },
+    "border": {
+      "DEFAULT": "#E5E5E0"
+    },
+    "status": {
+      "success": "#3D5C3D",
+      "warning": "#D4A74B",
+      "info": "#3B82F6"
+    }
+  },
+  
+  "typography": {
+    "fontFamily": {
+      "primary": "\"Poppins\", system-ui, sans-serif",
+      "secondary": "\"Merriweather\", Georgia, serif"
+    },
+    "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap",
+    "fontSize": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem",
+      "2xl": "1.5rem",
+      "3xl": "1.875rem",
+      "4xl": "2.25rem"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DevotionalGenerator Component
  * 
  * Generates personal devotionals anchored to lessons.
@@ -43,6 +43,7 @@ import {
   getDefaultDevotionalLength,
   mapAgeGroupToTarget,
 } from "@/constants/devotionalConfig";
+import { UI_SYMBOLS } from "@/constants/uiSymbols";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 
 // ============================================================================
@@ -552,7 +553,7 @@ export function DevotionalGenerator() {
               <div>
                 <CardTitle className="text-xl">{devotional.title}</CardTitle>
                 <CardDescription className="mt-1">
-                  {devotional.bible_passage} â€¢ {devotional.word_count} words
+                  {devotional.bible_passage} {UI_SYMBOLS.BULLET} {devotional.word_count} words
                 </CardDescription>
               </div>
               <div className="flex gap-2">

@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles, Users, Clock, Star } from "lucide-react";
@@ -6,6 +6,7 @@ import heroImage from "@/assets/hero-image.jpg";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
 import { useTenant } from "@/contexts/TenantContext";
+import { joinWithBullet } from "@/constants/uiSymbols";
 
 interface HeroSectionProps {
   onRequestAccess?: () => void;
@@ -146,7 +147,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-xs sm:text-sm truncate">Baptist Aligned</p>
-                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">SBC â€¢ RB â€¢ IND</p>
+                      <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{joinWithBullet(["SBC", "RB", "IND"])}</p>
                     </div>
                   </div>
                 </CardContent>

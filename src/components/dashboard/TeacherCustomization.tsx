@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TeacherCustomization Component
  * Renders the 13 teacher preference fields with profile management
  *
@@ -61,6 +61,7 @@ import {
 } from "@/constants/teacherPreferences";
 
 import { TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
+import { UI_SYMBOLS, formatNoneOption } from "@/constants/uiSymbols";
 
 // ============================================================================
 // BRAND STYLING COMPONENTS
@@ -321,7 +322,7 @@ export function TeacherCustomization({
               Check off each one below to describe your teaching environment
             </CardDescription>
             <CardDescription className="text-muted-foreground text-xs mt-1">
-              Hint: You can save up to 7 profiles â€” choose a saved profile & it preloads
+              Hint: You can save up to 7 profiles — choose a saved profile & it preloads
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -366,12 +367,12 @@ export function TeacherCustomization({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__" className="text-muted-foreground">
-                      â€” None â€”
+                      — None —
                     </SelectItem>
                     {profiles.map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
                         {profile.profile_name}
-                        {profile.is_default && " â˜…"}
+                        {profile.is_default && ` ${UI_SYMBOLS.STAR}`}
                       </SelectItem>
                     ))}
                   </SelectContent>

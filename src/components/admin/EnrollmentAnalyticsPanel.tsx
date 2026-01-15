@@ -1,8 +1,9 @@
-﻿/**
+/**
  * EnrollmentAnalyticsPanel - Admin Component
  * 
  * SSOT COMPLIANCE:
  * - Referral source labels from betaEnrollmentConfig.ts
+ * - Chart colors from BRANDING (src/config/branding.ts)
  * - Displays data collected during Public Beta enrollment
  * 
  * PURPOSE:
@@ -11,6 +12,7 @@
  * 2. Church Directory - Churches represented by users
  * 
  * Created: January 1, 2026
+ * Updated: January 15, 2026 - SSOT color compliance
  */
 
 import { useState, useEffect, useMemo } from 'react';
@@ -43,17 +45,32 @@ import {
 } from 'recharts';
 import { Users, Church, RefreshCw, TrendingUp, Download } from 'lucide-react';
 import { BETA_ENROLLMENT_CONFIG } from '@/constants/betaEnrollmentConfig';
+import { BRANDING } from '@/config/branding';
 
-// Chart colors
+// ============================================================================
+// SSOT: Chart Colors (derived from brand colors)
+// These must be hex values for Recharts compatibility
+// ============================================================================
+const CHART_COLORS_SSOT = {
+  primary: BRANDING.colors.primary.DEFAULT,       // Forest green
+  primaryLight: BRANDING.colors.primary.light,    // Light green
+  secondary: BRANDING.colors.secondary.DEFAULT,   // Antique gold
+  secondaryDark: BRANDING.colors.secondary.dark,  // Dark gold
+  accent: BRANDING.colors.accent.DEFAULT,         // Deep gold
+  burgundy: BRANDING.colors.burgundy.DEFAULT,     // Burgundy
+  muted: BRANDING.colors.text.light,              // Muted text
+};
+
+// Array of colors for generic charts - uses brand palette
 const CHART_COLORS = [
-  '#3b82f6', // blue
-  '#22c55e', // green
-  '#f59e0b', // amber
-  '#ef4444', // red
-  '#8b5cf6', // violet
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#84cc16', // lime
+  CHART_COLORS_SSOT.primary,        // Forest green (primary)
+  CHART_COLORS_SSOT.secondary,      // Antique gold (secondary)
+  CHART_COLORS_SSOT.primaryLight,   // Light green
+  CHART_COLORS_SSOT.burgundy,       // Burgundy (for contrast)
+  CHART_COLORS_SSOT.accent,         // Deep gold
+  CHART_COLORS_SSOT.secondaryDark,  // Dark gold
+  CHART_COLORS_SSOT.muted,          // Muted (neutral)
+  CHART_COLORS_SSOT.primary,        // Repeat primary for overflow
 ];
 
 interface ReferralData {
@@ -229,7 +246,7 @@ export function EnrollmentAnalyticsPanel() {
             <div className="text-sm text-muted-foreground">Users with Referral Data</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-blue-600">{referralData.length}</div>
+            <div className="text-3xl font-bold text-secondary">{referralData.length}</div>
             <div className="text-sm text-muted-foreground">Referral Sources</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">

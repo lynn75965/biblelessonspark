@@ -8,7 +8,7 @@ import React, { createContext, useContext } from "react";
 import {
   TenantConfig,
   DEFAULT_TENANT_CONFIG,
-} from "@/constants/tenantConfig";
+} from "@/config/tenantConfig";
 
 // =============================================================================
 // CONTEXT

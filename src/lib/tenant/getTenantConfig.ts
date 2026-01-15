@@ -12,7 +12,7 @@ import {
   DEFAULT_TENANT_CONFIG,
   mapRowToConfig,
   resolveTenantFromHost,
-} from "@/constants/tenantConfig";
+} from "@/config/tenantConfig";
 
 // =============================================================================
 // CACHE (simple in-memory for client-side)

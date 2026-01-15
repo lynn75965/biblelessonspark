@@ -1,4 +1,4 @@
-﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
@@ -34,12 +34,12 @@ function logTiming(label: string, startTime: number): number {
 
 function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, includeTeaser: boolean = false) {
   return sections.map((section) => {
-    const rules = section.contentRules.map((r) => `    â€¢ ${r}`).join('\n');
-    const prohibitions = section.prohibitions.map((p) => `    â€¢ ${p}`).join('\n');
+    const rules = section.contentRules.map((r) => `    • ${r}`).join('\n');
+    const prohibitions = section.prohibitions.map((p) => `    • ${p}`).join('\n');
     const redundancyNote = section.redundancyLock.length > 0
       ? `\n    âš ï¸ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
       : '';
-    const optionalNote = section.optional ? '\n    â€¢ OPTIONAL SECTION - Only include when requested' : '';
+    const optionalNote = section.optional ? '\n    • OPTIONAL SECTION - Only include when requested' : '';
 
     let enforcementNote = '';
     if (section.id === 5) {
@@ -60,7 +60,7 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
 - Circular reasoning or restating the same point
 - Generic statements without specific application
 
-âœ… REQUIRED - Every sentence must do ONE of these:
+✓ REQUIRED - Every sentence must do ONE of these:
 - Unpack a theological concept with depth
 - Explain WHY something matters (not just that it does)
 - Give concrete examples or applications
@@ -137,8 +137,8 @@ function buildTeaserInstructions(includeTeaser: boolean): string {
   const teaserSection = getTeaserSection();
   if (!teaserSection) return '';
 
-  const rules = teaserSection.contentRules.map((r) => `    â€¢ ${r}`).join('\n');
-  const prohibitions = teaserSection.prohibitions.map((p) => `    â€¢ ${p}`).join('\n');
+  const rules = teaserSection.contentRules.map((r) => `    • ${r}`).join('\n');
+  const prohibitions = teaserSection.prohibitions.map((p) => `    • ${p}`).join('\n');
 
   return `
 -------------------------------------------------------------------------------
@@ -175,10 +175,10 @@ REQUIRED SIGNOFF:
 
 EXAMPLES:
 âŒ WRONG TEASER: "Discover what makes you unique - made in God's image"
-âœ… RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meetâ€”you might be surprised by what we uncover."
+✓ RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meet—you might be surprised by what we uncover."
 
 âŒ WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
-âœ… RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
+✓ RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
 
 REMEMBER:
 - DO NOT reference the Bible passage in ANY way

@@ -5,8 +5,16 @@ import React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { InviteEmail } from "./_templates/invite-email.tsx";
 
-// SSOT Import - Routes defined in frontend, mirrored to backend
+// SSOT Imports - All values come from centralized sources
 import { buildInviteUrl } from "../_shared/routes.ts";
+import { 
+  getBranding, 
+  getEmailFrom, 
+  getEmailSubject, 
+  getAppName,
+  getBaseUrl,
+  FALLBACK_BRANDING 
+} from "../_shared/branding.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -52,6 +60,12 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const { email, role = "teacher", organization_id }: InviteRequest = await req.json();
+
+    // ========================================================================
+    // SSOT: Get branding configuration
+    // ========================================================================
+    const branding = await getBranding(supabaseClient);
+    const appName = getAppName(branding);
 
     // Check if user is admin
     const { data: hasAdminRole } = await supabaseClient
@@ -140,14 +154,14 @@ const handler = async (req: Request): Promise<Response> => {
       orgName = org?.name || null;
     }
 
-    // Get inviter name
+    // Get inviter name (SSOT: use appName for fallback)
     const { data: inviterProfile } = await supabaseClient
       .from("profiles")
       .select("full_name")
       .eq("id", user.id)
       .single();
 
-    const inviterName = inviterProfile?.full_name || "A LessonSpark USA administrator";
+    const inviterName = inviterProfile?.full_name || `A ${appName} administrator`;
 
     // Create invite token
     const inviteToken = crypto.randomUUID();
@@ -174,26 +188,34 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Build invite URL using SSOT helper function
-    const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
+    // ========================================================================
+    // SSOT: Build invite URL using branding baseUrl
+    // ========================================================================
+    const baseUrl = Deno.env.get("SITE_URL") || getBaseUrl(branding);
     const inviteUrl = buildInviteUrl(baseUrl, inviteToken);
 
-    // Render email template
+    // Render email template (passes appName for SSOT branding in template)
     const emailHtml = await renderAsync(
       React.createElement(InviteEmail, {
         inviteUrl,
         inviterName,
         organizationName: orgName,
+        appName, // SSOT: Pass app name to template
       })
     );
 
-    // Send email via Resend
+    // ========================================================================
+    // SSOT: Send email using branding helper functions
+    // ========================================================================
+    const emailFrom = getEmailFrom(branding);
+    const emailSubject = orgName
+      ? getEmailSubject(branding, 'orgInvitation', { orgName })
+      : `You've been invited to ${appName}`;
+
     const { error: emailError } = await resend.emails.send({
-      from: "LessonSpark USA <noreply@lessonsparkusa.com>",
+      from: emailFrom,
       to: email,
-      subject: orgName
-        ? `You've been invited to join ${orgName} on LessonSpark USA`
-        : "You've been invited to LessonSpark USA",
+      subject: emailSubject,
       html: emailHtml,
     });
 

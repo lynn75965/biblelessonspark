@@ -4,6 +4,7 @@
  * ARCHITECTURE: Imports types, defaults, and utilities from SSOT (tenantConfig.ts)
  * Added to Admin Panel: December 19, 2025
  * Updated: January 8, 2026 - Added beta text editing section
+ * Updated: January 15, 2026 - SSOT color compliance for placeholders
  */
 
 import { useEffect, useState } from "react";
@@ -30,7 +31,14 @@ import {
   validateTenantConfig,
   applyTenantStyles,
   DEFAULT_TENANT_ID,
-} from "@/constants/tenantConfig";
+} from "@/config/tenantConfig";
+import { BRANDING } from "@/config/branding";
+
+// SSOT: Placeholder colors for admin color picker inputs
+const COLOR_PLACEHOLDERS = {
+  primary: BRANDING.colors.primary.DEFAULT,
+  secondary: BRANDING.colors.secondary.DEFAULT,
+};
 
 export function TenantBrandingPanel() {
   const { toast } = useToast();
@@ -369,7 +377,7 @@ export function TenantBrandingPanel() {
                   id="primaryColor"
                   value={form.branding.primaryColor}
                   onChange={(e) => updateBranding("primaryColor", e.target.value)}
-                  placeholder="#E4572E"
+                  placeholder={COLOR_PLACEHOLDERS.primary}
                   className="flex-1"
                 />
               </div>
@@ -388,7 +396,7 @@ export function TenantBrandingPanel() {
                   id="secondaryColor"
                   value={form.branding.secondaryColor}
                   onChange={(e) => updateBranding("secondaryColor", e.target.value)}
-                  placeholder="#1F2937"
+                  placeholder={COLOR_PLACEHOLDERS.secondary}
                   className="flex-1"
                 />
               </div>

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * GuardrailViolationsPanel - Admin Dashboard Component
  * Displays theological guardrail violation statistics and recent violations.
  */
@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, CheckCircle, Eye, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { UI_SYMBOLS } from "@/constants/uiSymbols";
 
 interface ViolationSummary {
   theology_profile_id: string;
@@ -217,7 +218,7 @@ export function GuardrailViolationsPanel() {
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {s.total_violations} violation{s.total_violations !== 1 ? 's' : ''} â€¢ {s.total_terms_violated} term{s.total_terms_violated !== 1 ? 's' : ''}
+                        {s.total_violations} violation{s.total_violations !== 1 ? 's' : ''} {UI_SYMBOLS.BULLET} {s.total_terms_violated} term{s.total_terms_violated !== 1 ? 's' : ''}
                       </div>
                     </div>
                   ))}
@@ -282,7 +283,7 @@ export function GuardrailViolationsPanel() {
                               <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                                 <DialogHeader>
                                   <DialogTitle>Violation Details</DialogTitle>
-                                  <DialogDescription>{v.lesson_title} â€¢ {v.theology_profile_name}</DialogDescription>
+                                  <DialogDescription>{v.lesson_title} {UI_SYMBOLS.BULLET} {v.theology_profile_name}</DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 mt-4">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
