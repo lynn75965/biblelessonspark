@@ -80,13 +80,16 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
-          <Link to="/" className="flex items-center gap-1.5 sm:gap-2 hover:opacity-90 transition-opacity shrink-0" title="Return to Home">
+          {/* Logo + Wordmark - SSOT from BRANDING, matches Footer styling */}
+          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0" title="Return to Home">
             <img 
               src={BRANDING.logo.icon} 
               alt={BRANDING.logo.altText}
               className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg object-contain"
             />
-            <span className="text-base sm:text-lg lg:text-xl font-bold text-primary hidden xs:inline">{BRANDING.appName}</span>
+            <span className="font-semibold text-base sm:text-lg text-primary">
+              {BRANDING.appName}
+            </span>
           </Link>
 
           {authenticated && displayOrgName && (
