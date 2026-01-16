@@ -7,6 +7,8 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
 import { useTenant } from "@/contexts/TenantContext";
 import { joinWithBullet } from "@/constants/uiSymbols";
+// SSOT: Import typography directly from brand-values.json
+import brandValues from "@/config/brand-values.json";
 
 interface HeroSectionProps {
   onRequestAccess?: () => void;
@@ -34,6 +36,9 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     ? tenant.beta.landingPage.trustText
     : tenant.production.landingPage.trustText;
 
+  // SSOT: Headline font from brand-values.json
+  const headlineFont = brandValues.typography.fontFamily.secondary;
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary-light/20">
       {/* Background pattern */}
@@ -48,9 +53,12 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               {badgeText}
             </Badge>
             
-            {/* Main headline */}
+            {/* Main headline - SSOT: Uses headlineFont from brand-values.json */}
             <div className="space-y-3 sm:space-y-4">
-              <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight" style={{ fontFamily: 'var(--font-secondary)' }}>
+              <h1 
+                className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight"
+                style={{ fontFamily: headlineFont }}
+              >
                 <span className="gradient-text">Use 3 Simple Steps</span>{" "}
                 <span className="block sm:inline">To Transform Your Lesson Prep</span>
               </h1>
