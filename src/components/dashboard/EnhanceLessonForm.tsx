@@ -975,7 +975,7 @@ export function EnhanceLessonForm({
         {/* ================================================================ */}
         {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
         {/* ================================================================ */}
-        {!viewingLesson && (
+        {!viewingLesson && !generatedLesson && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ================================================================ */}
           {/* STEP 1: Choose Your Scripture (Accordion) */}
