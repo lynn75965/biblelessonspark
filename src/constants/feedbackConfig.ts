@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // SSOT: Feedback Configuration
 // ============================================================================
 // ARCHITECTURE CHANGE: Questions are now stored in the database and managed
@@ -10,7 +10,7 @@
 // - Analytics display configuration
 // - Type definitions
 //
-// To modify survey questions: Use Admin Panel â†’ Beta Feedback Questions
+// To modify survey questions: Use Admin Panel → Beta Feedback Questions
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -40,6 +40,7 @@ export const BETA_PERIOD = {
 // ----------------------------------------------------------------------------
 export const FEEDBACK_TRIGGER = {
   exportDelayMs: 3000,  // 3 second delay after export before showing feedback
+  autoPopupOnExport: CURRENT_FEEDBACK_MODE === 'beta',  // Only auto-popup during beta period
 } as const;
 
 // ----------------------------------------------------------------------------
