@@ -1,6 +1,7 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 15, 2026 (Phase 20.7 - UTF-8 Encoding Fix + UI Symbols SSOT Complete)
+**Last Updated:** January 15, 2026 (Phase 20.8 - Tier Config SSOT & UX Improvements)
+**Launch Date:** January 20, 2026
 
 ---
 
@@ -25,6 +26,7 @@
 - **Frontend drives backend** - All constants defined in `src/constants/` and `src/config/`
 - Backend mirrors auto-generated via `npm run sync-constants`
 - Database branding synced via `npm run sync-branding`
+- Database tier config synced via `npm run sync-tier-config`
 - Never edit `supabase/functions/_shared/` directly
 
 ### Key SSOT Files
@@ -34,18 +36,84 @@
 | `src/constants/bibleVersions.ts` | Bible versions + copyright notices |
 | `src/constants/theologyProfiles.ts` | 10 Baptist theological traditions |
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
-| `src/constants/pricingConfig.ts` | Tier sections (free vs personal) |
+| `src/constants/pricingConfig.ts` | Tier sections, limits (MASTER for tier_config) |
 | `src/constants/trialConfig.ts` | Trial system configuration |
-| `src/constants/tenantConfig.ts` | White-label tenant configuration (imports from branding.ts) |
+| `src/constants/tenantConfig.ts` | White-label tenant configuration |
 | `src/constants/feedbackConfig.ts` | Feedback mode (beta/production) |
 | `src/constants/systemSettings.ts` | Platform mode helpers |
-| `src/constants/metricsViewerConfig.ts` | Chart colors for analytics (SSOT compliant) |
-| `src/constants/uiSymbols.ts` | **UI symbols constant** - Clean UTF-8 symbols (NEW Phase 20.7) |
-| `src/config/branding.ts` | **SSOT for ALL colors** - HEX definitions, generates CSS variables |
-| `src/config/brand-values.json` | **SSOT for colors/typography** - JSON source for sync script |
-| `src/components/BrandingProvider.tsx` | Runtime CSS variable injection from branding.ts |
-| `src/utils/formatLessonContent.ts` | SSOT for lesson content HTML formatting |
-| `scripts/sync-branding-to-db.cjs` | **Syncs branding from frontend SSOT → database** |
+| `src/constants/uiSymbols.ts` | UI symbols (UTF-8 safe) |
+| `src/constants/metricsViewerConfig.ts` | Chart colors for analytics |
+| `src/config/branding.ts` | **SSOT for ALL colors** |
+| `src/config/brand-values.json` | **SSOT for colors/typography** |
+
+### Sync Commands
+| Command | Purpose |
+|---------|---------|
+| `npm run sync-constants` | Syncs src/constants/ → supabase/functions/_shared/ |
+| `npm run sync-branding` | Syncs branding → branding_config table |
+| `npm run sync-tier-config` | Syncs tier config → tier_config table |
+
+---
+
+## SSOT TIER CONFIG SYSTEM (Phase 20.8 - COMPLETE ✅)
+
+### Architecture
+```
+pricingConfig.ts (FRONTEND MASTER)
+        ↓ npm run sync-tier-config
+tier_config table (DATABASE)
+        ↓
+check_lesson_limit() function
+        ↓
+API responses (no hardcoding)
+```
+
+### Database Table: tier_config
+| tier | lessons_limit | sections_allowed | includes_teaser | reset_interval |
+|------|---------------|------------------|-----------------|----------------|
+| free | 5 | [1,5,8] | false | 1 month |
+| personal | 20 | [1,2,3,4,5,6,7,8] | true | 1 month |
+| admin | 9999 | [1,2,3,4,5,6,7,8] | true | 1 month |
+
+### Key Database Functions
+| Function | Purpose |
+|----------|---------|
+| `check_lesson_limit(user_id)` | Returns tier info, reads from `tier_config` table |
+| `increment_lesson_usage(user_id)` | Increments `lessons_used` in `user_subscriptions` |
+
+### Duplicate Subscription Prevention
+- UNIQUE constraint on `user_subscriptions.user_id`
+- `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race condition handling
+
+---
+
+## SSOT UI SYMBOLS SYSTEM (Phase 20.7 - COMPLETE ✅)
+
+### Purpose
+Prevents UTF-8 encoding corruption when files are edited across different systems.
+
+### Files
+| Location | Type |
+|----------|------|
+| `src/constants/uiSymbols.ts` | Frontend MASTER |
+| `supabase/functions/_shared/uiSymbols.ts` | Backend mirror |
+
+### Available Symbols
+```typescript
+export const UI_SYMBOLS = {
+  BULLET: '•',
+  EM_DASH: '—',
+  ELLIPSIS: '…',
+  CHECK: '✓',
+  STAR: '★',
+  SPARKLES: '✨',
+} as const;
+```
+
+### Helper Functions
+- `joinWithBullet(items)` - Join array with bullet separator
+- `formatNoneOption()` - Returns "— None —"
+- `formatLoading()` - Returns "Loading…"
 
 ---
 
@@ -67,33 +135,6 @@ Tailwind classes (bg-primary, text-secondary)
 Components
 ```
 
-### Database Branding Sync (Phase 20.6)
-```
-src/config/brand-values.json (SSOT colors/typography)
-        ↓
-scripts/sync-branding-to-db.cjs
-        ↓ npm run sync-branding
-        ↓
-Database: branding_config table
-        ↓
-Edge functions: getBranding() helper
-        ↓
-Emails show "BibleLessonSpark" branding
-```
-
-### Tenant Override Flow
-```
-branding.ts (base HEX colors)
-    ↓
-DEFAULT_TENANT_CONFIG (imports BRANDING.colors)
-    ↓
-BrandingProvider.tsx (injects CSS variables)
-    ↓
-Admin Panel tenant overrides (optional)
-    ↓
-Final rendered colors
-```
-
 ### BibleLessonSpark Brand Colors
 | Color | HEX | HSL | Usage |
 |-------|-----|-----|-------|
@@ -103,183 +144,54 @@ Final rendered colors
 | Warm Cream | `#FFFEF9` | `50 100% 99%` | Background |
 | Deep Gold | `#C9A754` | `43 50% 56%` | Accent |
 
-### Key Functions in branding.ts
-| Function | Purpose |
-|----------|---------|
-| `hexToHsl(hex)` | Converts HEX to HSL format for Tailwind |
-| `adjustLightness(hsl, amount)` | Creates lighter/darker variants |
-| `generateTailwindCSSVariables()` | Outputs complete CSS variable block |
-
 ### CSS Debugging Protocol
-When colors appear wrong, run these in browser DevTools Console:
+When colors appear wrong, run in browser DevTools Console:
 ```javascript
-// Check what --primary is set to
 getComputedStyle(document.documentElement).getPropertyValue('--primary')
 // Expected: "120 20% 30%" (Forest Green)
-
-// Find ALL style tags injecting CSS variables
-document.querySelectorAll('style').forEach((s, i) => {
-  if (s.textContent.includes('--primary')) {
-    console.log(`Style ${i}:`, s.id || 'no-id', s.textContent.substring(0, 200));
-  }
-});
-
-// Check for cascade conflicts
-const styles = getComputedStyle(document.documentElement);
-['--primary', '--secondary', '--background', '--foreground'].forEach(v => {
-  console.log(v, styles.getPropertyValue(v));
-});
 ```
-
-### White-Label Override Flow
-1. BrandingProvider injects base CSS variables from branding.ts
-2. If tenant has custom colors in Admin Panel, they override `--primary`/`--secondary`
-3. Tailwind classes automatically use correct colors
-
-### Full Codebase Audit Results (Jan 15, 2026)
-| File | Status | Notes |
-|------|--------|-------|
-| `branding.ts` | ✅ SSOT Source | All colors defined here |
-| `tenantConfig.ts` | ✅ Compliant | Imports from BRANDING |
-| `BrandingProvider.tsx` | ✅ Compliant | Generates from branding.ts |
-| `tailwind.config.ts` | ✅ Compliant | References CSS variables only |
-| `index.css` | ✅ Compliant | No hardcoded colors |
-| `useBranding.ts` | ✅ Compliant | Imports from BRANDING |
-| `TenantBrandingPanel.tsx` | ✅ Compliant | Placeholders reference BRANDING |
-| `DebugPanel.tsx` | ✅ Compliant | Uses BRANDING.colors.accent.dark |
-| `BetaAnalyticsDashboard.tsx` | ✅ Compliant | Uses metricsViewerConfig CHART_COLORS |
-| `EnrollmentAnalyticsPanel.tsx` | ✅ Compliant | Uses metricsViewerConfig CHART_COLORS |
-| `SystemAnalyticsDashboard.tsx` | ✅ Compliant | Uses semantic Tailwind classes |
-| `OrgAnalyticsPanel.tsx` | ✅ Compliant | Uses semantic Tailwind classes |
-| `FeedbackQuestionsManager.tsx` | ⚠️ Safe | Instructional example text only |
-| `LessonExportButtons.tsx` | ⚠️ Special | Print template (may need hardcoded) |
-
-### Color Compliance Summary
-| Metric | Count |
-|--------|-------|
-| Starting violations (Jan 13) | 151 |
-| Remaining violations | 0 |
-| **Total fixed** | **151 (100%)** |
-
-### Database Color Cleanup (Jan 15, 2026)
-| Table | Issue | Fix |
-|-------|-------|-----|
-| `tenant_config` | Had salmon `#E4572E` | Updated to `#3D5C3D` (Forest Green) |
-| `branding_config` | Had old LessonSpark USA values | Synced via `npm run sync-branding` |
-
-### To Rebrand Entire App
-Edit ONLY `src/config/branding.ts` and `src/config/brand-values.json`:
-```typescript
-colors: {
-  primary: { DEFAULT: "#3D5C3D" },   // Change this → all primary elements update
-  secondary: { DEFAULT: "#D4A74B" }, // Change this → all secondary elements update
-}
-```
-Then run: `npm run sync-branding` to update database.
 
 ---
 
-## SSOT UI SYMBOLS SYSTEM (Phase 20.7 - COMPLETE ✅)
-
-### Purpose
-Prevents UTF-8 encoding corruption that displays symbols like `â€¢`, `â€"`, `âœ"` instead of `•`, `—`, `✓`.
-
-### Architecture
-```
-src/constants/uiSymbols.ts (FRONTEND MASTER)
-        ↓ npm run sync-constants
-supabase/functions/_shared/uiSymbols.ts (BACKEND MIRROR)
-```
-
-### Available Symbols
-| Constant | Symbol | Usage |
-|----------|--------|-------|
-| `UI_SYMBOLS.BULLET` | • | Lists, separators |
-| `UI_SYMBOLS.EM_DASH` | — | "None" options, ranges |
-| `UI_SYMBOLS.ELLIPSIS` | … | Loading states |
-| `UI_SYMBOLS.CHECK` | ✓ | Success indicators |
-| `UI_SYMBOLS.STAR` | ★ | Ratings, favorites |
-| `UI_SYMBOLS.SPARKLES` | ✨ | AI-generated content |
-
-### Helper Functions
-```typescript
-import { UI_SYMBOLS, joinWithBullet, formatNoneOption, formatLoading } from '@/constants/uiSymbols';
-
-joinWithBullet(['A', 'B', 'C'])  // "A • B • C"
-formatNoneOption('None')         // "— None —"
-formatLoading('Processing')      // "Processing…"
-```
-
-### Files Updated (Phase 20.7)
-| File | Symbols Used |
-|------|--------------|
-| `GuardrailViolationsPanel.tsx` | `UI_SYMBOLS.BULLET` |
-| `TeacherCustomization.tsx` | `UI_SYMBOLS.STAR`, `formatNoneOption()` |
-| `DevotionalGenerator.tsx` | `UI_SYMBOLS.BULLET` |
-| `ParableGenerator.tsx` | `UI_SYMBOLS.BULLET`, `UI_SYMBOLS.EM_DASH` |
-| `HeroSection.tsx` | `joinWithBullet()` |
-| `PricingSection.tsx` | `formatLoading()` |
-| `metricsViewerConfig.ts` | `UI_SYMBOLS.EM_DASH` |
-| `Parables.tsx` | `UI_SYMBOLS.SPARKLES`, `UI_SYMBOLS.EM_DASH` |
-| `BibleVersionSelector.tsx` | Direct symbols (static content) |
-| `generate-lesson/index.ts` | Direct symbols (backend prompts) |
-
----
-
-## TIER ENFORCEMENT SYSTEM (COMPLETE ✅ - ACTIVE)
-
-### Status: PRODUCTION MODE - TIER ENFORCEMENT ACTIVE
-
-Verified January 15, 2026: `system_settings.current_phase = 'production'`
-
-### How It Works
-```
-User generates lesson
-        ↓
-generate-lesson edge function
-        ↓
-Check system_settings.current_phase
-        ↓
-IF 'production':
-    Get user's subscription_tier
-    Filter sections by TIER_SECTIONS[tier]
-        ↓
-IF 'beta':
-    All users get 8 sections
-```
-
-### Tier Sections (from pricingConfig.ts)
-```typescript
-export const TIER_SECTIONS = {
-  free: ['1', '5', '8'],           // 3 sections
-  personal: ['1', '2', '3', '4', '5', '6', '7', '8'],  // All 8
-  admin: ['1', '2', '3', '4', '5', '6', '7', '8'],
-} as const;
-```
-
-### Free Tier Sections
-| Section | Name | Purpose |
-|---------|------|---------|
-| 1 | Lens + Lesson Overview | Theological framework |
-| 5 | Main Teaching Content | Teacher transcript |
-| 8 | Student Handout | Takeaway for students |
+## TIER ENFORCEMENT SYSTEM (ACTIVE ✅)
 
 ### Behavior Matrix
 | Platform Mode | User Tier | Sections Generated |
 |---------------|-----------|-------------------|
-| Private Beta | Free | 8 (all) |
-| Private Beta | Personal | 8 (all) |
-| Public Beta | Free | 8 (all) |
-| Public Beta | Personal | 8 (all) |
-| **Production** | **Free** | **3 (1, 5, 8)** |
-| **Production** | **Personal** | **8 (all)** |
+| Beta | Any | All 8 sections |
+| Production | Free | Sections 1, 5, 8 (3 sections) |
+| Production | Personal | All 8 sections |
+| Production | Admin | All 8 sections |
 
-### White-Label Automatic Monetization
-When any tenant switches from Beta → Production in Admin Panel:
-- Tier enforcement activates automatically
-- No code deployment required
-- Free users immediately see 3 sections
-- Paid users continue to see 8 sections
+### Implementation Location
+- `supabase/functions/generate-lesson/index.ts` - Filters sections based on tier
+- `tier_config` table - SSOT for tier limits (synced via `npm run sync-tier-config`)
+- `check_lesson_limit()` function - Reads from `tier_config` (no hardcoding)
+
+---
+
+## JANUARY 20, 2026 LAUNCH STATUS
+
+### ✅ COMPLETE - Ready for Launch
+| Item | Status |
+|------|--------|
+| SSOT Color System | ✅ 100% compliant |
+| SSOT Email Branding | ✅ BibleLessonSpark emails |
+| SSOT UI Symbols | ✅ UTF-8 safe |
+| SSOT Tier Config | ✅ Database reads from tier_config |
+| Tier Enforcement | ✅ Active in Production mode |
+| Duplicate Subscription Prevention | ✅ UNIQUE constraint + ON CONFLICT |
+| Organization Invitations | ✅ Working |
+| Platform Mode | ✅ Production |
+| Header Logo + Wordmark | ✅ Matches footer |
+| Save Profile UX | ✅ Moved to bottom of Step 3 |
+
+### 🟡 CONFIGURATION ITEMS (Pre-Launch)
+| Item | Action |
+|------|--------|
+| Stripe Live Mode | Switch test keys to live in Supabase secrets |
+| Resend Domain | Verify `biblelessonspark.com` in Resend dashboard |
+| Show Pricing | Set to `true` in Admin Panel when ready |
 
 ---
 
@@ -294,7 +206,6 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 | `system_settings.show_join_beta_button` | `false` |
 | `feedback_questions.feedback_mode` | `production` |
 | `feedbackConfig.ts CURRENT_FEEDBACK_MODE` | `production` |
-| **Tier Enforcement** | **ACTIVE** |
 
 ### What Users See (Production Mode)
 | Element | Value |
@@ -306,59 +217,65 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 | Feedback modal title | "Share Your Feedback" |
 | Community page CTA | "Ready to Transform Your Lesson Prep?" |
 
-### What's Working ✅
-- Accordion-style 3-step lesson creation
-- Tier-based section generation (3 for free, 8 for personal)
-- Bible version copyright attribution in all exports (PDF, DOCX, Copy, Print)
-- Legacy lesson formatting normalization (## headers → **bold:**)
-- DevotionalSpark with progress indicator
-- Parable Generator
-- Organization management with invitations
-- Admin Panel with analytics dashboards
-- White-label infrastructure (preserved but hidden)
-- SSOT Color System (100% complete)
-- SSOT Email Branding (BibleLessonSpark emails)
-- SSOT UI Symbols (UTF-8 encoding fixed)
-- Trial system for free users
+### What's Working
+- ✅ Accordion-style 3-step lesson creation
+- ✅ 8-section lesson generation (all users during Beta)
+- ✅ Tier-based section filtering in Production mode
+- ✅ Bible version copyright attribution in all exports (PDF, DOCX, Copy, Print)
+- ✅ Legacy lesson formatting normalization (## headers → **bold:**)
+- ✅ Organization invitations with BibleLessonSpark branding
+- ✅ Save Profile button at bottom of Step 3 with clear explanation
+- ✅ Header shows logo + wordmark matching footer
 
 ---
 
-## JANUARY 20, 2026 LAUNCH STATUS
+## COMPLETED PHASES
 
-### ✅ COMPLETE - Ready for Launch
-| Item | Status | Notes |
-|------|--------|-------|
-| SSOT Color System | ✅ 100% | Forest Green (#3D5C3D) everywhere |
-| SSOT Email Branding | ✅ Complete | BibleLessonSpark emails working |
-| SSOT UI Symbols | ✅ Complete | UTF-8 encoding fixed |
-| Tier Enforcement | ✅ Active | Free: 3 sections, Personal: 8 sections |
-| Organization Invitations | ✅ Working | Forest Green button, correct branding |
-| Platform Mode | ✅ Production | No "Beta" references in UI |
-| Analytics Dashboards | ✅ SSOT Compliant | CHART_COLORS from metricsViewerConfig |
+### Phase 20.8 (Jan 15, 2026) - Tier Config SSOT & UX Improvements
 
-### 🟡 CONFIGURATION ITEMS (Pre-Launch)
-| Item | Action Required |
-|------|-----------------|
-| **Stripe Live Mode** | Switch test keys to live keys in Supabase secrets |
-| **Resend Domain** | Verify `biblelessonspark.com` in Resend dashboard |
-| **Show Pricing** | Set to `true` in Admin Panel when ready to display pricing |
+**Bug Fix: Duplicate Subscription Records**
+- Diagnosed usage count mismatch (Emily showed 2/5 but only 1 lesson existed)
+- Found 4 users with duplicate subscription records
+- Root cause: Race condition in `check_lesson_limit` creating duplicates when multiple requests hit simultaneously
+- Fix: Added UNIQUE constraint on `user_subscriptions.user_id`
+- Fix: Updated `check_lesson_limit` to use `ON CONFLICT DO NOTHING`
+- Cleaned up all existing duplicate records
 
-### How to Complete Configuration Items
+**SSOT Tier Config System**
+- Created `tier_config` database table
+- Updated `check_lesson_limit` function to read from `tier_config` (removed all hardcoded values)
+- Created `scripts/sync-tier-config-to-db.cjs`
+- Added `npm run sync-tier-config` command to package.json
 
-**Stripe Live Mode:**
-1. Go to Supabase Dashboard → Settings → Edge Functions → Secrets
-2. Update `STRIPE_SECRET_KEY` from `sk_test_...` to `sk_live_...`
-3. Update `STRIPE_WEBHOOK_SECRET` to live webhook secret
+**UX Improvements**
+- Header now shows logo + wordmark (was showing icon only due to invalid `xs` breakpoint)
+- Save Profile button moved from top-right corner to bottom of Step 3 with clear explanation
+- Added helpful text: "Save these settings for future lessons? Create a profile to quickly apply these preferences next time."
 
-**Resend Domain:**
-1. Go to Resend Dashboard → Domains
-2. Add `biblelessonspark.com`
-3. Add DNS records to your domain registrar
-4. Wait for verification (can take up to 48 hours)
+### Phase 20.7 (Jan 15, 2026) - UTF-8 Encoding Fix + UI Symbols SSOT
+- Created `src/constants/uiSymbols.ts` as SSOT for UI symbols
+- Created `supabase/functions/_shared/uiSymbols.ts` backend mirror
+- Fixed 18 encoding corruptions across 10 files
+- All special characters (•, —, …, ✓, ★, ✨) now centralized
 
-**Show Pricing:**
-1. Go to Admin Panel → System Settings
-2. Set `show_pricing` to `true`
+### Phase 20.6 (Jan 15, 2026) - SSOT Email Branding & Database Sync
+- Fixed organization invitation emails showing "LessonSpark USA" → "BibleLessonSpark"
+- Created `npm run sync-branding` command
+- Updated email templates to use Forest Green button
+- Created `branding_config` table for edge function access
+
+### Phase 20.5 (Jan 15, 2026) - SSOT Color Compliance Cleanup
+- Fixed 151 hardcoded color violations (100% compliance achieved)
+- All colors now flow from `branding.ts` SSOT
+
+### Phase 20.4 (Jan 14, 2026) - SSOT Architecture Consolidation
+- Created `src/config/brand-values.json` as single source of truth
+- Changed font from Inter to Poppins
+
+### Phase 20.3 (Jan 10-14, 2026) - Production Mode & Domain Launch
+- Switched platform from Beta to Production mode
+- Launched biblelessonspark.com domain
+- Connected Netlify deployment
 
 ---
 
@@ -368,88 +285,53 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 ```
 src/
 ├── components/
-│   ├── BrandingProvider.tsx         # Runtime CSS variable injection (SSOT colors)
+│   ├── BrandingProvider.tsx         # Runtime CSS variable injection
+│   ├── layout/
+│   │   ├── Header.tsx               # Logo + wordmark (SSOT from BRANDING)
+│   │   └── Footer.tsx               # Logo + wordmark (SSOT from BRANDING)
 │   ├── dashboard/
-│   │   ├── EnhanceLessonForm.tsx    # 3-step accordion + section rendering
-│   │   ├── LessonExportButtons.tsx  # Export with copyright
-│   │   ├── LessonLibrary.tsx        # Devotional launch with bible_version_id
-│   │   ├── DevotionalLibrary.tsx    # Modal with formatted display
-│   │   ├── TeacherCustomization.tsx # Uses UI_SYMBOLS for profile selector
-│   │   └── DebugPanel.tsx           # Job tracker overlay (SSOT compliant)
-│   ├── landing/
-│   │   ├── HeroSection.tsx          # Mode-aware, uses joinWithBullet()
-│   │   └── PricingSection.tsx       # Uses formatLoading()
-│   ├── admin/
-│   │   ├── BetaAnalyticsDashboard.tsx   # Charts use CHART_COLORS from SSOT
-│   │   ├── EnrollmentAnalyticsPanel.tsx # Charts use CHART_COLORS from SSOT
-│   │   ├── SystemAnalyticsDashboard.tsx # Semantic Tailwind classes
-│   │   ├── GuardrailViolationsPanel.tsx # Uses UI_SYMBOLS.BULLET
-│   │   └── TenantBrandingPanel.tsx      # Placeholders reference BRANDING
-│   ├── org/
-│   │   └── OrgAnalyticsPanel.tsx        # Semantic Tailwind classes
-│   ├── BetaFeedbackModal.tsx        # Mode-aware feedback title
-│   ├── DevotionalGenerator.tsx      # Progress indicator, UI_SYMBOLS.BULLET
-│   └── ParableGenerator.tsx         # UI_SYMBOLS.BULLET, UI_SYMBOLS.EM_DASH
+│   │   ├── EnhanceLessonForm.tsx    # 3-step accordion
+│   │   └── TeacherCustomization.tsx # Save Profile at bottom (Step 3)
 ├── config/
-│   ├── branding.ts                  # SSOT: All brand colors, generates CSS variables
-│   └── brand-values.json            # SSOT: Colors/typography JSON source
+│   ├── branding.ts                  # SSOT: All brand colors
+│   └── brand-values.json            # SSOT: Colors/typography JSON
 ├── constants/
-│   ├── uiSymbols.ts                 # SSOT: UI symbols constant (NEW Phase 20.7)
-│   ├── tenantConfig.ts              # SSOT for tenant configuration (imports BRANDING)
-│   ├── metricsViewerConfig.ts       # SSOT for chart colors (imports BRANDING)
-│   ├── feedbackConfig.ts            # CURRENT_FEEDBACK_MODE
-│   ├── systemSettings.ts            # isBetaMode() helper
-│   ├── pricingConfig.ts             # TIER_SECTIONS defined here
+│   ├── pricingConfig.ts             # TIER_SECTIONS, TIER_LIMITS (MASTER)
+│   ├── uiSymbols.ts                 # UI symbols (UTF-8 safe)
 │   └── [other SSOT files]
-├── pages/
-│   ├── PricingPage.tsx              # Uses brand-aware Tailwind classes
-│   ├── Community.tsx                # Mode-aware CTA section
-│   ├── Parables.tsx                 # Uses UI_SYMBOLS.SPARKLES, UI_SYMBOLS.EM_DASH
-│   ├── Help.tsx                     # Subscription model FAQ
-│   └── Dashboard.tsx                # Settings tab removed
-├── index.css                        # Stripped of colors (runtime generated)
-├── main.tsx                         # BrandingProvider wrapper
-└── utils/
-    ├── formatLessonContent.ts       # SSOT: normalizeLegacyContent() exported
-    ├── exportToPdf.ts               # Copyright footer
-    └── exportToDocx.ts              # Copyright footer
 ```
 
 ### Backend (Edge Functions)
 ```
 supabase/functions/
 ├── generate-lesson/
-│   └── index.ts                     # Tier enforcement ACTIVE
-├── generate-devotional/
-│   └── index.ts                     # Bible version copyright attribution
-├── send-invite/
-│   ├── index.ts                     # Uses SSOT branding helpers
-│   └── _templates/
-│       └── invite-email.tsx         # Accepts appName prop, Forest Green button
+│   └── index.ts                     # Tier enforcement active
 ├── _shared/
-│   ├── branding.ts                  # SSOT: getBranding(), getEmailFrom(), getEmailSubject()
-│   ├── routes.ts                    # URL builders (buildInviteUrl)
-│   ├── uiSymbols.ts                 # SSOT: Backend mirror of UI symbols (NEW Phase 20.7)
-│   ├── bibleVersions.ts             # Synced from frontend (has copyrightNotice)
-│   ├── theologyProfiles.ts
-│   ├── ageGroups.ts
-│   ├── pricingConfig.ts             # TIER_SECTIONS for tier enforcement
-│   └── trialConfig.ts
+│   ├── branding.ts                  # getBranding() helper
+│   ├── uiSymbols.ts                 # Backend mirror
+│   └── pricingConfig.ts             # Backend mirror
 ```
 
 ### Scripts
 ```
 scripts/
-├── sync-constants.cjs               # Syncs src/constants/ → supabase/functions/_shared/
-├── sync-branding-to-db.cjs          # Syncs branding from frontend SSOT → database
-└── generate-css.cjs                 # Generates CSS from brand-values.json
+├── sync-constants.cjs               # Syncs src/constants/ → _shared/
+├── sync-branding-to-db.cjs          # Syncs branding → branding_config table
+└── sync-tier-config-to-db.cjs       # Syncs tier config → tier_config table
+```
+
+### Database Tables (Tier System)
+```
+tier_config                          # SSOT for tier limits/sections
+user_subscriptions                   # User's current tier + usage (UNIQUE on user_id)
 ```
 
 ---
 
 ## DEPLOYMENT COMMANDS
+
 ```powershell
-# Frontend hot reload (development)
+# Frontend hot reload
 npm run dev
 
 # Build for production
@@ -461,64 +343,17 @@ npm run sync-constants
 # Sync branding to database
 npm run sync-branding
 
-# Deploy edge function
-npx supabase functions deploy generate-lesson --no-verify-jwt
+# Sync tier config to database
+npm run sync-tier-config
 
 # Deploy all edge functions
 npx supabase functions deploy
 
-# Git commit and push (triggers Netlify deploy)
+# Git commit and push
 git add -A
-git commit -m "Description of changes"
+git commit -m "message"
 git push
 ```
-
----
-
-## COMPLETED PHASES
-
-### Phase 20.7 (Jan 15, 2026) - UTF-8 Encoding Fix + UI Symbols SSOT
-- Created `src/constants/uiSymbols.ts` as SSOT for all UI symbols
-- Created `supabase/functions/_shared/uiSymbols.ts` backend mirror
-- Fixed 18 encoding corruptions across 10 files
-- Replaced garbled characters (`â€¢`, `â€"`, `âœ"`) with clean symbols (`•`, `—`, `✓`)
-- Added helper functions: `joinWithBullet()`, `formatNoneOption()`, `formatLoading()`
-
-### Phase 20.6 (Jan 15, 2026) - SSOT Email Branding & Database Sync
-- Fixed organization invitation emails showing "LessonSpark USA" instead of "BibleLessonSpark"
-- Created `npm run sync-branding` command
-- Created `scripts/sync-branding-to-db.cjs`
-- Updated `_shared/branding.ts` with getBranding(), getEmailFrom(), getEmailSubject() helpers
-- Updated `send-invite/index.ts` to use SSOT branding
-- Updated `invite-email.tsx` to accept appName prop
-- Removed salmon `#E4572E` from database `tenant_config`
-- Synced branding_config table via npm run sync-branding
-- Verified tier enforcement is ACTIVE (current_phase = production)
-
-### Phase 20.5 (Jan 15, 2026) - SSOT Color Compliance Cleanup
-- Fixed 151 hardcoded color violations across codebase
-- Cleaned `BetaAnalyticsDashboard.tsx` (22 violations)
-- Cleaned `EnrollmentAnalyticsPanel.tsx` (9 violations)
-- Cleaned `SystemAnalyticsDashboard.tsx` (7 violations)
-- Cleaned `OrgAnalyticsPanel.tsx` (11 violations)
-- Cleaned `TenantBrandingPanel.tsx` (2 violations)
-- Cleaned `DebugPanel.tsx` (1 violation)
-- Achieved 100% SSOT color compliance
-
-### Phase 20.4 (Jan 14, 2026) - SSOT Architecture Consolidation
-- Created `src/config/brand-values.json` as single source of truth
-- Updated `scripts/generate-css.cjs` to import from brand-values.json
-- Updated `src/config/branding.ts` to import from brand-values.json
-- Fixed duplicate `tenantConfig.ts` causing import conflicts
-- Changed font from Inter to Poppins
-- Reduced violations from 151 to 106 (30% improvement)
-
-### Phase 20.3 (Jan 10-14, 2026) - Production Mode & Domain Launch
-- Switched platform from Beta to Production mode
-- Launched biblelessonspark.com domain
-- Connected Netlify deployment
-- Removed "Beta" references from UI
-- Preserved white-label beta infrastructure (hidden)
 
 ---
 
@@ -528,26 +363,24 @@ git push
 - Lynn is a non-programmer; provide complete, copy-paste ready solutions
 - Follow Claude Debugging Protocol: diagnose root cause before proposing fixes
 - All solutions must be SSOT compliant (frontend drives backend)
-- Test with actual data before declaring success
-- Platform is now in Production mode - all user-facing text should avoid "Beta" references
-- White-label beta infrastructure is preserved but hidden
-- **SSOT Color System is 100% COMPLETE** - Forest Green (#3D5C3D) is live
-- **SSOT Email Branding is COMPLETE** - BibleLessonSpark emails working
-- **SSOT UI Symbols is COMPLETE** - UTF-8 encoding issues fixed
-- **Tier Enforcement is ACTIVE** - Free users get 3 sections, Personal get 8
-- **All analytics dashboards use CHART_COLORS from metricsViewerConfig.ts**
-- If colors appear wrong, use CSS Debugging Protocol in this document
-- **New command:** `npm run sync-branding` syncs frontend branding to database
-- **New SSOT file:** `src/constants/uiSymbols.ts` for clean UI symbols
+- Platform is in Production mode - no "Beta" references in UI
 
----
+**Key Commands:**
+- `npm run sync-branding` - Syncs branding to database
+- `npm run sync-tier-config` - Syncs tier limits to database
+- `npm run sync-constants` - Syncs constants to edge functions
 
-## REMAINING FOR LAUNCH (Configuration Only)
+**SSOT Systems Status (All Complete ✅):**
+- Color System (100% compliant - Forest Green #3D5C3D)
+- Email Branding (BibleLessonSpark)
+- UI Symbols (UTF-8 safe)
+- Tier Config (database reads from tier_config table)
 
-| Item | Priority | Action |
-|------|----------|--------|
-| Stripe Live Mode | HIGH | Switch test keys to live in Supabase secrets |
-| Resend Domain | HIGH | Verify `biblelessonspark.com` in Resend dashboard |
-| Show Pricing | MEDIUM | Set to `true` in Admin Panel when ready |
+**Database Protections:**
+- UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
+- `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race conditions
 
-**Note:** All code-related launch items are COMPLETE. Only configuration changes remain.
+**Launch Countdown:**
+- Launch Date: January 20, 2026
+- All code complete
+- Only configuration items remain (Stripe live keys, Resend domain, show_pricing toggle)
