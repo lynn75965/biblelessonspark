@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 15, 2026 (Phase 20.8 - Tier Config SSOT & UX Improvements)
+**Last Updated:** January 16, 2026 (Phase 20.9 - SSOT Deployment & Feedback Config)
 **Launch Date:** January 20, 2026
 
 ---
@@ -39,7 +39,7 @@
 | `src/constants/pricingConfig.ts` | Tier sections, limits (MASTER for tier_config) |
 | `src/constants/trialConfig.ts` | Trial system configuration |
 | `src/constants/tenantConfig.ts` | White-label tenant configuration |
-| `src/constants/feedbackConfig.ts` | Feedback mode (beta/production) |
+| `src/constants/feedbackConfig.ts` | Feedback mode (beta/production), auto-popup config |
 | `src/constants/systemSettings.ts` | Platform mode helpers |
 | `src/constants/uiSymbols.ts` | UI symbols (UTF-8 safe) |
 | `src/constants/metricsViewerConfig.ts` | Chart colors for analytics |
@@ -231,6 +231,24 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 
 ## COMPLETED PHASES
 
+### Phase 20.9 (Jan 16, 2026) - SSOT Deployment & Feedback Config
+
+**Feedback Auto-Popup Fix**
+- Issue: Feedback modal popping up on every export action (annoying UX)
+- Root cause: `onExport` callback unconditionally triggered modal
+- Fix: Added `autoPopupOnExport` flag to `FEEDBACK_TRIGGER` in `feedbackConfig.ts`
+- SSOT compliance: `autoPopupOnExport` derived from `CURRENT_FEEDBACK_MODE`
+  - Beta mode = true (auto-popup enabled)
+  - Production mode = false (no auto-popup, rely on "Give Feedback" button)
+
+**SSOT Deployment Script (deploy.ps1)**
+- Issue: Commits pushed to wrong branch (`main` vs `biblelessonspark`)
+- Fix: Created `deploy.ps1` script that:
+  - Defines production branch once (`$PRODUCTION_BRANCH = "biblelessonspark"`)
+  - Validates current branch before push
+  - Single command deployment: `.\deploy.ps1 "commit message"`
+- Prevents deployment errors from branch mismatch
+
 ### Phase 20.8 (Jan 15, 2026) - Tier Config SSOT & UX Improvements
 
 **Bug Fix: Duplicate Subscription Records**
@@ -318,6 +336,8 @@ scripts/
 ├── sync-constants.cjs               # Syncs src/constants/ → _shared/
 ├── sync-branding-to-db.cjs          # Syncs branding → branding_config table
 └── sync-tier-config-to-db.cjs       # Syncs tier config → tier_config table
+
+deploy.ps1                           # SSOT deployment script (root directory)
 ```
 
 ### Database Tables (Tier System)
@@ -331,6 +351,9 @@ user_subscriptions                   # User's current tier + usage (UNIQUE on us
 ## DEPLOYMENT COMMANDS
 
 ```powershell
+# SSOT Deployment (RECOMMENDED - prevents branch mismatch)
+.\deploy.ps1 "commit message"
+
 # Frontend hot reload
 npm run dev
 
@@ -366,6 +389,7 @@ git push
 - Platform is in Production mode - no "Beta" references in UI
 
 **Key Commands:**
+- `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
 - `npm run sync-branding` - Syncs branding to database
 - `npm run sync-tier-config` - Syncs tier limits to database
 - `npm run sync-constants` - Syncs constants to edge functions
