@@ -116,11 +116,6 @@ export default function Dashboard() {
     loadUserProfile();
   }, [user]);
 
-  const stats = {
-    lessonsCreated: lessons.length,
-    aiGenerations: lessons.length * 3
-  };
-
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
 
   const handleCreateLesson = () => {
@@ -233,35 +228,6 @@ export default function Dashboard() {
             dismissible
           />
         )}
-
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
-          <Card className="bg-gradient-card">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-primary shrink-0">
-                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{stats.lessonsCreated}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">My Lessons</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-card">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-secondary shrink-0">
-                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{stats.aiGenerations}</p>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Enhancements</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
