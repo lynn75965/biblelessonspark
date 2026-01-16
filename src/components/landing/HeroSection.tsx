@@ -36,8 +36,8 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     ? tenant.beta.landingPage.trustText
     : tenant.production.landingPage.trustText;
 
-  // SSOT: Headline font from brand-values.json
-  const headlineFont = brandValues.typography.fontFamily.secondary;
+  // SSOT: Headline font from brand-values.json (primary = Inter/sans-serif to match lessonsparkusa.com)
+  const headlineFont = brandValues.typography.fontFamily.primary;
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary-light/20">
@@ -53,7 +53,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
               {badgeText}
             </Badge>
             
-            {/* Main headline - SSOT: Uses headlineFont from brand-values.json */}
+            {/* Main headline - SSOT: Uses headlineFont from brand-values.json (primary/sans-serif) */}
             <div className="space-y-3 sm:space-y-4">
               <h1 
                 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight"
