@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BookOpen, Mail, User, Lock, Eye, EyeOff, ArrowLeft, Church } from 'lucide-react';
+import { BookOpen, Mail, User, Lock, Eye, EyeOff, ArrowLeft, Church, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useInvites } from '@/hooks/useInvites';
@@ -47,6 +47,10 @@ export default function Auth() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
+  // NEW: State for email confirmation blocking
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('');
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -72,13 +76,13 @@ export default function Auth() {
     }
   }, [searchParams]);
 
-  // Prevent redirect to dashboard if in reset mode
+  // Prevent redirect to dashboard if in reset mode or showing email confirmation
   useEffect(() => {
     const resetParam = searchParams.get('reset');
-    if (user && resetParam !== 'true' && !inviteToken) {
+    if (user && resetParam !== 'true' && !inviteToken && !showEmailConfirmation) {
       navigate('/dashboard');
     }
-  }, [user, searchParams, navigate, inviteToken]);
+  }, [user, searchParams, navigate, inviteToken, showEmailConfirmation]);
 
   // Handle invite token
   useEffect(() => {
@@ -120,7 +124,7 @@ export default function Auth() {
     setIsLoading(true);
     try {
       const sanitizedEmail = sanitizeEmail(formData.email);
-      const { error } = await signIn(sanitizedEmail, formData.password);
+      const { error, data } = await signIn(sanitizedEmail, formData.password);
 
       if (error) {
         toast({
@@ -129,6 +133,17 @@ export default function Auth() {
           variant: "destructive",
         });
       } else {
+        // Check if email is confirmed
+        const { data: userData } = await supabase.auth.getUser();
+        
+        if (userData?.user && !userData.user.email_confirmed_at) {
+          // Email not confirmed - sign out and show confirmation required message
+          setUnconfirmedEmail(sanitizedEmail);
+          await supabase.auth.signOut();
+          setShowEmailConfirmation(true);
+          return;
+        }
+        
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
@@ -142,6 +157,46 @@ export default function Auth() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // NEW: Handle resending verification email
+  const handleResendVerification = async () => {
+    if (!unconfirmedEmail) return;
+    
+    setIsResendingVerification(true);
+    try {
+      // Sign in temporarily to trigger resend
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: unconfirmedEmail,
+        password: formData.password,
+      });
+      
+      if (!signInError) {
+        // Trigger verification email
+        await supabase.functions.invoke('resend-verification');
+        // Sign out again
+        await supabase.auth.signOut();
+        
+        toast({
+          title: "Verification email sent!",
+          description: "Please check your inbox and spam folder.",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to resend verification email. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to resend verification email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -237,9 +292,14 @@ export default function Auth() {
           console.error('Failed to send verification email:', emailError);
         }
 
+        // Sign out and show email confirmation message
+        setUnconfirmedEmail(sanitizedEmail);
+        await supabase.auth.signOut();
+        setShowEmailConfirmation(true);
+        
         toast({
-          title: MESSAGES.enrollmentSuccess.title,
-          description: MESSAGES.enrollmentSuccess.description,
+          title: "Account created!",
+          description: "Please check your email to verify your account before signing in.",
         });
       }
     } catch (error) {
@@ -360,6 +420,93 @@ export default function Auth() {
     setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
 
+  // NEW: Email Confirmation Required View
+  if (showEmailConfirmation) {
+    return (
+      <div className={BRANDING.layout.authPageWrapper}>
+        <div className={BRANDING.layout.authFormContainer}>
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mb-3 sm:mb-4">
+              <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
+                <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              </div>
+              <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+            </div>
+          </div>
+
+          <Card className="bg-gradient-card shadow-glow">
+            <CardHeader className="px-4 sm:px-6 text-center">
+              <div className="flex justify-center mb-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                  <Mail className="h-8 w-8 text-primary" />
+                </div>
+              </div>
+              <CardTitle className="text-lg sm:text-xl">Check Your Email</CardTitle>
+              <CardDescription className="text-sm">
+                Please verify your email address to continue
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 sm:px-6">
+              <div className="space-y-4 text-center">
+                <div className="bg-muted/50 rounded-lg p-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    We sent a verification link to:
+                  </p>
+                  <p className="font-medium text-foreground">{unconfirmedEmail}</p>
+                </div>
+                
+                <div className="flex items-start gap-2 text-left bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    You must verify your email before you can sign in. Please check your inbox and spam folder.
+                  </p>
+                </div>
+
+                <div className="pt-2 space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleResendVerification}
+                    disabled={isResendingVerification}
+                  >
+                    {isResendingVerification ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Resend Verification Email
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => {
+                      setShowEmailConfirmation(false);
+                      setUnconfirmedEmail('');
+                      setActiveTab('signin');
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Sign In
+                  </Button>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-2">
+                  Already verified? Try signing in again after clicking the link in your email.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // Reset Password Completion View
   if (isResetMode) {
     return (
@@ -403,7 +550,11 @@ export default function Auth() {
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                       tabIndex={-1}
                     >
-                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -413,7 +564,7 @@ export default function Auth() {
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                     <Input
                       id="confirm-password"
-                      type={showNewPassword ? "text" : "password"}
+                      type="password"
                       placeholder="Confirm new password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
@@ -423,7 +574,7 @@ export default function Auth() {
                     />
                   </div>
                 </div>
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                <div className="bg-muted/50 rounded-lg p-2 text-xs text-muted-foreground">
                   <p className="font-medium mb-1">Password requirements:</p>
                   <ul className="space-y-0.5">
                     {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (

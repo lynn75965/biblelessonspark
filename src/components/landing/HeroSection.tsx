@@ -115,13 +115,13 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right side - Hero image */}
-          <div className="flex-1 relative w-full mt-4 sm:mt-6 lg:mt-0">
+          {/* Right side - Hero image - FIXED: Added max-height and object-cover for proper scaling */}
+          <div className="lg:flex-1 relative w-full mt-4 sm:mt-6 lg:mt-0 lg:max-w-xl">
             <div className="relative px-4 sm:px-0">
               <img
                 src={heroImage}
                 alt="Baptist teachers and students in modern Bible study classroom"
-                className="rounded-lg sm:rounded-2xl shadow-xl sm:shadow-2xl w-full max-w-sm sm:max-w-lg mx-auto lg:max-w-none"
+                className="rounded-lg sm:rounded-2xl shadow-xl sm:shadow-2xl w-full h-auto max-h-[280px] sm:max-h-[350px] lg:max-h-[420px] object-cover object-center mx-auto"
               />
               
               {/* Floating feature cards - hidden on smallest screens */}
@@ -159,6 +159,3 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     </section>
   );
 }
-
-
-
