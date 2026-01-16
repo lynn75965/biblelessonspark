@@ -171,13 +171,26 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     return shareText;
   };
 
-  // Email share - opens mail client with lesson content
-  const handleShareEmail = () => {
+  // Email share - copies lesson to clipboard, then opens mail client with subject
+  const handleShareEmail = async () => {
+    const shareText = getShareableText();
+    
+    // First copy the lesson to clipboard
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch (error) {
+      // If clipboard fails, still try to open email
+    }
+    
+    // Open email with just the subject (body would be too long for URL)
     const subject = encodeURIComponent(lesson.title);
-    const body = encodeURIComponent(getShareableText());
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
+    window.location.href = `mailto:?subject=${subject}`;
+    
     if (onExport) onExport();
-    toast({ title: "Email opened", description: "Compose your email and send." });
+    toast({ 
+      title: "Lesson copied to clipboard", 
+      description: "Paste your lesson into the email body." 
+    });
   };
 
   // Copy for sharing - copies formatted text to clipboard
