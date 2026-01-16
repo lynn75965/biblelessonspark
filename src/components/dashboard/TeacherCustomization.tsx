@@ -350,9 +350,9 @@ export function TeacherCustomization({
 
       {isExpanded && (
         <CardContent className="space-y-6 pt-4">
-          {/* Profile Management Row */}
-          <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
-            {profiles.length > 0 && (
+          {/* Profile Management Row - Only shows when user has saved profiles */}
+          {profiles.length > 0 && (
+            <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
               <div className="flex items-center gap-2">
                 <Label htmlFor="profile-select" className="text-sm whitespace-nowrap">
                   Load Profile:
@@ -391,26 +391,8 @@ export function TeacherCustomization({
                   </Button>
                 )}
               </div>
-            )}
-
-            <div className="flex-1" />
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleOpenSaveModal}
-              disabled={disabled || isSavingProfile}
-              className="gap-2"
-            >
-              {isSavingProfile ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="h-4 w-4" />
-              )}
-              Save This Profile
-            </Button>
-          </div>
+            </div>
+          )}
 
           {/* 12 Profile Fields - Responsive Grid (1 col mobile, 2 col desktop) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -709,6 +691,34 @@ export function TeacherCustomization({
                   </label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Save Profile Section - At bottom after all selections made */}
+          <div className="mt-6 pt-6 border-t bg-muted/30 -mx-6 px-6 pb-2 rounded-b-lg">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Save these settings for future lessons?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Create a profile to quickly apply these preferences next time. You can save up to 7 profiles.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="default"
+                onClick={handleOpenSaveModal}
+                disabled={disabled || isSavingProfile}
+                className="gap-2 shrink-0"
+              >
+                {isSavingProfile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save This Profile
+              </Button>
             </div>
           </div>
         </CardContent>
