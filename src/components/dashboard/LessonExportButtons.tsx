@@ -1,21 +1,21 @@
 /**
  * LessonExportButtons Component
- * Export buttons for lessons: Copy, Print, Share, PDF, DOCX
+ * Export buttons for lessons: Copy, Print, Share (dropdown), Download (PDF/DOCX)
  * 
  * SSOT Compliance:
  * - formatLessonContentForPrint imported from @/utils/formatLessonContent (shared utility)
  * - No inline formatting logic - all formatting centralized in utility
  * 
  * Updated: January 2026
- * - Added Native Share button using Web Share API (falls back to clipboard)
- * - Added Bible version attribution to all exports (Copy, Print, Share, PDF, DOCX)
+ * - Share dropdown menu: Email Lesson, Copy for Sharing, More Options (mobile)
+ * - Added Bible version attribution to all exports
  * - copyrightNotice now included in all output formats
  */
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Copy, Printer, Download, FileText, FileType, ChevronDown, Check, Loader2, Share2 } from "lucide-react";
+import { Copy, Printer, Download, FileText, FileType, ChevronDown, Check, Loader2, Share2, Mail, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { exportToPdf } from "@/utils/exportToPdf";
 import { exportToDocx } from "@/utils/exportToDocx";
@@ -155,9 +155,8 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     } finally { setExporting(null); }
   };
 
-  // Native Share API - shares lesson as text
-  const handleShare = async () => {
-    // Build shareable text content
+  // Build shareable text content (used by all share methods)
+  const getShareableText = (): string => {
     let shareText = `${lesson.title}\n\n`;
     if (lesson.metadata?.teaser) {
       shareText += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n`;
@@ -169,13 +168,39 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
     if (copyrightLine) {
       shareText += `\n\n---\n${copyrightLine}`;
     }
-    
-    // Check if Web Share API is available
+    return shareText;
+  };
+
+  // Email share - opens mail client with lesson content
+  const handleShareEmail = () => {
+    const subject = encodeURIComponent(lesson.title);
+    const body = encodeURIComponent(getShareableText());
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_self');
+    if (onExport) onExport();
+    toast({ title: "Email opened", description: "Compose your email and send." });
+  };
+
+  // Copy for sharing - copies formatted text to clipboard
+  const handleShareCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(getShareableText());
+      toast({ 
+        title: "Copied for sharing", 
+        description: "Lesson copied. Paste into your preferred app to share." 
+      });
+      if (onExport) onExport();
+    } catch (error) {
+      toast({ title: "Copy failed", description: "Unable to copy to clipboard.", variant: "destructive" });
+    }
+  };
+
+  // Native Share API - for mobile users
+  const handleShareNative = async () => {
     if (navigator.share) {
       try {
         await navigator.share({
           title: lesson.title,
-          text: shareText,
+          text: getShareableText(),
         });
         if (onExport) onExport();
         toast({ title: "Shared successfully", description: "Your lesson has been shared." });
@@ -186,18 +211,13 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
         }
       }
     } else {
-      // Fallback: copy to clipboard with share-friendly message
-      try {
-        await navigator.clipboard.writeText(shareText);
-        toast({ 
-          title: "Copied for sharing", 
-          description: "Lesson copied to clipboard. Paste into your preferred app to share." 
-        });
-      } catch (error) {
-        toast({ title: "Share unavailable", description: "Sharing is not supported in this browser.", variant: "destructive" });
-      }
+      // Fallback if native share not available
+      await handleShareCopy();
     }
   };
+
+  // Check if native share is available (primarily for mobile)
+  const hasNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -208,9 +228,29 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
       <Button variant="outline" size="sm" onClick={handlePrint} disabled={disabled} title={EXPORT_FORMATTING.printTooltip}>
         <Printer className="h-4 w-4 mr-1.5" />Print
       </Button>
-      <Button variant="outline" size="sm" onClick={handleShare} disabled={disabled} title="Share lesson via email, text, or other apps">
-        <Share2 className="h-4 w-4 mr-1.5" />Share
-      </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" disabled={disabled}>
+            <Share2 className="h-4 w-4 mr-1.5" />Share<ChevronDown className="h-3 w-3 ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleShareEmail}>
+            <Mail className="h-4 w-4 mr-2" />Email Lesson
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleShareCopy}>
+            <Copy className="h-4 w-4 mr-2" />Copy for Sharing
+          </DropdownMenuItem>
+          {hasNativeShare && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleShareNative}>
+                <Smartphone className="h-4 w-4 mr-2" />More Options...
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" disabled={disabled || exporting !== null}>
