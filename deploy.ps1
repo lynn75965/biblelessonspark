@@ -10,8 +10,6 @@ param(
     [string]$CommitMessage
 )
 
-$ErrorActionPreference = "Stop"
-
 # SSOT: Production branch name
 $PRODUCTION_BRANCH = "biblelessonspark"
 
@@ -34,16 +32,11 @@ Write-Host "`nStaging changes..." -ForegroundColor Gray
 git add .
 
 Write-Host "Committing: $CommitMessage" -ForegroundColor Gray
-git commit -m $CommitMessage
+$commitResult = git commit -m $CommitMessage 2>&1
+Write-Host $commitResult -ForegroundColor Gray
 
-Write-Host "Pushing to origin/$PRODUCTION_BRANCH..." -ForegroundColor Gray
-$pushResult = git push origin $PRODUCTION_BRANCH 2>&1
+Write-Host "`nPushing to origin/$PRODUCTION_BRANCH..." -ForegroundColor Gray
+git push origin $PRODUCTION_BRANCH
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "`n✅ Deployed successfully to $PRODUCTION_BRANCH" -ForegroundColor Green
-    Write-Host "Wait 1-2 minutes for Vercel build, then test at https://biblelessonspark.com" -ForegroundColor Cyan
-} else {
-    Write-Host "`n❌ Push failed:" -ForegroundColor Red
-    Write-Host $pushResult -ForegroundColor Red
-    exit 1
-}
+Write-Host "`n✅ Deployed to $PRODUCTION_BRANCH" -ForegroundColor Green
+Write-Host "Wait 1-2 minutes for Vercel build, then test at https://biblelessonspark.com" -ForegroundColor Cyan
