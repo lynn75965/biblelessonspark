@@ -927,6 +927,30 @@ export function EnhanceLessonForm({
               </p>
             </div>
           </>
+        ) : generatedLesson ? (
+          <>
+            {/* ================================================================ */}
+            {/* GENERATED LESSON VIEW: UX Improvement - January 2026 */}
+            {/* After generation, show lesson prominently instead of requiring scroll */}
+            {/* ================================================================ */}
+            <div className="mb-6">
+              <Button
+                variant="outline"
+                onClick={() => setGeneratedLesson(null)}
+                className="mb-4 gap-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Create Another Lesson
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+                <BookOpen className="h-6 w-6 text-primary flex-shrink-0" />
+                <span className="break-words">{displayTitle}</span>
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Your lesson has been generated and saved to your library
+              </p>
+            </div>
+          </>
         ) : (
           <>
             {/* Welcome Banner for NEW Users Only (0 lessons) */}
@@ -954,9 +978,9 @@ export function EnhanceLessonForm({
         )}
 
         {/* ================================================================ */}
-        {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
+        {/* CREATION FORM: Only show when NOT viewing a saved lesson AND no generated lesson */}
         {/* ================================================================ */}
-        {!viewingLesson && (
+        {!viewingLesson && !generatedLesson && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ================================================================ */}
           {/* STEP 1: Choose Your Scripture (Accordion) */}
@@ -1528,9 +1552,10 @@ export function EnhanceLessonForm({
 
       {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}
+      {/* No top margin when in viewer mode (viewingLesson) or generated lesson view */}
       {/* ================================================================ */}
       {currentLesson && (
-        <Card className={viewingLesson ? "" : "mt-6"}>
+        <Card className={(viewingLesson || generatedLesson) ? "" : "mt-6"}>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex flex-wrap items-center gap-2">
