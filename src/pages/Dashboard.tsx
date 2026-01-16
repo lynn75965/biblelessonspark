@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -297,7 +297,7 @@ export default function Dashboard() {
                 });
               }}
               onExport={() => {
-                setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
+                  // Feedback button available - no auto-popup on export
               }}
               organizationId={userProfile?.organization_id}
               userPreferredAgeGroup={userProfile?.preferred_age_group || "youngadult"}
