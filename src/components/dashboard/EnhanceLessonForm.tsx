@@ -898,6 +898,12 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const currentLesson = viewingLesson || generatedLesson?.lesson;
+  // SSOT: Display mode - single source of truth for what view to show
+  const displayMode: 'form' | 'generated' | 'viewing' = 
+    viewingLesson ? 'viewing' : 
+    generatedLesson ? 'generated' : 
+    'form';
+  const showForm = displayMode === 'form';
   const displayTitle = currentLesson
     ? extractLessonTitle(currentLesson.original_text) || currentLesson.title || "Generated Lesson"
     : "Generated Lesson";
@@ -975,7 +981,7 @@ export function EnhanceLessonForm({
         {/* ================================================================ */}
         {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
         {/* ================================================================ */}
-        {!viewingLesson && !generatedLesson && (
+        {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ================================================================ */}
           {/* STEP 1: Choose Your Scripture (Accordion) */}
