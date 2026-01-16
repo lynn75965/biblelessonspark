@@ -25,7 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
@@ -57,6 +57,7 @@ interface EnhanceLessonFormProps {
   onLessonGenerated?: (lesson: any) => void;
   onExport?: () => void;
   onRequestFeedback?: () => void;
+  onNavigateToLibrary?: () => void;
   organizationId?: string;
   userPreferredAgeGroup?: string;
   defaultDoctrine?: string;
@@ -311,6 +312,7 @@ export function EnhanceLessonForm({
   onLessonGenerated,
   onExport,
   onRequestFeedback,
+  onNavigateToLibrary,
   organizationId,
   userPreferredAgeGroup,
   defaultDoctrine,
@@ -484,6 +486,23 @@ export function EnhanceLessonForm({
   // ============================================================================
   
   const isPaidUser = tier === 'personal' || tier === 'admin';
+
+  // Copy lesson to clipboard utility
+  const copyLessonToClipboard = useCallback(async (content: string, title: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({
+        title: "Copied to Clipboard",
+        description: `"${title}" has been copied to your clipboard.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Unable to copy to clipboard. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   // Teacher Profiles Hook
   const {
@@ -927,30 +946,6 @@ export function EnhanceLessonForm({
               </p>
             </div>
           </>
-        ) : generatedLesson ? (
-          <>
-            {/* ================================================================ */}
-            {/* GENERATED LESSON VIEW: UX Improvement - January 2026 */}
-            {/* After generation, show lesson prominently instead of requiring scroll */}
-            {/* ================================================================ */}
-            <div className="mb-6">
-              <Button
-                variant="outline"
-                onClick={() => setGeneratedLesson(null)}
-                className="mb-4 gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Create Another Lesson
-              </Button>
-              <h1 className="text-2xl font-bold text-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
-                <BookOpen className="h-6 w-6 text-primary flex-shrink-0" />
-                <span className="break-words">{displayTitle}</span>
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Your lesson has been generated and saved to your library
-              </p>
-            </div>
-          </>
         ) : (
           <>
             {/* Welcome Banner for NEW Users Only (0 lessons) */}
@@ -978,9 +973,9 @@ export function EnhanceLessonForm({
         )}
 
         {/* ================================================================ */}
-        {/* CREATION FORM: Only show when NOT viewing a saved lesson AND no generated lesson */}
+        {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
         {/* ================================================================ */}
-        {!viewingLesson && !generatedLesson && (
+        {!viewingLesson && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* ================================================================ */}
           {/* STEP 1: Choose Your Scripture (Accordion) */}
@@ -1552,10 +1547,9 @@ export function EnhanceLessonForm({
 
       {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}
-      {/* No top margin when in viewer mode (viewingLesson) or generated lesson view */}
       {/* ================================================================ */}
       {currentLesson && (
-        <Card className={(viewingLesson || generatedLesson) ? "" : "mt-6"}>
+        <Card className={viewingLesson ? "" : "mt-6"}>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle className="flex flex-wrap items-center gap-2">
@@ -1788,32 +1782,59 @@ export function EnhanceLessonForm({
               </div>
             )}
 
-            {/* Export buttons at bottom */}
-            <div className="flex flex-wrap items-center justify-center gap-2 mt-6 pt-4 border-t">
-              <span className="text-sm text-muted-foreground mr-2">Export:</span>
-              <LessonExportButtons
-                onExport={onExport}
-                lesson={{
-                  title: currentLesson.title || "Generated Lesson",
-                  original_text: lessonContentForExport,
-                  metadata: isFreeOutputOnly 
-                    ? { ...currentLesson.metadata, teaser: null }
-                    : currentLesson.metadata,
-                }}
-              />
-            </div>
-            {isFreeOutputOnly && (
-              <p className="text-xs text-amber-700 text-center mt-3">
-                Free tier export includes sections 1, 5, and 8 only.{" "}
-                <button
-                  type="button"
-                  onClick={() => navigate(ROUTES.PRICING)}
-                  className="text-primary hover:text-primary underline"
+            {/* Action buttons at bottom */}
+            <div className="flex flex-col items-center gap-3 mt-6 pt-4 border-t">
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {/* Copy to Clipboard - Always available */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyLessonToClipboard(
+                    lessonContentForExport,
+                    currentLesson.title || "Generated Lesson"
+                  )}
+                  className="gap-2"
                 >
-                  Upgrade for full lessons
-                </button>
-              </p>
-            )}
+                  <Copy className="h-4 w-4" />
+                  Copy to Clipboard
+                </Button>
+
+                {/* Visit Lesson Library - Only for users with saved lessons */}
+                {!isFreeOutputOnly && onNavigateToLibrary && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={onNavigateToLibrary}
+                    className="gap-2"
+                  >
+                    <Library className="h-4 w-4" />
+                    Visit Lesson Library
+                  </Button>
+                )}
+              </div>
+
+              {/* Helper text for library features */}
+              {!isFreeOutputOnly && onNavigateToLibrary && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Save, Print, Share, and File your lessons in the Lesson Library
+                </p>
+              )}
+
+              {/* Upgrade message for free users past complimentary */}
+              {isFreeOutputOnly && (
+                <p className="text-xs text-amber-700 text-center">
+                  <Lock className="h-3 w-3 inline-block mr-1" />
+                  <button
+                    type="button"
+                    onClick={() => navigate(ROUTES.PRICING)}
+                    className="text-primary hover:text-primary underline"
+                  >
+                    Upgrade
+                  </button>
+                  {" "}to save lessons to your personal Lesson Library
+                </p>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}
