@@ -1161,7 +1161,7 @@ export function EnhanceLessonForm({
                   <RadioGroupItem value="topic" id="content-topic" className="mt-1" />
                   <div className="flex-1">
                     <Label htmlFor="content-topic" className="font-medium cursor-pointer">
-                      Start from a topic or theme
+                      Start from a topic, theme or question
                     </Label>
                     {(contentInputType === "passage" || contentInputType === "topic") && (
                       <div className="mt-2">
