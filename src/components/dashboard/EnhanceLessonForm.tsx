@@ -867,6 +867,7 @@ export function EnhanceLessonForm({
 
       if (result.success && result.data) {
         setGeneratedLesson(result.data);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         if (onLessonGenerated) {
           onLessonGenerated(result.data);
         }
