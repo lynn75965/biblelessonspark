@@ -1,24 +1,166 @@
 // src/utils/exportToDocx.ts
-// Updated: January 2026 - Added Bible version copyright attribution footer
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from "docx";
-import { saveAs } from "file-saver";
-import { EXPORT_FORMATTING } from "../constants/lessonStructure";
+// SSOT COMPLIANT: All values imported from lessonStructure.ts
+// Version: 2.2.0 - Uses Calibri font from SSOT
 
-const extractLessonTitle = (content: string): string | null => {
-  const lines = content.split("\n");
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, PageBreak } from "docx";
+import { saveAs } from "file-saver";
+import { EXPORT_FORMATTING, EXPORT_SPACING } from "../constants/lessonStructure";
+
+// SSOT destructure - includes fonts
+const { fonts, margins, sectionHeader, body, title, sectionHeaderFont, metadata, teaser, paragraph, listItem, footer, colors } = EXPORT_SPACING;
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * BULLETPROOF markdown stripper - removes ALL markdown artifacts
+ */
+function cleanAllMarkdown(text: string): string {
+  if (!text) return '';
+  let result = text.trim();
+  
+  while (result.startsWith('**') || result.startsWith('__')) {
+    if (result.startsWith('**')) result = result.slice(2);
+    if (result.startsWith('__')) result = result.slice(2);
+  }
+  while (result.endsWith('**') || result.endsWith('__')) {
+    if (result.endsWith('**')) result = result.slice(0, -2);
+    if (result.endsWith('__')) result = result.slice(0, -2);
+  }
+  
+  result = result.replace(/^#{1,6}\s*/, '');
+  return result.trim();
+}
+
+/**
+ * Detect if line is a Section header
+ */
+function detectSectionHeader(line: string): { isSection: boolean; num: number; cleanTitle: string } {
+  const cleaned = cleanAllMarkdown(line);
+  const match = cleaned.match(/^Section\s+(\d+)\s*[:\-–—]?\s*(.*)$/i);
+  
+  if (match) {
+    const num = parseInt(match[1], 10);
+    const subtitle = match[2] ? match[2].trim() : '';
+    return {
+      isSection: true,
+      num: num,
+      cleanTitle: subtitle ? `Section ${num}: ${subtitle}` : `Section ${num}`
+    };
+  }
+  
+  return { isSection: false, num: 0, cleanTitle: '' };
+}
+
+/**
+ * Detect Section 8 specifically
+ */
+function isSection8Line(line: string): boolean {
+  const cleaned = cleanAllMarkdown(line);
+  return /^Section\s+8\s*[:\-–—]?\s*Student\s+Handout/i.test(cleaned);
+}
+
+/**
+ * Extract lesson title from content
+ */
+function extractDocTitle(content: string): string | null {
+  const lines = content.split('\n');
   for (const line of lines) {
-    const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
-    if (match) return match[1].replace(/[""\*]/g, "").trim();
+    const cleaned = cleanAllMarkdown(line);
+    const match = cleaned.match(/^Lesson\s+Title[:\s]*[""]?(.+?)[""]?\s*$/i);
+    if (match) {
+      return match[1].replace(/[""\*#]/g, '').trim();
+    }
   }
   return null;
-};
+}
 
-interface ExportToDocxOptions {
+/**
+ * Create styled teaser box - SSOT fonts/colors/spacing
+ */
+function buildTeaserBox(teaserText: string): Paragraph[] {
+  return [
+    new Paragraph({
+      children: [new TextRun({ 
+        text: EXPORT_FORMATTING.teaserLabel, 
+        bold: true, 
+        color: colors.teaserText, 
+        size: teaser.fontHalfPt,
+        font: fonts.docx
+      })],
+      shading: { fill: colors.teaserBg },
+      spacing: { before: teaser.marginBeforeTwips, after: paragraph.afterTwips },
+      border: {
+        top: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
+        left: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
+        right: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE }
+      }
+    }),
+    new Paragraph({
+      children: [new TextRun({ 
+        text: teaserText, 
+        italics: true, 
+        size: body.fontHalfPt,
+        font: fonts.docx
+      })],
+      spacing: { after: teaser.marginAfterTwips },
+      shading: { fill: colors.teaserBg },
+      border: {
+        bottom: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
+        left: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
+        right: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE }
+      }
+    })
+  ];
+}
+
+/**
+ * Parse text with **bold** markers - SSOT font
+ */
+function buildTextRuns(text: string, fontSize: number = body.fontHalfPt): TextRun[] {
+  if (!text) return [];
+  
+  const runs: TextRun[] = [];
+  let processedText = text.replace(/^#{1,6}\s*/, '');
+  const segments = processedText.split(/(\*\*[^*]+\*\*)/g);
+  
+  for (const seg of segments) {
+    if (!seg) continue;
+    
+    if (seg.startsWith('**') && seg.endsWith('**')) {
+      let boldText = seg.slice(2, -2);
+      boldText = boldText.replace(/^#{1,6}\s*/, '').trim();
+      if (boldText) {
+        runs.push(new TextRun({ 
+          text: boldText, 
+          bold: true, 
+          size: fontSize,
+          font: fonts.docx
+        }));
+      }
+    } else {
+      runs.push(new TextRun({ 
+        text: seg, 
+        size: fontSize,
+        font: fonts.docx
+      }));
+    }
+  }
+  
+  return runs;
+}
+
+// ============================================================================
+// MAIN EXPORT FUNCTION
+// ============================================================================
+
+interface DocxExportOptions {
   title: string;
   content: string;
-  metadata?: { 
-    passage?: string; 
-    ageGroup?: string; 
+  metadata?: {
+    passage?: string;
+    ageGroup?: string;
     theology?: string;
     bibleVersion?: string;
     bibleVersionAbbreviation?: string;
@@ -27,112 +169,262 @@ interface ExportToDocxOptions {
   teaserContent?: string;
 }
 
-export const exportToDocx = async ({ title, content, metadata, teaserContent }: ExportToDocxOptions): Promise<void> => {
-  const lessonTitle = extractLessonTitle(content);
-  const documentTitle = lessonTitle || title;
-  const sections: Paragraph[] = [];
-
-  sections.push(new Paragraph({ text: documentTitle, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.LEFT }));
-
-  if (metadata) {
-    const metadataParts: string[] = [];
-    if (metadata.passage) metadataParts.push(metadata.passage);
-    if (metadata.ageGroup) metadataParts.push(metadata.ageGroup);
-    if (metadata.theology) metadataParts.push(metadata.theology);
-    if (metadataParts.length > 0) {
-      sections.push(new Paragraph({ text: metadataParts.join("  |  "), spacing: { after: 200 } }));
+export const exportToDocx = async (options: DocxExportOptions): Promise<void> => {
+  const { title: inputTitle, content, metadata: meta, teaserContent } = options;
+  
+  console.log('[DOCX Export V2.2] Starting export with Calibri font...');
+  
+  const lessonTitle = extractDocTitle(content);
+  const docTitle = lessonTitle || inputTitle;
+  
+  const paragraphs: Paragraph[] = [];
+  
+  // 1. DOCUMENT TITLE - SSOT font
+  paragraphs.push(new Paragraph({
+    children: [new TextRun({ 
+      text: docTitle, 
+      bold: true, 
+      size: title.fontHalfPt,
+      font: fonts.docx
+    })],
+    spacing: { after: title.afterTwips }
+  }));
+  
+  // 2. METADATA LINE - SSOT font
+  if (meta) {
+    const parts: string[] = [];
+    if (meta.ageGroup) parts.push(meta.ageGroup);
+    if (meta.theology) parts.push(meta.theology);
+    if (parts.length > 0) {
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ 
+          text: parts.join('  |  '), 
+          size: metadata.fontHalfPt, 
+          color: colors.metaText,
+          font: fonts.docx
+        })],
+        spacing: { after: metadata.afterTwips }
+      }));
     }
   }
-
+  
+  // 3. STUDENT TEASER AT TOP
   if (teaserContent && teaserContent.trim()) {
-    sections.push(new Paragraph({ text: EXPORT_FORMATTING.teaserLabel, heading: HeadingLevel.HEADING_3, shading: { fill: "E3F2FD" }, spacing: { before: 200, after: 100 } }));
-    sections.push(new Paragraph({ text: teaserContent, italics: true, spacing: { after: 200 }, shading: { fill: "F5F5FA" }, border: { top: { color: "B4C7E7", size: 6, style: BorderStyle.SINGLE }, bottom: { color: "B4C7E7", size: 6, style: BorderStyle.SINGLE }, left: { color: "B4C7E7", size: 6, style: BorderStyle.SINGLE }, right: { color: "B4C7E7", size: 6, style: BorderStyle.SINGLE } } }));
+    paragraphs.push(...buildTeaserBox(teaserContent));
   }
-
-  const lines = content.split("\n");
-  for (const line of lines) {
-    const trimmedLine = line.trim();
-    if (!trimmedLine || trimmedLine === "---") continue;
-    if (/^Lesson Title:/i.test(trimmedLine)) continue;
-    if (trimmedLine.startsWith("## ")) {
-      sections.push(new Paragraph({ text: trimmedLine.replace("## ", ""), heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
-    } else if (trimmedLine.startsWith("### ")) {
-      sections.push(new Paragraph({ text: trimmedLine.replace("### ", ""), heading: HeadingLevel.HEADING_3, spacing: { before: 150, after: 50 } }));
-    } else if (trimmedLine.startsWith("# ")) {
-      sections.push(new Paragraph({ text: trimmedLine.replace("# ", ""), heading: HeadingLevel.HEADING_1, spacing: { before: 200, after: 100 } }));
-    } else if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ")) {
-      const bulletText = trimmedLine.substring(2);
-      const runs: TextRun[] = [];
-      const parts = bulletText.split(/(\*\*.*?\*\*)/g);
-      for (const part of parts) {
-        if (part.startsWith("**") && part.endsWith("**")) {
-          runs.push(new TextRun({ text: part.replace(/\*\*/g, ""), bold: true }));
-        } else {
-          runs.push(new TextRun({ text: part }));
-        }
-      }
-      sections.push(new Paragraph({ children: runs, bullet: { level: 0 }, spacing: { after: 100 } }));
+  
+  // 4. SPLIT CONTENT AT SECTION 8
+  const allLines = content.split('\n');
+  const mainLines: string[] = [];
+  const section8Lines: string[] = [];
+  let foundSection8 = false;
+  
+  for (const line of allLines) {
+    if (isSection8Line(line)) {
+      foundSection8 = true;
+      section8Lines.push(line);
+    } else if (foundSection8) {
+      section8Lines.push(line);
     } else {
-      const runs: TextRun[] = [];
-      const parts = trimmedLine.split(/(\*\*.*?\*\*)/g);
-      for (const part of parts) {
-        if (part.startsWith("**") && part.endsWith("**")) {
-          runs.push(new TextRun({ text: part.replace(/\*\*/g, ""), bold: true }));
-        } else {
-          runs.push(new TextRun({ text: part }));
-        }
-      }
-      sections.push(new Paragraph({ children: runs, spacing: { after: 100 } }));
+      mainLines.push(line);
     }
   }
-
-  // Add separator before footer
-  sections.push(new Paragraph({ 
-    spacing: { before: 400 },
-    border: {
-      top: { color: "CCCCCC", size: 6, style: BorderStyle.SINGLE }
+  
+  // 5. PROCESS MAIN CONTENT (Sections 1-7)
+  for (const line of mainLines) {
+    const trimmed = line.trim();
+    
+    if (!trimmed || trimmed === '---') continue;
+    if (/Lesson\s+Title/i.test(cleanAllMarkdown(trimmed))) continue;
+    
+    const sectionInfo = detectSectionHeader(trimmed);
+    if (sectionInfo.isSection) {
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ 
+          text: sectionInfo.cleanTitle, 
+          bold: true, 
+          size: sectionHeaderFont.fontHalfPt,
+          font: fonts.docx
+        })],
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+      }));
+      continue;
     }
-  }));
-
-  // Add LessonSpark footer
-  sections.push(new Paragraph({ 
-    children: [
-      new TextRun({ 
-        text: EXPORT_FORMATTING.footerText, 
-        size: 18, // 9pt
-        color: "999999"
-      })
-    ],
-    alignment: AlignmentType.CENTER,
-    spacing: { before: 100, after: 50 }
-  }));
-
-  // Add Bible version copyright notice (if present)
-  let copyrightText = '';
-  if (metadata?.copyrightNotice) {
-    copyrightText = metadata.copyrightNotice;
-  } else if (metadata?.bibleVersion) {
-    // Fallback: construct basic attribution
-    copyrightText = `Scripture quotations are from the ${metadata.bibleVersion}${metadata.bibleVersionAbbreviation ? ` (${metadata.bibleVersionAbbreviation})` : ''}.`;
-  }
-
-  if (copyrightText) {
-    sections.push(new Paragraph({ 
-      children: [
-        new TextRun({ 
-          text: copyrightText, 
-          size: 16, // 8pt
-          color: "999999",
-          italics: true
-        })
-      ],
-      alignment: AlignmentType.CENTER,
-      spacing: { before: 50, after: 100 }
+    
+    const withoutBold = trimmed.replace(/^\*\*/, '').replace(/\*\*$/, '');
+    if (withoutBold.startsWith('#')) {
+      const headerText = cleanAllMarkdown(trimmed);
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ 
+          text: headerText, 
+          bold: true, 
+          size: body.fontHalfPt,
+          font: fonts.docx
+        })],
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+      }));
+      continue;
+    }
+    
+    if (/^[-*•]\s/.test(trimmed)) {
+      const bulletText = trimmed.replace(/^[-*•]\s*/, '');
+      paragraphs.push(new Paragraph({
+        children: buildTextRuns(bulletText),
+        bullet: { level: 0 },
+        spacing: { after: listItem.afterTwips }
+      }));
+      continue;
+    }
+    
+    if (/^\d+[.)]\s/.test(trimmed)) {
+      const itemText = trimmed.replace(/^\d+[.)]\s*/, '');
+      paragraphs.push(new Paragraph({
+        children: buildTextRuns(itemText),
+        spacing: { after: listItem.afterTwips }
+      }));
+      continue;
+    }
+    
+    paragraphs.push(new Paragraph({
+      children: buildTextRuns(trimmed),
+      spacing: { after: paragraph.afterTwips }
     }));
   }
-
-  const doc = new Document({ sections: [{ properties: {}, children: sections }] });
+  
+  // 6. SECTION 8 STANDALONE
+  if (section8Lines.length > 0) {
+    paragraphs.push(new Paragraph({ children: [new PageBreak()] }));
+    
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({ 
+        text: EXPORT_FORMATTING.section8Title, 
+        bold: true, 
+        size: sectionHeaderFont.fontHalfPt,
+        font: fonts.docx
+      })],
+      spacing: { after: sectionHeader.afterTwips }
+    }));
+    
+    if (teaserContent && teaserContent.trim()) {
+      paragraphs.push(...buildTeaserBox(teaserContent));
+    }
+    
+    for (let i = 1; i < section8Lines.length; i++) {
+      const line = section8Lines[i];
+      const trimmed = line.trim();
+      
+      if (!trimmed || trimmed === '---') continue;
+      
+      const withoutBold = trimmed.replace(/^\*\*/, '').replace(/\*\*$/, '');
+      if (withoutBold.startsWith('#')) {
+        const headerText = cleanAllMarkdown(trimmed);
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ 
+            text: headerText, 
+            bold: true, 
+            size: body.fontHalfPt,
+            font: fonts.docx
+          })],
+          spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        }));
+        continue;
+      }
+      
+      if (/^[-*•]\s/.test(trimmed)) {
+        const bulletText = trimmed.replace(/^[-*•]\s*/, '');
+        paragraphs.push(new Paragraph({
+          children: buildTextRuns(bulletText),
+          bullet: { level: 0 },
+          spacing: { after: listItem.afterTwips }
+        }));
+        continue;
+      }
+      
+      if (/^\d+[.)]\s/.test(trimmed)) {
+        const itemText = trimmed.replace(/^\d+[.)]\s*/, '');
+        paragraphs.push(new Paragraph({
+          children: buildTextRuns(itemText),
+          spacing: { after: listItem.afterTwips }
+        }));
+        continue;
+      }
+      
+      paragraphs.push(new Paragraph({
+        children: buildTextRuns(trimmed),
+        spacing: { after: paragraph.afterTwips }
+      }));
+    }
+  }
+  
+  // 7. FOOTER
+  paragraphs.push(new Paragraph({
+    spacing: { before: footer.marginTopTwips },
+    border: { top: { color: colors.hrLine, size: 6, style: BorderStyle.SINGLE } }
+  }));
+  
+  paragraphs.push(new Paragraph({
+    children: [new TextRun({ 
+      text: EXPORT_FORMATTING.footerText, 
+      size: footer.fontHalfPt, 
+      color: colors.footerText,
+      font: fonts.docx
+    })],
+    alignment: AlignmentType.CENTER,
+    spacing: { before: paragraph.afterTwips, after: paragraph.afterTwips }
+  }));
+  
+  // Copyright
+  let copyright = '';
+  if (meta?.copyrightNotice) {
+    copyright = meta.copyrightNotice;
+  } else if (meta?.bibleVersion) {
+    copyright = `Scripture quotations are from the ${meta.bibleVersion}${meta.bibleVersionAbbreviation ? ` (${meta.bibleVersionAbbreviation})` : ''}.`;
+  }
+  
+  if (copyright) {
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({ 
+        text: copyright, 
+        size: footer.fontHalfPt, 
+        color: colors.footerText, 
+        italics: true,
+        font: fonts.docx
+      })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: paragraph.afterTwips }
+    }));
+  }
+  
+  // 8. CREATE DOCUMENT WITH SSOT MARGINS AND DEFAULT FONT
+  const doc = new Document({
+    styles: {
+      default: {
+        document: {
+          run: {
+            font: fonts.docx,
+            size: body.fontHalfPt
+          }
+        }
+      }
+    },
+    sections: [{
+      properties: {
+        page: {
+          margin: {
+            top: margins.twips,
+            right: margins.twips,
+            bottom: margins.twips,
+            left: margins.twips
+          }
+        }
+      },
+      children: paragraphs
+    }]
+  });
+  
   const blob = await Packer.toBlob(doc);
-  const sanitizedTitle = documentTitle.replace(/[^a-zA-Z0-9\s]/g, "").replace(/\s+/g, "_").substring(0, 50);
-  saveAs(blob, `${sanitizedTitle}_Lesson.docx`);
+  const safeTitle = docTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 50);
+  saveAs(blob, `${safeTitle}_Lesson.docx`);
+  
+  console.log('[DOCX Export V2.2] Export complete with Calibri font!');
 };

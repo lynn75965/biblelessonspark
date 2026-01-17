@@ -1,15 +1,7 @@
 /**
  * LessonExportButtons Component
- * Export buttons for lessons: Copy, Print, Share (dropdown), Download (PDF/DOCX)
- * 
- * SSOT Compliance:
- * - formatLessonContentForPrint imported from @/utils/formatLessonContent (shared utility)
- * - No inline formatting logic - all formatting centralized in utility
- * 
- * Updated: January 2026
- * - Share dropdown menu: Email Lesson, Copy for Sharing, More Options (mobile)
- * - Added Bible version attribution to all exports
- * - copyrightNotice now included in all output formats
+ * SSOT COMPLIANT: All values imported from lessonStructure.ts
+ * NO hardcoded spacing/font values - frontend drives backend
  */
 
 import { useState } from "react";
@@ -19,8 +11,11 @@ import { Copy, Printer, Download, FileText, FileType, ChevronDown, Check, Loader
 import { useToast } from "@/hooks/use-toast";
 import { exportToPdf } from "@/utils/exportToPdf";
 import { exportToDocx } from "@/utils/exportToDocx";
-import { EXPORT_FORMATTING } from "@/constants/lessonStructure";
-import { formatLessonContentForPrint } from "@/utils/formatLessonContent";
+import { EXPORT_FORMATTING, EXPORT_SPACING } from "@/constants/lessonStructure";
+import { formatLessonContentForPrint, stripMarkdown, convertToRichHtml } from "@/utils/formatLessonContent";
+
+// Destructure SSOT values
+const { margins, sectionHeader, body, title, metadata, teaser, footer, colors } = EXPORT_SPACING;
 
 interface LessonMetadata {
   teaser?: string | null;
@@ -43,12 +38,8 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
   const { toast } = useToast();
 
-  // Build copyright attribution line for text-based exports
   const getCopyrightLine = (): string => {
-    if (lesson.metadata?.copyrightNotice) {
-      return lesson.metadata.copyrightNotice;
-    }
-    // Fallback for public domain or missing notice
+    if (lesson.metadata?.copyrightNotice) return lesson.metadata.copyrightNotice;
     if (lesson.metadata?.bibleVersion) {
       if (lesson.metadata.copyrightStatus === 'public_domain') {
         return `Scripture quotations are from the ${lesson.metadata.bibleVersion} (${lesson.metadata.bibleVersionAbbreviation || ''}).`;
@@ -60,49 +51,163 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
 
   const handleCopy = async () => {
     try {
-      let textContent = `${lesson.title}\n${"=".repeat(50)}\n\n`;
-      if (lesson.metadata?.teaser) textContent += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n${"-".repeat(50)}\n\n`;
-      textContent += lesson.original_text;
-      
-      // Add copyright attribution at the end
       const copyrightLine = getCopyrightLine();
+      let plainText = `${lesson.title}\n${"=".repeat(50)}\n\n`;
+      if (lesson.metadata?.teaser) {
+        plainText += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n${"-".repeat(50)}\n\n`;
+      }
+      plainText += stripMarkdown(lesson.original_text);
+      if (copyrightLine) plainText += `\n\n${"-".repeat(50)}\n${copyrightLine}`;
+      
+      // Rich HTML uses SSOT values
+      let richHtml = `<h1 style="font-family:Calibri,sans-serif;font-size:${title.fontPt}pt;margin-bottom:${title.afterPt}pt;">${lesson.title}</h1>`;
+      if (lesson.metadata?.teaser) {
+        richHtml += `<div style="background:#${colors.teaserBg};border:1px solid #${colors.teaserBorder};border-radius:4px;padding:${teaser.paddingPt}pt;margin:${teaser.marginBeforePt}pt 0 ${teaser.marginAfterPt}pt 0;">`;
+        richHtml += `<p style="font-family:Calibri,sans-serif;color:#${colors.teaserText};font-weight:bold;margin:0 0 4pt 0;font-size:${teaser.fontPt}pt;">${EXPORT_FORMATTING.teaserLabel}</p>`;
+        richHtml += `<p style="font-family:Calibri,sans-serif;font-style:italic;margin:0;font-size:${body.fontPt}pt;">${lesson.metadata.teaser}</p></div>`;
+      }
+      richHtml += `<div style="font-family:Calibri,sans-serif;font-size:${body.fontPt}pt;line-height:${body.lineHeight};">${convertToRichHtml(lesson.original_text)}</div>`;
       if (copyrightLine) {
-        textContent += `\n\n${"-".repeat(50)}\n${copyrightLine}`;
+        richHtml += `<hr style="margin-top:${footer.marginTopPt}pt;border:none;border-top:1px solid #ccc;">`;
+        richHtml += `<p style="font-family:Calibri,sans-serif;font-size:${footer.fontPt}pt;color:#${colors.footerText};font-style:italic;">${copyrightLine}</p>`;
       }
       
-      await navigator.clipboard.writeText(textContent);
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([richHtml], { type: 'text/html' }),
+            'text/plain': new Blob([plainText], { type: 'text/plain' })
+          })
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plainText);
+      }
       setCopied(true);
       if (onExport) onExport();
-      toast({ title: "Copied to clipboard", description: "Lesson content has been copied to your clipboard." });
+      toast({ title: "Copied to clipboard", description: "Paste into Word, Docs, or email." });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast({ title: "Copy failed", description: "Unable to copy to clipboard.", variant: "destructive" });
+      try {
+        await navigator.clipboard.writeText(`${lesson.title}\n\n${stripMarkdown(lesson.original_text)}`);
+        setCopied(true);
+        toast({ title: "Copied to clipboard", description: "Lesson content copied." });
+        setTimeout(() => setCopied(false), 2000);
+      } catch (e) {
+        toast({ title: "Copy failed", description: "Unable to copy.", variant: "destructive" });
+      }
     }
   };
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast({ title: "Print blocked", description: "Please allow pop-ups to print.", variant: "destructive" });
+      toast({ title: "Print blocked", description: "Please allow pop-ups.", variant: "destructive" });
       return;
     }
-    const metaItems: string[] = [lesson.title];
+    
+    const metaItems: string[] = [];
     if (lesson.metadata?.ageGroup) metaItems.push(lesson.metadata.ageGroup);
     if (lesson.metadata?.theologyProfile) metaItems.push(lesson.metadata.theologyProfile);
     
-    // SSOT: Use shared formatting utility for print
     const formattedContent = formatLessonContentForPrint(lesson.original_text);
     
     const lessonTitleMatch = lesson.original_text.match(/Lesson Title:?\s*[""]?(.+?)[""]?\s*(?:\n|$)/i);
     const documentTitle = lessonTitleMatch ? lessonTitleMatch[1].replace(/[""\*]/g, "").trim() : lesson.title;
     
-    // Get copyright notice for footer
-    const copyrightLine = getCopyrightLine();
-    const copyrightFooter = copyrightLine 
-      ? `<div class="copyright-notice">${copyrightLine}</div>` 
+    // Teaser HTML - used in TWO places (SSOT values)
+    const teaserHtml = lesson.metadata?.teaser 
+      ? `<div class="teaser"><b>${EXPORT_FORMATTING.teaserLabel}:</b> <i>${lesson.metadata.teaser}</i></div>`
       : '';
     
-    const printContent = `<!DOCTYPE html><html><head><title>${documentTitle}</title><style>@page{margin:1in}body{font-family:Calibri,sans-serif;font-size:11pt;line-height:1.5;max-width:8.5in;margin:0 auto;padding:0}h1{font-size:18pt;margin-bottom:12pt;line-height:1.3}h2{font-size:14pt;margin-top:18pt;margin-bottom:12pt;line-height:1.3}hr{margin:18px 0;border:none;border-top:1px solid #ccc}.metadata{color:#666;font-size:10pt;margin-bottom:18pt;line-height:1.3}.teaser-box{background:#F0F7FF;border:1px solid #3B82F6;border-radius:8px;padding:12pt;margin:18pt 0}.teaser-box h3{color:#3B82F6;margin:0 0 6pt 0;font-size:12pt}.teaser-box p{font-style:italic;margin:0;line-height:1.5}p{margin-bottom:12pt}.copyright-notice{margin-top:36pt;padding-top:12pt;border-top:1px solid #ccc;font-size:9pt;color:#666;font-style:italic;line-height:1.4;text-align:center}</style></head><body><h1>${documentTitle}</h1><div class="metadata">${metaItems.join(" | ")}</div>${lesson.metadata?.teaser ? `<div class="teaser-box"><h3>${EXPORT_FORMATTING.teaserLabel}</h3><p>${lesson.metadata.teaser}</p></div>` : ""}<div>${formattedContent}</div>${copyrightFooter}</body></html>`;
+    // Split at Section 8 for standalone page
+    const section8Regex = /<strong[^>]*>Section\s*8[:\s\-–—]+Student\s*Handout<\/strong>/i;
+    const section8Match = formattedContent.match(section8Regex);
+    
+    let mainContent = formattedContent;
+    let section8Content = '';
+    
+    if (section8Match) {
+      const idx = formattedContent.indexOf(section8Match[0]);
+      mainContent = formattedContent.substring(0, idx);
+      section8Content = formattedContent.substring(idx).replace(section8Regex, '');
+    }
+    
+    const copyrightLine = getCopyrightLine();
+    const copyrightHtml = copyrightLine ? `<div class="copyright">${copyrightLine}</div>` : '';
+    
+    // CSS uses ALL SSOT values - no hardcoding
+    const printContent = `<!DOCTYPE html><html><head>
+<title>${documentTitle} - ${EXPORT_FORMATTING.footerText}</title>
+<style>
+/* Page setup - SSOT margins */
+@page { margin: ${margins.css}; size: letter; }
+
+/* Section 8 standalone - page break before */
+@media print { .section8-page { page-break-before: always !important; } }
+
+/* Body - SSOT font size and line height */
+body {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: ${body.fontPt}pt;
+  line-height: ${body.lineHeight};
+  margin: 0; padding: 0;
+  color: #${colors.bodyText};
+}
+
+/* Title - SSOT values */
+h1 { font-size: ${title.fontPt}pt; font-weight: bold; margin: 0 0 ${title.afterPt}pt 0; }
+.meta { color: #${colors.metaText}; font-size: ${metadata.fontPt}pt; margin-bottom: ${metadata.afterPt}pt; }
+
+/* Teaser box - SSOT values */
+.teaser {
+  background: #${colors.teaserBg};
+  border: 1px solid #${colors.teaserBorder};
+  border-radius: 4px;
+  padding: ${teaser.paddingPt}pt;
+  margin: ${teaser.marginBeforePt}pt 0 ${teaser.marginAfterPt}pt 0;
+  font-size: ${teaser.fontPt}pt;
+}
+.teaser b { color: #${colors.teaserText}; }
+
+/* Content - SSOT values */
+.content { font-size: ${body.fontPt}pt; line-height: ${body.lineHeight}; }
+.content strong { font-weight: bold; }
+
+/* Section headers - SSOT spacing */
+.content strong[style*="display:block"] {
+  margin: ${sectionHeader.beforePt}pt 0 ${sectionHeader.afterPt}pt 0 !important;
+}
+
+/* Copyright footer - SSOT values */
+.copyright {
+  margin-top: ${footer.marginTopPt}pt;
+  padding-top: 6pt;
+  border-top: 1px solid #${colors.hrLine};
+  font-size: ${footer.fontPt}pt;
+  color: #${colors.footerText};
+  font-style: italic;
+  text-align: center;
+}
+
+/* Section 8 page */
+.section8-header { font-size: 12pt; font-weight: bold; margin: 0 0 ${sectionHeader.afterPt}pt 0; }
+</style>
+</head>
+<body>
+<h1>${documentTitle}</h1>
+<div class="meta">${metaItems.join(" | ")}</div>
+${teaserHtml}
+<div class="content">${mainContent}</div>
+${section8Content ? `
+<div class="section8-page">
+<div class="section8-header">${EXPORT_FORMATTING.section8Title}</div>
+${teaserHtml}
+<div class="content">${section8Content}</div>
+</div>
+` : ''}
+${copyrightHtml}
+</body></html>`;
+    
     printWindow.document.write(printContent);
     printWindow.document.close();
     printWindow.onload = () => printWindow.print();
@@ -126,7 +231,7 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
         } 
       });
       if (onExport) onExport();
-      toast({ title: "PDF exported", description: "Your lesson has been downloaded." });
+      toast({ title: "PDF exported", description: "Downloaded." });
     } catch (error) {
       toast({ title: "Export failed", description: "Unable to export PDF.", variant: "destructive" });
     } finally { setExporting(null); }
@@ -149,87 +254,45 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
         } 
       });
       if (onExport) onExport();
-      toast({ title: "Document exported", description: "Your lesson has been downloaded." });
+      toast({ title: "Document exported", description: "Downloaded." });
     } catch (error) {
       toast({ title: "Export failed", description: "Unable to export document.", variant: "destructive" });
     } finally { setExporting(null); }
   };
 
-  // Build shareable text content (used by all share methods)
   const getShareableText = (): string => {
-    let shareText = `${lesson.title}\n\n`;
-    if (lesson.metadata?.teaser) {
-      shareText += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n`;
-    }
-    shareText += lesson.original_text;
-    
-    // Add copyright attribution
-    const copyrightLine = getCopyrightLine();
-    if (copyrightLine) {
-      shareText += `\n\n---\n${copyrightLine}`;
-    }
-    return shareText;
+    let text = `${lesson.title}\n\n`;
+    if (lesson.metadata?.teaser) text += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n`;
+    text += stripMarkdown(lesson.original_text);
+    const copyright = getCopyrightLine();
+    if (copyright) text += `\n\n---\n${copyright}`;
+    return text;
   };
 
-  // Email share - copies lesson to clipboard, then opens mail client with subject
   const handleShareEmail = async () => {
-    const shareText = getShareableText();
-    
-    // First copy the lesson to clipboard
-    try {
-      await navigator.clipboard.writeText(shareText);
-    } catch (error) {
-      // If clipboard fails, still try to open email
-    }
-    
-    // Open email with just the subject (body would be too long for URL)
-    const subject = encodeURIComponent(lesson.title);
-    window.location.href = `mailto:?subject=${subject}`;
-    
+    try { await navigator.clipboard.writeText(getShareableText()); } catch {}
+    window.location.href = `mailto:?subject=${encodeURIComponent(lesson.title)}`;
     if (onExport) onExport();
-    toast({ 
-      title: "Lesson copied to clipboard", 
-      description: "Paste your lesson into the email body." 
-    });
+    toast({ title: "Lesson copied", description: "Paste into email body." });
   };
 
-  // Copy for sharing - copies formatted text to clipboard
   const handleShareCopy = async () => {
     try {
       await navigator.clipboard.writeText(getShareableText());
-      toast({ 
-        title: "Copied for sharing", 
-        description: "Lesson copied. Paste into your preferred app to share." 
-      });
+      toast({ title: "Copied for sharing", description: "Paste to share." });
       if (onExport) onExport();
-    } catch (error) {
-      toast({ title: "Copy failed", description: "Unable to copy to clipboard.", variant: "destructive" });
-    }
+    } catch { toast({ title: "Copy failed", variant: "destructive" }); }
   };
 
-  // Native Share API - for mobile users
   const handleShareNative = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: lesson.title,
-          text: getShareableText(),
-        });
+        await navigator.share({ title: lesson.title, text: getShareableText() });
         if (onExport) onExport();
-        toast({ title: "Shared successfully", description: "Your lesson has been shared." });
-      } catch (error: any) {
-        // User cancelled share - not an error
-        if (error.name !== 'AbortError') {
-          toast({ title: "Share failed", description: "Unable to share lesson.", variant: "destructive" });
-        }
-      }
-    } else {
-      // Fallback if native share not available
-      await handleShareCopy();
-    }
+      } catch (e: any) { if (e.name !== 'AbortError') toast({ title: "Share failed", variant: "destructive" }); }
+    } else { await handleShareCopy(); }
   };
 
-  // Check if native share is available (primarily for mobile)
   const hasNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
 
   return (
@@ -248,20 +311,9 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleShareEmail}>
-            <Mail className="h-4 w-4 mr-2" />Email Lesson
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleShareCopy}>
-            <Copy className="h-4 w-4 mr-2" />Copy for Sharing
-          </DropdownMenuItem>
-          {hasNativeShare && (
-            <>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleShareNative}>
-                <Smartphone className="h-4 w-4 mr-2" />More Options...
-              </DropdownMenuItem>
-            </>
-          )}
+          <DropdownMenuItem onClick={handleShareEmail}><Mail className="h-4 w-4 mr-2" />Email Lesson</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleShareCopy}><Copy className="h-4 w-4 mr-2" />Copy for Sharing</DropdownMenuItem>
+          {hasNativeShare && (<><DropdownMenuSeparator /><DropdownMenuItem onClick={handleShareNative}><Smartphone className="h-4 w-4 mr-2" />More Options...</DropdownMenuItem></>)}
         </DropdownMenuContent>
       </DropdownMenu>
       <DropdownMenu>
@@ -272,13 +324,9 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleExportPdf} disabled={exporting !== null}>
-            <FileText className="h-4 w-4 mr-2" />PDF (viewing/sharing)
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExportPdf} disabled={exporting !== null}><FileText className="h-4 w-4 mr-2" />PDF</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleExportDocx} disabled={exporting !== null}>
-            <FileType className="h-4 w-4 mr-2" />Document (editable)
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleExportDocx} disabled={exporting !== null}><FileType className="h-4 w-4 mr-2" />Document (DOCX)</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

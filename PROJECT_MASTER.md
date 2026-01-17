@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 16, 2026 (Phase 20.9 - SSOT Deployment & Feedback Config)
+**Last Updated:** January 17, 2026 (Phase 20.10 - Export Formatting & Post-Launch Roadmap)
 **Launch Date:** January 20, 2026
 
 ---
@@ -377,6 +377,34 @@ git add -A
 git commit -m "message"
 git push
 ```
+
+---
+
+## POST-LAUNCH ROADMAP
+
+### Priority: LOW (Post-Launch Enhancements)
+
+| Feature | Description | Estimated Effort |
+|---------|-------------|------------------|
+| Export Formatting Admin Panel | Admin UI to adjust Print/DOCX/PDF formatting without code changes | 4-6 hours |
+| Organization-Scoped Beta Management | Org Leaders create own feedback surveys + analytics | 8-12 hours |
+| Series/Theme Mode | Sequential lesson planning across multiple weeks | 12-16 hours |
+| Email/Text Lesson Delivery | Send lessons and teasers via email/SMS | 6-8 hours |
+| White-Label Personalized Footer | Custom footer text for enterprise tenants | 2-3 hours |
+
+### Export Formatting Admin Panel (Details)
+**Purpose:** Allow admin to adjust Print/DOCX/PDF formatting without code deployments
+**Location:** Admin Panel → New "Export Settings" tab
+**Settings to expose:**
+- Font family (Calibri, Georgia, Times New Roman, etc.)
+- Font sizes (body, title, section headers, metadata, footer)
+- Page margins
+- Paragraph/section spacing
+- Colors (teaser box background, border, text colors)
+
+**Storage:** `platform_settings` table with JSON config column
+**Implementation:** Export files read from database config, fallback to `lessonStructure.ts` defaults
+**Benefit:** Self-service formatting tweaks, white-label customization for enterprise clients
 
 ---
 
