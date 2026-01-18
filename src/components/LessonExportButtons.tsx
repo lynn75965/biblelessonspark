@@ -140,7 +140,31 @@ export function LessonExportButtons({ lesson, disabled = false, onExport }: { le
 <title>${documentTitle} - ${EXPORT_FORMATTING.footerText}</title>
 <style>
 /* Page setup - SSOT margins */
-@page { margin: ${margins.css}; size: letter; }
+@page { 
+  margin: ${margins.css}; 
+  margin-bottom: 0.85in;
+  size: letter;
+}
+
+/* Print footer - appears on every page */
+@media print {
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-family: ${fonts.css};
+    font-size: ${footer.fontPt}pt;
+    color: #${colors.footerText};
+    padding: 8pt 0;
+  }
+}
+
+/* Hide print footer on screen */
+@media screen {
+  .print-footer { display: none; }
+}
 
 /* Section 8 standalone - page break before */
 @media print { .section8-page { page-break-before: always !important; } }
@@ -194,6 +218,7 @@ h1 { font-size: ${title.fontPt}pt; font-weight: bold; margin: 0 0 ${title.afterP
 </style>
 </head>
 <body>
+<div class="print-footer">${EXPORT_FORMATTING.footerText}</div>
 <h1>${documentTitle}</h1>
 <div class="meta">${metaItems.join(" | ")}</div>
 ${teaserHtml}
