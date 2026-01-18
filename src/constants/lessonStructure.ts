@@ -2,7 +2,7 @@
 // SSOT: Single Source of Truth for lesson structure AND export formatting
 // Frontend drives backend - all values defined here, imported everywhere
 
-export const LESSON_STRUCTURE_VERSION = "2.2.1";
+export const LESSON_STRUCTURE_VERSION = "2.4.1";
 
 /**
  * SSOT: Export Spacing Constants
@@ -64,6 +64,7 @@ export const EXPORT_SPACING = {
     marginAfterPt: 8,
     marginBeforeTwips: 120,
     marginAfterTwips: 160,
+    borderRadiusPx: 4,
   },
   
   // Metadata line
@@ -92,6 +93,8 @@ export const EXPORT_SPACING = {
   listItem: {
     afterPt: 4,
     afterTwips: 80,
+    indentPt: 18,      // Left indent for bullet lists
+    indentTwips: 360,  // 18 * 20
   },
   
   // Horizontal rule

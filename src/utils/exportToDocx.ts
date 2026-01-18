@@ -1,8 +1,18 @@
 // src/utils/exportToDocx.ts
 // SSOT COMPLIANT: All values imported from lessonStructure.ts
-// Version: 2.2.0 - Uses Calibri font from SSOT
+// Version: 2.4.0 - Single-line footer, Section 8 standalone page
 
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, PageBreak } from "docx";
+import { 
+  Document, 
+  Packer, 
+  Paragraph, 
+  TextRun, 
+  AlignmentType, 
+  BorderStyle, 
+  PageBreak,
+  Footer,
+  PageNumber
+} from "docx";
 import { saveAs } from "file-saver";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "../constants/lessonStructure";
 
@@ -151,6 +161,46 @@ function buildTextRuns(text: string, fontSize: number = body.fontHalfPt): TextRu
   return runs;
 }
 
+/**
+ * Create SINGLE-LINE page footer with page numbers and branding
+ * Format: BibleLessonSpark.com  •  Page 1 of 7
+ */
+function createPageFooter(): Footer {
+  return new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: EXPORT_FORMATTING.footerText + '  •  Page ',
+            size: footer.fontHalfPt,
+            color: colors.footerText,
+            font: fonts.docx
+          }),
+          new TextRun({
+            children: [PageNumber.CURRENT],
+            size: footer.fontHalfPt,
+            color: colors.footerText,
+            font: fonts.docx
+          }),
+          new TextRun({
+            text: ' of ',
+            size: footer.fontHalfPt,
+            color: colors.footerText,
+            font: fonts.docx
+          }),
+          new TextRun({
+            children: [PageNumber.TOTAL_PAGES],
+            size: footer.fontHalfPt,
+            color: colors.footerText,
+            font: fonts.docx
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
 // ============================================================================
 // MAIN EXPORT FUNCTION
 // ============================================================================
@@ -172,7 +222,7 @@ interface DocxExportOptions {
 export const exportToDocx = async (options: DocxExportOptions): Promise<void> => {
   const { title: inputTitle, content, metadata: meta, teaserContent } = options;
   
-  console.log('[DOCX Export V2.2] Starting export with Calibri font...');
+  console.log('[DOCX Export V2.4] Starting export with single-line footer...');
   
   const lessonTitle = extractDocTitle(content);
   const docTitle = lessonTitle || inputTitle;
@@ -291,7 +341,34 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     }));
   }
   
-  // 6. SECTION 8 STANDALONE
+  // 6. COPYRIGHT NOTICE (end of main content, before Section 8)
+  let copyright = '';
+  if (meta?.copyrightNotice) {
+    copyright = meta.copyrightNotice;
+  } else if (meta?.bibleVersion) {
+    copyright = `Scripture quotations are from the ${meta.bibleVersion}${meta.bibleVersionAbbreviation ? ` (${meta.bibleVersionAbbreviation})` : ''}.`;
+  }
+  
+  if (copyright) {
+    paragraphs.push(new Paragraph({
+      spacing: { before: footer.marginTopTwips },
+      border: { top: { color: colors.hrLine, size: 6, style: BorderStyle.SINGLE } }
+    }));
+    
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({ 
+        text: copyright, 
+        size: footer.fontHalfPt, 
+        color: colors.footerText, 
+        italics: true,
+        font: fonts.docx
+      })],
+      alignment: AlignmentType.CENTER,
+      spacing: { before: paragraph.afterTwips, after: paragraph.afterTwips }
+    }));
+  }
+  
+  // 7. SECTION 8 STANDALONE (new page)
   if (section8Lines.length > 0) {
     paragraphs.push(new Paragraph({ children: [new PageBreak()] }));
     
@@ -356,46 +433,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     }
   }
   
-  // 7. FOOTER
-  paragraphs.push(new Paragraph({
-    spacing: { before: footer.marginTopTwips },
-    border: { top: { color: colors.hrLine, size: 6, style: BorderStyle.SINGLE } }
-  }));
-  
-  paragraphs.push(new Paragraph({
-    children: [new TextRun({ 
-      text: EXPORT_FORMATTING.footerText, 
-      size: footer.fontHalfPt, 
-      color: colors.footerText,
-      font: fonts.docx
-    })],
-    alignment: AlignmentType.CENTER,
-    spacing: { before: paragraph.afterTwips, after: paragraph.afterTwips }
-  }));
-  
-  // Copyright
-  let copyright = '';
-  if (meta?.copyrightNotice) {
-    copyright = meta.copyrightNotice;
-  } else if (meta?.bibleVersion) {
-    copyright = `Scripture quotations are from the ${meta.bibleVersion}${meta.bibleVersionAbbreviation ? ` (${meta.bibleVersionAbbreviation})` : ''}.`;
-  }
-  
-  if (copyright) {
-    paragraphs.push(new Paragraph({
-      children: [new TextRun({ 
-        text: copyright, 
-        size: footer.fontHalfPt, 
-        color: colors.footerText, 
-        italics: true,
-        font: fonts.docx
-      })],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: paragraph.afterTwips }
-    }));
-  }
-  
-  // 8. CREATE DOCUMENT WITH SSOT MARGINS AND DEFAULT FONT
+  // 8. CREATE DOCUMENT WITH SSOT MARGINS, DEFAULT FONT, AND SINGLE-LINE FOOTER
   const doc = new Document({
     styles: {
       default: {
@@ -418,6 +456,9 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
           }
         }
       },
+      footers: {
+        default: createPageFooter(),
+      },
       children: paragraphs
     }]
   });
@@ -426,5 +467,5 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
   const safeTitle = docTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 50);
   saveAs(blob, `${safeTitle}_Lesson.docx`);
   
-  console.log('[DOCX Export V2.2] Export complete with Calibri font!');
+  console.log('[DOCX Export V2.4] Export complete with single-line footer!');
 };
