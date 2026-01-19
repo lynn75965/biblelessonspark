@@ -1448,6 +1448,10 @@ export function EnhanceLessonForm({
               setTotalLessons={setTotalLessons}
               freshnessMode={freshnessMode}
               setFreshnessMode={setFreshnessMode}
+              lessonsWithStyle={lessonsWithStyle}
+              selectedStyleLessonId={selectedStyleLessonId}
+              setSelectedStyleLessonId={setSelectedStyleLessonId}
+              seriesStyleContext={seriesStyleContext}
               profiles={profiles}
               currentProfileId={currentProfileId}
               onSaveProfile={handleSaveProfile}

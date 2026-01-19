@@ -62,6 +62,71 @@ import {
 
 import { TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { UI_SYMBOLS, formatNoneOption } from "@/constants/uiSymbols";
+import { SeriesStyleMetadata } from "@/constants/freshnessOptions";
+
+// ============================================================================
+// STYLE ELEMENT DISPLAY LABELS
+// Human-readable labels for style metadata elements
+// ============================================================================
+
+const STYLE_ELEMENT_LABELS: Record<string, Record<string, string>> = {
+  openingHookType: {
+    'question': 'Thought-Provoking Question',
+    'story': 'Personal Story',
+    'statistic': 'Surprising Statistic',
+    'scenario': 'Real-Life Scenario',
+    'challenge': 'Bold Challenge',
+    'mystery': 'Mystery/Intrigue',
+  },
+  illustrationType: {
+    'historical': 'Historical Examples',
+    'contemporary': 'Contemporary Stories',
+    'biblical_cross_ref': 'Biblical Cross-References',
+    'cultural': 'Cultural Illustrations',
+    'nature': 'Nature/Science Analogies',
+    'personal': 'Personal Testimonies',
+  },
+  teachingAngle: {
+    'theological': 'Deep Theological',
+    'practical': 'Practical Application',
+    'devotional': 'Devotional/Heart-Focused',
+    'apologetic': 'Apologetic/Defensive',
+    'missional': 'Missional/Outreach',
+    'relational': 'Relational/Community',
+  },
+  activityFormat: {
+    'discussion': 'Group Discussion',
+    'reflection': 'Personal Reflection',
+    'case_study': 'Case Study Analysis',
+    'creative': 'Creative Expression',
+    'service': 'Service Project Planning',
+    'memorization': 'Scripture Memorization',
+  },
+  applicationContext: {
+    'family': 'Family Life',
+    'workplace': 'Workplace/Career',
+    'community': 'Community/Neighborhood',
+    'church': 'Church Ministry',
+    'personal': 'Personal Spiritual Growth',
+    'relationships': 'Friendships/Relationships',
+  },
+  closingChallengeType: {
+    'commitment': 'Personal Commitment',
+    'action_step': 'Specific Action Step',
+    'prayer': 'Prayer Focus',
+    'accountability': 'Accountability Partner',
+    'weekly_practice': 'Weekly Practice',
+    'conversation': 'Conversation Starter',
+  },
+  toneDescriptor: {
+    'encouraging': 'Warm & Encouraging',
+    'challenging': 'Bold & Challenging',
+    'conversational': 'Casual & Conversational',
+    'scholarly': 'Academic & Scholarly',
+    'pastoral': 'Pastoral & Caring',
+    'energetic': 'Dynamic & Energetic',
+  },
+};
 
 // ============================================================================
 // BRAND STYLING COMPONENTS
@@ -125,6 +190,12 @@ interface TeacherCustomizationProps {
   freshnessMode: string;
   setFreshnessMode: (value: string) => void;
 
+  // Consistent Style Mode - Series Support
+  lessonsWithStyle: Array<{ id: string; title: string; created_at: string; series_style_metadata: any }>;
+  selectedStyleLessonId: string;
+  setSelectedStyleLessonId: (value: string) => void;
+  seriesStyleContext: SeriesStyleMetadata | null;
+
   // Profile management
   profiles: TeacherPreferenceProfile[];
   currentProfileId: string | null;
@@ -177,6 +248,10 @@ export function TeacherCustomization({
   setTotalLessons,
   freshnessMode,
   setFreshnessMode,
+  lessonsWithStyle,
+  selectedStyleLessonId,
+  setSelectedStyleLessonId,
+  seriesStyleContext,
   profiles,
   currentProfileId,
   onSaveProfile,
@@ -647,26 +722,144 @@ export function TeacherCustomization({
               </p>
 
               {/* Consistent Style Mode - only for series */}
-              <div className="flex items-start space-x-2 mt-4 pt-3 border-t">
-                <Checkbox
-                  id="consistent-style"
-                  checked={freshnessMode === "consistent"}
-                  onCheckedChange={(checked) => 
-                    setFreshnessMode(checked ? "consistent" : "fresh")
-                  }
-                  disabled={disabled}
-                />
-                <div className="space-y-1">
-                  <label
-                    htmlFor="consistent-style"
-                    className="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    Consistent Style Mode
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    Lessons will maintain similar teaching approach (useful for series)
-                  </p>
+              <div className="mt-4 pt-3 border-t space-y-4">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="consistent-style"
+                    checked={freshnessMode === "consistent"}
+                    onCheckedChange={(checked) => 
+                      setFreshnessMode(checked ? "consistent" : "fresh")
+                    }
+                    disabled={disabled}
+                  />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="consistent-style"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Consistent Style Mode
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {lessonNumber === 1 
+                        ? "This lesson's style will be captured and can be applied to future lessons in this series"
+                        : "Apply the teaching style from a previous lesson to maintain consistency"
+                      }
+                    </p>
+                  </div>
                 </div>
+
+                {/* Lesson 1 indicator - style will be captured */}
+                {freshnessMode === "consistent" && lessonNumber === 1 && (
+                  <div className="ml-6 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-primary">
+                      <span className="text-lg">✨</span>
+                      <span className="text-sm font-medium">Style Capture Enabled</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      When this lesson generates, its creative style elements (hook type, illustrations, tone) 
+                      will be saved. You can then apply this style to Lessons 2-{totalLessons} of this series.
+                    </p>
+                  </div>
+                )}
+
+                {/* Lesson 2+ dropdown - select which lesson to copy style from */}
+                {freshnessMode === "consistent" && lessonNumber > 1 && (
+                  <div className="ml-6 space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="style-source" className="text-sm">
+                        Copy Style From:
+                      </Label>
+                      <Select
+                        value={selectedStyleLessonId}
+                        onValueChange={setSelectedStyleLessonId}
+                        disabled={disabled}
+                      >
+                        <SelectTrigger id="style-source" className="w-full sm:w-[300px]">
+                          <SelectValue placeholder="Select a lesson with captured style..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {lessonsWithStyle.length === 0 ? (
+                            <SelectItem value="__none__" disabled>
+                              No lessons with style data found
+                            </SelectItem>
+                          ) : (
+                            lessonsWithStyle.map((lesson) => (
+                              <SelectItem key={lesson.id} value={lesson.id}>
+                                {lesson.title || "Untitled Lesson"} 
+                                <span className="text-muted-foreground ml-2 text-xs">
+                                  ({new Date(lesson.created_at).toLocaleDateString()})
+                                </span>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {lessonsWithStyle.length === 0 && (
+                        <p className="text-xs text-amber-600">
+                          💡 Generate Lesson 1 with Consistent Style Mode enabled first to capture a style.
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Style Preview - shows when context is loaded */}
+                    {seriesStyleContext && (
+                      <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                        <div className="flex items-center gap-2 text-primary mb-2">
+                          <span className="text-lg">✓</span>
+                          <span className="text-sm font-medium">Style Loaded</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                          {seriesStyleContext.openingHookType && (
+                            <div>
+                              <span className="text-muted-foreground">Opening Hook:</span>{" "}
+                              <span className="font-medium">{STYLE_ELEMENT_LABELS.openingHookType[seriesStyleContext.openingHookType] || seriesStyleContext.openingHookType}</span>
+                            </div>
+                          )}
+                          {seriesStyleContext.illustrationType && (
+                            <div>
+                              <span className="text-muted-foreground">Illustrations:</span>{" "}
+                              <span className="font-medium">{STYLE_ELEMENT_LABELS.illustrationType[seriesStyleContext.illustrationType] || seriesStyleContext.illustrationType}</span>
+                            </div>
+                          )}
+                          {seriesStyleContext.teachingAngle && (
+                            <div>
+                              <span className="text-muted-foreground">Teaching Angle:</span>{" "}
+                              <span className="font-medium">{STYLE_ELEMENT_LABELS.teachingAngle[seriesStyleContext.teachingAngle] || seriesStyleContext.teachingAngle}</span>
+                            </div>
+                          )}
+                          {seriesStyleContext.activityFormat && (
+                            <div>
+                              <span className="text-muted-foreground">Activities:</span>{" "}
+                              <span className="font-medium">{STYLE_ELEMENT_LABELS.activityFormat[seriesStyleContext.activityFormat] || seriesStyleContext.activityFormat}</span>
+                            </div>
+                          )}
+                          {seriesStyleContext.toneDescriptor && (
+                            <div>
+                              <span className="text-muted-foreground">Tone:</span>{" "}
+                              <span className="font-medium">{STYLE_ELEMENT_LABELS.toneDescriptor[seriesStyleContext.toneDescriptor] || seriesStyleContext.toneDescriptor}</span>
+                            </div>
+                          )}
+                          {seriesStyleContext.closingChallengeType && (
+                            <div>
+                              <span className="text-muted-foreground">Closing:</span>{" "}
+                              <span className="font-medium">{STYLE_ELEMENT_LABELS.closingChallengeType[seriesStyleContext.closingChallengeType] || seriesStyleContext.closingChallengeType}</span>
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-primary/10">
+                          This lesson will use the same creative approach for consistency.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* No style selected indicator */}
+                    {!seriesStyleContext && selectedStyleLessonId === '' && lessonsWithStyle.length > 0 && (
+                      <p className="text-xs text-amber-600 ml-1">
+                        ⚠️ Select a lesson above to apply its style to this lesson.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           )}
