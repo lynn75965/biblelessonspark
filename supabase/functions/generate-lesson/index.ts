@@ -17,8 +17,13 @@ import {
   buildFreshnessSuggestionsPrompt,
   buildTeaserFreshnessPrompt,
   generateTeaserContentGuardrails,
+  buildConsistentStyleContext,
+  buildStyleExtractionPrompt,
+  parseStyleMetadata,
+  removeStyleMetadataFromContent,
   FreshnessSuggestions,
-  TeaserFreshnessSuggestions
+  TeaserFreshnessSuggestions,
+  SeriesStyleMetadata
 } from '../_shared/freshnessOptions.ts';
 import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
 import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
@@ -422,11 +427,17 @@ serve(async (req) => {
       assessment_style,
       learning_style,
       education_experience,
+      // Phase 2 fields
+      emotional_entry,
+      theological_lens,
       generate_teaser = false,
       freshness_mode = 'fresh',
       include_liturgical = false,
       include_cultural = false,
-      freshness_suggestions = null
+      freshness_suggestions = null,
+      // CONSISTENT STYLE MODE - Frontend drives these flags
+      extract_style_metadata = false,
+      series_style_context = null
     } = validatedData;
 
     if (!bible_passage && !focused_topic && !extracted_content) {
@@ -498,6 +509,27 @@ serve(async (req) => {
       }
     }
 
+    // =========================================================================
+    // CONSISTENT STYLE MODE - Series Support
+    // FRONTEND DRIVES: Frontend sends extract_style_metadata and series_style_context
+    // BACKEND OBEYS: Backend adds appropriate prompts based on these flags
+    // =========================================================================
+    
+    let consistentStylePromptAddition = '';
+    let styleExtractionPromptAddition = '';
+    
+    // If frontend says to extract style (Lesson 1 + Consistent Mode), add extraction prompt
+    if (extract_style_metadata) {
+      styleExtractionPromptAddition = buildStyleExtractionPrompt();
+      console.log('Style extraction requested (Lesson 1 of series with Consistent Style Mode)');
+    }
+    
+    // If frontend provides style context (Lesson 2+ with Consistent Mode), add consistency prompt
+    if (series_style_context) {
+      consistentStylePromptAddition = buildConsistentStyleContext(series_style_context as SeriesStyleMetadata);
+      console.log('Consistent style context provided:', series_style_context);
+    }
+
     // Use filteredSections (set earlier based on platform mode + tier)
     const totalSections = filteredSections.length;
 
@@ -515,7 +547,9 @@ serve(async (req) => {
       extractedContentPreview: extracted_content?.substring(0, 500) || 'NONE',
       sectionCount: totalSections,
       includeTeaser: generate_teaser,
-      wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${generate_teaser ? ' (+50-100 for teaser)' : ''}`
+      wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${generate_teaser ? ' (+50-100 for teaser)' : ''}`,
+      extractStyleMetadata: extract_style_metadata,
+      hasSeriesStyleContext: !!series_style_context
     });
 
     const customizationDirectives = buildCustomizationDirectives({
@@ -531,7 +565,10 @@ serve(async (req) => {
       assessment_style,
       activity_types,
       language,
-      education_experience
+      education_experience,
+      // Phase 2 fields
+      emotional_entry,
+      theological_lens
     });
 
     // Build copyright guardrails based on Bible version
@@ -570,6 +607,8 @@ ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_
 
 ${freshnessPromptAddition}
 
+${consistentStylePromptAddition}
+
 -------------------------------------------------------------------------------
 LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
 -------------------------------------------------------------------------------
@@ -588,6 +627,8 @@ Generate all ${totalSections} sections in order. Follow EXACT formatting:
 
 Each section separated by "---" on its own line.
 Meet ALL word minimums. Respect ALL word maximums.
+
+${styleExtractionPromptAddition}
 `;
 
     let lessonInput = bible_passage || focused_topic || '';
@@ -687,6 +728,25 @@ Meet ALL word minimums. Respect ALL word maximums.
       console.log(`Anthropic usage: ${JSON.stringify(anthropicData.usage)}`);
       console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}`);
 
+      // =========================================================================
+      // STYLE METADATA EXTRACTION (Consistent Style Mode - Lesson 1)
+      // Frontend requested extraction, backend parses and returns it
+      // =========================================================================
+      let extractedStyleMetadata: SeriesStyleMetadata | null = null;
+      
+      if (extract_style_metadata) {
+        // Parse style metadata from Claude's response
+        extractedStyleMetadata = parseStyleMetadata(generatedLesson, 'pending'); // ID will be updated after save
+        
+        if (extractedStyleMetadata) {
+          console.log('Style metadata extracted:', extractedStyleMetadata);
+          // Remove the metadata block from lesson content for display
+          generatedLesson = removeStyleMetadataFromContent(generatedLesson);
+        } else {
+          console.log('Warning: Style extraction was requested but metadata block not found in output');
+        }
+      }
+
       let teaserContent: string | null = null;
       if (generate_teaser) {
         const teaserMatch = generatedLesson.match(/\*\*STUDENT TEASER\*\*\s*([\s\S]*?)---/i);
@@ -707,6 +767,8 @@ Meet ALL word minimums. Respect ALL word maximums.
         user_id: user.id,
         title: lessonInput,
         original_text: generatedLesson,
+        // Store extracted style metadata in dedicated column if present
+        series_style_metadata: extractedStyleMetadata,
         filters: {
           bible_passage,
           focused_topic,
@@ -727,9 +789,14 @@ Meet ALL word minimums. Respect ALL word maximums.
           assessment_style,
           learning_style,
           education_experience,
+          // Phase 2 fields
+          emotional_entry,
+          theological_lens,
           additional_notes: additional_notes || null,
           generate_teaser,
-          freshness_mode
+          freshness_mode,
+          extract_style_metadata,
+          has_series_style_context: !!series_style_context
         },
         metadata: {
           lessonStructureVersion: LESSON_STRUCTURE_VERSION,
@@ -752,7 +819,10 @@ Meet ALL word minimums. Respect ALL word maximums.
           teaserFreshnessSuggestions: selectedTeaserFreshness,
           platformMode: platformMode,
           isTrialLesson: isTrialLesson,
-          sectionsGenerated: filteredSections.map(s => s.id)
+          sectionsGenerated: filteredSections.map(s => s.id),
+          // Consistent Style Mode metadata
+          extractedStyleMetadata: extract_style_metadata,
+          usedSeriesStyleContext: !!series_style_context
         }
       };
 
@@ -765,6 +835,22 @@ Meet ALL word minimums. Respect ALL word maximums.
       if (insertError) {
         console.error('Database insert error:', insertError);
         throw new Error(`Failed to save lesson: ${insertError.message}`);
+      }
+
+      // Update the style metadata with actual lesson ID if it was extracted
+      if (extractedStyleMetadata && lesson) {
+        extractedStyleMetadata.capturedFromLessonId = lesson.id;
+        
+        // Update the lesson record with the correct lesson ID in style metadata
+        await supabase
+          .from('lessons')
+          .update({ 
+            series_style_metadata: {
+              ...extractedStyleMetadata,
+              capturedFromLessonId: lesson.id
+            }
+          })
+          .eq('id', lesson.id);
       }
 
       checkpoint = logTiming('Database insert', checkpoint);
@@ -806,7 +892,9 @@ Meet ALL word minimums. Respect ALL word maximums.
       return new Response(JSON.stringify({
         success: true,
         lesson,
-        metadata: lessonData.metadata
+        metadata: lessonData.metadata,
+        // Include extracted style metadata so frontend can store/use it
+        style_metadata: extractedStyleMetadata
       }), {
         status: 200,
         headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }

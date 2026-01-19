@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Customization Directives Generator
  * 
  * Transforms user selections into explicit instructions for Claude.
@@ -7,236 +7,372 @@
  * Location: supabase/functions/_shared/customizationDirectives.ts
  * 
  * =============================================================================
- * ARCHITECTURAL RULING (November 24, 2025)
+ * SSOT COMPLIANCE (January 2026 Refactor)
  * =============================================================================
- * This file is a BACKEND-ONLY behavioral file, not a structural constant.
+ * This file reads directive strings from the SSOT source:
+ *   teacherPreferences.ts
  * 
- * SSOT EXCEPTION RATIONALE:
- * - Frontend constants (src/constants/) define WHAT options exist
- * - This file defines HOW Claude interprets those options
- * - Customization directives are behavioral instructions for Claude, not
- *   structural definitions that need frontend authority
- * - Similar architectural pattern to the Edge Function itself
+ * Architecture: Frontend drives backend
+ * - Dropdown options AND their directives are defined in teacherPreferences.ts
+ * - This file is a thin function that assembles directives from SSOT
+ * - No hardcoded directive mappings - all read from shared SSOT
  * 
- * This file does NOT violate "frontend drives backend" because:
- * - The dropdown options are defined in frontend constants
- * - This file only adds backend interpretation logic
- * - No new options can be created here; only interpretations of existing ones
+ * Phase 1 Enhancements:
+ * - Education Experience directives (field existed but was unused)
+ * - Strengthened Activity Type directives (rich multi-sentence)
+ * - Verification Checklist (self-audit for Claude)
+ * - Priority Rules (conflict resolution guidance)
+ * - Section Application Hints (which sections each directive affects)
  * 
- * DO NOT add new customization OPTIONS here. Add them to the appropriate
- * frontend constant file first, then add the corresponding directive here.
+ * Phase 2 Enhancements:
+ * - Emotional Entry Point field handling
+ * - Theological Lens field handling
  * =============================================================================
  */
 
-const TEACHING_STYLE_DIRECTIVES: Record<string, string> = {
-  'lecture': 
-    'TEACHING STYLE (Lecture): Structure content for clear, sequential presentation. Use topic sentences and supporting points. Include memorable phrases for note-taking. Minimize interruptions for questions until designated times.',
-  'discussion': 
-    'TEACHING STYLE (Discussion-Based): Structure each section around 2-3 open-ended questions. Begin with a hook question. Use "What do you think..." and "How might..." phrasing. Leave space for student responses. Minimize lecture; maximize Socratic dialogue.',
-  'storytelling': 
-    'TEACHING STYLE (Storytelling): Frame biblical content through narrative arcs. Use vivid sensory details. Include character perspectives and emotions. Connect ancient stories to modern situations through parallel narratives.',
-  'socratic': 
-    'TEACHING STYLE (Socratic Method): Build entire lesson around sequential questions that lead to discovery. Never state conclusions directly—guide students to discover them. Use "Why might..." and "What if..." progressions.',
-  'experiential': 
-    'TEACHING STYLE (Experiential): Design hands-on activities for each concept. Include simulations, role-plays, or physical demonstrations. Process experiences with reflection questions. Learning happens through doing.',
-  'mixed': 
-    'TEACHING STYLE (Mixed Methods): Vary approaches across sections. Combine brief lecture with discussion. Include at least one hands-on activity. Use storytelling for key illustrations.'
-};
+import {
+  TEACHING_STYLES,
+  LEARNING_STYLES,
+  LESSON_LENGTHS,
+  GROUP_SIZES,
+  LEARNING_ENVIRONMENTS,
+  STUDENT_EXPERIENCE_LEVELS,
+  EDUCATION_EXPERIENCES,
+  CULTURAL_CONTEXTS,
+  SPECIAL_NEEDS_OPTIONS,
+  LESSON_SEQUENCE_OPTIONS,
+  ASSESSMENT_STYLES,
+  LANGUAGE_OPTIONS,
+  ACTIVITY_TYPE_OPTIONS,
+  EMOTIONAL_ENTRY_OPTIONS,
+  THEOLOGICAL_LENS_OPTIONS,
+  getOptionDirective,
+  getCheckboxDirective,
+} from './teacherPreferences.ts';
 
-const LEARNING_STYLE_DIRECTIVES: Record<string, string> = {
-  'visual': 
-    'LEARNING STYLE (Visual): Include diagram descriptions, charts, or visual metaphors in each section. Suggest whiteboard layouts. Use spatial language ("picture this," "imagine seeing"). Recommend visual aids for activities.',
-  'auditory': 
-    'LEARNING STYLE (Auditory): Include read-aloud Scripture portions. Suggest verbal repetition of key points. Add call-and-response elements. Include hymn or song references where appropriate.',
-  'kinesthetic': 
-    'LEARNING STYLE (Kinesthetic): Include movement or hands-on elements in every section. Suggest standing, walking, or gesture activities. Use tactile object lessons. Make abstract concepts physical.',
-  'reading-writing': 
-    'LEARNING STYLE (Reading/Writing): Include journaling prompts throughout. Provide fill-in-the-blank options. Suggest note-taking frameworks. Include written reflection questions.',
-  'mixed': 
-    'LEARNING STYLE (Mixed): Vary learning modalities across sections. Include at least one visual, one auditory, and one kinesthetic element. Accommodate multiple preferences.'
-};
+// ============================================================================
+// PRIORITY RULES
+// Guidance for Claude when directives might conflict
+// ============================================================================
 
-const LESSON_LENGTH_DIRECTIVES: Record<string, string> = {
-  '30': 
-    'LESSON LENGTH (30 minutes): Keep content tight and focused. One main point only. Single activity lasting 5-7 minutes. Brief opening and closing. No tangents.',
-  '45': 
-    'LESSON LENGTH (45 minutes): Moderate depth with 2-3 supporting points. One main activity (8-10 min) plus brief opener. Allow 5 minutes for discussion.',
-  '60': 
-    'LESSON LENGTH (60 minutes): Full development of theme. Include 2 activities. Allow 10 minutes for discussion. Include brief break point suggestion.',
-  '75': 
-    'LESSON LENGTH (75 minutes): Comprehensive coverage. Multiple activities with variety. Extended discussion time. Include suggested break point.',
-  '90': 
-    'LESSON LENGTH (90 minutes): Deep dive format. Include 3+ activities. Allow for extended discussion and application. Include 1-2 break points. Consider small group breakouts.'
-};
+const PRIORITY_RULES = `
+DIRECTIVE PRIORITY (when conflicts arise):
+1. Special Needs accommodations override all other stylistic choices
+2. Lesson Length constraints override activity complexity and quantity
+3. Student Experience level overrides assumed knowledge in all sections
+4. Education Level determines vocabulary complexity throughout
+5. Group Size determines activity feasibility and design
+6. Emotional Entry Point shapes the opening (Section 1) and overall tone
+7. Theological Lens shapes application focus throughout all sections
+`;
 
-const GROUP_SIZE_DIRECTIVES: Record<string, string> = {
-  'small-group': 
-    'GROUP SIZE (Small Group, 3-8): Design for intimate discussion. Every person should speak. Include pair-share activities. Use first names in example dialogues.',
-  'medium-group': 
-    'GROUP SIZE (Medium Group, 9-20): Balance whole-group and small-group activities. Include turn-to-your-neighbor moments. Plan for varied participation levels.',
-  'large-group': 
-    'GROUP SIZE (Large Group, 20+): Design for visibility and audibility. Use show-of-hands engagement. Include small group breakout instructions. Repeat questions for clarity.',
-  'one-on-one': 
-    'GROUP SIZE (One-on-One): Highly personalized conversation format. Use "you" directly. Include space for personal sharing. Adapt pace to individual.',
-  'family': 
-    'GROUP SIZE (Family/Intergenerational): Include age-spanning activities. Suggest parent-child discussion prompts. Vary complexity within same content. Include take-home family application.'
-};
+// ============================================================================
+// SECTION APPLICATION HINTS
+// Tells Claude which lesson sections each directive type affects most
+// ============================================================================
 
-const LEARNING_ENVIRONMENT_DIRECTIVES: Record<string, string> = {
-  'classroom': 
-    'ENVIRONMENT (Classroom): Assume chairs/tables, whiteboard access, controlled setting. Include board work suggestions. Reference typical classroom setup.',
-  'fellowship-hall': 
-    'ENVIRONMENT (Fellowship Hall): Assume flexible seating, larger space, possible distractions. Design activities that work with round tables. Include movement activities using the space.',
-  'home': 
-    'ENVIRONMENT (Home Setting): Assume comfortable, informal atmosphere. Include living room-friendly activities. Reference household items for object lessons. Keep intimacy of setting.',
-  'outdoor': 
-    'ENVIRONMENT (Outdoor): Use nature references and illustrations. Design activities that work without furniture. Include creation-focused observations. Account for weather variables.',
-  'virtual': 
-    'ENVIRONMENT (Virtual/Online): Include screen-sharing moments. Design for chat participation. Include breakout room instructions. Keep segments short (10-12 min max). Suggest interactive tools.',
-  'mixed': 
-    'ENVIRONMENT (Mixed/Flexible): Design adaptable activities. Provide alternatives for different settings. Keep material portable.'
-};
+const SECTION_APPLICATION_HINTS = `
+APPLY DIRECTIVES TO SECTIONS:
+- Teaching Style: Primarily affects Teacher's Script (Section 3) and overall flow
+- Learning Style: Primarily affects Activity (Section 5) and Engagement (Section 2)
+- Education Level: Affects vocabulary and complexity in ALL sections
+- Cultural Context: Primarily affects Illustrations (Section 4) and Application (Section 6)
+- Student Experience: Affects assumed knowledge and explanations in ALL sections
+- Assessment Style: Primarily affects Closing (Section 8)
+- Special Needs: Must be applied consistently across ALL sections
+- Activity Types: Primarily affects Activity (Section 5) but may influence other sections
+- Emotional Entry Point: Primarily affects Opening (Section 1) and sets overall emotional tone
+- Theological Lens: Shapes Application (Section 6) and influences emphasis throughout
+`;
 
-const STUDENT_EXPERIENCE_DIRECTIVES: Record<string, string> = {
-  'new-believers': 
-    'STUDENT EXPERIENCE (New Believers): Define all theological terms. Explain church traditions. Avoid assumed knowledge. Include "basics" explanations without condescension. Heavy Scripture reading with context.',
-  'mature': 
-    'STUDENT EXPERIENCE (Mature Christians): Assume biblical literacy. Include deeper word studies. Reference cross-biblical themes. Challenge with harder application questions. Less explanation, more exploration.',
-  'mixed': 
-    'STUDENT EXPERIENCE (Mixed Levels): Layer content with basics and depth. Include parenthetical definitions. Design discussions where all can contribute. Avoid embarrassing knowledge gaps.',
-  'seekers': 
-    'STUDENT EXPERIENCE (Seekers/Exploring): Assume minimal Bible knowledge. Explain everything. Use accessible language. Focus on relevance and questions. Welcome doubt openly. Heavy on grace, light on church jargon.'
-};
-
-const CULTURAL_CONTEXT_DIRECTIVES: Record<string, string> = {
-  'urban': 
-    'CULTURAL CONTEXT (Urban): Use city-life illustrations. Reference public transit, apartments, diverse neighbors. Include examples from fast-paced, diverse environments.',
-  'suburban': 
-    'CULTURAL CONTEXT (Suburban): Use family and neighborhood illustrations. Reference schools, sports, commuting. Include middle-class life applications.',
-  'rural': 
-    'CULTURAL CONTEXT (Rural): Use agricultural and small-town illustrations. Reference land, seasons, tight-knit community. Include farming and nature metaphors.',
-  'international': 
-    'CULTURAL CONTEXT (International): Avoid American-specific references. Use universally understood illustrations. Be sensitive to varied cultural backgrounds. Include global church perspective.',
-  'multicultural': 
-    'CULTURAL CONTEXT (Multicultural): Include diverse illustrations. Acknowledge varied backgrounds. Avoid single-culture assumptions. Celebrate diversity in examples.'
-};
-
-const SPECIAL_NEEDS_DIRECTIVES: Record<string, string> = {
-  'none': '',
-  'learning-disabilities': 
-    'SPECIAL NEEDS (Learning Disabilities): Use short, clear sentences. Repeat key concepts multiple ways. Include multi-sensory reinforcement. Provide extra processing time in activities. Chunk information into small pieces.',
-  'visual-hearing': 
-    'SPECIAL NEEDS (Visual/Hearing Impaired): Include verbal descriptions of all visuals. Suggest large-print handout options. Include visual alternatives for audio content. Recommend seating arrangements.',
-  'esl': 
-    'SPECIAL NEEDS (ESL/English Learners): Use simple sentence structures. Define idioms and figures of speech. Avoid complex vocabulary when simple words work. Include visual supports. Speak/write key terms clearly.',
-  'mixed-needs': 
-    'SPECIAL NEEDS (Mixed/Various): Design with universal accessibility. Include multiple modalities. Provide scaffolded options. Suggest adaptations for various needs.'
-};
-
-const LESSON_SEQUENCE_DIRECTIVES: Record<string, string> = {
-  'single': 
-    'LESSON SEQUENCE (Standalone): Design as complete unit. Include full context. No assumed prior knowledge from previous sessions. Resolve application within this lesson.',
-  'series': 
-    'LESSON SEQUENCE (Part of Series): Include brief connection to series theme. Reference "last week" and "next week" concepts. Build toward cumulative understanding. Include series memory work.',
-  'workshop': 
-    'LESSON SEQUENCE (Workshop/Intensive): Design for concentrated learning. Include skill-building progression. Allow practice time. Build competency across session.',
-  'retreat': 
-    'LESSON SEQUENCE (Retreat Session): Design for reflective depth. Include extended silence options. Allow for emotional processing. Connect to retreat theme.',
-  'vbs': 
-    'LESSON SEQUENCE (VBS/Camp): High energy, memorable activities. Include music/motion suggestions. Design for daily themes. Heavy repetition of key verse. Fun and engaging delivery.'
-};
-
-const ASSESSMENT_STYLE_DIRECTIVES: Record<string, string> = {
-  'informal': 
-    'ASSESSMENT (Informal Discussion): Check understanding through conversation. Include "How would you explain this to a friend?" moments. Observe engagement rather than test.',
-  'written': 
-    'ASSESSMENT (Written Reflection): Include journaling prompts. Provide reflection questions for written response. Suggest take-home writing assignments.',
-  'quiz': 
-    'ASSESSMENT (Quiz/Review): Include review questions at end. Provide answer key for teacher. Design quick-check moments throughout.',
-  'presentation': 
-    'ASSESSMENT (Presentation/Verbal): Include opportunities for students to teach back. Design share-with-class moments. Allow verbal demonstration of understanding.',
-  'project': 
-    'ASSESSMENT (Project-Based): Include creative project options. Design application projects. Provide rubric suggestions. Allow for extended completion time.',
-  'observation': 
-    'ASSESSMENT (Observation): Include behavioral indicators of understanding. Design observable activities. Provide teacher observation prompts.'
-};
-
-const ACTIVITY_TYPE_DIRECTIVES: Record<string, string> = {
-  'written': 'Include written reflection or journaling activities.',
-  'verbal': 'Include discussion, debate, or verbal sharing activities.',
-  'creative': 'Include art, craft, or creative expression activities.',
-  'drama': 'Include role-play, skit, or dramatic reading activities.',
-  'games': 'Include games, competitions, or movement activities.',
-  'music': 'Include hymn references, worship song suggestions, or musical elements.',
-  'prayer': 'Include structured prayer activities, prayer walks, or contemplative practices.'
-};
+// ============================================================================
+// INPUT INTERFACE
+// ============================================================================
 
 export interface CustomizationInput {
   teaching_style?: string;
   learning_style?: string;
   lesson_length?: string;
-  class_setting?: string;
+  class_setting?: string;       // Maps to GROUP_SIZES
   learning_environment?: string;
   student_experience?: string;
+  education_experience?: string;
   cultural_context?: string;
   special_needs?: string;
   lesson_sequence?: string;
   assessment_style?: string;
   activity_types?: string[];
   language?: string;
-  education_experience?: string;
+  // Phase 2 fields
+  emotional_entry?: string;
+  theological_lens?: string;
 }
+
+// ============================================================================
+// VERIFICATION CHECKLIST BUILDER
+// Creates self-audit checklist based on selected options
+// ============================================================================
+
+function buildVerificationChecklist(input: CustomizationInput): string {
+  const checks: string[] = [];
+  
+  // Teaching Style checks
+  if (input.teaching_style === 'discussion') {
+    checks.push('☐ Every section contains at least 2 open-ended questions');
+  }
+  if (input.teaching_style === 'socratic') {
+    checks.push('☐ Conclusions are discovered through questions, never stated directly');
+  }
+  if (input.teaching_style === 'storytelling') {
+    checks.push('☐ Each main point is framed through narrative');
+  }
+  
+  // Learning Style checks
+  if (input.learning_style === 'kinesthetic') {
+    checks.push('☐ Every section includes a movement or hands-on element');
+  }
+  if (input.learning_style === 'visual') {
+    checks.push('☐ Visual aids or diagram descriptions included in each section');
+  }
+  
+  // Lesson Length checks
+  if (input.lesson_length === '15') {
+    checks.push('☐ Content fits within 15 minutes (single point, one brief activity)');
+  }
+  if (input.lesson_length === '30') {
+    checks.push('☐ Content fits within 30 minutes (one main point, one activity)');
+  }
+  
+  // Cultural Context checks
+  if (input.cultural_context === 'rural') {
+    checks.push('☐ Illustrations reference agricultural, small-town, or nature themes');
+  }
+  if (input.cultural_context === 'urban') {
+    checks.push('☐ Illustrations reference city life, diversity, fast-paced environments');
+  }
+  if (input.cultural_context === 'international') {
+    checks.push('☐ No American-specific references; universally understood illustrations');
+  }
+  
+  // Student Experience checks
+  if (input.student_experience === 'new-believers') {
+    checks.push('☐ All theological terms are defined on first use');
+  }
+  if (input.student_experience === 'seekers') {
+    checks.push('☐ No church jargon; all concepts explained accessibly');
+  }
+  
+  // Education Level checks
+  if (input.education_experience === 'preschool') {
+    checks.push('☐ Vocabulary uses simple 1-2 syllable words; heavy repetition');
+  }
+  if (input.education_experience === 'elementary') {
+    checks.push('☐ Language is clear and age-appropriate for children');
+  }
+  if (input.education_experience === 'doctorate') {
+    checks.push('☐ Academic vocabulary and scholarly depth included');
+  }
+  
+  // Special Needs checks
+  if (input.special_needs === 'learning-disabilities') {
+    checks.push('☐ Short sentences; information chunked; multi-sensory reinforcement');
+  }
+  if (input.special_needs === 'esl') {
+    checks.push('☐ Simple sentence structures; idioms explained; visual supports');
+  }
+  if (input.special_needs === 'visual-impaired') {
+    checks.push('☐ All visual content has verbal descriptions');
+  }
+  if (input.special_needs === 'hearing-impaired') {
+    checks.push('☐ All audio content has visual/written alternatives');
+  }
+  if (input.special_needs === 'mobility') {
+    checks.push('☐ All activities can be done seated; no movement required');
+  }
+  
+  // Group Size checks
+  if (input.class_setting === 'one-on-one') {
+    checks.push('☐ Content is personalized for individual conversation');
+  }
+  if (input.class_setting === 'large-group') {
+    checks.push('☐ Activities designed for 13+ people; breakout instructions included');
+  }
+  
+  // Activity Type checks
+  if (input.activity_types?.includes('drama')) {
+    checks.push('☐ At least one dramatic element (reader\'s theater, role-play, reenactment)');
+  }
+  if (input.activity_types?.includes('music')) {
+    checks.push('☐ Specific hymn or worship song referenced by name');
+  }
+  if (input.activity_types?.includes('prayer')) {
+    checks.push('☐ Structured prayer format included (ACTS, lectio divina, etc.)');
+  }
+  
+  // Phase 2: Emotional Entry checks
+  if (input.emotional_entry === 'curiosity') {
+    checks.push('☐ Opening creates mystery or poses unanswered questions');
+  }
+  if (input.emotional_entry === 'conviction') {
+    checks.push('☐ Opening makes bold truth claims with urgency');
+  }
+  if (input.emotional_entry === 'comfort') {
+    checks.push('☐ Opening emphasizes assurance, safety, and grace');
+  }
+  if (input.emotional_entry === 'challenge') {
+    checks.push('☐ Opening disrupts assumptions and calls to growth');
+  }
+  if (input.emotional_entry === 'celebration') {
+    checks.push('☐ Opening leads with gratitude, joy, and praise');
+  }
+  
+  // Phase 2: Theological Lens checks
+  if (input.theological_lens === 'obedience') {
+    checks.push('☐ Application focuses on faithful response and next steps');
+  }
+  if (input.theological_lens === 'grace') {
+    checks.push('☐ Emphasis on what God has done, not human effort');
+  }
+  if (input.theological_lens === 'mission') {
+    checks.push('☐ Application includes outward witness and sharing faith');
+  }
+  if (input.theological_lens === 'worship') {
+    checks.push('☐ Content leads toward awe, reverence, and praise');
+  }
+  if (input.theological_lens === 'community') {
+    checks.push('☐ "One another" relationships emphasized throughout');
+  }
+  if (input.theological_lens === 'discipleship') {
+    checks.push('☐ Focus on spiritual growth, disciplines, and maturity');
+  }
+  
+  if (checks.length === 0) {
+    return '';
+  }
+  
+  return '\n\nVERIFICATION CHECKLIST (Confirm before finalizing):\n' + checks.join('\n');
+}
+
+// ============================================================================
+// MAIN DIRECTIVE BUILDER
+// Assembles all directives from SSOT sources
+// ============================================================================
 
 export function buildCustomizationDirectives(input: CustomizationInput): string {
   const directives: string[] = [];
 
-  if (input.teaching_style && TEACHING_STYLE_DIRECTIVES[input.teaching_style]) {
-    directives.push(TEACHING_STYLE_DIRECTIVES[input.teaching_style]);
-  }
-  if (input.learning_style && LEARNING_STYLE_DIRECTIVES[input.learning_style]) {
-    directives.push(LEARNING_STYLE_DIRECTIVES[input.learning_style]);
-  }
-  if (input.lesson_length && LESSON_LENGTH_DIRECTIVES[input.lesson_length]) {
-    directives.push(LESSON_LENGTH_DIRECTIVES[input.lesson_length]);
-  }
-  if (input.class_setting && GROUP_SIZE_DIRECTIVES[input.class_setting]) {
-    directives.push(GROUP_SIZE_DIRECTIVES[input.class_setting]);
-  }
-  if (input.learning_environment && LEARNING_ENVIRONMENT_DIRECTIVES[input.learning_environment]) {
-    directives.push(LEARNING_ENVIRONMENT_DIRECTIVES[input.learning_environment]);
-  }
-  if (input.student_experience && STUDENT_EXPERIENCE_DIRECTIVES[input.student_experience]) {
-    directives.push(STUDENT_EXPERIENCE_DIRECTIVES[input.student_experience]);
-  }
-  if (input.cultural_context && CULTURAL_CONTEXT_DIRECTIVES[input.cultural_context]) {
-    directives.push(CULTURAL_CONTEXT_DIRECTIVES[input.cultural_context]);
-  }
-  if (input.special_needs && SPECIAL_NEEDS_DIRECTIVES[input.special_needs]) {
-    directives.push(SPECIAL_NEEDS_DIRECTIVES[input.special_needs]);
-  }
-  if (input.lesson_sequence && LESSON_SEQUENCE_DIRECTIVES[input.lesson_sequence]) {
-    directives.push(LESSON_SEQUENCE_DIRECTIVES[input.lesson_sequence]);
-  }
-  if (input.assessment_style && ASSESSMENT_STYLE_DIRECTIVES[input.assessment_style]) {
-    directives.push(ASSESSMENT_STYLE_DIRECTIVES[input.assessment_style]);
-  }
-  if (input.activity_types && input.activity_types.length > 0) {
-    const activityDirectives = input.activity_types
-      .map(type => ACTIVITY_TYPE_DIRECTIVES[type])
-      .filter(Boolean);
-    if (activityDirectives.length > 0) {
-      directives.push('ACTIVITIES: ' + activityDirectives.join(' '));
-    }
-  }
-  if (input.language && input.language !== 'english') {
-    directives.push(`LANGUAGE: Generate the entire lesson in ${input.language}. All content, instructions, and student materials must be in ${input.language}.`);
+  // Teaching Style - from SSOT
+  if (input.teaching_style) {
+    const directive = getOptionDirective(TEACHING_STYLES, input.teaching_style);
+    if (directive) directives.push(directive);
   }
 
+  // Learning Style - from SSOT
+  if (input.learning_style) {
+    const directive = getOptionDirective(LEARNING_STYLES, input.learning_style);
+    if (directive) directives.push(directive);
+  }
+
+  // Lesson Length - from SSOT
+  if (input.lesson_length) {
+    const directive = getOptionDirective(LESSON_LENGTHS, input.lesson_length);
+    if (directive) directives.push(directive);
+  }
+
+  // Group Size (class_setting) - from SSOT
+  if (input.class_setting) {
+    const directive = getOptionDirective(GROUP_SIZES, input.class_setting);
+    if (directive) directives.push(directive);
+  }
+
+  // Learning Environment - from SSOT
+  if (input.learning_environment) {
+    const directive = getOptionDirective(LEARNING_ENVIRONMENTS, input.learning_environment);
+    if (directive) directives.push(directive);
+  }
+
+  // Student Experience - from SSOT
+  if (input.student_experience) {
+    const directive = getOptionDirective(STUDENT_EXPERIENCE_LEVELS, input.student_experience);
+    if (directive) directives.push(directive);
+  }
+
+  // Education Experience - from SSOT
+  if (input.education_experience) {
+    const directive = getOptionDirective(EDUCATION_EXPERIENCES, input.education_experience);
+    if (directive) directives.push(directive);
+  }
+
+  // Cultural Context - from SSOT
+  if (input.cultural_context) {
+    const directive = getOptionDirective(CULTURAL_CONTEXTS, input.cultural_context);
+    if (directive) directives.push(directive);
+  }
+
+  // Special Needs - from SSOT
+  if (input.special_needs) {
+    const directive = getOptionDirective(SPECIAL_NEEDS_OPTIONS, input.special_needs);
+    if (directive) directives.push(directive);
+  }
+
+  // Lesson Sequence - from SSOT
+  if (input.lesson_sequence) {
+    const directive = getOptionDirective(LESSON_SEQUENCE_OPTIONS, input.lesson_sequence);
+    if (directive) directives.push(directive);
+  }
+
+  // Assessment Style - from SSOT
+  if (input.assessment_style) {
+    const directive = getOptionDirective(ASSESSMENT_STYLES, input.assessment_style);
+    if (directive) directives.push(directive);
+  }
+
+  // Phase 2: Emotional Entry Point - from SSOT
+  if (input.emotional_entry) {
+    const directive = getOptionDirective(EMOTIONAL_ENTRY_OPTIONS, input.emotional_entry);
+    if (directive) directives.push(directive);
+  }
+
+  // Phase 2: Theological Lens - from SSOT
+  if (input.theological_lens) {
+    const directive = getOptionDirective(THEOLOGICAL_LENS_OPTIONS, input.theological_lens);
+    if (directive) directives.push(directive);
+  }
+
+  // Activity Types (checkboxes) - from SSOT
+  if (input.activity_types && input.activity_types.length > 0) {
+    const activityDirectives = input.activity_types
+      .map(type => getCheckboxDirective(ACTIVITY_TYPE_OPTIONS, type))
+      .filter(Boolean);
+    if (activityDirectives.length > 0) {
+      directives.push('ACTIVITIES:\n' + activityDirectives.join('\n'));
+    }
+  }
+
+  // Language - from SSOT
+  if (input.language) {
+    const directive = getOptionDirective(LANGUAGE_OPTIONS, input.language);
+    if (directive) directives.push(directive);
+  }
+
+  // If no customizations selected, return empty string
   if (directives.length === 0) {
     return '';
   }
 
-  return '\nCUSTOMIZATION DIRECTIVES:\n' + directives.join('\n\n');
+  // Build final output with all enhancements
+  let output = '\nCUSTOMIZATION DIRECTIVES:\n' + directives.join('\n\n');
+  
+  // Add Priority Rules
+  output += '\n' + PRIORITY_RULES;
+  
+  // Add Section Application Hints
+  output += '\n' + SECTION_APPLICATION_HINTS;
+  
+  // Add Verification Checklist (conditional based on selections)
+  output += buildVerificationChecklist(input);
+
+  return output;
 }
 
 export default buildCustomizationDirectives;

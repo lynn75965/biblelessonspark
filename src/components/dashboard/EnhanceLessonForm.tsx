@@ -14,6 +14,8 @@
  * - Bible Version selection with copyright-aware guardrails
  * - Mobile responsiveness fixes
  * - PHASE 21: Paid users (Personal/Admin) never see Free/Full toggle
+ * - PHASE 2 CUSTOMIZATION: Added Emotional Entry Point and Theological Lens fields
+ *   Profile fields increased from 13 to 15
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -362,7 +364,7 @@ export function EnhanceLessonForm({
   const [bibleVersionId, setBibleVersionId] = useState(getDefaultBibleVersion().id);
 
   // ============================================================================
-  // STEP 3: CUSTOMIZATION STATE (13 profile fields)
+  // STEP 3: CUSTOMIZATION STATE (15 profile fields - Phase 2)
   // ============================================================================
 
   const [teachingStyle, setTeachingStyle] = useState("");
@@ -378,6 +380,9 @@ export function EnhanceLessonForm({
   const [assessmentStyle, setAssessmentStyle] = useState("");
   const [language, setLanguage] = useState("english");
   const [activityTypes, setActivityTypes] = useState<string[]>([]);
+  // Phase 2: Emotional and Theological approach
+  const [emotionalEntry, setEmotionalEntry] = useState("");
+  const [theologicalLens, setTheologicalLens] = useState("");
 
   // Part of Series position (NOT saved in profile)
   const [lessonNumber, setLessonNumber] = useState(1);
@@ -552,6 +557,9 @@ export function EnhanceLessonForm({
     setAssessmentStyle(prefs.assessmentStyle || "");
     setLanguage(prefs.language || "english");
     setActivityTypes(prefs.activityTypes || []);
+    // Phase 2 fields
+    setEmotionalEntry(prefs.emotionalEntry || "");
+    setTheologicalLens(prefs.theologicalLens || "");
     setCurrentProfileId(profile.id);
 
     // Reset series position when loading profile
@@ -933,6 +941,9 @@ export function EnhanceLessonForm({
         assessment_style: assessmentStyle,
         language: language,
         activity_types: activityTypes,
+        // Phase 2 fields
+        emotional_entry: emotionalEntry,
+        theological_lens: theologicalLens,
         generate_teaser: generateTeaser,
         include_liturgical: includeLiturgical,
         include_cultural: includeCultural,
@@ -1442,6 +1453,10 @@ export function EnhanceLessonForm({
               setLanguage={setLanguage}
               activityTypes={activityTypes}
               setActivityTypes={setActivityTypes}
+              emotionalEntry={emotionalEntry}
+              setEmotionalEntry={setEmotionalEntry}
+              theologicalLens={theologicalLens}
+              setTheologicalLens={setTheologicalLens}
               lessonNumber={lessonNumber}
               setLessonNumber={setLessonNumber}
               totalLessons={totalLessons}

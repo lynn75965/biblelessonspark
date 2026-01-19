@@ -1,6 +1,11 @@
 /**
  * Enhanced input validation for Edge Function
  * Prevents injection attacks, oversized inputs, and malformed data
+ * 
+ * Updated: January 2026
+ * - Added freshness_mode, include_liturgical, include_cultural, freshness_suggestions
+ * - Added lesson_number, total_lessons for series support
+ * - Added extract_style_metadata, series_style_context for Consistent Style Mode
  */
 export interface LessonRequest {
   bible_passage?: string;
@@ -24,6 +29,17 @@ export interface LessonRequest {
   learning_style?: string;
   education_experience?: string;
   generate_teaser?: boolean;
+  // Freshness system
+  freshness_mode?: string;
+  include_liturgical?: boolean;
+  include_cultural?: boolean;
+  freshness_suggestions?: any;
+  // Series support
+  lesson_number?: number;
+  total_lessons?: number;
+  // Consistent Style Mode
+  extract_style_metadata?: boolean;
+  series_style_context?: any;
 }
 
 /**
@@ -89,12 +105,38 @@ export function validateLessonRequest(data: any): LessonRequest {
     });
   }
 
-  // Validate boolean
+  // Validate booleans
   if (data.generate_teaser !== undefined && typeof data.generate_teaser !== 'boolean') {
     throw new Error('generate_teaser must be a boolean');
   }
+  if (data.include_liturgical !== undefined && typeof data.include_liturgical !== 'boolean') {
+    throw new Error('include_liturgical must be a boolean');
+  }
+  if (data.include_cultural !== undefined && typeof data.include_cultural !== 'boolean') {
+    throw new Error('include_cultural must be a boolean');
+  }
+  if (data.extract_style_metadata !== undefined && typeof data.extract_style_metadata !== 'boolean') {
+    throw new Error('extract_style_metadata must be a boolean');
+  }
 
-  // Return sanitized data
+  // Validate numbers for series
+  if (data.lesson_number !== undefined && data.lesson_number !== null) {
+    if (typeof data.lesson_number !== 'number' || data.lesson_number < 1 || data.lesson_number > 7) {
+      throw new Error('lesson_number must be a number between 1 and 7');
+    }
+  }
+  if (data.total_lessons !== undefined && data.total_lessons !== null) {
+    if (typeof data.total_lessons !== 'number' || data.total_lessons < 2 || data.total_lessons > 7) {
+      throw new Error('total_lessons must be a number between 2 and 7');
+    }
+  }
+
+  // Validate freshness_mode
+  if (data.freshness_mode && typeof data.freshness_mode !== 'string') {
+    throw new Error('freshness_mode must be a string');
+  }
+
+  // Return sanitized data with all fields
   return {
     bible_passage: sanitizeString(data.bible_passage),
     focused_topic: sanitizeString(data.focused_topic),
@@ -116,6 +158,17 @@ export function validateLessonRequest(data: any): LessonRequest {
     assessment_style: sanitizeString(data.assessment_style),
     learning_style: sanitizeString(data.learning_style),
     education_experience: sanitizeString(data.education_experience),
-    generate_teaser: data.generate_teaser || false
+    generate_teaser: data.generate_teaser || false,
+    // Freshness system
+    freshness_mode: sanitizeString(data.freshness_mode),
+    include_liturgical: data.include_liturgical || false,
+    include_cultural: data.include_cultural || false,
+    freshness_suggestions: data.freshness_suggestions || null,
+    // Series support
+    lesson_number: data.lesson_number || null,
+    total_lessons: data.total_lessons || null,
+    // Consistent Style Mode
+    extract_style_metadata: data.extract_style_metadata || false,
+    series_style_context: data.series_style_context || null
   };
 }

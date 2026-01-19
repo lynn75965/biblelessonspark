@@ -1,6 +1,6 @@
 /**
  * TeacherCustomization Component
- * Renders the 13 teacher preference fields with profile management
+ * Renders the 15 teacher preference fields with profile management
  *
  * Architecture: Imports all options from SSOT (teacherPreferences.ts)
  * Features:
@@ -10,11 +10,10 @@
  *   - Save This Profile button with modal
  *   - Part of Series: Shows Lesson X of Y inputs (appears LAST in grid)
  *
- * Updated: December 2025
- *   - Gold accent on header text
- *   - Teal step badge
- *   - Lesson Sequence moved to last position
- *   - Mobile responsiveness fixes (December 4, 2025)
+ * Updated: January 2026 (Phase 2)
+ *   - Added Emotional Entry Point selector
+ *   - Added Theological Lens selector
+ *   - Profile fields increased from 13 to 15
  */
 
 import { useState, useEffect } from "react";
@@ -57,6 +56,8 @@ import {
   ASSESSMENT_STYLES,
   LANGUAGE_OPTIONS,
   ACTIVITY_TYPE_OPTIONS,
+  EMOTIONAL_ENTRY_OPTIONS,
+  THEOLOGICAL_LENS_OPTIONS,
   TeacherPreferences,
 } from "@/constants/teacherPreferences";
 
@@ -152,7 +153,7 @@ interface TeacherCustomizationProps {
   // SSOT: Expansion controlled by parent (EnhanceLessonForm)
   isExpanded: boolean;
   onToggleExpand: () => void;
-  // Field values and setters (13 profile fields)
+  // Field values and setters (15 profile fields - updated from 13)
   teachingStyle: string;
   setTeachingStyle: (value: string) => void;
   learningStyle: string;
@@ -179,6 +180,11 @@ interface TeacherCustomizationProps {
   setLanguage: (value: string) => void;
   activityTypes: string[];
   setActivityTypes: (value: string[]) => void;
+  // Phase 2: New fields
+  emotionalEntry: string;
+  setEmotionalEntry: (value: string) => void;
+  theologicalLens: string;
+  setTheologicalLens: (value: string) => void;
 
   // Part of Series position (NOT saved in profile)
   lessonNumber: number;
@@ -242,6 +248,10 @@ export function TeacherCustomization({
   setLanguage,
   activityTypes,
   setActivityTypes,
+  emotionalEntry,
+  setEmotionalEntry,
+  theologicalLens,
+  setTheologicalLens,
   lessonNumber,
   setLessonNumber,
   totalLessons,
@@ -315,6 +325,8 @@ export function TeacherCustomization({
     language,
     lessonSequence,
     activityTypes,
+    emotionalEntry,
+    theologicalLens,
   });
 
   const handleOpenSaveModal = () => {
@@ -469,7 +481,7 @@ export function TeacherCustomization({
             </div>
           )}
 
-          {/* 12 Profile Fields - Responsive Grid (1 col mobile, 2 col desktop) */}
+          {/* 14 Profile Fields in Grid + Lesson Sequence at end - Responsive Grid (1 col mobile, 2 col desktop) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Teaching Style */}
             <div className="space-y-2">
@@ -655,6 +667,40 @@ export function TeacherCustomization({
               </Select>
             </div>
 
+            {/* Emotional Entry Point (Phase 2 - NEW) */}
+            <div className="space-y-2">
+              <Label htmlFor="emotional-entry">Emotional Entry Point</Label>
+              <Select value={emotionalEntry} onValueChange={setEmotionalEntry} disabled={disabled}>
+                <SelectTrigger id="emotional-entry" className={FORM_STYLING.selectMaxWidth}>
+                  <SelectValue placeholder="Select emotional approach" />
+                </SelectTrigger>
+                <SelectContent>
+                  {EMOTIONAL_ENTRY_OPTIONS.map((entry) => (
+                    <SelectItem key={entry.id} value={entry.id}>
+                      {entry.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Theological Lens (Phase 2 - NEW) */}
+            <div className="space-y-2">
+              <Label htmlFor="theological-lens">Theological Lens</Label>
+              <Select value={theologicalLens} onValueChange={setTheologicalLens} disabled={disabled}>
+                <SelectTrigger id="theological-lens" className={FORM_STYLING.selectMaxWidth}>
+                  <SelectValue placeholder="Select theological emphasis" />
+                </SelectTrigger>
+                <SelectContent>
+                  {THEOLOGICAL_LENS_OPTIONS.map((lens) => (
+                    <SelectItem key={lens.id} value={lens.id}>
+                      {lens.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Language */}
             <div className="space-y-2">
               <Label htmlFor="language">Language</Label>
@@ -702,8 +748,8 @@ export function TeacherCustomization({
                   max={totalLessons}
                   value={lessonNumber}
                   onChange={(e) => handleLessonNumberChange(e.target.value)}
-                  disabled={disabled}
                   className="w-16 text-center"
+                  disabled={disabled}
                 />
                 <span className="text-sm">of</span>
                 <Input
@@ -712,155 +758,113 @@ export function TeacherCustomization({
                   max={7}
                   value={totalLessons}
                   onChange={(e) => handleTotalLessonsChange(e.target.value)}
-                  disabled={disabled}
                   className="w-16 text-center"
+                  disabled={disabled}
                 />
-                <span className="text-sm text-muted-foreground">(max 7 lessons per series)</span>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Each lesson in the series uses 1 credit. Position is not saved in your profile.
+                Lessons in a series share context. Maximum 7 lessons per series.
               </p>
 
-              {/* Consistent Style Mode - only for series */}
-              <div className="mt-4 pt-3 border-t space-y-4">
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="consistent-style"
-                    checked={freshnessMode === "consistent"}
-                    onCheckedChange={(checked) => 
-                      setFreshnessMode(checked ? "consistent" : "fresh")
-                    }
-                    disabled={disabled}
-                  />
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="consistent-style"
-                      className="text-sm font-medium leading-none cursor-pointer"
-                    >
-                      Consistent Style Mode
-                    </label>
+              {/* Consistent Style Mode - Only show for lessons 2+ in series */}
+              {lessonNumber > 1 && (
+                <div className="mt-4 pt-4 border-t border-primary/10">
+                  <Label className="text-sm font-medium mb-2 block">
+                    Consistent Style Mode
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3 w-3 text-muted-foreground inline ml-1 cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-[280px]">
+                          <p>Apply the same creative style (opening hook, illustrations, tone) from a previous lesson in this series for consistency.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+
+                  {lessonsWithStyle.length === 0 ? (
                     <p className="text-xs text-muted-foreground">
-                      {lessonNumber === 1 
-                        ? "This lesson's style will be captured and can be applied to future lessons in this series"
-                        : "Apply the teaching style from a previous lesson to maintain consistency"
-                      }
+                      No previous lessons with style metadata found. Generate your first lesson to establish a style.
                     </p>
-                  </div>
-                </div>
-
-                {/* Lesson 1 indicator - style will be captured */}
-                {freshnessMode === "consistent" && lessonNumber === 1 && (
-                  <div className="ml-6 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                    <div className="flex items-center gap-2 text-primary">
-                      <span className="text-lg">✨</span>
-                      <span className="text-sm font-medium">Style Capture Enabled</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      When this lesson generates, its creative style elements (hook type, illustrations, tone) 
-                      will be saved. You can then apply this style to Lessons 2-{totalLessons} of this series.
-                    </p>
-                  </div>
-                )}
-
-                {/* Lesson 2+ dropdown - select which lesson to copy style from */}
-                {freshnessMode === "consistent" && lessonNumber > 1 && (
-                  <div className="ml-6 space-y-3">
+                  ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="style-source" className="text-sm">
-                        Copy Style From:
-                      </Label>
                       <Select
                         value={selectedStyleLessonId}
                         onValueChange={setSelectedStyleLessonId}
                         disabled={disabled}
                       >
-                        <SelectTrigger id="style-source" className="w-full sm:w-[300px]">
-                          <SelectValue placeholder="Select a lesson with captured style..." />
+                        <SelectTrigger className={FORM_STYLING.selectMaxWidth}>
+                          <SelectValue placeholder="Select lesson to match style" />
                         </SelectTrigger>
                         <SelectContent>
-                          {lessonsWithStyle.length === 0 ? (
-                            <SelectItem value="__none__" disabled>
-                              No lessons with style data found
+                          <SelectItem value="">— Don't use consistent style —</SelectItem>
+                          {lessonsWithStyle.map((lesson) => (
+                            <SelectItem key={lesson.id} value={lesson.id}>
+                              {lesson.title}
                             </SelectItem>
-                          ) : (
-                            lessonsWithStyle.map((lesson) => (
-                              <SelectItem key={lesson.id} value={lesson.id}>
-                                {lesson.title || "Untitled Lesson"} 
-                                <span className="text-muted-foreground ml-2 text-xs">
-                                  ({new Date(lesson.created_at).toLocaleDateString()})
-                                </span>
-                              </SelectItem>
-                            ))
-                          )}
+                          ))}
                         </SelectContent>
                       </Select>
-                      {lessonsWithStyle.length === 0 && (
-                        <p className="text-xs text-amber-600">
-                          💡 Generate Lesson 1 with Consistent Style Mode enabled first to capture a style.
+
+                      {/* Show selected style preview */}
+                      {seriesStyleContext && (
+                        <div className="mt-2 p-3 bg-primary/5 rounded-md border border-primary/10">
+                          <p className="text-xs font-medium text-primary mb-2">Style Preview:</p>
+                          <div className="text-xs space-y-1">
+                            {seriesStyleContext.openingHookType && (
+                              <div>
+                                <span className="text-muted-foreground">Opening:</span>{" "}
+                                <span className="font-medium">{STYLE_ELEMENT_LABELS.openingHookType[seriesStyleContext.openingHookType] || seriesStyleContext.openingHookType}</span>
+                              </div>
+                            )}
+                            {seriesStyleContext.illustrationType && (
+                              <div>
+                                <span className="text-muted-foreground">Illustrations:</span>{" "}
+                                <span className="font-medium">{STYLE_ELEMENT_LABELS.illustrationType[seriesStyleContext.illustrationType] || seriesStyleContext.illustrationType}</span>
+                              </div>
+                            )}
+                            {seriesStyleContext.teachingAngle && (
+                              <div>
+                                <span className="text-muted-foreground">Angle:</span>{" "}
+                                <span className="font-medium">{STYLE_ELEMENT_LABELS.teachingAngle[seriesStyleContext.teachingAngle] || seriesStyleContext.teachingAngle}</span>
+                              </div>
+                            )}
+                            {seriesStyleContext.activityFormat && (
+                              <div>
+                                <span className="text-muted-foreground">Activities:</span>{" "}
+                                <span className="font-medium">{STYLE_ELEMENT_LABELS.activityFormat[seriesStyleContext.activityFormat] || seriesStyleContext.activityFormat}</span>
+                              </div>
+                            )}
+                            {seriesStyleContext.toneDescriptor && (
+                              <div>
+                                <span className="text-muted-foreground">Tone:</span>{" "}
+                                <span className="font-medium">{STYLE_ELEMENT_LABELS.toneDescriptor[seriesStyleContext.toneDescriptor] || seriesStyleContext.toneDescriptor}</span>
+                              </div>
+                            )}
+                            {seriesStyleContext.closingChallengeType && (
+                              <div>
+                                <span className="text-muted-foreground">Closing:</span>{" "}
+                                <span className="font-medium">{STYLE_ELEMENT_LABELS.closingChallengeType[seriesStyleContext.closingChallengeType] || seriesStyleContext.closingChallengeType}</span>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-primary/10">
+                            This lesson will use the same creative approach for consistency.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* No style selected indicator */}
+                      {!seriesStyleContext && selectedStyleLessonId === '' && lessonsWithStyle.length > 0 && (
+                        <p className="text-xs text-amber-600 ml-1">
+                          ⚠️ Select a lesson above to apply its style to this lesson.
                         </p>
                       )}
                     </div>
-
-                    {/* Style Preview - shows when context is loaded */}
-                    {seriesStyleContext && (
-                      <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                        <div className="flex items-center gap-2 text-primary mb-2">
-                          <span className="text-lg">✓</span>
-                          <span className="text-sm font-medium">Style Loaded</span>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                          {seriesStyleContext.openingHookType && (
-                            <div>
-                              <span className="text-muted-foreground">Opening Hook:</span>{" "}
-                              <span className="font-medium">{STYLE_ELEMENT_LABELS.openingHookType[seriesStyleContext.openingHookType] || seriesStyleContext.openingHookType}</span>
-                            </div>
-                          )}
-                          {seriesStyleContext.illustrationType && (
-                            <div>
-                              <span className="text-muted-foreground">Illustrations:</span>{" "}
-                              <span className="font-medium">{STYLE_ELEMENT_LABELS.illustrationType[seriesStyleContext.illustrationType] || seriesStyleContext.illustrationType}</span>
-                            </div>
-                          )}
-                          {seriesStyleContext.teachingAngle && (
-                            <div>
-                              <span className="text-muted-foreground">Teaching Angle:</span>{" "}
-                              <span className="font-medium">{STYLE_ELEMENT_LABELS.teachingAngle[seriesStyleContext.teachingAngle] || seriesStyleContext.teachingAngle}</span>
-                            </div>
-                          )}
-                          {seriesStyleContext.activityFormat && (
-                            <div>
-                              <span className="text-muted-foreground">Activities:</span>{" "}
-                              <span className="font-medium">{STYLE_ELEMENT_LABELS.activityFormat[seriesStyleContext.activityFormat] || seriesStyleContext.activityFormat}</span>
-                            </div>
-                          )}
-                          {seriesStyleContext.toneDescriptor && (
-                            <div>
-                              <span className="text-muted-foreground">Tone:</span>{" "}
-                              <span className="font-medium">{STYLE_ELEMENT_LABELS.toneDescriptor[seriesStyleContext.toneDescriptor] || seriesStyleContext.toneDescriptor}</span>
-                            </div>
-                          )}
-                          {seriesStyleContext.closingChallengeType && (
-                            <div>
-                              <span className="text-muted-foreground">Closing:</span>{" "}
-                              <span className="font-medium">{STYLE_ELEMENT_LABELS.closingChallengeType[seriesStyleContext.closingChallengeType] || seriesStyleContext.closingChallengeType}</span>
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-primary/10">
-                          This lesson will use the same creative approach for consistency.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* No style selected indicator */}
-                    {!seriesStyleContext && selectedStyleLessonId === '' && lessonsWithStyle.length > 0 && (
-                      <p className="text-xs text-amber-600 ml-1">
-                        ⚠️ Select a lesson above to apply its style to this lesson.
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
