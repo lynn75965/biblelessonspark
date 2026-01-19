@@ -10,15 +10,7 @@ import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
 import { checkLessonLimit, incrementLessonUsage, getSectionsForTier } from '../_shared/subscriptionCheck.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
-import { 
-  buildFreshnessContext, 
-  selectFreshElements, 
-  selectFreshTeaserElements,
-  buildFreshnessSuggestionsPrompt,
-  buildTeaserFreshnessPrompt,
-  FreshnessSuggestions,
-  TeaserFreshnessSuggestions
-} from '../_shared/freshnessOptions.ts';
+import { buildFreshnessContext, selectFreshElements, buildFreshnessSuggestionsPrompt, FreshnessSuggestions } from '../_shared/freshnessOptions.ts';
 import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
 import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
 
@@ -139,7 +131,7 @@ Do NOT include word count information in section headers or anywhere in the outp
 `;
 }
 
-function buildTeaserInstructions(includeTeaser: boolean, teaserFreshness: TeaserFreshnessSuggestions | null = null): string {
+function buildTeaserInstructions(includeTeaser: boolean): string {
   if (!includeTeaser) return '';
 
   const teaserSection = getTeaserSection();
@@ -147,11 +139,6 @@ function buildTeaserInstructions(includeTeaser: boolean, teaserFreshness: Teaser
 
   const rules = teaserSection.contentRules.map((r) => `    • ${r}`).join('\n');
   const prohibitions = teaserSection.prohibitions.map((p) => `    • ${p}`).join('\n');
-
-  // Build freshness directives if available
-  const freshnessDirectives = teaserFreshness 
-    ? buildTeaserFreshnessPrompt(teaserFreshness)
-    : '';
 
   return `
 -------------------------------------------------------------------------------
@@ -177,35 +164,8 @@ ${rules}
 **PROHIBITED:**
 ${prohibitions}
 
-${freshnessDirectives}
-
-⚠️ CRITICAL TEASER ENFORCEMENT - CONTENT BLEEDING PREVENTION:
-This teaser is ONLY about FELT NEEDS. You must create curiosity WITHOUT revealing ANY lesson content.
-
-ABSOLUTE PROHIBITIONS (CONTENT BLEEDING):
-1. DO NOT reference the Bible passage, book, chapter, or verse in ANY way
-2. DO NOT hint at theological concepts, doctrines, or Bible characters
-3. DO NOT use subject-specific terms that reveal the topic
-4. DO NOT ask questions that telegraph the lesson content
-5. DO NOT use opening formulas like "Ever wonder..." or "Ever feel..." or "Ever notice..."
-
-WRONG EXAMPLES (REVEALS CONTENT - DO NOT USE):
-❌ "What makes you fundamentally different from every living thing?" (reveals Image of God topic)
-❌ "Why do some churches call communion and baptism sacraments?" (names the topic)
-❌ "Ever wonder what it means to be made in God's image?" (reveals topic directly)
-❌ "Have you thought about what Jesus meant at the Last Supper?" (reveals passage)
-
-RIGHT EXAMPLES (FELT NEEDS ONLY - USE THESE PATTERNS):
-✓ "Ever feel like you're supposed to be more than you are?" (universal longing)
-✓ "Have you noticed how the words we use shape what we actually believe?" (general observation)
-✓ "Some questions don't have easy answers—and maybe that's okay." (emotional hook)
-✓ "There's something about belonging that we can't quite explain." (felt need)
-
-BAPTIST TERMINOLOGY REQUIREMENT:
-- Use "ordinance" or "practice" - NEVER use "ritual" or "sacrament"
-- Use "Lord's Supper" - NEVER use "Eucharist" or "mass"  
-- Use "pastor" or "minister" - NEVER use "priest"
-- Use "Lord's table" - NEVER use "altar" (for church furniture)
+âš ï¸ CRITICAL TEASER ENFORCEMENT:
+This section is ONLY about FELT NEEDS. You must create curiosity WITHOUT revealing ANY lesson content.
 
 REQUIRED SIGNOFF:
 - End with a compelling reason to attend WITHOUT revealing content
@@ -213,17 +173,22 @@ REQUIRED SIGNOFF:
 - Focus on the benefit of discovering answers, not what will be taught
 - Create urgency through curiosity, not promotional language
 
-SIGNOFF EXAMPLES:
-❌ WRONG: "Join us Sunday to learn about God's plan!"
-✓ RIGHT: "When we gather, we'll explore this together. I think you'll find some clarity."
+EXAMPLES:
+âŒ WRONG TEASER: "Discover what makes you unique - made in God's image"
+✓ RIGHT TEASER: "Ever feel like you're supposed to be more than you are? Like there's a bigger purpose you can't quite see? Let's talk about it next time we meet—you might be surprised by what we uncover."
+
+âŒ WRONG SIGNOFF: "Join us Sunday to learn about God's plan!"
+✓ RIGHT SIGNOFF: "When we gather, we'll explore this together. I think you'll find some clarity."
 
 REMEMBER:
+- DO NOT reference the Bible passage in ANY way
+- DO NOT hint at theological concepts
+- DO NOT use subject-specific terms
 - ONLY touch on emotions and questions the student already feels
 - Create a gap that ONLY attending class can fill
 - Output teaser ONCE at the beginning, then move to Section 1
 `;
 }
-
 
 serve(async (req) => {
   const functionStartTime = Date.now();
@@ -467,46 +432,6 @@ serve(async (req) => {
       throw new Error(`Bible version not found: ${effectiveBibleVersionId}`);
     }
 
-    // =========================================================================
-    // FRESHNESS SYSTEM - Select fresh elements avoiding recent usage
-    // SSOT COMPLIANCE: Uses boolean flags - edge function owns the integration
-    // between freshnessOptions.ts and teacherCustomizationOptions.ts
-    // =========================================================================
-    
-    // Determine which freshness elements to skip based on teacher's Step 3 choices
-    // Teacher's customization ALWAYS takes priority over freshness suggestions
-    const skipTeachingAngle = !!teaching_style;
-    const skipActivityFormat = activity_types && activity_types.length > 0;
-    const skipApplicationContext = !!class_setting || !!learning_environment;
-    
-    // Select fresh lesson elements (respects teacher's Step 3 choices via boolean flags)
-    let selectedFreshness: FreshnessSuggestions | null = null;
-    let selectedTeaserFreshness: TeaserFreshnessSuggestions | null = null;
-    let freshnessPromptAddition = '';
-    
-    if (freshness_mode === 'fresh') {
-      // Pass boolean flags - freshnessOptions.ts doesn't know about customization field names
-      selectedFreshness = selectFreshElements(
-        [],  // TODO: Pass recent suggestions from user's lesson history
-        5,
-        skipTeachingAngle,
-        skipActivityFormat,
-        skipApplicationContext
-      );
-      freshnessPromptAddition = buildFreshnessSuggestionsPrompt(selectedFreshness, freshness_mode);
-      
-      console.log('Freshness suggestions selected:', selectedFreshness);
-      if (selectedFreshness.skippedDueToCustomization.length > 0) {
-        console.log('Elements skipped (teacher specified in Step 3):', selectedFreshness.skippedDueToCustomization);
-      }
-      
-      // Select fresh teaser elements if teaser requested
-      if (generate_teaser) {
-        selectedTeaserFreshness = selectFreshTeaserElements([], 5);
-        console.log('Teaser freshness suggestions selected:', selectedTeaserFreshness);
-      }
-    }
-
     // Use filteredSections (set earlier based on platform mode + tier)
     const totalSections = filteredSections.length;
 
@@ -572,12 +497,9 @@ ${copyrightGuardrails}
 
 ${customizationDirectives}
 
-
-${buildTeaserInstructions(generate_teaser, selectedTeaserFreshness)}
+${buildTeaserInstructions(generate_teaser)}
 
 ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
-
-${freshnessPromptAddition}
 
 -------------------------------------------------------------------------------
 LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
@@ -757,8 +679,7 @@ Meet ALL word minimums. Respect ALL word maximums.
           wasEnhancement: !!extracted_content,
           extractedContentLength: extracted_content?.length || 0,
           freshnessMode: freshness_mode,
-          freshnessSuggestions: selectedFreshness,
-          teaserFreshnessSuggestions: selectedTeaserFreshness,
+          freshnessSuggestions: freshness_suggestions,
           platformMode: platformMode,
           isTrialLesson: isTrialLesson,
           sectionsGenerated: filteredSections.map(s => s.id)

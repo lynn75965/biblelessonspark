@@ -1,10 +1,4 @@
 /**
- * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
- *
- * Source: src/constants/freshnessOptions.ts
- * Generated: 2026-01-10T16:14:22.605Z
- */
-/**
  * Freshness Options SSOT
  * Single Source of Truth for Perpetual Freshness feature (Phase 15)
  *
@@ -15,8 +9,16 @@
  * even for the same passage with the same settings.
  *
  * PRINCIPLE: Same structure (Tier 1), fresh content every time (Tier 3)
+ * 
+ * CRITICAL: User's Step 3 customization choices ALWAYS take priority over
+ * freshness suggestions. Freshness only varies elements the user didn't specify.
  *
  * CREATED: December 2025
+ * UPDATED: January 2026 - Comprehensive Perpetual Freshness Implementation
+ *   - Added teaser freshness elements and selection
+ *   - Added series style metadata for Consistent Style Mode
+ *   - Made freshness CUSTOMIZATION-AWARE (respects Step 3 choices)
+ *   - Added teaser content guardrails (no topic reveal)
  */
 
 // ============================================================================
@@ -45,6 +47,10 @@ export interface FreshnessElement {
   description: string;
   variations: readonly string[];
 }
+
+// NOTE: User customization fields are defined in teacherCustomizationOptions.ts (SSOT)
+// This file does NOT duplicate those definitions. Instead, selectFreshElements()
+// accepts simple boolean flags indicating which elements to skip.
 
 // ============================================================================
 // FRESHNESS MODES
@@ -206,7 +212,7 @@ export const CULTURAL_SEASONS = [
 ] as const;
 
 // ============================================================================
-// FRESHNESS ELEMENTS
+// LESSON FRESHNESS ELEMENTS
 // Categories where Claude should vary its approach for perpetual freshness
 // ============================================================================
 
@@ -307,6 +313,62 @@ export const FRESHNESS_ELEMENTS: FreshnessElement[] = [
       "habit to develop",
       "thing to give up or start",
       "person to serve or bless"
+    ]
+  }
+] as const;
+
+// ============================================================================
+// TEASER FRESHNESS ELEMENTS
+// Ensure Student Teasers vary in style while maintaining felt-need focus
+// CRITICAL: Teasers must NOT reveal lesson content
+// ============================================================================
+
+export const TEASER_FRESHNESS_ELEMENTS: FreshnessElement[] = [
+  {
+    id: "teaserOpeningStyle",
+    name: "Teaser Opening Style",
+    description: "Different ways to hook attention - MUST NOT reveal lesson topic",
+    variations: [
+      "rhetorical question about universal experience",
+      "bold statement that creates tension",
+      "relatable everyday scenario",
+      "provocative challenge to assumptions",
+      "empathetic observation about shared struggles",
+      "curiosity gap that demands resolution",
+      "direct personal address with emotional hook",
+      "contrast statement (what people think vs reality)",
+      "sensory/emotional moment description"
+    ]
+  },
+  {
+    id: "teaserEmotionalAngle",
+    name: "Teaser Emotional Angle",
+    description: "The felt need or emotion the teaser taps into",
+    variations: [
+      "longing for purpose or meaning",
+      "fear of missing something important",
+      "desire for belonging or connection",
+      "tension between what is and what should be",
+      "curiosity about unanswered questions",
+      "frustration with inadequate answers",
+      "hope for something better",
+      "restlessness or holy discontent",
+      "weight of unresolved guilt or shame",
+      "desire for clarity in confusion"
+    ]
+  },
+  {
+    id: "teaserSignoffStyle",
+    name: "Teaser Signoff Style",
+    description: "Different ways to close with compelling invitation",
+    variations: [
+      "warm invitation (let's explore this together)",
+      "mystery continuation (you might be surprised)",
+      "promise of clarity (I think you'll find some answers)",
+      "connection emphasis (bring your questions)",
+      "anticipation builder (this conversation is worth having)",
+      "gentle challenge (you might see things differently)",
+      "solidarity statement (you're not alone in wondering)"
     ]
   }
 ] as const;
@@ -522,28 +584,141 @@ You MUST vary your approach each time by:
 
 /**
  * Freshness suggestions structure stored in lesson metadata
+ * NOTE: null values indicate the user specified this in Step 3 customization
  */
 export interface FreshnessSuggestions {
-  openingHook: string;
-  illustrationType: string;
-  teachingAngle: string;
-  activityFormat: string;
-  applicationContext: string;
-  closingChallenge: string;
+  openingHook: string | null;
+  illustrationType: string | null;
+  teachingAngle: string | null;
+  activityFormat: string | null;
+  applicationContext: string | null;
+  closingChallenge: string | null;
+  generatedAt: string;
+  // Track which elements were skipped due to user customization
+  skippedDueToCustomization: string[];
+}
+
+/**
+ * Teaser freshness suggestions structure
+ */
+export interface TeaserFreshnessSuggestions {
+  openingStyle: string;
+  emotionalAngle: string;
+  signoffStyle: string;
   generatedAt: string;
 }
 
 /**
  * Select fresh elements for a lesson, avoiding recently used ones
+ * 
+ * SSOT COMPLIANCE: This function uses simple boolean flags instead of
+ * a customization interface. The edge function (which owns the integration)
+ * determines which flags to set based on teacher's Step 3 choices.
+ * This keeps freshnessOptions.ts independent of teacherCustomizationOptions.ts.
+ * 
+ * @param recentSuggestions - Array of suggestions from user's recent lessons
+ * @param maxHistory - How many recent lessons to consider (default 5)
+ * @param skipTeachingAngle - True if teacher specified teaching style in Step 3
+ * @param skipActivityFormat - True if teacher specified activity types in Step 3
+ * @param skipApplicationContext - True if teacher specified class setting/environment in Step 3
  */
 export function selectFreshElements(
   recentSuggestions: FreshnessSuggestions[] = [],
-  maxHistory: number = 5
+  maxHistory: number = 5,
+  skipTeachingAngle: boolean = false,
+  skipActivityFormat: boolean = false,
+  skipApplicationContext: boolean = false
 ): FreshnessSuggestions {
   const relevantHistory = recentSuggestions.slice(0, maxHistory);
+  const skippedElements: string[] = [];
   
-  const pickFresh = (elementId: string, historyKey: keyof FreshnessSuggestions): string => {
+  const pickFresh = (elementId: string, historyKey: keyof FreshnessSuggestions): string | null => {
     const element = FRESHNESS_ELEMENTS.find(e => e.id === elementId);
+    if (!element) return null;
+    
+    // Get recently used values for this element
+    const recentlyUsed = new Set(
+      relevantHistory
+        .map(s => s[historyKey])
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+    );
+    
+    // Filter to available (not recently used) variations
+    const available = element.variations.filter(v => !recentlyUsed.has(v));
+    
+    // If all variations have been used recently, reset and use any
+    const pool = available.length > 0 ? available : [...element.variations];
+    
+    // Random selection from pool
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
+  
+  // =========================================================================
+  // CUSTOMIZATION-AWARE SELECTION
+  // Teacher's Step 3 choices ALWAYS take priority over freshness suggestions
+  // =========================================================================
+  
+  // Teaching Angle: Skip if teacher specified teaching style
+  let teachingAngle: string | null = null;
+  if (skipTeachingAngle) {
+    skippedElements.push('teachingAngles');
+    // Teacher's teaching style preference is honored - don't override
+  } else {
+    teachingAngle = pickFresh('teachingAngles', 'teachingAngle');
+  }
+  
+  // Activity Format: Skip if teacher specified activity types
+  let activityFormat: string | null = null;
+  if (skipActivityFormat) {
+    skippedElements.push('activityFormats');
+    // Teacher selected specific activity types - don't override
+  } else {
+    activityFormat = pickFresh('activityFormats', 'activityFormat');
+  }
+  
+  // Application Context: Skip if teacher specified class setting or learning environment
+  let applicationContext: string | null = null;
+  if (skipApplicationContext) {
+    skippedElements.push('applicationContexts');
+    // Teacher's class/environment setting implies application context
+  } else {
+    applicationContext = pickFresh('applicationContexts', 'applicationContext');
+  }
+  
+  // Opening Hook: Always varied (no Step 3 field controls this)
+  const openingHook = pickFresh('openingHooks', 'openingHook');
+  
+  // Illustration Type: Always varied (no Step 3 field controls this)
+  const illustrationType = pickFresh('illustrations', 'illustrationType');
+  
+  // Closing Challenge: Always varied (no Step 3 field controls this)
+  const closingChallenge = pickFresh('closingChallenges', 'closingChallenge');
+  
+  return {
+    openingHook,
+    illustrationType,
+    teachingAngle,
+    activityFormat,
+    applicationContext,
+    closingChallenge,
+    generatedAt: new Date().toISOString(),
+    skippedDueToCustomization: skippedElements
+  };
+}
+
+/**
+ * Select fresh teaser elements, avoiding recently used ones
+ * @param recentTeaserSuggestions - Array of teaser suggestions from user's recent lessons
+ * @param maxHistory - How many recent teasers to consider (default 5)
+ */
+export function selectFreshTeaserElements(
+  recentTeaserSuggestions: TeaserFreshnessSuggestions[] = [],
+  maxHistory: number = 5
+): TeaserFreshnessSuggestions {
+  const relevantHistory = recentTeaserSuggestions.slice(0, maxHistory);
+  
+  const pickFreshTeaser = (elementId: string, historyKey: keyof TeaserFreshnessSuggestions): string => {
+    const element = TEASER_FRESHNESS_ELEMENTS.find(e => e.id === elementId);
     if (!element) return '';
     
     const recentlyUsed = new Set(
@@ -557,18 +732,17 @@ export function selectFreshElements(
   };
   
   return {
-    openingHook: pickFresh('openingHooks', 'openingHook'),
-    illustrationType: pickFresh('illustrations', 'illustrationType'),
-    teachingAngle: pickFresh('teachingAngles', 'teachingAngle'),
-    activityFormat: pickFresh('activityFormats', 'activityFormat'),
-    applicationContext: pickFresh('applicationContexts', 'applicationContext'),
-    closingChallenge: pickFresh('closingChallenges', 'closingChallenge'),
+    openingStyle: pickFreshTeaser('teaserOpeningStyle', 'openingStyle'),
+    emotionalAngle: pickFreshTeaser('teaserEmotionalAngle', 'emotionalAngle'),
+    signoffStyle: pickFreshTeaser('teaserSignoffStyle', 'signoffStyle'),
     generatedAt: new Date().toISOString()
   };
 }
 
 /**
  * Build prompt instructions from freshness suggestions
+ * This tells Claude EXACTLY what approaches to use for THIS lesson
+ * Only includes directives for elements NOT specified by user in Step 3
  */
 export function buildFreshnessSuggestionsPrompt(
   suggestions: FreshnessSuggestions,
@@ -576,22 +750,180 @@ export function buildFreshnessSuggestionsPrompt(
 ): string {
   if (mode !== 'fresh') return '';
   
+  // Build directives only for non-null suggestions
+  const directives: string[] = [];
+  
+  if (suggestions.openingHook) {
+    directives.push(`• OPENING HOOK: Use a "${suggestions.openingHook}" approach`);
+  }
+  
+  if (suggestions.illustrationType) {
+    directives.push(`• ILLUSTRATION STYLE: Feature a "${suggestions.illustrationType}" as your main example`);
+  }
+  
+  if (suggestions.teachingAngle) {
+    directives.push(`• TEACHING ANGLE: Emphasize a "${suggestions.teachingAngle}" perspective`);
+  }
+  
+  if (suggestions.activityFormat) {
+    directives.push(`• ACTIVITY FORMAT: Include a "${suggestions.activityFormat}" in Section 6`);
+  }
+  
+  if (suggestions.applicationContext) {
+    directives.push(`• APPLICATION CONTEXT: Focus applications on "${suggestions.applicationContext}"`);
+  }
+  
+  if (suggestions.closingChallenge) {
+    directives.push(`• CLOSING CHALLENGE: End with a "${suggestions.closingChallenge}"`);
+  }
+  
+  if (directives.length === 0) {
+    return ''; // All elements were specified by user customization
+  }
+  
+  // Note which elements are honoring user's Step 3 choices
+  let customizationNote = '';
+  if (suggestions.skippedDueToCustomization.length > 0) {
+    customizationNote = `
+(Note: The following elements are using the teacher's Step 3 customization choices 
+instead of freshness suggestions: ${suggestions.skippedDueToCustomization.join(', ')})
+`;
+  }
+  
   return `
 -------------------------------------------------------------------------------
-FRESHNESS DIRECTIVES (Vary Your Approach)
+FRESHNESS DIRECTIVES (MANDATORY - Vary Your Approach)
 -------------------------------------------------------------------------------
 
 For THIS lesson, use these specific approaches to ensure variety:
 
-- OPENING HOOK: Use a "${suggestions.openingHook}" approach
-- ILLUSTRATION STYLE: Feature a "${suggestions.illustrationType}" as your main example
-- TEACHING ANGLE: Emphasize a "${suggestions.teachingAngle}" perspective
-- ACTIVITY FORMAT: Include a "${suggestions.activityFormat}" in Section 6
-- APPLICATION CONTEXT: Focus applications on "${suggestions.applicationContext}"
-- CLOSING CHALLENGE: End with a "${suggestions.closingChallenge}"
-
-Follow these while maintaining theological accuracy and age-appropriateness.
+${directives.join('\n')}
+${customizationNote}
+These directives are MANDATORY where specified. Follow them while maintaining 
+theological accuracy and age-appropriateness. The teacher's Step 3 customization 
+choices always take priority over freshness suggestions.
 `;
+}
+
+/**
+ * Build prompt instructions for teaser freshness
+ * This tells Claude EXACTLY what style to use for THIS teaser
+ */
+export function buildTeaserFreshnessPrompt(
+  suggestions: TeaserFreshnessSuggestions
+): string {
+  return `
+TEASER STYLE DIRECTIVES (MANDATORY):
+• OPENING STYLE: Use a "${suggestions.openingStyle}" approach - NOT "Ever wonder/feel/notice"
+• EMOTIONAL ANGLE: Tap into "${suggestions.emotionalAngle}"
+• SIGNOFF STYLE: Close with a "${suggestions.signoffStyle}" approach
+`;
+}
+
+// ============================================================================
+// CONSISTENT STYLE MODE - SERIES SUPPORT
+// ============================================================================
+
+/**
+ * Style metadata captured from a lesson for series consistency
+ */
+export interface SeriesStyleMetadata {
+  openingHookType: string;
+  illustrationType: string;
+  teachingAngle: string;
+  activityFormat: string;
+  applicationContext: string;
+  closingChallengeType: string;
+  toneDescriptor: string;
+  capturedFromLessonId: string;
+  capturedAt: string;
+}
+
+/**
+ * Build consistent style context for series lessons
+ * This tells Claude to MATCH a previously established style
+ */
+export function buildConsistentStyleContext(
+  styleMetadata: SeriesStyleMetadata
+): string {
+  return `
+-------------------------------------------------------------------------------
+CONSISTENT STYLE MODE: ACTIVE (Series Lesson)
+-------------------------------------------------------------------------------
+
+You MUST match the established series style from Lesson 1:
+
+• OPENING HOOK TYPE: Use a "${styleMetadata.openingHookType}" approach (same as Lesson 1)
+• ILLUSTRATION STYLE: Feature "${styleMetadata.illustrationType}" examples (same as Lesson 1)
+• TEACHING ANGLE: Maintain the "${styleMetadata.teachingAngle}" perspective
+• ACTIVITY FORMAT: Use "${styleMetadata.activityFormat}" style activities
+• APPLICATION CONTEXT: Focus on "${styleMetadata.applicationContext}" applications
+• CLOSING CHALLENGE: End with a "${styleMetadata.closingChallengeType}" challenge
+• TONE: Maintain a "${styleMetadata.toneDescriptor}" tone throughout
+
+This ensures continuity across all lessons in this series.
+Do NOT vary these elements - keep them consistent with the established style.
+`;
+}
+
+/**
+ * Prompt addition to extract style metadata from a generated lesson
+ * Used when generating Lesson 1 of a series with Consistent Style Mode
+ */
+export function buildStyleExtractionPrompt(): string {
+  return `
+
+STYLE METADATA EXTRACTION (For Series Continuity):
+After generating this lesson, identify and report the style choices you made:
+
+At the very end of your response, add this section:
+---STYLE_METADATA---
+OPENING_HOOK_TYPE: [describe the type of opening hook used]
+ILLUSTRATION_TYPE: [describe the main illustration style]
+TEACHING_ANGLE: [describe the teaching perspective]
+ACTIVITY_FORMAT: [describe the activity format used]
+APPLICATION_CONTEXT: [describe the application focus area]
+CLOSING_CHALLENGE_TYPE: [describe the type of closing challenge]
+TONE_DESCRIPTOR: [2-3 words describing the overall tone]
+---END_STYLE_METADATA---
+
+This metadata will be used to maintain consistency in subsequent series lessons.
+`;
+}
+
+/**
+ * Parse style metadata from generated lesson content
+ */
+export function parseStyleMetadata(lessonContent: string, lessonId: string): SeriesStyleMetadata | null {
+  const metadataMatch = lessonContent.match(/---STYLE_METADATA---([\s\S]*?)---END_STYLE_METADATA---/);
+  if (!metadataMatch) return null;
+  
+  const metadataBlock = metadataMatch[1];
+  
+  const extractValue = (key: string): string => {
+    const regex = new RegExp(`${key}:\\s*(.+?)(?:\\n|$)`, 'i');
+    const match = metadataBlock.match(regex);
+    return match ? match[1].trim() : '';
+  };
+  
+  return {
+    openingHookType: extractValue('OPENING_HOOK_TYPE'),
+    illustrationType: extractValue('ILLUSTRATION_TYPE'),
+    teachingAngle: extractValue('TEACHING_ANGLE'),
+    activityFormat: extractValue('ACTIVITY_FORMAT'),
+    applicationContext: extractValue('APPLICATION_CONTEXT'),
+    closingChallengeType: extractValue('CLOSING_CHALLENGE_TYPE'),
+    toneDescriptor: extractValue('TONE_DESCRIPTOR'),
+    capturedFromLessonId: lessonId,
+    capturedAt: new Date().toISOString()
+  };
+}
+
+/**
+ * Remove style metadata block from lesson content for display
+ */
+export function removeStyleMetadataFromContent(lessonContent: string): string {
+  return lessonContent.replace(/---STYLE_METADATA---[\s\S]*?---END_STYLE_METADATA---/, '').trim();
 }
 
 // ============================================================================
@@ -602,3 +934,4 @@ export type FreshnessModeId = typeof FRESHNESS_MODES[number]["id"];
 export type LiturgicalSeasonId = typeof LITURGICAL_SEASONS[number]["id"];
 export type CulturalSeasonId = typeof CULTURAL_SEASONS[number]["id"];
 export type FreshnessElementId = typeof FRESHNESS_ELEMENTS[number]["id"];
+export type TeaserFreshnessElementId = typeof TEASER_FRESHNESS_ELEMENTS[number]["id"];

@@ -396,7 +396,6 @@ export function EnhanceLessonForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
-  const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
   // ============================================================================
   // STEP COMPLETION DETECTION
@@ -854,7 +853,6 @@ export function EnhanceLessonForm({
         generate_teaser: generateTeaser,
         include_liturgical: includeLiturgical,
         include_cultural: includeCultural,
-        freshness_mode: freshnessMode,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
       };
@@ -885,7 +883,6 @@ export function EnhanceLessonForm({
       setExtractedContent(null);
       setPastedContent("");
       setGenerateTeaser(false);
-      setFreshnessMode('fresh');
       setContentInputType("passage");
 
       // Reset series position but keep profile loaded
@@ -1359,8 +1356,6 @@ export function EnhanceLessonForm({
               setLessonNumber={setLessonNumber}
               totalLessons={totalLessons}
               setTotalLessons={setTotalLessons}
-              freshnessMode={freshnessMode}
-              setFreshnessMode={setFreshnessMode}
               profiles={profiles}
               currentProfileId={currentProfileId}
               onSaveProfile={handleSaveProfile}
