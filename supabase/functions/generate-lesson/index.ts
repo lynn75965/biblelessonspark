@@ -16,6 +16,7 @@ import {
   selectFreshTeaserElements,
   buildFreshnessSuggestionsPrompt,
   buildTeaserFreshnessPrompt,
+  generateTeaserContentGuardrails,
   FreshnessSuggestions,
   TeaserFreshnessSuggestions
 } from '../_shared/freshnessOptions.ts';
@@ -139,6 +140,7 @@ Do NOT include word count information in section headers or anywhere in the outp
 `;
 }
 
+
 function buildTeaserInstructions(includeTeaser: boolean, teaserFreshness: TeaserFreshnessSuggestions | null = null): string {
   if (!includeTeaser) return '';
 
@@ -152,6 +154,9 @@ function buildTeaserInstructions(includeTeaser: boolean, teaserFreshness: Teaser
   const freshnessDirectives = teaserFreshness 
     ? buildTeaserFreshnessPrompt(teaserFreshness)
     : '';
+
+  // Get comprehensive content bleeding prevention guardrails from SSOT
+  const contentGuardrails = generateTeaserContentGuardrails();
 
   return `
 -------------------------------------------------------------------------------
@@ -179,27 +184,7 @@ ${prohibitions}
 
 ${freshnessDirectives}
 
-⚠️ CRITICAL TEASER ENFORCEMENT - CONTENT BLEEDING PREVENTION:
-This teaser is ONLY about FELT NEEDS. You must create curiosity WITHOUT revealing ANY lesson content.
-
-ABSOLUTE PROHIBITIONS (CONTENT BLEEDING):
-1. DO NOT reference the Bible passage, book, chapter, or verse in ANY way
-2. DO NOT hint at theological concepts, doctrines, or Bible characters
-3. DO NOT use subject-specific terms that reveal the topic
-4. DO NOT ask questions that telegraph the lesson content
-5. DO NOT use opening formulas like "Ever wonder..." or "Ever feel..." or "Ever notice..."
-
-WRONG EXAMPLES (REVEALS CONTENT - DO NOT USE):
-❌ "What makes you fundamentally different from every living thing?" (reveals Image of God topic)
-❌ "Why do some churches call communion and baptism sacraments?" (names the topic)
-❌ "Ever wonder what it means to be made in God's image?" (reveals topic directly)
-❌ "Have you thought about what Jesus meant at the Last Supper?" (reveals passage)
-
-RIGHT EXAMPLES (FELT NEEDS ONLY - USE THESE PATTERNS):
-✓ "Ever feel like you're supposed to be more than you are?" (universal longing)
-✓ "Have you noticed how the words we use shape what we actually believe?" (general observation)
-✓ "Some questions don't have easy answers—and maybe that's okay." (emotional hook)
-✓ "There's something about belonging that we can't quite explain." (felt need)
+${contentGuardrails}
 
 BAPTIST TERMINOLOGY REQUIREMENT:
 - Use "ordinance" or "practice" - NEVER use "ritual" or "sacrament"
@@ -217,13 +202,19 @@ SIGNOFF EXAMPLES:
 ❌ WRONG: "Join us Sunday to learn about God's plan!"
 ✓ RIGHT: "When we gather, we'll explore this together. I think you'll find some clarity."
 
+FINAL QUALITY CHECK:
+Before outputting the teaser, verify:
+1. Does it contain ANY words from the prohibited lists? → REWRITE
+2. Could this teaser work for 10+ different lessons? → If no, make it MORE generic
+3. Does it reveal the Bible passage, topic, or doctrine? → REWRITE
+4. Does it use "Ever wonder/feel/notice"? → REWRITE with different opener
+
 REMEMBER:
 - ONLY touch on emotions and questions the student already feels
 - Create a gap that ONLY attending class can fill
 - Output teaser ONCE at the beginning, then move to Section 1
 `;
 }
-
 
 serve(async (req) => {
   const functionStartTime = Date.now();

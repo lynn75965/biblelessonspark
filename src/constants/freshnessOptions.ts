@@ -374,6 +374,217 @@ export const TEASER_FRESHNESS_ELEMENTS: FreshnessElement[] = [
 ] as const;
 
 // ============================================================================
+// TEASER CONTENT GUARDRAILS (SSOT)
+// Prevent content bleeding - teasers must NOT reveal lesson content
+// ============================================================================
+
+/**
+ * TEASER CONTENT GUARDRAILS
+ * 
+ * These guardrails prevent the AI from "leaking" lesson content into teasers
+ * through subtle hints, historical references, or specificity markers.
+ * 
+ * PRINCIPLE: A well-crafted teaser should be so generic that it could apply
+ * to dozens of different lessons. The reader should NOT be able to guess
+ * what the lesson is about.
+ */
+export const TEASER_CONTENT_GUARDRAILS = {
+  /**
+   * PROHIBITED TIMEFRAME REFERENCES
+   * These hint at specific historical periods in biblical narrative
+   */
+  prohibitedTimeframes: [
+    "two thousand years",
+    "thousands of years",
+    "centuries ago",
+    "ancient times",
+    "in the beginning",
+    "since creation",
+    "from the start",
+    "throughout history",
+    "for millennia",
+    "since time began",
+    "long ago",
+    "in biblical times",
+    "in Jesus' day",
+    "first century"
+  ],
+
+  /**
+   * PROHIBITED IMPACT/SIGNIFICANCE STATEMENTS
+   * These telegraph that the lesson covers something "important"
+   */
+  prohibitedImpactStatements: [
+    "changed the world",
+    "transformed history",
+    "changed everything",
+    "most important",
+    "greatest question",
+    "ultimate answer",
+    "life-changing",
+    "world-changing",
+    "history-making",
+    "pivotal moment",
+    "turning point",
+    "fundamental truth",
+    "core of everything",
+    "everything depends on",
+    "the key to",
+    "the secret to"
+  ],
+
+  /**
+   * PROHIBITED SPECIFICITY MARKERS
+   * These implicitly reveal the passage type or topic
+   */
+  prohibitedSpecificityMarkers: [
+    "conversation",
+    "meal",
+    "table",
+    "bread",
+    "wine",
+    "cup",
+    "water",
+    "garden",
+    "cross",
+    "tomb",
+    "mountain",
+    "boat",
+    "storm",
+    "fish",
+    "shepherd",
+    "father",
+    "son",
+    "king",
+    "kingdom",
+    "temple",
+    "sacrifice"
+  ],
+
+  /**
+   * PROHIBITED THEOLOGICAL HINTS
+   * These reveal doctrinal content even without naming it
+   */
+  prohibitedTheologicalHints: [
+    "what makes you different",
+    "fundamentally different",
+    "uniquely human",
+    "unlike any other",
+    "your true identity",
+    "who you really are",
+    "why you exist",
+    "your purpose",
+    "eternal",
+    "forever",
+    "destiny",
+    "saved",
+    "redeemed",
+    "forgiven",
+    "clean",
+    "new life",
+    "born again",
+    "transformed"
+  ],
+
+  /**
+   * PROHIBITED OPENER FORMULAS
+   * Overused patterns that should be avoided
+   */
+  prohibitedOpenerFormulas: [
+    "Ever wonder",
+    "Ever feel",
+    "Ever notice",
+    "Have you ever",
+    "Did you ever",
+    "Do you ever",
+    "What if I told you",
+    "Imagine if",
+    "Picture this:"
+  ],
+
+  /**
+   * APPROVED UNIVERSAL FELT-NEED THEMES
+   * These are broad enough to apply to ANY lesson
+   */
+  approvedUniversalThemes: [
+    "feeling like something is missing",
+    "wanting to belong somewhere",
+    "searching for clarity in confusion",
+    "wrestling with difficult questions",
+    "noticing a gap between how things are and how they should be",
+    "feeling restless or unsettled",
+    "wondering if there's more to life",
+    "struggling to find words for deep feelings",
+    "noticing patterns that don't quite add up",
+    "experiencing moments that demand explanation",
+    "carrying weight that's hard to name",
+    "sensing there's a conversation worth having"
+  ]
+} as const;
+
+/**
+ * Generate teaser content guardrails for prompt injection
+ * Returns formatted string for Claude's system prompt
+ */
+export function generateTeaserContentGuardrails(): string {
+  const timeframes = TEASER_CONTENT_GUARDRAILS.prohibitedTimeframes
+    .map(t => `"${t}"`)
+    .join(', ');
+  
+  const impacts = TEASER_CONTENT_GUARDRAILS.prohibitedImpactStatements
+    .map(t => `"${t}"`)
+    .join(', ');
+  
+  const specificity = TEASER_CONTENT_GUARDRAILS.prohibitedSpecificityMarkers
+    .map(t => `"${t}"`)
+    .join(', ');
+  
+  const theological = TEASER_CONTENT_GUARDRAILS.prohibitedTheologicalHints
+    .map(t => `"${t}"`)
+    .join(', ');
+  
+  const openers = TEASER_CONTENT_GUARDRAILS.prohibitedOpenerFormulas
+    .map(t => `"${t}"`)
+    .join(', ');
+  
+  const approved = TEASER_CONTENT_GUARDRAILS.approvedUniversalThemes
+    .map(t => `• ${t}`)
+    .join('\n');
+
+  return `
+🚨 ABSOLUTE CONTENT BLEEDING PREVENTION 🚨
+
+The teaser MUST be so generic that it could apply to DOZENS of different lessons.
+A reader should NOT be able to guess what the lesson topic is from the teaser.
+
+PROHIBITED - DO NOT USE ANY OF THESE:
+
+1. TIMEFRAME REFERENCES (reveal historical period):
+   ${timeframes}
+
+2. IMPACT/SIGNIFICANCE CLAIMS (telegraph importance):
+   ${impacts}
+
+3. SPECIFICITY MARKERS (implicitly reveal passage type):
+   ${specificity}
+
+4. THEOLOGICAL HINTS (reveal doctrine without naming it):
+   ${theological}
+
+5. OVERUSED OPENER FORMULAS:
+   ${openers}
+
+APPROVED UNIVERSAL THEMES (use these patterns instead):
+${approved}
+
+SELF-CHECK BEFORE OUTPUTTING TEASER:
+Ask yourself: "Could this teaser work for a lesson on Genesis 1, John 3, Romans 8, 
+Psalm 23, or the Sermon on the Mount?" If it only fits ONE of those, it's too specific.
+The teaser should be INTERCHANGEABLE across many different lessons.
+`;
+}
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
