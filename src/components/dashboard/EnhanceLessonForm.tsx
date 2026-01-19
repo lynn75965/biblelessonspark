@@ -48,6 +48,7 @@ import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
+import { SeriesStyleMetadata } from "@/constants/freshnessOptions";
 
 // ============================================================================
 // INTERFACES
@@ -399,6 +400,17 @@ export function EnhanceLessonForm({
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
   // ============================================================================
+  // CONSISTENT STYLE MODE STATE (Frontend drives backend)
+  // ============================================================================
+
+  // Style context from a previous lesson (for Lesson 2+ of a series)
+  const [seriesStyleContext, setSeriesStyleContext] = useState<SeriesStyleMetadata | null>(null);
+  // Lessons that have style metadata (for dropdown selection)
+  const [lessonsWithStyle, setLessonsWithStyle] = useState<Array<{ id: string; title: string; created_at: string; series_style_metadata: any }>>([]);
+  // Currently selected lesson to copy style from
+  const [selectedStyleLessonId, setSelectedStyleLessonId] = useState<string>('');
+
+  // ============================================================================
   // STEP COMPLETION DETECTION
   // ============================================================================
 
@@ -690,6 +702,66 @@ export function EnhanceLessonForm({
   }, [isSubmitting, isEnhancing]);
 
   // ============================================================================
+  // CONSISTENT STYLE MODE - Fetch lessons with style metadata
+  // ============================================================================
+
+  // Fetch user's lessons that have style metadata (for "Copy style from" dropdown)
+  useEffect(() => {
+    const fetchLessonsWithStyle = async () => {
+      // Only fetch when in consistent mode AND lesson 2+
+      if (freshnessMode !== 'consistent' || lessonSequence !== 'part_of_series' || lessonNumber <= 1) {
+        setLessonsWithStyle([]);
+        setSeriesStyleContext(null);
+        setSelectedStyleLessonId('');
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user?.id) return;
+
+        // Fetch lessons that have series_style_metadata
+        const { data: lessons, error } = await supabase
+          .from('lessons')
+          .select('id, title, created_at, series_style_metadata')
+          .eq('user_id', session.user.id)
+          .not('series_style_metadata', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) {
+          console.error('Error fetching lessons with style:', error);
+          return;
+        }
+
+        setLessonsWithStyle(lessons || []);
+      } catch (err) {
+        console.error('Error in fetchLessonsWithStyle:', err);
+      }
+    };
+
+    fetchLessonsWithStyle();
+  }, [freshnessMode, lessonSequence, lessonNumber]);
+
+  // Load style context when user selects a lesson to copy from
+  useEffect(() => {
+    const loadStyleFromLesson = async () => {
+      if (!selectedStyleLessonId) {
+        setSeriesStyleContext(null);
+        return;
+      }
+
+      const selectedLesson = lessonsWithStyle.find(l => l.id === selectedStyleLessonId);
+      if (selectedLesson?.series_style_metadata) {
+        setSeriesStyleContext(selectedLesson.series_style_metadata as SeriesStyleMetadata);
+        console.log('Loaded style context from lesson:', selectedStyleLessonId);
+      }
+    };
+
+    loadStyleFromLesson();
+  }, [selectedStyleLessonId, lessonsWithStyle]);
+
+  // ============================================================================
   // FILE HANDLING
   // ============================================================================
 
@@ -829,6 +901,16 @@ export function EnhanceLessonForm({
     setIsSubmitting(true);
 
     try {
+      // FRONTEND DRIVES: Determine what to tell backend
+      const isConsistentSeriesLesson1 = 
+        freshnessMode === 'consistent' && 
+        lessonSequence === 'part_of_series' && 
+        lessonNumber === 1;
+      const isConsistentSeriesLesson2Plus = 
+        freshnessMode === 'consistent' && 
+        lessonSequence === 'part_of_series' && 
+        lessonNumber > 1;
+
       const enhancementData = {
         bible_passage: effectivePassage,
         focused_topic: effectiveTopic,
@@ -857,6 +939,9 @@ export function EnhanceLessonForm({
         freshness_mode: freshnessMode,
         uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
         extracted_content: effectiveContent,
+        // CONSISTENT STYLE MODE - Frontend drives these flags
+        extract_style_metadata: isConsistentSeriesLesson1,
+        series_style_context: isConsistentSeriesLesson2Plus ? seriesStyleContext : null,
       };
 
       const result = await enhanceLesson(enhancementData);
@@ -886,6 +971,8 @@ export function EnhanceLessonForm({
       setPastedContent("");
       setGenerateTeaser(false);
       setFreshnessMode('fresh');
+      setSeriesStyleContext(null);
+      setSelectedStyleLessonId('');
       setContentInputType("passage");
 
       // Reset series position but keep profile loaded
