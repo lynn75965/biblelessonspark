@@ -1,8 +1,10 @@
-﻿/**
+/**
  * TransferRequestQueue - Admin reviews and processes transfer requests
  * 
  * SSOT: src/constants/transferRequestConfig.ts
  * Admin can approve (execute transfer) or deny requests
+ * 
+ * FIX: Simplified query to avoid foreign key naming issues with PostgREST
  */
 
 import { useState, useEffect } from "react";
@@ -53,40 +55,80 @@ export function TransferRequestQueue() {
   const loadRequests = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // FIX: Use simpler query without explicit foreign key names
+      // PostgREST can have issues with !fkey_name syntax
+      const { data: requestsData, error: requestsError } = await supabase
         .from("transfer_requests")
-        .select(`
-          *,
-          user:profiles!transfer_requests_user_id_fkey(full_name, email),
-          from_org:organizations!transfer_requests_from_organization_id_fkey(name),
-          to_org:organizations!transfer_requests_to_organization_id_fkey(name),
-          requester:profiles!transfer_requests_requested_by_fkey(full_name)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (requestsError) {
+        console.error("Error loading transfer requests:", requestsError);
+        throw requestsError;
+      }
 
-      const formatted: TransferRequest[] = (data || []).map((r: any) => ({
-        id: r.id,
-        user_id: r.user_id,
-        user_name: r.user?.full_name || "Unknown",
-        user_email: r.user?.email || "",
-        from_organization_id: r.from_organization_id,
-        from_organization_name: r.from_org?.name || "Unknown",
-        to_organization_id: r.to_organization_id,
-        to_organization_name: r.to_org?.name || null,
-        transfer_type: r.transfer_type,
-        status: r.status,
-        reason: r.reason,
-        teacher_agreement_confirmed: r.teacher_agreement_confirmed,
-        teacher_agreement_date: r.teacher_agreement_date,
-        admin_notes: r.admin_notes,
-        requested_by: r.requested_by,
-        requested_by_name: r.requester?.full_name || "Unknown",
-        created_at: r.created_at,
-        processed_at: r.processed_at,
-        processed_by: r.processed_by,
-      }));
+      if (!requestsData || requestsData.length === 0) {
+        setRequests([]);
+        return;
+      }
+
+      // Fetch related data separately for reliability
+      const userIds = [...new Set(requestsData.map(r => r.user_id).filter(Boolean))];
+      const requesterIds = [...new Set(requestsData.map(r => r.requested_by).filter(Boolean))];
+      const fromOrgIds = [...new Set(requestsData.map(r => r.from_organization_id).filter(Boolean))];
+      const toOrgIds = [...new Set(requestsData.map(r => r.to_organization_id).filter(Boolean))];
+      
+      // Fetch profiles for users and requesters
+      const allProfileIds = [...new Set([...userIds, ...requesterIds])];
+      const { data: profiles } = allProfileIds.length > 0 
+        ? await supabase
+            .from("profiles")
+            .select("id, full_name, email")
+            .in("id", allProfileIds)
+        : { data: [] };
+
+      // Fetch organizations
+      const allOrgIds = [...new Set([...fromOrgIds, ...toOrgIds])];
+      const { data: orgs } = allOrgIds.length > 0
+        ? await supabase
+            .from("organizations")
+            .select("id, name")
+            .in("id", allOrgIds)
+        : { data: [] };
+
+      // Create lookup maps
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      const orgMap = new Map((orgs || []).map(o => [o.id, o]));
+
+      // Format the data
+      const formatted: TransferRequest[] = requestsData.map((r) => {
+        const userProfile = profileMap.get(r.user_id);
+        const requesterProfile = profileMap.get(r.requested_by);
+        const fromOrg = orgMap.get(r.from_organization_id);
+        const toOrg = r.to_organization_id ? orgMap.get(r.to_organization_id) : null;
+
+        return {
+          id: r.id,
+          user_id: r.user_id,
+          user_name: userProfile?.full_name || "Unknown",
+          user_email: userProfile?.email || "",
+          from_organization_id: r.from_organization_id,
+          from_organization_name: fromOrg?.name || "Unknown",
+          to_organization_id: r.to_organization_id,
+          to_organization_name: toOrg?.name || null,
+          transfer_type: r.transfer_type,
+          status: r.status,
+          reason: r.reason,
+          teacher_agreement_confirmed: r.teacher_agreement_confirmed,
+          teacher_agreement_date: r.teacher_agreement_date,
+          admin_notes: r.admin_notes,
+          requested_by: r.requested_by,
+          requested_by_name: requesterProfile?.full_name || "Unknown",
+          created_at: r.created_at,
+          processed_at: r.processed_at,
+          processed_by: r.processed_by,
+        };
+      });
 
       setRequests(formatted);
     } catch (error) {
