@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { Resend } from "npm:resend@2.0.0";
 import React from "npm:react@18.3.1";
@@ -191,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
     // ========================================================================
     // SSOT: Build invite URL using branding baseUrl
     // ========================================================================
-    const baseUrl = Deno.env.get("SITE_URL") || getBaseUrl(branding);
+    const baseUrl = getBaseUrl(branding); // SSOT: Always use branding config
     const inviteUrl = buildInviteUrl(baseUrl, inviteToken);
 
     // Render email template (passes appName for SSOT branding in template)
@@ -244,3 +244,4 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 serve(handler);
+
