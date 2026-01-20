@@ -1,8 +1,11 @@
-﻿/**
+/**
  * TransferRequestForm - Org Manager creates transfer request
  * 
  * SSOT: src/constants/transferRequestConfig.ts
  * Workflow: Org Manager confirms teacher agreement → Submits to Admin
+ * 
+ * FIX: Changed organization status filter from "active" to "approved"
+ *      to match ORGANIZATION_VALIDATION.STATUS_VALUES
  */
 
 import { useState, useEffect } from "react";
@@ -63,13 +66,14 @@ export function TransferRequestForm({
   const [agreementDate, setAgreementDate] = useState("");
 
   // Load other organizations for destination selection
+  // FIX: Changed status filter from "active" to "approved" per ORGANIZATION_VALIDATION.STATUS_VALUES
   useEffect(() => {
     async function loadOrganizations() {
       const { data, error } = await supabase
         .from("organizations")
         .select("id, name")
         .neq("id", currentOrgId)
-        .eq("status", "active")
+        .eq("status", "approved")  // FIX: Was "active", should be "approved"
         .order("name");
 
       if (!error && data) {
