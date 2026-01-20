@@ -85,10 +85,18 @@ export default function Auth() {
   }, [user, searchParams, navigate, inviteToken, showEmailConfirmation]);
 
   // Handle invite token
+  // NOTE: toast intentionally excluded from deps to prevent infinite loop
+  // (toast reference changes on every render but we only need to run on token change)
   useEffect(() => {
+    let isMounted = true;
+    
     const handleInvite = async () => {
       if (inviteToken) {
         const invite = await getInviteByToken(inviteToken);
+        
+        // Prevent state updates if component unmounted
+        if (!isMounted) return;
+        
         if (invite) {
           setFormData(prev => ({ ...prev, email: invite.email }));
           setActiveTab('signup');
@@ -115,7 +123,12 @@ export default function Auth() {
       }
     };
     handleInvite();
-  }, [inviteToken, getInviteByToken, toast]);
+    
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteToken, getInviteByToken]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
