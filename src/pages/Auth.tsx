@@ -289,8 +289,15 @@ export default function Auth() {
         if (inviteToken) {
           await claimInvite(inviteToken);
           
-          // INVITED USERS: Skip email verification - go directly to dashboard
-          // They've already proven email ownership by clicking the invite link
+          // INVITED USERS: Confirm email automatically (they proved ownership via invite link)
+          try {
+            await supabase.functions.invoke('confirm-invite-email');
+          } catch (confirmError) {
+            console.error('Failed to auto-confirm email:', confirmError);
+            // Continue anyway - user can still access dashboard
+          }
+          
+          // Go directly to dashboard - no email verification needed
           toast({
             title: "Welcome!",
             description: "Your account has been created. Taking you to your dashboard...",
