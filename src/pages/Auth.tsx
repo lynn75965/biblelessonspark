@@ -285,19 +285,35 @@ export default function Auth() {
           });
         }
       } else {
-        // Claim invite if token exists
+        // INVITED USERS: Special flow - sign in immediately and go to dashboard
         if (inviteToken) {
+          // Sign in the user to establish an active session
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: sanitizedEmail,
+            password: formData.password,
+          });
+
+          if (signInError) {
+            console.error('Failed to sign in after signup:', signInError);
+            toast({
+              title: "Account created",
+              description: "Please sign in with your new credentials.",
+            });
+            setActiveTab('signin');
+            return;
+          }
+
+          // Now we have an active session - claim the invite
           await claimInvite(inviteToken);
           
-          // INVITED USERS: Confirm email automatically (they proved ownership via invite link)
+          // Confirm email automatically (they proved ownership via invite link)
           try {
             await supabase.functions.invoke('confirm-invite-email');
           } catch (confirmError) {
             console.error('Failed to auto-confirm email:', confirmError);
-            // Continue anyway - user can still access dashboard
           }
           
-          // Go directly to dashboard - no email verification needed
+          // Go directly to dashboard
           toast({
             title: "Welcome!",
             description: "Your account has been created. Taking you to your dashboard...",
