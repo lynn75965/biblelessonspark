@@ -288,13 +288,23 @@ export default function Auth() {
         // Claim invite if token exists
         if (inviteToken) {
           await claimInvite(inviteToken);
+          
+          // INVITED USERS: Skip email verification - go directly to dashboard
+          // They've already proven email ownership by clicking the invite link
+          toast({
+            title: "Welcome!",
+            description: "Your account has been created. Taking you to your dashboard...",
+          });
+          navigate('/dashboard');
+          return;
         }
 
         // Auto-enroll in Public Beta if in public_beta mode and no invite token
-        if (isPublicBeta && !inviteToken && data?.user?.id) {
+        if (isPublicBeta && data?.user?.id) {
           await enrollInPublicBeta(data.user.id);
         }
 
+        // NON-INVITED USERS: Require email verification
         // Trigger verification email
         try {
           const { data: userData } = await supabase.auth.getUser();
