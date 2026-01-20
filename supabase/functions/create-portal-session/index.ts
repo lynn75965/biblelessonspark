@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LESSONSPARK USA - CREATE CUSTOMER PORTAL SESSION
 // Location: supabase/functions/create-portal-session/index.ts
 // ============================================================
@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import { getBranding, getBaseUrl } from "../_shared/branding.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -61,7 +62,9 @@ serve(async (req) => {
     }
 
     const { return_url } = await req.json().catch(() => ({}));
-    const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
+    // SSOT: Get base URL from branding config
+    const branding = await getBranding(supabase);
+    const baseUrl = getBaseUrl(branding);
     const finalReturnUrl = return_url || `${baseUrl}/account`;
 
     // Create Stripe Customer Portal session
@@ -84,3 +87,4 @@ serve(async (req) => {
     );
   }
 });
+

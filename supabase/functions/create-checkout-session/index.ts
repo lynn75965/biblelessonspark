@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // LESSONSPARK USA - CREATE CHECKOUT SESSION
 // Location: supabase/functions/create-checkout-session/index.ts
 // ============================================================
@@ -6,6 +6,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import { getBranding, getBaseUrl } from "../_shared/branding.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -79,7 +80,9 @@ serve(async (req) => {
       }, { onConflict: "user_id" });
     }
 
-    const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
+    // SSOT: Get base URL from branding config
+    const branding = await getBranding(supabase);
+    const baseUrl = getBaseUrl(branding);
     const finalSuccessUrl = success_url || `${baseUrl}/dashboard?payment=success`;
     const finalCancelUrl = cancel_url || `${baseUrl}/pricing?payment=canceled`;
 
@@ -109,3 +112,4 @@ serve(async (req) => {
     );
   }
 });
+

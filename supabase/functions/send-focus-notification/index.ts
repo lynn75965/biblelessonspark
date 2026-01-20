@@ -4,6 +4,7 @@ import { Resend } from "npm:resend@2.0.0";
 import React from "npm:react@18.3.1";
 import { renderAsync } from "npm:@react-email/components@0.0.22";
 import { FocusNotificationEmail } from "./_templates/focus-email.tsx";
+import { getBranding, getBaseUrl } from "../_shared/branding.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -127,7 +128,9 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Build login URL
-    const baseUrl = Deno.env.get("SITE_URL") || "https://lessonsparkusa.com";
+    // SSOT: Get base URL from branding config
+    const branding = await getBranding(supabaseClient);
+    const baseUrl = getBaseUrl(branding);
     const loginUrl = `${baseUrl}/auth?tab=signin`;
 
     // Send emails to all members
@@ -195,3 +198,4 @@ const handler = async (req: Request): Promise<Response> => {
 };
 
 serve(handler);
+
