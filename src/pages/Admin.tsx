@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -22,6 +22,7 @@ import { PROGRAM_CONFIG } from "@/constants/programConfig";
 import { isBetaMode } from "@/constants/systemSettings";
 import { AdminSecurityPanel } from "@/components/admin/AdminSecurityPanel";
 import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
+import { TransferRequestQueue } from "@/components/admin/TransferRequestQueue";
 import { BRANDING } from "@/config/branding";
 
 // Mobile responsiveness fixes (December 4, 2025)
@@ -237,7 +238,10 @@ export default function Admin() {
 
           {/* MOBILE FIX: Add relative z-0 to all TabsContent */}
           <TabsContent value="users" className="mt-6 relative z-0">
-            <UserManagement />
+            <div className="space-y-6">
+              <UserManagement />
+              <TransferRequestQueue />
+            </div>
           </TabsContent>
 
           <TabsContent value="organizations" className="mt-6 relative z-0">
@@ -306,7 +310,7 @@ export default function Admin() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
+                            <span className="text-primary">â€¢</span>
                             {benefit}
                           </li>
                         ))}
@@ -351,3 +355,4 @@ export default function Admin() {
     </div>
   );
 }
+

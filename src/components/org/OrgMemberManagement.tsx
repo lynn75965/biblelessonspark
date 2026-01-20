@@ -10,15 +10,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useInvites } from "@/hooks/useInvites";
-import { Users, UserPlus, Mail, RefreshCw, XCircle, Send, UserMinus, Crown, UserCheck } from "lucide-react";
+import { Users, UserPlus, Mail, RefreshCw, XCircle, Send, UserMinus, Crown, UserCheck, ArrowRightLeft } from "lucide-react";
 
 // SSOT Imports
 import { ORG_ROLES, ROLES, Role, canAccessFeature } from "@/constants/accessControl";
+import { TransferRequestForm } from "@/components/org/TransferRequestForm";
 
 interface OrgMember {
   id: string;
   full_name: string | null;
-  email?: string;
+  email: string;
   organization_role: string | null;
   created_at: string;
 }
@@ -56,13 +57,17 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
   const [unassignedUsers, setUnassignedUsers] = useState<UnassignedUser[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [loadingUnassigned, setLoadingUnassigned] = useState(false);
+  
+  // Transfer request state
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [selectedMemberForTransfer, setSelectedMemberForTransfer] = useState<OrgMember | null>(null);
 
   const fetchMembers = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, organization_role, created_at")
+        .select("id, full_name, email, organization_role, created_at")
         .eq("organization_id", organizationId)
         .order("organization_role", { ascending: true })
         .order("full_name", { ascending: true });
@@ -270,6 +275,11 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
     }
   };
 
+  const handleRequestTransfer = (member: OrgMember) => {
+    setSelectedMemberForTransfer(member);
+    setTransferDialogOpen(true);
+  };
+
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case ORG_ROLES.leader:
@@ -293,6 +303,10 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
       description: "Member list updated",
     });
   };
+
+  // Check if user can request transfers (org leaders and co-leaders)
+  const canRequestTransfer = userRole === ROLES.platformAdmin || 
+                             userRole === ROLES.orgLeader;
 
   return (
     <div className="space-y-6">
@@ -474,6 +488,16 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                               >
                                 <Crown className="h-4 w-4" />
                               </Button>
+                              {canRequestTransfer && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRequestTransfer(member)}
+                                  title="Request Transfer"
+                                >
+                                  <ArrowRightLeft className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -495,6 +519,16 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                               >
                                 <UserMinus className="h-4 w-4" />
                               </Button>
+                              {canRequestTransfer && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleRequestTransfer(member)}
+                                  title="Request Transfer"
+                                >
+                                  <ArrowRightLeft className="h-4 w-4" />
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -570,6 +604,25 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
             </Table>
           </CardContent>
         </Card>
+      )}
+
+      {/* Transfer Request Dialog */}
+      {selectedMemberForTransfer && (
+        <TransferRequestForm
+          open={transferDialogOpen}
+          onOpenChange={(open) => {
+            setTransferDialogOpen(open);
+            if (!open) setSelectedMemberForTransfer(null);
+          }}
+          memberId={selectedMemberForTransfer.id}
+          memberName={selectedMemberForTransfer.full_name || "Unnamed Member"}
+          memberEmail={selectedMemberForTransfer.email}
+          currentOrgId={organizationId}
+          currentOrgName={organizationName}
+          onSuccess={() => {
+            fetchMembers();
+          }}
+        />
       )}
     </div>
   );
