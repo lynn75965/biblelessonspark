@@ -737,16 +737,19 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-sm">
               {inviteToken
-                ? `Complete your sign up to join ${organizationName || SITE.name}`
+                ? `Create your account to join ${organizationName || SITE.name}`
                 : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2 text-sm">
-                <TabsTrigger value="signin">{FORM_TEXT.signInLink}</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
+            <Tabs value={inviteToken ? 'signup' : activeTab} onValueChange={setActiveTab}>
+              {/* Hide tabs when invite token present - invited users must sign up */}
+              {!inviteToken && (
+                <TabsList className="grid w-full grid-cols-2 text-sm">
+                  <TabsTrigger value="signin">{FORM_TEXT.signInLink}</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
+              )}
 
               <TabsContent value="signin" className="space-y-3 sm:space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
