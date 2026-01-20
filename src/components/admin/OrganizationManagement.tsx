@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { ORGANIZATION_VALIDATION, DENOMINATION_OPTIONS } from "@/constants/valid
 import { Organization } from "@/constants/contracts";
 import { ORG_DETAIL_TABS, OrgDetailTabKey, DEFAULT_ORG_DETAIL_TAB } from "@/constants/orgManagerConfig";
 import { OrgDetailView } from "./OrgDetailView";
+import { TransferRequestQueue } from "./TransferRequestQueue";
 
 // Organization type imported from @/constants/contracts
 
@@ -577,6 +578,9 @@ export function OrganizationManagement() {
         </CardContent>
       </Card>
 
+      {/* Transfer Request Queue - Admin approves/denies transfer requests */}
+      <TransferRequestQueue />
+
       {/* Edit Organization Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={(open) => {
         setEditDialogOpen(open);
@@ -685,4 +689,3 @@ export function OrganizationManagement() {
     </div>
   );
 }
-
