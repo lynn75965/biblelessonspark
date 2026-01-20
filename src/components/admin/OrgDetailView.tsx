@@ -11,6 +11,7 @@ import { Organization } from "@/constants/contracts";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
 import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
+import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { ROLES } from "@/constants/accessControl";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,7 +123,7 @@ export function OrgDetailView({
       </CardHeader>
       <CardContent>
         <Tabs value={activeTab} onValueChange={(v) => onTabChange(v as OrgDetailTabKey)}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               return (
@@ -205,6 +206,15 @@ export function OrgDetailView({
             </div>
           </TabsContent>
 
+          {/* Shared Focus Tab */}
+          <TabsContent value={ORG_DETAIL_TABS.focus.value} className="mt-4">
+            <OrgSharedFocusPanel
+              organizationId={organization.id}
+              organizationName={organization.name}
+              canEdit={true}
+            />
+          </TabsContent>
+
           {/* Members Tab */}
           <TabsContent value={ORG_DETAIL_TABS.members.value} className="mt-4">
             <OrgMemberManagement
@@ -236,4 +246,3 @@ export function OrgDetailView({
     </Card>
   );
 }
-
