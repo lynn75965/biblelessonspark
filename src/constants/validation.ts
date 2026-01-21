@@ -1,9 +1,7 @@
-
 // =============================================================================
 // ORGANIZATION VALIDATION CONSTANTS
 // SSOT Reference: Phase 11-B1 Org Leader Activation
 // =============================================================================
-
 export const ORGANIZATION_VALIDATION = {
   // Organization name
   NAME_MIN_LENGTH: 3,
@@ -32,10 +30,11 @@ export const DENOMINATION_OPTIONS = [
   "General Baptist",
   "Missionary Baptist",
   "Primitive Baptist",
-  "Other Baptist",
+  "Other",
 ] as const;
 
 export type DenominationType = typeof DENOMINATION_OPTIONS[number];
+
 // =============================================================================
 // PASSWORD VALIDATION CONSTANTS
 // SSOT Reference: Phase 12 - Beta User Authentication
