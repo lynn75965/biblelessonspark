@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { Users, UserPlus, Mail, RefreshCw, XCircle, Send, UserMinus, Crown, User
 // SSOT Imports
 import { ORG_ROLES, ROLES, Role, canAccessFeature } from "@/constants/accessControl";
 import { TransferRequestForm } from "@/components/org/TransferRequestForm";
+import { OrgManagerTransferRequests } from "@/components/org/OrgManagerTransferRequests";
 
 interface OrgMember {
   id: string;
@@ -440,6 +441,12 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
           </CardContent>
         </Card>
       </div>
+
+      {/* Transfer Requests Section - Shows teacher-initiated requests needing response */}
+      <OrgManagerTransferRequests
+        organizationId={organizationId}
+        organizationName={organizationName}
+      />
 
       {/* Members Table */}
       <Card>

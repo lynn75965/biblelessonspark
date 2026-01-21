@@ -2,9 +2,11 @@
  * TransferRequestQueue - Admin reviews and processes transfer requests
  * 
  * SSOT: src/constants/transferRequestConfig.ts
- * Admin can approve (execute transfer) or deny requests
  * 
- * FIX: Simplified query to avoid foreign key naming issues with PostgREST
+ * MUTUAL INITIATION WORKFLOW:
+ *   Admin ONLY sees requests with status: pending_admin
+ *   This means both Teacher and Org Manager have agreed
+ *   Admin can approve (execute transfer) or deny
  */
 
 import { useState, useEffect } from "react";
@@ -24,7 +26,8 @@ import {
   Building2, 
   ArrowRight,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Users
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,9 +36,10 @@ import {
   TRANSFER_STATUS,
   TRANSFER_TYPE,
   TRANSFER_VALIDATION,
+  INITIATED_BY,
   getStatusConfig,
   canAdminProcess,
-  isPending,
+  isPendingAdmin,
   type TransferRequest,
   type TransferStatusValue,
 } from "@/constants/transferRequestConfig";
@@ -55,11 +59,11 @@ export function TransferRequestQueue() {
   const loadRequests = async () => {
     setLoading(true);
     try {
-      // FIX: Use simpler query without explicit foreign key names
-      // PostgREST can have issues with !fkey_name syntax
+      // Only fetch requests that are ready for admin review (both parties agreed)
       const { data: requestsData, error: requestsError } = await supabase
         .from("transfer_requests")
         .select("*")
+        .eq("status", TRANSFER_STATUS.PENDING_ADMIN)
         .order("created_at", { ascending: false });
 
       if (requestsError) {
@@ -118,9 +122,10 @@ export function TransferRequestQueue() {
           to_organization_name: toOrg?.name || null,
           transfer_type: r.transfer_type,
           status: r.status,
+          initiated_by: r.initiated_by,
           reason: r.reason,
-          teacher_agreement_confirmed: r.teacher_agreement_confirmed,
-          teacher_agreement_date: r.teacher_agreement_date,
+          response_note: r.response_note,
+          responded_at: r.responded_at,
           admin_notes: r.admin_notes,
           requested_by: r.requested_by,
           requested_by_name: requesterProfile?.full_name || "Unknown",
@@ -218,8 +223,6 @@ export function TransferRequestQueue() {
     }
   };
 
-  const pendingCount = requests.filter((r) => isPending(r.status as TransferStatusValue)).length;
-
   const getStatusBadge = (status: TransferStatusValue) => {
     const config = getStatusConfig(status);
     return (
@@ -240,14 +243,14 @@ export function TransferRequestQueue() {
             <CardTitle className="flex items-center gap-2">
               <UserMinus className="h-5 w-5" />
               Transfer Requests
-              {pendingCount > 0 && (
+              {requests.length > 0 && (
                 <Badge variant="destructive" className="ml-2">
-                  {pendingCount} pending
+                  {requests.length} pending
                 </Badge>
               )}
             </CardTitle>
             <CardDescription>
-              Review and process member transfer requests from organization managers
+              Review transfer requests where both parties have agreed
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={loadRequests} disabled={loading}>
@@ -257,17 +260,21 @@ export function TransferRequestQueue() {
         </div>
       </CardHeader>
       <CardContent>
-        {requests.length === 0 ? (
+        {loading ? (
           <div className="text-center py-8 text-muted-foreground">
-            No transfer requests found.
+            Loading transfer requests...
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            No transfer requests awaiting approval.
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Member</TableHead>
+                <TableHead>Teacher</TableHead>
                 <TableHead>Transfer</TableHead>
-                <TableHead>Requested By</TableHead>
+                <TableHead>Initiated By</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
@@ -295,7 +302,9 @@ export function TransferRequestQueue() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <p className="text-sm">{request.requested_by_name}</p>
+                    <Badge variant="outline">
+                      {request.initiated_by === INITIATED_BY.TEACHER ? "Teacher" : "Org Manager"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <p className="text-sm">
@@ -349,7 +358,7 @@ export function TransferRequestQueue() {
               <DialogDescription>
                 {actionType === "approve"
                   ? "This will immediately transfer the member."
-                  : "The organization manager will be notified of the denial."}
+                  : "Both parties will be notified of the denial."}
               </DialogDescription>
             </DialogHeader>
 
@@ -358,7 +367,7 @@ export function TransferRequestQueue() {
                 {/* Request Summary */}
                 <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                   <p>
-                    <span className="font-medium">Member:</span> {selectedRequest.user_name}
+                    <span className="font-medium">Teacher:</span> {selectedRequest.user_name}
                   </p>
                   <p>
                     <span className="font-medium">From:</span> {selectedRequest.from_organization_name}
@@ -373,12 +382,23 @@ export function TransferRequestQueue() {
                     <span className="font-medium">Reason:</span> {selectedRequest.reason}
                   </p>
                   <p>
-                    <span className="font-medium">Teacher agreed:</span>{" "}
-                    {selectedRequest.teacher_agreement_date
-                      ? new Date(selectedRequest.teacher_agreement_date).toLocaleDateString()
-                      : "Yes"}
+                    <span className="font-medium">Initiated by:</span>{" "}
+                    {selectedRequest.initiated_by === INITIATED_BY.TEACHER ? "Teacher" : "Org Manager"}
                   </p>
+                  {selectedRequest.response_note && (
+                    <p>
+                      <span className="font-medium">Response note:</span> {selectedRequest.response_note}
+                    </p>
+                  )}
                 </div>
+
+                {/* Both parties agreed indicator */}
+                <Alert className="border-green-200 bg-green-50">
+                  <Users className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800">
+                    Both the teacher and organization manager have agreed to this transfer.
+                  </AlertDescription>
+                </Alert>
 
                 {actionType === "approve" && (
                   <Alert>

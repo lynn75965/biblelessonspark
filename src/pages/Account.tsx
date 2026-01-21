@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Loader2 } from "lucide-react";
 import { SubscriptionManagement } from "@/components/subscription/SubscriptionManagement";
+import { MyOrganizationSection } from "@/components/account/MyOrganizationSection";
 import { BRANDING } from "@/config/branding";
 
 export default function Account() {
@@ -34,9 +35,13 @@ export default function Account() {
         <div className={`${BRANDING.layout.containerNarrow} space-y-8`}>
           <div>
             <h1 className="text-3xl font-bold mb-2">Account</h1>
-            <p className="text-muted-foreground">Manage your subscription and billing</p>
+            <p className="text-muted-foreground">Manage your subscription, billing, and organization</p>
           </div>
           
+          {/* Organization Section - shows for org members */}
+          <MyOrganizationSection />
+          
+          {/* Subscription Section */}
           <SubscriptionManagement />
         </div>
       </main>

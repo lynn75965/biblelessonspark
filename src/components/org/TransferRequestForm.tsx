@@ -1,19 +1,20 @@
 /**
- * TransferRequestForm - Org Manager creates transfer request
+ * TransferRequestForm - Org Manager initiates transfer request
  * 
  * SSOT: src/constants/transferRequestConfig.ts
- * Workflow: Org Manager confirms teacher agreement → Submits to Admin
  * 
- * FIX: Changed organization status filter from "active" to "approved"
- *      to match ORGANIZATION_VALIDATION.STATUS_VALUES
+ * MUTUAL INITIATION WORKFLOW:
+ *   1. Org Manager creates request (status: pending_teacher)
+ *   2. Teacher agrees/declines in their Account page
+ *   3. If agreed, request goes to Admin (status: pending_admin)
+ * 
+ * CHANGE: Removed attestation model. Teacher now responds in-app.
  */
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -23,7 +24,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   TRANSFER_TYPE,
+  TRANSFER_STATUS,
   TRANSFER_VALIDATION,
+  INITIATED_BY,
   type TransferTypeValue,
 } from "@/constants/transferRequestConfig";
 
@@ -62,18 +65,15 @@ export function TransferRequestForm({
   const [transferType, setTransferType] = useState<TransferTypeValue>(TRANSFER_TYPE.LEAVE_ORG);
   const [destinationOrgId, setDestinationOrgId] = useState<string>("");
   const [reason, setReason] = useState("");
-  const [teacherAgreed, setTeacherAgreed] = useState(false);
-  const [agreementDate, setAgreementDate] = useState("");
 
   // Load other organizations for destination selection
-  // FIX: Changed status filter from "active" to "approved" per ORGANIZATION_VALIDATION.STATUS_VALUES
   useEffect(() => {
     async function loadOrganizations() {
       const { data, error } = await supabase
         .from("organizations")
         .select("id, name")
         .neq("id", currentOrgId)
-        .eq("status", "approved")  // FIX: Was "active", should be "approved"
+        .eq("status", "approved")
         .order("name");
 
       if (!error && data) {
@@ -92,8 +92,6 @@ export function TransferRequestForm({
       setTransferType(TRANSFER_TYPE.LEAVE_ORG);
       setDestinationOrgId("");
       setReason("");
-      setTeacherAgreed(false);
-      setAgreementDate("");
     }
   }, [open]);
 
@@ -101,24 +99,6 @@ export function TransferRequestForm({
     if (!user) return;
 
     // Validation
-    if (!teacherAgreed) {
-      toast({
-        title: "Teacher Agreement Required",
-        description: "You must confirm that the teacher has agreed to this transfer.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!agreementDate) {
-      toast({
-        title: "Agreement Date Required",
-        description: "Please enter the date when the teacher agreed.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (reason.length < TRANSFER_VALIDATION.REASON_MIN_LENGTH) {
       toast({
         title: "Reason Too Short",
@@ -144,9 +124,9 @@ export function TransferRequestForm({
         from_organization_id: currentOrgId,
         to_organization_id: transferType === TRANSFER_TYPE.TO_ANOTHER_ORG ? destinationOrgId : null,
         transfer_type: transferType,
+        status: TRANSFER_STATUS.PENDING_TEACHER,
+        initiated_by: INITIATED_BY.ORG_MANAGER,
         reason: reason.trim(),
-        teacher_agreement_confirmed: true,
-        teacher_agreement_date: new Date(agreementDate).toISOString(),
         requested_by: user.id,
       });
 
@@ -154,7 +134,7 @@ export function TransferRequestForm({
 
       toast({
         title: "Transfer Request Submitted",
-        description: "The platform admin will review your request.",
+        description: `${memberName} will be notified to agree or decline.`,
       });
 
       onOpenChange(false);
@@ -180,7 +160,7 @@ export function TransferRequestForm({
             Request Member Transfer
           </DialogTitle>
           <DialogDescription>
-            Submit a transfer request for {memberName} to the platform admin.
+            Submit a transfer request for {memberName}. They will need to agree before it goes to the platform admin.
           </DialogDescription>
         </DialogHeader>
 
@@ -251,45 +231,25 @@ export function TransferRequestForm({
             </p>
           </div>
 
-          {/* Teacher Agreement */}
+          {/* Workflow Info */}
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              The teacher must agree to this transfer before you submit.
+              <strong>What happens next:</strong>
+              <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+                <li>{memberName} will see this request in their Account page</li>
+                <li>They can agree or decline</li>
+                <li>If they agree, the platform admin will review and approve</li>
+              </ol>
             </AlertDescription>
           </Alert>
-
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="teacherAgreed"
-                checked={teacherAgreed}
-                onCheckedChange={(checked) => setTeacherAgreed(checked === true)}
-              />
-              <Label htmlFor="teacherAgreed" className="text-sm">
-                I confirm that {memberName} has agreed to this transfer
-              </Label>
-            </div>
-
-            {teacherAgreed && (
-              <div className="space-y-2 pl-6">
-                <Label>Date of Agreement *</Label>
-                <Input
-                  type="date"
-                  value={agreementDate}
-                  onChange={(e) => setAgreementDate(e.target.value)}
-                  max={new Date().toISOString().split("T")[0]}
-                />
-              </div>
-            )}
-          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || !teacherAgreed}>
+          <Button onClick={handleSubmit} disabled={loading}>
             {loading ? "Submitting..." : "Submit Request"}
           </Button>
         </DialogFooter>
