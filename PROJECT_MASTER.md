@@ -1,7 +1,7 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 17, 2026 (Phase 20.10 - Export Formatting & Post-Launch Roadmap)
-**Launch Date:** January 20, 2026
+**Last Updated:** January 21, 2026 (Phase 20.13 - RLS Security & Transfer System Completion)
+**Launch Date:** January 27, 2026
 
 ---
 
@@ -16,7 +16,7 @@
 | **Local Path** | C:\Users\Lynn\lesson-spark-usa |
 | **Supabase Project** | hphebzdftpjbiudpfcrs |
 | **Platform Mode** | Production (as of Jan 10, 2026) |
-| **Launch Date** | January 20, 2026 |
+| **Launch Date** | January 27, 2026 |
 
 ---
 
@@ -43,6 +43,7 @@
 | `src/constants/systemSettings.ts` | Platform mode helpers |
 | `src/constants/uiSymbols.ts` | UI symbols (UTF-8 safe) |
 | `src/constants/metricsViewerConfig.ts` | Chart colors for analytics |
+| `src/constants/transferRequestConfig.ts` | Transfer request workflow statuses |
 | `src/config/branding.ts` | **SSOT for ALL colors** |
 | `src/config/brand-values.json` | **SSOT for colors/typography** |
 
@@ -84,6 +85,49 @@ API responses (no hardcoding)
 ### Duplicate Subscription Prevention
 - UNIQUE constraint on `user_subscriptions.user_id`
 - `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race condition handling
+
+---
+
+## TRANSFER REQUEST SYSTEM (Phase 20.12-20.13 - COMPLETE ✅)
+
+### Workflow
+```
+Org Manager ←→ Teacher (offline agreement)
+      │
+      ├── Org Manager creates Transfer Request
+      │   (confirms teacher agreed via attestation)
+      │
+      ↓
+Platform Admin
+      ├── Reviews request in Admin Panel → Organizations tab
+      ├── Approves or Denies
+      └── If approved, member moves immediately
+```
+
+### Database Table: transfer_requests
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| user_id | uuid | Teacher being transferred |
+| from_organization_id | uuid | Current org |
+| to_organization_id | uuid (nullable) | Destination org |
+| status | enum | pending_admin, admin_approved, admin_denied, cancelled |
+| reason | text | Why transfer is requested |
+| teacher_agreement_confirmed | boolean | Org manager attestation |
+| teacher_agreement_date | timestamp | When agreement occurred |
+| admin_notes | text | Admin's response/notes |
+
+### Key Components
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `TransferRequestForm.tsx` | Org Manager Dashboard | Create transfer requests |
+| `TransferRequestQueue.tsx` | Admin Panel → Organizations | Review/process requests |
+| `transferRequestConfig.ts` | SSOT | Status definitions, helpers |
+
+### Notes
+- Uses **attestation model** for launch - Org Manager certifies offline agreement with Teacher
+- Destination org dropdown shows only orgs with status "approved"
+- In-app teacher approval workflow deferred to post-launch enhancement
 
 ---
 
@@ -170,7 +214,36 @@ getComputedStyle(document.documentElement).getPropertyValue('--primary')
 
 ---
 
-## JANUARY 20, 2026 LAUNCH STATUS
+## PERPETUAL FRESHNESS SYSTEM (Phase 20.11 - COMPLETE ✅)
+
+### Purpose
+Ensures lesson variety by applying different stylistic approaches to each lesson.
+
+### Features
+- **Freshness Mode Selection**: System selects from variety of lesson styles
+- **Teaser Freshness**: Separate freshness mode for student teasers
+- **Customization-Aware**: Skips freshness on elements teacher already specified
+- **Baptist Terminology Guardrails**: Enforces proper terminology (ordinance vs sacrament)
+- **Comprehensive Logging**: Tracks which modes selected, what was skipped
+
+### Key Files
+- `EnhanceLessonForm.tsx` - Transmits freshness mode to API
+- `generate-lesson/index.ts` - Applies freshness with guardrails
+
+---
+
+## RLS SECURITY (Phase 20.13 - COMPLETE ✅)
+
+### Tables with RLS Enabled
+| Table | Policy | Notes |
+|-------|--------|-------|
+| `tier_config` | SELECT for all | Non-sensitive reference data |
+| `anonymous_parable_usage` | SELECT + INSERT for anon | Warning for WITH CHECK(true) is acceptable |
+| All other tables | Standard RLS | Per Supabase Security Advisor |
+
+---
+
+## JANUARY 27, 2026 LAUNCH STATUS
 
 ### ✅ COMPLETE - Ready for Launch
 | Item | Status |
@@ -181,10 +254,15 @@ getComputedStyle(document.documentElement).getPropertyValue('--primary')
 | SSOT Tier Config | ✅ Database reads from tier_config |
 | Tier Enforcement | ✅ Active in Production mode |
 | Duplicate Subscription Prevention | ✅ UNIQUE constraint + ON CONFLICT |
-| Organization Invitations | ✅ Working |
+| Organization Invitations | ✅ Fixed infinite loop, email verification |
+| Domain SSOT Compliance | ✅ All Edge Functions use branding config |
+| Transfer Request System | ✅ Complete workflow |
+| RLS Security | ✅ All tables secured |
 | Platform Mode | ✅ Production |
 | Header Logo + Wordmark | ✅ Matches footer |
 | Save Profile UX | ✅ Moved to bottom of Step 3 |
+| Perpetual Freshness | ✅ Customization-aware |
+| Baptist Terminology Guardrails | ✅ Enforced in theology profiles |
 
 ### 🟡 CONFIGURATION ITEMS (Pre-Launch)
 | Item | Action |
@@ -226,13 +304,70 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 - ✅ Organization invitations with BibleLessonSpark branding
 - ✅ Save Profile button at bottom of Step 3 with clear explanation
 - ✅ Header shows logo + wordmark matching footer
+- ✅ Transfer request workflow for org member management
+- ✅ Admin Panel shows transfer queue in Organizations tab
 
 ---
 
 ## COMPLETED PHASES
 
-### Phase 20.9 (Jan 16, 2026) - SSOT Deployment & Feedback Config
+### Phase 20.13 (Jan 21, 2026) - RLS Security & Transfer System Completion
+- Enabled RLS on `tier_config` table with public SELECT policy
+- Enabled RLS on `anonymous_parable_usage` table with anon SELECT + INSERT
+- Fixed "Failed to load transfer requests" toast error (simplified query)
+- Fixed destination org dropdown showing empty (changed `"active"` to `"approved"` status filter)
+- Added TransferRequestQueue to Admin Panel → Organizations tab
+- Confirmed attestation model for launch (offline teacher agreement)
 
+### Phase 20.12 (Jan 20, 2026) - Organization Invitation Bugs & Domain SSOT
+**Organization Invitation Infinite Loop Fix**
+- Issue: 6,000+ requests to invites endpoint causing page crash
+- Root cause: `toast` in useEffect dependency array changing on every render
+- Fix: Removed toast from dependency array, added proper cleanup
+
+**Email Verification Bypass for Invites**
+- Issue: Invited users forced through email verification after signup
+- Fix: Created `confirm-invite-email` Edge Function using Supabase admin API
+- Result: Invited users go directly to dashboard after signup
+
+**Session Management Fix**
+- Issue: Supabase not maintaining session after signup with email confirmation
+- Fix: Immediate sign-in for invited users after account creation
+
+**Domain SSOT Compliance**
+- Issue: Edge Functions using `SITE_URL` environment variable instead of branding config
+- Fixed 5 Edge Functions to use `getBaseUrl(branding)`:
+  - `send-invite`
+  - `create-checkout-session`
+  - `create-portal-session`
+  - `send-focus-notification`
+  - `send-auth-email`
+- All URLs now correctly point to `biblelessonspark.com`
+
+**Admin Panel Shared Focus Tab**
+- Issue: Shared Focus tab showing blank in Admin Panel org detail view
+- Fix: Wired OrgSharedFocusPanel component to OrgDetailView
+
+**Transfer Request System Implementation**
+- Created `transferRequestConfig.ts` SSOT for status definitions
+- Created `transfer_requests` database table with RLS policies
+- Built `TransferRequestForm.tsx` for Org Managers
+- Built `TransferRequestQueue.tsx` for Admin review
+- Integrated into OrgMemberManagement and Admin Panel
+
+### Phase 20.11 (Jan 18-19, 2026) - Perpetual Freshness System
+- Implemented freshness mode transmission to API
+- Added teaser freshness selection
+- Implemented customization-aware skipping (respects teacher preferences)
+- Added Baptist terminology guardrails
+- Comprehensive logging for debugging
+
+### Phase 20.10 (Jan 17, 2026) - Export Formatting & Post-Launch Roadmap
+- Fixed DOCX export spacing issues
+- Fixed markdown symbols displaying in exports
+- Created post-launch feature roadmap
+
+### Phase 20.9 (Jan 16, 2026) - SSOT Deployment & Feedback Config
 **Feedback Auto-Popup Fix**
 - Issue: Feedback modal popping up on every export action (annoying UX)
 - Root cause: `onExport` callback unconditionally triggered modal
@@ -250,25 +385,22 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 - Prevents deployment errors from branch mismatch
 
 ### Phase 20.8 (Jan 15, 2026) - Tier Config SSOT & UX Improvements
-
 **Bug Fix: Duplicate Subscription Records**
 - Diagnosed usage count mismatch (Emily showed 2/5 but only 1 lesson existed)
 - Found 4 users with duplicate subscription records
-- Root cause: Race condition in `check_lesson_limit` creating duplicates when multiple requests hit simultaneously
+- Root cause: Race condition in `check_lesson_limit` creating duplicates
 - Fix: Added UNIQUE constraint on `user_subscriptions.user_id`
 - Fix: Updated `check_lesson_limit` to use `ON CONFLICT DO NOTHING`
-- Cleaned up all existing duplicate records
 
 **SSOT Tier Config System**
 - Created `tier_config` database table
-- Updated `check_lesson_limit` function to read from `tier_config` (removed all hardcoded values)
+- Updated `check_lesson_limit` function to read from `tier_config`
 - Created `scripts/sync-tier-config-to-db.cjs`
-- Added `npm run sync-tier-config` command to package.json
+- Added `npm run sync-tier-config` command
 
 **UX Improvements**
-- Header now shows logo + wordmark (was showing icon only due to invalid `xs` breakpoint)
-- Save Profile button moved from top-right corner to bottom of Step 3 with clear explanation
-- Added helpful text: "Save these settings for future lessons? Create a profile to quickly apply these preferences next time."
+- Header now shows logo + wordmark (fixed invalid `xs` breakpoint)
+- Save Profile button moved to bottom of Step 3 with clear explanation
 
 ### Phase 20.7 (Jan 15, 2026) - UTF-8 Encoding Fix + UI Symbols SSOT
 - Created `src/constants/uiSymbols.ts` as SSOT for UI symbols
@@ -310,12 +442,19 @@ src/
 │   ├── dashboard/
 │   │   ├── EnhanceLessonForm.tsx    # 3-step accordion
 │   │   └── TeacherCustomization.tsx # Save Profile at bottom (Step 3)
+│   ├── admin/
+│   │   ├── OrganizationManagement.tsx  # Includes TransferRequestQueue
+│   │   └── OrgDetailView.tsx           # Includes Shared Focus tab
+│   ├── organization/
+│   │   ├── TransferRequestForm.tsx     # Org Manager creates transfer
+│   │   └── TransferRequestQueue.tsx    # Admin reviews transfers
 ├── config/
 │   ├── branding.ts                  # SSOT: All brand colors
 │   └── brand-values.json            # SSOT: Colors/typography JSON
 ├── constants/
 │   ├── pricingConfig.ts             # TIER_SECTIONS, TIER_LIMITS (MASTER)
 │   ├── uiSymbols.ts                 # UI symbols (UTF-8 safe)
+│   ├── transferRequestConfig.ts     # Transfer request status SSOT
 │   └── [other SSOT files]
 ```
 
@@ -324,6 +463,10 @@ src/
 supabase/functions/
 ├── generate-lesson/
 │   └── index.ts                     # Tier enforcement active
+├── confirm-invite-email/
+│   └── index.ts                     # Auto-confirms email for invited users
+├── send-invite/
+│   └── index.ts                     # Uses SSOT branding (biblelessonspark.com)
 ├── _shared/
 │   ├── branding.ts                  # getBranding() helper
 │   ├── uiSymbols.ts                 # Backend mirror
@@ -340,10 +483,13 @@ scripts/
 deploy.ps1                           # SSOT deployment script (root directory)
 ```
 
-### Database Tables (Tier System)
+### Database Tables
 ```
-tier_config                          # SSOT for tier limits/sections
+tier_config                          # SSOT for tier limits/sections (RLS: SELECT all)
 user_subscriptions                   # User's current tier + usage (UNIQUE on user_id)
+transfer_requests                    # Org member transfer workflow
+anonymous_parable_usage              # DevotionalSpark usage tracking (RLS: anon SELECT/INSERT)
+branding_config                      # SSOT branding for edge functions
 ```
 
 ---
@@ -386,6 +532,7 @@ git push
 
 | Feature | Description | Estimated Effort |
 |---------|-------------|------------------|
+| In-App Teacher Approval | Teacher receives notification, approves/declines transfer in app | 6-8 hours |
 | Export Formatting Admin Panel | Admin UI to adjust Print/DOCX/PDF formatting without code changes | 4-6 hours |
 | Organization-Scoped Beta Management | Org Leaders create own feedback surveys + analytics | 8-12 hours |
 | Series/Theme Mode | Sequential lesson planning across multiple weeks | 12-16 hours |
@@ -427,12 +574,15 @@ git push
 - Email Branding (BibleLessonSpark)
 - UI Symbols (UTF-8 safe)
 - Tier Config (database reads from tier_config table)
+- Domain URLs (all Edge Functions use branding config)
+- Transfer Request Statuses (transferRequestConfig.ts)
 
 **Database Protections:**
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race conditions
+- RLS enabled on `tier_config` and `anonymous_parable_usage` tables
 
 **Launch Countdown:**
-- Launch Date: January 20, 2026
+- Launch Date: January 27, 2026
 - All code complete
 - Only configuration items remain (Stripe live keys, Resend domain, show_pricing toggle)
