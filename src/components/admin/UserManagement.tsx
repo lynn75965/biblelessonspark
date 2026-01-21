@@ -231,9 +231,14 @@ export function UserManagement() {
       const grantedUntil = addDays(new Date(), days);
       const expireDateFormatted = format(grantedUntil, 'MMM d, yyyy');
       
+      // CRITICAL: Also clear trial_full_lesson_last_used to reset usage flag
+      // Without this, extending a trial doesn't work if user already used their trial
       const { error } = await supabase
         .from('profiles')
-        .update({ trial_full_lesson_granted_until: grantedUntil.toISOString() })
+        .update({ 
+          trial_full_lesson_granted_until: grantedUntil.toISOString(),
+          trial_full_lesson_last_used: null  // Reset usage flag
+        })
         .eq('id', trialUser.id);
 
       if (error) {
