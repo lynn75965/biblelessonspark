@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft } from "lucide-react";
+import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft, Download } from "lucide-react";
 
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
@@ -29,6 +29,17 @@ interface UserProfile {
   organization_role: string | null;
 }
 
+// Extended profile for export
+interface ExportUserProfile {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  organization_id: string | null;
+  organization_role: string | null;
+  subscription_tier: string | null;
+  created_at: string | null;
+}
+
 // Status constants derived from SSOT
 const ORG_STATUS = {
   PENDING: ORGANIZATION_VALIDATION.STATUS_VALUES[0],
@@ -41,6 +52,7 @@ export function OrganizationManagement() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [assignLeaderDialogOpen, setAssignLeaderDialogOpen] = useState(false);
@@ -104,6 +116,141 @@ export function OrganizationManagement() {
     fetchOrganizations();
     fetchUsers();
   }, []);
+
+  // ============================================================
+  // Export Functions
+  // ============================================================
+
+  const downloadCSV = (data: string, filename: string) => {
+    const blob = new Blob([data], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const escapeCSV = (value: string | null | undefined): string => {
+    if (value === null || value === undefined) return "";
+    const str = String(value);
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleExportAllUsers = async () => {
+    setExporting(true);
+    try {
+      // Fetch all users with extended fields
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, organization_id, organization_role, subscription_tier, created_at")
+        .order("full_name");
+
+      if (error) throw error;
+
+      if (!profiles || profiles.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No users found to export.",
+        });
+        return;
+      }
+
+      // Create org lookup map
+      const orgMap = new Map(organizations.map(o => [o.id, o.name]));
+
+      // Build CSV
+      const headers = ["Name", "Email", "Organization", "Org Role", "Subscription Tier", "Joined Date"];
+      const rows = profiles.map((p: ExportUserProfile) => [
+        escapeCSV(p.full_name),
+        escapeCSV(p.email),
+        escapeCSV(p.organization_id ? orgMap.get(p.organization_id) || "Unknown" : "None"),
+        escapeCSV(p.organization_role || "None"),
+        escapeCSV(p.subscription_tier || "None"),
+        escapeCSV(p.created_at ? new Date(p.created_at).toLocaleDateString() : ""),
+      ]);
+
+      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const filename = `biblelessonspark-all-users-${new Date().toISOString().split("T")[0]}.csv`;
+      
+      downloadCSV(csv, filename);
+
+      toast({
+        title: "Export Complete",
+        description: `Exported ${profiles.length} users to ${filename}`,
+      });
+    } catch (error) {
+      console.error("Error exporting users:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export users. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportOrgMembers = async (org: Organization) => {
+    setExporting(true);
+    try {
+      // Fetch members of this organization
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, organization_role, subscription_tier, created_at")
+        .eq("organization_id", org.id)
+        .order("full_name");
+
+      if (error) throw error;
+
+      if (!profiles || profiles.length === 0) {
+        toast({
+          title: "No Members",
+          description: `${org.name} has no members to export.`,
+        });
+        return;
+      }
+
+      // Build CSV
+      const headers = ["Name", "Email", "Role", "Subscription Tier", "Joined Date"];
+      const rows = profiles.map((p: any) => [
+        escapeCSV(p.full_name),
+        escapeCSV(p.email),
+        escapeCSV(p.organization_role || "Member"),
+        escapeCSV(p.subscription_tier || "None"),
+        escapeCSV(p.created_at ? new Date(p.created_at).toLocaleDateString() : ""),
+      ]);
+
+      const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const safeOrgName = org.name.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+      const filename = `${safeOrgName}-members-${new Date().toISOString().split("T")[0]}.csv`;
+      
+      downloadCSV(csv, filename);
+
+      toast({
+        title: "Export Complete",
+        description: `Exported ${profiles.length} members from ${org.name}`,
+      });
+    } catch (error) {
+      console.error("Error exporting org members:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export members. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // ============================================================
+  // Organization CRUD Functions
+  // ============================================================
 
   const handleCreateOrganization = async () => {
     if (!formData.name.trim()) {
@@ -343,6 +490,10 @@ export function OrganizationManagement() {
     );
   };
 
+  const getMemberCount = (orgId: string) => {
+    return users.filter((u) => u.organization_id === orgId).length;
+  };
+
   return (
     <div className="space-y-6">
       {viewingOrg ? (
@@ -378,6 +529,15 @@ export function OrganizationManagement() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleExportAllUsers}
+                disabled={exporting}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {exporting ? "Exporting..." : "Export All Users"}
+              </Button>
               <Button variant="outline" size="sm" onClick={fetchOrganizations}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Refresh
@@ -500,6 +660,7 @@ export function OrganizationManagement() {
                   <TableHead>Denomination</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Leader</TableHead>
+                  <TableHead>Members</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -511,11 +672,21 @@ export function OrganizationManagement() {
                     <TableCell>{org.denomination || "-"}</TableCell>
                     <TableCell>{getStatusBadge(org.status)}</TableCell>
                     <TableCell>{getOrgLeader(org.id)}</TableCell>
+                    <TableCell>{getMemberCount(org.id)}</TableCell>
                     <TableCell>
                       {new Date(org.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleExportOrgMembers(org)}
+                          disabled={exporting}
+                          title="Export Members"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
