@@ -1,12 +1,16 @@
-﻿// OrgDetailView - Admin drill-down into organization details
+// OrgDetailView - Admin drill-down into organization details
 // SSOT: Uses ORG_DETAIL_TABS from orgManagerConfig.ts
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Building2, Rocket, Power } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Building2, Rocket, Power, Trash2, AlertTriangle } from "lucide-react";
 import { Organization } from "@/constants/contracts";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
@@ -41,6 +45,28 @@ export function OrgDetailView({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Delete organization state
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Fetch member count on mount
+  useEffect(() => {
+    const fetchMemberCount = async () => {
+      const { count, error } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", organization.id);
+
+      if (!error) {
+        setMemberCount(count || 0);
+      }
+    };
+
+    fetchMemberCount();
+  }, [organization.id]);
 
   const handleBetaToggle = async () => {
     if (!user) return;
@@ -95,6 +121,64 @@ export function OrgDetailView({
       setIsUpdating(false);
     }
   };
+
+  const handleDeleteOrganization = async () => {
+    if (deleteConfirmName !== organization.name) {
+      toast({
+        title: "Name Mismatch",
+        description: "Please type the exact organization name to confirm deletion.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      // Double-check member count before deleting
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("organization_id", organization.id);
+
+      if (count && count > 0) {
+        toast({
+          title: "Cannot Delete",
+          description: "This organization still has members. Remove all members first.",
+          variant: "destructive",
+        });
+        setIsDeleting(false);
+        return;
+      }
+
+      // Delete the organization
+      const { error } = await supabase
+        .from("organizations")
+        .delete()
+        .eq("id", organization.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Organization Deleted",
+        description: `${organization.name} has been permanently deleted.`,
+      });
+
+      // Close dialog and go back to list
+      setDeleteDialogOpen(false);
+      onBack();
+    } catch (error: any) {
+      console.error("Error deleting organization:", error);
+      toast({
+        title: "Delete Failed",
+        description: error.message || "Failed to delete organization. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const canDelete = memberCount === 0;
 
   return (
     <Card>
@@ -152,6 +236,10 @@ export function OrgDetailView({
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
                   <p className="text-sm">{new Date(organization.created_at).toLocaleDateString()}</p>
                 </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Members</label>
+                  <p className="text-sm">{memberCount !== null ? memberCount : "Loading..."}</p>
+                </div>
               </div>
 
               {/* Beta Mode Section */}
@@ -203,6 +291,37 @@ export function OrgDetailView({
                   </Button>
                 </div>
               </div>
+
+              {/* Delete Organization Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-destructive">
+                  <Trash2 className="h-5 w-5" />
+                  Danger Zone
+                </h3>
+                
+                <div className="border border-destructive/50 rounded-lg p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">Delete Organization</p>
+                      <p className="text-sm text-muted-foreground">
+                        {canDelete 
+                          ? "Permanently delete this organization. This action cannot be undone."
+                          : `Cannot delete: Organization has ${memberCount} member(s). Remove all members first.`}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => setDeleteDialogOpen(true)}
+                    disabled={!canDelete}
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Organization
+                  </Button>
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -243,6 +362,63 @@ export function OrgDetailView({
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setDeleteConfirmName("");
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Organization
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the organization
+              and all associated data.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                You are about to delete <strong>{organization.name}</strong>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-name">
+                Type <strong>{organization.name}</strong> to confirm:
+              </Label>
+              <Input
+                id="confirm-name"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder="Enter organization name"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteOrganization}
+              disabled={isDeleting || deleteConfirmName !== organization.name}
+            >
+              {isDeleting ? "Deleting..." : "Delete Organization"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
