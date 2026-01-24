@@ -762,7 +762,7 @@ export function EnhanceLessonForm({
   // Load style context when user selects a lesson to copy from
   useEffect(() => {
     const loadStyleFromLesson = async () => {
-      if (!selectedStyleLessonId) {
+      if (!selectedStyleLessonId || selectedStyleLessonId === 'none') {
         setSeriesStyleContext(null);
         return;
       }

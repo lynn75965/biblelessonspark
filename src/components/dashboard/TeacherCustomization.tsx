@@ -844,8 +844,8 @@ export function TeacherCustomization({
                           <SelectValue placeholder="Select lesson to match style" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">— Don't use consistent style —</SelectItem>
-                          {lessonsWithStyle.map((lesson) => (
+                          <SelectItem value="none">— Don't use consistent style —</SelectItem>
+                          {lessonsWithStyle && lessonsWithStyle.length > 0 && lessonsWithStyle.map((lesson) => (
                             <SelectItem key={lesson.id} value={lesson.id}>
                               {lesson.title}
                             </SelectItem>
