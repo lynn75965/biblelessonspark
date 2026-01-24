@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TeacherCustomization Component
  * Renders the 15 teacher preference fields with profile management
  *
@@ -14,6 +14,12 @@
  *   - Added Emotional Entry Point selector
  *   - Added Theological Lens selector
  *   - Profile fields increased from 13 to 15
+ *
+ * Updated: January 24, 2026 - CONSISTENT STYLE MODE FIX
+ *   - Added Consistent Style Mode CHECKBOX for ALL lessons in series (was missing for Lesson 1!)
+ *   - Lesson 1: Checkbox enables style capture, shows "This lesson's style will be captured"
+ *   - Lesson 2+: Checkbox + "Copy Style From" dropdown to select previous lesson
+ *   - Dynamic helper text based on lesson number and mode state
  */
 
 import { useState, useEffect } from "react";
@@ -392,7 +398,7 @@ export function TeacherCustomization({
   // ============================================================================
 
   return (
-    <Card className="w-full border shadow-sm">
+    <Card data-tour="workspace-step3" className="w-full border shadow-sm">
       <CardHeader
         className="cursor-pointer hover:bg-accent/50 transition-colors pb-3"
         onClick={onToggleExpand}
@@ -409,7 +415,7 @@ export function TeacherCustomization({
               Check off each one below to describe your teaching environment
             </CardDescription>
             <CardDescription className="text-muted-foreground text-xs mt-1">
-              Hint: You can save up to 7 profiles — choose a saved profile & it preloads
+              Hint: You can save up to 7 profiles â€” choose a saved profile & it preloads
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -454,7 +460,7 @@ export function TeacherCustomization({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__" className="text-muted-foreground">
-                      — None —
+                      â€” None â€”
                     </SelectItem>
                     {profiles.map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
@@ -766,18 +772,58 @@ export function TeacherCustomization({
                 Lessons in a series share context. Maximum 7 lessons per series.
               </p>
 
-              {/* Consistent Style Mode - Only show for lessons 2+ in series */}
-              {lessonNumber > 1 && (
-                <div className="mt-4 pt-4 border-t border-primary/10">
+              {/* Consistent Style Mode - Checkbox for ALL lessons in series */}
+              <div className="mt-4 pt-4 border-t border-primary/10">
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="consistent-style-mode"
+                    checked={freshnessMode === "consistent"}
+                    onCheckedChange={(checked) => 
+                      setFreshnessMode(checked ? "consistent" : "fresh")
+                    }
+                    disabled={disabled}
+                  />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="consistent-style-mode"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Consistent Style Mode
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3 w-3 text-muted-foreground inline ml-1 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[280px]">
+                            <p>Maintains the same teaching approach (opening hooks, illustrations, tone) across all lessons in this series.</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      {freshnessMode === "consistent" 
+                        ? (lessonNumber === 1 
+                            ? "This lesson's style will be captured for use in later lessons"
+                            : "Select a previous lesson below to match its style")
+                        : "Each lesson uses varied illustrations, examples, and teaching angles"
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Copy Style From - Only show for lessons 2+ when consistent mode is enabled */}
+              {lessonNumber > 1 && freshnessMode === "consistent" && (
+                <div className="mt-3 pt-3 border-t border-primary/20">
                   <Label className="text-sm font-medium mb-2 block">
-                    Consistent Style Mode
+                    Copy Style From
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Info className="h-3 w-3 text-muted-foreground inline ml-1 cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-[280px]">
-                          <p>Apply the same creative style (opening hook, illustrations, tone) from a previous lesson in this series for consistency.</p>
+                          <p>Select a previous lesson from this series to match its teaching style.</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -798,7 +844,7 @@ export function TeacherCustomization({
                           <SelectValue placeholder="Select lesson to match style" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">— Don't use consistent style —</SelectItem>
+                          <SelectItem value="">â€” Don't use consistent style â€”</SelectItem>
                           {lessonsWithStyle.map((lesson) => (
                             <SelectItem key={lesson.id} value={lesson.id}>
                               {lesson.title}
@@ -858,7 +904,7 @@ export function TeacherCustomization({
                       {/* No style selected indicator */}
                       {!seriesStyleContext && selectedStyleLessonId === '' && lessonsWithStyle.length > 0 && (
                         <p className="text-xs text-amber-600 ml-1">
-                          ⚠️ Select a lesson above to apply its style to this lesson.
+                          âš ï¸ Select a lesson above to apply its style to this lesson.
                         </p>
                       )}
                     </div>
