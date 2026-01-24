@@ -54,7 +54,7 @@ const Setup = () => {
       description: "Familiarize yourself with the main features.",
       details: [
         "View your credit balance in the top-right corner",
-        "Access the 'Enhance Lesson' tab to create lessons",
+        "Access the 'Build Lesson' tab to create lessons",
         "Check 'My Lessons' to view saved lessons",
         "Visit 'Settings' to update preferences anytime"
       ],

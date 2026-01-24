@@ -1099,15 +1099,6 @@ export function EnhanceLessonForm({
                 </div>
               </div>
             )}
-
-            {/* Returning User Tip (optional - shows occasionally for users with lessons) */}
-            {lessonCount > 0 && lessonCount % 5 === 0 && !step1Complete && (
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
-                <p className="text-sm text-primary">
-                  💡 <strong>Tip:</strong> Try exploring a different book of the Bible or a passage you haven't taught before!
-                </p>
-              </div>
-            )}
           </>
         )}
 
@@ -1122,8 +1113,8 @@ export function EnhanceLessonForm({
           <AccordionStep
             data-tour="workspace-step1"
             stepNumber={1}
-            title={<>Choose Your <GoldAccent>Scripture</GoldAccent></>}
-            description="Enter a Bible passage or paste content from your existing curriculum. This becomes the foundation of your lesson."
+            title={<>Choose Your <GoldAccent>Scriptural Foundation</GoldAccent></>}
+            description=""
             isExpanded={expandedStep === 1}
             isComplete={step1Complete}
             isLocked={false}
@@ -1146,7 +1137,7 @@ export function EnhanceLessonForm({
                   <RadioGroupItem value="curriculum" id="content-curriculum" className="mt-1" />
                   <div className="flex-1">
                     <Label htmlFor="content-curriculum" className="font-medium cursor-pointer">
-                      Upload or paste existing curriculum
+                      Upload or paste existing curriculum for enhancement
                     </Label>
                     {contentInputType === "curriculum" && (
                       <div className="mt-3 pl-0 space-y-3">

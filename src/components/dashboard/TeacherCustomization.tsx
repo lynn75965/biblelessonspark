@@ -412,7 +412,7 @@ export function TeacherCustomization({
               <GoldAccent>Personalize</GoldAccent> Your Lesson
             </CardTitle>
             <CardDescription className="text-amber-700 font-medium">
-              Check off each one below to describe your teaching environment
+              Check-off any of YOUR teaching environment descriptions below
             </CardDescription>
             <CardDescription className="text-muted-foreground text-xs mt-1">
               Hint: You can save up to 7 profiles — choose a saved profile & it preloads

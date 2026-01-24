@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,12 @@ import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { isBetaMode } from '@/constants/systemSettings';
 import { LegalModal } from '@/components/LegalModal';
 import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from '@/constants/betaEnrollmentConfig';
+
+// Guided Tour System
+import Joyride from 'react-joyride';
+import { signupTour } from '@/tours/signupTour';
+import { useTour } from '@/hooks/useTour';
+import { TOUR_STYLES, TOUR_LOCALE } from '@/tours/tourStyles';
 
 // Public Beta Organization ID - SSOT: This should match system_settings or be fetched
 const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
@@ -63,6 +69,13 @@ export default function Auth() {
   const { toast } = useToast();
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
+
+  // Guided Tour
+  const { runTour, handleTourCallback, startTour } = useTour({ 
+    tourKey: 'signup',
+    autoStart: false,
+    daysBeforeRepeat: 0 
+  });
 
   // SSOT: Text from BRANDING.beta, behavior from BETA_ENROLLMENT_CONFIG
   const FORM_TEXT = BRANDING.beta.form;
@@ -158,7 +171,7 @@ export default function Auth() {
         }
         
         toast({
-          title: "Welcome back!",
+          title: "Welcome!",
           description: "You have successfully signed in.",
         });
       }
@@ -624,7 +637,7 @@ export default function Auth() {
                   <p className="font-medium mb-1">Password requirements:</p>
                   <ul className="space-y-0.5">
                     {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                      <li key={i}>• {req}</li>
+                      <li key={i}>â€¢ {req}</li>
                     ))}
                   </ul>
                 </div>
@@ -736,6 +749,17 @@ export default function Auth() {
 
   return (
     <div className={BRANDING.layout.authPageWrapper}>
+      {/* Guided Tour */}
+      <Joyride
+        steps={signupTour}
+        run={runTour}
+        continuous
+        showSkipButton
+        showProgress
+        styles={TOUR_STYLES}
+        locale={TOUR_LOCALE}
+        callback={handleTourCallback}
+      />
       <div className={BRANDING.layout.authFormContainer}>
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">
@@ -745,7 +769,7 @@ export default function Auth() {
             </div>
             <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold mb-2">
+          <h1 data-tour="signup-welcome" className="text-xl sm:text-2xl font-bold mb-2">
             {organizationName ? `Join ${organizationName} on ${SITE.name}` : (isPublicBeta ? FORM_TEXT.title : `Welcome to ${SITE.name}`)}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
@@ -830,7 +854,7 @@ export default function Auth() {
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>• {req}</li>
+                          <li key={i}>â€¢ {req}</li>
                         ))}
                       </ul>
                     </div>
@@ -912,7 +936,7 @@ export default function Auth() {
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>• {req}</li>
+                          <li key={i}>â€¢ {req}</li>
                         ))}
                       </ul>
                     </div>
@@ -957,6 +981,7 @@ export default function Auth() {
                   )}
 
                   <Button
+                    data-tour="signup-create-button"
                     type="submit"
                     className="w-full text-sm sm:text-base"
                     variant="hero"
