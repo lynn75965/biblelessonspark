@@ -1057,6 +1057,18 @@ export function EnhanceLessonForm({
   const step2Complete = isStep2Complete();
   const step3Complete = isStep3Complete();
 
+  // AUTO-EXPAND STEP 3: When user completes Step 2 while viewing it, auto-advance to Step 3
+  // This ensures users don't skip the customization options
+  useEffect(() => {
+    if (step1Complete && step2Complete && expandedStep === 2) {
+      // Small delay for smooth UX - let the UI update first
+      const timer = setTimeout(() => {
+        setExpandedStep(3);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [step1Complete, step2Complete, expandedStep]);
+
   return (
     <>
       {/* Main Form Container */}
