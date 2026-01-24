@@ -803,7 +803,7 @@ export function TeacherCustomization({
                     <p className="text-xs text-muted-foreground">
                       {freshnessMode === "consistent" 
                         ? (lessonNumber === 1 
-                            ? "This lesson's style will be captured for use in later lessons"
+                            ? "This lesson's style will be captured for use in this series"
                             : "Select a previous lesson below to match its style")
                         : "Each lesson uses varied illustrations, examples, and teaching angles"
                       }
