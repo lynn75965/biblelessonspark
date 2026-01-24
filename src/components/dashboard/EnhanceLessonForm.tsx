@@ -25,7 +25,7 @@
  * - Preserves freshnessMode when generating series lessons
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -1059,16 +1059,26 @@ export function EnhanceLessonForm({
   const step2Complete = isStep2Complete();
   const step3Complete = isStep3Complete();
 
-  // AUTO-EXPAND STEP 3: When user completes Step 2 while viewing it, auto-advance to Step 3
-  // This ensures users don't skip the customization options
+  // Track previous step2Complete state to detect completion transition
+  const prevStep2CompleteRef = useRef(step2Complete);
+
+  // AUTO-EXPAND STEP 3: Only when Step 2 BECOMES complete (false→true), not when already complete
+  // This allows Edit button to work without auto-advancing away
   useEffect(() => {
-    if (step1Complete && step2Complete && expandedStep === 2) {
-      // Small delay for smooth UX - let the UI update first
+    const wasComplete = prevStep2CompleteRef.current;
+    const isNowComplete = step2Complete;
+    
+    // Only auto-expand if Step 2 just became complete (transition from false to true)
+    if (step1Complete && !wasComplete && isNowComplete && expandedStep === 2) {
       const timer = setTimeout(() => {
         setExpandedStep(3);
       }, 300);
+      prevStep2CompleteRef.current = isNowComplete;
       return () => clearTimeout(timer);
     }
+    
+    // Update ref for next render
+    prevStep2CompleteRef.current = isNowComplete;
   }, [step1Complete, step2Complete, expandedStep]);
 
   return (
