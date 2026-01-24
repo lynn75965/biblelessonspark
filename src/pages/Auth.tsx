@@ -21,12 +21,6 @@ import { isBetaMode } from '@/constants/systemSettings';
 import { LegalModal } from '@/components/LegalModal';
 import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from '@/constants/betaEnrollmentConfig';
 
-// Guided Tour System
-import Joyride from 'react-joyride';
-import { signupTour } from '@/tours/signupTour';
-import { useTour } from '@/hooks/useTour';
-import { TOUR_STYLES, TOUR_LOCALE } from '@/tours/tourStyles';
-
 // Public Beta Organization ID - SSOT: This should match system_settings or be fetched
 const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
 
@@ -69,13 +63,6 @@ export default function Auth() {
   const { toast } = useToast();
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
-
-  // Guided Tour
-  const { runTour, handleTourCallback, startTour } = useTour({ 
-    tourKey: 'signup',
-    autoStart: false,
-    daysBeforeRepeat: 0 
-  });
 
   // SSOT: Text from BRANDING.beta, behavior from BETA_ENROLLMENT_CONFIG
   const FORM_TEXT = BRANDING.beta.form;
@@ -749,17 +736,6 @@ export default function Auth() {
 
   return (
     <div className={BRANDING.layout.authPageWrapper}>
-      {/* Guided Tour */}
-      <Joyride
-        steps={signupTour}
-        run={runTour}
-        continuous
-        showSkipButton
-        showProgress
-        styles={TOUR_STYLES}
-        locale={TOUR_LOCALE}
-        callback={handleTourCallback}
-      />
       <div className={BRANDING.layout.authFormContainer}>
         {/* Header */}
         <div className="text-center mb-6 sm:mb-8">

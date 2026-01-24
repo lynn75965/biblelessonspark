@@ -373,7 +373,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={() => onViewLesson?.(lesson)} className="flex-1" size="sm">
+                  <Button data-tour="library-view-button" onClick={() => onViewLesson?.(lesson)} className="flex-1" size="sm">
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>

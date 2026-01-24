@@ -40,13 +40,6 @@ import { useHelpVideo } from "@/hooks/useHelpVideo";
 import { VideoModal } from "@/components/help/VideoModal";
 import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
 
-// Guided Tour System
-import Joyride from 'react-joyride';
-import { workspaceTour } from '@/tours/workspaceTour';
-import { workspacePostGenerationTour } from '@/tours/workspacePostGenerationTour';
-import { lessonLibraryTour } from '@/tours/lessonLibraryTour';
-import { useTour } from '@/hooks/useTour';
-import { TOUR_STYLES, TOUR_LOCALE } from '@/tours/tourStyles';
 
 // Public Beta Prompt Banner added (January 1, 2026)
 
@@ -200,42 +193,6 @@ export default function Dashboard() {
     <div className={BRANDING.layout.pageWrapper}>
       <Header isAuthenticated hideOrgContext />
       <main className={`container ${BRANDING.layout.containerPadding} ${BRANDING.layout.mainContent}`}>
-        {/* Guided Tours */}
-        <Joyride
-          steps={workspaceTour}
-          run={runWorkspaceTour && activeTab === 'enhance' && !selectedLesson}
-          continuous
-          showSkipButton
-          showProgress
-          styles={TOUR_STYLES}
-          locale={TOUR_LOCALE}
-          callback={handleWorkspaceTourCallback}
-        />
-        <Joyride
-          steps={workspacePostGenerationTour}
-          run={runPostGenTour}
-          continuous
-          showSkipButton
-          styles={TOUR_STYLES}
-          locale={TOUR_LOCALE}
-          callback={(data) => {
-            if (data.status === 'finished' || data.status === 'skipped') {
-              localStorage.setItem('tour_postgen_v1', 'true');
-              setHasSeenPostGenTour(true);
-              setRunPostGenTour(false);
-            }
-          }}
-        />
-        <Joyride
-          steps={lessonLibraryTour}
-          run={runLibraryTour && activeTab === 'library'}
-          continuous
-          showSkipButton
-          showProgress
-          styles={TOUR_STYLES}
-          locale={TOUR_LOCALE}
-          callback={handleLibraryTourCallback}
-        />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-2">
@@ -283,7 +240,7 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Build Lesson</span>
             </TabsTrigger>
-            <TabsTrigger data-tour="library-tab" value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+            <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Lesson Library</span>
             </TabsTrigger>
