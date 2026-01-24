@@ -415,7 +415,7 @@ export function TeacherCustomization({
               Check off each one below to describe your teaching environment
             </CardDescription>
             <CardDescription className="text-muted-foreground text-xs mt-1">
-              Hint: You can save up to 7 profiles â€” choose a saved profile & it preloads
+              Hint: You can save up to 7 profiles — choose a saved profile & it preloads
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -460,7 +460,7 @@ export function TeacherCustomization({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__" className="text-muted-foreground">
-                      â€” None â€”
+                      — None —
                     </SelectItem>
                     {profiles.map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
@@ -844,7 +844,7 @@ export function TeacherCustomization({
                           <SelectValue placeholder="Select lesson to match style" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">â€” Don't use consistent style â€”</SelectItem>
+                          <SelectItem value="">— Don't use consistent style —</SelectItem>
                           {lessonsWithStyle.map((lesson) => (
                             <SelectItem key={lesson.id} value={lesson.id}>
                               {lesson.title}
