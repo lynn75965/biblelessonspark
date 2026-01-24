@@ -75,6 +75,7 @@ interface EnhanceLessonFormProps {
   onClearViewing?: () => void;
   initialFocusData?: FocusApplicationData;
   lessonCount?: number; // Used to conditionally show welcome banner for new users only
+  lessonsLoading?: boolean; // Prevent flicker - don't show welcome banner while loading
 }
 
 // ============================================================================
@@ -330,6 +331,7 @@ export function EnhanceLessonForm({
   onClearViewing,
   initialFocusData,
   lessonCount = 0,
+  lessonsLoading = false,
 }: EnhanceLessonFormProps) {
   // ============================================================================
   // ACCORDION STATE
@@ -1100,7 +1102,8 @@ export function EnhanceLessonForm({
         ) : (
           <>
             {/* Welcome Banner for NEW Users Only (0 lessons) */}
-            {lessonCount === 0 && !step1Complete && !step2Complete && (
+            {/* Only show after lessons have loaded to prevent flicker */}
+            {!lessonsLoading && lessonCount === 0 && !step1Complete && !step2Complete && (
               <div data-tour="workspace-welcome" className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <span className="text-2xl">🎉</span>

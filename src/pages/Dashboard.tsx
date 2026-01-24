@@ -310,6 +310,7 @@ export default function Dashboard() {
               }}
               initialFocusData={focusDataToApply || undefined}
               lessonCount={lessons.length}
+              lessonsLoading={lessonsLoading}
             />
           </TabsContent>
 
