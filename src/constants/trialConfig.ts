@@ -1,9 +1,10 @@
 // ============================================================================
 // SSOT: Trial Feature Configuration
-// LessonSparkUSA - Master Definition
+// BibleLessonSpark - Master Definition
 // Database columns store data; THIS FILE defines logic and rules
 // Mirror: supabase/functions/_shared/trialConfig.ts
 // DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants
+// Last Updated: 2026-01-26 - Changed to rolling 30-day reset
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -17,8 +18,10 @@ export const TRIAL_CONFIG = {
   // What the trial provides
   sectionsGranted: 8,           // Full tier (all 8 sections)
 
-  // Reset rules
-  resetPeriod: 'monthly' as const,  // Trial resets each calendar month
+  // Reset rules - ROLLING 30-DAY (not calendar month)
+  // Each user's period starts from their signup/subscription date
+  resetPeriod: 'rolling30' as const,
+  resetIntervalDays: 30,        // Matches database tier_config.reset_interval
 
   // Who qualifies (in Production mode)
   appliesTo: ['free'] as const,     // Only Free tier users
@@ -154,12 +157,12 @@ export const TRIAL_CONFIG = {
   // -------------------------------------------------------------------------
   messages: {
     available: {
-      title: "Your First Lesson This Month is FREE at Full Quality!",
+      title: "Your First 2 Lessons Each Period are FREE at Full Quality!",
       description: "Experience all 8 sections of a complete Bible study lesson.",
       cta: "Generate My Free Full Lesson",
     },
     used: {
-      title: "You've Used Your Free Full Lesson This Month",
+      title: "You've Used Your Free Full Lessons This Period",
       description: "Your remaining lessons will include 3 core sections.",
       upsell: "Upgrade to Personal ($9/mo) for all 8 sections, every time.",
       cta: "Upgrade Now",
@@ -168,7 +171,9 @@ export const TRIAL_CONFIG = {
       title: "You've Been Granted a Free Full-Tier Lesson!",
       description: "Enjoy all 8 sections on your next lesson.",
     },
-    nextReset: "Your free full lesson resets on the 1st of each month.",
+    // Updated to reflect rolling 30-day reset
+    nextReset: "Your lessons reset every 30 days from your start date.",
+    nextResetWithDate: (resetDate: string) => `Your lessons reset on ${resetDate}.`,
   },
 } as const;
 
@@ -196,7 +201,7 @@ export const getDefaultBulkPreset = (): BulkPresetDate => {
 // ----------------------------------------------------------------------------
 
 /**
- * Determines if a user's monthly trial is available
+ * Determines if a user's trial is available
  * @param lastUsed - When user last consumed their trial (null if never)
  * @param grantedUntil - Admin override date (null if no override)
  * @returns boolean - true if trial is available
@@ -220,12 +225,12 @@ export const isTrialAvailable = (
     return true;
   }
 
-  // Monthly reset logic
+  // Rolling 30-day reset logic
   const lastUsedDate = typeof lastUsed === 'string' ? new Date(lastUsed) : lastUsed;
-  const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const daysSinceLastUse = Math.floor((now.getTime() - lastUsedDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Available if last used before this month started
-  return lastUsedDate < currentMonthStart;
+  // Available if 30+ days since last use
+  return daysSinceLastUse >= TRIAL_CONFIG.resetIntervalDays;
 };
 
 /**
@@ -248,20 +253,27 @@ export const doesTrialApply = (
 };
 
 /**
- * Calculate when user's trial resets
- * @returns Date - First day of next month
+ * Calculate when user's lessons reset based on their reset_date from database
+ * @param userResetDate - The user's reset_date from user_subscriptions table
+ * @returns Date - The user's next reset date
  */
-export const getNextTrialReset = (): Date => {
+export const getNextTrialReset = (userResetDate?: Date | string | null): Date => {
+  if (userResetDate) {
+    const resetDate = typeof userResetDate === 'string' ? new Date(userResetDate) : userResetDate;
+    return resetDate;
+  }
+  // Fallback: 30 days from now (for new users before DB record exists)
   const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return new Date(now.getTime() + TRIAL_CONFIG.resetIntervalDays * 24 * 60 * 60 * 1000);
 };
 
 /**
  * Format the next reset date for display
+ * @param userResetDate - The user's reset_date from user_subscriptions table
  * @returns string - Formatted date string
  */
-export const getNextTrialResetFormatted = (): string => {
-  const resetDate = getNextTrialReset();
+export const getNextTrialResetFormatted = (userResetDate?: Date | string | null): string => {
+  const resetDate = getNextTrialReset(userResetDate);
   return resetDate.toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -295,4 +307,17 @@ export const isTrialExpiringSoon = (
   const now = new Date();
   const threshold = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
   return expirationDate > now && expirationDate <= threshold;
+};
+
+/**
+ * Calculate days remaining until reset
+ * @param userResetDate - The user's reset_date from user_subscriptions table
+ * @returns number - Days until reset (0 if past due)
+ */
+export const getDaysUntilReset = (userResetDate: Date | string | null): number => {
+  if (!userResetDate) return TRIAL_CONFIG.resetIntervalDays;
+  const resetDate = typeof userResetDate === 'string' ? new Date(userResetDate) : userResetDate;
+  const now = new Date();
+  const diffMs = resetDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 };
