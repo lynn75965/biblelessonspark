@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
@@ -8,10 +8,11 @@ import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsMa
 import { EnrollmentAnalyticsPanel } from "@/components/admin/EnrollmentAnalyticsPanel";
 import { SystemAnalyticsDashboard } from "@/components/admin/SystemAnalyticsDashboard";
 import { AllLessonsPanel } from "@/components/admin/AllLessonsPanel";
+import { EmailSequenceManager } from "@/components/admin/EmailSequenceManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette } from "lucide-react";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -33,6 +34,7 @@ import { BRANDING } from "@/config/branding";
 // Generation Metrics merged into System Analytics tab (December 17, 2025)
 // Guardrails tab merged into Security tab (January 1, 2026)
 // Enrollment Analytics (Referral Sources + Church Directory) added (January 1, 2026)
+// Email Sequences tab added for onboarding automation (January 26, 2026)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -170,7 +172,7 @@ export default function Admin() {
       <div className={`${BRANDING.layout.pageWrapper} items-center justify-center`}>
         <Card className="bg-gradient-card">
           <CardContent className="p-8 text-center">
-            <Shield className="h-8 w-8 text-primary mx-auto mb-4 animate-pulse" />
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-muted-foreground">Verifying admin access...</p>
           </CardContent>
         </Card>
@@ -181,9 +183,9 @@ export default function Admin() {
   return (
     <div className={BRANDING.layout.pageWrapper}>
       <Header />
-      <main className={`container ${BRANDING.layout.containerPadding}`}>
-        {/* Admin Header */}
-        <div className="flex items-center gap-4 mb-6">
+      <main className={`${BRANDING.layout.contentWrapper} py-6`}>
+        {/* Admin Header - Mobile friendly */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
           <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
             <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
@@ -195,7 +197,7 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Admin Tabs - Guardrails merged into Security (January 1, 2026) */}
+        {/* Admin Tabs - Email Sequences added (January 26, 2026) */}
         <Tabs defaultValue="users" className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             <TabsTrigger value="users" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
@@ -209,6 +211,10 @@ export default function Admin() {
             <TabsTrigger value="lessons" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">All Lessons</span>
+            </TabsTrigger>
+            <TabsTrigger value="email" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Mail className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Email Sequences</span>
             </TabsTrigger>
             <TabsTrigger value="beta" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Rocket className="h-4 w-4 flex-shrink-0" />
@@ -250,6 +256,10 @@ export default function Admin() {
 
           <TabsContent value="lessons" className="mt-6 relative z-0">
             <AllLessonsPanel />
+          </TabsContent>
+
+          <TabsContent value="email" className="mt-6 relative z-0">
+            <EmailSequenceManager />
           </TabsContent>
 
           <TabsContent value="beta" className="mt-6 relative z-0">
@@ -310,7 +320,7 @@ export default function Admin() {
                       <ul className="text-sm text-muted-foreground space-y-1">
                         {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                           <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">â€¢</span>
+                            <span className="text-primary">•</span>
                             {benefit}
                           </li>
                         ))}
@@ -355,4 +365,3 @@ export default function Admin() {
     </div>
   );
 }
-
