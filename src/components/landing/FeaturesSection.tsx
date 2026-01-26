@@ -2,9 +2,13 @@
  * FeaturesSection Component
  * Landing page features showcase
  * 
- * SSOT Compliance (December 2025):
+ * SSOT Compliance (January 2026):
  * - Doctrinal Alignment card dynamically pulls from theologyProfiles.ts
+ * - Multi-Age Support card dynamically pulls from ageGroups.ts
+ * - Stats banner pulls counts from all SSOT files
+ * - Card 4 summarizes platform capabilities from SSOT
  * - Shows all 10 Baptist theology profiles with tap/click popovers
+ * - Shows all age groups with tap/click popovers
  * - Uses Popover (not Tooltip) for mobile compatibility
  */
 
@@ -15,12 +19,29 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Sparkles, Users, BookOpen, Clock } from "lucide-react";
+import { Sparkles, Users, BookOpen, Settings2 } from "lucide-react";
 import { getTheologyProfileOptions } from "@/constants/theologyProfiles";
+import { AGE_GROUPS } from "@/constants/ageGroups";
+import { BIBLE_VERSIONS } from "@/constants/bibleVersions";
+import { getRequiredSections, getOptionalSections } from "@/constants/lessonStructure";
+import { 
+  TEACHING_STYLES, 
+  LESSON_LENGTHS, 
+  GROUP_SIZES,
+  LEARNING_ENVIRONMENTS 
+} from "@/constants/teacherPreferences";
 
 export function FeaturesSection() {
-  // SSOT: Get all theology profiles dynamically
+  // SSOT: Get all data dynamically
   const theologyProfiles = getTheologyProfileOptions();
+  const displayAgeGroups = AGE_GROUPS.filter(ag => ag.id !== 'mixed');
+  const bibleVersionCount = BIBLE_VERSIONS.length;
+  const lessonSectionCount = getRequiredSections().length;
+  const optionalSectionCount = getOptionalSections().length;
+  const teachingStyleCount = TEACHING_STYLES.length;
+  const lessonLengthCount = LESSON_LENGTHS.length;
+  const groupSizeCount = GROUP_SIZES.length;
+  const environmentCount = LEARNING_ENVIRONMENTS.length;
 
   const features = [
     {
@@ -33,31 +54,43 @@ export function FeaturesSection() {
     {
       icon: <Users className="h-6 w-6" />,
       title: "Multi-Age Support",
-      description: "Tailored content for Children, Youth, Adults, and Seniors with appropriate language and concepts.",
-      benefits: ["Age-specific tone", "Appropriate complexity", "Developmental focus"],
-      gradient: "bg-gradient-secondary"
+      description: `Tailored content for ${displayAgeGroups.length} specific age groups, each with customized vocabulary, activities, and teaching considerations.`,
+      benefits: [],
+      gradient: "bg-gradient-secondary",
+      isAgeGroups: true
     },
     {
       icon: <BookOpen className="h-6 w-6" />,
       title: "Doctrinal Alignment",
       description: `Choose from ${theologyProfiles.length} Baptist theological perspectives, each with specific guardrails to ensure doctrinally appropriate content.`,
-      benefits: [], // Rendered separately with tooltips
+      benefits: [],
       gradient: "bg-gradient-primary",
       isTheology: true
     },
     {
-      icon: <Clock className="h-6 w-6" />,
-      title: "Time-Saving Workflow",
-      description: "Transform hours of lesson prep into minutes while maintaining quality and biblical accuracy.",
-      benefits: ["Under 3 minutes", "Print-ready format", "Easy editing"],
-      gradient: "bg-gradient-secondary"
+      icon: <Settings2 className="h-6 w-6" />,
+      title: "Personalized to Your Class",
+      description: "Customize every aspect of your lesson to match how you teach and who you're teaching.",
+      benefits: [],
+      gradient: "bg-gradient-secondary",
+      isCapabilities: true
     }
+  ];
+
+  // SSOT: Capability stats for Card 4
+  const capabilityStats = [
+    { label: "Bible versions", count: bibleVersionCount },
+    { label: "lesson sections", count: lessonSectionCount },
+    { label: "teaching styles", count: teachingStyleCount },
+    { label: "lesson lengths", count: lessonLengthCount },
+    { label: "group sizes", count: groupSizeCount },
+    { label: "environments", count: environmentCount },
   ];
 
   return (
     <section className="py-8 sm:py-12 lg:py-12 bg-muted/30">
       <div className="container px-4 sm:px-6">
-        <div className="text-center space-y-3 sm:space-y-4 mb-8 sm:mb-10">
+        <div className="text-center space-y-3 sm:space-y-4 mb-6 sm:mb-8">
           <Badge variant="outline" className="px-3 py-1 text-xs sm:text-sm">
             Features
           </Badge>
@@ -69,6 +102,17 @@ export function FeaturesSection() {
             BibleLessonSpark equips any teacher to make every lesson specifically applicable to the class, 
             honoring God's Word and engaging every age group.
           </p>
+        </div>
+
+        {/* SSOT Stats Banner */}
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs sm:text-sm text-muted-foreground mb-6 sm:mb-8 px-4">
+          <span>{bibleVersionCount} Bible Versions</span>
+          <span className="hidden sm:inline">•</span>
+          <span>{lessonSectionCount} Lesson Sections</span>
+          <span className="hidden sm:inline">•</span>
+          <span>{displayAgeGroups.length} Age Groups</span>
+          <span className="hidden sm:inline">•</span>
+          <span>{theologyProfiles.length} Theology Profiles</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
@@ -92,7 +136,7 @@ export function FeaturesSection() {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-2 sm:pt-3">
                 {feature.isTheology ? (
-                  // SSOT: Theology profiles with tap/click popovers (works on mobile)
+                  // SSOT: Theology profiles with tap/click popovers
                   <ul className="flex flex-wrap gap-2">
                     {theologyProfiles.map((profile) => (
                       <Popover key={profile.id}>
@@ -113,6 +157,46 @@ export function FeaturesSection() {
                           <p className="text-xs text-muted-foreground leading-relaxed">{profile.summary}</p>
                         </PopoverContent>
                       </Popover>
+                    ))}
+                  </ul>
+                ) : feature.isAgeGroups ? (
+                  // SSOT: Age groups with tap/click popovers
+                  <ul className="flex flex-wrap gap-2">
+                    {displayAgeGroups.map((ageGroup) => (
+                      <Popover key={ageGroup.id}>
+                        <PopoverTrigger asChild>
+                          <li 
+                            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
+                          >
+                            <div className="h-1.5 w-1.5 rounded-full bg-secondary shrink-0" />
+                            <span>{ageGroup.label.split(' (')[0]}</span>
+                          </li>
+                        </PopoverTrigger>
+                        <PopoverContent 
+                          side="top" 
+                          className="w-72 sm:w-80 p-3"
+                          align="center"
+                        >
+                          <p className="font-semibold text-sm mb-1.5">{ageGroup.label}</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mb-2">{ageGroup.description}</p>
+                          <div className="text-xs text-muted-foreground/80">
+                            <span className="font-medium">Attention span:</span> ~{ageGroup.teachingProfile.attentionSpan} min
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    ))}
+                  </ul>
+                ) : feature.isCapabilities ? (
+                  // SSOT: Platform capabilities summary
+                  <ul className="flex flex-wrap gap-2">
+                    {capabilityStats.map((stat, idx) => (
+                      <li 
+                        key={idx} 
+                        className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-muted-foreground bg-muted/50 px-2 py-1 rounded-md"
+                      >
+                        <span className="font-semibold text-primary">{stat.count}</span>
+                        <span>{stat.label}</span>
+                      </li>
                     ))}
                   </ul>
                 ) : (
