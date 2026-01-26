@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 21, 2026 (Phase 20.13 - RLS Security & Transfer System Completion)
+**Last Updated:** January 25, 2026 (Phase 21 - Email Automation & Soft Launch)
 **Launch Date:** January 27, 2026
 
 ---
@@ -11,7 +11,7 @@
 |------|-------|
 | **Local URL** | http://localhost:8080 |
 | **Production URL** | https://biblelessonspark.com |
-| **Legacy URL** | https://lessonsparkusa.com |
+| **Legacy URL** | https://lessonsparkusa.com (redirects to production) |
 | **Branch** | biblelessonspark |
 | **Local Path** | C:\Users\Lynn\lesson-spark-usa |
 | **Supabase Project** | hphebzdftpjbiudpfcrs |
@@ -56,6 +56,68 @@
 
 ---
 
+## EMAIL INFRASTRUCTURE (Phase 21 - COMPLETE ✅)
+
+### Architecture
+```
+User Signup → Supabase Auth → Resend SMTP → Verification Email
+                                    ↓
+                          User Verifies Email
+                                    ↓
+                    (Future) Webhook → I-Mail → Drip Sequence
+```
+
+### Supabase Auth Email Settings
+| Setting | Value |
+|---------|-------|
+| Confirm email | ✅ Enabled |
+| Custom SMTP | ✅ Enabled |
+| Sender email | `support@biblelessonspark.com` |
+| Sender name | `BibleLessonSpark Support` |
+| Host | `smtp.resend.com` |
+| Port | `587` |
+| Username | `resend` |
+| Password | Resend API key (re_...) |
+
+### Resend Configuration
+| Item | Status |
+|------|--------|
+| Domain | `biblelessonspark.com` ✅ Verified |
+| API Key | Active |
+| SMTP Access | Enabled |
+
+### I-Mail Autoresponder (imail-cloud.com)
+| Setting | Value |
+|---------|-------|
+| SMTP Host | `smtp.resend.com` |
+| SMTP Port | `587` |
+| SMTP Username | `resend` |
+| SMTP Password | Resend API key |
+| From Email | `noreply@biblelessonspark.com` |
+| Reply-To | `support@biblelessonspark.com` |
+| Use TLS | Yes |
+
+### New User Onboarding Sequence (I-Mail)
+| Send Day | Subject | Purpose |
+|----------|---------|---------|
+| 0 | Your first BibleLessonSpark lesson is ready to teach! | Welcome + first lesson CTA |
+| 1 | A quick note about your free lessons | Free tier explanation (2 full + 3 short) |
+| 3 | Save 10 minutes every week (here's how) | Teacher Profiles feature |
+| 7 | Did you know? Your existing curriculum works here too | Curriculum Enhancement Mode |
+| 14 | Give your class a sneak peek this week | Student Teaser feature |
+| 21 | You prepare for your class. Who prepares your heart? | DevotionalSpark + upgrade CTA |
+| 30 | Is your whole teaching team ready? | Organization features |
+
+### Remaining Email Automation Work
+| Task | Status |
+|------|--------|
+| I-Mail SMTP configured | ✅ Complete |
+| 7-email sequence created | ✅ Complete |
+| Supabase → I-Mail webhook | ⬜ Not started |
+| Auto-add verified users to sequence | ⬜ Not started |
+
+---
+
 ## SSOT TIER CONFIG SYSTEM (Phase 20.8 - COMPLETE ✅)
 
 ### Architecture
@@ -75,6 +137,11 @@ API responses (no hardcoding)
 | free | 5 | [1,5,8] | false | 1 month |
 | personal | 20 | [1,2,3,4,5,6,7,8] | true | 1 month |
 | admin | 9999 | [1,2,3,4,5,6,7,8] | true | 1 month |
+
+### Free Tier Details (for user communication)
+- Lessons #1 & #2: Full 8-section lessons
+- Lessons #3, #4, #5: Streamlined 3-section lessons (brief background, teaching transcript, student handout)
+- Pattern resets every 30 days (forever free)
 
 ### Key Database Functions
 | Function | Purpose |
@@ -263,13 +330,19 @@ Ensures lesson variety by applying different stylistic approaches to each lesson
 | Save Profile UX | ✅ Moved to bottom of Step 3 |
 | Perpetual Freshness | ✅ Customization-aware |
 | Baptist Terminology Guardrails | ✅ Enforced in theology profiles |
+| Email Verification | ✅ Supabase "Confirm email" enabled |
+| Supabase SMTP | ✅ Configured for biblelessonspark.com via Resend |
+| Domain Redirect | ✅ lessonsparkusa.com → biblelessonspark.com |
+| I-Mail Autoresponder | ✅ SMTP configured, 7-email sequence built |
+| Beta Tester Communication | ✅ Soft launch email drafted |
 
 ### 🟡 CONFIGURATION ITEMS (Pre-Launch)
-| Item | Action |
-|------|--------|
-| Stripe Live Mode | Switch test keys to live in Supabase secrets |
-| Resend Domain | Verify `biblelessonspark.com` in Resend dashboard |
-| Show Pricing | Set to `true` in Admin Panel when ready |
+| Item | Action | Status |
+|------|--------|--------|
+| Stripe Live Mode | Switch test keys to live in Supabase secrets | ⬜ |
+| Resend Domain | Verify `biblelessonspark.com` in Resend dashboard | ✅ Verified |
+| Show Pricing | Set to `true` in Admin Panel when ready | ⬜ |
+| Supabase → I-Mail Webhook | Auto-add verified users to drip sequence | ⬜ Post-launch |
 
 ---
 
@@ -306,10 +379,40 @@ As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
 - ✅ Header shows logo + wordmark matching footer
 - ✅ Transfer request workflow for org member management
 - ✅ Admin Panel shows transfer queue in Organizations tab
+- ✅ Email verification on signup (Supabase → Resend SMTP)
+- ✅ Domain redirect from legacy URL
 
 ---
 
 ## COMPLETED PHASES
+
+### Phase 21 (Jan 25, 2026) - Email Automation & Soft Launch Preparation
+**Email Infrastructure Setup**
+- Configured I-Mail autoresponder with Resend SMTP (port 587)
+- Created "New Users" list in I-Mail
+- Built 7-email onboarding drip sequence
+- Verified Supabase email confirmation working with biblelessonspark.com domain
+- Updated Supabase SMTP port from 465 to 587
+
+**Onboarding Sequence Created**
+- Day 0: Welcome email with first lesson CTA
+- Day 1: Free tier explanation (2 full + 3 short lessons per 30 days)
+- Day 3: Teacher Profiles introduction
+- Day 7: Curriculum Enhancement Mode
+- Day 14: Student Teaser feature
+- Day 21: DevotionalSpark + upgrade invitation
+- Day 30: Organization features
+
+**Soft Launch Preparation**
+- Drafted beta tester announcement email (16 original testers)
+- Confirmed domain redirect from lessonsparkusa.com to biblelessonspark.com
+- Beta testers retain full access through end of February 2026
+
+**Affiliate/Sharing Materials**
+- Created comprehensive benefits inventory
+- Developed talking points for different contexts (verbal, text, email, social)
+- Built one-page reference sheet (HTML format for easy editing)
+- Key messaging: "90 seconds — sparks preparation with full lesson"
 
 ### Phase 20.13 (Jan 21, 2026) - RLS Security & Transfer System Completion
 - Enabled RLS on `tier_config` table with public SELECT policy
@@ -528,6 +631,12 @@ git push
 
 ## POST-LAUNCH ROADMAP
 
+### Priority: HIGH (Immediate Post-Launch)
+
+| Feature | Description | Estimated Effort |
+|---------|-------------|------------------|
+| Supabase → I-Mail Webhook | Auto-add verified users to drip sequence | 2-4 hours |
+
 ### Priority: LOW (Post-Launch Enhancements)
 
 | Feature | Description | Estimated Effort |
@@ -555,6 +664,27 @@ git push
 
 ---
 
+## BETA TESTER TRANSITION
+
+### Timeline
+| Date | Event |
+|------|-------|
+| Jan 25, 2026 | Soft launch announcement sent to 16 beta testers |
+| Jan 27, 2026 | Public launch |
+| Feb 28, 2026 | Beta tester full access ends |
+| Mar 1, 2026 | Beta testers transition to free tier or subscribe |
+
+### Beta Tester Benefits (through Feb 28)
+- 20 lessons per month
+- All 8 sections
+- Full feature access
+
+### Post-Transition Options
+- **Free tier**: 2 full lessons + 3 short lessons per 30 days (forever)
+- **Personal subscription**: $9/month or $90/year ($7.50/month)
+
+---
+
 ## SESSION HANDOFF NOTES
 
 **For next Claude instance:**
@@ -577,12 +707,20 @@ git push
 - Domain URLs (all Edge Functions use branding config)
 - Transfer Request Statuses (transferRequestConfig.ts)
 
+**Email Systems Status:**
+- Supabase Auth SMTP: ✅ Configured (port 587, Resend)
+- I-Mail Autoresponder: ✅ Configured (port 587, Resend)
+- 7-email drip sequence: ✅ Built in I-Mail
+- Webhook automation: ⬜ Not yet connected
+
 **Database Protections:**
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race conditions
 - RLS enabled on `tier_config` and `anonymous_parable_usage` tables
 
-**Launch Countdown:**
+**Launch Status:**
 - Launch Date: January 27, 2026
 - All code complete
-- Only configuration items remain (Stripe live keys, Resend domain, show_pricing toggle)
+- Email verification working
+- Domain redirect active
+- Beta testers notified
