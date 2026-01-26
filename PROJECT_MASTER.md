@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 26, 2026 (Phase 21.3 - Rolling 30-Day Reset Documentation)
+**Last Updated:** January 26, 2026 (Phase 21.4 - FeaturesSection SSOT Compliance)
 **Launch Date:** January 27, 2026
 
 ---
@@ -394,6 +394,23 @@ export const UI_SYMBOLS = {
 
 ## CHANGELOG
 
+### Phase 21.4 (Jan 26, 2026) - FeaturesSection SSOT Compliance
+**Landing page Features section now fully SSOT-compliant**
+
+**Dynamic Data Sources:**
+- Age groups from `ageGroups.ts` (10 displayed, excludes "Mixed")
+- Theology profiles from `theologyProfiles.ts` (10 profiles)
+- Bible versions from `bibleVersions.ts` (8 versions)
+- Lesson sections from `lessonStructure.ts` (8 sections)
+- Teacher customizations from `teacherPreferences.ts` (6 teaching styles, 6 lesson lengths, 5 group sizes, 6 environments)
+
+**UX Improvements:**
+- All feature badges now HOVER-activated (HoverCard) instead of click
+- "Personalized to Your Class" card shows capability counts with hover details
+- Founder quote banner replaces stats banner
+
+**Component:** `src/components/landing/FeaturesSection.tsx`
+
 ### Phase 21.3 (Jan 26, 2026) - Rolling 30-Day Reset Documentation
 - Clarified reset logic: Rolling 30-day periods (not calendar month)
 - Updated `trialConfig.ts` with `resetPeriod: 'rolling30'` and `resetIntervalDays: 30`
@@ -494,6 +511,8 @@ src/
 │   ├── organization/
 │   │   ├── TransferRequestForm.tsx     # Org Manager creates transfer
 │   │   └── TransferRequestQueue.tsx    # Admin reviews transfers
+│   ├── landing/
+│   │   └── FeaturesSection.tsx         # SSOT: Ages, Theology, Versions, Sections, Preferences
 ├── config/
 │   ├── branding.ts                  # SSOT: All brand colors
 │   └── brand-values.json            # SSOT: Colors/typography JSON
@@ -676,6 +695,7 @@ git push
 - Transfer Request Statuses (transferRequestConfig.ts)
 - Email Sequence Templates (database-driven, Admin Panel editable)
 - Reset Logic (rolling 30-day, documented in trialConfig.ts)
+- FeaturesSection (dynamic from 5 SSOT files, hover-activated)
 
 **Email Automation Status (All Complete ✅):**
 - Database tables: `email_sequence_templates`, `email_sequence_tracking`
