@@ -10,7 +10,6 @@ const corsHeaders = {
 const BRAND = {
   primaryGreen: "#3D5C3D",
   primaryGreenLight: "#4A6F4A",
-  gold: "#D4A74B",
   cream: "#FFFEF9",
   darkText: "#1a1a1a",
   mutedText: "#666666",
@@ -19,69 +18,88 @@ const BRAND = {
 
 // Convert plain text to HTML with proper formatting
 function textToHtml(text: string): string {
-  // Escape HTML entities
-  let html = text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-
-  // Convert URLs to styled buttons or links
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  html = html.replace(urlRegex, (url) => {
-    // Clean up URL (remove trailing punctuation)
-    const cleanUrl = url.replace(/[.,;:!?)]+$/, "");
-    const trailingChars = url.slice(cleanUrl.length);
+  // Split into lines for processing
+  const lines = text.split('\n');
+  const htmlLines: string[] = [];
+  let inList = false;
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
     
-    // Determine if this should be a button (main CTAs) or inline link
-    const isMainCta = cleanUrl.includes("/pricing") || 
-                      cleanUrl.includes("/lesson-generator") ||
-                      cleanUrl.includes("/preferences") ||
-                      (cleanUrl === "https://biblelessonspark.com/" || cleanUrl === "https://biblelessonspark.com");
-    
-    if (isMainCta) {
-      // Styled button for main CTAs
-      return `</p>
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px auto;">
-          <tr>
-            <td style="border-radius: 8px; background: ${BRAND.primaryGreen};">
-              <a href="${cleanUrl}" target="_blank" style="background: ${BRAND.primaryGreen}; border: 1px solid ${BRAND.primaryGreen}; font-family: 'Georgia', serif; font-size: 16px; line-height: 1.5; text-decoration: none; padding: 14px 28px; color: #ffffff; border-radius: 8px; display: inline-block; font-weight: bold;">
-                ${getButtonText(cleanUrl)}
-              </a>
-            </td>
-          </tr>
-        </table>
-        <p style="margin: 0 0 16px 0; line-height: 1.7; color: ${BRAND.darkText};">${trailingChars}`;
-    } else {
-      // Inline link for secondary links
-      return `<a href="${cleanUrl}" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">${cleanUrl}</a>${trailingChars}`;
+    // Skip empty lines but track for paragraph breaks
+    if (line === '') {
+      if (inList) {
+        htmlLines.push('</ul>');
+        inList = false;
+      }
+      continue;
     }
-  });
-
-  // Convert bullet points (• or -)
-  html = html.replace(/^[•\-]\s+(.+)$/gm, `<li style="margin-bottom: 8px; color: ${BRAND.darkText};">$1</li>`);
+    
+    // Escape HTML entities
+    line = line
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    
+    // Check if this is a bullet point
+    const bulletMatch = line.match(/^[•\-]\s+(.+)$/);
+    if (bulletMatch) {
+      if (!inList) {
+        htmlLines.push(`<ul style="margin: 12px 0; padding-left: 24px;">`);
+        inList = true;
+      }
+      htmlLines.push(`<li style="margin-bottom: 6px; color: ${BRAND.darkText};">${bulletMatch[1]}</li>`);
+      continue;
+    }
+    
+    // Close list if we were in one
+    if (inList) {
+      htmlLines.push('</ul>');
+      inList = false;
+    }
+    
+    // Check if line contains a main CTA URL (should become button)
+    const urlMatch = line.match(/^(https?:\/\/[^\s]+)$/);
+    if (urlMatch) {
+      const url = urlMatch[1].replace(/[.,;:!?)]+$/, "");
+      const isMainCta = url.includes("/pricing") || 
+                        url.includes("/lesson-generator") ||
+                        url.includes("/preferences") ||
+                        url === "https://biblelessonspark.com/" || 
+                        url === "https://biblelessonspark.com";
+      
+      if (isMainCta) {
+        htmlLines.push(`
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px 0;">
+  <tr>
+    <td style="border-radius: 6px; background: ${BRAND.primaryGreen};">
+      <a href="${url}" target="_blank" style="background: ${BRAND.primaryGreen}; font-family: Georgia, serif; font-size: 15px; text-decoration: none; padding: 12px 24px; color: #ffffff; border-radius: 6px; display: inline-block; font-weight: bold;">
+        ${getButtonText(url)}
+      </a>
+    </td>
+  </tr>
+</table>`);
+        continue;
+      }
+    }
+    
+    // Convert inline URLs to links
+    line = line.replace(/(https?:\/\/[^\s]+)/g, (url) => {
+      const cleanUrl = url.replace(/[.,;:!?)]+$/, "");
+      const trailing = url.slice(cleanUrl.length);
+      return `<a href="${cleanUrl}" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">${cleanUrl}</a>${trailing}`;
+    });
+    
+    // Regular paragraph
+    htmlLines.push(`<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText};">${line}</p>`);
+  }
   
-  // Wrap consecutive <li> items in <ul>
-  html = html.replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, (match) => {
-    return `<ul style="margin: 16px 0; padding-left: 24px; color: ${BRAND.darkText};">${match}</ul>`;
-  });
-
-  // Convert numbered lists (1. 2. 3.)
-  html = html.replace(/^\d+\.\s+(.+)$/gm, `<li style="margin-bottom: 8px; color: ${BRAND.darkText};">$1</li>`);
-
-  // Convert double line breaks to paragraph breaks
-  html = html.replace(/\n\n+/g, `</p><p style="margin: 0 0 16px 0; line-height: 1.7; color: ${BRAND.darkText};">`);
+  // Close any open list
+  if (inList) {
+    htmlLines.push('</ul>');
+  }
   
-  // Convert single line breaks to <br>
-  html = html.replace(/\n/g, "<br>");
-
-  // Wrap in paragraph tags
-  html = `<p style="margin: 0 0 16px 0; line-height: 1.7; color: ${BRAND.darkText};">${html}</p>`;
-
-  // Clean up empty paragraphs
-  html = html.replace(/<p[^>]*>\s*<\/p>/g, "");
-  html = html.replace(/<p[^>]*><br><\/p>/g, "");
-
-  return html;
+  return htmlLines.join('\n');
 }
 
 // Get appropriate button text based on URL
@@ -102,67 +120,41 @@ function generateHtmlEmail(subject: string, bodyHtml: string): string {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>${subject}</title>
-  <!--[if mso]>
-  <style type="text/css">
-    table { border-collapse: collapse; }
-    .fallback-font { font-family: Arial, sans-serif; }
-  </style>
-  <![endif]-->
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Georgia, 'Times New Roman', serif;">
-  <!-- Email wrapper -->
   <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4;">
     <tr>
-      <td style="padding: 24px 16px;">
-        <!-- Main container -->
-        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; max-width: 600px; background-color: ${BRAND.cream}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+      <td style="padding: 20px 16px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; max-width: 600px; background-color: ${BRAND.cream}; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);">
           
           <!-- Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, ${BRAND.primaryGreen} 0%, ${BRAND.primaryGreenLight} 100%); padding: 32px 40px; text-align: center;">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td style="text-align: center;">
-                    <!-- Logo placeholder - using text for email compatibility -->
-                    <h1 style="margin: 0; font-family: Georgia, serif; font-size: 28px; font-weight: bold; color: #ffffff; letter-spacing: 0.5px;">
-                      ✦ BibleLessonSpark
-                    </h1>
-                    <p style="margin: 8px 0 0 0; font-family: Georgia, serif; font-size: 14px; color: rgba(255,255,255,0.9); font-style: italic;">
-                      Personalized Bible Studies in Minutes
-                    </p>
-                  </td>
-                </tr>
-              </table>
+            <td style="background: linear-gradient(135deg, ${BRAND.primaryGreen} 0%, ${BRAND.primaryGreenLight} 100%); padding: 24px 32px; text-align: center;">
+              <h1 style="margin: 0; font-family: Georgia, serif; font-size: 24px; font-weight: bold; color: #ffffff;">
+                ✦ BibleLessonSpark
+              </h1>
+              <p style="margin: 6px 0 0 0; font-family: Georgia, serif; font-size: 13px; color: rgba(255,255,255,0.9); font-style: italic;">
+                Personalized Bible Studies in Minutes
+              </p>
             </td>
           </tr>
           
           <!-- Body Content -->
           <tr>
-            <td style="padding: 40px; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.7; color: ${BRAND.darkText};">
+            <td style="padding: 28px 32px; font-family: Georgia, 'Times New Roman', serif; font-size: 15px; line-height: 1.6; color: ${BRAND.darkText};">
               ${bodyHtml}
             </td>
           </tr>
           
           <!-- Footer -->
           <tr>
-            <td style="background-color: #f8f8f6; padding: 32px 40px; border-top: 1px solid ${BRAND.borderColor};">
-              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
-                <tr>
-                  <td style="text-align: center;">
-                    <p style="margin: 0 0 12px 0; font-family: Georgia, serif; font-size: 14px; color: ${BRAND.mutedText};">
-                      <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> — AI-powered lesson preparation for Baptist teachers
-                    </p>
-                    <p style="margin: 0 0 12px 0; font-family: Georgia, serif; font-size: 13px; color: ${BRAND.mutedText};">
-                      Questions? Reply to this email or visit 
-                      <a href="https://biblelessonspark.com/help" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">our help center</a>
-                    </p>
-                    <p style="margin: 0; font-family: Georgia, serif; font-size: 12px; color: #999999;">
-                      © ${new Date().getFullYear()} BibleLessonSpark. All rights reserved.<br>
-                      <a href="https://biblelessonspark.com" style="color: #999999; text-decoration: none;">biblelessonspark.com</a>
-                    </p>
-                  </td>
-                </tr>
-              </table>
+            <td style="background-color: #f8f8f6; padding: 20px 32px; border-top: 1px solid ${BRAND.borderColor};">
+              <p style="margin: 0 0 8px 0; font-family: Georgia, serif; font-size: 13px; color: ${BRAND.mutedText}; text-align: center;">
+                <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> — AI-powered lesson preparation for Baptist teachers
+              </p>
+              <p style="margin: 0; font-family: Georgia, serif; font-size: 11px; color: #999999; text-align: center;">
+                © ${new Date().getFullYear()} BibleLessonSpark • <a href="https://biblelessonspark.com" style="color: #999999;">biblelessonspark.com</a>
+              </p>
             </td>
           </tr>
           
@@ -175,7 +167,6 @@ function generateHtmlEmail(subject: string, bodyHtml: string): string {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -187,7 +178,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get email templates from database
     const { data: templates, error: templatesError } = await supabase
       .from("email_sequence_templates")
       .select("*")
@@ -195,13 +185,9 @@ serve(async (req) => {
       .eq("is_active", true)
       .order("sequence_order", { ascending: true });
 
-    if (templatesError) {
-      console.error("Error fetching templates:", templatesError);
-      throw templatesError;
-    }
+    if (templatesError) throw templatesError;
 
     if (!templates || templates.length === 0) {
-      console.error("No email templates found");
       return new Response(
         JSON.stringify({ success: false, error: "No email templates configured" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
@@ -210,64 +196,43 @@ serve(async (req) => {
 
     console.log(`Loaded ${templates.length} email templates`);
 
-    // Get all users who haven't unsubscribed and haven't completed sequence
     const { data: users, error: fetchError } = await supabase
       .from("email_sequence_tracking")
       .select("*")
       .eq("unsubscribed", false)
       .lt("last_email_sent", templates.length);
 
-    if (fetchError) {
-      console.error("Error fetching users:", fetchError);
-      throw fetchError;
-    }
+    if (fetchError) throw fetchError;
 
     console.log(`Found ${users?.length || 0} users to process`);
 
-    const results = {
-      processed: 0,
-      emailsSent: 0,
-      errors: [] as string[],
-    };
+    const results = { processed: 0, emailsSent: 0, errors: [] as string[] };
 
     for (const user of users || []) {
       const daysSinceStart = Math.floor(
         (Date.now() - new Date(user.sequence_started_at).getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // Find the next email to send (last_email_sent is 0-indexed count of emails sent)
       const nextEmailIndex = user.last_email_sent;
       const nextTemplate = templates[nextEmailIndex];
 
-      if (!nextTemplate) {
-        // User has received all emails
-        continue;
-      }
+      if (!nextTemplate) continue;
 
-      // Check if it's time to send this email
       if (daysSinceStart >= nextTemplate.send_day) {
-        // Check if we already sent an email today (prevent duplicates)
         if (user.last_email_sent_at) {
           const lastSentDate = new Date(user.last_email_sent_at).toDateString();
           const todayDate = new Date().toDateString();
-          if (lastSentDate === todayDate && nextEmailIndex > 0) {
-            // Already sent an email today (except for welcome email which should send immediately)
-            continue;
-          }
+          if (lastSentDate === todayDate && nextEmailIndex > 0) continue;
         }
 
-        // Personalize the email body
         const personalizedBody = nextTemplate.body
           .replace(/\{name\}/g, user.full_name || "Friend")
           .replace(/\{email\}/g, user.email);
 
-        // Convert to HTML based on is_html flag
         let bodyHtml: string;
         if (nextTemplate.is_html) {
-          // Body is already HTML, use as-is
           bodyHtml = personalizedBody;
         } else {
-          // Convert plain text to HTML
           bodyHtml = textToHtml(personalizedBody);
         }
         
@@ -286,18 +251,16 @@ serve(async (req) => {
               to: [user.email],
               subject: nextTemplate.subject,
               html: htmlEmail,
-              text: personalizedBody.replace(/<[^>]*>/g, ''), // Strip HTML for plain text fallback
+              text: personalizedBody.replace(/<[^>]*>/g, ''),
             }),
           });
 
           if (!resendResponse.ok) {
             const errorText = await resendResponse.text();
-            console.error(`Resend error for ${user.email}:`, errorText);
             results.errors.push(`${user.email}: ${errorText}`);
             continue;
           }
 
-          // Update tracking record
           const { error: updateError } = await supabase
             .from("email_sequence_tracking")
             .update({
@@ -307,14 +270,12 @@ serve(async (req) => {
             .eq("id", user.id);
 
           if (updateError) {
-            console.error(`Error updating tracking for ${user.email}:`, updateError);
             results.errors.push(`${user.email}: tracking update failed`);
           } else {
             results.emailsSent++;
-            console.log(`Sent email ${nextEmailIndex + 1} ("${nextTemplate.subject}") to ${user.email}`);
+            console.log(`Sent email ${nextEmailIndex + 1} to ${user.email}`);
           }
         } catch (sendError) {
-          console.error(`Error sending to ${user.email}:`, sendError);
           results.errors.push(`${user.email}: ${sendError.message}`);
         }
       }
@@ -323,24 +284,14 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Processed ${results.processed} users, sent ${results.emailsSent} emails`,
-        results,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
+      JSON.stringify({ success: true, message: `Processed ${results.processed} users, sent ${results.emailsSent} emails`, results }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
-    console.error("Error in send-sequence-email:", error);
+    console.error("Error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });
