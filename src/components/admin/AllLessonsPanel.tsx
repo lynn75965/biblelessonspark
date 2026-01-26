@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,11 @@ import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CON
  *   default_doctrine, description, status, etc.
  *
  * NOTE: No FK between lessons.user_id and profiles.id - must use two queries
+ * 
+ * SCRIPTURE EXTRACTION (January 26, 2026):
+ * - SSOT: User-provided filters.bible_passage is authoritative
+ * - Fallback: Extract "Primary Scripture" from AI-generated Section 2
+ * - Display "Topical" if neither exists
  */
 
 // Extended type for admin view with organization join
@@ -155,8 +160,23 @@ export function AllLessonsPanel() {
 
   // Helper functions using VERIFIED JSONB keys
   const getScripture = (lesson: AdminLessonView): string => {
-    // Actual key is filters.bible_passage
-    return lesson.filters?.bible_passage || 'N/A';
+    // SSOT: User-provided passage is authoritative
+    if (lesson.filters?.bible_passage) {
+      return lesson.filters.bible_passage;
+    }
+    
+    // Fallback: Extract from AI-generated content (Section 2: "Primary Scripture")
+    if (lesson.original_text) {
+      // Match "Primary Scripture:" followed by the reference
+      const match = lesson.original_text.match(/Primary Scripture[:\s]*([^\n]+)/i);
+      if (match && match[1]) {
+        // Clean up: remove markdown bold markers and extra whitespace
+        return match[1].trim().replace(/\*\*/g, '').trim();
+      }
+    }
+    
+    // No scripture found - this is a topical lesson
+    return 'Topical';
   };
 
   const getAgeGroup = (lesson: AdminLessonView): string => {
