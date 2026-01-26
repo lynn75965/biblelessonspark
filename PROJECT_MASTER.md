@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 25, 2026 (Phase 21 - Email Automation & Soft Launch)
+**Last Updated:** January 26, 2026 (Phase 21.2 - Native Email Automation Complete)
 **Launch Date:** January 27, 2026
 
 ---
@@ -56,16 +56,186 @@
 
 ---
 
-## EMAIL INFRASTRUCTURE (Phase 21 - COMPLETE ✅)
+## EMAIL AUTOMATION SYSTEM (Phase 21.2 - COMPLETE ✅)
 
-### Architecture
+### Architecture Overview
 ```
-User Signup → Supabase Auth → Resend SMTP → Verification Email
-                                    ↓
-                          User Verifies Email
-                                    ↓
-                    (Future) Webhook → I-Mail → Drip Sequence
+User Signs Up → Supabase Auth → Resend SMTP → Verification Email
+                                      ↓
+                            User Verifies Email
+                                      ↓
+                      Database Trigger (on_email_verified)
+                                      ↓
+                      Adds user to email_sequence_tracking
+                                      ↓
+                      Hourly Cron Job (pg_cron)
+                                      ↓
+                      send-sequence-email Edge Function
+                                      ↓
+                      Resend API → Branded HTML Email
 ```
+
+### Key Decision: Native Supabase vs I-Mail
+Initially planned to use I-Mail autoresponder, but pivoted to **native Supabase solution** because:
+- Full control over email templates and timing
+- No external webhook dependency
+- Admin Panel integration for template editing
+- Database-driven = SSOT compliant
+
+### Database Tables
+
+#### email_sequence_templates
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| tenant_id | text | Multi-tenant support (default: 'default') |
+| sequence_order | integer | Email position (1-7) |
+| send_day | integer | Days after signup to send (0, 1, 3, 7, 14, 21, 30) |
+| subject | text | Email subject line |
+| body | text | Email content (plain text or HTML) |
+| is_active | boolean | Enable/disable individual emails |
+| is_html | boolean | true = raw HTML, false = auto-convert plain text |
+| created_at | timestamp | Record creation |
+| updated_at | timestamp | Last modification |
+
+#### email_sequence_tracking
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| user_id | uuid | References auth.users |
+| email | text | User's email address |
+| full_name | text | User's display name |
+| sequence_started_at | timestamp | When user verified email |
+| last_email_sent | integer | Count of emails sent (0-7) |
+| last_email_sent_at | timestamp | When last email was sent |
+| unsubscribed | boolean | Opt-out flag |
+| created_at | timestamp | Record creation |
+
+### Database Trigger: on_email_verified
+```sql
+-- Fires when user confirms email (email_confirmed_at changes from NULL)
+-- Adds user to email_sequence_tracking automatically
+CREATE TRIGGER on_email_verified
+AFTER UPDATE ON auth.users
+FOR EACH ROW
+WHEN (OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL)
+EXECUTE FUNCTION handle_email_verified();
+```
+
+### Cron Job (pg_cron)
+```sql
+-- Runs hourly to process email queue
+SELECT cron.schedule(
+  'send-sequence-emails',
+  '0 * * * *',  -- Every hour at minute 0
+  $$SELECT net.http_post(
+    url := 'https://hphebzdftpjbiudpfcrs.supabase.co/functions/v1/send-sequence-email',
+    headers := '{"Authorization": "Bearer [SERVICE_ROLE_KEY]"}'::jsonb
+  )$$
+);
+```
+
+### Edge Function: send-sequence-email
+
+**Location:** `supabase/functions/send-sequence-email/index.ts`
+
+**Features:**
+- Reads templates from `email_sequence_templates` table
+- Checks `email_sequence_tracking` for users needing emails
+- Converts plain text to HTML with smart formatting:
+  - URLs on their own line → styled green buttons
+  - Lines starting with `-` or `•` → bullet lists
+  - Double line breaks → paragraph spacing
+- If `is_html=true`, uses body content as-is (wrapped in template)
+- Branded header/footer added automatically
+- Personalization: `{name}` and `{email}` variables
+- Sends via Resend API
+- Updates tracking record after successful send
+
+**HTML Email Template Structure:**
+```
+┌─────────────────────────────────────────┐
+│  ✦ BibleLessonSpark (green header)      │
+│  Personalized Bible Studies in Minutes  │
+├─────────────────────────────────────────┤
+│                                         │
+│  [Email body content - Georgia font]    │
+│                                         │
+│  [Green CTA button if URL present]      │
+│                                         │
+├─────────────────────────────────────────┤
+│  Footer: Help link, copyright           │
+└─────────────────────────────────────────┘
+```
+
+**Brand Colors Used:**
+- Header gradient: #3D5C3D → #4A6F4A (Forest Green)
+- Background: #FFFEF9 (Cream)
+- Button: #3D5C3D (Forest Green)
+- Text: #1a1a1a (Dark)
+- Font: Georgia, serif
+
+### 7-Email Onboarding Sequence
+
+| # | Day | Subject | Purpose |
+|---|-----|---------|---------|
+| 1 | 0 | Let's get a BibleLessonSpark lesson ready to teach! | Welcome + first lesson CTA |
+| 2 | 1 | A quick note about your free lessons | Free tier explanation |
+| 3 | 3 | Save 10 minutes every week (here's how) | Teacher Profiles feature |
+| 4 | 7 | Did you know? Your existing curriculum works here too | Curriculum Enhancement Mode |
+| 5 | 14 | Give your class a sneak peek this week | Student Teaser feature |
+| 6 | 21 | You prepare for your class. Who prepares your heart? | DevotionalSpark + upgrade |
+| 7 | 30 | Is your whole teaching team ready? | Organization features |
+
+### Admin Panel: Email Sequences Tab
+
+**Location:** Admin Panel → Email Sequences
+
+**Features:**
+- View all 7 email templates in collapsible cards
+- Edit subject line, body content, send day
+- Toggle Active/Inactive per email
+- Toggle Plain Text / Rich Text mode
+- **Rich Text Editor** (ReactQuill) with toolbar:
+  - Bold, Italic, Underline
+  - Headers (H1, H2, H3)
+  - Bullet lists, Numbered lists
+  - Links
+  - Text alignment
+- **Preview button** - Shows exact email appearance in modal
+- Add new emails to sequence
+- Delete emails from sequence
+
+**Component:** `src/components/admin/EmailSequenceManager.tsx`
+- Uses Supabase generated types (SSOT compliant)
+- ReactQuill for rich text editing
+- Converts Quill HTML to email-safe inline styles
+
+### Testing the Email System
+
+**Manual Test (Admin Panel):**
+1. Go to Admin Panel → Email Sequences
+2. Click "Test Edge Function" button
+3. Check Supabase logs for results
+
+**Add Test User to Sequence:**
+```sql
+INSERT INTO email_sequence_tracking (user_id, email, full_name, sequence_started_at)
+VALUES ('user-uuid-here', 'test@example.com', 'Test User', now());
+```
+
+**Check Sequence Status:**
+```sql
+SELECT * FROM email_sequence_tracking ORDER BY created_at DESC;
+```
+
+### Resend Configuration
+| Item | Value |
+|------|-------|
+| Domain | `biblelessonspark.com` ✅ Verified |
+| API Key | Stored in Supabase secrets as `RESEND_API_KEY` |
+| From Email | `noreply@biblelessonspark.com` |
+| Reply-To | `support@biblelessonspark.com` |
 
 ### Supabase Auth Email Settings
 | Setting | Value |
@@ -77,44 +247,7 @@ User Signup → Supabase Auth → Resend SMTP → Verification Email
 | Host | `smtp.resend.com` |
 | Port | `587` |
 | Username | `resend` |
-| Password | Resend API key (re_...) |
-
-### Resend Configuration
-| Item | Status |
-|------|--------|
-| Domain | `biblelessonspark.com` ✅ Verified |
-| API Key | Active |
-| SMTP Access | Enabled |
-
-### I-Mail Autoresponder (imail-cloud.com)
-| Setting | Value |
-|---------|-------|
-| SMTP Host | `smtp.resend.com` |
-| SMTP Port | `587` |
-| SMTP Username | `resend` |
-| SMTP Password | Resend API key |
-| From Email | `noreply@biblelessonspark.com` |
-| Reply-To | `support@biblelessonspark.com` |
-| Use TLS | Yes |
-
-### New User Onboarding Sequence (I-Mail)
-| Send Day | Subject | Purpose |
-|----------|---------|---------|
-| 0 | Your first BibleLessonSpark lesson is ready to teach! | Welcome + first lesson CTA |
-| 1 | A quick note about your free lessons | Free tier explanation (2 full + 3 short) |
-| 3 | Save 10 minutes every week (here's how) | Teacher Profiles feature |
-| 7 | Did you know? Your existing curriculum works here too | Curriculum Enhancement Mode |
-| 14 | Give your class a sneak peek this week | Student Teaser feature |
-| 21 | You prepare for your class. Who prepares your heart? | DevotionalSpark + upgrade CTA |
-| 30 | Is your whole teaching team ready? | Organization features |
-
-### Remaining Email Automation Work
-| Task | Status |
-|------|--------|
-| I-Mail SMTP configured | ✅ Complete |
-| 7-email sequence created | ✅ Complete |
-| Supabase → I-Mail webhook | ⬜ Not started |
-| Auto-add verified users to sequence | ⬜ Not started |
+| Password | Resend API key |
 
 ---
 
@@ -224,281 +357,51 @@ export const UI_SYMBOLS = {
 ### Helper Functions
 - `joinWithBullet(items)` - Join array with bullet separator
 - `formatNoneOption()` - Returns "— None —"
-- `formatLoading()` - Returns "Loading…"
 
 ---
 
-## SSOT COLOR SYSTEM (Phase 20.6 - 100% COMPLETE ✅)
+## CHANGELOG
 
-### Architecture
-```
-branding.ts (SSOT - HEX colors)
-    ↓ hexToHsl() converter
-    ↓ generateTailwindCSSVariables()
-    ↓
-BrandingProvider.tsx (runtime injection)
-    ↓ <style id="biblelessonspark-brand-variables">
-    ↓
-CSS Variables (--primary, --secondary, etc.)
-    ↓
-Tailwind classes (bg-primary, text-secondary)
-    ↓
-Components
-```
+### Phase 21.2 (Jan 26, 2026) - Rich Text Email Editor + SSOT Compliance
+- Added ReactQuill rich text editor to Admin Panel Email Sequences
+- Toolbar: Bold, Italic, Underline, Headers, Lists, Links, Alignment
+- Preview button shows exact email appearance
+- Component now uses Supabase generated types (SSOT compliant)
+- Added `is_html` column to `email_sequence_templates` table
+- Plain text mode auto-converts to HTML; HTML mode uses content as-is
 
-### BibleLessonSpark Brand Colors
-| Color | HEX | HSL | Usage |
-|-------|-----|-----|-------|
-| Forest Green | `#3D5C3D` | `120 20% 30%` | Primary - buttons, links, headers |
-| Antique Gold | `#D4A74B` | `43 62% 56%` | Secondary - accents, badges |
-| Burgundy | `#661A33` | `342 60% 25%` | Destructive - errors, warnings |
-| Warm Cream | `#FFFEF9` | `50 100% 99%` | Background |
-| Deep Gold | `#C9A754` | `43 50% 56%` | Accent |
+### Phase 21.1 (Jan 26, 2026) - Native Email Automation System
+**Major pivot from I-Mail to native Supabase solution**
 
-### CSS Debugging Protocol
-When colors appear wrong, run in browser DevTools Console:
-```javascript
-getComputedStyle(document.documentElement).getPropertyValue('--primary')
-// Expected: "120 20% 30%" (Forest Green)
-```
+**Database:**
+- Created `email_sequence_templates` table (7 default templates)
+- Created `email_sequence_tracking` table
+- Created `on_email_verified` trigger (auto-adds verified users)
+- Created hourly cron job via pg_cron
 
----
+**Edge Function:**
+- Created `send-sequence-email` Edge Function
+- Branded HTML email template (Forest Green header, Georgia font)
+- Smart plain text → HTML conversion
+- URL detection: main CTAs → buttons, secondary → inline links
+- Personalization: `{name}` and `{email}` variables
+- Plain text fallback for non-HTML email clients
 
-## TIER ENFORCEMENT SYSTEM (ACTIVE ✅)
+**Admin Panel:**
+- Added "Email Sequences" tab
+- View/edit all 7 templates
+- Toggle Active/Inactive
+- Add/delete templates
+- Test Edge Function button
 
-### Behavior Matrix
-| Platform Mode | User Tier | Sections Generated |
-|---------------|-----------|-------------------|
-| Beta | Any | All 8 sections |
-| Production | Free | Sections 1, 5, 8 (3 sections) |
-| Production | Personal | All 8 sections |
-| Production | Admin | All 8 sections |
+### Phase 21 (Jan 25, 2026) - Email Strategy & I-Mail Setup
+- Drafted 7-email onboarding sequence content
+- Configured I-Mail autoresponder with Resend SMTP
+- Decided to pivot to native solution (Phase 21.1)
 
-### Implementation Location
-- `supabase/functions/generate-lesson/index.ts` - Filters sections based on tier
-- `tier_config` table - SSOT for tier limits (synced via `npm run sync-tier-config`)
-- `check_lesson_limit()` function - Reads from `tier_config` (no hardcoding)
-
----
-
-## PERPETUAL FRESHNESS SYSTEM (Phase 20.11 - COMPLETE ✅)
-
-### Purpose
-Ensures lesson variety by applying different stylistic approaches to each lesson.
-
-### Features
-- **Freshness Mode Selection**: System selects from variety of lesson styles
-- **Teaser Freshness**: Separate freshness mode for student teasers
-- **Customization-Aware**: Skips freshness on elements teacher already specified
-- **Baptist Terminology Guardrails**: Enforces proper terminology (ordinance vs sacrament)
-- **Comprehensive Logging**: Tracks which modes selected, what was skipped
-
-### Key Files
-- `EnhanceLessonForm.tsx` - Transmits freshness mode to API
-- `generate-lesson/index.ts` - Applies freshness with guardrails
-
----
-
-## RLS SECURITY (Phase 20.13 - COMPLETE ✅)
-
-### Tables with RLS Enabled
-| Table | Policy | Notes |
-|-------|--------|-------|
-| `tier_config` | SELECT for all | Non-sensitive reference data |
-| `anonymous_parable_usage` | SELECT + INSERT for anon | Warning for WITH CHECK(true) is acceptable |
-| All other tables | Standard RLS | Per Supabase Security Advisor |
-
----
-
-## JANUARY 27, 2026 LAUNCH STATUS
-
-### ✅ COMPLETE - Ready for Launch
-| Item | Status |
-|------|--------|
-| SSOT Color System | ✅ 100% compliant |
-| SSOT Email Branding | ✅ BibleLessonSpark emails |
-| SSOT UI Symbols | ✅ UTF-8 safe |
-| SSOT Tier Config | ✅ Database reads from tier_config |
-| Tier Enforcement | ✅ Active in Production mode |
-| Duplicate Subscription Prevention | ✅ UNIQUE constraint + ON CONFLICT |
-| Organization Invitations | ✅ Fixed infinite loop, email verification |
-| Domain SSOT Compliance | ✅ All Edge Functions use branding config |
-| Transfer Request System | ✅ Complete workflow |
-| RLS Security | ✅ All tables secured |
-| Platform Mode | ✅ Production |
-| Header Logo + Wordmark | ✅ Matches footer |
-| Save Profile UX | ✅ Moved to bottom of Step 3 |
-| Perpetual Freshness | ✅ Customization-aware |
-| Baptist Terminology Guardrails | ✅ Enforced in theology profiles |
-| Email Verification | ✅ Supabase "Confirm email" enabled |
-| Supabase SMTP | ✅ Configured for biblelessonspark.com via Resend |
-| Domain Redirect | ✅ lessonsparkusa.com → biblelessonspark.com |
-| I-Mail Autoresponder | ✅ SMTP configured, 7-email sequence built |
-| Beta Tester Communication | ✅ Soft launch email drafted |
-
-### 🟡 CONFIGURATION ITEMS (Pre-Launch)
-| Item | Action | Status |
-|------|--------|--------|
-| Stripe Live Mode | Switch test keys to live in Supabase secrets | ⬜ |
-| Resend Domain | Verify `biblelessonspark.com` in Resend dashboard | ✅ Verified |
-| Show Pricing | Set to `true` in Admin Panel when ready | ⬜ |
-| Supabase → I-Mail Webhook | Auto-add verified users to drip sequence | ⬜ Post-launch |
-
----
-
-## CURRENT PLATFORM STATE
-
-### Platform Mode: PRODUCTION
-As of January 10, 2026, BibleLessonSpark is in **Production Mode**.
-
-| Setting | Value |
-|---------|-------|
-| `system_settings.current_phase` | `production` |
-| `system_settings.show_join_beta_button` | `false` |
-| `feedback_questions.feedback_mode` | `production` |
-| `feedbackConfig.ts CURRENT_FEEDBACK_MODE` | `production` |
-
-### What Users See (Production Mode)
-| Element | Value |
-|---------|-------|
-| Landing page badge | "Personalized Bible Studies Built In 3 Minutes" |
-| Landing page CTA button | "Get Started" |
-| Landing page trust text | "Trusted by Baptist teachers across the country" |
-| "Join Beta" button | Hidden |
-| Feedback modal title | "Share Your Feedback" |
-| Community page CTA | "Ready to Transform Your Lesson Prep?" |
-
-### What's Working
-- ✅ Accordion-style 3-step lesson creation
-- ✅ 8-section lesson generation (all users during Beta)
-- ✅ Tier-based section filtering in Production mode
-- ✅ Bible version copyright attribution in all exports (PDF, DOCX, Copy, Print)
-- ✅ Legacy lesson formatting normalization (## headers → **bold:**)
-- ✅ Organization invitations with BibleLessonSpark branding
-- ✅ Save Profile button at bottom of Step 3 with clear explanation
-- ✅ Header shows logo + wordmark matching footer
-- ✅ Transfer request workflow for org member management
-- ✅ Admin Panel shows transfer queue in Organizations tab
-- ✅ Email verification on signup (Supabase → Resend SMTP)
-- ✅ Domain redirect from legacy URL
-
----
-
-## COMPLETED PHASES
-
-### Phase 21 (Jan 25, 2026) - Email Automation & Soft Launch Preparation
-**Email Infrastructure Setup**
-- Configured I-Mail autoresponder with Resend SMTP (port 587)
-- Created "New Users" list in I-Mail
-- Built 7-email onboarding drip sequence
-- Verified Supabase email confirmation working with biblelessonspark.com domain
-- Updated Supabase SMTP port from 465 to 587
-
-**Onboarding Sequence Created**
-- Day 0: Welcome email with first lesson CTA
-- Day 1: Free tier explanation (2 full + 3 short lessons per 30 days)
-- Day 3: Teacher Profiles introduction
-- Day 7: Curriculum Enhancement Mode
-- Day 14: Student Teaser feature
-- Day 21: DevotionalSpark + upgrade invitation
-- Day 30: Organization features
-
-**Soft Launch Preparation**
-- Drafted beta tester announcement email (16 original testers)
-- Confirmed domain redirect from lessonsparkusa.com to biblelessonspark.com
-- Beta testers retain full access through end of February 2026
-
-**Affiliate/Sharing Materials**
-- Created comprehensive benefits inventory
-- Developed talking points for different contexts (verbal, text, email, social)
-- Built one-page reference sheet (HTML format for easy editing)
-- Key messaging: "90 seconds — sparks preparation with full lesson"
-
-### Phase 20.13 (Jan 21, 2026) - RLS Security & Transfer System Completion
-- Enabled RLS on `tier_config` table with public SELECT policy
-- Enabled RLS on `anonymous_parable_usage` table with anon SELECT + INSERT
-- Fixed "Failed to load transfer requests" toast error (simplified query)
-- Fixed destination org dropdown showing empty (changed `"active"` to `"approved"` status filter)
-- Added TransferRequestQueue to Admin Panel → Organizations tab
-- Confirmed attestation model for launch (offline teacher agreement)
-
-### Phase 20.12 (Jan 20, 2026) - Organization Invitation Bugs & Domain SSOT
-**Organization Invitation Infinite Loop Fix**
-- Issue: 6,000+ requests to invites endpoint causing page crash
-- Root cause: `toast` in useEffect dependency array changing on every render
-- Fix: Removed toast from dependency array, added proper cleanup
-
-**Email Verification Bypass for Invites**
-- Issue: Invited users forced through email verification after signup
-- Fix: Created `confirm-invite-email` Edge Function using Supabase admin API
-- Result: Invited users go directly to dashboard after signup
-
-**Session Management Fix**
-- Issue: Supabase not maintaining session after signup with email confirmation
-- Fix: Immediate sign-in for invited users after account creation
-
-**Domain SSOT Compliance**
-- Issue: Edge Functions using `SITE_URL` environment variable instead of branding config
-- Fixed 5 Edge Functions to use `getBaseUrl(branding)`:
-  - `send-invite`
-  - `create-checkout-session`
-  - `create-portal-session`
-  - `send-focus-notification`
-  - `send-auth-email`
-- All URLs now correctly point to `biblelessonspark.com`
-
-**Admin Panel Shared Focus Tab**
-- Issue: Shared Focus tab showing blank in Admin Panel org detail view
-- Fix: Wired OrgSharedFocusPanel component to OrgDetailView
-
-**Transfer Request System Implementation**
-- Created `transferRequestConfig.ts` SSOT for status definitions
-- Created `transfer_requests` database table with RLS policies
-- Built `TransferRequestForm.tsx` for Org Managers
-- Built `TransferRequestQueue.tsx` for Admin review
-- Integrated into OrgMemberManagement and Admin Panel
-
-### Phase 20.11 (Jan 18-19, 2026) - Perpetual Freshness System
-- Implemented freshness mode transmission to API
-- Added teaser freshness selection
-- Implemented customization-aware skipping (respects teacher preferences)
-- Added Baptist terminology guardrails
-- Comprehensive logging for debugging
-
-### Phase 20.10 (Jan 17, 2026) - Export Formatting & Post-Launch Roadmap
-- Fixed DOCX export spacing issues
-- Fixed markdown symbols displaying in exports
-- Created post-launch feature roadmap
-
-### Phase 20.9 (Jan 16, 2026) - SSOT Deployment & Feedback Config
-**Feedback Auto-Popup Fix**
-- Issue: Feedback modal popping up on every export action (annoying UX)
-- Root cause: `onExport` callback unconditionally triggered modal
-- Fix: Added `autoPopupOnExport` flag to `FEEDBACK_TRIGGER` in `feedbackConfig.ts`
-- SSOT compliance: `autoPopupOnExport` derived from `CURRENT_FEEDBACK_MODE`
-  - Beta mode = true (auto-popup enabled)
-  - Production mode = false (no auto-popup, rely on "Give Feedback" button)
-
-**SSOT Deployment Script (deploy.ps1)**
-- Issue: Commits pushed to wrong branch (`main` vs `biblelessonspark`)
-- Fix: Created `deploy.ps1` script that:
-  - Defines production branch once (`$PRODUCTION_BRANCH = "biblelessonspark"`)
-  - Validates current branch before push
-  - Single command deployment: `.\deploy.ps1 "commit message"`
-- Prevents deployment errors from branch mismatch
-
-### Phase 20.8 (Jan 15, 2026) - Tier Config SSOT & UX Improvements
-**Bug Fix: Duplicate Subscription Records**
-- Diagnosed usage count mismatch (Emily showed 2/5 but only 1 lesson existed)
-- Found 4 users with duplicate subscription records
-- Root cause: Race condition in `check_lesson_limit` creating duplicates
-- Fix: Added UNIQUE constraint on `user_subscriptions.user_id`
-- Fix: Updated `check_lesson_limit` to use `ON CONFLICT DO NOTHING`
-
-**SSOT Tier Config System**
+### Phase 20.8 (Jan 16, 2026) - SSOT Tier Config System
 - Created `tier_config` database table
-- Updated `check_lesson_limit` function to read from `tier_config`
-- Created `scripts/sync-tier-config-to-db.cjs`
+- `check_lesson_limit()` now reads from database
 - Added `npm run sync-tier-config` command
 
 **UX Improvements**
@@ -547,7 +450,8 @@ src/
 │   │   └── TeacherCustomization.tsx # Save Profile at bottom (Step 3)
 │   ├── admin/
 │   │   ├── OrganizationManagement.tsx  # Includes TransferRequestQueue
-│   │   └── OrgDetailView.tsx           # Includes Shared Focus tab
+│   │   ├── OrgDetailView.tsx           # Includes Shared Focus tab
+│   │   └── EmailSequenceManager.tsx    # Rich text email editor
 │   ├── organization/
 │   │   ├── TransferRequestForm.tsx     # Org Manager creates transfer
 │   │   └── TransferRequestQueue.tsx    # Admin reviews transfers
@@ -570,6 +474,8 @@ supabase/functions/
 │   └── index.ts                     # Auto-confirms email for invited users
 ├── send-invite/
 │   └── index.ts                     # Uses SSOT branding (biblelessonspark.com)
+├── send-sequence-email/
+│   └── index.ts                     # Automated onboarding emails
 ├── _shared/
 │   ├── branding.ts                  # getBranding() helper
 │   ├── uiSymbols.ts                 # Backend mirror
@@ -593,6 +499,8 @@ user_subscriptions                   # User's current tier + usage (UNIQUE on us
 transfer_requests                    # Org member transfer workflow
 anonymous_parable_usage              # DevotionalSpark usage tracking (RLS: anon SELECT/INSERT)
 branding_config                      # SSOT branding for edge functions
+email_sequence_templates             # Onboarding email content (7 emails)
+email_sequence_tracking              # User progress through email sequence
 ```
 
 ---
@@ -621,6 +529,12 @@ npm run sync-tier-config
 # Deploy all edge functions
 npx supabase functions deploy
 
+# Deploy specific edge function
+npx supabase functions deploy send-sequence-email
+
+# Regenerate Supabase types (after schema changes)
+npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts
+
 # Git commit and push
 git add -A
 git commit -m "message"
@@ -630,12 +544,6 @@ git push
 ---
 
 ## POST-LAUNCH ROADMAP
-
-### Priority: HIGH (Immediate Post-Launch)
-
-| Feature | Description | Estimated Effort |
-|---------|-------------|------------------|
-| Supabase → I-Mail Webhook | Auto-add verified users to drip sequence | 2-4 hours |
 
 ### Priority: LOW (Post-Launch Enhancements)
 
@@ -647,6 +555,7 @@ git push
 | Series/Theme Mode | Sequential lesson planning across multiple weeks | 12-16 hours |
 | Email/Text Lesson Delivery | Send lessons and teasers via email/SMS | 6-8 hours |
 | White-Label Personalized Footer | Custom footer text for enterprise tenants | 2-3 hours |
+| Email Unsubscribe Link | Add one-click unsubscribe to automated emails | 2-3 hours |
 
 ### Export Formatting Admin Panel (Details)
 **Purpose:** Allow admin to adjust Print/DOCX/PDF formatting without code deployments
@@ -698,6 +607,7 @@ git push
 - `npm run sync-branding` - Syncs branding to database
 - `npm run sync-tier-config` - Syncs tier limits to database
 - `npm run sync-constants` - Syncs constants to edge functions
+- `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types after schema changes
 
 **SSOT Systems Status (All Complete ✅):**
 - Color System (100% compliant - Forest Green #3D5C3D)
@@ -706,21 +616,28 @@ git push
 - Tier Config (database reads from tier_config table)
 - Domain URLs (all Edge Functions use branding config)
 - Transfer Request Statuses (transferRequestConfig.ts)
+- Email Sequence Templates (database-driven, Admin Panel editable)
 
-**Email Systems Status:**
-- Supabase Auth SMTP: ✅ Configured (port 587, Resend)
-- I-Mail Autoresponder: ✅ Configured (port 587, Resend)
-- 7-email drip sequence: ✅ Built in I-Mail
-- Webhook automation: ⬜ Not yet connected
+**Email Automation Status (All Complete ✅):**
+- Database tables: `email_sequence_templates`, `email_sequence_tracking`
+- Trigger: `on_email_verified` auto-adds users
+- Cron: Hourly job invokes Edge Function
+- Edge Function: `send-sequence-email` sends branded HTML
+- Admin Panel: Rich text editor with preview
+- 7-email sequence loaded and active
 
 **Database Protections:**
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race conditions
 - RLS enabled on `tier_config` and `anonymous_parable_usage` tables
 
+**Dependencies Added (Jan 26, 2026):**
+- `react-quill` - Rich text editor for email templates
+
 **Launch Status:**
 - Launch Date: January 27, 2026
-- All code complete
-- Email verification working
-- Domain redirect active
-- Beta testers notified
+- All code complete ✅
+- Email verification working ✅
+- Email automation working ✅
+- Domain redirect active ✅
+- Beta testers notified ✅
