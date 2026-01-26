@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 26, 2026 (Phase 21.2 - Native Email Automation Complete)
+**Last Updated:** January 26, 2026 (Phase 21.3 - Rolling 30-Day Reset Documentation)
 **Launch Date:** January 27, 2026
 
 ---
@@ -17,6 +17,7 @@
 | **Supabase Project** | hphebzdftpjbiudpfcrs |
 | **Platform Mode** | Production (as of Jan 10, 2026) |
 | **Launch Date** | January 27, 2026 |
+| **Reset Logic** | Rolling 30-day periods (per-user, not calendar month) |
 
 ---
 
@@ -37,7 +38,7 @@
 | `src/constants/theologyProfiles.ts` | 10 Baptist theological traditions |
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
 | `src/constants/pricingConfig.ts` | Tier sections, limits (MASTER for tier_config) |
-| `src/constants/trialConfig.ts` | Trial system configuration |
+| `src/constants/trialConfig.ts` | Trial system configuration (rolling 30-day) |
 | `src/constants/tenantConfig.ts` | White-label tenant configuration |
 | `src/constants/feedbackConfig.ts` | Feedback mode (beta/production), auto-popup config |
 | `src/constants/systemSettings.ts` | Platform mode helpers |
@@ -267,14 +268,45 @@ API responses (no hardcoding)
 ### Database Table: tier_config
 | tier | lessons_limit | sections_allowed | includes_teaser | reset_interval |
 |------|---------------|------------------|-----------------|----------------|
-| free | 5 | [1,5,8] | false | 1 month |
-| personal | 20 | [1,2,3,4,5,6,7,8] | true | 1 month |
-| admin | 9999 | [1,2,3,4,5,6,7,8] | true | 1 month |
+| free | 5 | [1,5,8] | false | 30 days |
+| personal | 20 | [1,2,3,4,5,6,7,8] | true | 30 days |
+| admin | 9999 | [1,2,3,4,5,6,7,8] | true | 30 days |
+
+### Reset Logic: Rolling 30-Day Periods ⚠️ IMPORTANT
+- **NOT calendar month** - Each user's period is individual
+- **Free users**: 30-day period starts from email verification date
+- **Subscribers**: 30-day period starts from subscription date (aligns with Stripe billing)
+- **Reset trigger**: When `reset_date` passes, `lessons_used` resets to 0 and new `reset_date` = NOW() + 30 days
+- **Perpetual**: Free tier never expires - continues rolling forever
+
+### How Reset Works (Database Function)
+```sql
+-- When reset_date has passed:
+UPDATE user_subscriptions
+SET lessons_used = 0,
+    reset_date = NOW() + INTERVAL '30 days'
+WHERE user_id = p_user_id;
+```
 
 ### Free Tier Details (for user communication)
-- Lessons #1 & #2: Full 8-section lessons
-- Lessons #3, #4, #5: Streamlined 3-section lessons (brief background, teaching transcript, student handout)
-- Pattern resets every 30 days (forever free)
+- **Lessons #1 & #2**: Full 8-section lessons
+- **Lessons #3, #4, #5**: Streamlined 3-section lessons (Lens + Overview, Teaching Transcript, Student Handout)
+- **Reset**: Every 30 days from signup (rolling, not calendar month)
+- **Duration**: Perpetual (forever free - no expiration)
+
+### Personal Tier Details
+- **20 lessons per 30-day period**: All 8 sections
+- **Includes**: Student Teaser feature
+- **Reset**: Every 30 days from subscription date (aligns with Stripe billing cycle)
+
+### User Communication: Free Tier Value Proposition
+```
+✓ 2 complete Bible study lessons every 30 days (all 8 sections)
+✓ 3 additional streamlined lessons (core teaching content)
+✓ Resets automatically every 30 days from your signup
+✓ No credit card required - free forever
+✓ Upgrade anytime for unlimited full lessons
+```
 
 ### Key Database Functions
 | Function | Purpose |
@@ -361,6 +393,13 @@ export const UI_SYMBOLS = {
 ---
 
 ## CHANGELOG
+
+### Phase 21.3 (Jan 26, 2026) - Rolling 30-Day Reset Documentation
+- Clarified reset logic: Rolling 30-day periods (not calendar month)
+- Updated `trialConfig.ts` with `resetPeriod: 'rolling30'` and `resetIntervalDays: 30`
+- Updated user-facing messages to reflect rolling reset
+- Added helper functions: `getDaysUntilReset()`, `getNextTrialResetFormatted(userResetDate)`
+- Database function `check_lesson_limit` already implemented rolling logic correctly
 
 ### Phase 21.2 (Jan 26, 2026) - Rich Text Email Editor + SSOT Compliance
 - Added ReactQuill rich text editor to Admin Panel Email Sequences
@@ -460,6 +499,7 @@ src/
 │   └── brand-values.json            # SSOT: Colors/typography JSON
 ├── constants/
 │   ├── pricingConfig.ts             # TIER_SECTIONS, TIER_LIMITS (MASTER)
+│   ├── trialConfig.ts               # Trial/reset configuration (rolling 30-day)
 │   ├── uiSymbols.ts                 # UI symbols (UTF-8 safe)
 │   ├── transferRequestConfig.ts     # Transfer request status SSOT
 │   └── [other SSOT files]
@@ -495,7 +535,7 @@ deploy.ps1                           # SSOT deployment script (root directory)
 ### Database Tables
 ```
 tier_config                          # SSOT for tier limits/sections (RLS: SELECT all)
-user_subscriptions                   # User's current tier + usage (UNIQUE on user_id)
+user_subscriptions                   # User's current tier + usage + reset_date (UNIQUE on user_id)
 transfer_requests                    # Org member transfer workflow
 anonymous_parable_usage              # DevotionalSpark usage tracking (RLS: anon SELECT/INSERT)
 branding_config                      # SSOT branding for edge functions
@@ -584,13 +624,24 @@ git push
 | Mar 1, 2026 | Beta testers transition to free tier or subscribe |
 
 ### Beta Tester Benefits (through Feb 28)
-- 20 lessons per month
+- 20 lessons per 30-day period
 - All 8 sections
 - Full feature access
 
 ### Post-Transition Options
-- **Free tier**: 2 full lessons + 3 short lessons per 30 days (forever)
-- **Personal subscription**: $9/month or $90/year ($7.50/month)
+| Tier | Lessons | Sections | Reset | Cost |
+|------|---------|----------|-------|------|
+| **Free** | 5 per period (2 full + 3 partial) | 8 for first 2, then 1/5/8 | Rolling 30 days | Forever free |
+| **Personal** | 20 per period | All 8 | Rolling 30 days | $9/month or $90/year |
+
+### User Communication: Free Tier Value Proposition
+```
+✓ 2 complete Bible study lessons every 30 days (all 8 sections)
+✓ 3 additional streamlined lessons (core teaching content)
+✓ Resets automatically every 30 days from your signup
+✓ No credit card required - free forever
+✓ Upgrade anytime for unlimited full lessons
+```
 
 ---
 
@@ -609,6 +660,13 @@ git push
 - `npm run sync-constants` - Syncs constants to edge functions
 - `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types after schema changes
 
+**Reset Logic (Important for Support):**
+- All tiers use **rolling 30-day periods** (not calendar month)
+- Each user's `reset_date` is stored in `user_subscriptions` table
+- Free user period starts from email verification
+- Subscriber period starts from subscription date (matches Stripe billing)
+- To check a user's reset date: `SELECT reset_date FROM user_subscriptions WHERE user_id = '[uuid]'`
+
 **SSOT Systems Status (All Complete ✅):**
 - Color System (100% compliant - Forest Green #3D5C3D)
 - Email Branding (BibleLessonSpark)
@@ -617,6 +675,7 @@ git push
 - Domain URLs (all Edge Functions use branding config)
 - Transfer Request Statuses (transferRequestConfig.ts)
 - Email Sequence Templates (database-driven, Admin Panel editable)
+- Reset Logic (rolling 30-day, documented in trialConfig.ts)
 
 **Email Automation Status (All Complete ✅):**
 - Database tables: `email_sequence_templates`, `email_sequence_tracking`
@@ -641,3 +700,4 @@ git push
 - Email automation working ✅
 - Domain redirect active ✅
 - Beta testers notified ✅
+- Rolling 30-day reset documented ✅
