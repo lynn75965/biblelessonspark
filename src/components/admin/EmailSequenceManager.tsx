@@ -7,7 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Save, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, ChevronDown, ChevronUp, Code, FileText, Eye } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface EmailTemplate {
   id: string;
@@ -17,8 +23,127 @@ interface EmailTemplate {
   subject: string;
   body: string;
   is_active: boolean;
+  is_html: boolean;
   created_at: string;
   updated_at: string;
+}
+
+// Brand colors for preview
+const BRAND = {
+  primaryGreen: "#3D5C3D",
+  primaryGreenLight: "#4A6F4A",
+  gold: "#D4A74B",
+  cream: "#FFFEF9",
+  darkText: "#1a1a1a",
+  mutedText: "#666666",
+  borderColor: "#e5e5e5",
+};
+
+// Generate preview HTML (same logic as Edge Function)
+function generatePreviewHtml(subject: string, body: string, isHtml: boolean): string {
+  let bodyHtml = body;
+  
+  if (!isHtml) {
+    // Convert plain text to HTML
+    bodyHtml = body
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    // Convert URLs to links
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    bodyHtml = bodyHtml.replace(urlRegex, (url) => {
+      const cleanUrl = url.replace(/[.,;:!?)]+$/, "");
+      const trailingChars = url.slice(cleanUrl.length);
+      const isMainCta = cleanUrl.includes("/pricing") || 
+                        cleanUrl.includes("/lesson-generator") ||
+                        cleanUrl.includes("/preferences") ||
+                        (cleanUrl === "https://biblelessonspark.com/" || cleanUrl === "https://biblelessonspark.com");
+      
+      if (isMainCta) {
+        let buttonText = "Get Started →";
+        if (cleanUrl.includes("/pricing")) buttonText = "View Pricing Plans →";
+        if (cleanUrl.includes("/lesson-generator")) buttonText = "Create Your Lesson →";
+        if (cleanUrl.includes("/preferences")) buttonText = "Set Up Your Profile →";
+        
+        return `</p>
+          <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px auto;">
+            <tr>
+              <td style="border-radius: 8px; background: ${BRAND.primaryGreen};">
+                <a href="${cleanUrl}" target="_blank" style="background: ${BRAND.primaryGreen}; border: 1px solid ${BRAND.primaryGreen}; font-family: 'Georgia', serif; font-size: 16px; line-height: 1.5; text-decoration: none; padding: 14px 28px; color: #ffffff; border-radius: 8px; display: inline-block; font-weight: bold;">
+                  ${buttonText}
+                </a>
+              </td>
+            </tr>
+          </table>
+          <p style="margin: 0 0 16px 0; line-height: 1.7; color: ${BRAND.darkText};">${trailingChars}`;
+      } else {
+        return `<a href="${cleanUrl}" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">${cleanUrl}</a>${trailingChars}`;
+      }
+    });
+
+    // Convert bullet points
+    bodyHtml = bodyHtml.replace(/^[•\-]\s+(.+)$/gm, `<li style="margin-bottom: 8px; color: ${BRAND.darkText};">$1</li>`);
+    bodyHtml = bodyHtml.replace(/(<li[^>]*>.*?<\/li>\n?)+/gs, (match) => {
+      return `<ul style="margin: 16px 0; padding-left: 24px; color: ${BRAND.darkText};">${match}</ul>`;
+    });
+
+    // Convert paragraphs
+    bodyHtml = bodyHtml.replace(/\n\n+/g, `</p><p style="margin: 0 0 16px 0; line-height: 1.7; color: ${BRAND.darkText};">`);
+    bodyHtml = bodyHtml.replace(/\n/g, "<br>");
+    bodyHtml = `<p style="margin: 0 0 16px 0; line-height: 1.7; color: ${BRAND.darkText};">${bodyHtml}</p>`;
+    bodyHtml = bodyHtml.replace(/<p[^>]*>\s*<\/p>/g, "");
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Georgia, 'Times New Roman', serif;">
+  <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f4f4;">
+    <tr>
+      <td style="padding: 24px 16px;">
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="margin: 0 auto; max-width: 600px; background-color: ${BRAND.cream}; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <tr>
+            <td style="background: linear-gradient(135deg, ${BRAND.primaryGreen} 0%, ${BRAND.primaryGreenLight} 100%); padding: 32px 40px; text-align: center;">
+              <h1 style="margin: 0; font-family: Georgia, serif; font-size: 28px; font-weight: bold; color: #ffffff; letter-spacing: 0.5px;">
+                ✦ BibleLessonSpark
+              </h1>
+              <p style="margin: 8px 0 0 0; font-family: Georgia, serif; font-size: 14px; color: rgba(255,255,255,0.9); font-style: italic;">
+                Personalized Bible Studies in Minutes
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px; font-family: Georgia, 'Times New Roman', serif; font-size: 16px; line-height: 1.7; color: ${BRAND.darkText};">
+              ${bodyHtml}
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8f8f6; padding: 32px 40px; border-top: 1px solid ${BRAND.borderColor};">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td style="text-align: center;">
+                    <p style="margin: 0 0 12px 0; font-family: Georgia, serif; font-size: 14px; color: ${BRAND.mutedText};">
+                      <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> — AI-powered lesson preparation for Baptist teachers
+                    </p>
+                    <p style="margin: 0; font-family: Georgia, serif; font-size: 12px; color: #999999;">
+                      © ${new Date().getFullYear()} BibleLessonSpark. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 export function EmailSequenceManager() {
@@ -26,6 +151,8 @@ export function EmailSequenceManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [previewHtml, setPreviewHtml] = useState<string>('');
+  const [previewOpen, setPreviewOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -47,7 +174,12 @@ export function EmailSequenceManager() {
         variant: 'destructive',
       });
     } else {
-      setTemplates(data || []);
+      // Ensure is_html has a default value
+      const templatesWithDefaults = (data || []).map(t => ({
+        ...t,
+        is_html: t.is_html ?? false
+      }));
+      setTemplates(templatesWithDefaults);
     }
     setLoading(false);
   };
@@ -61,6 +193,7 @@ export function EmailSequenceManager() {
         subject: template.subject,
         body: template.body,
         is_active: template.is_active,
+        is_html: template.is_html,
         updated_at: new Date().toISOString(),
       })
       .eq('id', template.id);
@@ -100,6 +233,7 @@ export function EmailSequenceManager() {
         subject: 'New Email Subject',
         body: 'Dear Friend,\n\nYour email content here.\n\nGrace and peace,\nThe BibleLessonSpark Team',
         is_active: true,
+        is_html: false,
       })
       .select()
       .single();
@@ -111,7 +245,7 @@ export function EmailSequenceManager() {
         variant: 'destructive',
       });
     } else if (data) {
-      setTemplates([...templates, data]);
+      setTemplates([...templates, { ...data, is_html: data.is_html ?? false }]);
       setExpandedId(data.id);
       toast({
         title: 'Template added',
@@ -149,6 +283,12 @@ export function EmailSequenceManager() {
     setExpandedId(expandedId === id ? null : id);
   };
 
+  const handlePreview = (template: EmailTemplate) => {
+    const html = generatePreviewHtml(template.subject, template.body, template.is_html);
+    setPreviewHtml(html);
+    setPreviewOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -172,10 +312,27 @@ export function EmailSequenceManager() {
         </Button>
       </div>
 
-      <div className="text-sm text-muted-foreground bg-muted/50 p-4 rounded-lg">
-        <strong>Personalization variables:</strong> Use <code className="bg-muted px-1 rounded">{'{name}'}</code> for the user's name 
-        and <code className="bg-muted px-1 rounded">{'{email}'}</code> for their email address.
+      <div className="text-sm bg-muted/50 p-4 rounded-lg space-y-2">
+        <p><strong>Personalization:</strong> Use <code className="bg-muted px-1 rounded">{'{name}'}</code> for user's name, <code className="bg-muted px-1 rounded">{'{email}'}</code> for their email.</p>
+        <p><strong>Plain Text Mode:</strong> URLs automatically become styled buttons. Use • or - for bullet lists.</p>
+        <p><strong>HTML Mode:</strong> Full control over formatting. You write the HTML for the body content (header/footer added automatically).</p>
       </div>
+
+      {/* Preview Dialog */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Email Preview</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto border rounded-lg bg-gray-100">
+            <iframe
+              srcDoc={previewHtml}
+              className="w-full h-[600px] border-0"
+              title="Email Preview"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-4">
         {templates.map((template) => (
@@ -190,7 +347,12 @@ export function EmailSequenceManager() {
                     {template.sequence_order}
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{template.subject}</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {template.subject}
+                      {template.is_html && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">HTML</span>
+                      )}
+                    </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Day {template.send_day} • {template.is_active ? 'Active' : 'Inactive'}
                     </p>
@@ -206,7 +368,7 @@ export function EmailSequenceManager() {
 
             {expandedId === template.id && (
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor={`day-${template.id}`}>Send on Day</Label>
                     <Input
@@ -229,6 +391,19 @@ export function EmailSequenceManager() {
                     />
                     <Label htmlFor={`active-${template.id}`}>Active</Label>
                   </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <Switch
+                      id={`html-${template.id}`}
+                      checked={template.is_html}
+                      onCheckedChange={(checked) =>
+                        handleFieldChange(template.id, 'is_html', checked)
+                      }
+                    />
+                    <Label htmlFor={`html-${template.id}`} className="flex items-center gap-1">
+                      {template.is_html ? <Code className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                      {template.is_html ? 'HTML Mode' : 'Plain Text'}
+                    </Label>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -243,16 +418,38 @@ export function EmailSequenceManager() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor={`body-${template.id}`}>Email Body</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={`body-${template.id}`}>
+                      {template.is_html ? 'Email Body (HTML)' : 'Email Body (Plain Text)'}
+                    </Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePreview(template)}
+                      className="gap-1"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Preview
+                    </Button>
+                  </div>
                   <Textarea
                     id={`body-${template.id}`}
                     value={template.body}
                     onChange={(e) =>
                       handleFieldChange(template.id, 'body', e.target.value)
                     }
-                    rows={15}
-                    className="font-mono text-sm"
+                    rows={18}
+                    className={`font-mono text-sm ${template.is_html ? 'bg-slate-50' : ''}`}
+                    placeholder={template.is_html 
+                      ? '<p style="margin: 0 0 16px 0;">Your HTML content here...</p>'
+                      : 'Dear Friend,\n\nYour plain text content here...'
+                    }
                   />
+                  {template.is_html && (
+                    <p className="text-xs text-muted-foreground">
+                      Write only the body content HTML. The branded header and footer are added automatically.
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex justify-between pt-4">
