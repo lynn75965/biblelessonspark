@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import type { Database } from '@/integrations/supabase/types';
 
 type EmailTemplate = Database['public']['Tables']['email_sequence_templates']['Row'];
@@ -28,16 +30,87 @@ const BRAND = {
   borderColor: "#e5e5e5",
 };
 
-// Get button text based on URL
-function getButtonText(url: string): string {
-  if (url.includes("/pricing")) return "View Pricing Plans →";
-  if (url.includes("/lesson-generator")) return "Create Your Lesson →";
-  if (url.includes("/preferences")) return "Set Up Your Profile →";
-  if (url.includes("/help")) return "Get Help →";
-  return "Get Started →";
+// Quill editor toolbar configuration
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    ['link'],
+    [{ 'align': [] }],
+    ['clean']
+  ],
+};
+
+const quillFormats = [
+  'header',
+  'bold', 'italic', 'underline',
+  'list', 'bullet',
+  'link',
+  'align'
+];
+
+// Custom styles for Quill to match email styling
+const quillStyles = `
+  .email-editor .ql-container {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 15px;
+    min-height: 300px;
+  }
+  .email-editor .ql-editor {
+    min-height: 300px;
+    line-height: 1.6;
+  }
+  .email-editor .ql-editor p {
+    margin-bottom: 12px;
+  }
+  .email-editor .ql-editor ul, .email-editor .ql-editor ol {
+    margin-bottom: 12px;
+    padding-left: 24px;
+  }
+  .email-editor .ql-editor li {
+    margin-bottom: 6px;
+  }
+  .email-editor .ql-editor a {
+    color: #3D5C3D;
+  }
+`;
+
+// Convert Quill HTML to email-safe HTML
+function convertToEmailHtml(quillHtml: string): string {
+  let html = quillHtml;
+  
+  // Add inline styles to paragraphs
+  html = html.replace(/<p>/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText};">`);
+  html = html.replace(/<p class="ql-align-center">/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: center;">`);
+  html = html.replace(/<p class="ql-align-right">/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: right;">`);
+  
+  // Style lists
+  html = html.replace(/<ul>/g, `<ul style="margin: 0 0 12px 0; padding-left: 24px;">`);
+  html = html.replace(/<ol>/g, `<ol style="margin: 0 0 12px 0; padding-left: 24px;">`);
+  html = html.replace(/<li>/g, `<li style="margin-bottom: 6px; color: ${BRAND.darkText};">`);
+  html = html.replace(/<li class="ql-indent-1">/g, `<li style="margin-bottom: 6px; margin-left: 24px; color: ${BRAND.darkText};">`);
+  
+  // Style links
+  html = html.replace(/<a /g, `<a style="color: ${BRAND.primaryGreen}; text-decoration: underline;" `);
+  
+  // Style bold/italic
+  html = html.replace(/<strong>/g, `<strong style="font-weight: bold;">`);
+  html = html.replace(/<em>/g, `<em style="font-style: italic;">`);
+  
+  // Style headers
+  html = html.replace(/<h1>/g, `<h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold; color: ${BRAND.darkText};">`);
+  html = html.replace(/<h2>/g, `<h2 style="margin: 0 0 14px 0; font-size: 20px; font-weight: bold; color: ${BRAND.darkText};">`);
+  html = html.replace(/<h3>/g, `<h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND.darkText};">`);
+  
+  // Remove empty paragraphs
+  html = html.replace(/<p[^>]*><br><\/p>/g, '');
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
+  
+  return html;
 }
 
-// Convert plain text to HTML (matches Edge Function exactly)
+// Convert plain text to HTML (for plain text mode)
 function textToHtml(text: string): string {
   const lines = text.split('\n');
   const htmlLines: string[] = [];
@@ -84,12 +157,16 @@ function textToHtml(text: string): string {
                         url === "https://biblelessonspark.com";
       
       if (isMainCta) {
+        let buttonText = "Get Started →";
+        if (url.includes("/pricing")) buttonText = "View Pricing Plans →";
+        if (url.includes("/lesson-generator")) buttonText = "Create Your Lesson →";
+        
         htmlLines.push(`
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px 0;">
   <tr>
     <td style="border-radius: 6px; background: ${BRAND.primaryGreen};">
       <a href="${url}" target="_blank" style="background: ${BRAND.primaryGreen}; font-family: Georgia, serif; font-size: 15px; text-decoration: none; padding: 12px 24px; color: #ffffff; border-radius: 6px; display: inline-block; font-weight: bold;">
-        ${getButtonText(url)}
+        ${buttonText}
       </a>
     </td>
   </tr>
@@ -116,7 +193,7 @@ function textToHtml(text: string): string {
 
 // Generate preview HTML
 function generatePreviewHtml(subject: string, body: string, isHtml: boolean): string {
-  const bodyHtml = isHtml ? body : textToHtml(body);
+  const bodyHtml = isHtml ? convertToEmailHtml(body) : textToHtml(body);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -176,6 +253,17 @@ export function EmailSequenceManager() {
     fetchTemplates();
   }, []);
 
+  // Inject custom Quill styles
+  useEffect(() => {
+    const styleId = 'email-editor-styles';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = quillStyles;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   const fetchTemplates = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -230,9 +318,9 @@ export function EmailSequenceManager() {
         sequence_order: nextOrder,
         send_day: nextDay,
         subject: 'New Email Subject',
-        body: 'Dear Friend,\n\nYour email content here.\n\nGrace and peace,\nThe BibleLessonSpark Team',
+        body: '<p>Dear Friend,</p><p>Your email content here.</p><p>Grace and peace,<br>The BibleLessonSpark Team</p>',
         is_active: true,
-        is_html: false,
+        is_html: true,
       })
       .select()
       .single();
@@ -268,6 +356,16 @@ export function EmailSequenceManager() {
     setPreviewOpen(true);
   };
 
+  // Convert plain text to HTML when switching to HTML mode
+  const handleModeSwitch = (template: EmailTemplate, toHtml: boolean) => {
+    if (toHtml && !template.is_html) {
+      // Converting from plain text to HTML
+      const htmlBody = textToHtml(template.body);
+      handleFieldChange(template.id, 'body', htmlBody);
+    }
+    handleFieldChange(template.id, 'is_html', toHtml);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -290,9 +388,9 @@ export function EmailSequenceManager() {
       </div>
 
       <div className="text-sm bg-muted/50 p-4 rounded-lg space-y-1">
-        <p><strong>Personalization:</strong> <code className="bg-muted px-1 rounded">{'{name}'}</code> = user's name</p>
-        <p><strong>Plain Text:</strong> URLs on their own line → buttons. Lines starting with - or • → bullet lists.</p>
-        <p><strong>HTML Mode:</strong> Full control. Use <code className="bg-muted px-1 rounded">&lt;p&gt;</code>, <code className="bg-muted px-1 rounded">&lt;strong&gt;</code>, <code className="bg-muted px-1 rounded">&lt;ul&gt;&lt;li&gt;</code> tags.</p>
+        <p><strong>Personalization:</strong> Type <code className="bg-muted px-1 rounded">{'{name}'}</code> anywhere to insert the user's name.</p>
+        <p><strong>Rich Text Mode:</strong> Use the toolbar to format text, add links, and create lists.</p>
+        <p><strong>Plain Text Mode:</strong> URLs on their own line become buttons automatically.</p>
       </div>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
@@ -318,7 +416,11 @@ export function EmailSequenceManager() {
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
                       {template.subject}
-                      {template.is_html && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">HTML</span>}
+                      {template.is_html ? (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Rich Text</span>
+                      ) : (
+                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">Plain Text</span>
+                      )}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
                       Day {template.send_day} • {template.is_active ? 'Active' : 'Inactive'}
@@ -351,11 +453,11 @@ export function EmailSequenceManager() {
                   <div className="flex items-center space-x-2 pt-6">
                     <Switch
                       checked={template.is_html ?? false}
-                      onCheckedChange={(checked) => handleFieldChange(template.id, 'is_html', checked)}
+                      onCheckedChange={(checked) => handleModeSwitch(template, checked)}
                     />
                     <Label className="flex items-center gap-1">
                       {template.is_html ? <Code className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-                      {template.is_html ? 'HTML' : 'Plain Text'}
+                      {template.is_html ? 'Rich Text' : 'Plain Text'}
                     </Label>
                   </div>
                 </div>
@@ -370,18 +472,33 @@ export function EmailSequenceManager() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>{template.is_html ? 'Email Body (HTML)' : 'Email Body (Plain Text)'}</Label>
+                    <Label>{template.is_html ? 'Email Body (Rich Text Editor)' : 'Email Body (Plain Text)'}</Label>
                     <Button variant="outline" size="sm" onClick={() => handlePreview(template)} className="gap-1">
                       <Eye className="h-4 w-4" />
                       Preview
                     </Button>
                   </div>
-                  <Textarea
-                    value={template.body}
-                    onChange={(e) => handleFieldChange(template.id, 'body', e.target.value)}
-                    rows={16}
-                    className={`font-mono text-sm ${template.is_html ? 'bg-slate-50' : ''}`}
-                  />
+                  
+                  {template.is_html ? (
+                    <div className="email-editor border rounded-md overflow-hidden">
+                      <ReactQuill
+                        theme="snow"
+                        value={template.body}
+                        onChange={(value) => handleFieldChange(template.id, 'body', value)}
+                        modules={quillModules}
+                        formats={quillFormats}
+                        placeholder="Start writing your email..."
+                      />
+                    </div>
+                  ) : (
+                    <Textarea
+                      value={template.body}
+                      onChange={(e) => handleFieldChange(template.id, 'body', e.target.value)}
+                      rows={16}
+                      className="font-mono text-sm"
+                      placeholder="Dear Friend,&#10;&#10;Your email content here...&#10;&#10;- Bullet point 1&#10;- Bullet point 2&#10;&#10;https://biblelessonspark.com/&#10;&#10;Grace and peace,&#10;The BibleLessonSpark Team"
+                    />
+                  )}
                 </div>
 
                 <div className="flex justify-between pt-4">
