@@ -4,7 +4,7 @@
 // Database columns store data; THIS FILE defines logic and rules
 // Mirror: supabase/functions/_shared/trialConfig.ts
 // DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants
-// Last Updated: 2026-01-26 - Changed to rolling 30-day reset
+// Last Updated: 2026-01-26 - Added specific date mode for trial grants
 // ============================================================================
 
 // ----------------------------------------------------------------------------
@@ -43,6 +43,16 @@ export const TRIAL_CONFIG = {
       { value: 90, label: '90 days' },
     ],
 
+    // Preset specific dates for quick selection (e.g., beta end date)
+    presetDates: [
+      { value: '2026-02-28', label: 'Feb 28, 2026 (Beta End)' },
+      { value: '2026-03-31', label: 'Mar 31, 2026' },
+      { value: '2026-06-30', label: 'Jun 30, 2026' },
+    ],
+
+    // Default mode: 'days' or 'date'
+    defaultMode: 'days' as const,
+
     // UI Text (easily customizable)
     ui: {
       buttonTitle: 'Grant Trial',
@@ -58,8 +68,17 @@ export const TRIAL_CONFIG = {
       successTitle: 'Trial Granted',
       successDescription: (userName: string, days: number, expireDate: string) =>
         `${userName} has been granted ${days} days of full lessons until ${expireDate}.`,
+      successDescriptionDate: (userName: string, expireDate: string) =>
+        `${userName} has been granted full lessons until ${expireDate}.`,
       errorTitle: 'Error',
       errorDescription: 'Failed to grant trial access.',
+      // New: Mode toggle labels
+      modeLabel: 'Grant Type',
+      modeDays: 'Days from today',
+      modeDate: 'Specific date',
+      specificDateLabel: 'Expiration Date',
+      presetDateLabel: 'Quick Select',
+      customDateLabel: 'Or choose a date',
     },
 
     // Badge shown in user list for active trials
@@ -179,7 +198,9 @@ export const TRIAL_CONFIG = {
 
 // Type exports for TypeScript support
 export type TrialDayOption = typeof TRIAL_CONFIG.adminGrant.dayOptions[number];
+export type TrialPresetDate = typeof TRIAL_CONFIG.adminGrant.presetDates[number];
 export type BulkPresetDate = typeof TRIAL_CONFIG.bulkManagement.presetDates[number];
+export type TrialGrantMode = 'days' | 'date';
 
 // ----------------------------------------------------------------------------
 // HELPER: Get default days value
@@ -194,6 +215,20 @@ export const getDefaultGrantDays = (): number => {
 // ----------------------------------------------------------------------------
 export const getDefaultBulkPreset = (): BulkPresetDate => {
   return TRIAL_CONFIG.bulkManagement.presetDates[TRIAL_CONFIG.bulkManagement.defaultPresetIndex];
+};
+
+// ----------------------------------------------------------------------------
+// HELPER: Get default grant mode
+// ----------------------------------------------------------------------------
+export const getDefaultGrantMode = (): TrialGrantMode => {
+  return TRIAL_CONFIG.adminGrant.defaultMode;
+};
+
+// ----------------------------------------------------------------------------
+// HELPER: Get first preset date (for default selection in date mode)
+// ----------------------------------------------------------------------------
+export const getDefaultPresetDate = (): string => {
+  return TRIAL_CONFIG.adminGrant.presetDates[0]?.value || '';
 };
 
 // ----------------------------------------------------------------------------
@@ -319,5 +354,17 @@ export const getDaysUntilReset = (userResetDate: Date | string | null): number =
   const resetDate = typeof userResetDate === 'string' ? new Date(userResetDate) : userResetDate;
   const now = new Date();
   const diffMs = resetDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+};
+
+/**
+ * Calculate days between now and a specific date
+ * @param targetDate - The target date
+ * @returns number - Days until target date
+ */
+export const getDaysUntilDate = (targetDate: Date | string): number => {
+  const target = typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
   return Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
 };

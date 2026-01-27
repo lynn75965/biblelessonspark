@@ -9,12 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Mail, Loader2, Clock, Send, X, Gift } from "lucide-react";
-import { format, isPast, addDays } from "date-fns";
+import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Mail, Loader2, Clock, Send, X, Gift, Calendar } from "lucide-react";
+import { format, isPast, addDays, differenceInDays } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
-import { TRIAL_CONFIG, getDefaultGrantDays } from "@/constants/trialConfig";
+import { TRIAL_CONFIG, getDefaultGrantDays, getDefaultGrantMode, getDefaultPresetDate, TrialGrantMode } from "@/constants/trialConfig";
 
 interface UserProfile {
   id: string;
@@ -53,9 +54,11 @@ export function UserManagement() {
   const [cancelingInviteId, setCancelingInviteId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   
-  // Trial grant state - uses SSOT for default value
+  // Trial grant state - uses SSOT for default values
   const [trialDialogOpen, setTrialDialogOpen] = useState(false);
+  const [trialGrantMode, setTrialGrantMode] = useState<TrialGrantMode>(getDefaultGrantMode());
   const [trialGrantDays, setTrialGrantDays] = useState(getDefaultGrantDays().toString());
+  const [trialGrantDate, setTrialGrantDate] = useState(getDefaultPresetDate());
   const [grantingTrialUserId, setGrantingTrialUserId] = useState<string | null>(null);
   const [trialUser, setTrialUser] = useState<UserProfile | null>(null);
   
@@ -227,8 +230,20 @@ export function UserManagement() {
     
     setGrantingTrialUserId(trialUser.id);
     try {
-      const days = parseInt(trialGrantDays) || getDefaultGrantDays();
-      const grantedUntil = addDays(new Date(), days);
+      let grantedUntil: Date;
+      let days: number;
+      
+      if (trialGrantMode === 'days') {
+        // Days from today mode
+        days = parseInt(trialGrantDays) || getDefaultGrantDays();
+        grantedUntil = addDays(new Date(), days);
+      } else {
+        // Specific date mode
+        // Parse the date and set to end of day (23:59:59)
+        grantedUntil = new Date(trialGrantDate + 'T23:59:59');
+        days = differenceInDays(grantedUntil, new Date());
+      }
+      
       const expireDateFormatted = format(grantedUntil, 'MMM d, yyyy');
       
       // CRITICAL: Also clear trial_full_lesson_last_used to reset usage flag
@@ -245,19 +260,21 @@ export function UserManagement() {
         throw error;
       }
 
-      // Use SSOT for success message
+      // Use appropriate SSOT success message based on mode
+      const successMessage = trialGrantMode === 'days'
+        ? TRIAL_UI.successDescription(trialUser.full_name || 'User', days, expireDateFormatted)
+        : TRIAL_UI.successDescriptionDate(trialUser.full_name || 'User', expireDateFormatted);
+      
       toast({
         title: TRIAL_UI.successTitle,
-        description: TRIAL_UI.successDescription(
-          trialUser.full_name || 'User',
-          days,
-          expireDateFormatted
-        ),
+        description: successMessage,
       });
 
       setTrialDialogOpen(false);
       setTrialUser(null);
       setTrialGrantDays(getDefaultGrantDays().toString());
+      setTrialGrantDate(getDefaultPresetDate());
+      setTrialGrantMode(getDefaultGrantMode());
       await fetchUsers();
     } catch (error) {
       console.error('Error granting trial:', error);
@@ -317,6 +334,16 @@ export function UserManagement() {
       setInviteDialogOpen(false);
       setInviteEmail("");
       await fetchPendingInvites();
+    }
+  };
+
+  // Helper: Calculate expiration date based on current mode
+  const getExpirationDate = (): Date => {
+    if (trialGrantMode === 'days') {
+      const days = parseInt(trialGrantDays) || getDefaultGrantDays();
+      return addDays(new Date(), days);
+    } else {
+      return new Date(trialGrantDate + 'T23:59:59');
     }
   };
 
@@ -498,32 +525,29 @@ export function UserManagement() {
                     pendingInvites.map((invite) => {
                       const status = getInviteStatus(invite.expires_at);
                       const isExpired = status === 'expired';
+                      
                       return (
                         <TableRow key={invite.id}>
-                          <TableCell>
+                          <TableCell className="font-medium">
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">{invite.email}</span>
+                              {invite.email}
                             </div>
                           </TableCell>
+                          <TableCell>{format(new Date(invite.created_at), 'MMM d, yyyy')}</TableCell>
+                          <TableCell>{format(new Date(invite.expires_at), 'MMM d, yyyy')}</TableCell>
                           <TableCell>
-                            {format(new Date(invite.created_at), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(invite.expires_at), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={isExpired ? 'destructive' : 'outline'}>
+                            <Badge variant={isExpired ? 'destructive' : 'secondary'}>
                               {isExpired ? 'Expired' : 'Pending'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex items-center gap-1 justify-end">
+                            <div className="flex justify-end gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleResendInvite(invite.id, invite.email)}
-                                disabled={resendingInviteId === invite.id || inviteLoading}
+                                disabled={resendingInviteId === invite.id}
                                 title="Resend Invitation"
                               >
                                 {resendingInviteId === invite.id ? (
@@ -532,42 +556,20 @@ export function UserManagement() {
                                   <Send className="h-4 w-4" />
                                 )}
                               </Button>
-                              
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-destructive hover:text-destructive"
-                                    disabled={cancelingInviteId === invite.id}
-                                    title="Cancel Invitation"
-                                  >
-                                    {cancelingInviteId === invite.id ? (
-                                      <Loader2 className="h-4 w-4 animate-spin" />
-                                    ) : (
-                                      <X className="h-4 w-4" />
-                                    )}
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Cancel Invitation</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to cancel the invitation for {invite.email}? 
-                                      They will no longer be able to use their invitation link.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Keep Invite</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleCancelInvite(invite.id, invite.email)}
-                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    >
-                                      Cancel Invitation
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleCancelInvite(invite.id, invite.email)}
+                                disabled={cancelingInviteId === invite.id}
+                                className="text-destructive hover:text-destructive"
+                                title="Cancel Invitation"
+                              >
+                                {cancelingInviteId === invite.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <X className="h-4 w-4" />
+                                )}
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -584,9 +586,11 @@ export function UserManagement() {
       {/* Users Table */}
       <Card className="bg-gradient-card">
         <CardHeader>
-          <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+          <CardTitle>
+            Registered Users ({filteredUsers.length})
+          </CardTitle>
           <CardDescription>
-            Complete list of registered users and their details
+            All registered users and their current roles
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -594,121 +598,63 @@ export function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead className="hidden md:table-cell">Trial Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
-                      <div className="text-muted-foreground">
-                        {searchTerm ? "No users match your search." : "No users found."}
-                      </div>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No users found matching your search.
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredUsers.map((user) => {
                     const RoleIcon = getRoleIcon(user.role);
                     const userHasActiveTrial = hasActiveTrial(user.trial_full_lesson_granted_until);
+                    
                     return (
                       <TableRow key={user.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <RoleIcon className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{user.full_name || 'Unnamed User'}</p>
-                              <p className="text-xs text-muted-foreground">{user.id}</p>
-                            </div>
+                        <TableCell className="font-medium">
+                          <div>
+                            {user.full_name || 'Unnamed'}
+                            <span className="block text-xs text-muted-foreground truncate max-w-[150px]">
+                              {user.id}
+                            </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={getRoleBadgeVariant(user.role)}>
+                            <RoleIcon className="h-3 w-3 mr-1" />
                             {user.role}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex flex-col gap-1">
-                            <Badge variant="outline">
-                              {user.founder_status}
+                        <TableCell className="hidden md:table-cell">
+                          {userHasActiveTrial && TRIAL_BADGE.show ? (
+                            <Badge variant="outline" className="text-success border-success">
+                              <Gift className="h-3 w-3 mr-1" />
+                              {TRIAL_BADGE.prefix} {format(new Date(user.trial_full_lesson_granted_until!), 'MMM d')}
                             </Badge>
-                            {/* SSOT: Trial badge controlled by TRIAL_BADGE config */}
-                            {TRIAL_BADGE.show && userHasActiveTrial && (
-                              <Badge variant="secondary" className="text-xs">
-                                <Gift className="h-3 w-3 mr-1" />
-                                {TRIAL_BADGE.prefix} {format(new Date(user.trial_full_lesson_granted_until!), 'MMM d')}
-                              </Badge>
-                            )}
-                          </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell text-muted-foreground">
                           {format(new Date(user.created_at), 'MMM d, yyyy')}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center gap-1 justify-end">
-                            {/* Edit Role Dialog */}
-                            <Dialog open={editDialogOpen && selectedUser?.id === user.id} onOpenChange={setEditDialogOpen}>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => setSelectedUser(user)}
-                                  title="Edit Role"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Edit User Role</DialogTitle>
-                                  <DialogDescription>
-                                    Change the role for {user.full_name || 'this user'}
-                                  </DialogDescription>
-                                </DialogHeader>
-                                <div className="py-4">
-                                  <Label htmlFor="role">Role</Label>
-                                  <Select 
-                                    defaultValue={user.role}
-                                    onValueChange={(value) => setSelectedUser(prev => prev ? {...prev, role: value} : null)}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="admin">Administrator</SelectItem>
-                                      <SelectItem value="teacher">Teacher</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                                    Cancel
-                                  </Button>
-                                  <Button 
-                                    onClick={() => {
-                                      if (selectedUser) {
-                                        handleUpdateRole(user.id, selectedUser.role);
-                                      }
-                                    }}
-                                    className="bg-warning text-warning-foreground hover:bg-warning/90"
-                                  >
-                                    Save Changes
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-
-                            {/* Grant Trial Button - SSOT: Only show if adminGrant.enabled */}
+                          <div className="flex justify-end gap-1">
+                            {/* Grant/Extend Trial Button */}
                             {TRIAL_CONFIG.adminGrant.enabled && (
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => {
                                   setTrialUser(user);
-                                  setTrialGrantDays(getDefaultGrantDays().toString());
                                   setTrialDialogOpen(true);
                                 }}
                                 disabled={grantingTrialUserId === user.id}
@@ -723,7 +669,55 @@ export function UserManagement() {
                               </Button>
                             )}
 
-                            {/* Revoke Trial Button - SSOT: Only show if adminRevoke.enabled AND user has active trial */}
+                            {/* Edit Role Dialog */}
+                            <Dialog 
+                              open={editDialogOpen && selectedUser?.id === user.id} 
+                              onOpenChange={(open) => {
+                                setEditDialogOpen(open);
+                                if (!open) setSelectedUser(null);
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setEditDialogOpen(true);
+                                  }}
+                                  title="Edit Role"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Edit User Role</DialogTitle>
+                                  <DialogDescription>
+                                    Change the role for {user.full_name || 'this user'}
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <div className="space-y-2">
+                                    <Label>Role</Label>
+                                    <Select
+                                      defaultValue={user.role}
+                                      onValueChange={(value) => handleUpdateRole(user.id, value)}
+                                    >
+                                      <SelectTrigger>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="teacher">Teacher</SelectItem>
+                                        <SelectItem value="admin">Admin</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+
+                            {/* Revoke Trial Dialog */}
                             {TRIAL_CONFIG.adminRevoke.enabled && userHasActiveTrial && (
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
@@ -826,24 +820,78 @@ export function UserManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Mode Toggle - SSOT labels */}
             <div className="space-y-2">
-              <Label htmlFor="trial-days">{TRIAL_UI.daysLabel}</Label>
-              {/* SSOT: Dropdown options from TRIAL_CONFIG.adminGrant.dayOptions */}
-              <Select value={trialGrantDays} onValueChange={setTrialGrantDays}>
-                <SelectTrigger id="trial-days">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRIAL_CONFIG.adminGrant.dayOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>{TRIAL_UI.modeLabel}</Label>
+              <Tabs value={trialGrantMode} onValueChange={(v) => setTrialGrantMode(v as TrialGrantMode)}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="days">{TRIAL_UI.modeDays}</TabsTrigger>
+                  <TabsTrigger value="date" className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {TRIAL_UI.modeDate}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
             </div>
+
+            {/* Days Mode */}
+            {trialGrantMode === 'days' && (
+              <div className="space-y-2">
+                <Label htmlFor="trial-days">{TRIAL_UI.daysLabel}</Label>
+                {/* SSOT: Dropdown options from TRIAL_CONFIG.adminGrant.dayOptions */}
+                <Select value={trialGrantDays} onValueChange={setTrialGrantDays}>
+                  <SelectTrigger id="trial-days">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRIAL_CONFIG.adminGrant.dayOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Date Mode */}
+            {trialGrantMode === 'date' && (
+              <div className="space-y-3">
+                {/* Preset dates dropdown - SSOT */}
+                <div className="space-y-2">
+                  <Label>{TRIAL_UI.presetDateLabel}</Label>
+                  <Select value={trialGrantDate} onValueChange={setTrialGrantDate}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a date..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {TRIAL_CONFIG.adminGrant.presetDates.map((preset) => (
+                        <SelectItem key={preset.value} value={preset.value}>
+                          {preset.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Custom date input */}
+                <div className="space-y-2">
+                  <Label htmlFor="custom-date">{TRIAL_UI.customDateLabel}</Label>
+                  <Input
+                    id="custom-date"
+                    type="date"
+                    value={trialGrantDate}
+                    onChange={(e) => setTrialGrantDate(e.target.value)}
+                    min={format(new Date(), 'yyyy-MM-dd')}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Expiration preview */}
             <div className="text-sm text-muted-foreground">
-              {TRIAL_UI.expirationLabel} <strong>{format(addDays(new Date(), parseInt(trialGrantDays) || getDefaultGrantDays()), 'MMMM d, yyyy')}</strong>
+              {TRIAL_UI.expirationLabel}{' '}
+              <strong>{format(getExpirationDate(), 'MMMM d, yyyy')}</strong>
             </div>
           </div>
           <DialogFooter>
@@ -852,6 +900,7 @@ export function UserManagement() {
               onClick={() => {
                 setTrialDialogOpen(false);
                 setTrialUser(null);
+                setTrialGrantMode(getDefaultGrantMode());
               }}
               disabled={grantingTrialUserId !== null}
             >
