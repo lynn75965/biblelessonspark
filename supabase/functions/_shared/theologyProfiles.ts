@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/theologyProfiles.ts
- * Generated: 2026-01-28T20:40:18.898Z
+ * Generated: 2026-01-28T22:25:06.619Z
  */
 /**
  * THEOLOGY PROFILES - Single Source of Truth (SSOT)

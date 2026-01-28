@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/rateLimitConfig.ts
- * Generated: 2026-01-28T20:40:18.904Z
+ * Generated: 2026-01-28T22:25:06.624Z
  */
 ﻿// =============================================================================
 // RATE LIMIT CONSTANTS

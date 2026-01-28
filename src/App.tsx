@@ -34,6 +34,13 @@ import OrgManager from "./pages/OrgManager";
 import Parables from "./pages/Parables";
 import Devotionals from "./pages/Devotionals";
 
+// Teacher Toolbelt Pages
+import ToolbeltLanding from "./pages/toolbelt/ToolbeltLanding";
+import ToolbeltLessonFit from "./pages/toolbelt/ToolbeltLessonFit";
+import ToolbeltLeftOut from "./pages/toolbelt/ToolbeltLeftOut";
+import ToolbeltOneTruth from "./pages/toolbelt/ToolbeltOneTruth";
+import ToolbeltAdmin from "./pages/ToolbeltAdmin";
+
 const queryClient = new QueryClient();
 
 /**
@@ -73,6 +80,24 @@ function AppRoutes() {
         <Route path="/parables" element={<Parables />} />
         {/* PROTECTED ROUTE: DevotionalSpark for authenticated users */}
         <Route path="/devotionals" element={<ProtectedRoute><Devotionals /></ProtectedRoute>} />
+        
+        {/* ================================================================
+            TEACHER TOOLBELT - PUBLIC ROUTES (No auth required)
+            ================================================================ */}
+        <Route path="/toolbelt" element={<ToolbeltLanding />} />
+        <Route path="/toolbelt/lesson-fit" element={<ToolbeltLessonFit />} />
+        <Route path="/toolbelt/left-out-safely" element={<ToolbeltLeftOut />} />
+        <Route path="/toolbelt/one-truth" element={<ToolbeltOneTruth />} />
+        
+        {/* ================================================================
+            TEACHER TOOLBELT - ADMIN ROUTE (Protected)
+            ================================================================ */}
+        <Route path="/admin/toolbelt" element={
+          <ProtectedRoute>
+            <ToolbeltAdmin />
+          </ProtectedRoute>
+        } />
+        
         <Route
           path={ROUTES.WORKSPACE}
           element={

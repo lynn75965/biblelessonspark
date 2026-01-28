@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/lessonStructure.ts
- * Generated: 2026-01-28T20:40:18.892Z
+ * Generated: 2026-01-28T22:25:06.611Z
  */
 // src/constants/lessonStructure.ts
 // SSOT: Single Source of Truth for lesson structure AND export formatting

@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/devotionalConfig.ts
- * Generated: 2026-01-28T20:40:18.907Z
+ * Generated: 2026-01-28T22:25:06.627Z
  */
 /**
  * DEVOTIONALSPARK CONFIGURATION - Single Source of Truth (SSOT)
