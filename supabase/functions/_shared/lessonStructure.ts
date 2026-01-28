@@ -2,18 +2,136 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/lessonStructure.ts
- * Generated: 2026-01-10T16:14:22.592Z
+ * Generated: 2026-01-28T20:40:18.892Z
  */
 // src/constants/lessonStructure.ts
-export const LESSON_STRUCTURE_VERSION = "2.1.4";
+// SSOT: Single Source of Truth for lesson structure AND export formatting
+// Frontend drives backend - all values defined here, imported everywhere
 
+export const LESSON_STRUCTURE_VERSION = "2.4.1";
+
+/**
+ * SSOT: Export Spacing Constants
+ * All export files (Print, DOCX, PDF) import these values
+ * Change here = changes everywhere
+ */
+export const EXPORT_SPACING = {
+  // Font family - Calibri 11pt for readability (60-65yr teachers)
+  fonts: {
+    primary: 'Calibri',                      // Main font name
+    fallback: 'Arial, sans-serif',           // Fallback stack
+    css: 'Calibri, Arial, sans-serif',       // For Print/CSS
+    docx: 'Calibri',                         // For DOCX export
+    pdf: 'Helvetica',                        // PDF fallback (Calibri not native to PDF libs)
+  },
+
+  // Page margins - 0.5" all sides
+  margins: {
+    inches: 0.5,
+    twips: 720,        // 0.5 * 1440 twips per inch
+    css: '0.5in',
+  },
+  
+  // Section headers - 8pt BEFORE, 4pt AFTER
+  sectionHeader: {
+    beforePt: 8,
+    afterPt: 4,
+    beforeTwips: 160,  // 8 * 20 twips per point
+    afterTwips: 80,    // 4 * 20 twips per point
+  },
+  
+  // Body text - readable for 60-65yr teachers
+  body: {
+    fontPt: 11,
+    fontHalfPt: 22,    // docx uses half-points
+    lineHeight: 1.4,
+  },
+  
+  // Title
+  title: {
+    fontPt: 14,
+    fontHalfPt: 28,
+    afterPt: 4,
+    afterTwips: 80,
+  },
+  
+  // Section header font
+  sectionHeaderFont: {
+    fontPt: 14,
+    fontHalfPt: 28,
+  },
+  
+  // Teaser box
+  teaser: {
+    fontPt: 10,
+    fontHalfPt: 20,
+    paddingPt: 6,
+    marginBeforePt: 6,
+    marginAfterPt: 8,
+    marginBeforeTwips: 120,
+    marginAfterTwips: 160,
+    borderRadiusPx: 4,
+  },
+  
+  // Metadata line
+  metadata: {
+    fontPt: 9,
+    fontHalfPt: 18,
+    afterPt: 6,
+    afterTwips: 120,
+  },
+  
+  // Copyright/footer
+  footer: {
+    fontPt: 8,
+    fontHalfPt: 16,
+    marginTopPt: 10,
+    marginTopTwips: 200,
+  },
+  
+  // Paragraph spacing
+  paragraph: {
+    afterPt: 4,
+    afterTwips: 80,
+  },
+  
+  // List item spacing
+  listItem: {
+    afterPt: 4,
+    afterTwips: 80,
+    indentPt: 18,      // Left indent for bullet lists
+    indentTwips: 360,  // 18 * 20
+  },
+  
+  // Horizontal rule
+  hr: {
+    marginPt: 6,
+    marginTwips: 120,
+  },
+  
+  // Colors (hex without #)
+  colors: {
+    teaserBg: 'F0F7FF',
+    teaserBorder: '3B82F6',
+    teaserText: '2563EB',
+    bodyText: '333333',
+    metaText: '666666',
+    footerText: '999999',
+    hrLine: 'CCCCCC',
+  },
+};
+
+/**
+ * SSOT: Export Formatting Labels and Text
+ */
 export const EXPORT_FORMATTING = {
   boldLabels: ["Theological Profile","Lesson Summary","Main Theme","Key Takeaway","Audience Insight","Learning Objectives","Primary Scripture","Supporting Passages","Teacher Preparation Checklist","Memory Verse","Gospel Connection","Weekly Challenge","Doctrinal Framework","Theological Significance","Interpretive Framework","Literary Context","Historical Context","Transition Statement","Key Idea","Big Points","Reflection Questions","Prayer Prompt","Prayer","Personal Reflection","Comprehension Check","Spiritual Indicators","Closing Reflection","Discussion Questions","Recall","Understanding","Application","Analysis","This Week's Challenge"],
   skipLabels: ["Lesson Title"],
   documentTitleSource: "Lesson Title",
-  footerText: "LessonSparkUSA",
+  footerText: "BibleLessonSpark.com",
   teaserLabel: "STUDENT TEASER",
   printTooltip: "Opens in new tab. Close that tab to return here.",
+  section8Title: "Section 8: Student Handout",
 };
 
 export interface LessonSection {

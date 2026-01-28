@@ -1,7 +1,7 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 26, 2026 (Phase 21.4 - FeaturesSection SSOT Compliance)
-**Launch Date:** January 27, 2026
+**Last Updated:** January 27, 2026 (Phase 22 - DevotionalSpark Style v2.1)
+**Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
 
@@ -37,6 +37,7 @@
 | `src/constants/bibleVersions.ts` | Bible versions + copyright notices |
 | `src/constants/theologyProfiles.ts` | 10 Baptist theological traditions |
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
+| `src/constants/devotionalConfig.ts` | DevotionalSpark configuration |
 | `src/constants/pricingConfig.ts` | Tier sections, limits (MASTER for tier_config) |
 | `src/constants/trialConfig.ts` | Trial system configuration (rolling 30-day) |
 | `src/constants/tenantConfig.ts` | White-label tenant configuration |
@@ -54,6 +55,144 @@
 | `npm run sync-constants` | Syncs src/constants/ → supabase/functions/_shared/ |
 | `npm run sync-branding` | Syncs branding → branding_config table |
 | `npm run sync-tier-config` | Syncs tier config → tier_config table |
+
+---
+
+## DEVOTIONALSPARK SYSTEM (Phase 22 - v2.1 COMPLETE ✅)
+
+### Overview
+DevotionalSpark generates personal devotionals anchored to BibleLessonSpark lessons. The devotional helps readers **internalize and live out** the lesson's truth through reflective writing—it does NOT reteach or summarize the lesson.
+
+### Architecture
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `devotionalConfig.ts` | `src/constants/` | SSOT configuration |
+| `DevotionalGenerator.tsx` | `src/components/dashboard/` | Generation UI |
+| `DevotionalLibrary.tsx` | `src/components/dashboard/` | Library with actions |
+| `useDevotionals.ts` | `src/hooks/` | Data fetching hook |
+| `generate-devotional` | Edge Function (v2.1) | AI generation |
+
+### Configuration Options
+
+| Setting | Options |
+|---------|---------|
+| **Target** | Preschool, Children, Youth, Adult |
+| **Length** | 3 min (~400-500 words), 5 min (~700-900 words), 10 min (~1200-1500 words) |
+
+### Inherited Parameters (Hidden from User)
+- Theology Profile (from lesson)
+- Bible Version (from lesson)
+- Age-appropriate vocabulary (from lesson, overridable by Target)
+
+### Length-Based Experiential Differentiation
+
+| Length | Purpose | Feel |
+|--------|---------|------|
+| **3-min** | Anchor the Heart | One insight, one truth carried into the day |
+| **5-min** | Shape the Daily Posture | Companion for the morning, space to breathe |
+| **10-min** | Form the Inner Life | Unhurried, space to sit and be formed |
+
+---
+
+## DEVOTIONALSPARK SIGNATURE VOICE (v2.1) ⚠️ CRITICAL
+
+### Core Principles
+The devotional creates **space for reader-induced insight**. The writer opens doors; the reader walks through with their own experience.
+
+| Principle | Implementation |
+|-----------|----------------|
+| **Creates space** | Universal human moments, not hypothetical "you probably felt..." |
+| **Smooth prose** | Short sentences, conversational rhythm, never pedantic |
+| **Scripture illuminates** | Doesn't drive an outline; let it land |
+| **Reader-focused** | Draw from their experience, not a fabricated writer's journey |
+| **Warm "we"** | Only for genuine community ("we who believe..."), never to insert writer into reader's life |
+
+### Voice Prohibitions
+| Prohibited | Why |
+|------------|-----|
+| ❌ Fabricated first-person ("I remember when...") | Claude has no such memories—this is dishonest |
+| ❌ Presumptuous "you" ("Perhaps you felt...") | Lectures the reader; presumes to know their experience |
+| ❌ Inserting "we" ("We have all struggled...") | Writer granting unearned intimacy |
+| ❌ Teaching/sermon tone | This is reflection, not instruction |
+| ❌ Bullet points, numbered lists | Destroys devotional flow |
+| ❌ Dense academic paragraphs | Must be smooth, insightful, conversational |
+
+### Voice Examples
+
+**WRONG (presumptuous):**
+> "Perhaps it was the first time you prayed in a crowded restaurant, or spoke naturally about your faith to a curious neighbor..."
+
+**RIGHT (creates space):**
+> "There's a weight that lifts when shame finally loosens its grip. Not all at once—just a conversation that flows easier, a truth spoken simply because it's true."
+
+The reader supplies their own memory. The writing opens the door.
+
+---
+
+## DEVOTIONALSPARK PRAYER REQUIREMENTS ⚠️ CRITICAL
+
+### Prayer Voice
+| Requirement | Implementation |
+|-------------|----------------|
+| **Personal** | Always "I" and "me" — never "we" and "us" |
+| **Earned** | Flows naturally from the reflection |
+| **Ends with Jesus** | Every prayer references Christ and His work |
+
+### Prayer Ending Examples (Vary These)
+- "...through Jesus, whose grace found me when I had nothing to offer. Amen."
+- "...because the cross already spoke what my words cannot. Amen."
+- "...in the name of Jesus, who finished what I could never begin. Amen."
+- "...through Christ, who stands even now as my advocate. Amen."
+- "...because of Jesus, who was never ashamed to call me His own. Amen."
+- "...through the One who carried what I could not. Amen."
+
+**NEVER:** End with just "Amen" without acknowledging Christ.
+
+---
+
+## DEVOTIONALSPARK ABIDING PRESENCE
+
+God's presence is acknowledged **lightly**—woven through, not announced.
+
+| Valence | How Presence Is Felt |
+|---------|---------------------|
+| **Virtue** | Comfort, nearness ("You are held." / "Grace has arrived.") |
+| **Cautionary** | Holy witness, mercy within truth ("He sees." / "Mercy still.") |
+| **Complex** | Presence in the tension ("Even here, not alone.") |
+
+**NEVER:** "God is RIGHT HERE with you NOW!" — this is overstatement.
+
+---
+
+## MORAL VALENCE GUARDRAIL ⚠️ CRITICAL
+
+Prevents theological inversion (the flaw that killed Modern Parable Generator).
+
+| Valence | Scripture Type | Theme Direction |
+|---------|----------------|-----------------|
+| **VIRTUE** | Grace, love, faith, promise passages | Encouragement, hope, gratitude |
+| **CAUTIONARY** | Warning, judgment, conviction passages | Confession, humility, honest reckoning |
+| **COMPLEX** | Passages with both elements | Nuanced, honors both dimensions |
+
+### Hard Rules
+- Grace texts (Romans 8, Psalm 23, Ephesians 2) = VIRTUE only
+- Judgment texts (Isaiah 14, Ezekiel 28) = CAUTIONARY only
+- **NEVER** pair grace Scripture with guilt/condemnation themes
+- **NEVER** pair judgment Scripture with celebration themes
+
+---
+
+## SCRIPTURE HANDLING (Current Approach)
+
+| Aspect | Implementation |
+|--------|----------------|
+| **Quotation** | Direct quotation permitted for ALL versions |
+| **Citation** | Always include book, chapter, verse + version abbreviation |
+| **Fair Use** | ~10 verses or fewer per devotion |
+| **Copyright Notice** | Auto-appended to output when version requires |
+
+**Example:**
+> "And we know that in all things God works for the good of those who love him" (Romans 8:28, NIV).
 
 ---
 
@@ -394,6 +533,28 @@ export const UI_SYMBOLS = {
 
 ## CHANGELOG
 
+### Phase 22 (Jan 27, 2026) - DevotionalSpark Style v2.1 🚀 LAUNCH DAY
+**Complete rewrite of DevotionalSpark voice and prompt architecture**
+
+**Key Changes:**
+- Removed "invisible writer" concept → Now "creates space for reader-induced insight"
+- Smooth, conversational prose—never pedantic
+- Prayer always personal (I/me) and ends with reference to Jesus
+- Abiding presence of God acknowledged lightly, not announced
+- Moral valence guardrail maintained from parable system
+
+**Voice Philosophy:**
+- Universal human moments, not hypothetical "you probably felt..."
+- Writer opens doors; reader walks through with own experience
+- "We" only for genuine community, not to insert writer into reader's life
+
+**Prayer Requirements:**
+- Always personal: "I" and "me"
+- Always ends with Jesus and His work
+- Varied endings, not ritualistic
+
+**Edge Function:** `generate-devotional` v2.1.0
+
 ### Phase 21.4 (Jan 26, 2026) - FeaturesSection SSOT Compliance
 **Landing page Features section now fully SSOT-compliant**
 
@@ -503,7 +664,9 @@ src/
 │   │   └── Footer.tsx               # Logo + wordmark (SSOT from BRANDING)
 │   ├── dashboard/
 │   │   ├── EnhanceLessonForm.tsx    # 3-step accordion
-│   │   └── TeacherCustomization.tsx # Save Profile at bottom (Step 3)
+│   │   ├── TeacherCustomization.tsx # Save Profile at bottom (Step 3)
+│   │   ├── DevotionalGenerator.tsx  # DevotionalSpark UI
+│   │   └── DevotionalLibrary.tsx    # Devotional library
 │   ├── admin/
 │   │   ├── OrganizationManagement.tsx  # Includes TransferRequestQueue
 │   │   ├── OrgDetailView.tsx           # Includes Shared Focus tab
@@ -519,6 +682,7 @@ src/
 ├── constants/
 │   ├── pricingConfig.ts             # TIER_SECTIONS, TIER_LIMITS (MASTER)
 │   ├── trialConfig.ts               # Trial/reset configuration (rolling 30-day)
+│   ├── devotionalConfig.ts          # DevotionalSpark configuration
 │   ├── uiSymbols.ts                 # UI symbols (UTF-8 safe)
 │   ├── transferRequestConfig.ts     # Transfer request status SSOT
 │   └── [other SSOT files]
@@ -529,6 +693,8 @@ src/
 supabase/functions/
 ├── generate-lesson/
 │   └── index.ts                     # Tier enforcement active
+├── generate-devotional/
+│   └── index.ts                     # DevotionalSpark v2.1 (Jan 27, 2026)
 ├── confirm-invite-email/
 │   └── index.ts                     # Auto-confirms email for invited users
 ├── send-invite/
@@ -537,6 +703,9 @@ supabase/functions/
 │   └── index.ts                     # Automated onboarding emails
 ├── _shared/
 │   ├── branding.ts                  # getBranding() helper
+│   ├── devotionalConfig.ts          # DevotionalSpark SSOT mirror
+│   ├── theologyProfiles.ts          # Theology guardrails
+│   ├── bibleVersions.ts             # Copyright guardrails
 │   ├── uiSymbols.ts                 # Backend mirror
 │   └── pricingConfig.ts             # Backend mirror
 ```
@@ -556,7 +725,7 @@ deploy.ps1                           # SSOT deployment script (root directory)
 tier_config                          # SSOT for tier limits/sections (RLS: SELECT all)
 user_subscriptions                   # User's current tier + usage + reset_date (UNIQUE on user_id)
 transfer_requests                    # Org member transfer workflow
-anonymous_parable_usage              # DevotionalSpark usage tracking (RLS: anon SELECT/INSERT)
+devotionals                          # Generated devotionals
 branding_config                      # SSOT branding for edge functions
 email_sequence_templates             # Onboarding email content (7 emails)
 email_sequence_tracking              # User progress through email sequence
@@ -589,7 +758,7 @@ npm run sync-tier-config
 npx supabase functions deploy
 
 # Deploy specific edge function
-npx supabase functions deploy send-sequence-email
+npx supabase functions deploy generate-devotional
 
 # Regenerate Supabase types (after schema changes)
 npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts
@@ -638,7 +807,7 @@ git push
 | Date | Event |
 |------|-------|
 | Jan 25, 2026 | Soft launch announcement sent to 16 beta testers |
-| Jan 27, 2026 | Public launch |
+| Jan 27, 2026 | Public launch ✅ |
 | Feb 28, 2026 | Beta tester full access ends |
 | Mar 1, 2026 | Beta testers transition to free tier or subscribe |
 
@@ -677,6 +846,7 @@ git push
 - `npm run sync-branding` - Syncs branding to database
 - `npm run sync-tier-config` - Syncs tier limits to database
 - `npm run sync-constants` - Syncs constants to edge functions
+- `npx supabase functions deploy generate-devotional` - Deploy DevotionalSpark
 - `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types after schema changes
 
 **Reset Logic (Important for Support):**
@@ -696,6 +866,7 @@ git push
 - Email Sequence Templates (database-driven, Admin Panel editable)
 - Reset Logic (rolling 30-day, documented in trialConfig.ts)
 - FeaturesSection (dynamic from 5 SSOT files, hover-activated)
+- DevotionalSpark v2.1 (smooth prose, reader-focused, prayer ends with Jesus)
 
 **Email Automation Status (All Complete ✅):**
 - Database tables: `email_sequence_templates`, `email_sequence_tracking`
@@ -705,19 +876,28 @@ git push
 - Admin Panel: Rich text editor with preview
 - 7-email sequence loaded and active
 
+**DevotionalSpark v2.1 Status (All Complete ✅):**
+- Edge Function deployed: `generate-devotional` v2.1.0
+- Voice: Creates space for reader-induced insight
+- Prose: Smooth, conversational, never pedantic
+- Prayer: Personal (I/me), always ends with Jesus
+- Presence: God acknowledged lightly, not announced
+- Valence: Moral guardrail active (prevents inversion)
+
 **Database Protections:**
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race conditions
-- RLS enabled on `tier_config` and `anonymous_parable_usage` tables
+- RLS enabled on `tier_config` and `devotionals` tables
 
 **Dependencies Added (Jan 26, 2026):**
 - `react-quill` - Rich text editor for email templates
 
 **Launch Status:**
-- Launch Date: January 27, 2026
+- Launch Date: January 27, 2026 ✅ LAUNCHED
 - All code complete ✅
 - Email verification working ✅
 - Email automation working ✅
 - Domain redirect active ✅
 - Beta testers notified ✅
 - Rolling 30-day reset documented ✅
+- DevotionalSpark v2.1 deployed ✅

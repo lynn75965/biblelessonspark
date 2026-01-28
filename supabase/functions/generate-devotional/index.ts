@@ -9,16 +9,16 @@
  * - Imports from _shared/bibleVersions.ts
  * 
  * Key Features:
- * - Supports BOTH passage-based AND theme/focus-based lessons
- * - Moral valence pre-check (prevents inversion problem)
- * - Second-person devotional voice enforcement
- * - Target audience vocabulary adjustment
- * - Length-based word budgets
- * - Full theology profile guardrails
- * - Copyright-compliant Scripture handling
+ * - DevotionalSpark Signature Voice (Jan 2026 v2.1)
+ * - Creates space for reader-induced insight
+ * - Length-based experiential differentiation (3/5/10 min)
+ * - Moral valence guardrails (prevents inversion)
+ * - Light acknowledgment of God's abiding presence
+ * - Direct Scripture quotation with proper citation
+ * - Prayer always personal (I/me) and ends with Jesus
  * 
- * @version 1.2.0
- * @lastUpdated 2025-12-31
+ * @version 2.1.0
+ * @lastUpdated 2026-01-27
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -30,8 +30,6 @@ import {
   getDevotionalLength,
   getDefaultDevotionalTarget,
   getDefaultDevotionalLength,
-  generateCompleteDevotionalGuardrails,
-  DEVOTIONAL_SECTIONS,
 } from "../_shared/devotionalConfig.ts";
 
 import {
@@ -92,6 +90,346 @@ interface DevotionalResponse {
   };
   error?: string;
   code?: string;
+}
+
+// ============================================================================
+// PROMPT BUILDERS
+// ============================================================================
+
+/**
+ * Build target audience instructions
+ */
+function buildTargetInstructions(targetId: string): string {
+  const instructions: Record<string, string> = {
+    preschool: `TARGET AUDIENCE: Preschool
+
+- Written for a parent or teacher to read aloud to a young child
+- Simple vocabulary, short sentences
+- Concrete imagery (no abstractions)
+- Warm, story-like narrative flow
+- Prayer: simple, 1-2 sentences, words a child might echo
+- Prayer ends with simple reference to Jesus (e.g., "Thank You for Jesus who loves me. Amen.")`,
+
+    children: `TARGET AUDIENCE: Children
+
+- At a child's reading level OR for parent/teacher to read
+- Clear, accessible language
+- Relatable moments from a child's world
+- Prayer: uses words children understand
+- Prayer ends with reference to Jesus in child-friendly language`,
+
+    youth: `TARGET AUDIENCE: Youth
+
+- Smooth, conversational tone that respects teen intelligence
+- Acknowledges real struggles without being dramatic
+- Creates space for their own reflection
+- Prayer: honest, personal, avoids churchy clichés
+- Prayer ends with genuine reference to Jesus and His work`,
+
+    adult: `TARGET AUDIENCE: Adult
+
+- Smooth, insightful prose—never pedantic
+- Creates space for reader-induced insight
+- Trusts the reader to bring their own experience
+- Prayer: deeply personal (I/me), honest before God
+- Prayer ends with varied, meaningful reference to Jesus and His finished work`
+  };
+
+  return instructions[targetId] || instructions.adult;
+}
+
+/**
+ * Build length-specific instructions
+ */
+function buildLengthInstructions(lengthId: string, wordMin: number, wordMax: number): string {
+  const instructions: Record<string, string> = {
+    short: `LENGTH: 3-MINUTE DEVOTION (${wordMin}-${wordMax} words)
+
+PURPOSE: Anchor the Heart
+FEEL: A quiet moment. A single truth that stays.
+
+REQUIREMENTS:
+- ONE insight only—if you have two, choose the stronger
+- ONE Scripture passage, clearly cited
+- Minimal narrative; no extended context
+- NO reflection questions
+- Prayer: 2-3 sentences, personal (I/me), ends with Jesus
+
+RHYTHM:
+- Short sentences
+- Open with a moment that creates recognition
+- Let Scripture land gently
+- Close with prayer that feels earned
+
+DESIRED EFFECT: The reader carries one truth into the day.`,
+
+    medium: `LENGTH: 5-MINUTE DEVOTION (${wordMin}-${wordMax} words)
+
+PURPOSE: Shape the Daily Posture
+FEEL: A companion for the morning. Space to breathe.
+
+REQUIREMENTS:
+- ONE theme, gently unfolded
+- ONE primary Scripture with clear citation
+- Light context only when it serves understanding
+- 1-2 reflective movements (not listed points)
+- Prayer: personal (I/me), unhurried, ends with Jesus
+
+RHYTHM:
+- Conversational flow, varied sentence length
+- Open with human experience (universal, not hypothetical)
+- Scripture illuminates rather than instructs
+- Reflection invites rather than directs
+- Prayer feels like it grew from what came before
+
+DESIRED EFFECT: Spiritual steadiness. Attentiveness to God through the day.`,
+
+    long: `LENGTH: 10-MINUTE DEVOTION (${wordMin}-${wordMax} words)
+
+PURPOSE: Form the Inner Life
+FEEL: Unhurried. Space to sit and be formed.
+
+REQUIREMENTS:
+- ONE theme explored from different angles
+- Scripture with thoughtful context; clear citation
+- Room for honesty and depth
+- Reflection questions OR extended reflective space
+- Prayer: contemplative, personal (I/me), ends with Jesus
+
+RHYTHM:
+- Rich but not dense
+- Sentences that breathe
+- Movement between observation and reflection
+- Scripture engaged with care, not just quoted
+- Prayer that brings the reader before God with all they've been pondering
+
+DESIRED EFFECT: Stillness. Strengthened faith. Silence feels natural after reading.`
+  };
+
+  return instructions[lengthId] || instructions.medium;
+}
+
+/**
+ * Build the complete system prompt with all anchor points
+ */
+function buildSystemPrompt(
+  theologyGuardrails: string,
+  copyrightGuardrails: string,
+  targetInstructions: string,
+  lengthInstructions: string,
+  theologyProfileName: string
+): string {
+  return `You are generating a DevotionalSpark devotional that accompanies a BibleLessonSpark lesson.
+
+Your role is NOT to teach or explain. The lesson has been taught. You help the reader internalize and live out its truth through reflective writing.
+
+================================================================================
+DEVOTIONALSPARK VOICE — THE HEART OF IT
+================================================================================
+
+Write with warmth, insight, and trust in the reader.
+
+YOUR APPROACH:
+- Create SPACE for the reader to bring their own experience
+- Use universal human moments, not hypothetical "you probably felt..." scenarios
+- Short sentences. Conversational rhythm. Prose that breathes.
+- Smooth and insightful, never pedantic or structured
+- Scripture illuminates—it doesn't drive an outline
+- The reader should feel accompanied, not instructed
+
+WHAT YOU MUST NOT DO:
+- Do NOT fabricate first-person experiences ("I remember when...")
+- Do NOT presume to know the reader's specific experience ("Perhaps you felt...")
+- Do NOT lecture or teach
+- Do NOT use bullet points or numbered lists in the devotion body
+- Do NOT use "we" to insert yourself into the reader's life
+- Do NOT create dense, academic paragraphs
+
+WHAT YOU MAY DO:
+- Describe universal human moments the reader recognizes
+- Use "we" ONLY for genuine community ("we who have been found by grace...")
+- Let observations open doors the reader walks through with their own story
+
+EXAMPLE — WRONG (presumptuous):
+"Perhaps it was the first time you prayed in a crowded restaurant, or spoke naturally about your faith to a curious neighbor..."
+
+EXAMPLE — RIGHT (creates space):
+"There's a weight that lifts when shame finally loosens its grip. Not all at once—just a conversation that flows easier, a truth spoken simply because it's true."
+
+The reader supplies their own memory. You open the door; they walk through.
+
+================================================================================
+THE ABIDING PRESENCE OF GOD — LIGHT TOUCH
+================================================================================
+
+The reader is not alone. God is present. Acknowledge this with care:
+
+- Woven through, not announced
+- Felt, not proclaimed
+- Aligned with ${theologyProfileName} tradition
+- Aligned with what the Scripture reveals about God's character
+
+CALIBRATION BY VALENCE:
+- VIRTUE passages: presence as comfort, nearness ("You are held." / "Grace has arrived.")
+- CAUTIONARY passages: presence as holy witness, mercy within truth ("He sees." / "Mercy still.")
+- COMPLEX passages: presence in the tension ("Even here, not alone.")
+
+NEVER: "God is RIGHT HERE with you NOW!" — this is overstatement.
+The reader should finish aware they've been in God's presence because the reflection drew them there.
+
+================================================================================
+PRAYER — PERSONAL, ENDS WITH JESUS
+================================================================================
+
+CRITICAL REQUIREMENTS:
+
+1. Prayer is PERSONAL: Use "I" and "me," not "we" and "us"
+   - The reader prays as an individual before God
+   - Not a collective gathered in prayer
+
+2. Prayer is EARNED: It flows naturally from the reflection
+   - Not appended or formulaic
+   - Feels like the only right response to what came before
+
+3. Prayer ALWAYS ends with reference to Jesus and His work
+   - Varied, not ritualistic—different each time
+   - Warm, not cold or abrupt
+   - Never just "Amen" without acknowledging Christ
+
+EXAMPLES OF PRAYER ENDINGS (vary these):
+- "...through Jesus, whose grace found me when I had nothing to offer. Amen."
+- "...because the cross already spoke what my words cannot. Amen."
+- "...in the name of Jesus, who finished what I could never begin. Amen."
+- "...through Christ, who stands even now as my advocate. Amen."
+- "...because of Jesus, who was never ashamed to call me His own. Amen."
+- "...through the One who carried what I could not. Amen."
+
+================================================================================
+MORAL VALENCE GUARDRAIL — CRITICAL
+================================================================================
+
+BEFORE WRITING:
+1. Analyze the Scripture passage
+2. Determine valence: VIRTUE / CAUTIONARY / COMPLEX
+3. Hold that valence throughout—never invert
+
+| Valence    | Scripture Type                        | Theme Direction                              |
+|------------|---------------------------------------|----------------------------------------------|
+| VIRTUE     | Grace, love, faith, promise passages  | Encouragement, hope, gratitude               |
+| CAUTIONARY | Warning, judgment, conviction passages | Confession, humility, honest reckoning       |
+| COMPLEX    | Passages with both elements           | Nuanced reflection honoring both dimensions  |
+
+HARD RULES:
+- Grace texts (Romans 8, Psalm 23, Ephesians 2) = VIRTUE only
+- Judgment texts (Isaiah 14, Ezekiel 28) = CAUTIONARY only
+- NEVER pair grace Scripture with guilt/condemnation themes
+- NEVER pair judgment Scripture with celebration themes
+
+================================================================================
+THEOLOGY GUARDRAILS
+================================================================================
+
+${theologyGuardrails}
+
+================================================================================
+SCRIPTURE HANDLING
+================================================================================
+
+${copyrightGuardrails}
+
+- Quote Scripture DIRECTLY from the selected version
+- Always cite: book, chapter, verse, and version abbreviation
+- Scripture illuminates—let it land, don't explain it to death
+- Keep within fair use (~10 verses or fewer)
+- Copyright notice will be auto-appended
+
+================================================================================
+${targetInstructions}
+================================================================================
+
+================================================================================
+${lengthInstructions}
+================================================================================
+
+================================================================================
+OUTPUT FORMAT
+================================================================================
+
+**Title:** [Compelling, passage-specific title]
+**Scripture:** [Book Chapter:Verse(s)] ([Version abbreviation])
+
+[Flowing devotional prose — NO section headers]
+
+[Scripture woven naturally with clear citation]
+
+[Reflection appropriate to length]
+
+[Prayer: personal, earned, ends with Jesus]
+
+PROHIBITIONS:
+- No section headers
+- No bullet points or numbered lists
+- No "Detected Valence" in output
+- No word count mentions
+- No "In today's lesson..." or lesson references
+
+================================================================================
+FINAL CHECK
+================================================================================
+
+Before output, confirm:
+□ Does the opening create space rather than presume?
+□ Is the Scripture clearly cited?
+□ Does the valence hold throughout?
+□ Is the tone smooth and insightful, not pedantic?
+□ Is God's presence felt lightly?
+□ Is the prayer personal (I/me)?
+□ Does the prayer end with Jesus?
+□ Would this feel like reflection, not instruction?
+
+If any answer is NO → revise.`;
+}
+
+/**
+ * Build the user prompt
+ */
+function buildUserPrompt(
+  lengthLabel: string,
+  targetLabel: string,
+  contentAnchor: string,
+  bibleVersionName: string,
+  bibleVersionAbbrev: string,
+  theologyProfileName: string,
+  lessonTitle: string | null,
+  hasPassage: boolean
+): string {
+  let lessonContext = "";
+  if (lessonTitle) {
+    lessonContext = `
+LESSON CONTEXT — FOR YOUR AWARENESS ONLY (never reference in output):
+- Lesson Title: ${lessonTitle}
+
+The reader should RESPOND to the lesson's truth, not revisit it.
+Never say "In today's lesson..." or reference the lesson directly.
+`;
+  }
+
+  const passageNote = !hasPassage 
+    ? `\n\nSince no specific Scripture passage was provided, select an appropriate passage for this theme and state it clearly in the Scripture line.`
+    : "";
+
+  return `Generate a ${lengthLabel} devotional for ${targetLabel} audience.
+
+${contentAnchor}
+
+**Bible Version:** ${bibleVersionName} (${bibleVersionAbbrev})
+**Theology Profile:** ${theologyProfileName}
+${lessonContext}
+Remember:
+- Create space for reader-induced insight
+- Smooth, conversational prose—no section headers
+- Scripture quoted directly with clear citation
+- Prayer is personal (I/me) and ends with reference to Jesus${passageNote}`;
 }
 
 // ============================================================================
@@ -229,15 +567,11 @@ serve(async (req: Request) => {
 
     const theologyGuardrails = generateTheologicalGuardrails(theologyProfile.id);
     const copyrightGuardrails = generateCopyrightGuardrails(bibleVersion.id);
-    const completeGuardrails = generateCompleteDevotionalGuardrails(
-      target.id,
-      length.id,
-      theologyGuardrails,
-      copyrightGuardrails
-    );
+    const targetInstructions = buildTargetInstructions(target.id);
+    const lengthInstructions = buildLengthInstructions(length.id, length.wordCountMin, length.wordCountMax);
 
     // ========================================================================
-    // 5. BUILD PROMPT
+    // 5. BUILD PROMPTS
     // ========================================================================
 
     // Build content anchor description
@@ -251,43 +585,28 @@ serve(async (req: Request) => {
       contentAnchor = `**Scripture Passage:** ${body.bible_passage}`;
       displayPassage = body.bible_passage!;
     } else {
-      contentAnchor = `**Theme/Focus:** ${body.focused_topic}\n\n**Important:** Since no specific Scripture passage was provided, you must select an appropriate Scripture passage that best addresses this theme. State the passage you've selected clearly in the devotional.`;
+      contentAnchor = `**Theme/Focus:** ${body.focused_topic}`;
       displayPassage = `Theme: ${body.focused_topic}`;
     }
 
-    const systemPrompt = `You are a skilled devotional writer creating content for Baptist believers. Your writing speaks directly to the reader's heart, guiding them into personal reflection and prayer.
+    const systemPrompt = buildSystemPrompt(
+      theologyGuardrails,
+      copyrightGuardrails,
+      targetInstructions,
+      lengthInstructions,
+      theologyProfile.name
+    );
 
-${completeGuardrails}
-
-CRITICAL INSTRUCTIONS:
-1. FIRST, analyze the Scripture passage (or theme) to identify its moral direction (virtue, cautionary, or complex)
-2. LOCK that valence and maintain it throughout the devotional
-3. Use second-person voice throughout ("you", "your")
-4. Never use classroom or teaching language
-5. End with a prayer prompt that flows naturally from the content
-6. Respect the word count target: ${length.wordCountMin}-${length.wordCountMax} words total
-${!hasPassage ? '\n7. IMPORTANT: Select an appropriate Scripture passage for the given theme and clearly identify it in your response.' : ''}`;
-
-    const userPrompt = `Generate a ${length.label} devotional for ${target.label} audience based on:
-
-${contentAnchor}
-
-**Bible Version:** ${bibleVersion.name} (${bibleVersion.abbreviation})
-**Theology Profile:** ${theologyProfile.name}
-
-Please generate the devotional with these exact section headers:
-1. **Contemporary Connection**
-2. **Scripture in Context**
-3. **Theological Insights**
-4. **Reflection Questions**
-5. **Prayer Prompt**
-
-At the very beginning, before the sections, include:
-**Title:** [A compelling, passage-specific title]
-**Scripture:** [The Scripture reference being used]
-**Age Group:** ${target.label}
-
-Then provide the five sections. Do not include word counts in the output.`;
+    const userPrompt = buildUserPrompt(
+      length.label,
+      target.label,
+      contentAnchor,
+      bibleVersion.name,
+      bibleVersion.abbreviation,
+      theologyProfile.name,
+      body.lesson_title || null,
+      hasPassage
+    );
 
     console.log("[generate-devotional] Calling Anthropic API");
 
@@ -341,11 +660,10 @@ Then provide the five sections. Do not include word counts in the output.`;
     const extractedScripture = scriptureMatch ? scriptureMatch[1].trim() : displayPassage;
 
     // Detect valence internally (for database tracking only - not shown to user)
-    // Analyze content for virtue/cautionary/complex indicators
     const contentLower = generatedContent.toLowerCase();
     let detectedValence = "complex"; // default
-    const virtueIndicators = ["blessing", "grace", "encouragement", "hope", "joy", "peace", "love", "faith"];
-    const cautionaryIndicators = ["warning", "caution", "avoid", "danger", "sin", "temptation", "judgment"];
+    const virtueIndicators = ["grace", "love", "hope", "peace", "joy", "comfort", "held", "blessing", "promise", "faith"];
+    const cautionaryIndicators = ["warning", "caution", "conviction", "humble", "repent", "confess", "judgment", "holy"];
     
     let virtueScore = 0;
     let cautionaryScore = 0;
@@ -354,19 +672,6 @@ Then provide the five sections. Do not include word counts in the output.`;
     
     if (virtueScore > cautionaryScore + 2) detectedValence = "virtue";
     else if (cautionaryScore > virtueScore + 2) detectedValence = "cautionary";
-
-    // Extract sections
-    const extractSection = (content: string, sectionName: string): string => {
-      const regex = new RegExp(`\\*\\*${sectionName}\\*\\*\\s*([\\s\\S]*?)(?=\\*\\*[A-Z]|$)`, "i");
-      const match = content.match(regex);
-      return match ? match[1].trim() : "";
-    };
-
-    const sectionContemporary = extractSection(generatedContent, "Contemporary Connection");
-    const sectionScripture = extractSection(generatedContent, "Scripture in Context");
-    const sectionTheological = extractSection(generatedContent, "Theological Insights");
-    const sectionReflection = extractSection(generatedContent, "Reflection Questions");
-    const sectionPrayer = extractSection(generatedContent, "Prayer Prompt");
 
     // Calculate word count
     const wordCount = generatedContent.split(/\s+/).filter(w => w.length > 0).length;
@@ -397,11 +702,6 @@ Then provide the five sections. Do not include word counts in the output.`;
         age_group_id: body.age_group_id || null,
         title: title,
         content: generatedContent,
-        section_contemporary_connection: sectionContemporary,
-        section_scripture_in_context: sectionScripture,
-        section_theological_insights: sectionTheological,
-        section_reflection_questions: sectionReflection,
-        section_prayer_prompt: sectionPrayer,
         word_count: wordCount,
         generation_duration_ms: generationDuration,
         anthropic_model: "claude-sonnet-4-20250514",

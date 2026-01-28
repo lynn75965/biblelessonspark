@@ -41,6 +41,7 @@ const FILES_TO_SYNC = [
   'rateLimitConfig.ts',
   'freshnessOptions.ts',
   'devotionalConfig.ts',
+  'toolbeltConfig.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**

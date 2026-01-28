@@ -2,7 +2,7 @@
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/lessonTiers.ts
- * Generated: 2026-01-15
+ * Generated: 2026-01-28T20:40:18.894Z
  */
 // =====================================================
 // LESSON TIERS - Single Source of Truth
@@ -18,7 +18,7 @@
 import { 
   FREE_TIER_SECTION_NUMBERS, 
   FULL_TIER_SECTION_NUMBERS 
-} from './pricingConfig.ts';
+} from './pricingConfig';
 
 export interface LessonTier {
   id: string;

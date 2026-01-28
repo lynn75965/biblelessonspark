@@ -1,4 +1,10 @@
 /**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/freshnessOptions.ts
+ * Generated: 2026-01-28T20:40:18.905Z
+ */
+/**
  * Freshness Options SSOT
  * Single Source of Truth for Perpetual Freshness feature (Phase 15)
  *
