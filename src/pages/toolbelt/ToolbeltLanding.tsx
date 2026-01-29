@@ -8,13 +8,16 @@
  * - Imports from toolbeltConfig.ts
  * - Uses branding.ts for colors
  * 
- * @version 1.0.0
+ * @version 1.1.0
+ * 
+ * CHANGELOG:
+ * - v1.1.0 (Jan 29, 2026): Tightened spacing for more professional appearance
  */
 
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, ArrowRight } from "lucide-react";
+import { Clock, ArrowRight, BookOpen } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import {
@@ -32,84 +35,86 @@ export default function ToolbeltLanding() {
       <Header />
       
       <main className="flex-1">
-        {/* Hero Section */}
-        <section className="py-12 sm:py-16 px-4 sm:px-6 bg-gradient-to-b from-primary/5 to-background">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="text-3xl sm:text-4xl font-bold text-primary mb-4">
+        {/* Hero Section - Compact */}
+        <section className="py-8 sm:py-10 px-4 sm:px-6 bg-gradient-to-b from-primary/5 to-background border-b border-border/50">
+          <div className="max-w-3xl mx-auto text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-primary mb-3">
               {config.headline}
             </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground mb-6">
+            <p className="text-base sm:text-lg text-muted-foreground mb-3">
               {config.subheadline}
             </p>
-            <p className="text-base text-muted-foreground whitespace-pre-line max-w-2xl mx-auto">
+            <p className="text-sm text-muted-foreground whitespace-pre-line max-w-xl mx-auto">
               {config.supportText}
             </p>
           </div>
         </section>
 
-        {/* Introduction Section */}
-        <section className="py-10 sm:py-12 px-4 sm:px-6">
+        {/* Introduction + Tools Combined Section */}
+        <section className="py-6 sm:py-8 px-4 sm:px-6">
           <div className="max-w-3xl mx-auto">
-            <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-4">
-              {config.introHeading}
-            </h2>
-            <div className="text-base text-muted-foreground whitespace-pre-line leading-relaxed">
-              {config.introText}
+            {/* Introduction */}
+            <div className="mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-3 flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                {config.introHeading}
+              </h2>
+              <div className="text-sm sm:text-base text-muted-foreground whitespace-pre-line leading-relaxed pl-7">
+                {config.introText}
+              </div>
             </div>
-          </div>
-        </section>
 
-        {/* Tools Section */}
-        <section className="py-10 sm:py-12 px-4 sm:px-6 bg-muted/30">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-xl sm:text-2xl font-semibold text-foreground mb-8 text-center">
-              Available Tools
-            </h2>
-            
-            <div className="grid gap-6">
-              {tools.map((tool) => (
-                <Card key={tool.id} className="border-border hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-lg sm:text-xl text-primary">
-                      {tool.name}
-                    </CardTitle>
-                    <CardDescription className="text-base">
-                      {tool.description}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4 mr-2" />
-                        <span>Takes about {tool.estimatedMinutes} minutes</span>
+            {/* Tools */}
+            <div>
+              <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-4 text-center">
+                Available Tools
+              </h2>
+              
+              <div className="grid gap-4">
+                {tools.map((tool) => (
+                  <Card key={tool.id} className="border-border hover:shadow-md transition-shadow hover:border-primary/30">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base sm:text-lg text-primary">
+                        {tool.name}
+                      </CardTitle>
+                      <CardDescription className="text-sm">
+                        {tool.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="pt-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <Clock className="h-3.5 w-3.5 mr-1.5" />
+                          <span>Takes about {tool.estimatedMinutes} minutes</span>
+                        </div>
+                        <Button asChild variant="default" size="sm" className="w-full sm:w-auto">
+                          <Link to={tool.route}>
+                            Use this tool
+                            <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                          </Link>
+                        </Button>
                       </div>
-                      <Button asChild variant="default" className="w-full sm:w-auto">
-                        <Link to={tool.route}>
-                          Use this tool
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
         </section>
 
-        {/* Theological Reassurance Section */}
-        <section className="py-10 sm:py-12 px-4 sm:px-6">
-          <div className="max-w-3xl mx-auto text-center">
-            <p className="text-base text-muted-foreground whitespace-pre-line leading-relaxed">
+        {/* Theological Reassurance - Compact */}
+        <section className="py-6 px-4 sm:px-6 bg-muted/30 border-y border-border/50">
+          <div className="max-w-2xl mx-auto text-center">
+            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">
               {config.theologicalReassurance}
             </p>
           </div>
         </section>
 
-        {/* Soft Bridge Section */}
-        <section className="py-10 sm:py-12 px-4 sm:px-6 bg-secondary/10">
-          <div className="max-w-3xl mx-auto text-center">
-            <p className="text-base text-muted-foreground whitespace-pre-line leading-relaxed italic">
+        {/* Soft Bridge - Compact */}
+        <section className="py-6 px-4 sm:px-6">
+          <div className="max-w-2xl mx-auto text-center">
+            <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed italic">
               {config.softBridge}
             </p>
           </div>

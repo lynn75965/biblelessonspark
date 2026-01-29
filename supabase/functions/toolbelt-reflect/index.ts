@@ -19,8 +19,11 @@
  * - Pastoral tone always
  * - No BLS product mentions
  * 
- * @version 1.0.0
- * @lastUpdated 2026-01-28
+ * @version 1.1.0
+ * @lastUpdated 2026-01-29
+ * 
+ * CHANGELOG:
+ * - v1.1.0: Removed headline from prompt (frontend displays it separately)
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -121,7 +124,8 @@ CRITICAL REMINDERS
 4. Do NOT mention BibleLessonSpark or any product.
 5. Reflect what the teacher is already sensing. Validate their discernment.
 6. Keep your response to 2-3 reflective paragraphs plus a closing paragraph.
-7. The teacher is NOT failing. They are paying attention. Honor that.`;
+7. The teacher is NOT failing. They are paying attention. Honor that.
+8. Do NOT include a headline or title. Start directly with the reflection content.`;
 }
 
 /**
@@ -151,13 +155,12 @@ PRIMARY WORRY:
 ---
 
 Generate a pastoral reflection that:
-1. Starts with this exact headline: "${tool.headline}"
-2. Names the patterns you observe in what they've shared
-3. Validates their instinct that something feels misaligned
-4. Reflects their discernment back to them without diagnosing or prescribing
-5. Closes with affirmation of their attentiveness
+1. Names the patterns you observe in what they've shared
+2. Validates their instinct that something feels misaligned
+3. Offers 2-3 concrete, practical approaches they could consider for addressing the mismatch
+4. Closes with affirmation of their attentiveness
 
-Remember: They are not failing. They are paying attention. The mismatch they sense is real and worth honoring.`;
+Remember: They are not failing. They are paying attention. The mismatch they sense is real and worth honoring. Do NOT include a headline—the interface displays one separately.`;
 }
 
 /**
@@ -190,13 +193,12 @@ CONCERNS ABOUT SIMPLIFYING:
 ---
 
 Generate a pastoral reflection that:
-1. Starts with this exact headline: "${tool.headline}"
-2. Names what they've already identified as essential
-3. Validates their care about not leaving important things out
-4. Reflects back that their discernment about weight is trustworthy
-5. Closes with affirmation that clarity serves faithfulness
+1. Names what they've already identified as essential
+2. Validates their care about not leaving important things out
+3. Offers 2-3 concrete suggestions for what could safely be set aside or simplified
+4. Closes with affirmation that clarity serves faithfulness
 
-Remember: The weight they feel is real. Their instinct to simplify is not carelessness—it is care.`;
+Remember: The weight they feel is real. Their instinct to simplify is not carelessness—it is care. Do NOT include a headline—the interface displays one separately.`;
 }
 
 /**
@@ -227,13 +229,12 @@ THEIR CLOSEST ONE-SENTENCE SUMMARY:
 ---
 
 Generate a pastoral reflection that:
-1. Starts with this exact headline: "${tool.headline}"
-2. Reflects back the anchor truth they've already identified
-3. Validates their instinct about what matters most
-4. Names the clarity that's emerging in their preparation
-5. Closes with affirmation that focused teaching honors Scripture
+1. Reflects back the anchor truth they've already identified
+2. Validates their instinct about what matters most
+3. Offers 2-3 ways to frame or articulate that central truth more clearly
+4. Closes with affirmation that focused teaching honors Scripture
 
-Remember: They have already found the anchor. Your role is to help them see what they've named.`;
+Remember: They have already found the anchor. Your role is to help them see what they've named. Do NOT include a headline—the interface displays one separately.`;
 }
 
 /**
