@@ -4,8 +4,8 @@
  * Location: src/components/admin/toolbelt/ToolbeltEmailManager.tsx
  * 
  * CHANGELOG:
+ * - Jan 29, 2026: Fixed bidirectional mode conversion to preserve paragraphs
  * - Jan 29, 2026: Added ReactQuill rich text editor with link toolbar
- * - Jan 29, 2026: Added markdown-to-HTML conversion for preview
  */
 
 import { useState, useEffect } from 'react';
@@ -66,37 +66,133 @@ interface EmailTemplate {
 }
 
 /**
- * Convert plain text to styled HTML for preview
- * Handles: **bold**, URLs as buttons, line breaks
+ * Convert plain text to HTML for Quill editor
+ * Preserves paragraph structure by converting double newlines to separate <p> tags
  */
-function convertPlainTextToHtml(text: string): string {
-  let html = text;
+function plainTextToHtml(text: string): string {
+  if (!text) return '<p></p>';
   
-  // Escape HTML entities first
-  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Check if already has HTML tags - don't double-convert
+  if (/<\/?[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
   
-  // Convert **bold** to <strong>
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Split by double newlines (paragraph breaks)
+  const paragraphs = text.split(/\n\n+/);
   
-  // Convert *italic* to <em> (but not if part of **)
-  html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+  return paragraphs.map(para => {
+    // Convert single newlines to <br> within paragraph
+    let html = para.replace(/\n/g, '<br>');
+    // Convert **bold** to <strong>
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // Convert *italic* to <em>
+    html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    return `<p>${html}</p>`;
+  }).join('');
+}
+
+/**
+ * Convert HTML back to plain text
+ * Preserves paragraph structure by converting </p><p> to double newlines
+ */
+function htmlToPlainText(html: string): string {
+  if (!html) return '';
   
-  // Convert URLs on their own line to styled buttons
-  html = html.replace(
-    /^(https?:\/\/[^\s]+)$/gm,
-    `<a href="$1" style="display: inline-block; background-color: ${BRAND.primaryGreen}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 8px 0;">Visit Link →</a>`
-  );
+  let text = html;
   
-  // Convert inline URLs (not on their own line) to links
-  html = html.replace(
-    /(?<!href=")(https?:\/\/[^\s<]+)(?![^<]*<\/a>)/g,
-    `<a href="$1" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">$1</a>`
-  );
+  // Replace </p><p> with double newline (paragraph break)
+  text = text.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
   
-  // Convert line breaks to <br> for proper display
-  html = html.replace(/\n/g, '<br>');
+  // Remove opening <p> tag
+  text = text.replace(/<p[^>]*>/gi, '');
   
-  return html;
+  // Remove closing </p> tag
+  text = text.replace(/<\/p>/gi, '');
+  
+  // Convert <br> to single newline
+  text = text.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Convert <strong> to **bold**
+  text = text.replace(/<strong>(.+?)<\/strong>/gi, '**$1**');
+  
+  // Convert <em> to *italic*
+  text = text.replace(/<em>(.+?)<\/em>/gi, '*$1*');
+  
+  // Convert links to plain URLs
+  text = text.replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/gi, '$1');
+  
+  // Remove list tags but keep content
+  text = text.replace(/<\/?[uo]l[^>]*>/gi, '');
+  text = text.replace(/<li[^>]*>/gi, '- ');
+  text = text.replace(/<\/li>/gi, '\n');
+  
+  // Remove heading tags
+  text = text.replace(/<h[1-6][^>]*>/gi, '\n');
+  text = text.replace(/<\/h[1-6]>/gi, '\n');
+  
+  // Strip any remaining HTML tags
+  text = text.replace(/<[^>]+>/g, '');
+  
+  // Decode HTML entities
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+  
+  // Normalize multiple newlines
+  text = text.replace(/\n{3,}/g, '\n\n');
+  
+  // Trim whitespace
+  text = text.trim();
+  
+  return text;
+}
+
+/**
+ * Convert plain text to styled HTML for email preview/sending
+ * Handles: **bold**, URLs as buttons, paragraphs
+ */
+function convertPlainTextToEmailHtml(text: string): string {
+  // Split into paragraphs by double newlines
+  const paragraphs = text.split(/\n\n+/);
+  
+  const htmlParagraphs = paragraphs.map(para => {
+    let html = para;
+    
+    // Escape HTML entities
+    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
+    // Convert **bold** to <strong>
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    
+    // Check if this paragraph is just a URL (make it a button)
+    const urlOnlyMatch = html.trim().match(/^(https?:\/\/[^\s]+)$/);
+    if (urlOnlyMatch) {
+      return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px 0;">
+        <tr>
+          <td style="border-radius: 6px; background: ${BRAND.primaryGreen};">
+            <a href="${urlOnlyMatch[1]}" target="_blank" style="background: ${BRAND.primaryGreen}; font-family: Georgia, serif; font-size: 15px; text-decoration: none; padding: 12px 24px; color: #ffffff; border-radius: 6px; display: inline-block; font-weight: bold;">
+              Visit Link →
+            </a>
+          </td>
+        </tr>
+      </table>`;
+    }
+    
+    // Convert inline URLs to links
+    html = html.replace(
+      /(https?:\/\/[^\s]+)/g,
+      `<a href="$1" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">$1</a>`
+    );
+    
+    // Convert single newlines to <br>
+    html = html.replace(/\n/g, '<br>');
+    
+    return `<p style="margin: 0 0 16px 0; line-height: 1.6; color: ${BRAND.darkText};">${html}</p>`;
+  });
+  
+  return htmlParagraphs.join('\n');
 }
 
 /**
@@ -106,21 +202,17 @@ function convertQuillToEmailHtml(quillHtml: string): string {
   let html = quillHtml;
   
   // Add inline styles to paragraphs
-  html = html.replace(/<p>/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText};">`);
-  html = html.replace(/<p class="ql-align-center">/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: center;">`);
-  html = html.replace(/<p class="ql-align-right">/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: right;">`);
+  html = html.replace(/<p>/g, `<p style="margin: 0 0 16px 0; line-height: 1.6; color: ${BRAND.darkText};">`);
+  html = html.replace(/<p class="ql-align-center">/g, `<p style="margin: 0 0 16px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: center;">`);
+  html = html.replace(/<p class="ql-align-right">/g, `<p style="margin: 0 0 16px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: right;">`);
   
   // Style lists
-  html = html.replace(/<ul>/g, `<ul style="margin: 0 0 12px 0; padding-left: 24px;">`);
-  html = html.replace(/<ol>/g, `<ol style="margin: 0 0 12px 0; padding-left: 24px;">`);
-  html = html.replace(/<li>/g, `<li style="margin-bottom: 6px; color: ${BRAND.darkText};">`);
+  html = html.replace(/<ul>/g, `<ul style="margin: 0 0 16px 0; padding-left: 24px;">`);
+  html = html.replace(/<ol>/g, `<ol style="margin: 0 0 16px 0; padding-left: 24px;">`);
+  html = html.replace(/<li>/g, `<li style="margin-bottom: 8px; color: ${BRAND.darkText};">`);
   
   // Style links with brand green
   html = html.replace(/<a /g, `<a style="color: ${BRAND.primaryGreen}; text-decoration: underline;" `);
-  
-  // Style bold/italic
-  html = html.replace(/<strong>/g, `<strong style="font-weight: bold;">`);
-  html = html.replace(/<em>/g, `<em style="font-style: italic;">`);
   
   // Style headers
   html = html.replace(/<h1>/g, `<h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold; color: ${BRAND.darkText};">`);
@@ -242,7 +334,7 @@ export function ToolbeltEmailManager() {
           sequence_order: nextOrder,
           send_day: nextDay,
           subject: 'New Email Subject',
-          body: 'Email content goes here...',
+          body: 'Hello {name},\n\nYour email content here.\n\nWarmly,\nLynn',
           is_active: false,
           is_html: false,
         })
@@ -284,6 +376,40 @@ export function ToolbeltEmailManager() {
   }
 
   /**
+   * Handle mode switch with proper content conversion
+   */
+  function handleModeSwitch(template: EmailTemplate, newIsHtml: boolean) {
+    if (newIsHtml === template.is_html) return;
+    
+    let newBody = template.body;
+    
+    if (newIsHtml) {
+      // Switching TO Rich Text mode: convert plain text to HTML
+      const confirmed = confirm(
+        'Switching to Rich Text mode will convert your content to HTML format.\n\n' +
+        'Paragraph breaks will be preserved. Continue?'
+      );
+      if (!confirmed) return;
+      
+      newBody = plainTextToHtml(template.body);
+    } else {
+      // Switching TO Plain Text mode: convert HTML to plain text
+      const confirmed = confirm(
+        'Switching to Plain Text mode will convert HTML back to plain text.\n\n' +
+        'Some formatting (like links) will be simplified. Continue?'
+      );
+      if (!confirmed) return;
+      
+      newBody = htmlToPlainText(template.body);
+    }
+    
+    updateTemplate(template.id, { 
+      is_html: newIsHtml,
+      body: newBody
+    });
+  }
+
+  /**
    * Generate preview HTML with variable substitution and proper styling
    */
   function getPreviewHtml(template: EmailTemplate): string {
@@ -295,7 +421,7 @@ export function ToolbeltEmailManager() {
       return convertQuillToEmailHtml(bodyWithVars);
     }
     
-    return convertPlainTextToHtml(bodyWithVars);
+    return convertPlainTextToEmailHtml(bodyWithVars);
   }
 
   /**
@@ -304,37 +430,36 @@ export function ToolbeltEmailManager() {
   function getFullPreviewHtml(template: EmailTemplate): string {
     const bodyHtml = getPreviewHtml(template);
     
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Georgia, 'Times New Roman', serif; margin: 0; padding: 0; background: #f5f5f5; }
-          .container { max-width: 600px; margin: 0 auto; background: white; }
-          .header { background: linear-gradient(135deg, ${BRAND.primaryGreen}, ${BRAND.primaryGreenLight}); padding: 24px; text-align: center; }
-          .header h1 { color: white; margin: 0; font-size: 24px; }
-          .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
-          .body { padding: 32px 24px; color: ${BRAND.darkText}; line-height: 1.6; }
-          .footer { background: ${BRAND.cream}; padding: 24px; text-align: center; font-size: 12px; color: ${BRAND.mutedText}; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>✦ BibleLessonSpark</h1>
-            <p>Personalized Bible Studies in Minutes</p>
-          </div>
-          <div class="body">
-            ${bodyHtml}
-          </div>
-          <div class="footer">
-            <p>© 2026 BibleLessonSpark. All rights reserved.</p>
-            <p><a href="#" style="color: ${BRAND.primaryGreen};">Unsubscribe</a></p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: Georgia, 'Times New Roman', serif; margin: 0; padding: 0; background: #f5f5f5; }
+    .container { max-width: 600px; margin: 0 auto; background: white; }
+    .header { background: linear-gradient(135deg, ${BRAND.primaryGreen}, ${BRAND.primaryGreenLight}); padding: 24px; text-align: center; }
+    .header h1 { color: white; margin: 0; font-size: 24px; }
+    .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
+    .body { padding: 32px 24px; color: ${BRAND.darkText}; line-height: 1.6; font-size: 15px; }
+    .footer { background: ${BRAND.cream}; padding: 24px; text-align: center; font-size: 12px; color: ${BRAND.mutedText}; }
+    .footer a { color: ${BRAND.primaryGreen}; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>✦ BibleLessonSpark</h1>
+      <p>Personalized Bible Studies in Minutes</p>
+    </div>
+    <div class="body">
+      ${bodyHtml}
+    </div>
+    <div class="footer">
+      <p>© 2026 BibleLessonSpark. All rights reserved.</p>
+      <p><a href="#">Unsubscribe</a></p>
+    </div>
+  </div>
+</body>
+</html>`;
   }
 
   if (loading) {
@@ -386,10 +511,12 @@ export function ToolbeltEmailManager() {
       </div>
 
       {/* Help text */}
-      <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1">
-        <p><strong>Personalization:</strong> Use <code className="bg-muted px-1 rounded">{'{name}'}</code> for recipient name.</p>
-        <p><strong>Rich Text Mode:</strong> Toggle on to use the formatting toolbar with <strong>Bold</strong>, <em>Italic</em>, lists, and <span className="text-primary underline">links</span>.</p>
-        <p><strong>Plain Text Mode:</strong> URLs on their own line become green buttons automatically.</p>
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm space-y-2">
+        <p className="font-semibold text-blue-900">Quick Guide:</p>
+        <div className="text-blue-800 space-y-1">
+          <p><strong>Plain Text Mode (Recommended):</strong> Use <code className="bg-blue-100 px-1 rounded">{'{name}'}</code> for personalization. URLs on their own line become green buttons. Use blank lines between paragraphs.</p>
+          <p><strong>Rich Text Mode:</strong> Use the toolbar to add links, bold text, and lists. Best for emails that need inline clickable text.</p>
+        </div>
       </div>
 
       {templates.length === 0 ? (
@@ -464,7 +591,7 @@ export function ToolbeltEmailManager() {
                           <Switch
                             id={`html-${template.id}`}
                             checked={template.is_html}
-                            onCheckedChange={(checked) => updateTemplate(template.id, { is_html: checked })}
+                            onCheckedChange={(checked) => handleModeSwitch(template, checked)}
                           />
                           <Label htmlFor={`html-${template.id}`} className="text-sm font-normal">
                             Rich Text Mode
@@ -489,12 +616,19 @@ export function ToolbeltEmailManager() {
                             id={`body-${template.id}`}
                             value={template.body}
                             onChange={(e) => updateTemplate(template.id, { body: e.target.value })}
-                            rows={10}
-                            className="font-mono text-sm"
-                            placeholder="Hello {name},&#10;&#10;Your email content here...&#10;&#10;https://biblelessonspark.com/toolbelt&#10;&#10;Warmly,&#10;Lynn"
+                            rows={12}
+                            className="font-mono text-sm leading-relaxed"
+                            placeholder={`Hello {name},
+
+Your email content here...
+
+https://biblelessonspark.com/toolbelt
+
+Warmly,
+Lynn`}
                           />
                           <p className="text-xs text-muted-foreground">
-                            Use **text** for bold. URLs on their own line become buttons.
+                            Tip: Use blank lines between paragraphs. URLs on their own line become buttons. Use **text** for bold.
                           </p>
                         </>
                       )}
