@@ -2,6 +2,9 @@
  * ToolbeltEmailManager.tsx
  * Manages email sequence templates for Teacher Toolbelt
  * Location: src/components/admin/toolbelt/ToolbeltEmailManager.tsx
+ * 
+ * CHANGELOG:
+ * - Jan 29, 2026: Added markdown-to-HTML conversion for preview
  */
 
 import { useState, useEffect } from 'react';
@@ -28,6 +31,40 @@ interface EmailTemplate {
   is_html: boolean;
   created_at: string;
   updated_at: string;
+}
+
+/**
+ * Convert basic markdown and plain text to styled HTML for preview
+ * Handles: **bold**, URLs as buttons, line breaks
+ */
+function convertToPreviewHtml(text: string): string {
+  let html = text;
+  
+  // Escape HTML entities first (but not our conversions)
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Convert **bold** to <strong>
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  
+  // Convert *italic* to <em> (but not if part of **)
+  html = html.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
+  
+  // Convert URLs on their own line to styled buttons
+  html = html.replace(
+    /^(https?:\/\/[^\s]+)$/gm,
+    '<a href="$1" style="display: inline-block; background-color: #3D5C3D; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 8px 0;">$1</a>'
+  );
+  
+  // Convert inline URLs (not on their own line) to links
+  html = html.replace(
+    /(?<!href=")(https?:\/\/[^\s<]+)(?![^<]*<\/a>)/g,
+    '<a href="$1" style="color: #3D5C3D; text-decoration: underline;">$1</a>'
+  );
+  
+  // Convert line breaks to <br> for proper display
+  html = html.replace(/\n/g, '<br>');
+  
+  return html;
 }
 
 export function ToolbeltEmailManager() {
@@ -180,6 +217,21 @@ export function ToolbeltEmailManager() {
     ));
   }
 
+  /**
+   * Generate preview HTML with variable substitution
+   */
+  function getPreviewHtml(template: EmailTemplate): string {
+    const bodyWithVars = template.body
+      .replace(/{name}/g, 'Teacher')
+      .replace(/{email}/g, 'teacher@example.com');
+    
+    if (template.is_html) {
+      return bodyWithVars;
+    }
+    
+    return convertToPreviewHtml(bodyWithVars);
+  }
+
   if (loading) {
     return (
       <Card>
@@ -275,7 +327,8 @@ export function ToolbeltEmailManager() {
                         className="font-mono text-sm"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Use {'{name}'} for recipient name, {'{email}'} for their email address
+                        Use {'{name}'} for recipient name, {'{email}'} for their email. 
+                        Use **text** for bold formatting. URLs on their own line become buttons.
                       </p>
                     </div>
 
@@ -318,13 +371,10 @@ export function ToolbeltEmailManager() {
                             <div className="border rounded-lg p-4 bg-white">
                               <p className="font-semibold mb-2">Subject: {template.subject}</p>
                               <hr className="my-3" />
-                              {template.is_html ? (
-                                <div dangerouslySetInnerHTML={{ __html: template.body }} />
-                              ) : (
-                                <div className="whitespace-pre-wrap font-serif">
-                                  {template.body.replace(/{name}/g, 'Teacher').replace(/{email}/g, 'teacher@example.com')}
-                                </div>
-                              )}
+                              <div 
+                                className="font-serif leading-relaxed"
+                                dangerouslySetInnerHTML={{ __html: getPreviewHtml(template) }}
+                              />
                             </div>
                           </DialogContent>
                         </Dialog>
