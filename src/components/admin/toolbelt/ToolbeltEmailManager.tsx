@@ -4,6 +4,7 @@
  * Location: src/components/admin/toolbelt/ToolbeltEmailManager.tsx
  * 
  * CHANGELOG:
+ * - Jan 29, 2026: Added ReactQuill rich text editor with link toolbar
  * - Jan 29, 2026: Added markdown-to-HTML conversion for preview
  */
 
@@ -19,6 +20,37 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, ChevronDown, ChevronUp, Eye, Save, Plus, Trash2, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
+
+// Brand colors for email styling
+const BRAND = {
+  primaryGreen: "#3D5C3D",
+  primaryGreenLight: "#4A6F4A",
+  cream: "#FFFEF9",
+  darkText: "#1a1a1a",
+  mutedText: "#666666",
+};
+
+// Quill editor toolbar configuration - includes link button
+const quillModules = {
+  toolbar: [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    ['link'],
+    [{ 'align': [] }],
+    ['clean']
+  ],
+};
+
+const quillFormats = [
+  'header',
+  'bold', 'italic', 'underline',
+  'list', 'bullet',
+  'link',
+  'align'
+];
 
 interface EmailTemplate {
   id: string;
@@ -34,13 +66,13 @@ interface EmailTemplate {
 }
 
 /**
- * Convert basic markdown and plain text to styled HTML for preview
+ * Convert plain text to styled HTML for preview
  * Handles: **bold**, URLs as buttons, line breaks
  */
-function convertToPreviewHtml(text: string): string {
+function convertPlainTextToHtml(text: string): string {
   let html = text;
   
-  // Escape HTML entities first (but not our conversions)
+  // Escape HTML entities first
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   
   // Convert **bold** to <strong>
@@ -52,17 +84,52 @@ function convertToPreviewHtml(text: string): string {
   // Convert URLs on their own line to styled buttons
   html = html.replace(
     /^(https?:\/\/[^\s]+)$/gm,
-    '<a href="$1" style="display: inline-block; background-color: #3D5C3D; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 8px 0;">$1</a>'
+    `<a href="$1" style="display: inline-block; background-color: ${BRAND.primaryGreen}; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin: 8px 0;">Visit Link →</a>`
   );
   
   // Convert inline URLs (not on their own line) to links
   html = html.replace(
     /(?<!href=")(https?:\/\/[^\s<]+)(?![^<]*<\/a>)/g,
-    '<a href="$1" style="color: #3D5C3D; text-decoration: underline;">$1</a>'
+    `<a href="$1" style="color: ${BRAND.primaryGreen}; text-decoration: underline;">$1</a>`
   );
   
   // Convert line breaks to <br> for proper display
   html = html.replace(/\n/g, '<br>');
+  
+  return html;
+}
+
+/**
+ * Convert Quill HTML to email-safe HTML with inline styles
+ */
+function convertQuillToEmailHtml(quillHtml: string): string {
+  let html = quillHtml;
+  
+  // Add inline styles to paragraphs
+  html = html.replace(/<p>/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText};">`);
+  html = html.replace(/<p class="ql-align-center">/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: center;">`);
+  html = html.replace(/<p class="ql-align-right">/g, `<p style="margin: 0 0 12px 0; line-height: 1.6; color: ${BRAND.darkText}; text-align: right;">`);
+  
+  // Style lists
+  html = html.replace(/<ul>/g, `<ul style="margin: 0 0 12px 0; padding-left: 24px;">`);
+  html = html.replace(/<ol>/g, `<ol style="margin: 0 0 12px 0; padding-left: 24px;">`);
+  html = html.replace(/<li>/g, `<li style="margin-bottom: 6px; color: ${BRAND.darkText};">`);
+  
+  // Style links with brand green
+  html = html.replace(/<a /g, `<a style="color: ${BRAND.primaryGreen}; text-decoration: underline;" `);
+  
+  // Style bold/italic
+  html = html.replace(/<strong>/g, `<strong style="font-weight: bold;">`);
+  html = html.replace(/<em>/g, `<em style="font-style: italic;">`);
+  
+  // Style headers
+  html = html.replace(/<h1>/g, `<h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: bold; color: ${BRAND.darkText};">`);
+  html = html.replace(/<h2>/g, `<h2 style="margin: 0 0 14px 0; font-size: 20px; font-weight: bold; color: ${BRAND.darkText};">`);
+  html = html.replace(/<h3>/g, `<h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: ${BRAND.darkText};">`);
+  
+  // Remove empty paragraphs
+  html = html.replace(/<p[^>]*><br><\/p>/g, '');
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
   
   return html;
 }
@@ -72,7 +139,6 @@ export function ToolbeltEmailManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const [openTemplates, setOpenTemplates] = useState<Set<string>>(new Set());
-  const [previewTemplate, setPreviewTemplate] = useState<EmailTemplate | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -218,7 +284,7 @@ export function ToolbeltEmailManager() {
   }
 
   /**
-   * Generate preview HTML with variable substitution
+   * Generate preview HTML with variable substitution and proper styling
    */
   function getPreviewHtml(template: EmailTemplate): string {
     const bodyWithVars = template.body
@@ -226,10 +292,49 @@ export function ToolbeltEmailManager() {
       .replace(/{email}/g, 'teacher@example.com');
     
     if (template.is_html) {
-      return bodyWithVars;
+      return convertQuillToEmailHtml(bodyWithVars);
     }
     
-    return convertToPreviewHtml(bodyWithVars);
+    return convertPlainTextToHtml(bodyWithVars);
+  }
+
+  /**
+   * Generate full email preview with header/footer
+   */
+  function getFullPreviewHtml(template: EmailTemplate): string {
+    const bodyHtml = getPreviewHtml(template);
+    
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Georgia, 'Times New Roman', serif; margin: 0; padding: 0; background: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; background: white; }
+          .header { background: linear-gradient(135deg, ${BRAND.primaryGreen}, ${BRAND.primaryGreenLight}); padding: 24px; text-align: center; }
+          .header h1 { color: white; margin: 0; font-size: 24px; }
+          .header p { color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 14px; }
+          .body { padding: 32px 24px; color: ${BRAND.darkText}; line-height: 1.6; }
+          .footer { background: ${BRAND.cream}; padding: 24px; text-align: center; font-size: 12px; color: ${BRAND.mutedText}; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✦ BibleLessonSpark</h1>
+            <p>Personalized Bible Studies in Minutes</p>
+          </div>
+          <div class="body">
+            ${bodyHtml}
+          </div>
+          <div class="footer">
+            <p>© 2026 BibleLessonSpark. All rights reserved.</p>
+            <p><a href="#" style="color: ${BRAND.primaryGreen};">Unsubscribe</a></p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 
   if (loading) {
@@ -244,6 +349,29 @@ export function ToolbeltEmailManager() {
 
   return (
     <div className="space-y-4">
+      {/* Custom styles for Quill editor */}
+      <style>{`
+        .toolbelt-email-editor .ql-container {
+          font-family: Georgia, 'Times New Roman', serif;
+          font-size: 15px;
+          min-height: 200px;
+          border-bottom-left-radius: 6px;
+          border-bottom-right-radius: 6px;
+        }
+        .toolbelt-email-editor .ql-editor {
+          min-height: 200px;
+          line-height: 1.6;
+        }
+        .toolbelt-email-editor .ql-toolbar {
+          border-top-left-radius: 6px;
+          border-top-right-radius: 6px;
+          background: #f9fafb;
+        }
+        .toolbelt-email-editor .ql-editor a {
+          color: ${BRAND.primaryGreen};
+        }
+      `}</style>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Email Sequence Templates</h3>
@@ -255,6 +383,13 @@ export function ToolbeltEmailManager() {
           <Plus className="h-4 w-4 mr-2" />
           Add Email
         </Button>
+      </div>
+
+      {/* Help text */}
+      <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1">
+        <p><strong>Personalization:</strong> Use <code className="bg-muted px-1 rounded">{'{name}'}</code> for recipient name.</p>
+        <p><strong>Rich Text Mode:</strong> Toggle on to use the formatting toolbar with <strong>Bold</strong>, <em>Italic</em>, lists, and <span className="text-primary underline">links</span>.</p>
+        <p><strong>Plain Text Mode:</strong> URLs on their own line become green buttons automatically.</p>
       </div>
 
       {templates.length === 0 ? (
@@ -277,8 +412,13 @@ export function ToolbeltEmailManager() {
                       <div className="flex items-center gap-3">
                         <Mail className="h-5 w-5 text-muted-foreground" />
                         <div>
-                          <CardTitle className="text-base">
+                          <CardTitle className="text-base flex items-center gap-2">
                             Email #{template.sequence_order}: {template.subject}
+                            {template.is_html ? (
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Rich Text</span>
+                            ) : (
+                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">Plain Text</span>
+                            )}
                           </CardTitle>
                           <CardDescription>
                             Day {template.send_day} • {template.is_active ? 'Active' : 'Inactive'}
@@ -318,62 +458,75 @@ export function ToolbeltEmailManager() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`body-${template.id}`}>Email Body</Label>
-                      <Textarea
-                        id={`body-${template.id}`}
-                        value={template.body}
-                        onChange={(e) => updateTemplate(template.id, { body: e.target.value })}
-                        rows={10}
-                        className="font-mono text-sm"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Use {'{name}'} for recipient name, {'{email}'} for their email. 
-                        Use **text** for bold formatting. URLs on their own line become buttons.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            id={`active-${template.id}`}
-                            checked={template.is_active}
-                            onCheckedChange={(checked) => updateTemplate(template.id, { is_active: checked })}
-                          />
-                          <Label htmlFor={`active-${template.id}`}>Active</Label>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <Label>Email Body {template.is_html ? '(Rich Text Editor)' : '(Plain Text)'}</Label>
                         <div className="flex items-center gap-2">
                           <Switch
                             id={`html-${template.id}`}
                             checked={template.is_html}
                             onCheckedChange={(checked) => updateTemplate(template.id, { is_html: checked })}
                           />
-                          <Label htmlFor={`html-${template.id}`}>HTML Mode</Label>
+                          <Label htmlFor={`html-${template.id}`} className="text-sm font-normal">
+                            Rich Text Mode
+                          </Label>
                         </div>
+                      </div>
+                      
+                      {template.is_html ? (
+                        <div className="toolbelt-email-editor border rounded-md overflow-hidden">
+                          <ReactQuill
+                            theme="snow"
+                            value={template.body}
+                            onChange={(value) => updateTemplate(template.id, { body: value })}
+                            modules={quillModules}
+                            formats={quillFormats}
+                            placeholder="Start writing your email..."
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <Textarea
+                            id={`body-${template.id}`}
+                            value={template.body}
+                            onChange={(e) => updateTemplate(template.id, { body: e.target.value })}
+                            rows={10}
+                            className="font-mono text-sm"
+                            placeholder="Hello {name},&#10;&#10;Your email content here...&#10;&#10;https://biblelessonspark.com/toolbelt&#10;&#10;Warmly,&#10;Lynn"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Use **text** for bold. URLs on their own line become buttons.
+                          </p>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          id={`active-${template.id}`}
+                          checked={template.is_active}
+                          onCheckedChange={(checked) => updateTemplate(template.id, { is_active: checked })}
+                        />
+                        <Label htmlFor={`active-${template.id}`}>Active</Label>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => setPreviewTemplate(template)}
-                            >
+                            <Button variant="outline" size="sm">
                               <Eye className="h-4 w-4 mr-2" />
                               Preview
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
                             <DialogHeader>
-                              <DialogTitle>Email Preview</DialogTitle>
+                              <DialogTitle>Email Preview: {template.subject}</DialogTitle>
                             </DialogHeader>
-                            <div className="border rounded-lg p-4 bg-white">
-                              <p className="font-semibold mb-2">Subject: {template.subject}</p>
-                              <hr className="my-3" />
-                              <div 
-                                className="font-serif leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: getPreviewHtml(template) }}
+                            <div className="flex-1 overflow-auto border rounded-lg bg-gray-100">
+                              <iframe 
+                                srcDoc={getFullPreviewHtml(template)} 
+                                className="w-full h-[500px] border-0" 
+                                title="Email Preview" 
                               />
                             </div>
                           </DialogContent>

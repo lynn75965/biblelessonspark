@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 27, 2026 (Phase 22 - DevotionalSpark Style v2.1)
+**Last Updated:** January 29, 2026 (Phase 23 - Teacher Toolbelt Complete)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -18,6 +18,7 @@
 | **Platform Mode** | Production (as of Jan 10, 2026) |
 | **Launch Date** | January 27, 2026 |
 | **Reset Logic** | Rolling 30-day periods (per-user, not calendar month) |
+| **Toolbelt URL** | https://biblelessonspark.com/toolbelt |
 
 ---
 
@@ -38,6 +39,7 @@
 | `src/constants/theologyProfiles.ts` | 10 Baptist theological traditions |
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
 | `src/constants/devotionalConfig.ts` | DevotionalSpark configuration |
+| `src/constants/toolbeltConfig.ts` | **Teacher Toolbelt configuration** |
 | `src/constants/pricingConfig.ts` | Tier sections, limits (MASTER for tier_config) |
 | `src/constants/trialConfig.ts` | Trial system configuration (rolling 30-day) |
 | `src/constants/tenantConfig.ts` | White-label tenant configuration |
@@ -55,6 +57,363 @@
 | `npm run sync-constants` | Syncs src/constants/ → supabase/functions/_shared/ |
 | `npm run sync-branding` | Syncs branding → branding_config table |
 | `npm run sync-tier-config` | Syncs tier config → tier_config table |
+
+---
+
+## TEACHER TOOLBELT SYSTEM (Phase 23 - COMPLETE ✅)
+
+### Overview
+Teacher Toolbelt is a **free, public resource** for volunteer Baptist Bible teachers offering genuine help through 3 micro-tools with a natural pathway to BibleLessonSpark subscription.
+
+**Strategic Flow:**
+```
+eBook Download → Email Sequence → Toolbelt → Email Capture → Nurture Sequence → BLS Subscription
+```
+
+**Core Philosophy:**
+- Value first, always
+- Pastoral tone throughout
+- Dignity-preserving
+- No pressure, no manipulation
+- Service that naturally leads to deeper service
+
+### Architecture
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `toolbeltConfig.ts` | `src/constants/` | SSOT configuration |
+| `ToolbeltLanding.tsx` | `src/pages/toolbelt/` | Tool index page |
+| `ToolbeltLessonFit.tsx` | `src/pages/toolbelt/` | Tool 1: Does This Lesson Fit? |
+| `ToolbeltLeftOut.tsx` | `src/pages/toolbelt/` | Tool 2: What Can Be Left Out? |
+| `ToolbeltOneTruth.tsx` | `src/pages/toolbelt/` | Tool 3: One-Truth Focus Finder |
+| `ToolbeltAdmin.tsx` | `src/pages/` | Admin management center |
+| `toolbelt-reflect` | Edge Function | AI reflection generation |
+| `send-toolbelt-reflection` | Edge Function | Email reflection to user |
+| `send-toolbelt-sequence` | Edge Function | Nurture sequence processor |
+
+### Routes
+
+**Public (No Auth Required):**
+| Route | Page | Purpose |
+|-------|------|---------|
+| `/toolbelt` | ToolbeltLanding | Tool index with descriptions |
+| `/toolbelt/lesson-fit` | ToolbeltLessonFit | Name mismatch patterns |
+| `/toolbelt/left-out-safely` | ToolbeltLeftOut | Identify essential vs supporting |
+| `/toolbelt/one-truth` | ToolbeltOneTruth | Articulate central truth |
+
+**Protected (Admin Only):**
+| Route | Page | Purpose |
+|-------|------|---------|
+| `/admin/toolbelt` | ToolbeltAdmin | Usage, emails, captures management |
+
+### The Three Tools
+
+| Tool | Purpose | Time | Key Question |
+|------|---------|------|--------------|
+| **Does This Lesson Fit My Class?** | Name why a lesson feels mismatched | ~2 min | "Why doesn't this feel right?" |
+| **What Can Be Left Out Safely?** | Distinguish essential from supporting content | ~3 min | "What can I set aside without guilt?" |
+| **One-Truth Focus Finder** | Articulate the central truth | ~2 min | "What is the one thing they need today?" |
+
+---
+
+## TOOLBELT VOICE GUARDRAILS ⚠️ CRITICAL
+
+### Claude's Role
+**Reflect, don't instruct.**
+
+Claude is NOT:
+- A teacher telling them what to do
+- A consultant diagnosing their problem
+- A product pushing BibleLessonSpark
+- An expert correcting their theology
+
+Claude IS:
+- A mirror reflecting their own discernment back to them
+- A voice of affirmation for work they're already doing
+- A gentle presence that names patterns without prescribing solutions
+
+### Tone Requirements
+
+| Requirement | Example |
+|-------------|---------|
+| **Pastoral** | "That instinct is worth honoring." |
+| **Calm** | No urgency, no exclamation points |
+| **Dignity-preserving** | Never imply failure or inadequacy |
+| **Non-judgmental** | Observations, not evaluations |
+| **Warm** | Human, not clinical |
+
+### Voice Prohibitions (Hard Rules)
+
+| Prohibition | Why |
+|-------------|-----|
+| ❌ Do NOT give prescriptive advice | "You should..." or "Try doing..." |
+| ❌ Do NOT diagnose problems | "Your issue is..." or "The problem is..." |
+| ❌ Do NOT mention BibleLessonSpark | No product awareness in tools |
+| ❌ Do NOT mention pricing or features | No commercial content |
+| ❌ Do NOT take doctrinal positions | Stay theologically neutral |
+| ❌ Do NOT use bullet points in output | Prose paragraphs only |
+| ❌ Do NOT ask questions in output | Reflection, not interrogation |
+| ❌ Do NOT imply the teacher is failing | Affirmation, not diagnosis |
+
+### Output Structure (All Tools)
+
+Every reflection follows this pattern:
+1. **Headline:** "Here's what your instincts are picking up" (or similar)
+2. **2-3 reflective paragraphs:** Naming patterns, validating feelings, offering 2-3 concrete approaches
+3. **Closing reassurance:** Affirming their attentiveness and care
+
+No bullet points. No numbered lists. Prose only.
+
+### Reflect → Support → Equip Framework
+
+Tool reflections follow this framework:
+1. **Reflect** - Name what the teacher is sensing/experiencing
+2. **Support** - Validate their discernment and care
+3. **Equip** - Offer 2-3 concrete, implementable approaches they can choose from
+
+This ensures teachers receive genuine help, not just validation.
+
+---
+
+## TOOLBELT THEOLOGICAL GUARDRAILS
+
+### Baseline Position
+Toolbelt operates from a **conservative Baptist baseline** that is safe across all 10 BLS theology profiles.
+
+| Principle | Implementation |
+|-----------|----------------|
+| Scripture Authority | Scripture is the final authority for faith and practice |
+| Interpretive Approach | Historical-grammatical, Christ-centered |
+| Doctrinal Safety | Avoid positions that divide Baptist traditions |
+
+### Topics Claude Must Avoid
+- Calvinism vs. Arminianism (election, free will)
+- Cessationism vs. Continuationism (spiritual gifts)
+- Specific end-times frameworks (pre-trib, post-trib, etc.)
+- Mode of baptism disputes
+- Church governance structures
+- Political positions
+
+### Topics Claude May Affirm
+- The authority and sufficiency of Scripture
+- The importance of faithful teaching
+- The value of the teacher's discernment
+- The dignity of the calling to teach
+- God's presence in the teaching moment
+
+---
+
+## TOOLBELT DATABASE TABLES
+
+### toolbelt_usage
+Tracks every tool call for monitoring and cost estimation.
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| tool_id | text | "lesson-fit", "left-out", "one-truth" |
+| session_id | text | Anonymous session tracking |
+| tokens_used | integer | Claude API tokens consumed |
+| created_at | timestamp | When the call occurred |
+
+### toolbelt_email_captures
+Stores emails for nurture sequence.
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| email | text | Captured email (unique) |
+| tool_id | text | Which tool they used |
+| reflection_sent | boolean | Immediate email delivered? |
+| created_at | timestamp | When captured |
+
+### toolbelt_email_templates
+Editable email sequence content.
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| tenant_id | text | White-label support |
+| sequence_order | integer | Position in sequence |
+| send_day | integer | Days after capture to send |
+| subject | text | Email subject line |
+| body | text | Email content |
+| is_html | boolean | HTML or plain text |
+| is_active | boolean | Enable/disable |
+| created_at | timestamp | Created |
+| updated_at | timestamp | Last modified |
+
+### toolbelt_email_tracking
+Tracks individual progress through sequence.
+
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| email_capture_id | uuid | FK to captures |
+| last_email_sent | integer | Count of emails sent |
+| last_email_sent_at | timestamp | When last sent |
+| unsubscribed | boolean | Opt-out flag |
+| created_at | timestamp | Created |
+
+---
+
+## TOOLBELT EMAIL SEQUENCE
+
+### Immediate Email (On Capture)
+When user provides email to receive their reflection:
+- Reflection text included in branded HTML
+- Warm intro paragraph
+- No sales pitch
+
+### 7-Email Nurture Sequence
+
+| # | Day | Subject | Focus |
+|---|-----|---------|-------|
+| 0 | Immediate | Your reflection from [Tool Name] | Reflection + warm intro |
+| 1 | Day 1 | When a lesson doesn't quite fit | Tool 1 value |
+| 2 | Day 3-4 | When carrying everything feels heavy | Tool 2 value |
+| 3 | Day 7 | When you want to teach with clarity | Tool 3 value |
+| 4 | Day 14 | A quiet encouragement for your teaching | Teaching tip (value) |
+| 5 | Day 21 | When preparation needs a home | Soft BLS bridge |
+| 6 | Day 30 | Still here if helpful | Final gentle invitation |
+
+### Email Tone Standards
+
+| Requirement | Implementation |
+|-------------|----------------|
+| Pastoral | Same voice as eBook and tools |
+| Value-first | Every email serves before it invites |
+| No pressure | "When and if helpful" not "Act now!" |
+| Consistent | Matches eBook emotional arc |
+
+### Prohibited Email Language
+
+| Never Use | Use Instead |
+|-----------|-------------|
+| "Limited time" | (no urgency language) |
+| "Don't miss out" | (no FOMO) |
+| "Buy now" | (no commercial pressure) |
+| "You need this" | "This exists if helpful" |
+| "Sign up today" | "When you're ready" |
+
+---
+
+## TOOLBELT ADMIN PANEL
+
+**Location:** `/admin/toolbelt` (separate from main Admin)
+
+### Tab 1: Usage Report
+- Calls today / this week / this month
+- Estimated API cost
+- Tool-by-tool breakdown
+- 30-day trend chart
+- Threshold alert status (green/yellow/red)
+
+### Tab 2: Email Sequences
+- Rich text editor (ReactQuill)
+- Preview functionality
+- Timing control (send_day)
+- Enable/disable toggle
+- Add/delete emails
+
+### Tab 3: Email Captures
+- List view of all captured emails
+- When captured
+- Which tool used
+- Search/filter
+- Export capability
+
+### Tab 4: Guardrails Status
+- Display current configuration
+- Read-only (code changes only)
+- Visual confirmation guardrails are active
+
+### Guardrails Status Display
+```
+┌─────────────────────────────────────────────────────┐
+│ Guardrails Status                           ✅     │
+├─────────────────────────────────────────────────────┤
+│ Theological Baseline: Conservative Baptist          │
+│ Voice Mode: Reflect, Don't Instruct                │
+│ Product Mentions: Prohibited                        │
+│ Doctrinal Positions: Prohibited                    │
+│ Monthly Threshold: 1,000 calls                     │
+│ Current Usage: [X] calls ([Y]%)                    │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## TOOLBELT OPERATIONAL GUARDRAILS
+
+### Cost Control
+
+| Setting | Value | Purpose |
+|---------|-------|---------|
+| Monthly call threshold | 1,000 (adjustable) | Alert before surprise bills |
+| Max tokens per call | ~1,500 | Limit response length |
+| Alert colors | Green (<70%), Yellow (70-90%), Red (>90%) | Visual warning system |
+
+### Monitoring Requirements
+Every tool call MUST:
+1. Log to `toolbelt_usage` table
+2. Record tool_id, session_id, tokens_used, timestamp
+3. Be visible in Usage Report
+
+### Privacy Guardrails
+
+**Data We Collect:**
+| Data | Stored Where | Purpose | Retention |
+|------|--------------|---------|-----------|
+| Tool usage | `toolbelt_usage` | Monitoring | Indefinite |
+| Email (if provided) | `toolbelt_email_captures` | Nurture sequence | Until unsubscribe |
+| Sequence progress | `toolbelt_email_tracking` | Email delivery | Until unsubscribe |
+
+**Data We Do NOT Collect:**
+| Data | Why Not |
+|------|---------|
+| Form inputs | Session-only, never persisted |
+| Reflections | Session-only, never persisted |
+| IP addresses | Not needed, not stored |
+| Browser fingerprints | Not needed, not stored |
+
+---
+
+## TOOLBELT EDGE FUNCTIONS
+
+### toolbelt-reflect
+- **Purpose:** Call Claude API, return pastoral reflection
+- **Input:** tool_id, form inputs
+- **Process:** Load prompt from SSOT, apply guardrails, call Anthropic API
+- **Output:** Reflection text (prose, no bullets)
+- **Side effect:** Log to toolbelt_usage
+
+### send-toolbelt-reflection
+- **Purpose:** Send immediate email with user's reflection
+- **Input:** email, reflection text, tool_id
+- **Process:** Create capture record, build branded HTML, send via Resend
+- **Output:** Success/failure
+- **Side effect:** Initialize tracking record
+
+### send-toolbelt-sequence
+- **Purpose:** Process nurture sequence
+- **Trigger:** Hourly via pg_cron
+- **Process:** Query who needs next email, load template, send via Resend
+- **Side effect:** Update tracking records
+
+---
+
+## TOOLBELT NON-NEGOTIABLE PRINCIPLES
+
+These cannot be changed without Lynn's explicit approval:
+
+1. **Tools work without login** — Never add authentication requirement
+2. **Reflections are session-only** — Never persist user inputs or outputs
+3. **No BLS mentions in tools** — Product awareness only in emails
+4. **Pastoral tone always** — Never commercial or pressured
+5. **Guardrails in prompts** — Voice constraints embedded, not optional
+6. **Admin-only email editing** — Protected by role check
+7. **Separate from BLS Admin** — Own page, not tabs in main admin
 
 ---
 
@@ -294,18 +653,18 @@ SELECT cron.schedule(
 
 **HTML Email Template Structure:**
 ```
-┌─────────────────────────────────────────┐
-│  ✦ BibleLessonSpark (green header)      │
-│  Personalized Bible Studies in Minutes  │
-├─────────────────────────────────────────┤
-│                                         │
-│  [Email body content - Georgia font]    │
-│                                         │
-│  [Green CTA button if URL present]      │
-│                                         │
-├─────────────────────────────────────────┤
-│  Footer: Help link, copyright           │
-└─────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│  ✦ BibleLessonSpark (green header)          │
+│  Personalized Bible Studies in Minutes      │
+├─────────────────────────────────────────────┤
+│                                             │
+│  [Email body content - Georgia font]        │
+│                                             │
+│  [Green CTA button if URL present]          │
+│                                             │
+├─────────────────────────────────────────────┤
+│  Footer: Help link, copyright               │
+└─────────────────────────────────────────────┘
 ```
 
 **Brand Colors Used:**
@@ -440,11 +799,11 @@ WHERE user_id = p_user_id;
 
 ### User Communication: Free Tier Value Proposition
 ```
-✓ 2 complete Bible study lessons every 30 days (all 8 sections)
-✓ 3 additional streamlined lessons (core teaching content)
-✓ Resets automatically every 30 days from your signup
-✓ No credit card required - free forever
-✓ Upgrade anytime for unlimited full lessons
+✔ 2 complete Bible study lessons every 30 days (all 8 sections)
+✔ 3 additional streamlined lessons (core teaching content)
+✔ Resets automatically every 30 days from your signup
+✔ No credit card required - free forever
+✔ Upgrade anytime for unlimited full lessons
 ```
 
 ### Key Database Functions
@@ -519,7 +878,7 @@ export const UI_SYMBOLS = {
   BULLET: '•',
   EM_DASH: '—',
   ELLIPSIS: '…',
-  CHECK: '✓',
+  CHECK: '✔',
   STAR: '★',
   SPARKLES: '✨',
 } as const;
@@ -532,6 +891,45 @@ export const UI_SYMBOLS = {
 ---
 
 ## CHANGELOG
+
+### Phase 23 (Jan 29, 2026) - Teacher Toolbelt Complete ✅
+**Full implementation of Teacher Toolbelt system**
+
+**Architecture:**
+- Created `toolbeltConfig.ts` SSOT configuration
+- 4 database tables: `toolbelt_usage`, `toolbelt_email_captures`, `toolbelt_email_templates`, `toolbelt_email_tracking`
+- 3 Edge Functions: `toolbelt-reflect`, `send-toolbelt-reflection`, `send-toolbelt-sequence`
+- Hourly cron job for nurture sequence
+
+**Public Pages (No Auth):**
+- `/toolbelt` - Landing page with tool cards
+- `/toolbelt/lesson-fit` - Does This Lesson Fit My Class?
+- `/toolbelt/left-out-safely` - What Can Be Left Out Safely?
+- `/toolbelt/one-truth` - One-Truth Focus Finder
+
+**Admin Panel:**
+- `/admin/toolbelt` - Separate admin page with 4 tabs
+- Usage Report with cost estimation
+- Email sequence management
+- Email captures list
+- Guardrails status display
+
+**Voice Framework:**
+- "Reflect → Support → Equip" approach
+- Provides 2-3 concrete, implementable approaches
+- Maintains pastoral tone while offering genuine help
+
+**Email Sequence:**
+- 7-email nurture sequence loaded
+- Immediate reflection email on capture
+- Pastoral tone, no pressure language
+
+**Key Files:**
+- `src/constants/toolbeltConfig.ts`
+- `src/pages/toolbelt/*.tsx`
+- `src/pages/ToolbeltAdmin.tsx`
+- `src/components/admin/toolbelt/*.tsx`
+- `supabase/functions/toolbelt-*/*.ts`
 
 ### Phase 22 (Jan 27, 2026) - DevotionalSpark Style v2.1 🚀 LAUNCH DAY
 **Complete rewrite of DevotionalSpark voice and prompt architecture**
@@ -629,7 +1027,7 @@ export const UI_SYMBOLS = {
 - Created `src/constants/uiSymbols.ts` as SSOT for UI symbols
 - Created `supabase/functions/_shared/uiSymbols.ts` backend mirror
 - Fixed 18 encoding corruptions across 10 files
-- All special characters (•, —, …, ✓, ★, ✨) now centralized
+- All special characters (•, —, …, ✔, ★, ✨) now centralized
 
 ### Phase 20.6 (Jan 15, 2026) - SSOT Email Branding & Database Sync
 - Fixed organization invitation emails showing "LessonSpark USA" → "BibleLessonSpark"
@@ -670,16 +1068,31 @@ src/
 │   ├── admin/
 │   │   ├── OrganizationManagement.tsx  # Includes TransferRequestQueue
 │   │   ├── OrgDetailView.tsx           # Includes Shared Focus tab
-│   │   └── EmailSequenceManager.tsx    # Rich text email editor
+│   │   ├── EmailSequenceManager.tsx    # Rich text email editor
+│   │   └── toolbelt/                   # Toolbelt admin components
+│   │       ├── ToolbeltUsageReport.tsx
+│   │       ├── ToolbeltEmailManager.tsx
+│   │       ├── ToolbeltEmailCaptures.tsx
+│   │       └── ToolbeltGuardrailsStatus.tsx
 │   ├── organization/
 │   │   ├── TransferRequestForm.tsx     # Org Manager creates transfer
 │   │   └── TransferRequestQueue.tsx    # Admin reviews transfers
-│   ├── landing/
-│   │   └── FeaturesSection.tsx         # SSOT: Ages, Theology, Versions, Sections, Preferences
+│   ├── toolbelt/                       # Toolbelt shared components
+│   │   └── ToolbeltReflection.tsx      # Reflection display component
+│   └── landing/
+│       └── FeaturesSection.tsx         # SSOT: Ages, Theology, Versions, Sections, Preferences
+├── pages/
+│   ├── toolbelt/                       # Public tool pages
+│   │   ├── ToolbeltLanding.tsx
+│   │   ├── ToolbeltLessonFit.tsx
+│   │   ├── ToolbeltLeftOut.tsx
+│   │   └── ToolbeltOneTruth.tsx
+│   └── ToolbeltAdmin.tsx               # Admin management center
 ├── config/
 │   ├── branding.ts                  # SSOT: All brand colors
 │   └── brand-values.json            # SSOT: Colors/typography JSON
 ├── constants/
+│   ├── toolbeltConfig.ts            # Teacher Toolbelt SSOT
 │   ├── pricingConfig.ts             # TIER_SECTIONS, TIER_LIMITS (MASTER)
 │   ├── trialConfig.ts               # Trial/reset configuration (rolling 30-day)
 │   ├── devotionalConfig.ts          # DevotionalSpark configuration
@@ -695,6 +1108,12 @@ supabase/functions/
 │   └── index.ts                     # Tier enforcement active
 ├── generate-devotional/
 │   └── index.ts                     # DevotionalSpark v2.1 (Jan 27, 2026)
+├── toolbelt-reflect/
+│   └── index.ts                     # AI reflection generation
+├── send-toolbelt-reflection/
+│   └── index.ts                     # Email reflection to user
+├── send-toolbelt-sequence/
+│   └── index.ts                     # Nurture sequence processor
 ├── confirm-invite-email/
 │   └── index.ts                     # Auto-confirms email for invited users
 ├── send-invite/
@@ -703,6 +1122,7 @@ supabase/functions/
 │   └── index.ts                     # Automated onboarding emails
 ├── _shared/
 │   ├── branding.ts                  # getBranding() helper
+│   ├── toolbeltConfig.ts            # Toolbelt SSOT mirror
 │   ├── devotionalConfig.ts          # DevotionalSpark SSOT mirror
 │   ├── theologyProfiles.ts          # Theology guardrails
 │   ├── bibleVersions.ts             # Copyright guardrails
@@ -722,6 +1142,7 @@ deploy.ps1                           # SSOT deployment script (root directory)
 
 ### Database Tables
 ```
+# Core BLS Tables
 tier_config                          # SSOT for tier limits/sections (RLS: SELECT all)
 user_subscriptions                   # User's current tier + usage + reset_date (UNIQUE on user_id)
 transfer_requests                    # Org member transfer workflow
@@ -729,6 +1150,12 @@ devotionals                          # Generated devotionals
 branding_config                      # SSOT branding for edge functions
 email_sequence_templates             # Onboarding email content (7 emails)
 email_sequence_tracking              # User progress through email sequence
+
+# Teacher Toolbelt Tables
+toolbelt_usage                       # Tool call tracking (cost monitoring)
+toolbelt_email_captures              # Email addresses captured from tools
+toolbelt_email_templates             # Nurture sequence content (7 emails)
+toolbelt_email_tracking              # User progress through toolbelt sequence
 ```
 
 ---
@@ -759,6 +1186,9 @@ npx supabase functions deploy
 
 # Deploy specific edge function
 npx supabase functions deploy generate-devotional
+npx supabase functions deploy toolbelt-reflect
+npx supabase functions deploy send-toolbelt-reflection
+npx supabase functions deploy send-toolbelt-sequence
 
 # Regenerate Supabase types (after schema changes)
 npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts
@@ -824,11 +1254,11 @@ git push
 
 ### User Communication: Free Tier Value Proposition
 ```
-✓ 2 complete Bible study lessons every 30 days (all 8 sections)
-✓ 3 additional streamlined lessons (core teaching content)
-✓ Resets automatically every 30 days from your signup
-✓ No credit card required - free forever
-✓ Upgrade anytime for unlimited full lessons
+✔ 2 complete Bible study lessons every 30 days (all 8 sections)
+✔ 3 additional streamlined lessons (core teaching content)
+✔ Resets automatically every 30 days from your signup
+✔ No credit card required - free forever
+✔ Upgrade anytime for unlimited full lessons
 ```
 
 ---
@@ -847,6 +1277,9 @@ git push
 - `npm run sync-tier-config` - Syncs tier limits to database
 - `npm run sync-constants` - Syncs constants to edge functions
 - `npx supabase functions deploy generate-devotional` - Deploy DevotionalSpark
+- `npx supabase functions deploy toolbelt-reflect` - Deploy Toolbelt reflection
+- `npx supabase functions deploy send-toolbelt-reflection` - Deploy Toolbelt email
+- `npx supabase functions deploy send-toolbelt-sequence` - Deploy Toolbelt nurture
 - `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types after schema changes
 
 **Reset Logic (Important for Support):**
@@ -867,6 +1300,7 @@ git push
 - Reset Logic (rolling 30-day, documented in trialConfig.ts)
 - FeaturesSection (dynamic from 5 SSOT files, hover-activated)
 - DevotionalSpark v2.1 (smooth prose, reader-focused, prayer ends with Jesus)
+- **Teacher Toolbelt (3 tools, admin panel, email sequences)**
 
 **Email Automation Status (All Complete ✅):**
 - Database tables: `email_sequence_templates`, `email_sequence_tracking`
@@ -875,6 +1309,17 @@ git push
 - Edge Function: `send-sequence-email` sends branded HTML
 - Admin Panel: Rich text editor with preview
 - 7-email sequence loaded and active
+
+**Teacher Toolbelt Status (All Complete ✅):**
+- SSOT Config: `toolbeltConfig.ts`
+- Database: 4 tables created with RLS
+- Edge Functions: 3 deployed (`toolbelt-reflect`, `send-toolbelt-reflection`, `send-toolbelt-sequence`)
+- Public Pages: Landing + 3 tool pages (no auth required)
+- Admin Panel: `/admin/toolbelt` with 4 tabs
+- Email Sequence: 7-email nurture loaded
+- Cron Job: Hourly processing configured
+- Voice: "Reflect → Support → Equip" framework active
+- Guardrails: Theological + voice constraints embedded in prompts
 
 **DevotionalSpark v2.1 Status (All Complete ✅):**
 - Edge Function deployed: `generate-devotional` v2.1.0
@@ -887,7 +1332,7 @@ git push
 **Database Protections:**
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - `check_lesson_limit` uses `ON CONFLICT DO NOTHING` for race conditions
-- RLS enabled on `tier_config` and `devotionals` tables
+- RLS enabled on `tier_config`, `devotionals`, and all `toolbelt_*` tables
 
 **Dependencies Added (Jan 26, 2026):**
 - `react-quill` - Rich text editor for email templates
@@ -901,3 +1346,4 @@ git push
 - Beta testers notified ✅
 - Rolling 30-day reset documented ✅
 - DevotionalSpark v2.1 deployed ✅
+- Teacher Toolbelt deployed ✅
