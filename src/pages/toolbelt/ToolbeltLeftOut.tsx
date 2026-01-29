@@ -8,7 +8,7 @@
  * - Form inputs from toolbeltConfig.ts
  * - Voice guardrails enforced by Edge Function
  * 
- * @version 1.0.0
+ * @version 1.0.1 - Fixed property names to match SSOT
  */
 
 import { useState } from "react";
@@ -42,13 +42,13 @@ export default function ToolbeltLeftOut() {
   const tool = TOOLBELT_TOOLS['left-out'];
   const { toast } = useToast();
 
-  // Form state
+  // Form state - uses SSOT property names from toolbeltConfig.ts
   const [formData, setFormData] = useState<LeftOutFormData>({
     mustBeUnderstood: '',
-    staysNextWeek: '',
+    hopeStaysNextWeek: '',
     feelsHeavy: [],
-    usuallyHappens: '',
-    simplifyingConcern: '',
+    whenLessonsFull: '',
+    concernsAboutSimplifying: '',
   });
 
   // UI state
@@ -81,10 +81,10 @@ export default function ToolbeltLeftOut() {
   const isFormValid = () => {
     return (
       formData.mustBeUnderstood.trim().length > 0 &&
-      formData.staysNextWeek.trim().length > 0 &&
+      formData.hopeStaysNextWeek.trim().length > 0 &&
       formData.feelsHeavy.length > 0 &&
-      formData.usuallyHappens &&
-      formData.simplifyingConcern.trim().length > 0
+      formData.whenLessonsFull &&
+      formData.concernsAboutSimplifying.trim().length > 0
     );
   };
 
@@ -182,10 +182,10 @@ export default function ToolbeltLeftOut() {
     setEmailSent(false);
     setFormData({
       mustBeUnderstood: '',
-      staysNextWeek: '',
+      hopeStaysNextWeek: '',
       feelsHeavy: [],
-      usuallyHappens: '',
-      simplifyingConcern: '',
+      whenLessonsFull: '',
+      concernsAboutSimplifying: '',
     });
   };
 
@@ -242,21 +242,21 @@ export default function ToolbeltLeftOut() {
                   </p>
                 </div>
 
-                {/* Stays Next Week */}
+                {/* Hope Stays Next Week */}
                 <div className="space-y-2">
-                  <Label htmlFor="staysNextWeek">
+                  <Label htmlFor="hopeStaysNextWeek">
                     What do you hope stays with them next week?
                   </Label>
                   <Textarea
-                    id="staysNextWeek"
+                    id="hopeStaysNextWeek"
                     placeholder="The lasting impact you're hoping for..."
-                    value={formData.staysNextWeek}
-                    onChange={(e) => handleTextChange('staysNextWeek', e.target.value)}
+                    value={formData.hopeStaysNextWeek}
+                    onChange={(e) => handleTextChange('hopeStaysNextWeek', e.target.value)}
                     rows={3}
                     maxLength={500}
                   />
                   <p className="text-xs text-muted-foreground text-right">
-                    {formData.staysNextWeek.length}/500
+                    {formData.hopeStaysNextWeek.length}/500
                   </p>
                 </div>
 
@@ -279,20 +279,20 @@ export default function ToolbeltLeftOut() {
                   </div>
                 </div>
 
-                {/* Usually Happens */}
+                {/* When Lessons Full */}
                 <div className="space-y-2">
-                  <Label htmlFor="usuallyHappens">
+                  <Label htmlFor="whenLessonsFull">
                     When lessons feel too full, what usually happens?
                   </Label>
                   <Select
-                    value={formData.usuallyHappens}
-                    onValueChange={(value) => handleSelectChange('usuallyHappens', value)}
+                    value={formData.whenLessonsFull}
+                    onValueChange={(value) => handleSelectChange('whenLessonsFull', value)}
                   >
-                    <SelectTrigger id="usuallyHappens">
+                    <SelectTrigger id="whenLessonsFull">
                       <SelectValue placeholder="Select what happens" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LEFT_OUT_OPTIONS.usuallyHappens.map((option) => (
+                      {LEFT_OUT_OPTIONS.whenLessonsFull.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -301,21 +301,21 @@ export default function ToolbeltLeftOut() {
                   </Select>
                 </div>
 
-                {/* Simplifying Concern */}
+                {/* Concerns About Simplifying */}
                 <div className="space-y-2">
-                  <Label htmlFor="simplifyingConcern">
+                  <Label htmlFor="concernsAboutSimplifying">
                     What concerns you about simplifying?
                   </Label>
                   <Textarea
-                    id="simplifyingConcern"
+                    id="concernsAboutSimplifying"
                     placeholder="What holds you back from leaving things out..."
-                    value={formData.simplifyingConcern}
-                    onChange={(e) => handleTextChange('simplifyingConcern', e.target.value)}
+                    value={formData.concernsAboutSimplifying}
+                    onChange={(e) => handleTextChange('concernsAboutSimplifying', e.target.value)}
                     rows={3}
                     maxLength={500}
                   />
                   <p className="text-xs text-muted-foreground text-right">
-                    {formData.simplifyingConcern.length}/500
+                    {formData.concernsAboutSimplifying.length}/500
                   </p>
                 </div>
 

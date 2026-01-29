@@ -12,9 +12,12 @@
  * - Organization Manager = orgLeader (church leaders)
  * - Organization Member = orgMember
  * - Individual User = individual
+ *
+ * CHANGELOG:
+ * - Jan 29, 2026: Added toolbeltAdmin for Teacher Toolbelt management
  */
 
-import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard } from "lucide-react";
+import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard, Wrench } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
 import { ROUTES as APP_ROUTES } from "./routes";
 
@@ -30,6 +33,7 @@ const NAV_ROUTES = {
   pricing: '/pricing',
   account: '/account',
   home: APP_ROUTES.HOME,
+  toolbeltAdmin: '/admin/toolbelt',
 } as const;
 
 // =============================================================================
@@ -52,6 +56,14 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     route: NAV_ROUTES.admin,
     icon: Shield,
     description: 'Platform-wide administration',
+    dividerAfter: false,
+  },
+  toolbeltAdmin: {
+    id: 'toolbeltAdmin',
+    label: 'Manage Toolbelt',
+    route: NAV_ROUTES.toolbeltAdmin,
+    icon: Wrench,
+    description: 'Teacher Toolbelt administration',
     dividerAfter: false,
   },
   orgManager: {
@@ -115,6 +127,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
 export const MENU_BY_ROLE: Record<Role, string[]> = {
   [ROLES.platformAdmin]: [
     'adminPanel',
+    'toolbeltAdmin',
     'orgManager',
     'workspace',
     'pricing',

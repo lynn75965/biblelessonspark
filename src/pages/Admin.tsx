@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
@@ -12,7 +12,8 @@ import { EmailSequenceManager } from "@/components/admin/EmailSequenceManager";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -35,6 +36,7 @@ import { BRANDING } from "@/config/branding";
 // Guardrails tab merged into Security tab (January 1, 2026)
 // Enrollment Analytics (Referral Sources + Church Directory) added (January 1, 2026)
 // Email Sequences tab added for onboarding automation (January 26, 2026)
+// Toolbelt Admin link added (January 28, 2026)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -185,16 +187,26 @@ export default function Admin() {
       <Header />
       <main className={`${BRANDING.layout.contentWrapper} py-6`}>
         {/* Admin Header - Mobile friendly */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-            <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+              <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold truncate">Admin Panel</h1>
+              <p className="text-sm sm:text-base text-muted-foreground truncate">
+                System administration and user management
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold truncate">Admin Panel</h1>
-            <p className="text-sm sm:text-base text-muted-foreground truncate">
-              System administration and user management
-            </p>
-          </div>
+          
+          {/* Manage Toolbelt Button */}
+          <Button asChild variant="outline" className="flex items-center gap-2">
+            <Link to="/admin/toolbelt">
+              <Wrench className="h-4 w-4" />
+              <span>Manage Toolbelt</span>
+            </Link>
+          </Button>
         </div>
 
         {/* Admin Tabs - Email Sequences added (January 26, 2026) */}

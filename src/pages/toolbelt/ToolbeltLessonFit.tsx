@@ -8,7 +8,7 @@
  * - Form inputs from toolbeltConfig.ts
  * - Voice guardrails enforced by Edge Function
  * 
- * @version 1.0.0
+ * @version 1.0.1 - Fixed property names to match SSOT
  */
 
 import { useState } from "react";
@@ -42,13 +42,13 @@ export default function ToolbeltLessonFit() {
   const tool = TOOLBELT_TOOLS['lesson-fit'];
   const { toast } = useToast();
 
-  // Form state
+  // Form state - uses SSOT property names from toolbeltConfig.ts
   const [formData, setFormData] = useState<LessonFitFormData>({
-    classFamiliarity: '',
+    bibleFamiliarity: '',
     engagementLevel: '',
     timeAvailable: '',
     teachingEnvironment: '',
-    concerns: [],
+    concernsAboutLesson: [],
     primaryWorry: '',
   });
 
@@ -69,19 +69,19 @@ export default function ToolbeltLessonFit() {
   const handleConcernToggle = (concern: string) => {
     setFormData(prev => ({
       ...prev,
-      concerns: prev.concerns.includes(concern)
-        ? prev.concerns.filter(c => c !== concern)
-        : [...prev.concerns, concern],
+      concernsAboutLesson: prev.concernsAboutLesson.includes(concern)
+        ? prev.concernsAboutLesson.filter(c => c !== concern)
+        : [...prev.concernsAboutLesson, concern],
     }));
   };
 
   const isFormValid = () => {
     return (
-      formData.classFamiliarity &&
+      formData.bibleFamiliarity &&
       formData.engagementLevel &&
       formData.timeAvailable &&
       formData.teachingEnvironment &&
-      formData.concerns.length > 0 &&
+      formData.concernsAboutLesson.length > 0 &&
       formData.primaryWorry.trim().length > 0
     );
   };
@@ -179,11 +179,11 @@ export default function ToolbeltLessonFit() {
     setEmail('');
     setEmailSent(false);
     setFormData({
-      classFamiliarity: '',
+      bibleFamiliarity: '',
       engagementLevel: '',
       timeAvailable: '',
       teachingEnvironment: '',
-      concerns: [],
+      concernsAboutLesson: [],
       primaryWorry: '',
     });
   };
@@ -223,20 +223,20 @@ export default function ToolbeltLessonFit() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Class Familiarity */}
+                {/* Bible Familiarity */}
                 <div className="space-y-2">
-                  <Label htmlFor="classFamiliarity">
+                  <Label htmlFor="bibleFamiliarity">
                     Class familiarity with the Bible
                   </Label>
                   <Select
-                    value={formData.classFamiliarity}
-                    onValueChange={(value) => handleSelectChange('classFamiliarity', value)}
+                    value={formData.bibleFamiliarity}
+                    onValueChange={(value) => handleSelectChange('bibleFamiliarity', value)}
                   >
-                    <SelectTrigger id="classFamiliarity">
+                    <SelectTrigger id="bibleFamiliarity">
                       <SelectValue placeholder="Select familiarity level" />
                     </SelectTrigger>
                     <SelectContent>
-                      {LESSON_FIT_OPTIONS.classFamiliarity.map((option) => (
+                      {LESSON_FIT_OPTIONS.bibleFamiliarity.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -315,11 +315,11 @@ export default function ToolbeltLessonFit() {
                 <div className="space-y-3">
                   <Label>What concerns you about this lesson? (Select all that apply)</Label>
                   <div className="space-y-2">
-                    {LESSON_FIT_OPTIONS.concerns.map((option) => (
+                    {LESSON_FIT_OPTIONS.concernsAboutLesson.map((option) => (
                       <div key={option.value} className="flex items-center space-x-2">
                         <Checkbox
                           id={option.value}
-                          checked={formData.concerns.includes(option.value)}
+                          checked={formData.concernsAboutLesson.includes(option.value)}
                           onCheckedChange={() => handleConcernToggle(option.value)}
                         />
                         <Label htmlFor={option.value} className="font-normal cursor-pointer">
