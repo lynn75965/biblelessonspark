@@ -6,6 +6,7 @@
  * 
  * Features:
  * - Shows current organization membership
+ * - Shows lesson pool status (Phase 13.8)
  * - Displays pending transfer requests (from Org Manager)
  * - Allows teacher to initiate transfer request
  * - Allows teacher to agree/decline Org Manager requests
@@ -62,6 +63,7 @@ import {
   type TransferStatusValue,
   type TransferTypeValue,
 } from "@/constants/transferRequestConfig";
+import { MemberPoolStatusBanner } from "@/components/org/MemberPoolStatusBanner";
 
 interface Organization {
   id: string;
@@ -345,6 +347,14 @@ export function MyOrganizationSection() {
                 Role: {profile?.organization_role || "Member"}
               </p>
             </div>
+
+            {/* Phase 13.8: Lesson Pool Status Banner */}
+            {profile?.organization_id && profile?.organization?.name && (
+              <MemberPoolStatusBanner
+                organizationId={profile.organization_id}
+                organizationName={profile.organization.name}
+              />
+            )}
 
             {/* Pending Request FROM Org Manager */}
             {pendingRequest && (
