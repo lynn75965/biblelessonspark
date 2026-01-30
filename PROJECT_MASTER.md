@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 30, 2026 (Phase 13.1-13.5 - Organization Billing Infrastructure)
+**Last Updated:** January 30, 2026 (Phase 13 COMPLETE - Organization Billing System)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -62,7 +62,7 @@
 
 ---
 
-## ORGANIZATION BILLING SYSTEM (Phase 13 - IN PROGRESS)
+## ORGANIZATION BILLING SYSTEM (Phase 13 - COMPLETE ✅)
 
 ### Overview
 Organization billing enables churches and associations to purchase shared lesson pools for their teachers. Uses a **lesson pool model** (not per-seat pricing) where organizations pay for pooled lessons shared among unlimited members.
@@ -174,6 +174,11 @@ Edge Functions read from database (never hardcoded)
 | current_period_end | timestamp | Billing period end |
 | billing_interval | text | monthly or annual |
 
+#### lessons (column added - Phase 13.6)
+| Column | Type | Purpose |
+|--------|------|---------|
+| org_pool_consumed | boolean | TRUE if lesson consumed from org pool, FALSE if personal tier |
+
 #### org_lesson_pack_purchases
 | Column | Type | Purpose |
 |--------|------|---------|
@@ -205,6 +210,7 @@ Edge Functions read from database (never hardcoded)
 | `purchase-lesson-pack` | Creates Stripe checkout for lesson packs | ✅ Deployed |
 | `purchase-onboarding` | Creates Stripe checkout for onboarding | ✅ Deployed |
 | `org-stripe-webhook` | Handles Stripe events for org billing | ✅ Deployed |
+| `generate-lesson` | **Modified to check/consume org pool first (Phase 13.6)** | ✅ Updated |
 
 ### Stripe Webhook
 
@@ -215,6 +221,28 @@ Edge Functions read from database (never hardcoded)
 | **Secret** | `STRIPE_ORG_WEBHOOK_SECRET` (set in Supabase) |
 | **Events** | checkout.session.completed, customer.subscription.updated, customer.subscription.deleted |
 
+### Pool Consumption Logic (Phase 13.6)
+```
+When org member generates a lesson:
+1. Check subscription pool (lessons_limit - lessons_used_this_period)
+2. If available → consume from subscription, set org_pool_consumed = true
+3. Else check bonus pool (bonus_lessons)
+4. If available → consume from bonus, set org_pool_consumed = true
+5. Else fallback to individual tier (normal tier_config limits)
+6. Set org_pool_consumed = false, lesson still associated with org
+```
+
+### Frontend Components (Phase 13.7-13.8)
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `useOrgPoolStatus.ts` | `src/hooks/` | Hook fetching org pool data from database SSOT |
+| `OrgPoolStatusCard.tsx` | `src/components/org/` | Org Leader pool status + purchase dialogs |
+| `OrgLessonsPanel.tsx` | `src/components/org/` | **Updated with funding source column** |
+| `MemberPoolStatusBanner.tsx` | `src/components/org/` | Member pool awareness with warnings |
+| `OrgManager.tsx` | `src/pages/` | **Updated with Lesson Pool tab** |
+| `MyOrganizationSection.tsx` | `src/components/account/` | **Updated with pool banner** |
+
 ### Phase 13 Progress
 
 | Phase | Description | Status |
@@ -224,9 +252,9 @@ Edge Functions read from database (never hardcoded)
 | 13.3 | Org Subscription Checkout | ✅ Deployed |
 | 13.4 | Lesson Pack Purchase | ✅ Deployed |
 | 13.5 | Org Webhook Handler | ✅ Deployed |
-| 13.6 | Lesson Pool Tracking | ⏳ Next |
-| 13.7 | Org Leader Dashboard | ⏳ Pending |
-| 13.8 | Member Pool Awareness | ⏳ Pending |
+| 13.6 | Lesson Pool Tracking (Backend) | ✅ Complete |
+| 13.7 | Org Leader Dashboard (Frontend) | ✅ Complete |
+| 13.8 | Member Pool Awareness | ✅ Complete |
 
 ---
 
@@ -430,10 +458,20 @@ src/
 │   │       ├── ToolbeltEmailManager.tsx
 │   │       ├── ToolbeltEmailCaptures.tsx
 │   │       └── ToolbeltGuardrailsStatus.tsx
+│   ├── org/                         # Organization components (Phase 13)
+│   │   ├── OrgPoolStatusCard.tsx    # Pool status + purchase dialogs
+│   │   ├── OrgLessonsPanel.tsx      # Org lessons with funding source
+│   │   ├── MemberPoolStatusBanner.tsx # Member pool awareness
+│   │   └── [other org components]
+│   ├── account/
+│   │   └── MyOrganizationSection.tsx # Updated with pool banner
 │   └── toolbelt/                    # Toolbelt shared components
 │       └── ToolbeltReflectionForm.tsx
+├── hooks/
+│   └── useOrgPoolStatus.ts          # Org pool data hook (Phase 13)
 ├── pages/
 │   ├── Admin.tsx
+│   ├── OrgManager.tsx               # Updated with Lesson Pool tab
 │   ├── ToolbeltAdmin.tsx            # Toolbelt admin center
 │   └── toolbelt/                    # Toolbelt public pages
 │       ├── ToolbeltLanding.tsx
@@ -454,7 +492,7 @@ src/
 ### Backend (Edge Functions)
 ```
 supabase/functions/
-├── generate-lesson/
+├── generate-lesson/                 # Modified for org pool (Phase 13.6)
 ├── generate-devotional/             # DevotionalSpark v2.1
 ├── send-sequence-email/             # BLS onboarding emails
 ├── toolbelt-reflect/                # Toolbelt AI reflection
@@ -467,6 +505,7 @@ supabase/functions/
     ├── branding.ts
     ├── toolbeltConfig.ts            # Backend mirror
     ├── devotionalConfig.ts
+    ├── orgPoolCheck.ts              # Pool consumption logic (Phase 13.6)
     └── [other mirrors]
 ```
 
@@ -477,6 +516,7 @@ tier_config                          # SSOT for individual tier limits/sections
 user_subscriptions                   # User's current tier + usage
 devotionals                          # Generated devotionals
 branding_config                      # SSOT branding for edge functions
+lessons                              # Generated lessons (+ org_pool_consumed column)
 
 # Email (BLS Onboarding)
 email_sequence_templates             # Onboarding email content (7 emails)
@@ -615,17 +655,17 @@ git push
 - FeaturesSection (dynamic from 5 SSOT files, hover-activated)
 - DevotionalSpark v2.1 (smooth prose, reader-focused, prayer ends with Jesus)
 - Teacher Toolbelt (Phase 23) - Complete with 3 tools, admin panel, email sequence
-- **Organization Billing (Phase 13.1-13.5)** - Stripe products, SSOT, Edge Functions deployed
+- **Organization Billing (Phase 13)** - COMPLETE: Stripe products, SSOT, Edge Functions, Pool Tracking, Dashboards
 
-**Organization Billing Status (Phase 13):**
+**Organization Billing Status (Phase 13 - COMPLETE ✅):**
 - ✅ 13.1: Stripe Products (9 products created)
 - ✅ 13.2: Database Schema + SSOT (`orgPricingConfig.ts`, 5 new tables)
 - ✅ 13.3: `create-org-checkout-session` Edge Function deployed
 - ✅ 13.4: `purchase-lesson-pack` Edge Function deployed
 - ✅ 13.5: `org-stripe-webhook` Edge Function deployed + webhook configured
-- ⏳ 13.6: Lesson Pool Tracking (modify generate-lesson to check/deduct from org pool)
-- ⏳ 13.7: Org Leader Dashboard (UI for pool status, purchase buttons)
-- ⏳ 13.8: Member Pool Awareness (show pool status to org members)
+- ✅ 13.6: Lesson Pool Tracking (`orgPoolCheck.ts`, modified `generate-lesson`)
+- ✅ 13.7: Org Leader Dashboard (`OrgPoolStatusCard`, `useOrgPoolStatus`, Lesson Pool tab)
+- ✅ 13.8: Member Pool Awareness (`MemberPoolStatusBanner`, Account page integration)
 
 **Supabase Secrets (Organization Billing):**
 - `STRIPE_SECRET_KEY` - Already set (shared with individual billing)
@@ -658,7 +698,7 @@ git push
 **Launch Status:**
 - Launch Date: January 27, 2026 ✅ LAUNCHED
 - Teacher Toolbelt: January 29, 2026 ✅ COMPLETE
-- Organization Billing Infrastructure: January 30, 2026 ✅ Phase 13.1-13.5 COMPLETE
+- Organization Billing System: January 30, 2026 ✅ PHASE 13 COMPLETE
 - All code complete ✅
 - All routes verified ✅
 - Email automation working ✅
