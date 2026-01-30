@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 29, 2026 (Phase 23 - Teacher Toolbelt Complete)
+**Last Updated:** January 30, 2026 (Phase 13.1-13.5 - Organization Billing Infrastructure)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -28,6 +28,7 @@
 - Backend mirrors auto-generated via `npm run sync-constants`
 - Database branding synced via `npm run sync-branding`
 - Database tier config synced via `npm run sync-tier-config`
+- **Database org pricing synced via `npm run sync-org-pricing`**
 - Never edit `supabase/functions/_shared/` directly
 
 ### Key SSOT Files
@@ -38,8 +39,9 @@
 | `src/constants/theologyProfiles.ts` | 10 Baptist theological traditions |
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
 | `src/constants/devotionalConfig.ts` | DevotionalSpark configuration |
-| `src/constants/toolbeltConfig.ts` | **Teacher Toolbelt configuration** |
-| `src/constants/pricingConfig.ts` | Tier sections, limits (MASTER for tier_config) |
+| `src/constants/toolbeltConfig.ts` | Teacher Toolbelt configuration |
+| `src/constants/pricingConfig.ts` | Individual tier sections, limits (MASTER for tier_config) |
+| `src/constants/orgPricingConfig.ts` | **Organization billing tiers, packs, onboarding (Phase 13)** |
 | `src/constants/trialConfig.ts` | Trial system configuration (rolling 30-day) |
 | `src/constants/tenantConfig.ts` | White-label tenant configuration |
 | `src/constants/feedbackConfig.ts` | Feedback mode (beta/production), auto-popup config |
@@ -55,7 +57,176 @@
 |---------|---------|
 | `npm run sync-constants` | Syncs src/constants/ → supabase/functions/_shared/ |
 | `npm run sync-branding` | Syncs branding → branding_config table |
-| `npm run sync-tier-config` | Syncs tier config → tier_config table |
+| `npm run sync-tier-config` | Syncs individual tier config → tier_config table |
+| `npm run sync-org-pricing` | **Syncs org pricing → org_tier_config, lesson_pack_config, onboarding_config** |
+
+---
+
+## ORGANIZATION BILLING SYSTEM (Phase 13 - IN PROGRESS)
+
+### Overview
+Organization billing enables churches and associations to purchase shared lesson pools for their teachers. Uses a **lesson pool model** (not per-seat pricing) where organizations pay for pooled lessons shared among unlimited members.
+
+### Pricing Structure
+
+#### Organization Subscription Tiers
+| Tier | Lessons/Month | Price/Mo | Price/Yr | Target Size |
+|------|---------------|----------|----------|-------------|
+| Starter | 25 | $29 | $290 | 2-10 teachers |
+| Growth | 60 | $59 | $590 | 10-15 teachers |
+| Ministry Full | 120 | $99 | $990 | 20-30 teachers |
+| Enterprise | 250 | $179 | $1,790 | Large churches/associations |
+
+#### Lesson Packs (One-Time, Never Expire)
+| Pack | Lessons | Price |
+|------|---------|-------|
+| Small | 10 | $15 |
+| Medium | 25 | $35 |
+| Large | 50 | $60 |
+
+#### Onboarding Options (One-Time)
+| Option | Price | Description |
+|--------|-------|-------------|
+| Self-Service | $0 | Documentation + tutorials |
+| Guided Setup | $99 | 30-min video call |
+| White Glove | $249 | Full setup + training |
+
+### Stripe Products (Live)
+
+**Organization Subscriptions:**
+| Tier | Product ID | Annual Price ID | Monthly Price ID |
+|------|------------|-----------------|------------------|
+| Starter | prod_Tt8suAq0Ba5Kyy | price_1SvMcVI4GLksxBfVLG7k1F12 | price_1SvMaWI4GLksxBfVn6FVKKiG |
+| Growth | prod_Tt9AA0Mr8ggFm8 | price_1SvMsCI4GLksxBfVDy8YjZYu | price_1SvMt9I4GLksxBfV5hc6Rsox |
+| Ministry Full | prod_Tt9GvWKjoPutRs | price_1SvMxmI4GLksxBfVVOY3cOpb | price_1SvN1lI4GLksxBfVEpU7eKq5 |
+| Enterprise | prod_Tt9MztPmhtJnZ2 | price_1SvN4CI4GLksxBfVgdN7qjsr | price_1SvN5RI4GLksxBfVrtZ2aDN9 |
+
+**Lesson Packs:**
+| Pack | Product ID | Price ID |
+|------|------------|----------|
+| Small (10) | prod_Tt9VeUiXCse3Vf | price_1SvNC3I4GLksxBfVzzp79bQP |
+| Medium (25) | prod_Tt9c9VetZN2qmn | price_1SvNImI4GLksxBfVl7fegaD8 |
+| Large (50) | prod_Tt9fZtm3WFiKlh | price_1SvNM4I4GLksxBfVhC8Gt23X |
+
+**Onboarding:**
+| Option | Product ID | Price ID |
+|--------|------------|----------|
+| Guided Setup | prod_Tt9iETbbQosHiR | price_1SvNOjI4GLksxBfVddpRLRoS |
+| White Glove | prod_Tt9lvUjuO8WJXK | price_1SvNRyI4GLksxBfVQCm17bXq |
+
+### SSOT Architecture
+```
+src/constants/orgPricingConfig.ts (FRONTEND MASTER)
+        ↓ npm run sync-org-pricing
+org_tier_config, lesson_pack_config, onboarding_config (DATABASE)
+        ↓
+Edge Functions read from database (never hardcoded)
+```
+
+### Database Tables
+
+#### org_tier_config
+| Column | Type | Purpose |
+|--------|------|---------|
+| tier | text | Primary key (starter, growth, ministry, enterprise) |
+| display_name | text | UI display name |
+| lessons_limit | integer | Monthly lesson allocation |
+| price_monthly | numeric | Monthly price in dollars |
+| price_annual | numeric | Annual price in dollars |
+| stripe_product_id | text | Stripe product ID |
+| stripe_price_id_monthly | text | Stripe monthly price ID |
+| stripe_price_id_annual | text | Stripe annual price ID |
+| is_active | boolean | Enable/disable tier |
+
+#### lesson_pack_config
+| Column | Type | Purpose |
+|--------|------|---------|
+| pack_type | text | Primary key (small, medium, large) |
+| display_name | text | UI display name |
+| lessons_included | integer | Number of lessons in pack |
+| price | numeric | One-time price in dollars |
+| stripe_product_id | text | Stripe product ID |
+| stripe_price_id | text | Stripe price ID |
+| is_active | boolean | Enable/disable pack |
+
+#### onboarding_config
+| Column | Type | Purpose |
+|--------|------|---------|
+| onboarding_type | text | Primary key (self_service, guided_setup, white_glove) |
+| display_name | text | UI display name |
+| description | text | What's included |
+| price | numeric | One-time price (0 for self-service) |
+| stripe_product_id | text | Stripe product ID (null for free) |
+| stripe_price_id | text | Stripe price ID (null for free) |
+| is_active | boolean | Enable/disable option |
+
+#### organizations (columns added)
+| Column | Type | Purpose |
+|--------|------|---------|
+| subscription_tier | text | Current tier (starter, growth, etc.) |
+| stripe_customer_id | text | Stripe customer ID |
+| stripe_subscription_id | text | Stripe subscription ID |
+| subscription_status | text | active, past_due, cancelled |
+| lessons_limit | integer | Monthly allocation from tier |
+| lessons_used_this_period | integer | Usage counter |
+| bonus_lessons | integer | From lesson pack purchases |
+| current_period_start | timestamp | Billing period start |
+| current_period_end | timestamp | Billing period end |
+| billing_interval | text | monthly or annual |
+
+#### org_lesson_pack_purchases
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| organization_id | uuid | FK to organizations |
+| pack_type | text | small, medium, large |
+| lessons_added | integer | Lessons credited |
+| amount_paid | numeric | Payment amount |
+| stripe_checkout_session_id | text | Stripe session ID |
+| purchased_at | timestamp | Purchase timestamp |
+
+#### org_onboarding_purchases
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| organization_id | uuid | FK to organizations |
+| onboarding_type | text | guided_setup, white_glove |
+| amount_paid | numeric | Payment amount |
+| status | text | pending, scheduled, completed |
+| scheduled_date | timestamp | Session date (if applicable) |
+| completed_date | timestamp | Completion date |
+| purchased_by | uuid | FK to auth.users |
+
+### Edge Functions
+
+| Function | Purpose | Status |
+|----------|---------|--------|
+| `create-org-checkout-session` | Creates Stripe checkout for org subscriptions | ✅ Deployed |
+| `purchase-lesson-pack` | Creates Stripe checkout for lesson packs | ✅ Deployed |
+| `purchase-onboarding` | Creates Stripe checkout for onboarding | ✅ Deployed |
+| `org-stripe-webhook` | Handles Stripe events for org billing | ✅ Deployed |
+
+### Stripe Webhook
+
+| Item | Value |
+|------|-------|
+| **Name** | BibleLessonSpark Org Webhook |
+| **URL** | `https://hphebzdftpjbiudpfcrs.supabase.co/functions/v1/org-stripe-webhook` |
+| **Secret** | `STRIPE_ORG_WEBHOOK_SECRET` (set in Supabase) |
+| **Events** | checkout.session.completed, customer.subscription.updated, customer.subscription.deleted |
+
+### Phase 13 Progress
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 13.1 | Stripe Products (9 created) | ✅ Complete |
+| 13.2 | Database Schema + SSOT | ✅ Complete |
+| 13.3 | Org Subscription Checkout | ✅ Deployed |
+| 13.4 | Lesson Pack Purchase | ✅ Deployed |
+| 13.5 | Org Webhook Handler | ✅ Deployed |
+| 13.6 | Lesson Pool Tracking | ⏳ Next |
+| 13.7 | Org Leader Dashboard | ⏳ Pending |
+| 13.8 | Member Pool Awareness | ⏳ Pending |
 
 ---
 
@@ -205,409 +376,51 @@ Claude's role is to **reflect, not instruct**. Every reflection must:
 ## DEVOTIONALSPARK SYSTEM (Phase 22 - v2.1 COMPLETE ✅)
 
 ### Overview
-DevotionalSpark generates personal devotionals anchored to BibleLessonSpark lessons. The devotional helps readers **internalize and live out** the lesson's truth through reflective writing—it does NOT reteach or summarize the lesson.
+DevotionalSpark generates personal devotionals based on the same passage and focus as generated lessons. Available to Personal tier subscribers.
 
-### Architecture
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `devotionalConfig.ts` | `src/constants/` | SSOT configuration |
-| `DevotionalGenerator.tsx` | `src/components/dashboard/` | Generation UI |
-| `DevotionalLibrary.tsx` | `src/components/dashboard/` | Library with actions |
-| `useDevotionals.ts` | `src/hooks/` | Data fetching hook |
-| `generate-devotional` | Edge Function (v2.1) | AI generation |
+### Voice Guidelines (v2.1)
+- **Smooth prose flow** - No bullet points, numbered lists, or choppy transitions
+- **Reader-focused** - Uses "you" naturally, never "the reader"
+- **Story-driven** - Opens with narrative/illustration, not instruction
+- **Space for insight** - Creates room for reader-induced discovery
+- **Prayer ends with Jesus** - Always closes prayer in Jesus' name
 
-### Configuration Options
-
-| Setting | Options |
-|---------|---------|
-| **Target** | Preschool, Children, Youth, Adult |
-| **Length** | 3 min (~400-500 words), 5 min (~700-900 words), 10 min (~1200-1500 words) |
-
-### Inherited Parameters (Hidden from User)
-- Theology Profile (from lesson)
-- Bible Version (from lesson)
-- Age-appropriate vocabulary (from lesson, overridable by Target)
-
-### Length-Based Experiential Differentiation
-
-| Length | Purpose | Feel |
-|--------|---------|------|
-| **3-min** | Anchor the Heart | One insight, one truth carried into the day |
-| **5-min** | Shape the Daily Posture | Companion for the morning, space to breathe |
-| **10-min** | Form the Inner Life | Unhurried, space to sit and be formed |
+### Output Structure
+1. **Opening narrative** (100-150 words) - Story, illustration, or observation
+2. **Scripture connection** (75-100 words) - Links narrative to passage
+3. **Reflection invitation** (75-100 words) - Questions for personal consideration
+4. **Closing prayer** (50-75 words) - Ends "in Jesus' name, Amen"
 
 ---
 
-## DEVOTIONALSPARK SIGNATURE VOICE (v2.1) ⚠️ CRITICAL
+## PRICING STRUCTURE
 
-### Core Principles
-The devotional creates **space for reader-induced insight**. The writer opens doors; the reader walks through with their own experience.
+### Individual Plans
+| Tier | Lessons/Period | Sections | Features | Price |
+|------|----------------|----------|----------|-------|
+| **Free** | 5 (2 full + 3 partial) | All 8 for first 2, then 1/5/8 | Basic generation | Forever free |
+| **Personal** | 20 | All 8 | DevotionalSpark, Student Teaser | $9/mo or $90/yr |
 
-| Principle | Implementation |
-|-----------|----------------|
-| **Creates space** | Universal human moments, not hypothetical "you probably felt..." |
-| **Smooth prose** | Short sentences, conversational rhythm, never pedantic |
-| **Scripture illuminates** | Doesn't drive an outline; let it land |
-| **Reader-focused** | Draw from their experience, not a fabricated writer's journey |
-| **Warm "we"** | Only for genuine community ("we who believe..."), never to insert writer into reader's life |
-
-### Voice Prohibitions
-| Prohibited | Why |
-|------------|-----|
-| ❌ Fabricated first-person ("I remember when...") | Claude has no such memories—this is dishonest |
-| ❌ Presumptuous "you" ("Perhaps you felt...") | Lectures the reader; presumes to know their experience |
-| ❌ Inserting "we" ("We have all struggled...") | Writer granting unearned intimacy |
-| ❌ Teaching/sermon tone | This is reflection, not instruction |
-| ❌ Bullet points, numbered lists | Destroys devotional flow |
-| ❌ Dense academic paragraphs | Must be smooth, insightful, conversational |
-
-### Voice Examples
-
-**WRONG (presumptuous):**
-> "Perhaps it was the first time you prayed in a crowded restaurant, or spoke naturally about your faith to a curious neighbor..."
-
-**RIGHT (creates space):**
-> "There's a weight that lifts when shame finally loosens its grip. Not all at once—just a conversation that flows easier, a truth spoken simply because it's true."
-
-The reader supplies their own memory. The writing opens the door.
+### Organization Plans
+| Tier | Lessons/Month | Features | Price |
+|------|---------------|----------|-------|
+| **Starter** | 25 | Shared pool, unlimited members | $29/mo or $290/yr |
+| **Growth** | 60 | Shared pool, unlimited members | $59/mo or $590/yr |
+| **Ministry Full** | 120 | Shared pool, unlimited members | $99/mo or $990/yr |
+| **Enterprise** | 250 | Shared pool, unlimited members | $179/mo or $1,790/yr |
 
 ---
 
-## DEVOTIONALSPARK PRAYER REQUIREMENTS ⚠️ CRITICAL
+## PROJECT STRUCTURE
 
-### Prayer Voice
-| Requirement | Implementation |
-|-------------|----------------|
-| **Personal** | Always "I" and "me" — never "we" and "us" |
-| **Earned** | Flows naturally from the reflection |
-| **Ends with Jesus** | Every prayer references Christ and His work |
-
-### Prayer Ending Examples (Vary These)
-- "...through Jesus, whose grace found me when I had nothing to offer. Amen."
-- "...because the cross already spoke what my words cannot. Amen."
-- "...in the name of Jesus, who finished what I could never begin. Amen."
-- "...through Christ, who stands even now as my advocate. Amen."
-- "...because of Jesus, who was never ashamed to call me His own. Amen."
-- "...through the One who carried what I could not. Amen."
-
-**NEVER:** End with just "Amen" without acknowledging Christ.
-
----
-
-## DEVOTIONALSPARK ABIDING PRESENCE
-
-God's presence is acknowledged **lightly**—woven through, not announced.
-
-| Valence | How Presence Is Felt |
-|---------|---------------------|
-| **Virtue** | Comfort, nearness ("You are held." / "Grace has arrived.") |
-| **Cautionary** | Holy witness, mercy within truth ("He sees." / "Mercy still.") |
-| **Complex** | Presence in the tension ("Even here, not alone.") |
-
-**NEVER:** "God is RIGHT HERE with you NOW!" — this is overstatement.
-
----
-
-## MORAL VALENCE GUARDRAIL ⚠️ CRITICAL
-
-Prevents theological inversion (the flaw that killed Modern Parable Generator).
-
-| Valence | Scripture Type | Theme Direction |
-|---------|----------------|-----------------|
-| **VIRTUE** | Grace, love, faith, promise passages | Encouragement, hope, gratitude |
-| **CAUTIONARY** | Warning, judgment, conviction passages | Confession, humility, honest reckoning |
-| **COMPLEX** | Passages with both elements | Nuanced, honors both dimensions |
-
-### Hard Rules
-- Grace texts (Romans 8, Psalm 23, Ephesians 2) = VIRTUE only
-- Judgment texts (Isaiah 14, Ezekiel 28) = CAUTIONARY only
-- **NEVER** pair grace Scripture with guilt/condemnation themes
-- **NEVER** pair judgment Scripture with celebration themes
-
----
-
-## SCRIPTURE HANDLING (Current Approach)
-
-| Aspect | Implementation |
-|--------|----------------|
-| **Quotation** | Direct quotation permitted for ALL versions |
-| **Citation** | Always include book, chapter, verse + version abbreviation |
-| **Fair Use** | ~10 verses or fewer per devotion |
-| **Copyright Notice** | Auto-appended to output when version requires |
-
-**Example:**
-> "And we know that in all things God works for the good of those who love him" (Romans 8:28, NIV).
-
----
-
-## EMAIL AUTOMATION SYSTEM (Phase 21.2 - COMPLETE ✅)
-
-### Architecture Overview
-```
-User Signs Up → Supabase Auth → Resend SMTP → Verification Email
-                                      ↓
-                            User Verifies Email
-                                      ↓
-                      Database Trigger (on_email_verified)
-                                      ↓
-                      Adds user to email_sequence_tracking
-                                      ↓
-                      Hourly Cron Job (pg_cron)
-                                      ↓
-                      send-sequence-email Edge Function
-                                      ↓
-                      Resend API → Branded HTML Email
-```
-
-### Key Decision: Native Supabase vs I-Mail
-Initially planned to use I-Mail autoresponder, but pivoted to **native Supabase solution** because:
-- Full control over email templates and timing
-- No external webhook dependency
-- Admin Panel integration for template editing
-- Database-driven = SSOT compliant
-
-### Database Tables
-
-#### email_sequence_templates
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | uuid | Primary key |
-| tenant_id | text | Multi-tenant support (default: 'default') |
-| sequence_order | integer | Email position (1-7) |
-| send_day | integer | Days after signup to send (0, 1, 3, 7, 14, 21, 30) |
-| subject | text | Email subject line |
-| body | text | Email content (plain text or HTML) |
-| is_active | boolean | Enable/disable individual emails |
-| is_html | boolean | true = raw HTML, false = auto-convert plain text |
-| created_at | timestamp | Record creation |
-| updated_at | timestamp | Last modification |
-
-#### email_sequence_tracking
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | uuid | Primary key |
-| user_id | uuid | References auth.users |
-| email | text | User's email address |
-| full_name | text | User's display name |
-| sequence_started_at | timestamp | When user verified email |
-| last_email_sent | integer | Count of emails sent (0-7) |
-| last_email_sent_at | timestamp | When last email was sent |
-| unsubscribed | boolean | Opt-out flag |
-| created_at | timestamp | Record creation |
-
-### 7-Email Onboarding Sequence
-
-| # | Day | Subject | Purpose |
-|---|-----|---------|---------|
-| 1 | 0 | Let's get a BibleLessonSpark lesson ready to teach! | Welcome + first lesson CTA |
-| 2 | 1 | A quick note about your free lessons | Free tier explanation |
-| 3 | 3 | Save 10 minutes every week (here's how) | Teacher Profiles feature |
-| 4 | 7 | Did you know? Your existing curriculum works here too | Curriculum Enhancement Mode |
-| 5 | 14 | Give your class a sneak peek this week | Student Teaser feature |
-| 6 | 21 | You prepare for your class. Who prepares your heart? | DevotionalSpark + upgrade |
-| 7 | 30 | Is your whole teaching team ready? | Organization features |
-
-### Resend Configuration
-| Item | Value |
-|------|-------|
-| Domain | `biblelessonspark.com` ✅ Verified |
-| API Key | Stored in Supabase secrets as `RESEND_API_KEY` |
-| From Email | `noreply@biblelessonspark.com` |
-| Reply-To | `support@biblelessonspark.com` |
-
----
-
-## SSOT TIER CONFIG SYSTEM (Phase 20.8 - COMPLETE ✅)
-
-### Architecture
-```
-pricingConfig.ts (FRONTEND MASTER)
-        ↓ npm run sync-tier-config
-tier_config table (DATABASE)
-        ↓
-check_lesson_limit() function
-        ↓
-API responses (no hardcoding)
-```
-
-### Database Table: tier_config
-| tier | lessons_limit | sections_allowed | includes_teaser | reset_interval |
-|------|---------------|------------------|-----------------|----------------|
-| free | 5 | [1,5,8] | false | 30 days |
-| personal | 20 | [1,2,3,4,5,6,7,8] | true | 30 days |
-| admin | 9999 | [1,2,3,4,5,6,7,8] | true | 30 days |
-
-### Reset Logic: Rolling 30-Day Periods ⚠️ IMPORTANT
-- **NOT calendar month** - Each user's period is individual
-- **Free users**: 30-day period starts from email verification date
-- **Subscribers**: 30-day period starts from subscription date (aligns with Stripe billing)
-- **Reset trigger**: When `reset_date` passes, `lessons_used` resets to 0 and new `reset_date` = NOW() + 30 days
-- **Perpetual**: Free tier never expires - continues rolling forever
-
-### Free Tier Details (for user communication)
-- **Lessons #1 & #2**: Full 8-section lessons
-- **Lessons #3, #4, #5**: Streamlined 3-section lessons (Lens + Overview, Teaching Transcript, Student Handout)
-- **Reset**: Every 30 days from signup (rolling, not calendar month)
-- **Duration**: Perpetual (forever free - no expiration)
-
-### Personal Tier Details
-- **20 lessons per 30-day period**: All 8 sections
-- **Includes**: Student Teaser feature
-- **Reset**: Every 30 days from subscription date (aligns with Stripe billing cycle)
-
----
-
-## TRANSFER REQUEST SYSTEM (Phase 20.12-20.13 - COMPLETE ✅)
-
-### Workflow
-```
-Org Manager ↔ Teacher (offline agreement)
-      │
-      ├── Org Manager creates Transfer Request
-      │   (confirms teacher agreed via attestation)
-      │
-      ↓
-Platform Admin
-      ├── Reviews request in Admin Panel → Organizations tab
-      ├── Approves or Denies
-      └── If approved, member moves immediately
-```
-
-### Database Table: transfer_requests
-| Column | Type | Purpose |
-|--------|------|---------|
-| id | uuid | Primary key |
-| user_id | uuid | Teacher being transferred |
-| from_organization_id | uuid | Current org |
-| to_organization_id | uuid (nullable) | Destination org |
-| status | enum | pending_admin, admin_approved, admin_denied, cancelled |
-| reason | text | Why transfer is requested |
-| teacher_agreement_confirmed | boolean | Org manager attestation |
-| teacher_agreement_date | timestamp | When agreement occurred |
-| admin_notes | text | Admin's response/notes |
-
----
-
-## SSOT UI SYMBOLS SYSTEM (Phase 20.7 - COMPLETE ✅)
-
-### Purpose
-Prevents UTF-8 encoding corruption when files are edited across different systems.
-
-### Files
-| Location | Type |
-|----------|------|
-| `src/constants/uiSymbols.ts` | Frontend MASTER |
-| `supabase/functions/_shared/uiSymbols.ts` | Backend mirror |
-
-### Available Symbols
-```typescript
-export const UI_SYMBOLS = {
-  BULLET: '•',
-  EM_DASH: '—',
-  ELLIPSIS: '…',
-  CHECK: '✓',
-  STAR: '★',
-  SPARKLES: '✨',
-} as const;
-```
-
----
-
-## CHANGELOG
-
-### Phase 23 (Jan 29, 2026) - Teacher Toolbelt Complete ✅
-**Free micro-tools for volunteer Baptist Bible teachers**
-
-**Components Created:**
-- `toolbeltConfig.ts` - SSOT configuration with tool definitions, guardrails, prompts
-- `ToolbeltLanding.tsx` - Landing page with tool cards
-- `ToolbeltLessonFit.tsx` - Tool 1: Does This Lesson Fit My Class?
-- `ToolbeltLeftOut.tsx` - Tool 2: What Can Be Left Out Safely?
-- `ToolbeltOneTruth.tsx` - Tool 3: One-Truth Focus Finder
-- `ToolbeltAdmin.tsx` - Admin management center with 4 tabs
-- `ToolbeltUsageReport.tsx` - Usage analytics dashboard
-- `ToolbeltEmailManager.tsx` - Rich text email editor with ReactQuill
-- `ToolbeltEmailCaptures.tsx` - Email capture list with search
-- `ToolbeltGuardrailsStatus.tsx` - Configuration display
-
-**Edge Functions:**
-- `toolbelt-reflect` - AI reflection generation with voice guardrails
-- `send-toolbelt-sequence` - Automated nurture email delivery
-
-**Database Tables:**
-- `toolbelt_usage` - API call tracking
-- `toolbelt_email_captures` - Email collection
-- `toolbelt_email_templates` - Nurture sequence content
-- `toolbelt_email_tracking` - Delivery progress
-
-**Key Features:**
-- No authentication required (reduces friction)
-- Pastoral voice: reflect, affirm, never prescribe
-- Session-only results (privacy-preserving)
-- Optional email capture with service framing
-- 7-email nurture sequence
-- Admin panel with usage analytics and email management
-- ReactQuill rich text editor with link toolbar
-
-**Routes:**
-- `/toolbelt` - Landing page
-- `/toolbelt/lesson-fit` - Tool 1
-- `/toolbelt/left-out-safely` - Tool 2
-- `/toolbelt/one-truth` - Tool 3
-- `/admin/toolbelt` - Admin management
-
-### Phase 22 (Jan 27, 2026) - DevotionalSpark Style v2.1 🚀 LAUNCH DAY
-**Complete rewrite of DevotionalSpark voice and prompt architecture**
-
-**Key Changes:**
-- Removed "invisible writer" concept → Now "creates space for reader-induced insight"
-- Smooth, conversational prose—never pedantic
-- Prayer always personal (I/me) and ends with reference to Jesus
-- Abiding presence of God acknowledged lightly, not announced
-- Moral valence guardrail maintained from parable system
-
-### Phase 21.4 (Jan 26, 2026) - FeaturesSection SSOT Compliance
-- Landing page Features section now fully SSOT-compliant
-- All feature badges now HOVER-activated (HoverCard)
-- Founder quote banner replaces stats banner
-
-### Phase 21.3 (Jan 26, 2026) - Rolling 30-Day Reset Documentation
-- Clarified reset logic: Rolling 30-day periods (not calendar month)
-- Updated `trialConfig.ts` with `resetPeriod: 'rolling30'`
-
-### Phase 21.2 (Jan 26, 2026) - Rich Text Email Editor + SSOT Compliance
-- Added ReactQuill rich text editor to Admin Panel Email Sequences
-- Preview button shows exact email appearance
-
-### Phase 21.1 (Jan 26, 2026) - Native Email Automation System
-- Created `email_sequence_templates` and `email_sequence_tracking` tables
-- Created `on_email_verified` trigger
-- Created hourly cron job via pg_cron
-- Created `send-sequence-email` Edge Function
-
-### Phase 20.8 (Jan 16, 2026) - SSOT Tier Config System
-- Created `tier_config` database table
-- `check_lesson_limit()` now reads from database
-
-### Phase 20.7 (Jan 15, 2026) - UTF-8 Encoding Fix + UI Symbols SSOT
-- Created `src/constants/uiSymbols.ts` as SSOT for UI symbols
-- Fixed 18 encoding corruptions across 10 files
-
----
-
-## FILE LOCATIONS
-
-### Frontend
+### Frontend (React/TypeScript)
 ```
 src/
 ├── components/
-│   ├── BrandingProvider.tsx         # Runtime CSS variable injection
-│   ├── layout/
-│   │   ├── Header.tsx               # Logo + wordmark
-│   │   └── Footer.tsx               # Logo + wordmark
-│   ├── dashboard/
-│   │   ├── EnhanceLessonForm.tsx    # 3-step accordion
-│   │   ├── DevotionalGenerator.tsx  # DevotionalSpark UI
+│   ├── lesson/                      # Lesson generation components
+│   │   ├── LessonGenerator.tsx
+│   │   ├── LessonDisplay.tsx
+│   │   ├── SectionRenderer.tsx
 │   │   └── DevotionalLibrary.tsx    # Devotional library
 │   ├── admin/
 │   │   ├── OrganizationManagement.tsx
@@ -632,7 +445,8 @@ src/
 │   └── brand-values.json            # SSOT: Colors/typography JSON
 ├── constants/
 │   ├── toolbeltConfig.ts            # Toolbelt SSOT
-│   ├── pricingConfig.ts             # Tier config MASTER
+│   ├── pricingConfig.ts             # Individual tier config MASTER
+│   ├── orgPricingConfig.ts          # Organization billing SSOT (Phase 13)
 │   ├── devotionalConfig.ts          # DevotionalSpark config
 │   └── [other SSOT files]
 ```
@@ -645,6 +459,10 @@ supabase/functions/
 ├── send-sequence-email/             # BLS onboarding emails
 ├── toolbelt-reflect/                # Toolbelt AI reflection
 ├── send-toolbelt-sequence/          # Toolbelt nurture emails
+├── create-org-checkout-session/     # Org subscription checkout (Phase 13)
+├── purchase-lesson-pack/            # Lesson pack purchase (Phase 13)
+├── purchase-onboarding/             # Onboarding purchase (Phase 13)
+├── org-stripe-webhook/              # Org Stripe webhook (Phase 13)
 └── _shared/
     ├── branding.ts
     ├── toolbeltConfig.ts            # Backend mirror
@@ -655,7 +473,7 @@ supabase/functions/
 ### Database Tables
 ```
 # Core BLS
-tier_config                          # SSOT for tier limits/sections
+tier_config                          # SSOT for individual tier limits/sections
 user_subscriptions                   # User's current tier + usage
 devotionals                          # Generated devotionals
 branding_config                      # SSOT branding for edge functions
@@ -671,7 +489,15 @@ toolbelt_email_templates             # Nurture sequence content
 toolbelt_email_tracking              # Delivery progress
 
 # Organizations
+organizations                        # Org details + billing columns
 transfer_requests                    # Org member transfer workflow
+
+# Organization Billing (Phase 13)
+org_tier_config                      # SSOT for org subscription tiers
+lesson_pack_config                   # SSOT for lesson packs
+onboarding_config                    # SSOT for onboarding options
+org_lesson_pack_purchases            # Lesson pack purchase audit trail
+org_onboarding_purchases             # Onboarding purchase audit trail
 ```
 
 ---
@@ -694,14 +520,18 @@ npm run sync-constants
 # Sync branding to database
 npm run sync-branding
 
-# Sync tier config to database
+# Sync individual tier config to database
 npm run sync-tier-config
+
+# Sync organization pricing to database (Phase 13)
+npm run sync-org-pricing
 
 # Deploy all edge functions
 npx supabase functions deploy
 
 # Deploy specific edge function
 npx supabase functions deploy toolbelt-reflect
+npx supabase functions deploy create-org-checkout-session
 
 # Regenerate Supabase types (after schema changes)
 npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts
@@ -760,9 +590,11 @@ git push
 - `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
 - `npm run sync-constants` - Syncs constants to edge functions
 - `npm run sync-branding` - Syncs branding to database
-- `npm run sync-tier-config` - Syncs tier limits to database
+- `npm run sync-tier-config` - Syncs individual tier limits to database
+- `npm run sync-org-pricing` - **Syncs org pricing to database (Phase 13)**
 - `npx supabase functions deploy toolbelt-reflect` - Deploy Toolbelt reflection
 - `npx supabase functions deploy send-toolbelt-sequence` - Deploy Toolbelt emails
+- `npx supabase functions deploy create-org-checkout-session` - **Deploy org checkout (Phase 13)**
 - `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types
 
 **Reset Logic (Important for Support):**
@@ -782,7 +614,22 @@ git push
 - Reset Logic (rolling 30-day, documented in trialConfig.ts)
 - FeaturesSection (dynamic from 5 SSOT files, hover-activated)
 - DevotionalSpark v2.1 (smooth prose, reader-focused, prayer ends with Jesus)
-- **Teacher Toolbelt (Phase 23)** - Complete with 3 tools, admin panel, email sequence
+- Teacher Toolbelt (Phase 23) - Complete with 3 tools, admin panel, email sequence
+- **Organization Billing (Phase 13.1-13.5)** - Stripe products, SSOT, Edge Functions deployed
+
+**Organization Billing Status (Phase 13):**
+- ✅ 13.1: Stripe Products (9 products created)
+- ✅ 13.2: Database Schema + SSOT (`orgPricingConfig.ts`, 5 new tables)
+- ✅ 13.3: `create-org-checkout-session` Edge Function deployed
+- ✅ 13.4: `purchase-lesson-pack` Edge Function deployed
+- ✅ 13.5: `org-stripe-webhook` Edge Function deployed + webhook configured
+- ⏳ 13.6: Lesson Pool Tracking (modify generate-lesson to check/deduct from org pool)
+- ⏳ 13.7: Org Leader Dashboard (UI for pool status, purchase buttons)
+- ⏳ 13.8: Member Pool Awareness (show pool status to org members)
+
+**Supabase Secrets (Organization Billing):**
+- `STRIPE_SECRET_KEY` - Already set (shared with individual billing)
+- `STRIPE_ORG_WEBHOOK_SECRET` - Set January 30, 2026
 
 **Teacher Toolbelt Status (All Complete ✅):**
 - Public routes: `/toolbelt`, `/toolbelt/lesson-fit`, `/toolbelt/left-out-safely`, `/toolbelt/one-truth`
@@ -802,6 +649,7 @@ git push
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - UNIQUE constraint on `toolbelt_email_captures.email` prevents duplicates
 - RLS enabled on all Toolbelt tables
+- RLS enabled on org billing tables (org managers can view their org's purchases)
 - `user_parable_usage` view fixed with SECURITY INVOKER
 
 **Dependencies:**
@@ -810,6 +658,7 @@ git push
 **Launch Status:**
 - Launch Date: January 27, 2026 ✅ LAUNCHED
 - Teacher Toolbelt: January 29, 2026 ✅ COMPLETE
+- Organization Billing Infrastructure: January 30, 2026 ✅ Phase 13.1-13.5 COMPLETE
 - All code complete ✅
 - All routes verified ✅
 - Email automation working ✅
