@@ -27,6 +27,8 @@ import {
 } from '../_shared/freshnessOptions.ts';
 import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
 import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
+// Phase 13.6: Organization Pool Check
+import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_shared/orgPoolCheck.ts';
 
 import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } from '../_shared/corsConfig.ts';
 
@@ -51,7 +53,7 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
     const rules = section.contentRules.map((r) => `    • ${r}`).join('\n');
     const prohibitions = section.prohibitions.map((p) => `    • ${p}`).join('\n');
     const redundancyNote = section.redundancyLock.length > 0
-      ? `\n    âš ï¸ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
+      ? `\n    ⚠️ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
       : '';
     const optionalNote = section.optional ? '\n    • OPTIONAL SECTION - Only include when requested' : '';
 
@@ -59,7 +61,7 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
     if (section.id === 5) {
       enforcementNote = `
 
-âš ï¸ CRITICAL ENFORCEMENT FOR THIS SECTION:
+⚠️ CRITICAL ENFORCEMENT FOR THIS SECTION:
 1. MANDATORY MINIMUM: ${section.minWords} words (COUNT CAREFULLY)
 2. Every sentence must ADD NEW INSIGHT or DEPTH
 3. If explaining a concept, give the WHY and HOW, not just the WHAT
@@ -67,7 +69,7 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
 5. Connect abstract theology to concrete life application
 6. Give teachers substance to answer student questions confidently
 
-ðŸš« FORBIDDEN - These do NOT count toward word target:
+🚫 FORBIDDEN - These do NOT count toward word target:
 - Repetition of content from other sections
 - Transitional phrases ("As we discussed...", "Moving on...")
 - Padding sentences that add no value
@@ -82,7 +84,7 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
 - Draw from Section 3's depth and make it spoken/teachable
 - Bridge abstract truth to student's real-world experience
 
-âš ï¸ QUALITY CHECK: Before finishing this section, ask yourself:
+⚠️ QUALITY CHECK: Before finishing this section, ask yourself:
 "Could a volunteer teacher use this to answer student questions with confidence?"
 If no, add more depth and explanation.`;
     }
@@ -155,12 +157,10 @@ function buildTeaserInstructions(includeTeaser: boolean, teaserFreshness: Teaser
   const rules = teaserSection.contentRules.map((r) => `    • ${r}`).join('\n');
   const prohibitions = teaserSection.prohibitions.map((p) => `    • ${p}`).join('\n');
 
-  // Build freshness directives if available
   const freshnessDirectives = teaserFreshness 
     ? buildTeaserFreshnessPrompt(teaserFreshness)
     : '';
 
-  // Get comprehensive content bleeding prevention guardrails from SSOT
   const contentGuardrails = generateTeaserContentGuardrails();
 
   return `
@@ -224,14 +224,12 @@ REMEMBER:
 serve(async (req) => {
   const functionStartTime = Date.now();
   
-  // Get dynamic CORS headers based on request origin
   const dynamicCorsHeaders = getCorsHeadersFromRequest(req);
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 200, headers: dynamicCorsHeaders });
   }
 
-  // Declare metricId and supabase at function scope for error handling
   let metricId: string | undefined;
   let supabase: any;
 
@@ -264,8 +262,6 @@ serve(async (req) => {
 
     // =========================================================================
     // ADMIN BYPASS CHECK
-    // Admins have NO restrictions - no tier limits, no trial system, all sections
-    // This applies to Platform Admins and White-Label Tenant Admins
     // =========================================================================
     const { data: adminCheck } = await supabase
       .from('user_roles')
@@ -281,41 +277,77 @@ serve(async (req) => {
     }
 
     // =========================================================================
-    // SUBSCRIPTION & LIMIT CHECK (skipped for admins)
+    // PHASE 13.6: ORGANIZATION POOL CHECK
+    // Check if user is org member and if org pool is available
+    // Org pool is checked BEFORE individual subscription
+    // =========================================================================
+    let orgPoolResult: OrgPoolCheckResult | null = null;
+    let useOrgPool = false;
+    
+    if (!isAdmin) {
+      orgPoolResult = await checkOrgPoolAccess(supabase, user.id);
+      
+      if (orgPoolResult.is_org_member) {
+        console.log('Org membership found:', {
+          organization_id: orgPoolResult.organization_id,
+          organization_name: orgPoolResult.organization_name,
+          role: orgPoolResult.role,
+          can_use_org_pool: orgPoolResult.can_use_org_pool,
+          pool_available: orgPoolResult.pool_status?.total_available || 0
+        });
+        
+        if (orgPoolResult.can_use_org_pool) {
+          useOrgPool = true;
+          console.log('ORG POOL: Will consume from organization pool');
+        } else {
+          console.log('ORG POOL: Empty or no subscription, falling back to individual tier');
+        }
+      }
+    }
+    
+    checkpoint = logTiming('Org pool check completed', checkpoint);
+
+    // =========================================================================
+    // SUBSCRIPTION & LIMIT CHECK (skipped for admins, modified for org pool)
     // =========================================================================
     let userTier = isAdmin ? 'admin' : 'free';
     let allowedSections: number[] = [];
     
     if (!isAdmin) {
-      // Check subscription tier and lesson limit
-      const limitCheck = await checkLessonLimit(supabase, user.id);
-      console.log('Subscription check:', limitCheck);
-      
-      if (!limitCheck.can_generate) {
-        return new Response(JSON.stringify({
-          error: 'Lesson limit reached',
-          code: 'LIMIT_REACHED',
-          lessons_used: limitCheck.lessons_used,
-          lessons_limit: limitCheck.lessons_limit,
-          tier: limitCheck.tier,
-          reset_date: limitCheck.reset_date
-        }), {
-          status: 403,
-          headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
-        });
+      if (useOrgPool) {
+        // User is using org pool - they get full tier access
+        userTier = 'personal';
+        allowedSections = getSectionsForTier('personal');
+        console.log('Org pool user gets full tier access');
+      } else {
+        // Check individual subscription tier and lesson limit
+        const limitCheck = await checkLessonLimit(supabase, user.id);
+        console.log('Subscription check:', limitCheck);
+        
+        if (!limitCheck.can_generate) {
+          return new Response(JSON.stringify({
+            error: 'Lesson limit reached',
+            code: 'LIMIT_REACHED',
+            lessons_used: limitCheck.lessons_used,
+            lessons_limit: limitCheck.lessons_limit,
+            tier: limitCheck.tier,
+            reset_date: limitCheck.reset_date
+          }), {
+            status: 403,
+            headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        userTier = limitCheck.tier;
+        allowedSections = limitCheck.sections_allowed;
       }
-      
-      userTier = limitCheck.tier;
-      allowedSections = limitCheck.sections_allowed;
     }
 
     checkpoint = logTiming('Subscription check completed', checkpoint);
 
     // =========================================================================
-    // PLATFORM MODE & SECTION FILTERING (SSOT: organizationConfig.ts, trialConfig.ts)
+    // PLATFORM MODE & SECTION FILTERING
     // =========================================================================
-    
-    // Fetch platform mode from system_settings
     const { data: platformModeRow } = await supabase
       .from('system_settings')
       .select('value')
@@ -327,22 +359,21 @@ serve(async (req) => {
     
     console.log('Platform mode:', platformMode, 'Tier enforcement:', modeConfig.tierEnforcement, 'Is Admin:', isAdmin);
     
-    // Determine sections to generate based on platform mode
     let sectionsToGenerate: number[];
     let isTrialLesson = false;
     
-    // ADMIN BYPASS: Always get all sections, no restrictions
     if (isAdmin) {
       sectionsToGenerate = getRequiredSections().map(s => s.id);
       console.log('Admin bypass: Full access to all sections');
+    } else if (useOrgPool) {
+      // ORG POOL: Full sections when using org pool
+      sectionsToGenerate = getRequiredSections().map(s => s.id);
+      console.log('Org pool: Full access to all sections');
     } else if (!modeConfig.tierEnforcement) {
-      // BETA MODE: Everyone gets all sections
       sectionsToGenerate = getRequiredSections().map(s => s.id);
       console.log('Beta mode: All users get all sections');
     } else {
-      // PRODUCTION MODE: Check tier and trial
       if (doesTrialApply(platformMode, userTier)) {
-        // Fetch user's trial status
         const { data: profileData } = await supabase
           .from('profiles')
           .select('trial_full_lesson_last_used, trial_full_lesson_granted_until')
@@ -355,35 +386,30 @@ serve(async (req) => {
         );
         
         if (trialAvailable) {
-          // TRIAL: Give full sections, mark as trial
           sectionsToGenerate = getRequiredSections().map(s => s.id);
           isTrialLesson = true;
           console.log('Trial lesson: Free user gets all sections (monthly trial)');
         } else {
-          // NO TRIAL: Use tier-based sections
           sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
           console.log('Production mode: User tier', userTier, 'gets sections:', sectionsToGenerate);
         }
       } else {
-        // Paid tier or non-free: Use tier-based sections
         sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
         console.log('Production mode: User tier', userTier, 'gets sections:', sectionsToGenerate);
       }
     }
     
-    // Filter required sections based on what user is allowed
     const allRequiredSections = getRequiredSections();
     const filteredSections = allRequiredSections.filter(s => sectionsToGenerate.includes(s.id));
     
     console.log('Sections to generate:', filteredSections.map(s => s.id + ': ' + s.name));
 
-    // Capture metrics - SSOT functions from generationMetrics.ts
+    // Capture metrics
     const userAgent = req.headers.get('user-agent') || '';
     const deviceType = parseDeviceType(userAgent);
     const browser = parseBrowser(userAgent);
     const os = parseOS(userAgent);
     
-    // Insert started metric
     const { data: metricRecord } = await supabase
       .from('generation_metrics')
       .insert({
@@ -395,7 +421,8 @@ serve(async (req) => {
         generation_start: new Date().toISOString(),
         tier_requested: 'full',
         sections_requested: 8,
-        status: 'started'
+        status: 'started',
+        organization_id: orgPoolResult?.organization_id || null
       })
       .select('id')
       .single();
@@ -404,7 +431,6 @@ serve(async (req) => {
 
     const requestData = await req.json();
 
-    // Validate and sanitize input
     const validatedData = validateLessonRequest(requestData);
     const {
       bible_passage,
@@ -427,7 +453,6 @@ serve(async (req) => {
       assessment_style,
       learning_style,
       education_experience,
-      // Phase 2 fields
       emotional_entry,
       theological_lens,
       generate_teaser = false,
@@ -435,7 +460,6 @@ serve(async (req) => {
       include_liturgical = false,
       include_cultural = false,
       freshness_suggestions = null,
-      // CONSISTENT STYLE MODE - Frontend drives these flags
       extract_style_metadata = false,
       series_style_context = null
     } = validatedData;
@@ -462,7 +486,6 @@ serve(async (req) => {
       throw new Error(`Age group not found: ${age_group}`);
     }
 
-    // Get Bible version - default to KJV if not specified
     const effectiveBibleVersionId = bible_version_id || getDefaultBibleVersion().id;
     const bibleVersion = BIBLE_VERSIONS.find((v) => v.id === effectiveBibleVersionId);
     if (!bibleVersion) {
@@ -470,26 +493,19 @@ serve(async (req) => {
     }
 
     // =========================================================================
-    // FRESHNESS SYSTEM - Select fresh elements avoiding recent usage
-    // SSOT COMPLIANCE: Uses boolean flags - edge function owns the integration
-    // between freshnessOptions.ts and teacherCustomizationOptions.ts
+    // FRESHNESS SYSTEM
     // =========================================================================
-    
-    // Determine which freshness elements to skip based on teacher's Step 3 choices
-    // Teacher's customization ALWAYS takes priority over freshness suggestions
     const skipTeachingAngle = !!teaching_style;
     const skipActivityFormat = activity_types && activity_types.length > 0;
     const skipApplicationContext = !!class_setting || !!learning_environment;
     
-    // Select fresh lesson elements (respects teacher's Step 3 choices via boolean flags)
     let selectedFreshness: FreshnessSuggestions | null = null;
     let selectedTeaserFreshness: TeaserFreshnessSuggestions | null = null;
     let freshnessPromptAddition = '';
     
     if (freshness_mode === 'fresh') {
-      // Pass boolean flags - freshnessOptions.ts doesn't know about customization field names
       selectedFreshness = selectFreshElements(
-        [],  // TODO: Pass recent suggestions from user's lesson history
+        [],
         5,
         skipTeachingAngle,
         skipActivityFormat,
@@ -502,7 +518,6 @@ serve(async (req) => {
         console.log('Elements skipped (teacher specified in Step 3):', selectedFreshness.skippedDueToCustomization);
       }
       
-      // Select fresh teaser elements if teaser requested
       if (generate_teaser) {
         selectedTeaserFreshness = selectFreshTeaserElements([], 5);
         console.log('Teaser freshness suggestions selected:', selectedTeaserFreshness);
@@ -510,27 +525,21 @@ serve(async (req) => {
     }
 
     // =========================================================================
-    // CONSISTENT STYLE MODE - Series Support
-    // FRONTEND DRIVES: Frontend sends extract_style_metadata and series_style_context
-    // BACKEND OBEYS: Backend adds appropriate prompts based on these flags
+    // CONSISTENT STYLE MODE
     // =========================================================================
-    
     let consistentStylePromptAddition = '';
     let styleExtractionPromptAddition = '';
     
-    // If frontend says to extract style (Lesson 1 + Consistent Mode), add extraction prompt
     if (extract_style_metadata) {
       styleExtractionPromptAddition = buildStyleExtractionPrompt();
       console.log('Style extraction requested (Lesson 1 of series with Consistent Style Mode)');
     }
     
-    // If frontend provides style context (Lesson 2+ with Consistent Mode), add consistency prompt
     if (series_style_context) {
       consistentStylePromptAddition = buildConsistentStyleContext(series_style_context as SeriesStyleMetadata);
       console.log('Consistent style context provided:', series_style_context);
     }
 
-    // Use filteredSections (set earlier based on platform mode + tier)
     const totalSections = filteredSections.length;
 
     console.log('Generating lesson:', {
@@ -549,7 +558,9 @@ serve(async (req) => {
       includeTeaser: generate_teaser,
       wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${generate_teaser ? ' (+50-100 for teaser)' : ''}`,
       extractStyleMetadata: extract_style_metadata,
-      hasSeriesStyleContext: !!series_style_context
+      hasSeriesStyleContext: !!series_style_context,
+      usingOrgPool: useOrgPool,
+      organizationId: orgPoolResult?.organization_id || null
     });
 
     const customizationDirectives = buildCustomizationDirectives({
@@ -566,12 +577,10 @@ serve(async (req) => {
       activity_types,
       language,
       education_experience,
-      // Phase 2 fields
       emotional_entry,
       theological_lens
     });
 
-    // Build copyright guardrails based on Bible version
     const copyrightGuardrails = generateCopyrightGuardrails(bibleVersion.id);
 
     const systemPrompt = `You are a Baptist Bible study lesson generator using the LessonSparkUSA Framework.
@@ -687,12 +696,10 @@ ${styleExtractionPromptAddition}
       clearTimeout(timeoutId);
       checkpoint = logTiming('Anthropic API returned', checkpoint);
 
-      // Check for rate limit (429) error
       if (anthropicResponse.status === 429) {
         const errorData = await anthropicResponse.text();
         console.error('Anthropic API rate limited:', errorData);
         
-        // Update metric with rate_limited flag
         if (metricId) {
           await supabase
             .from('generation_metrics')
@@ -720,7 +727,6 @@ ${styleExtractionPromptAddition}
       let generatedLesson = anthropicData.content[0].text;
       const wordCount = generatedLesson.split(/\s+/).length;
 
-      // Extract token usage from response
       const tokensInput = anthropicData.usage?.input_tokens || null;
       const tokensOutput = anthropicData.usage?.output_tokens || null;
 
@@ -729,18 +735,15 @@ ${styleExtractionPromptAddition}
       console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}`);
 
       // =========================================================================
-      // STYLE METADATA EXTRACTION (Consistent Style Mode - Lesson 1)
-      // Frontend requested extraction, backend parses and returns it
+      // STYLE METADATA EXTRACTION
       // =========================================================================
       let extractedStyleMetadata: SeriesStyleMetadata | null = null;
       
       if (extract_style_metadata) {
-        // Parse style metadata from Claude's response
-        extractedStyleMetadata = parseStyleMetadata(generatedLesson, 'pending'); // ID will be updated after save
+        extractedStyleMetadata = parseStyleMetadata(generatedLesson, 'pending');
         
         if (extractedStyleMetadata) {
           console.log('Style metadata extracted:', extractedStyleMetadata);
-          // Remove the metadata block from lesson content for display
           generatedLesson = removeStyleMetadataFromContent(generatedLesson);
         } else {
           console.log('Warning: Style extraction was requested but metadata block not found in output');
@@ -753,8 +756,6 @@ ${styleExtractionPromptAddition}
         if (teaserMatch) {
           teaserContent = teaserMatch[1].trim();
           console.log(`Teaser extracted: ${teaserContent.split(/\s+/).length} words`);
-
-          // Remove the teaser section from the lesson text so it doesn't appear twice
           generatedLesson = generatedLesson.replace(/\*\*STUDENT TEASER\*\*\s*[\s\S]*?---\s*/, '');
         } else {
           console.log('Warning: Teaser was requested but not found in output');
@@ -763,11 +764,19 @@ ${styleExtractionPromptAddition}
 
       checkpoint = logTiming('Response parsed', checkpoint);
 
+      // =========================================================================
+      // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
+      // organization_id: ALWAYS set for org members (Org Leader sees all)
+      // org_pool_consumed: true only if consumed from org pool (reimbursement indicator)
+      // =========================================================================
       const lessonData = {
         user_id: user.id,
         title: lessonInput,
         original_text: generatedLesson,
-        // Store extracted style metadata in dedicated column if present
+        // Phase 13.6: Organization context - ALWAYS set for org members
+        organization_id: orgPoolResult?.organization_id || null,
+        // Phase 13.6: Pool consumption flag - true = church paid, false = member paid
+        org_pool_consumed: useOrgPool,
         series_style_metadata: extractedStyleMetadata,
         filters: {
           bible_passage,
@@ -789,7 +798,6 @@ ${styleExtractionPromptAddition}
           assessment_style,
           learning_style,
           education_experience,
-          // Phase 2 fields
           emotional_entry,
           theological_lens,
           additional_notes: additional_notes || null,
@@ -820,9 +828,12 @@ ${styleExtractionPromptAddition}
           platformMode: platformMode,
           isTrialLesson: isTrialLesson,
           sectionsGenerated: filteredSections.map(s => s.id),
-          // Consistent Style Mode metadata
           extractedStyleMetadata: extract_style_metadata,
-          usedSeriesStyleContext: !!series_style_context
+          usedSeriesStyleContext: !!series_style_context,
+          // Phase 13.6: Org pool metadata for audit trail
+          usedOrgPool: useOrgPool,
+          organizationId: orgPoolResult?.organization_id || null,
+          organizationName: orgPoolResult?.organization_name || null
         }
       };
 
@@ -837,11 +848,9 @@ ${styleExtractionPromptAddition}
         throw new Error(`Failed to save lesson: ${insertError.message}`);
       }
 
-      // Update the style metadata with actual lesson ID if it was extracted
       if (extractedStyleMetadata && lesson) {
         extractedStyleMetadata.capturedFromLessonId = lesson.id;
         
-        // Update the lesson record with the correct lesson ID in style metadata
         await supabase
           .from('lessons')
           .update({ 
@@ -858,11 +867,21 @@ ${styleExtractionPromptAddition}
 
       console.log('Lesson saved:', lesson.id);
 
-      // Increment lesson usage for subscription tracking
-      await incrementLessonUsage(supabase, user.id);
-      console.log('Lesson usage incremented for user:', user.id);
+      // =========================================================================
+      // PHASE 13.6: CONSUME FROM ORG POOL OR INCREMENT INDIVIDUAL USAGE
+      // =========================================================================
+      if (useOrgPool && orgPoolResult?.organization_id) {
+        const consumed = await consumeFromOrgPool(supabase, orgPoolResult.organization_id);
+        if (consumed) {
+          console.log('Org pool consumption successful for org:', orgPoolResult.organization_id);
+        } else {
+          console.error('Org pool consumption failed - this should not happen');
+        }
+      } else {
+        await incrementLessonUsage(supabase, user.id);
+        console.log('Individual lesson usage incremented for user:', user.id);
+      }
 
-      // Consume trial if this was a trial lesson
       if (isTrialLesson) {
         await supabase
           .from('profiles')
@@ -871,7 +890,6 @@ ${styleExtractionPromptAddition}
         console.log('Trial lesson consumed for user:', user.id);
       }
 
-      // Update metric to completed with token tracking
       if (metricId) {
         await supabase
           .from('generation_metrics')
@@ -893,7 +911,6 @@ ${styleExtractionPromptAddition}
         success: true,
         lesson,
         metadata: lessonData.metadata,
-        // Include extracted style metadata so frontend can store/use it
         style_metadata: extractedStyleMetadata
       }), {
         status: 200,
@@ -904,7 +921,6 @@ ${styleExtractionPromptAddition}
       clearTimeout(timeoutId);
       if (fetchError.name === 'AbortError') {
         console.error('Anthropic API timeout after 120 seconds');
-        // Update metric to timeout
         if (metricId) {
           await supabase
             .from('generation_metrics')
@@ -926,7 +942,6 @@ ${styleExtractionPromptAddition}
     logTiming('ERROR occurred at', functionStartTime);
     console.error('Error in generate-lesson:', error);
     
-    // Update metric to error
     if (typeof metricId !== 'undefined' && metricId && supabase) {
       await supabase
         .from('generation_metrics')
