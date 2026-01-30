@@ -13,7 +13,8 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "sync-branding": "node scripts/sync-branding-to-db.cjs",
-        "sync-tier-config": "node scripts/sync-tier-config-to-db.cjs"
+        "sync-tier-config": "node scripts/sync-tier-config-to-db.cjs",
+        "sync-org-pricing": "node scripts/sync-org-pricing.cjs"
     },
     "dependencies": {
         "@hookform/resolvers": "^3.10.0",
