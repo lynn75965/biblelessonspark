@@ -13,16 +13,19 @@ import {
   Settings,
   ArrowLeft,
   Target,
-  Layers
+  Layers,
+  Network
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useChildOrgSummaries } from "@/hooks/useChildOrgSummaries";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
 import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
 import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { OrgPoolStatusCard } from "@/components/org/OrgPoolStatusCard";
+import { ChildOrgDashboard } from "@/components/org/ChildOrgDashboard";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +41,15 @@ export default function OrgManager() {
     memberCount: 0,
     lessonCount: 0
   });
+
+  // Phase N3: Fetch child org summaries for Network tab
+  const {
+    children: childOrgs,
+    loading: childrenLoading,
+    error: childrenError,
+    hasChildren,
+    refresh: refreshChildren
+  } = useChildOrgSummaries(organization?.id);
 
   // Get effective frontend role for SSOT permission checks
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
@@ -207,6 +219,13 @@ export default function OrgManager() {
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
+            {/* Phase N3: Network tab — visible only when org has children */}
+            {hasChildren && (
+              <TabsTrigger value="network" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+                <Network className="h-4 w-4 flex-shrink-0" />
+                <span className="hidden sm:inline">Network</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Settings className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Settings</span>
@@ -287,6 +306,19 @@ export default function OrgManager() {
               </div>
             )}
           </TabsContent>
+
+          {/* Phase N3: Network Tab — Child Org Dashboard */}
+          {hasChildren && (
+            <TabsContent value="network" className="mt-6">
+              <ChildOrgDashboard
+                children={childOrgs}
+                loading={childrenLoading}
+                error={childrenError}
+                organizationName={organization?.name || "Organization"}
+                onRefresh={refreshChildren}
+              />
+            </TabsContent>
+          )}
 
           {/* Settings Tab */}
           <TabsContent value="settings" className="mt-6">
