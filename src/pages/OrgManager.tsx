@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useChildOrgSummaries } from "@/hooks/useChildOrgSummaries";
+import { useFocusAdoptionMap } from "@/hooks/useFocusAdoptionMap";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
 import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
@@ -28,6 +29,7 @@ import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { OrgPoolStatusCard } from "@/components/org/OrgPoolStatusCard";
 import { ChildOrgDashboard } from "@/components/org/ChildOrgDashboard";
 import { CreateChildOrgDialog } from "@/components/org/CreateChildOrgDialog";
+import { ParentFocusBanner } from "@/components/org/ParentFocusBanner";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +43,7 @@ export default function OrgManager() {
   const [activeTab, setActiveTab] = useState("members");
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
   const [showCreateChildDialog, setShowCreateChildDialog] = useState(false);
+  const [focusRefreshKey, setFocusRefreshKey] = useState(0);
   const [orgStats, setOrgStats] = useState({
     memberCount: 0,
     lessonCount: 0
@@ -62,6 +65,28 @@ export default function OrgManager() {
   // Phase N4: Can this org create children? (level < maxDepth)
   const currentOrgLevel = (organization as any)?.org_level ?? 1;
   const canCreateChild = hasAccess && isWithinMaxDepth(currentOrgLevel);
+
+  // Phase N6: Detect if this org is a child (has parent_org_id)
+  const parentOrgId = (organization as any)?.parent_org_id as string | null;
+  const isChildOrg = !!parentOrgId;
+
+  // Phase N6: Focus adoption map for Network tab (parent sees adoption status)
+  const {
+    adoptionMap,
+    hasActiveFocus: parentHasActiveFocus,
+    adoptedCount,
+    totalChildren: adoptionTotalChildren,
+    refresh: refreshAdoptions
+  } = useFocusAdoptionMap(organization?.id);
+
+  // Phase N6: Enrich children with adoption data for ChildOrgCard badges
+  const enrichedChildren = useMemo(() => {
+    if (!parentHasActiveFocus) return childOrgs;
+    return childOrgs.map(child => ({
+      ...child,
+      has_adopted_focus: adoptionMap[child.org_id] ?? false
+    }));
+  }, [childOrgs, adoptionMap, parentHasActiveFocus]);
 
   // Fetch org stats
   useEffect(() => {
@@ -270,10 +295,18 @@ export default function OrgManager() {
             )}
           </TabsContent>
 
-          {/* Shared Focus Tab */}
+          {/* Shared Focus Tab — Phase N6: ParentFocusBanner added for child orgs */}
           <TabsContent value="focus" className="mt-6">
+            {/* Phase N6: Parent Focus Banner — visible only for child orgs with parent focus */}
+            {organization?.id && isChildOrg && (
+              <ParentFocusBanner
+                childOrgId={organization.id}
+                onAdopted={() => setFocusRefreshKey(k => k + 1)}
+              />
+            )}
             {organization?.id ? (
               <OrgSharedFocusPanel
+                key={focusRefreshKey}
                 organizationId={organization.id}
                 organizationName={organization.name || "Organization"}
                 canEdit={effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader}
@@ -315,15 +348,26 @@ export default function OrgManager() {
             )}
           </TabsContent>
 
-          {/* Phase N3/N4: Network Tab — Child Org Dashboard + Create Child */}
+          {/* Phase N3/N4/N6: Network Tab — Child Org Dashboard + Adoption Status */}
           {(hasChildren || canCreateChild) && (
             <TabsContent value="network" className="mt-6">
+              {/* Phase N6: Focus adoption summary — visible when parent has active focus */}
+              {parentHasActiveFocus && enrichedChildren.length > 0 && (
+                <div className="mb-4 p-3 bg-muted/50 rounded-lg flex items-center gap-2 text-sm text-muted-foreground">
+                  <Target className="h-4 w-4 shrink-0" />
+                  <span>
+                    Shared Focus Adoption:{' '}
+                    <strong className="text-foreground">{adoptedCount}</strong> of{' '}
+                    {adoptionTotalChildren} organizations
+                  </span>
+                </div>
+              )}
               <ChildOrgDashboard
-                children={childOrgs}
+                children={enrichedChildren}
                 loading={childrenLoading}
                 error={childrenError}
                 organizationName={organization?.name || "Organization"}
-                onRefresh={refreshChildren}
+                onRefresh={() => { refreshChildren(); refreshAdoptions(); }}
               />
               {/* Phase N4: Create Child Org button */}
               {canCreateChild && organization?.id && (

@@ -6,11 +6,13 @@
 // Shows ONLY fields allowed by PARENT_VISIBILITY:
 //   org name, Org Manager name, member count, lessons/month,
 //   pool %, subscription tier, health status
+//
+// Phase N6: Added focus adoption indicator (Target icon)
 // ============================================================
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, BookOpen, Layers, Mail } from "lucide-react";
+import { Users, BookOpen, Layers, Mail, Target } from "lucide-react";
 import type { ChildOrgSummary } from "@/hooks/useChildOrgSummaries";
 import { ORG_TYPES } from "@/constants/organizationConfig";
 
@@ -106,6 +108,23 @@ export function ChildOrgCard({ child }: ChildOrgCardProps) {
             {child.manager_email || 'No manager assigned'}
           </span>
         </div>
+
+        {/* Phase N6: Focus adoption indicator — only shown when data is present */}
+        {child.has_adopted_focus !== undefined && (
+          <div className="flex items-center gap-1.5">
+            {child.has_adopted_focus ? (
+              <>
+                <Target className="h-3 w-3 text-green-500 shrink-0" />
+                <span className="text-xs text-green-600 dark:text-green-400">Focus adopted</span>
+              </>
+            ) : (
+              <>
+                <Target className="h-3 w-3 text-muted-foreground/40 shrink-0" />
+                <span className="text-xs text-muted-foreground/40">Focus not adopted</span>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-2 gap-2">

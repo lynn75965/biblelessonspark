@@ -23,6 +23,9 @@ export interface ChildOrgSummary {
   subscription_status: string | null;
   health_status: 'healthy' | 'attention' | 'critical';
   health_color: string;
+  /** Phase N6: True if this child adopted the parent's current active focus.
+   *  Set by OrgManager via useFocusAdoptionMap merge — not from the RPC. */
+  has_adopted_focus?: boolean;
 }
 
 interface UseChildOrgSummariesResult {
