@@ -34,7 +34,16 @@ export default function Auth() {
   const isPublicBeta = shouldShowPublicBetaEnrollment(platformMode);
   
   const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl === 'signin' || tabFromUrl === 'signup' ? tabFromUrl : 'signup');
+  // Default to signin for returning visitors, signup for first-timers
+  const getDefaultTab = () => {
+    if (tabFromUrl === 'signin' || tabFromUrl === 'signup') return tabFromUrl;
+    try {
+      return localStorage.getItem('bls_has_account') === 'true' ? 'signin' : 'signup';
+    } catch {
+      return 'signup';
+    }
+  };
+  const [activeTab, setActiveTab] = useState(getDefaultTab());
   const [isLoading, setIsLoading] = useState(false);
   const [inviterName, setInviterName] = useState<string>('');
   const [organizationName, setOrganizationName] = useState<string>('');
@@ -161,6 +170,8 @@ export default function Auth() {
           title: "Welcome!",
           description: "You have successfully signed in.",
         });
+        // Remember this browser has an account for future visits
+        try { localStorage.setItem('bls_has_account', 'true'); } catch {}
       }
     } catch (error) {
       toast({
@@ -285,6 +296,23 @@ export default function Auth() {
           });
         }
       } else {
+        // CHECK FOR EXISTING USER: Supabase returns fake success with empty identities
+        // when "Confirm email" is ON and the email already exists (security measure).
+        // No email is sent in this case — detect it and redirect to Sign In.
+        const isExistingUser = data?.user?.identities?.length === 0;
+        
+        if (isExistingUser) {
+          toast({
+            title: "You already have an account!",
+            description: "Please sign in with your existing email and password. If you've forgotten your password, use 'Forgot Password' below.",
+          });
+          setActiveTab('signin');
+          // Remember this browser has an account
+          try { localStorage.setItem('bls_has_account', 'true'); } catch {}
+          setIsLoading(false);
+          return;
+        }
+
         // INVITED USERS: Special flow - sign in immediately and go to dashboard
         if (inviteToken) {
           // Sign in the user to establish an active session
@@ -318,6 +346,8 @@ export default function Auth() {
             title: "Welcome!",
             description: "Your account has been created. Taking you to your dashboard...",
           });
+          // Remember this browser has an account
+          try { localStorage.setItem('bls_has_account', 'true'); } catch {}
           navigate('/dashboard');
           return;
         }
@@ -342,6 +372,8 @@ export default function Auth() {
         setUnconfirmedEmail(sanitizedEmail);
         await supabase.auth.signOut();
         setShowEmailConfirmation(true);
+        // Remember this browser has an account
+        try { localStorage.setItem('bls_has_account', 'true'); } catch {}
         
         toast({
           title: "Account created!",
