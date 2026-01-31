@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft, Download, Network } from "lucide-react";
+import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft, Download, Network, Search, ChevronRight } from "lucide-react";
 
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
@@ -77,6 +77,11 @@ export function OrganizationManagement() {
   // Phase N4: Create Child Org state
   const [createChildDialogOpen, setCreateChildDialogOpen] = useState(false);
   const [createChildParentOrg, setCreateChildParentOrg] = useState<Organization | null>(null);
+
+  // Phase N5: Hierarchy filter and search state
+  const [hierarchyFilter, setHierarchyFilter] = useState<'all' | 'top-level' | 'children'>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
   const resetForm = () => {
     setFormData({ name: "", denomination: "", description: "" });
@@ -507,6 +512,91 @@ export function OrganizationManagement() {
     return parent?.name || "Unknown";
   };
 
+  // Phase N5: Hierarchy helpers
+  const getChildCount = (orgId: string) => {
+    return organizations.filter((o) => (o as any).parent_org_id === orgId).length;
+  };
+
+  const toggleParentExpanded = (orgId: string) => {
+    setExpandedParents(prev => {
+      const next = new Set(prev);
+      if (next.has(orgId)) {
+        next.delete(orgId);
+      } else {
+        next.add(orgId);
+      }
+      return next;
+    });
+  };
+
+  // Build tree-ordered list for display:
+  // Top-level orgs first, then their children indented beneath them
+  const buildTreeOrder = (orgs: Organization[]): Organization[] => {
+    const topLevel = orgs.filter((o) => !(o as any).parent_org_id);
+    const childMap = new Map<string, Organization[]>();
+    
+    orgs.forEach((o) => {
+      const parentId = (o as any).parent_org_id;
+      if (parentId) {
+        const siblings = childMap.get(parentId) || [];
+        siblings.push(o);
+        childMap.set(parentId, siblings);
+      }
+    });
+
+    const result: Organization[] = [];
+    const addWithChildren = (org: Organization, depth: number) => {
+      result.push(org);
+      if (expandedParents.has(org.id) || searchQuery) {
+        const children = childMap.get(org.id) || [];
+        children
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .forEach((child) => addWithChildren(child, depth + 1));
+      }
+    };
+
+    topLevel
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .forEach((org) => addWithChildren(org, 0));
+
+    // Include any orphaned children (parent not in current list)
+    const resultIds = new Set(result.map(r => r.id));
+    orgs.forEach((o) => {
+      if (!resultIds.has(o.id)) result.push(o);
+    });
+
+    return result;
+  };
+
+  // Apply filters and search
+  const filteredOrganizations = (() => {
+    let filtered = [...organizations];
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter((o) =>
+        o.name.toLowerCase().includes(q) ||
+        (o.denomination || '').toLowerCase().includes(q) ||
+        ((o as any).org_type || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Hierarchy filter
+    if (hierarchyFilter === 'top-level') {
+      filtered = filtered.filter((o) => !(o as any).parent_org_id);
+    } else if (hierarchyFilter === 'children') {
+      filtered = filtered.filter((o) => !!(o as any).parent_org_id);
+    }
+
+    return buildTreeOrder(filtered);
+  })();
+
+  // Stats computed from all orgs (unfiltered)
+  const topLevelCount = organizations.filter((o) => !(o as any).parent_org_id && o.status === ORG_STATUS.APPROVED).length;
+  const childOrgCount = organizations.filter((o) => !!(o as any).parent_org_id && o.status === ORG_STATUS.APPROVED).length;
+  const maxDepthUsed = Math.max(...organizations.map((o) => (o as any).org_level || 1), 0);
+
   return (
     <div className="space-y-6">
       {viewingOrg ? (
@@ -624,7 +714,7 @@ export function OrganizationManagement() {
       </Card>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-3xl font-bold text-primary">
@@ -644,6 +734,21 @@ export function OrganizationManagement() {
         <Card>
           <CardContent className="pt-6 text-center">
             <p className="text-3xl font-bold">
+              {topLevelCount}
+              {childOrgCount > 0 && (
+                <span className="text-lg font-normal text-muted-foreground ml-1">
+                  + {childOrgCount}
+                </span>
+              )}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {childOrgCount > 0 ? 'Top-level + Children' : 'Top-level Orgs'}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <p className="text-3xl font-bold">
               {users.filter((u) => u.organization_role === ORG_ROLES.leader).length}
             </p>
             <p className="text-sm text-muted-foreground">Org Leaders</p>
@@ -654,16 +759,67 @@ export function OrganizationManagement() {
       {/* Organizations Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Organizations</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <CardTitle>All Organizations</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Phase N5: Search */}
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search orgs..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-9 w-[180px]"
+                />
+              </div>
+              {/* Phase N5: Hierarchy Filter */}
+              <div className="flex items-center gap-1 border rounded-md p-0.5">
+                <Button
+                  size="sm"
+                  variant={hierarchyFilter === 'all' ? 'default' : 'ghost'}
+                  className="h-7 px-2.5 text-xs"
+                  onClick={() => setHierarchyFilter('all')}
+                >
+                  All
+                </Button>
+                <Button
+                  size="sm"
+                  variant={hierarchyFilter === 'top-level' ? 'default' : 'ghost'}
+                  className="h-7 px-2.5 text-xs"
+                  onClick={() => setHierarchyFilter('top-level')}
+                >
+                  Top-level
+                </Button>
+                <Button
+                  size="sm"
+                  variant={hierarchyFilter === 'children' ? 'default' : 'ghost'}
+                  className="h-7 px-2.5 text-xs"
+                  onClick={() => setHierarchyFilter('children')}
+                >
+                  Children
+                </Button>
+              </div>
+            </div>
+          </div>
+          {/* Active filter indicator */}
+          {(searchQuery || hierarchyFilter !== 'all') && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Showing {filteredOrganizations.length} of {organizations.length} organizations
+              {searchQuery && ` matching "${searchQuery}"`}
+              {hierarchyFilter !== 'all' && ` (${hierarchyFilter})`}
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="text-center py-8 text-muted-foreground">
               Loading organizations...
             </div>
-          ) : organizations.length === 0 ? (
+          ) : filteredOrganizations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No organizations yet. Create one to get started.
+              {organizations.length === 0
+                ? "No organizations yet. Create one to get started."
+                : "No organizations match your filter."}
             </div>
           ) : (
             <Table>
@@ -681,9 +837,40 @@ export function OrganizationManagement() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {organizations.map((org) => (
-                  <TableRow key={org.id}>
-                    <TableCell className="font-medium">{org.name}</TableCell>
+                {filteredOrganizations.map((org) => {
+                  const orgLevel = (org as any).org_level || 1;
+                  const parentId = (org as any).parent_org_id;
+                  const childCount = getChildCount(org.id);
+                  const isExpanded = expandedParents.has(org.id);
+                  // Indent based on level (level 1 = 0px, level 2 = 20px, etc.)
+                  const indentPx = parentId ? (orgLevel - 1) * 20 : 0;
+
+                  return (
+                  <TableRow key={org.id} className={parentId ? "bg-muted/30" : ""}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-1" style={{ paddingLeft: `${indentPx}px` }}>
+                        {/* Expand/collapse toggle for orgs with children */}
+                        {childCount > 0 ? (
+                          <button
+                            onClick={() => toggleParentExpanded(org.id)}
+                            className="p-0.5 hover:bg-muted rounded transition-transform"
+                            title={isExpanded ? "Collapse children" : `Expand ${childCount} children`}
+                          >
+                            <ChevronRight
+                              className={`h-4 w-4 text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                            />
+                          </button>
+                        ) : (
+                          <span className="w-5" /> 
+                        )}
+                        <span>{org.name}</span>
+                        {childCount > 0 && (
+                          <Badge variant="outline" className="text-[10px] ml-1">
+                            {childCount}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       {(org as any).parent_org_id ? (
                         <Badge variant="outline" className="text-xs">
@@ -695,7 +882,7 @@ export function OrganizationManagement() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
-                        L{(org as any).org_level || 1}
+                        L{orgLevel} · {getLevelName(orgLevel)}
                       </Badge>
                     </TableCell>
                     <TableCell>{org.denomination || "-"}</TableCell>
@@ -708,7 +895,7 @@ export function OrganizationManagement() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {/* Phase N4: Create Child Org (if depth allows) */}
-                        {isWithinMaxDepth((org as any).org_level || 1) && org.status === ORG_STATUS.APPROVED && (
+                        {isWithinMaxDepth(orgLevel) && org.status === ORG_STATUS.APPROVED && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -786,7 +973,8 @@ export function OrganizationManagement() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
