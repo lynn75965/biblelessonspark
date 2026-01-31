@@ -14,7 +14,8 @@ import {
   ArrowLeft,
   Target,
   Layers,
-  Network
+  Network,
+  Plus
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -26,10 +27,12 @@ import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
 import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { OrgPoolStatusCard } from "@/components/org/OrgPoolStatusCard";
 import { ChildOrgDashboard } from "@/components/org/ChildOrgDashboard";
+import { CreateChildOrgDialog } from "@/components/org/CreateChildOrgDialog";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
 import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ORG_ROLES, ROLES, getEffectiveRole } from "@/constants/accessControl";
+import { isWithinMaxDepth } from "@/constants/organizationConfig";
 
 export default function OrgManager() {
   const { user } = useAuth();
@@ -37,6 +40,7 @@ export default function OrgManager() {
   const { isAdmin } = useAdminAccess();
   const [activeTab, setActiveTab] = useState("members");
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
+  const [showCreateChildDialog, setShowCreateChildDialog] = useState(false);
   const [orgStats, setOrgStats] = useState({
     memberCount: 0,
     lessonCount: 0
@@ -54,6 +58,10 @@ export default function OrgManager() {
   // Get effective frontend role for SSOT permission checks
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
   const hasAccess = effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader;
+
+  // Phase N4: Can this org create children? (level < maxDepth)
+  const currentOrgLevel = (organization as any)?.org_level ?? 1;
+  const canCreateChild = hasAccess && isWithinMaxDepth(currentOrgLevel);
 
   // Fetch org stats
   useEffect(() => {
@@ -219,8 +227,8 @@ export default function OrgManager() {
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
-            {/* Phase N3: Network tab — visible only when org has children */}
-            {hasChildren && (
+            {/* Phase N3/N4: Network tab — visible when org has children OR can create them */}
+            {(hasChildren || canCreateChild) && (
               <TabsTrigger value="network" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
                 <Network className="h-4 w-4 flex-shrink-0" />
                 <span className="hidden sm:inline">Network</span>
@@ -307,8 +315,8 @@ export default function OrgManager() {
             )}
           </TabsContent>
 
-          {/* Phase N3: Network Tab — Child Org Dashboard */}
-          {hasChildren && (
+          {/* Phase N3/N4: Network Tab — Child Org Dashboard + Create Child */}
+          {(hasChildren || canCreateChild) && (
             <TabsContent value="network" className="mt-6">
               <ChildOrgDashboard
                 children={childOrgs}
@@ -317,6 +325,18 @@ export default function OrgManager() {
                 organizationName={organization?.name || "Organization"}
                 onRefresh={refreshChildren}
               />
+              {/* Phase N4: Create Child Org button */}
+              {canCreateChild && organization?.id && (
+                <div className="mt-4">
+                  <Button
+                    onClick={() => setShowCreateChildDialog(true)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Create Child Organization
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           )}
 
@@ -379,6 +399,18 @@ export default function OrgManager() {
         open={showOrgSettingsModal}
         onOpenChange={setShowOrgSettingsModal}
       />
+
+      {/* Phase N4: Create Child Org Dialog */}
+      {organization?.id && (
+        <CreateChildOrgDialog
+          open={showCreateChildDialog}
+          onOpenChange={setShowCreateChildDialog}
+          parentOrgId={organization.id}
+          parentOrgName={organization.name || "Organization"}
+          parentOrgLevel={currentOrgLevel}
+          onCreated={refreshChildren}
+        />
+      )}
     </div>
   );
 }

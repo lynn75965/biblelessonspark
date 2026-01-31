@@ -10,15 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft, Download } from "lucide-react";
+import { Building2, Plus, Check, X, UserCog, RefreshCw, Pencil, Eye, ArrowLeft, Download, Network } from "lucide-react";
 
 // SSOT Imports - Frontend Drives Backend
 import { ORG_ROLES } from "@/constants/accessControl";
 import { ORGANIZATION_VALIDATION, DENOMINATION_OPTIONS } from "@/constants/validation";
 import { Organization } from "@/constants/contracts";
 import { ORG_DETAIL_TABS, OrgDetailTabKey, DEFAULT_ORG_DETAIL_TAB } from "@/constants/orgManagerConfig";
+import { ORG_TYPES, isWithinMaxDepth, getLevelName } from "@/constants/organizationConfig";
 import { OrgDetailView } from "./OrgDetailView";
 import { TransferRequestQueue } from "./TransferRequestQueue";
+import { CreateChildOrgDialog } from "../org/CreateChildOrgDialog";
 
 // Organization type imported from @/constants/contracts
 
@@ -71,6 +73,10 @@ export function OrganizationManagement() {
   // Drill-down state (Phase 13.9)
   const [viewingOrg, setViewingOrg] = useState<Organization | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<OrgDetailTabKey>(DEFAULT_ORG_DETAIL_TAB);
+
+  // Phase N4: Create Child Org state
+  const [createChildDialogOpen, setCreateChildDialogOpen] = useState(false);
+  const [createChildParentOrg, setCreateChildParentOrg] = useState<Organization | null>(null);
 
   const resetForm = () => {
     setFormData({ name: "", denomination: "", description: "" });
@@ -494,6 +500,13 @@ export function OrganizationManagement() {
     return users.filter((u) => u.organization_id === orgId).length;
   };
 
+  // Phase N4: Get parent org name for hierarchy display
+  const getParentOrgName = (parentId: string | null) => {
+    if (!parentId) return null;
+    const parent = organizations.find((o) => o.id === parentId);
+    return parent?.name || "Unknown";
+  };
+
   return (
     <div className="space-y-6">
       {viewingOrg ? (
@@ -657,6 +670,8 @@ export function OrganizationManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Parent</TableHead>
+                  <TableHead>Level</TableHead>
                   <TableHead>Denomination</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Leader</TableHead>
@@ -669,6 +684,20 @@ export function OrganizationManagement() {
                 {organizations.map((org) => (
                   <TableRow key={org.id}>
                     <TableCell className="font-medium">{org.name}</TableCell>
+                    <TableCell>
+                      {(org as any).parent_org_id ? (
+                        <Badge variant="outline" className="text-xs">
+                          {getParentOrgName((org as any).parent_org_id)}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Top-level</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        L{(org as any).org_level || 1}
+                      </Badge>
+                    </TableCell>
                     <TableCell>{org.denomination || "-"}</TableCell>
                     <TableCell>{getStatusBadge(org.status)}</TableCell>
                     <TableCell>{getOrgLeader(org.id)}</TableCell>
@@ -678,6 +707,21 @@ export function OrganizationManagement() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        {/* Phase N4: Create Child Org (if depth allows) */}
+                        {isWithinMaxDepth((org as any).org_level || 1) && org.status === ORG_STATUS.APPROVED && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setCreateChildParentOrg(org);
+                              setCreateChildDialogOpen(true);
+                            }}
+                            title="Create Child Organization"
+                          >
+                            <Network className="h-4 w-4 mr-1" />
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           variant="outline"
@@ -855,6 +899,21 @@ export function OrganizationManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Phase N4: Create Child Org Dialog (Admin) */}
+      {createChildParentOrg && (
+        <CreateChildOrgDialog
+          open={createChildDialogOpen}
+          onOpenChange={(open) => {
+            setCreateChildDialogOpen(open);
+            if (!open) setCreateChildParentOrg(null);
+          }}
+          parentOrgId={createChildParentOrg.id}
+          parentOrgName={createChildParentOrg.name}
+          parentOrgLevel={(createChildParentOrg as any).org_level || 1}
+          onCreated={fetchOrganizations}
+        />
+      )}
         </>
       )}
     </div>
