@@ -15,7 +15,8 @@ import {
   Target,
   Layers,
   Network,
-  Plus
+  Plus,
+  Unlink
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -30,11 +31,14 @@ import { OrgPoolStatusCard } from "@/components/org/OrgPoolStatusCard";
 import { ChildOrgDashboard } from "@/components/org/ChildOrgDashboard";
 import { CreateChildOrgDialog } from "@/components/org/CreateChildOrgDialog";
 import { ParentFocusBanner } from "@/components/org/ParentFocusBanner";
+import { DisconnectNetworkDialog } from "@/components/org/DisconnectNetworkDialog";
 import { OrganizationSettingsModal } from "@/components/dashboard/OrganizationSettingsModal";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ORG_ROLES, ROLES, getEffectiveRole } from "@/constants/accessControl";
 import { isWithinMaxDepth } from "@/constants/organizationConfig";
+import { useDisconnectFromNetwork } from "@/hooks/useDisconnectFromNetwork";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrgManager() {
   const { user } = useAuth();
@@ -43,7 +47,11 @@ export default function OrgManager() {
   const [activeTab, setActiveTab] = useState("members");
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
   const [showCreateChildDialog, setShowCreateChildDialog] = useState(false);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [focusRefreshKey, setFocusRefreshKey] = useState(0);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { disconnect, disconnecting } = useDisconnectFromNetwork();
   const [orgStats, setOrgStats] = useState({
     memberCount: 0,
     lessonCount: 0
@@ -433,6 +441,30 @@ export default function OrgManager() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Phase N7: Disconnect from Network — visible only for child orgs */}
+            {isChildOrg && (
+              <Card className="mt-6 border-destructive/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-destructive">
+                    <Unlink className="h-5 w-5" />
+                    Network Connection
+                  </CardTitle>
+                  <CardDescription>
+                    This organization is connected to a parent network. Disconnecting will make it independent while preserving all data.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDisconnectDialog(true)}
+                  >
+                    <Unlink className="h-4 w-4 mr-2" />
+                    Disconnect from Network
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>
@@ -453,6 +485,36 @@ export default function OrgManager() {
           parentOrgName={organization.name || "Organization"}
           parentOrgLevel={currentOrgLevel}
           onCreated={refreshChildren}
+        />
+      )}
+
+      {/* Phase N7: Disconnect from Network Dialog */}
+      {isChildOrg && organization?.id && (
+        <DisconnectNetworkDialog
+          open={showDisconnectDialog}
+          onOpenChange={setShowDisconnectDialog}
+          orgName={organization.name || "Organization"}
+          parentOrgName="the parent network"
+          initiator="child"
+          loading={disconnecting}
+          onConfirm={async () => {
+            const result = await disconnect(organization.id);
+            if (result?.success) {
+              toast({
+                title: "Disconnected",
+                description: result.message
+              });
+              setShowDisconnectDialog(false);
+              // Refresh the page to reflect new independent status
+              navigate(0);
+            } else {
+              toast({
+                title: "Error",
+                description: "Could not disconnect. Please try again.",
+                variant: "destructive"
+              });
+            }
+          }}
         />
       )}
     </div>

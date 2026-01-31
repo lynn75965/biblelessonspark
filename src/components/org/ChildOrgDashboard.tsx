@@ -6,13 +6,19 @@
 // This is the primary dashboard view for parent Org Managers.
 // Shows each direct child org as a card with health indicators.
 // Privacy boundary enforced at database level (Phase N2 RLS).
+//
+// Phase N7: Added disconnect capability per child card
 // ============================================================
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Network, RefreshCw, AlertCircle } from "lucide-react";
+import { Network, RefreshCw, AlertCircle, Unlink } from "lucide-react";
 import { ChildOrgCard } from "@/components/org/ChildOrgCard";
+import { DisconnectNetworkDialog } from "@/components/org/DisconnectNetworkDialog";
+import { useDisconnectFromNetwork } from "@/hooks/useDisconnectFromNetwork";
+import { useToast } from "@/hooks/use-toast";
 import type { ChildOrgSummary } from "@/hooks/useChildOrgSummaries";
 
 interface ChildOrgDashboardProps {
@@ -61,6 +67,32 @@ export function ChildOrgDashboard({
   organizationName,
   onRefresh
 }: ChildOrgDashboardProps) {
+  // Phase N7: Disconnect state
+  const [disconnectTarget, setDisconnectTarget] = useState<ChildOrgSummary | null>(null);
+  const { disconnect, disconnecting } = useDisconnectFromNetwork();
+  const { toast } = useToast();
+
+  // Phase N7: Handle disconnect confirmation
+  const handleDisconnect = async () => {
+    if (!disconnectTarget) return;
+
+    const result = await disconnect(disconnectTarget.org_id);
+    if (result?.success) {
+      toast({
+        title: "Organization Disconnected",
+        description: result.message
+      });
+      setDisconnectTarget(null);
+      onRefresh();
+    } else {
+      toast({
+        title: "Error",
+        description: "Could not disconnect organization. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Loading state
   if (loading) {
     return (
@@ -142,12 +174,39 @@ export function ChildOrgDashboard({
         </CardContent>
       </Card>
 
-      {/* Child org cards grid */}
+      {/* Child org cards grid — Phase N7: each card has a disconnect option */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {children.map((child) => (
-          <ChildOrgCard key={child.org_id} child={child} />
+          <div key={child.org_id} className="relative group">
+            <ChildOrgCard child={child} />
+            {/* Phase N7: Disconnect button — appears on hover */}
+            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setDisconnectTarget(child)}
+                title={`Disconnect ${child.org_name}`}
+              >
+                <Unlink className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
         ))}
       </div>
+
+      {/* Phase N7: Disconnect confirmation dialog */}
+      {disconnectTarget && (
+        <DisconnectNetworkDialog
+          open={!!disconnectTarget}
+          onOpenChange={(open) => { if (!open) setDisconnectTarget(null); }}
+          orgName={disconnectTarget.org_name}
+          parentOrgName={organizationName}
+          initiator="parent"
+          loading={disconnecting}
+          onConfirm={handleDisconnect}
+        />
+      )}
     </div>
   );
 }
