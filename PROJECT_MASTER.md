@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 30, 2026 (Phase 13 COMPLETE - Organization Billing System)
+**Last Updated:** January 31, 2026 (Nested Organization Architecture N1-N7 COMPLETE)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -40,6 +40,8 @@
 | `src/constants/lessonStructure.ts` | 8-section lesson framework |
 | `src/constants/devotionalConfig.ts` | DevotionalSpark configuration |
 | `src/constants/toolbeltConfig.ts` | Teacher Toolbelt configuration |
+| `src/constants/organizationConfig.ts` | **Organization hierarchy, types, visibility, health rules (Nested Org SSOT)** |
+| `src/constants/orgManagerConfig.ts` | Org Manager drill-down tab configuration |
 | `src/constants/pricingConfig.ts` | Individual tier sections, limits (MASTER for tier_config) |
 | `src/constants/orgPricingConfig.ts` | **Organization billing tiers, packs, onboarding (Phase 13)** |
 | `src/constants/trialConfig.ts` | Trial system configuration (rolling 30-day) |
@@ -59,6 +61,159 @@
 | `npm run sync-branding` | Syncs branding → branding_config table |
 | `npm run sync-tier-config` | Syncs individual tier config → tier_config table |
 | `npm run sync-org-pricing` | **Syncs org pricing → org_tier_config, lesson_pack_config, onboarding_config** |
+
+---
+
+## NESTED ORGANIZATION ARCHITECTURE (Phases N1-N7 - COMPLETE ✅)
+
+### Overview
+The Nested Organization Architecture enables hierarchical relationships between Baptist organizations using a "Lego Block" design philosophy. Every organization is a sovereign, self-contained unit with identical internal structure. The `parent_org_id` column is the connector stud that describes how blocks *choose* to relate, never how they're *required* to behave. Baptist autonomy is honored from database to UI.
+
+### Architectural Metaphor: Lego Blocks
+- Every org is a complete, sovereign block (members, pool, lessons, subscription, branding)
+- `parent_org_id` is a connector stud — it describes a relationship, not a dependency
+- Detaching a block (setting `parent_org_id` to null) leaves the block fully functional
+- No inheritance of subscriptions, billing, or member data between levels
+- Focus sharing is voluntary — suggestion, never enforcement
+
+### Hierarchy Depth (SSOT: organizationConfig.ts → ORG_HIERARCHY)
+| Level | Name | Example |
+|-------|------|---------|
+| 1 | Organization | Convention / Network / Standalone Church |
+| 2 | Sub-Organization | Association / Regional Group / Church (under convention) |
+| 3 | Group | Church (under association) / Ministry (under standalone church) |
+| 4 | Team | Ministry (under church under association) |
+
+Maximum depth: 4 levels (enforced by Edge Function per SSOT `ORG_HIERARCHY.maxDepth`)
+
+### Organization Types (SSOT: organizationConfig.ts → ORG_TYPES)
+| Type | Label | Description |
+|------|-------|-------------|
+| `church` | Church | Local congregation (default) |
+| `association` | Association | Regional grouping of churches |
+| `network` | Network | Church planting or cooperative ministry network |
+| `convention` | Convention | State or national Baptist convention |
+| `ministry` | Ministry | Specialized ministry within a church |
+| `enterprise` | Enterprise | Convention, denomination, or large institutional organization |
+
+### SSOT Configuration (organizationConfig.ts)
+The SSOT defines all hierarchy rules, visibility boundaries, health indicators, and shared focus behavior:
+
+| Config Section | Purpose |
+|----------------|---------|
+| `ORG_TYPES` | Valid organization type definitions with labels and descriptions |
+| `ORG_HIERARCHY` | Max depth (4), level name labels |
+| `CHILD_ORG_CREATION` | Who can create child orgs (platform_admin, parent_org_manager) |
+| `PARENT_VISIBILITY` | What summary data a parent sees about children (allowed vs. denied fields) |
+| `CHILD_ORG_HEALTH` | Health status derivation rules (green/yellow/red with worst-condition-wins) |
+| `SHARED_FOCUS_INHERITANCE` | Focus sharing mode (voluntary), adopt behavior (copy), parent visibility |
+| `DISCONNECT_RULES` | Who can initiate disconnect, what's impacted for child and parent |
+
+### Privacy Boundary (SSOT: PARENT_VISIBILITY)
+**What a parent Org Manager CAN see about child orgs:**
+- Organization name, Org Manager name, member count
+- Lessons generated this month, pool utilization percentage
+- Subscription tier, Shared Focus setting, health status
+
+**What a parent Org Manager CANNOT see:**
+- Individual member names, lesson content, teacher activity details
+
+### Health Status Indicators (SSOT: CHILD_ORG_HEALTH)
+| Status | Color | Hex | Condition |
+|--------|-------|-----|-----------|
+| Green | Healthy | `#22C55E` | Active subscription, pool > 20%, lessons generated recently |
+| Yellow | Attention | `#EAB308` | Pool between 10-20% OR no lessons in 14+ days |
+| Red | Critical | `#EF4444` | No active subscription OR pool exhausted OR no lessons in 30+ days |
+
+Logic: worst-condition-wins (if any indicator is red, overall status is red)
+
+### Database Schema Changes (N1)
+
+#### organizations (columns added for hierarchy)
+| Column | Type | Purpose |
+|--------|------|---------|
+| `org_type` | text | Organization type (default: 'church'). SSOT: organizationConfig.ts |
+| `parent_org_id` | uuid | Parent org for hierarchy. FK to organizations(id), ON DELETE SET NULL |
+| `org_level` | integer | Hierarchy depth (1=top-level, max 4). Computed by Edge Function per SSOT |
+| `beta_access_level` | text | For beta_program orgs: 'private' or 'public' |
+
+#### org_shared_focus (column added for N6)
+| Column | Type | Purpose |
+|--------|------|---------|
+| `adopted_from_focus_id` | uuid | Links adopted focuses back to parent's original (NULL if self-created) |
+
+#### Indexes
+- `idx_organizations_parent` on `organizations(parent_org_id)` — query performance for hierarchy lookups
+- `idx_organizations_type` on `organizations(org_type)` — query performance for type filtering
+
+### Database Functions (N2, N6, N7)
+
+| Function | Type | Purpose |
+|----------|------|---------|
+| `is_org_manager(org_id)` | SECURITY DEFINER | Returns true if current user is `created_by` of specified org |
+| `get_managed_org_ids()` | SECURITY DEFINER | Returns all org IDs managed by current user |
+| `is_ancestor_org_manager(org_id)` | SECURITY DEFINER | Walks up parent chain (max 4 levels) checking for management |
+| `get_child_org_summaries(parent_id)` | SECURITY DEFINER | Returns child org cards with 13 fields including health lights |
+| `get_parent_active_focus(child_org_id)` | SECURITY DEFINER | Child org sees parent's current active shared focus |
+| `adopt_parent_focus(parent_focus_id, child_org_id)` | SECURITY DEFINER | Copies parent's focus into child's org_shared_focus (one-time copy) |
+| `get_focus_adoption_map(parent_org_id)` | SECURITY DEFINER | Parent sees which children adopted the focus (informational only) |
+| `disconnect_org_from_network(org_id)` | SECURITY DEFINER | Sets parent_org_id to null, resets org_level to 1 |
+
+### RLS Policy (N2)
+
+| Policy | Table | Purpose |
+|--------|-------|---------|
+| `parent_org_manager_view_children` | organizations | Parent Org Manager can SELECT child org rows. Privacy enforced by separate table RLS — organization_members and lessons tables retain their existing policies |
+
+Note: Org Manager is identified by `organizations.created_by` (uuid), not a role in organization_members. The only role in organization_members is `member`.
+
+### Frontend Components
+
+#### New Components (N3-N7)
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `ChildOrgDashboard.tsx` | `src/components/org/` | Network tab — displays child org cards with health indicators |
+| `ChildOrgCard.tsx` | `src/components/org/` | Individual child org summary card with health light, adoption badge, disconnect hover |
+| `CreateChildOrgDialog.tsx` | `src/components/org/` | Dialog for creating child organizations under a parent |
+| `ParentFocusBanner.tsx` | `src/components/org/` | Banner shown to child orgs when parent has active focus — "Adopt" or "Adopted" state |
+| `DisconnectNetworkDialog.tsx` | `src/components/org/` | Confirmation dialog showing what changes vs. what stays same on disconnect |
+
+#### New Hooks (N3-N7)
+| Hook | Location | Purpose |
+|------|----------|---------|
+| `useChildOrgSummaries.ts` | `src/hooks/` | Fetches child org data via `get_child_org_summaries()` RPC |
+| `useParentSharedFocus.ts` | `src/hooks/` | Child org's view of parent's active focus + adopt function |
+| `useFocusAdoptionMap.ts` | `src/hooks/` | Parent's view of which children adopted the focus |
+| `useDisconnectFromNetwork.ts` | `src/hooks/` | Calls `disconnect_org_from_network()` RPC |
+
+#### Modified Components (N3-N7)
+| Component | Changes |
+|-----------|---------|
+| `OrgManager.tsx` | Added Network tab with ChildOrgDashboard, Create Child button, ParentFocusBanner in Focus tab, Disconnect card in Settings tab for child orgs |
+| `OrgLessonsPanel.tsx` | Updated with funding source column |
+
+### Phase N Progress
+
+| Phase | Description | Date | Status |
+|-------|-------------|------|--------|
+| N1 | Database schema + SSOT (organizationConfig.ts) | Jan 31, 2026 | ✅ Complete |
+| N2 | RLS policies + 4 secure functions | Jan 31, 2026 | ✅ Complete |
+| N3 | Network dashboard UI (ChildOrgDashboard, ChildOrgCard) | Jan 31, 2026 | ✅ Complete |
+| N4 | Child org creation workflow (CreateChildOrgDialog) | Jan 31, 2026 | ✅ Complete |
+| N5 | Admin hierarchy display | Jan 31, 2026 | ✅ Complete |
+| N6 | Shared Focus Awareness (ParentFocusBanner, voluntary adoption) | Jan 31, 2026 | ✅ Complete |
+| N7 | Disconnect Workflow (DisconnectNetworkDialog, clean separation) | Jan 31, 2026 | ✅ Complete |
+
+### Key Design Decisions
+- **No business-logic constraints in database** — all validation in Edge Functions per SSOT
+- **Org Manager = `organizations.created_by`** — not a role in organization_members
+- **Focus adoption is one-time copy, not live sync** — child can modify or ignore freely after adoption
+- **Disconnect preserves everything** — members, pool, lessons, subscription, shared focus, branding all untouched
+- **Parent visibility is informational only** — no enforcement capability
+- **Health status uses worst-condition-wins** — if any indicator is red, overall is red
+
+### What the Platform Now Supports End-to-End
+A Convention can create an Association, which can create a Church, which can create a Ministry — 4 levels deep. Parent orgs see child health at a glance. Parents can suggest a shared focus; children voluntarily adopt it. Any child can disconnect cleanly at any time with zero data loss.
 
 ---
 
@@ -160,7 +315,7 @@ Edge Functions read from database (never hardcoded)
 | stripe_price_id | text | Stripe price ID (null for free) |
 | is_active | boolean | Enable/disable option |
 
-#### organizations (columns added)
+#### organizations (billing columns)
 | Column | Type | Purpose |
 |--------|------|---------|
 | subscription_tier | text | Current tier (starter, growth, etc.) |
@@ -188,6 +343,7 @@ Edge Functions read from database (never hardcoded)
 | lessons_added | integer | Lessons credited |
 | amount_paid | numeric | Payment amount |
 | stripe_checkout_session_id | text | Stripe session ID |
+| purchased_by | uuid | FK to auth.users |
 | purchased_at | timestamp | Purchase timestamp |
 
 #### org_onboarding_purchases
@@ -240,7 +396,7 @@ When org member generates a lesson:
 | `OrgPoolStatusCard.tsx` | `src/components/org/` | Org Leader pool status + purchase dialogs |
 | `OrgLessonsPanel.tsx` | `src/components/org/` | **Updated with funding source column** |
 | `MemberPoolStatusBanner.tsx` | `src/components/org/` | Member pool awareness with warnings |
-| `OrgManager.tsx` | `src/pages/` | **Updated with Lesson Pool tab** |
+| `OrgManager.tsx` | `src/pages/` | **Updated with Lesson Pool tab + Network tab + Disconnect** |
 | `MyOrganizationSection.tsx` | `src/components/account/` | **Updated with pool banner** |
 
 ### Phase 13 Progress
@@ -458,20 +614,29 @@ src/
 │   │       ├── ToolbeltEmailManager.tsx
 │   │       ├── ToolbeltEmailCaptures.tsx
 │   │       └── ToolbeltGuardrailsStatus.tsx
-│   ├── org/                         # Organization components (Phase 13)
-│   │   ├── OrgPoolStatusCard.tsx    # Pool status + purchase dialogs
+│   ├── org/                         # Organization components
+│   │   ├── OrgPoolStatusCard.tsx    # Pool status + purchase dialogs (Phase 13)
 │   │   ├── OrgLessonsPanel.tsx      # Org lessons with funding source
-│   │   ├── MemberPoolStatusBanner.tsx # Member pool awareness
+│   │   ├── MemberPoolStatusBanner.tsx # Member pool awareness (Phase 13)
+│   │   ├── ChildOrgDashboard.tsx    # Network tab — child org cards (N3)
+│   │   ├── ChildOrgCard.tsx         # Individual child card with health light (N3)
+│   │   ├── CreateChildOrgDialog.tsx # Create child org dialog (N4)
+│   │   ├── ParentFocusBanner.tsx    # Parent focus adoption banner (N6)
+│   │   ├── DisconnectNetworkDialog.tsx # Disconnect confirmation dialog (N7)
 │   │   └── [other org components]
 │   ├── account/
 │   │   └── MyOrganizationSection.tsx # Updated with pool banner
 │   └── toolbelt/                    # Toolbelt shared components
 │       └── ToolbeltReflectionForm.tsx
 ├── hooks/
-│   └── useOrgPoolStatus.ts          # Org pool data hook (Phase 13)
+│   ├── useOrgPoolStatus.ts          # Org pool data hook (Phase 13)
+│   ├── useChildOrgSummaries.ts      # Child org data via RPC (N3)
+│   ├── useParentSharedFocus.ts      # Parent focus view + adopt (N6)
+│   ├── useFocusAdoptionMap.ts       # Adoption status for parent (N6)
+│   └── useDisconnectFromNetwork.ts  # Disconnect RPC call (N7)
 ├── pages/
 │   ├── Admin.tsx
-│   ├── OrgManager.tsx               # Updated with Lesson Pool tab
+│   ├── OrgManager.tsx               # Updated with Network tab, Focus banner, Disconnect
 │   ├── ToolbeltAdmin.tsx            # Toolbelt admin center
 │   └── toolbelt/                    # Toolbelt public pages
 │       ├── ToolbeltLanding.tsx
@@ -482,6 +647,8 @@ src/
 │   ├── branding.ts                  # SSOT: All brand colors
 │   └── brand-values.json            # SSOT: Colors/typography JSON
 ├── constants/
+│   ├── organizationConfig.ts        # Org hierarchy SSOT (Nested Orgs)
+│   ├── orgManagerConfig.ts          # Org Manager tab config
 │   ├── toolbeltConfig.ts            # Toolbelt SSOT
 │   ├── pricingConfig.ts             # Individual tier config MASTER
 │   ├── orgPricingConfig.ts          # Organization billing SSOT (Phase 13)
@@ -505,6 +672,7 @@ supabase/functions/
     ├── branding.ts
     ├── toolbeltConfig.ts            # Backend mirror
     ├── devotionalConfig.ts
+    ├── organizationConfig.ts        # Backend mirror (Nested Orgs)
     ├── orgPoolCheck.ts              # Pool consumption logic (Phase 13.6)
     └── [other mirrors]
 ```
@@ -529,8 +697,10 @@ toolbelt_email_templates             # Nurture sequence content
 toolbelt_email_tracking              # Delivery progress
 
 # Organizations
-organizations                        # Org details + billing columns
+organizations                        # Org details + billing columns + hierarchy columns
+organization_members                 # Org membership (role: 'member' only)
 transfer_requests                    # Org member transfer workflow
+org_shared_focus                     # Shared focus sets (+ adopted_from_focus_id for N6)
 
 # Organization Billing (Phase 13)
 org_tier_config                      # SSOT for org subscription tiers
@@ -576,10 +746,10 @@ npx supabase functions deploy create-org-checkout-session
 # Regenerate Supabase types (after schema changes)
 npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts
 
-# Git commit and push
+# Git commit and push (PowerShell — use semicolons, not &&)
 git add -A
 git commit -m "message"
-git push
+git push origin biblelessonspark
 ```
 
 ---
@@ -656,6 +826,7 @@ git push
 - DevotionalSpark v2.1 (smooth prose, reader-focused, prayer ends with Jesus)
 - Teacher Toolbelt (Phase 23) - Complete with 3 tools, admin panel, email sequence
 - **Organization Billing (Phase 13)** - COMPLETE: Stripe products, SSOT, Edge Functions, Pool Tracking, Dashboards
+- **Nested Organization Architecture (N1-N7)** - COMPLETE: Hierarchy, RLS, Network Dashboard, Child Creation, Focus Sharing, Disconnect
 
 **Organization Billing Status (Phase 13 - COMPLETE ✅):**
 - ✅ 13.1: Stripe Products (9 products created)
@@ -666,6 +837,15 @@ git push
 - ✅ 13.6: Lesson Pool Tracking (`orgPoolCheck.ts`, modified `generate-lesson`)
 - ✅ 13.7: Org Leader Dashboard (`OrgPoolStatusCard`, `useOrgPoolStatus`, Lesson Pool tab)
 - ✅ 13.8: Member Pool Awareness (`MemberPoolStatusBanner`, Account page integration)
+
+**Nested Organization Architecture (N1-N7 - COMPLETE ✅):**
+- ✅ N1: Database schema + SSOT (`organizationConfig.ts`, hierarchy columns)
+- ✅ N2: RLS policies + 4 secure functions (`is_org_manager`, `get_managed_org_ids`, `is_ancestor_org_manager`, `get_child_org_summaries`)
+- ✅ N3: Network dashboard UI (`ChildOrgDashboard`, `ChildOrgCard`, `useChildOrgSummaries`)
+- ✅ N4: Child org creation workflow (`CreateChildOrgDialog`)
+- ✅ N5: Admin hierarchy display
+- ✅ N6: Shared Focus Awareness (`ParentFocusBanner`, `useParentSharedFocus`, `useFocusAdoptionMap`, `get_parent_active_focus`, `adopt_parent_focus`, `get_focus_adoption_map`)
+- ✅ N7: Disconnect Workflow (`DisconnectNetworkDialog`, `useDisconnectFromNetwork`, `disconnect_org_from_network`)
 
 **Supabase Secrets (Organization Billing):**
 - `STRIPE_SECRET_KEY` - Already set (shared with individual billing)
@@ -690,7 +870,9 @@ git push
 - UNIQUE constraint on `toolbelt_email_captures.email` prevents duplicates
 - RLS enabled on all Toolbelt tables
 - RLS enabled on org billing tables (org managers can view their org's purchases)
+- RLS policy `parent_org_manager_view_children` for hierarchy visibility (N2)
 - `user_parable_usage` view fixed with SECURITY INVOKER
+- All nested org functions are SECURITY DEFINER with `SET search_path = public`
 
 **Dependencies:**
 - `react-quill` - Rich text editor for email templates (both BLS and Toolbelt)
@@ -699,6 +881,7 @@ git push
 - Launch Date: January 27, 2026 ✅ LAUNCHED
 - Teacher Toolbelt: January 29, 2026 ✅ COMPLETE
 - Organization Billing System: January 30, 2026 ✅ PHASE 13 COMPLETE
+- Nested Organization Architecture: January 31, 2026 ✅ N1-N7 COMPLETE
 - All code complete ✅
 - All routes verified ✅
 - Email automation working ✅
