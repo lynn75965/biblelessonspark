@@ -29,6 +29,8 @@ import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.t
 import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
 // Phase 13.6: Organization Pool Check
 import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_shared/orgPoolCheck.ts';
+// Output Guardrails: Post-generation truth & integrity verification (SSOT: outputGuardrails.ts)
+import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replaceSections, GuardrailCheckResult, OUTPUT_GUARDRAILS_VERSION, REWRITE_CONFIG } from '../_shared/outputGuardrails.ts';
 
 import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } from '../_shared/corsConfig.ts';
 
@@ -100,6 +102,45 @@ ${rules}
 ${prohibitions}${redundancyNote}
 `;
   }).join('\n---\n');
+}
+
+function buildTruthGuardrails() {
+  return `
+-------------------------------------------------------------------------------
+⚠️ TRUTH AND INTEGRITY GUARDRAILS (APPLIES TO ALL SECTIONS)
+-------------------------------------------------------------------------------
+
+YOU ARE GENERATING CONTENT FOR BIBLE TEACHERS WHO WILL READ THIS VERBATIM TO THEIR CLASS.
+If you fabricate a fact, a teacher will unknowingly present a lie to their students.
+This is a matter of ministerial integrity — treat it with absolute seriousness.
+
+RULE 1: NEVER FABRICATE CURRENT EVENTS
+- Do NOT invent news stories, infrastructure projects, research studies, surveys, or statistics
+- Do NOT write "You may have seen the news about..." followed by a made-up event
+- Do NOT claim something "happened this week" or "recently" unless it is a well-known, verifiable historical fact
+- Do NOT invent quotes attributed to project managers, researchers, pastors, teachers, or any person real or fictional
+
+RULE 2: NEVER ASSUME LOCAL KNOWLEDGE
+- Do NOT reference "our state", "our city", "our community", or "our area" as if describing a real local event
+- Do NOT assume knowledge of the teacher's geographic location, local news, or regional context
+- You have NO knowledge of current events — do not pretend otherwise
+
+RULE 3: ALL ILLUSTRATIONS MUST BE HONEST
+Every illustration, story, or example in the lesson MUST be one of these:
+  ✅ CLEARLY HYPOTHETICAL: "Imagine you're...", "Think about a time when...", "Picture this..."
+  ✅ UNIVERSAL HUMAN EXPERIENCE: "Most of us have felt...", "We've all had moments where..."
+  ✅ VERIFIABLE HISTORICAL FACT: Well-known events that can be independently confirmed
+  ✅ BIBLICAL NARRATIVE: Stories and examples directly from Scripture
+  ❌ NEVER: A made-up news story, fake quote, invented statistic, or fabricated current event
+
+RULE 4: WHEN IN DOUBT, USE HYPOTHETICAL FRAMING
+- If you want to illustrate a point with a modern scenario, ALWAYS frame it as hypothetical
+- Say "Imagine a construction foreman..." NOT "A construction foreman recently said..."
+- Say "Think about what it would be like..." NOT "This week in our state..."
+
+These rules are NON-NEGOTIABLE and override any other instruction to be "current" or "relevant."
+Integrity matters more than engagement. A teacher's credibility depends on it.
+`;
 }
 
 function buildCompressionRules(includeTeaser: boolean = false) {
@@ -599,6 +640,8 @@ ${ageGroupData.promptGuidance}
 
 ${buildCompressionRules(generate_teaser)}
 
+${buildTruthGuardrails()}
+
 -------------------------------------------------------------------------------
 BIBLE VERSION: ${bibleVersion.name} (${bibleVersion.abbreviation})
 -------------------------------------------------------------------------------
@@ -725,7 +768,7 @@ ${styleExtractionPromptAddition}
 
       const anthropicData = await anthropicResponse.json();
       let generatedLesson = anthropicData.content[0].text;
-      const wordCount = generatedLesson.split(/\s+/).length;
+      let wordCount = generatedLesson.split(/\s+/).length;
 
       const tokensInput = anthropicData.usage?.input_tokens || null;
       const tokensOutput = anthropicData.usage?.output_tokens || null;
@@ -763,6 +806,110 @@ ${styleExtractionPromptAddition}
       }
 
       checkpoint = logTiming('Response parsed', checkpoint);
+
+      // =========================================================================
+      // POST-GENERATION GUARDRAIL CHECK (SSOT: outputGuardrails.ts)
+      // Checks for fabricated events, fake quotes, made-up statistics, etc.
+      // If violations found, automatically rewrites ONLY the offending sections.
+      // Clean lessons pass through with ZERO added cost or delay.
+      // =========================================================================
+      let guardrailCheckPassed = true;
+      let wasRewritten = false;
+      let rewrittenSectionIds: number[] = [];
+      let rewriteTokensInput = 0;
+      let rewriteTokensOutput = 0;
+
+      const guardrailResult = checkOutputGuardrails(generatedLesson);
+
+      if (!guardrailResult.passed) {
+        guardrailCheckPassed = false;
+        console.log(`GUARDRAIL VIOLATION: ${guardrailResult.totalViolations} violation(s) in ${guardrailResult.sectionsWithViolations} section(s)`);
+
+        const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
+
+        // Log each violation for audit trail
+        for (const section of violatedSections) {
+          for (const v of section.violations) {
+            console.log(`  [${v.patternId}] Section ${section.sectionId}: ${v.description}`);
+            console.log(`    Context: "${v.matchedText}"`);
+          }
+        }
+
+        // Build targeted rewrite prompt for ONLY the offending sections
+        const rewritePrompt = buildRewritePrompt(violatedSections);
+
+        try {
+          const rewriteController = new AbortController();
+          const rewriteTimeoutId = setTimeout(() => rewriteController.abort(), REWRITE_CONFIG.timeoutMs);
+
+          const rewriteResponse = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': anthropicApiKey,
+              'anthropic-version': '2023-06-01'
+            },
+            signal: rewriteController.signal,
+            body: JSON.stringify({
+              model: ANTHROPIC_MODEL,
+              max_tokens: REWRITE_CONFIG.maxTokens,
+              temperature: REWRITE_CONFIG.temperature,
+              system: rewritePrompt.system,
+              messages: [{ role: 'user', content: rewritePrompt.user }]
+            })
+          });
+
+          clearTimeout(rewriteTimeoutId);
+
+          if (rewriteResponse.ok) {
+            const rewriteData = await rewriteResponse.json();
+            const rewrittenContent = rewriteData.content[0].text;
+
+            // Parse rewritten sections and replace in original lesson
+            const rewrittenParsed = parseLessonSections(rewrittenContent);
+
+            if (rewrittenParsed.length > 0) {
+              generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
+              rewrittenSectionIds = rewrittenParsed.map(s => s.id);
+              wasRewritten = true;
+
+              // Recalculate word count after rewrite
+              wordCount = generatedLesson.split(/\s+/).length;
+
+              // Track rewrite API costs separately
+              rewriteTokensInput = rewriteData.usage?.input_tokens || 0;
+              rewriteTokensOutput = rewriteData.usage?.output_tokens || 0;
+
+              console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully`);
+              console.log(`Rewrite tokens — Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
+
+              // Verify the rewrite resolved all violations
+              const postRewriteCheck = checkOutputGuardrails(generatedLesson);
+              if (!postRewriteCheck.passed) {
+                console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite — delivering as-is`);
+              } else {
+                guardrailCheckPassed = true;
+                console.log('GUARDRAIL: All violations resolved after rewrite');
+              }
+            } else {
+              console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
+            }
+          } else {
+            console.error('GUARDRAIL REWRITE FAILED: API returned', rewriteResponse.status);
+          }
+        } catch (rewriteError) {
+          if (rewriteError.name === 'AbortError') {
+            console.error('GUARDRAIL REWRITE: Timed out after', REWRITE_CONFIG.timeoutMs / 1000, 'seconds');
+          } else {
+            console.error('GUARDRAIL REWRITE ERROR:', rewriteError);
+          }
+          // Continue with original content — don't block lesson delivery
+        }
+      } else {
+        console.log('GUARDRAIL: Passed — no violations detected');
+      }
+
+      checkpoint = logTiming('Guardrail check', checkpoint);
 
       // =========================================================================
       // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
@@ -833,7 +980,14 @@ ${styleExtractionPromptAddition}
           // Phase 13.6: Org pool metadata for audit trail
           usedOrgPool: useOrgPool,
           organizationId: orgPoolResult?.organization_id || null,
-          organizationName: orgPoolResult?.organization_name || null
+          organizationName: orgPoolResult?.organization_name || null,
+          // Output Guardrails: Truth & integrity verification audit trail
+          outputGuardrailsVersion: OUTPUT_GUARDRAILS_VERSION,
+          guardrailCheckPassed: guardrailCheckPassed,
+          guardrailRewritten: wasRewritten,
+          guardrailRewrittenSections: rewrittenSectionIds,
+          guardrailRewriteTokensInput: rewriteTokensInput,
+          guardrailRewriteTokensOutput: rewriteTokensOutput
         }
       };
 
