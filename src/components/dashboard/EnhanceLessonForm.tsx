@@ -23,6 +23,13 @@
  * - Auto-advances lesson number for series (1→2→3) after generation
  * - Auto-refreshes "Copy style from" dropdown after generating Lesson 1
  * - Preserves freshnessMode when generating series lessons
+ *
+ * Updated: January 31, 2026 - PHASE 24: SERIES/THEME MODE
+ * - Replaced manual lessonNumber/totalLessons state with useSeriesManager hook
+ * - Removed old fetchLessonsWithStyle / selectedStyleLessonId pattern
+ * - Series style now comes from selectedSeries.style_metadata (lesson_series table)
+ * - Post-generation: links lesson to series, stores style metadata, adds summary
+ * - SSOT: SeriesStyleMetadata now imported from seriesConfig.ts (migrated from freshnessOptions.ts)
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -57,7 +64,8 @@ import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
 import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
-import { SeriesStyleMetadata } from "@/constants/freshnessOptions";
+import { SeriesStyleMetadata } from "@/constants/seriesConfig";
+import { useSeriesManager } from "@/hooks/useSeriesManager";
 
 // ============================================================================
 // INTERFACES
@@ -393,9 +401,8 @@ export function EnhanceLessonForm({
   const [emotionalEntry, setEmotionalEntry] = useState("");
   const [theologicalLens, setTheologicalLens] = useState("");
 
-  // Part of Series position (NOT saved in profile)
-  const [lessonNumber, setLessonNumber] = useState(1);
-  const [totalLessons, setTotalLessons] = useState(3);
+  // Phase 24: lessonNumber and totalLessons are now derived from useSeriesManager
+  // (nextLessonNumber and selectedSeries.total_lessons)
 
   // Currently loaded profile ID
   const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
@@ -414,15 +421,28 @@ export function EnhanceLessonForm({
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
   // ============================================================================
-  // CONSISTENT STYLE MODE STATE (Frontend drives backend)
+  // SERIES MANAGER (Phase 24 - replaces manual Lesson X of Y)
   // ============================================================================
 
-  // Style context from a previous lesson (for Lesson 2+ of a series)
-  const [seriesStyleContext, setSeriesStyleContext] = useState<SeriesStyleMetadata | null>(null);
-  // Lessons that have style metadata (for dropdown selection)
-  const [lessonsWithStyle, setLessonsWithStyle] = useState<Array<{ id: string; title: string; created_at: string; series_style_metadata: any }>>([]);
-  // Currently selected lesson to copy style from
-  const [selectedStyleLessonId, setSelectedStyleLessonId] = useState<string>('');
+  const {
+    activeSeries,
+    selectedSeries,
+    isLoading: isLoadingSeries,
+    isCreating: isCreatingSeries,
+    fetchActiveSeries,
+    createSeries,
+    selectSeries,
+    clearSelection: clearSeriesSelection,
+    updateStyleMetadata,
+    addLessonSummary,
+    linkLessonToSeries,
+    nextLessonNumber,
+    isSeriesFull,
+    hasStyleMetadata,
+  } = useSeriesManager();
+
+  // Series style context — derived from selectedSeries
+  const seriesStyleContext: SeriesStyleMetadata | null = selectedSeries?.style_metadata || null;
 
   // ============================================================================
   // STEP COMPLETION DETECTION
@@ -571,9 +591,7 @@ export function EnhanceLessonForm({
     setTheologicalLens(prefs.theologicalLens || "");
     setCurrentProfileId(profile.id);
 
-    // Reset series position when loading profile
-    setLessonNumber(1);
-    setTotalLessons(3);
+    // Phase 24: Series position is managed by useSeriesManager, not profile state
   }, []);
 
   // Auto-load default profile on mount
@@ -719,65 +737,10 @@ export function EnhanceLessonForm({
   }, [isSubmitting, isEnhancing]);
 
   // ============================================================================
-  // CONSISTENT STYLE MODE - Fetch lessons with style metadata
+  // SERIES STYLE - Derived from selectedSeries (Phase 24)
+  // The old fetchLessonsWithStyle/selectedStyleLessonId pattern is replaced
+  // by the series manager. Style now comes from selectedSeries.style_metadata.
   // ============================================================================
-
-  // Extracted as useCallback so it can be called after generation to refresh the list
-  const fetchLessonsWithStyle = useCallback(async () => {
-    // Only fetch when in consistent mode AND lesson 2+
-    if (freshnessMode !== 'consistent' || lessonSequence !== 'part_of_series' || lessonNumber <= 1) {
-      setLessonsWithStyle([]);
-      setSeriesStyleContext(null);
-      setSelectedStyleLessonId('');
-      return;
-    }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) return;
-
-      // Fetch lessons that have series_style_metadata
-      const { data: lessons, error } = await supabase
-        .from('lessons')
-        .select('id, title, created_at, series_style_metadata')
-        .eq('user_id', session.user.id)
-        .not('series_style_metadata', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) {
-        console.error('Error fetching lessons with style:', error);
-        return;
-      }
-
-      setLessonsWithStyle(lessons || []);
-    } catch (err) {
-      console.error('Error in fetchLessonsWithStyle:', err);
-    }
-  }, [freshnessMode, lessonSequence, lessonNumber]);
-
-  // Fetch on mode/sequence/number changes
-  useEffect(() => {
-    fetchLessonsWithStyle();
-  }, [fetchLessonsWithStyle]);
-
-  // Load style context when user selects a lesson to copy from
-  useEffect(() => {
-    const loadStyleFromLesson = async () => {
-      if (!selectedStyleLessonId || selectedStyleLessonId === 'none') {
-        setSeriesStyleContext(null);
-        return;
-      }
-
-      const selectedLesson = lessonsWithStyle.find(l => l.id === selectedStyleLessonId);
-      if (selectedLesson?.series_style_metadata) {
-        setSeriesStyleContext(selectedLesson.series_style_metadata as SeriesStyleMetadata);
-        console.log('Loaded style context from lesson:', selectedStyleLessonId);
-      }
-    };
-
-    loadStyleFromLesson();
-  }, [selectedStyleLessonId, lessonsWithStyle]);
 
   // ============================================================================
   // FILE HANDLING
@@ -920,14 +883,13 @@ export function EnhanceLessonForm({
 
     try {
       // FRONTEND DRIVES: Determine what to tell backend
+      const isInSeries = lessonSequence === 'part_of_series' && selectedSeries !== null;
       const isConsistentSeriesLesson1 = 
-        freshnessMode === 'consistent' && 
-        lessonSequence === 'part_of_series' && 
-        lessonNumber === 1;
+        isInSeries && nextLessonNumber === 1;
       const isConsistentSeriesLesson2Plus = 
+        isInSeries && 
         freshnessMode === 'consistent' && 
-        lessonSequence === 'part_of_series' && 
-        lessonNumber > 1;
+        nextLessonNumber > 1;
 
       const enhancementData = {
         bible_passage: effectivePassage,
@@ -946,8 +908,8 @@ export function EnhanceLessonForm({
         cultural_context: culturalContext,
         special_needs: specialNeeds,
         lesson_sequence: lessonSequence,
-        lesson_number: lessonSequence === "part_of_series" ? lessonNumber : null,
-        total_lessons: lessonSequence === "part_of_series" ? totalLessons : null,
+        lesson_number: isInSeries ? nextLessonNumber : null,
+        total_lessons: isInSeries ? selectedSeries.total_lessons : null,
         assessment_style: assessmentStyle,
         language: language,
         activity_types: activityTypes,
@@ -981,13 +943,35 @@ export function EnhanceLessonForm({
         }
         await incrementUsage();
 
-        // CONSISTENT STYLE MODE: If style was extracted from Lesson 1, notify user
-        if (result.data.style_metadata && isConsistentSeriesLesson1) {
+        // SERIES MODE: If style was extracted from Lesson 1, store in series
+        if (result.data.style_metadata && isConsistentSeriesLesson1 && selectedSeries) {
+          await updateStyleMetadata(selectedSeries.id, result.data.style_metadata);
           toast({
-            title: "Series Style Captured ",
-            description: "This lesson's style has been saved. When you generate Lesson 2+, select this lesson in 'Copy style from' to maintain consistency.",
+            title: "Series Style Captured ✨",
+            description: `Style saved for "${selectedSeries.series_name}". Lessons 2+ will automatically match this approach.`,
           });
-          console.log('Style metadata captured:', result.data.style_metadata);
+          console.log('Style metadata stored in series:', result.data.style_metadata);
+        }
+
+        // SERIES MODE: Link lesson to series and add summary
+        if (isInSeries && selectedSeries && result.data.lesson) {
+          const lessonId = result.data.lesson.id;
+          await linkLessonToSeries(lessonId, selectedSeries.id, nextLessonNumber);
+
+          // TODO Phase 24.3: Add lesson summary extraction
+          // For now, create a basic summary from the generation input
+          await addLessonSummary(selectedSeries.id, {
+            lessonNumber: nextLessonNumber,
+            lessonId,
+            passage: effectivePassage || effectiveTopic || '',
+            mainPoint: `Lesson ${nextLessonNumber}`,
+            keyIllustration: '',
+            applicationFocus: '',
+            generatedAt: new Date().toISOString(),
+          });
+
+          // Refresh series data to get updated lesson_summaries
+          setTimeout(() => fetchActiveSeries(), 500);
         }
       }
 
@@ -1006,21 +990,10 @@ export function EnhanceLessonForm({
       if (lessonSequence !== 'part_of_series') {
         setFreshnessMode('fresh');
       }
-      setSeriesStyleContext(null);
-      setSelectedStyleLessonId('');
       setContentInputType("passage");
 
-      // For series: auto-advance to next lesson number instead of resetting
-      if (lessonSequence === 'part_of_series' && lessonNumber < totalLessons) {
-        setLessonNumber(lessonNumber + 1);
-        // Refresh the lessons with style list so newly generated lesson appears
-        // Use setTimeout to allow database write to complete
-        setTimeout(() => {
-          fetchLessonsWithStyle();
-        }, 500);
-      } else {
-        setLessonNumber(1);
-      }
+      // Series auto-advance is handled by the series manager (addLessonSummary increments)
+      // No manual lessonNumber management needed
     } catch (error) {
       console.error("Error generating lesson:", error);
     } finally {
@@ -1506,15 +1479,17 @@ export function EnhanceLessonForm({
               setEmotionalEntry={setEmotionalEntry}
               theologicalLens={theologicalLens}
               setTheologicalLens={setTheologicalLens}
-              lessonNumber={lessonNumber}
-              setLessonNumber={setLessonNumber}
-              totalLessons={totalLessons}
-              setTotalLessons={setTotalLessons}
+              activeSeries={activeSeries}
+              selectedSeries={selectedSeries}
+              isLoadingSeries={isLoadingSeries}
+              isCreatingSeries={isCreatingSeries}
+              onCreateSeries={createSeries}
+              onSelectSeries={selectSeries}
+              onClearSeries={clearSeriesSelection}
+              nextLessonNumber={nextLessonNumber}
+              hasStyleMetadata={hasStyleMetadata}
               freshnessMode={freshnessMode}
               setFreshnessMode={setFreshnessMode}
-              lessonsWithStyle={lessonsWithStyle}
-              selectedStyleLessonId={selectedStyleLessonId}
-              setSelectedStyleLessonId={setSelectedStyleLessonId}
               seriesStyleContext={seriesStyleContext}
               profiles={profiles}
               currentProfileId={currentProfileId}

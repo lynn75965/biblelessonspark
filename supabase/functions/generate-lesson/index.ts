@@ -8,7 +8,7 @@ import { BIBLE_VERSIONS, generateCopyrightGuardrails, getDefaultBibleVersion } f
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
-import { checkLessonLimit, incrementLessonUsage, getSectionsForTier } from '../_shared/subscriptionCheck.ts';
+import { checkLessonLimit, getSectionsForTier } from '../_shared/subscriptionCheck.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
 import { 
   buildFreshnessContext, 
@@ -868,7 +868,9 @@ ${styleExtractionPromptAddition}
       console.log('Lesson saved:', lesson.id);
 
       // =========================================================================
-      // PHASE 13.6: CONSUME FROM ORG POOL OR INCREMENT INDIVIDUAL USAGE
+      // PHASE 13.6: CONSUME FROM ORG POOL (if applicable)
+      // Individual usage increment is handled by frontend (SSOT: frontend drives backend)
+      // Only org pool consumption happens here (org-level logic, not individual)
       // =========================================================================
       if (useOrgPool && orgPoolResult?.organization_id) {
         const consumed = await consumeFromOrgPool(supabase, orgPoolResult.organization_id);
@@ -877,9 +879,6 @@ ${styleExtractionPromptAddition}
         } else {
           console.error('Org pool consumption failed - this should not happen');
         }
-      } else {
-        await incrementLessonUsage(supabase, user.id);
-        console.log('Individual lesson usage incremented for user:', user.id);
       }
 
       if (isTrialLesson) {

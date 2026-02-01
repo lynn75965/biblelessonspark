@@ -1,4 +1,10 @@
 /**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/freshnessOptions.ts
+ * Generated: 2026-01-28T22:25:06.625Z
+ */
+/**
  * Freshness Options SSOT
  * Single Source of Truth for Perpetual Freshness feature (Phase 15)
  *
@@ -1033,109 +1039,18 @@ TEASER STYLE DIRECTIVES (MANDATORY):
 
 // ============================================================================
 // CONSISTENT STYLE MODE - SERIES SUPPORT
+// SSOT: seriesConfig.ts is the single owner of all series-related types/functions.
+// Re-exported here for backward compatibility with edge function _shared/freshnessOptions.ts
+// until Phase 24.3 migrates edge function imports to _shared/seriesConfig.ts directly.
 // ============================================================================
 
-/**
- * Style metadata captured from a lesson for series consistency
- */
-export interface SeriesStyleMetadata {
-  openingHookType: string;
-  illustrationType: string;
-  teachingAngle: string;
-  activityFormat: string;
-  applicationContext: string;
-  closingChallengeType: string;
-  toneDescriptor: string;
-  capturedFromLessonId: string;
-  capturedAt: string;
-}
-
-/**
- * Build consistent style context for series lessons
- * This tells Claude to MATCH a previously established style
- */
-export function buildConsistentStyleContext(
-  styleMetadata: SeriesStyleMetadata
-): string {
-  return `
--------------------------------------------------------------------------------
-CONSISTENT STYLE MODE: ACTIVE (Series Lesson)
--------------------------------------------------------------------------------
-
-You MUST match the established series style from Lesson 1:
-
-• OPENING HOOK TYPE: Use a "${styleMetadata.openingHookType}" approach (same as Lesson 1)
-• ILLUSTRATION STYLE: Feature "${styleMetadata.illustrationType}" examples (same as Lesson 1)
-• TEACHING ANGLE: Maintain the "${styleMetadata.teachingAngle}" perspective
-• ACTIVITY FORMAT: Use "${styleMetadata.activityFormat}" style activities
-• APPLICATION CONTEXT: Focus on "${styleMetadata.applicationContext}" applications
-• CLOSING CHALLENGE: End with a "${styleMetadata.closingChallengeType}" challenge
-• TONE: Maintain a "${styleMetadata.toneDescriptor}" tone throughout
-
-This ensures continuity across all lessons in this series.
-Do NOT vary these elements - keep them consistent with the established style.
-`;
-}
-
-/**
- * Prompt addition to extract style metadata from a generated lesson
- * Used when generating Lesson 1 of a series with Consistent Style Mode
- */
-export function buildStyleExtractionPrompt(): string {
-  return `
-
-STYLE METADATA EXTRACTION (For Series Continuity):
-After generating this lesson, identify and report the style choices you made:
-
-At the very end of your response, add this section:
----STYLE_METADATA---
-OPENING_HOOK_TYPE: [describe the type of opening hook used]
-ILLUSTRATION_TYPE: [describe the main illustration style]
-TEACHING_ANGLE: [describe the teaching perspective]
-ACTIVITY_FORMAT: [describe the activity format used]
-APPLICATION_CONTEXT: [describe the application focus area]
-CLOSING_CHALLENGE_TYPE: [describe the type of closing challenge]
-TONE_DESCRIPTOR: [2-3 words describing the overall tone]
----END_STYLE_METADATA---
-
-This metadata will be used to maintain consistency in subsequent series lessons.
-`;
-}
-
-/**
- * Parse style metadata from generated lesson content
- */
-export function parseStyleMetadata(lessonContent: string, lessonId: string): SeriesStyleMetadata | null {
-  const metadataMatch = lessonContent.match(/---STYLE_METADATA---([\s\S]*?)---END_STYLE_METADATA---/);
-  if (!metadataMatch) return null;
-  
-  const metadataBlock = metadataMatch[1];
-  
-  const extractValue = (key: string): string => {
-    const regex = new RegExp(`${key}:\\s*(.+?)(?:\\n|$)`, 'i');
-    const match = metadataBlock.match(regex);
-    return match ? match[1].trim() : '';
-  };
-  
-  return {
-    openingHookType: extractValue('OPENING_HOOK_TYPE'),
-    illustrationType: extractValue('ILLUSTRATION_TYPE'),
-    teachingAngle: extractValue('TEACHING_ANGLE'),
-    activityFormat: extractValue('ACTIVITY_FORMAT'),
-    applicationContext: extractValue('APPLICATION_CONTEXT'),
-    closingChallengeType: extractValue('CLOSING_CHALLENGE_TYPE'),
-    toneDescriptor: extractValue('TONE_DESCRIPTOR'),
-    capturedFromLessonId: lessonId,
-    capturedAt: new Date().toISOString()
-  };
-}
-
-/**
- * Remove style metadata block from lesson content for display
- */
-export function removeStyleMetadataFromContent(lessonContent: string): string {
-  return lessonContent.replace(/---STYLE_METADATA---[\s\S]*?---END_STYLE_METADATA---/, '').trim();
-}
+export {
+  type SeriesStyleMetadata,
+  buildConsistentStyleContext,
+  buildStyleExtractionPrompt,
+  parseStyleMetadata,
+  removeStyleMetadataFromContent,
+} from './seriesConfig';
 
 // ============================================================================
 // TYPE EXPORTS

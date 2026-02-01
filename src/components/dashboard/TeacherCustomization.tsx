@@ -1,4 +1,4 @@
-﻿/**
+/**
  * TeacherCustomization Component
  * Renders the 15 teacher preference fields with profile management
  *
@@ -8,18 +8,20 @@
  *   - Smart Collapse: Expanded if user has profiles, collapsed for new users
  *   - Profile dropdown to load saved profiles
  *   - Save This Profile button with modal
- *   - Part of Series: Shows Lesson X of Y inputs (appears LAST in grid)
+ *   - Part of Series: Shows series selection/creation UI (appears LAST in grid)
  *
  * Updated: January 2026 (Phase 2)
  *   - Added Emotional Entry Point selector
  *   - Added Theological Lens selector
  *   - Profile fields increased from 13 to 15
  *
- * Updated: January 24, 2026 - CONSISTENT STYLE MODE FIX
- *   - Added Consistent Style Mode CHECKBOX for ALL lessons in series (was missing for Lesson 1!)
- *   - Lesson 1: Checkbox enables style capture, shows "This lesson's style will be captured"
- *   - Lesson 2+: Checkbox + "Copy Style From" dropdown to select previous lesson
- *   - Dynamic helper text based on lesson number and mode state
+ * Updated: January 2026 (Phase 24 - Series/Theme Mode)
+ *   - REPLACED manual "Lesson X of Y" inputs with series management UI
+ *   - "Start New Series" button creates named series in lesson_series table
+ *   - "Continue Existing Series" dropdown auto-populates lesson number
+ *   - "Use Series Style" toggle (default ON for Lesson 2+) applies captured style
+ *   - Style preview shows series' style_metadata
+ *   - SSOT: seriesConfig.ts owns SeriesStyleMetadata (migrated from freshnessOptions.ts)
  */
 
 import { useState, useEffect } from "react";
@@ -69,7 +71,13 @@ import {
 
 import { TeacherPreferenceProfile } from "@/hooks/useTeacherProfiles";
 import { UI_SYMBOLS, formatNoneOption } from "@/constants/uiSymbols";
-import { SeriesStyleMetadata } from "@/constants/freshnessOptions";
+import {
+  SeriesStyleMetadata,
+  LessonSeries,
+  formatSeriesLabel,
+  SERIES_LIMITS,
+  getNextLessonNumber,
+} from "@/constants/seriesConfig";
 
 // ============================================================================
 // STYLE ELEMENT DISPLAY LABELS
@@ -192,20 +200,22 @@ interface TeacherCustomizationProps {
   theologicalLens: string;
   setTheologicalLens: (value: string) => void;
 
-  // Part of Series position (NOT saved in profile)
-  lessonNumber: number;
-  setLessonNumber: (value: number) => void;
-  totalLessons: number;
-  setTotalLessons: (value: number) => void;
+  // Part of Series — Phase 24: Series Manager props (replaces manual Lesson X of Y)
+  activeSeries: LessonSeries[];
+  selectedSeries: LessonSeries | null;
+  isLoadingSeries: boolean;
+  isCreatingSeries: boolean;
+  onCreateSeries: (name: string, totalLessons: number) => Promise<any>;
+  onSelectSeries: (seriesId: string) => void;
+  onClearSeries: () => void;
+  nextLessonNumber: number;
+  hasStyleMetadata: boolean;
 
   // Freshness mode (only relevant for series)
   freshnessMode: string;
   setFreshnessMode: (value: string) => void;
 
-  // Consistent Style Mode - Series Support
-  lessonsWithStyle: Array<{ id: string; title: string; created_at: string; series_style_metadata: any }>;
-  selectedStyleLessonId: string;
-  setSelectedStyleLessonId: (value: string) => void;
+  // Style preview from selected series
   seriesStyleContext: SeriesStyleMetadata | null;
 
   // Profile management
@@ -258,15 +268,17 @@ export function TeacherCustomization({
   setEmotionalEntry,
   theologicalLens,
   setTheologicalLens,
-  lessonNumber,
-  setLessonNumber,
-  totalLessons,
-  setTotalLessons,
+  activeSeries,
+  selectedSeries,
+  isLoadingSeries,
+  isCreatingSeries,
+  onCreateSeries,
+  onSelectSeries,
+  onClearSeries,
+  nextLessonNumber,
+  hasStyleMetadata,
   freshnessMode,
   setFreshnessMode,
-  lessonsWithStyle,
-  selectedStyleLessonId,
-  setSelectedStyleLessonId,
   seriesStyleContext,
   profiles,
   currentProfileId,
@@ -375,21 +387,30 @@ export function TeacherCustomization({
     }
   };
 
-  const handleLessonNumberChange = (value: string) => {
-    const num = parseInt(value, 10);
-    if (num >= 1 && num <= totalLessons) {
-      setLessonNumber(num);
+  // Series creation state (local UI state for the "Start New Series" form)
+  const [showNewSeriesForm, setShowNewSeriesForm] = useState(false);
+  const [newSeriesName, setNewSeriesName] = useState("");
+  const [newSeriesTotalLessons, setNewSeriesTotalLessons] = useState(4);
+
+  const handleCreateSeries = async () => {
+    const result = await onCreateSeries(newSeriesName, newSeriesTotalLessons);
+    if (result) {
+      setShowNewSeriesForm(false);
+      setNewSeriesName("");
+      setNewSeriesTotalLessons(4);
     }
   };
 
-  const handleTotalLessonsChange = (value: string) => {
-    const num = parseInt(value, 10);
-    if (num >= 2 && num <= 7) {
-      setTotalLessons(num);
-      // Adjust lesson number if it exceeds new total
-      if (lessonNumber > num) {
-        setLessonNumber(num);
-      }
+  const handleSeriesSelect = (seriesId: string) => {
+    if (seriesId === "__new__") {
+      setShowNewSeriesForm(true);
+      onClearSeries();
+    } else if (seriesId === "__none__") {
+      setShowNewSeriesForm(false);
+      onClearSeries();
+    } else {
+      setShowNewSeriesForm(false);
+      onSelectSeries(seriesId);
     }
   };
 
@@ -742,121 +763,175 @@ export function TeacherCustomization({
             </div>
           </div>
 
-          {/* Part of Series: Lesson X of Y (appears right after grid when selected) */}
+          {/* Part of Series: Series Management UI (Phase 24) */}
           {lessonSequence === "part_of_series" && (
             <div className="p-4 bg-muted/50 rounded-lg border">
-              <Label className="text-sm font-medium mb-3 block">Series Position</Label>
-              <div className="flex items-center gap-3">
-                <span className="text-sm">Lesson</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={totalLessons}
-                  value={lessonNumber}
-                  onChange={(e) => handleLessonNumberChange(e.target.value)}
-                  className="w-16 text-center"
-                  disabled={disabled}
-                />
-                <span className="text-sm">of</span>
-                <Input
-                  type="number"
-                  min={2}
-                  max={7}
-                  value={totalLessons}
-                  onChange={(e) => handleTotalLessonsChange(e.target.value)}
-                  className="w-16 text-center"
-                  disabled={disabled}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Lessons in a series share context. Maximum 7 lessons per series.
-              </p>
+              <Label className="text-sm font-medium mb-3 block">Teaching Series</Label>
 
-              {/* Consistent Style Mode - Checkbox for ALL lessons in series */}
-              <div className="mt-4 pt-4 border-t border-primary/10">
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="consistent-style-mode"
-                    checked={freshnessMode === "consistent"}
-                    onCheckedChange={(checked) => 
-                      setFreshnessMode(checked ? "consistent" : "fresh")
-                    }
-                    disabled={disabled}
-                  />
-                  <div className="space-y-1">
-                    <label
-                      htmlFor="consistent-style-mode"
-                      className="text-sm font-medium leading-none cursor-pointer"
-                    >
-                      Consistent Style Mode
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3 w-3 text-muted-foreground inline ml-1 cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-[280px]">
-                            <p>Maintains the same teaching approach (opening hooks, illustrations, tone) across all lessons in this series.</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </label>
+              {/* Series Selection Dropdown */}
+              <div className="space-y-3">
+                <Select
+                  value={selectedSeries?.id || (showNewSeriesForm ? "__new__" : "__none__")}
+                  onValueChange={handleSeriesSelect}
+                  disabled={disabled || isLoadingSeries}
+                >
+                  <SelectTrigger className={FORM_STYLING.selectMaxWidth}>
+                    <SelectValue placeholder="Select or create a series" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__" className="text-muted-foreground">
+                      — Select a series —
+                    </SelectItem>
+                    <SelectItem value="__new__" className="text-primary font-medium">
+                      + Start New Series
+                    </SelectItem>
+                    {activeSeries.map((series) => (
+                      <SelectItem key={series.id} value={series.id}>
+                        {formatSeriesLabel(series)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* No series message */}
+                {!selectedSeries && !showNewSeriesForm && activeSeries.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No active series. Select "+ Start New Series" to begin planning a multi-week study.
+                  </p>
+                )}
+              </div>
+
+              {/* NEW SERIES FORM */}
+              {showNewSeriesForm && (
+                <div className="mt-3 pt-3 border-t border-primary/10 space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="series-name" className="text-sm">Series Name</Label>
+                    <Input
+                      id="series-name"
+                      placeholder='e.g., "Romans: Gospel of Grace"'
+                      value={newSeriesName}
+                      onChange={(e) => setNewSeriesName(e.target.value)}
+                      maxLength={SERIES_LIMITS.maxSeriesNameLength}
+                      disabled={disabled || isCreatingSeries}
+                      className="text-sm"
+                    />
                     <p className="text-xs text-muted-foreground">
-                      {freshnessMode === "consistent" 
-                        ? (lessonNumber === 1 
-                            ? "This lesson's style will be captured for use in this series"
-                            : "Select a previous lesson below to match its style")
-                        : "Each lesson uses varied illustrations, examples, and teaching angles"
-                      }
+                      {newSeriesName.length}/{SERIES_LIMITS.maxSeriesNameLength} characters
                     </p>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="series-total" className="text-sm">Total Lessons in Series</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="series-total"
+                        type="number"
+                        min={SERIES_LIMITS.minLessons}
+                        max={SERIES_LIMITS.maxLessons}
+                        value={newSeriesTotalLessons}
+                        onChange={(e) => setNewSeriesTotalLessons(parseInt(e.target.value, 10) || SERIES_LIMITS.minLessons)}
+                        className="w-20 text-center"
+                        disabled={disabled || isCreatingSeries}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        ({SERIES_LIMITS.minLessons}-{SERIES_LIMITS.maxLessons} lessons)
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCreateSeries}
+                      disabled={!newSeriesName.trim() || isCreatingSeries || disabled}
+                      className="gap-1"
+                    >
+                      {isCreatingSeries ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        "Create Series"
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setShowNewSeriesForm(false);
+                        setNewSeriesName("");
+                      }}
+                      disabled={isCreatingSeries}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Copy Style From - Only show for lessons 2+ when consistent mode is enabled */}
-              {lessonNumber > 1 && freshnessMode === "consistent" && (
-                <div className="mt-3 pt-3 border-t border-primary/20">
-                  <Label className="text-sm font-medium mb-2 block">
-                    Copy Style From
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3 w-3 text-muted-foreground inline ml-1 cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-[280px]">
-                          <p>Select a previous lesson from this series to match its teaching style.</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
+              {/* SELECTED SERIES INFO */}
+              {selectedSeries && (
+                <div className="mt-3 pt-3 border-t border-primary/10">
+                  {/* Series progress banner */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {selectedSeries.series_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Generating Lesson {nextLessonNumber} of {selectedSeries.total_lessons}
+                      </p>
+                    </div>
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
+                      {selectedSeries.lesson_summaries?.length || 0}/{selectedSeries.total_lessons} done
+                    </span>
+                  </div>
 
-                  {lessonsWithStyle.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">
-                      No previous lessons with style metadata found. Generate your first lesson to establish a style.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      <Select
-                        value={selectedStyleLessonId}
-                        onValueChange={setSelectedStyleLessonId}
-                        disabled={disabled}
-                      >
-                        <SelectTrigger className={FORM_STYLING.selectMaxWidth}>
-                          <SelectValue placeholder="Select lesson to match style" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">— Don't use consistent style —</SelectItem>
-                          {lessonsWithStyle && lessonsWithStyle.length > 0 && lessonsWithStyle.map((lesson) => (
-                            <SelectItem key={lesson.id} value={lesson.id}>
-                              {lesson.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  {/* Use Series Style toggle - only for Lesson 2+ when style exists */}
+                  {nextLessonNumber >= 2 && hasStyleMetadata && (
+                    <div className="mt-3 pt-3 border-t border-primary/10">
+                      <div className="flex items-start space-x-2">
+                        <Checkbox
+                          id="use-series-style"
+                          checked={freshnessMode === "consistent"}
+                          onCheckedChange={(checked) =>
+                            setFreshnessMode(checked ? "consistent" : "fresh")
+                          }
+                          disabled={disabled}
+                        />
+                        <div className="space-y-1">
+                          <label
+                            htmlFor="use-series-style"
+                            className="text-sm font-medium leading-none cursor-pointer"
+                          >
+                            Use Series Style
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="h-3 w-3 text-muted-foreground inline ml-1 cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[280px]">
+                                  <p>Maintains the same teaching approach (opening hooks, illustrations, tone) captured from Lesson 1 of this series.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </label>
+                          <p className="text-xs text-muted-foreground">
+                            {freshnessMode === "consistent"
+                              ? "This lesson will match the style established in Lesson 1"
+                              : "This lesson will use fresh, varied approaches (ignoring series style)"
+                            }
+                          </p>
+                        </div>
+                      </div>
 
-                      {/* Show selected style preview */}
-                      {seriesStyleContext && (
+                      {/* Style Preview */}
+                      {freshnessMode === "consistent" && seriesStyleContext && (
                         <div className="mt-2 p-3 bg-primary/5 rounded-md border border-primary/10">
-                          <p className="text-xs font-medium text-primary mb-2">Style Preview:</p>
+                          <p className="text-xs font-medium text-primary mb-2">Series Style:</p>
                           <div className="text-xs space-y-1">
                             {seriesStyleContext.openingHookType && (
                               <div>
@@ -896,18 +971,25 @@ export function TeacherCustomization({
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-primary/10">
-                            This lesson will use the same creative approach for consistency.
+                            This lesson will match the teaching approach from Lesson 1.
                           </p>
                         </div>
                       )}
-
-                      {/* No style selected indicator */}
-                      {!seriesStyleContext && selectedStyleLessonId === '' && lessonsWithStyle.length > 0 && (
-                        <p className="text-xs text-amber-600 ml-1">
-                          âš ï¸ Select a lesson above to apply its style to this lesson.
-                        </p>
-                      )}
                     </div>
+                  )}
+
+                  {/* Lesson 1 info - style will be captured automatically */}
+                  {nextLessonNumber === 1 && (
+                    <p className="text-xs text-primary mt-2">
+                      This lesson\'s style will be automatically captured for the series.
+                    </p>
+                  )}
+
+                  {/* Lesson 2+ without style metadata (edge case) */}
+                  {nextLessonNumber >= 2 && !hasStyleMetadata && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      No series style captured yet. Generate Lesson 1 first to establish a consistent style.
+                    </p>
                   )}
                 </div>
               )}
