@@ -524,6 +524,7 @@ export function EnhanceLessonForm({
     isLoading: subscriptionLoading,
   } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [senderDisplayName, setSenderDisplayName] = useState("");
   const { toast } = useToast();
 
   // ============================================================================
@@ -658,13 +659,20 @@ export function EnhanceLessonForm({
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("theology_profile_id")
+          .select("theology_profile_id, display_name")
           .eq("id", user.id)
           .single();
 
         if (profile?.theology_profile_id) {
           setTheologyProfileId(profile.theology_profile_id);
         }
+        // Store sender name for Email Lesson feature (Phase 25)
+        setSenderDisplayName(
+          profile?.display_name ||
+          user.user_metadata?.full_name ||
+          user.email ||
+          ""
+        );
       }
     };
 
@@ -1721,6 +1729,8 @@ export function EnhanceLessonForm({
                       ? { ...currentLesson.metadata, teaser: null }
                       : currentLesson.metadata,
                   }}
+                  isPaidUser={isPaidUser}
+                  senderName={senderDisplayName}
                 />
                 <Button
                   variant={viewingLesson ? "default" : "outline"}
