@@ -416,8 +416,8 @@ serve(async (req) => {
             html,
             tags: [
               { name: "email_type", value: "lesson_delivery" },
-              { name: "user_id", value: user.id },
-              { name: "version", value: EMAIL_DELIVERY_VERSION },
+              { name: "user_id", value: user.id.replace(/[^a-zA-Z0-9_-]/g, "_") },
+              { name: "version", value: EMAIL_DELIVERY_VERSION.replace(/[^a-zA-Z0-9_-]/g, "-") },
             ],
           }),
         });
