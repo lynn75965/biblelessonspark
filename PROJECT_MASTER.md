@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** January 31, 2026 (Nested Organization Architecture N1-N7 COMPLETE)
+**Last Updated:** February 2, 2026 (Email Lesson Delivery Phase 25 COMPLETE, Series/Theme Mode Phase 24 IN PROGRESS)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -51,6 +51,8 @@
 | `src/constants/uiSymbols.ts` | UI symbols (UTF-8 safe) |
 | `src/constants/metricsViewerConfig.ts` | Chart colors for analytics |
 | `src/constants/transferRequestConfig.ts` | Transfer request workflow statuses |
+| `src/constants/emailDeliveryConfig.ts` | **Email lesson delivery + class roster config (Phase 25)** |
+| `src/constants/seriesConfig.ts` | **Series/Theme Mode limits, statuses, interfaces (Phase 24)** |
 | `src/config/branding.ts` | **SSOT for ALL colors** |
 | `src/config/brand-values.json` | **SSOT for colors/typography** |
 
@@ -214,6 +216,155 @@ Note: Org Manager is identified by `organizations.created_by` (uuid), not a role
 
 ### What the Platform Now Supports End-to-End
 A Convention can create an Association, which can create a Church, which can create a Ministry — 4 levels deep. Parent orgs see child health at a glance. Parents can suggest a shared focus; children voluntarily adopt it. Any child can disconnect cleanly at any time with zero data loss.
+
+---
+
+## EMAIL LESSON DELIVERY SYSTEM (Phase 25 - COMPLETE ✅)
+
+### Overview
+Email Lesson Delivery enables paid subscribers (Personal tier or Admin) to email lesson teasers and student handouts (Section 8) directly to students via the Resend API. Teachers can save named email rosters (class lists) for quick loading. Emails are branded with BibleLessonSpark styling and sent individually for privacy.
+
+### SSOT Architecture
+```
+src/constants/emailDeliveryConfig.ts (FRONTEND MASTER)
+        ↓ npm run sync-constants
+supabase/functions/_shared/emailDeliveryConfig.ts (BACKEND MIRROR)
+        ↓
+send-lesson-email Edge Function reads config (never hardcoded)
+```
+
+### SSOT Configuration (emailDeliveryConfig.ts)
+| Config Section | Purpose |
+|----------------|---------|
+| `EMAIL_DELIVERY_CONFIG` | Max recipients (25), max message length (500), tier-gating rules |
+| `EMAIL_DELIVERY_LABELS` | All UI strings for dialog, buttons, toasts |
+| `EMAIL_DELIVERY_VERSION` | Version string for Resend tag tracking |
+| `ROSTER_CONFIG` | Roster limits (max 10 rosters, max 25 emails each, 50-char name) |
+| `buildEmailSubject()` | Constructs subject line from sender name + lesson title |
+| `isValidEmail()` | Email validation regex |
+
+### Email Content Strategy
+Emails do NOT send the full lesson. Content is limited to:
+1. **Lesson teaser** — From `lesson.metadata.teaser` (set during generation)
+2. **Section 8: Student Handout** — Body content only, no section header
+
+The `extractSection8Content()` function uses `parseSectionHeaderNumber()` to match multiple header formats:
+- `## Section 8: Title` (markdown headers)
+- `**Section 8: Title**` (bold markers)
+- `## Section 8 – Title` (em-dash variant)
+- `Section 8: Title` (plain text)
+
+Sub-headers (###) within Section 8 are styled green in the email HTML.
+
+### Database Table
+
+#### email_rosters
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| user_id | uuid | FK to auth.users, ON DELETE CASCADE |
+| name | text | Roster name (max 50 chars, constraint enforced) |
+| emails | text[] | Array of email addresses (max 25, constraint enforced) |
+| created_at | timestamptz | Creation timestamp |
+| updated_at | timestamptz | Last modified |
+
+- RLS enabled: users can only manage their own rosters
+- Index: `idx_email_rosters_user_id` on `user_id`
+
+### Edge Function: send-lesson-email
+
+| Item | Value |
+|------|-------|
+| **Version** | 1.1.0 |
+| **Delivery** | Resend API (individual emails per recipient for privacy) |
+| **Auth** | Valid Supabase JWT required |
+| **Tier Gate** | Paid subscribers only (personal or admin) |
+| **Max Recipients** | 25 per call (from SSOT config) |
+| **Tag Sanitization** | All Resend tag values sanitized (dots replaced with dashes/underscores) |
+
+### Frontend Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `EmailLessonDialog.tsx` | `src/components/` | Email dialog with roster load/save/manage, personal message, lesson preview |
+| `LessonExportButtons.tsx` | `src/components/` | **Updated: removed Share dropdown, added Email button** |
+| `EnhanceLessonForm.tsx` | `src/components/dashboard/` | **Updated: passes isPaidUser + senderName props** |
+
+### Phase 25 Progress
+
+| Phase | Description | Date | Status |
+|-------|-------------|------|--------|
+| 25.0 | Edge function + SSOT + dialog + tier gating | Feb 1, 2026 | ✅ Complete |
+| 25.1 | Class Email Rosters (database + inline UI) | Feb 1, 2026 | ✅ Complete |
+| 25.2 | Resend tag sanitization fix (dots not allowed) | Feb 1, 2026 | ✅ Complete |
+| 25.3 | Section 8 extraction fix (multi-format parser) | Feb 2, 2026 | ✅ Complete |
+
+### Git Commits
+| Commit | Message | Date |
+|--------|---------|------|
+| `81348d1` | Phase 25.1: Class Email Rosters | Feb 1, 2026 |
+| `44dd1db` | Fix send-lesson-email: sanitize Resend tag values | Feb 1, 2026 |
+| `88e2ac0` | Fix send-lesson-email: robust Section 8 extraction (## + ** formats) | Feb 2, 2026 |
+
+### Key Design Decisions
+- **Teaser + Section 8 only** — Full lesson never sent via email (protects content value)
+- **Individual emails** — Each recipient gets their own email (no CC/BCC, privacy preserved)
+- **Roster persistence** — Teachers save class lists once, load them instantly
+- **Tier-gated** — Free users see upgrade prompt; paid users see email dialog
+- **Frontend drives backend** — EmailLessonDialog defines the data contract; edge function mirrors it
+
+---
+
+## SERIES/THEME MODE (Phase 24 - ⚠️ IN PROGRESS)
+
+### Overview
+Series/Theme Mode enables multi-week sequential lesson planning with style consistency. Teachers name a series, set total lessons, and the system captures style metadata from Lesson 1 to maintain a unified teaching approach across subsequent lessons.
+
+### SSOT Configuration (seriesConfig.ts)
+| Config Section | Purpose |
+|----------------|---------|
+| `SERIES_LIMITS` | Min lessons (2), max lessons (12), max name length (100), max active series (10) |
+| `SERIES_STATUSES` | in_progress, completed, abandoned |
+| `SeriesStyleMetadata` | Style capture interface (8 fields + transition style) |
+| `SeriesLessonSummary` | Per-lesson summary for content continuity |
+
+### Database Table: lesson_series
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key |
+| user_id | uuid | FK to auth.users |
+| series_name | text | Teacher-chosen series name |
+| total_lessons | integer | Planned lesson count (2-12) |
+| current_lesson | integer | Next lesson number |
+| status | text | in_progress, completed, abandoned |
+| style_metadata | jsonb | Captured from Lesson 1 for consistency |
+| lesson_summaries | jsonb | Array of per-lesson summaries for continuity |
+| created_at | timestamptz | Creation timestamp |
+| updated_at | timestamptz | Last modified |
+
+### Frontend Components
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `seriesConfig.ts` | `src/constants/` | NEW SSOT — limits, statuses, interfaces |
+| `useSeriesManager.ts` | `src/hooks/` | NEW hook — series CRUD, state management |
+| `TeacherCustomization.tsx` | `src/components/dashboard/` | **MODIFIED — series selection UI replaces manual "Lesson X of Y"** |
+| `EnhanceLessonForm.tsx` | `src/components/dashboard/` | **MODIFIED — wires useSeriesManager hook** |
+| `freshnessOptions.ts` | `src/constants/` | **MODIFIED — re-exports SeriesStyleMetadata from seriesConfig (backward compat)** |
+
+### Teacher Workflow
+1. Select "Part of Series" in Lesson Sequence dropdown
+2. "Start New Series" → name the series, set total lessons (2-12)
+3. Generate Lesson 1 → style metadata captured automatically
+4. Return later → select series from dropdown, lesson number auto-advances
+5. Claude applies captured style + references previous lesson summaries
+6. Final lesson includes series wrap-up
+
+### Known Issues (In Progress)
+- Series lesson count not tracking properly after first generation (shows 0 of N)
+- `result.data.lesson` → `result.data.id` fix needed on lines 957-958 of EnhanceLessonForm
+- Old duplicate files exist at `src/components/EnhanceLessonForm.tsx` and `src/components/TeacherCustomization.tsx` — correct location is `src/components/dashboard/`; duplicates should be deleted
+- Phase 24 code exists locally but was not committed to git as of last known state
 
 ---
 
@@ -583,7 +734,7 @@ DevotionalSpark generates personal devotionals based on the same passage and foc
 | Tier | Lessons/Period | Sections | Features | Price |
 |------|----------------|----------|----------|-------|
 | **Free** | 5 (2 full + 3 partial) | All 8 for first 2, then 1/5/8 | Basic generation | Forever free |
-| **Personal** | 20 | All 8 | DevotionalSpark, Student Teaser | $9/mo or $90/yr |
+| **Personal** | 20 | All 8 | DevotionalSpark, Student Teaser, Email Lesson Delivery | $9/mo or $90/yr |
 
 ### Organization Plans
 | Tier | Lessons/Month | Features | Price |
@@ -614,6 +765,9 @@ src/
 │   │       ├── ToolbeltEmailManager.tsx
 │   │       ├── ToolbeltEmailCaptures.tsx
 │   │       └── ToolbeltGuardrailsStatus.tsx
+│   ├── dashboard/
+│   │   ├── EnhanceLessonForm.tsx    # Updated: Phase 24 series + Phase 25 email props
+│   │   └── TeacherCustomization.tsx # Updated: Phase 24 series selection UI
 │   ├── org/                         # Organization components
 │   │   ├── OrgPoolStatusCard.tsx    # Pool status + purchase dialogs (Phase 13)
 │   │   ├── OrgLessonsPanel.tsx      # Org lessons with funding source
@@ -626,6 +780,8 @@ src/
 │   │   └── [other org components]
 │   ├── account/
 │   │   └── MyOrganizationSection.tsx # Updated with pool banner
+│   ├── EmailLessonDialog.tsx        # NEW: Email dialog with roster support (Phase 25)
+│   ├── LessonExportButtons.tsx      # Updated: Share removed, Email added (Phase 25)
 │   └── toolbelt/                    # Toolbelt shared components
 │       └── ToolbeltReflectionForm.tsx
 ├── hooks/
@@ -633,7 +789,8 @@ src/
 │   ├── useChildOrgSummaries.ts      # Child org data via RPC (N3)
 │   ├── useParentSharedFocus.ts      # Parent focus view + adopt (N6)
 │   ├── useFocusAdoptionMap.ts       # Adoption status for parent (N6)
-│   └── useDisconnectFromNetwork.ts  # Disconnect RPC call (N7)
+│   ├── useDisconnectFromNetwork.ts  # Disconnect RPC call (N7)
+│   └── useSeriesManager.ts          # NEW: Series CRUD + state (Phase 24)
 ├── pages/
 │   ├── Admin.tsx
 │   ├── OrgManager.tsx               # Updated with Network tab, Focus banner, Disconnect
@@ -653,15 +810,18 @@ src/
 │   ├── pricingConfig.ts             # Individual tier config MASTER
 │   ├── orgPricingConfig.ts          # Organization billing SSOT (Phase 13)
 │   ├── devotionalConfig.ts          # DevotionalSpark config
+│   ├── emailDeliveryConfig.ts       # NEW: Email delivery + roster SSOT (Phase 25)
+│   ├── seriesConfig.ts              # NEW: Series/Theme Mode SSOT (Phase 24)
 │   └── [other SSOT files]
 ```
 
 ### Backend (Edge Functions)
 ```
 supabase/functions/
-├── generate-lesson/                 # Modified for org pool (Phase 13.6)
+├── generate-lesson/                 # Modified: org pool (Phase 13.6), double-increment fix (Feb 2026)
 ├── generate-devotional/             # DevotionalSpark v2.1
 ├── send-sequence-email/             # BLS onboarding emails
+├── send-lesson-email/               # NEW: Email lesson delivery via Resend (Phase 25)
 ├── toolbelt-reflect/                # Toolbelt AI reflection
 ├── send-toolbelt-sequence/          # Toolbelt nurture emails
 ├── create-org-checkout-session/     # Org subscription checkout (Phase 13)
@@ -673,6 +833,7 @@ supabase/functions/
     ├── toolbeltConfig.ts            # Backend mirror
     ├── devotionalConfig.ts
     ├── organizationConfig.ts        # Backend mirror (Nested Orgs)
+    ├── emailDeliveryConfig.ts       # Backend mirror (Phase 25)
     ├── orgPoolCheck.ts              # Pool consumption logic (Phase 13.6)
     └── [other mirrors]
 ```
@@ -685,10 +846,14 @@ user_subscriptions                   # User's current tier + usage
 devotionals                          # Generated devotionals
 branding_config                      # SSOT branding for edge functions
 lessons                              # Generated lessons (+ org_pool_consumed column)
+lesson_series                        # NEW: Series/Theme Mode tracking (Phase 24)
 
 # Email (BLS Onboarding)
 email_sequence_templates             # Onboarding email content (7 emails)
 email_sequence_tracking              # User progress through sequence
+
+# Email Lesson Delivery (Phase 25)
+email_rosters                        # NEW: Named class email lists with RLS
 
 # Teacher Toolbelt
 toolbelt_usage                       # API call tracking
@@ -742,6 +907,7 @@ npx supabase functions deploy
 # Deploy specific edge function
 npx supabase functions deploy toolbelt-reflect
 npx supabase functions deploy create-org-checkout-session
+npx supabase functions deploy send-lesson-email
 
 # Regenerate Supabase types (after schema changes)
 npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts
@@ -758,15 +924,15 @@ git push origin biblelessonspark
 
 ### Priority: LOW (Post-Launch Enhancements)
 
-| Feature | Description | Estimated Effort |
-|---------|-------------|------------------|
-| In-App Teacher Approval | Teacher receives notification, approves/declines transfer in app | 6-8 hours |
-| Export Formatting Admin Panel | Admin UI to adjust Print/DOCX/PDF formatting without code changes | 4-6 hours |
-| Organization-Scoped Beta Management | Org Leaders create own feedback surveys + analytics | 8-12 hours |
-| Series/Theme Mode | Sequential lesson planning across multiple weeks | 12-16 hours |
-| Email/Text Lesson Delivery | Send lessons and teasers via email/SMS | 6-8 hours |
-| White-Label Personalized Footer | Custom footer text for enterprise tenants | 2-3 hours |
-| Email Unsubscribe Link | Add one-click unsubscribe to automated emails | 2-3 hours |
+| Feature | Description | Estimated Effort | Status |
+|---------|-------------|------------------|--------|
+| In-App Teacher Approval | Teacher receives notification, approves/declines transfer in app | 6-8 hours | Not Started |
+| Export Formatting Admin Panel | Admin UI to adjust Print/DOCX/PDF formatting without code changes | 4-6 hours | Not Started |
+| Organization-Scoped Beta Management | Org Leaders create own feedback surveys + analytics | 8-12 hours | Not Started |
+| Series/Theme Mode | Sequential lesson planning across multiple weeks | 12-16 hours | ⚠️ Phase 24 IN PROGRESS |
+| ~~Email/Text Lesson Delivery~~ | ~~Send lessons and teasers via email/SMS~~ | ~~6-8 hours~~ | ✅ Phase 25 COMPLETE |
+| White-Label Personalized Footer | Custom footer text for enterprise tenants | 2-3 hours | Not Started |
+| Email Unsubscribe Link | Add one-click unsubscribe to automated emails | 2-3 hours | Not Started |
 
 ---
 
@@ -805,6 +971,7 @@ git push origin biblelessonspark
 - `npx supabase functions deploy toolbelt-reflect` - Deploy Toolbelt reflection
 - `npx supabase functions deploy send-toolbelt-sequence` - Deploy Toolbelt emails
 - `npx supabase functions deploy create-org-checkout-session` - **Deploy org checkout (Phase 13)**
+- `npx supabase functions deploy send-lesson-email` - **Deploy email lesson delivery (Phase 25)**
 - `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types
 
 **Reset Logic (Important for Support):**
@@ -827,6 +994,11 @@ git push origin biblelessonspark
 - Teacher Toolbelt (Phase 23) - Complete with 3 tools, admin panel, email sequence
 - **Organization Billing (Phase 13)** - COMPLETE: Stripe products, SSOT, Edge Functions, Pool Tracking, Dashboards
 - **Nested Organization Architecture (N1-N7)** - COMPLETE: Hierarchy, RLS, Network Dashboard, Child Creation, Focus Sharing, Disconnect
+- **Email Lesson Delivery (Phase 25)** - COMPLETE: Resend API, class rosters, Section 8 extraction, tier-gated
+- **Email Delivery Config (emailDeliveryConfig.ts)** - SSOT for delivery limits, labels, roster config
+
+**⚠️ IN PROGRESS:**
+- **Series/Theme Mode (Phase 24)** - Database + SSOT + hooks created; UI bugs remain (see Known Issues below)
 
 **Organization Billing Status (Phase 13 - COMPLETE ✅):**
 - ✅ 13.1: Stripe Products (9 products created)
@@ -846,6 +1018,12 @@ git push origin biblelessonspark
 - ✅ N5: Admin hierarchy display
 - ✅ N6: Shared Focus Awareness (`ParentFocusBanner`, `useParentSharedFocus`, `useFocusAdoptionMap`, `get_parent_active_focus`, `adopt_parent_focus`, `get_focus_adoption_map`)
 - ✅ N7: Disconnect Workflow (`DisconnectNetworkDialog`, `useDisconnectFromNetwork`, `disconnect_org_from_network`)
+
+**Email Lesson Delivery (Phase 25 - COMPLETE ✅):**
+- ✅ 25.0: Edge function + SSOT + dialog + tier gating
+- ✅ 25.1: Class Email Rosters (database table + inline UI)
+- ✅ 25.2: Resend tag sanitization fix
+- ✅ 25.3: Section 8 extraction fix (multi-format parser)
 
 **Supabase Secrets (Organization Billing):**
 - `STRIPE_SECRET_KEY` - Already set (shared with individual billing)
@@ -868,8 +1046,10 @@ git push origin biblelessonspark
 **Database Protections:**
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - UNIQUE constraint on `toolbelt_email_captures.email` prevents duplicates
+- UNIQUE constraint on `email_rosters` name length (max 50) and email count (max 25)
 - RLS enabled on all Toolbelt tables
 - RLS enabled on org billing tables (org managers can view their org's purchases)
+- RLS enabled on `email_rosters` (users manage their own rosters only)
 - RLS policy `parent_org_manager_view_children` for hierarchy visibility (N2)
 - `user_parable_usage` view fixed with SECURITY INVOKER
 - All nested org functions are SECURITY DEFINER with `SET search_path = public`
@@ -877,12 +1057,22 @@ git push origin biblelessonspark
 **Dependencies:**
 - `react-quill` - Rich text editor for email templates (both BLS and Toolbelt)
 
+**Bug Fixes Applied (Feb 1-2, 2026):**
+- ✅ **Resend Tag Sanitization** — Dots not allowed in Resend API tags; `EMAIL_DELIVERY_VERSION` `1.1.0` sanitized to `1-1-0` (commit `44dd1db`)
+- ✅ **Section 8 Extraction** — Edge function regex only matched `**Section N**` bold markers; actual lessons use `## Section 8:` markdown headers. Replaced `extractLastSection()` with multi-format `extractSection8Content()` + `parseSectionHeaderNumber()` (commit `88e2ac0`)
+- ✅ **Lesson Count Double-Increment** — Both frontend `incrementUsage()` AND edge function `incrementLessonUsage()` were counting each lesson. SSOT fix: removed `incrementLessonUsage` from `generate-lesson` edge function (frontend drives backend). SQL correction applied to sync all user counts to actual. Org pool consumption remains in edge function (org-level logic).
+
+**Known Issues / Next Steps:**
+- ⚠️ Phase 24 Series/Theme Mode: lesson count not tracking after first generation; `result.data.lesson` → `result.data.id` fix needed; old duplicate files at `src/components/` need deletion (correct path is `src/components/dashboard/`)
+- ⚠️ Phase 24 code may not be committed to git — verify with `git log --oneline -5` before continuing work
+
 **Launch Status:**
 - Launch Date: January 27, 2026 ✅ LAUNCHED
 - Teacher Toolbelt: January 29, 2026 ✅ COMPLETE
 - Organization Billing System: January 30, 2026 ✅ PHASE 13 COMPLETE
 - Nested Organization Architecture: January 31, 2026 ✅ N1-N7 COMPLETE
-- All code complete ✅
+- Email Lesson Delivery: February 1-2, 2026 ✅ PHASE 25 COMPLETE
+- Series/Theme Mode: February 1, 2026 ⚠️ PHASE 24 IN PROGRESS
 - All routes verified ✅
 - Email automation working ✅
 - Admin panel functional ✅
