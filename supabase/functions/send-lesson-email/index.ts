@@ -1,11 +1,14 @@
 /**
  * send-lesson-email Edge Function
  * ================================
- * Sends a complete Bible lesson via email to one or more recipients.
+ * Sends a Bible lesson TEASER + SECTION 8 ONLY via email to one or more recipients.
  *
  * SSOT: emailDeliveryConfig.ts (frontend drives backend)
  * Branding: branding.ts (database-driven with fallback)
  * Delivery: Resend API
+ *
+ * Email content: Teacher sends teaser + Section 8 body only (no Section 8 header).
+ * Full lesson is NOT included — recipients see a preview to encourage attendance.
  *
  * Security:
  * - Requires valid Supabase JWT
@@ -14,7 +17,8 @@
  * - Each recipient receives an individual email (privacy)
  *
  * Created: 2026-02-01
- * Version: 1.0.0
+ * Updated: 2026-02-02 — Fixed section extraction regex to match ## headers
+ * Version: 1.1.0
  */
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -65,30 +69,43 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Convert lesson markdown-style text to email-safe HTML
- * Uses inline styles only (no CSS classes) for email client compatibility
+ * Convert lesson markdown-style text to email-safe HTML.
+ * Uses inline styles only (no CSS classes) for email client compatibility.
+ *
+ * NOTE: This formats the Section 8 BODY only — the Section 8 header
+ * is intentionally stripped before this function is called.
+ * Any remaining sub-headers (### level) within Section 8 are styled.
  */
 function formatLessonForEmail(text: string): string {
   let html = escapeHtml(text);
 
-  // Section headers: **Section N: Name** → styled green header bar
+  // Sub-section headers within Section 8: ### Heading → styled subheader
   html = html.replace(
-    /\*\*Section\s+(\d+)[:\s\-\u2013\u2014]+([^*]+)\*\*/g,
-    '<div style="background:#3D5C3D;color:#ffffff;padding:8px 14px;margin:20px 0 12px 0;border-radius:4px;font-family:Georgia,serif;font-size:14px;font-weight:bold;">Section $1: $2</div>'
+    /^###\s+(.+)$/gm,
+    '<div style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#3D5C3D;margin:16px 0 8px 0;">$1</div>'
   );
 
   // Bold text: **text** → <strong>
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 
-  // Bullet points: lines starting with • or -
+  // Italic text: *text* → <em>
+  html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+  // Bullet points: lines starting with •, -, or *
   html = html.replace(
-    /^[\u2022\-]\s+(.+)$/gm,
+    /^[\u2022\-\*]\s+(.+)$/gm,
     '<li style="margin-bottom:4px;font-family:Georgia,serif;font-size:15px;color:#1a1a1a;">$1</li>'
   );
   // Wrap consecutive <li> in <ul>
   html = html.replace(
     /((?:<li[^>]*>.*?<\/li>\s*)+)/g,
     '<ul style="padding-left:20px;margin:8px 0;">$1</ul>'
+  );
+
+  // Numbered lists: lines starting with "1. ", "2. ", etc.
+  html = html.replace(
+    /^\d+\.\s+(.+)$/gm,
+    '<li style="margin-bottom:4px;font-family:Georgia,serif;font-size:15px;color:#1a1a1a;">$1</li>'
   );
 
   // Double line breaks → paragraph breaks
@@ -110,6 +127,84 @@ function formatLessonForEmail(text: string): string {
   html = html.replace(/<p[^>]*>\s*<\/p>/g, "");
 
   return html;
+}
+
+// ============================================================================
+// SECTION 8 EXTRACTOR — MULTI-FORMAT (robust)
+// ============================================================================
+
+/**
+ * Test whether a line is a section header in ANY of the formats
+ * that the lesson generator may produce:
+ *
+ *   Format A:  ## Section 8: Student Handout
+ *   Format B:  ## Section 8 – Student Handout
+ *   Format C:  **Section 8: Student Handout**
+ *   Format D:  **Section 8 – Student Handout**
+ *   Format E:  Section 8: Student Handout  (plain)
+ *
+ * Returns the section number if matched, or -1 if not a header.
+ */
+function parseSectionHeaderNumber(line: string): number {
+  const trimmed = line.trim();
+
+  // Strip leading ## (markdown header markers)
+  let cleaned = trimmed.replace(/^#{1,4}\s*/, "");
+
+  // Strip surrounding ** (bold markers)
+  cleaned = cleaned.replace(/^\*\*/, "").replace(/\*\*$/, "");
+
+  // Now match "Section N" at the start
+  const match = cleaned.match(/^Section\s+(\d+)/i);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+
+  return -1;
+}
+
+/**
+ * Extract Section 8's content (body only, no header line).
+ *
+ * Strategy: scan all lines, find the LAST line that is a Section header.
+ * If it's Section 8, return everything after it (until end of text).
+ * If no Section 8 found, return empty string (fallback handled by caller).
+ */
+function extractSection8Content(lessonText: string): string {
+  const lines = lessonText.split("\n");
+  let lastSectionLineIndex = -1;
+  let lastSectionNumber = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const sectionNum = parseSectionHeaderNumber(lines[i]);
+    if (sectionNum > 0) {
+      lastSectionLineIndex = i;
+      lastSectionNumber = sectionNum;
+    }
+  }
+
+  // Diagnostic logging
+  if (lastSectionLineIndex === -1) {
+    console.log("[extractSection8] No section headers found in ANY format.");
+    console.log("[extractSection8] First 300 chars:", lessonText.substring(0, 300));
+    return "";
+  }
+
+  console.log(
+    `[extractSection8] Last section found: Section ${lastSectionNumber} at line ${lastSectionLineIndex}: "${lines[lastSectionLineIndex].substring(0, 80)}"`
+  );
+
+  // Grab everything after the header line
+  const body = lines
+    .slice(lastSectionLineIndex + 1)
+    .join("\n")
+    .trim();
+
+  if (!body) {
+    console.log("[extractSection8] Section header found but body is empty.");
+  }
+
+  return body;
 }
 
 // ============================================================================
@@ -135,8 +230,8 @@ interface EmailTemplateParams {
 function buildLessonEmailHtml(params: EmailTemplateParams): string {
   const {
     lessonTitle,
-    lessonContent,
     teaserContent,
+    lessonContent,
     senderName,
     personalMessage,
     metadata,
@@ -144,8 +239,15 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
     baseUrl,
   } = params;
 
-  // Format lesson content
-  const formattedContent = formatLessonForEmail(lessonContent);
+  // ---------------------------------------------------------------
+  // Extract Section 8 body (no header) from the full lesson text
+  // ---------------------------------------------------------------
+  const section8Body = extractSection8Content(lessonContent);
+
+  // Format for email — Section 8 body only, or fallback message
+  const formattedSection8 = section8Body
+    ? formatLessonForEmail(section8Body)
+    : '<p style="margin:0;font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic;">The full lesson is available from your teacher.</p>';
 
   // Personal message section
   const personalMessageHtml = personalMessage
@@ -164,7 +266,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
   const teaserHtml = teaserContent
     ? `<tr><td style="padding:0 32px 16px 32px;">
         <div style="background:#F0F7FF;border:1px solid #3B82F6;border-radius:4px;padding:12px 16px;">
-          <p style="margin:0 0 4px 0;font-family:Georgia,serif;font-size:12px;color:#2563EB;font-weight:bold;">STUDENT TEASER</p>
+          <p style="margin:0 0 4px 0;font-family:Georgia,serif;font-size:12px;color:#2563EB;font-weight:bold;">THIS WEEK'S LESSON PREVIEW</p>
           <p style="margin:0;font-family:Georgia,serif;font-size:14px;color:#333;font-style:italic;">${escapeHtml(teaserContent)}</p>
         </div>
       </td></tr>`
@@ -200,7 +302,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
           <!-- ======== HEADER ======== -->
           <tr>
             <td style="background:#3D5C3D;padding:24px 32px;text-align:center;">
-              <p style="margin:0;font-family:Georgia,serif;font-size:20px;color:#C5D9C5;font-weight:bold;">\u2726 ${escapeHtml(appName)}</p>
+              <p style="margin:0;font-family:Georgia,serif;font-size:20px;color:#C5D9C5;font-weight:bold;">✦ ${escapeHtml(appName)}</p>
               <p style="margin:6px 0 0 0;font-family:Georgia,serif;font-size:12px;color:#A3C4A3;">Personalized Bible Studies in Minutes</p>
             </td>
           </tr>
@@ -226,10 +328,10 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
           <!-- ======== TEASER (if present) ======== -->
           ${teaserHtml}
 
-          <!-- ======== LESSON CONTENT ======== -->
+          <!-- ======== SECTION 8 CONTENT (body only, no header) ======== -->
           <tr>
             <td style="padding:8px 32px 24px 32px;">
-              ${formattedContent}
+              ${formattedSection8}
             </td>
           </tr>
 
@@ -243,7 +345,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
                 Sent from <a href="${baseUrl}" style="color:#3D5C3D;text-decoration:underline;">${escapeHtml(appName)}</a>
               </p>
               <p style="margin:0;font-family:Georgia,serif;font-size:11px;color:#999;">
-                \u00A9 ${year} ${escapeHtml(appName)} | <a href="mailto:support@biblelessonspark.com" style="color:#999;text-decoration:underline;">support@biblelessonspark.com</a>
+                © ${year} ${escapeHtml(appName)} | <a href="mailto:support@biblelessonspark.com" style="color:#999;text-decoration:underline;">support@biblelessonspark.com</a>
               </p>
             </td>
           </tr>
@@ -441,7 +543,7 @@ serve(async (req) => {
     // 8. LOG DELIVERY
     // ----------------------------------------------------------------
     console.log(
-      `[send-lesson-email] User ${user.id} sent "${lessonTitle}" to ${sent}/${validRecipients.length} recipients`
+      `[send-lesson-email] User ${user.id} sent "${lessonTitle}" to ${sent}/${validRecipients.length} recipients (teaser+section8 only)`
     );
 
     // ----------------------------------------------------------------
