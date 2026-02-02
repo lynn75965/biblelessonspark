@@ -44,12 +44,6 @@ export interface CheckboxOption {
 
 export const TEACHING_STYLES: PreferenceOption[] = [
   { 
-    id: "lecture", 
-    label: "Lecture-Based", 
-    description: "Teacher-led instruction with structured content delivery",
-    directive: "TEACHING STYLE (Lecture): Structure content for clear, sequential presentation. Use topic sentences and supporting points. Include memorable phrases for note-taking. Minimize interruptions for questions until designated times."
-  },
-  { 
     id: "discussion", 
     label: "Discussion-Based", 
     description: "Emphasizes dialogue and student participation",
@@ -62,10 +56,10 @@ export const TEACHING_STYLES: PreferenceOption[] = [
     directive: "TEACHING STYLE (Interactive): Design hands-on activities for each concept. Include simulations, role-plays, or physical demonstrations. Process experiences with reflection questions. Learning happens through doing."
   },
   { 
-    id: "storytelling", 
-    label: "Storytelling", 
-    description: "Narrative-driven teaching using stories and examples",
-    directive: "TEACHING STYLE (Storytelling): Frame biblical content through narrative arcs. Use vivid sensory details. Include character perspectives and emotions. Connect ancient stories to modern situations through parallel narratives."
+    id: "lecture", 
+    label: "Lecture-Based", 
+    description: "Teacher-led instruction with structured content delivery",
+    directive: "TEACHING STYLE (Lecture): Structure content for clear, sequential presentation. Use topic sentences and supporting points. Include memorable phrases for note-taking. Minimize interruptions for questions until designated times."
   },
   { 
     id: "socratic", 
@@ -73,6 +67,12 @@ export const TEACHING_STYLES: PreferenceOption[] = [
     description: "Teaching through probing questions that lead students to discover truth themselves", 
     tooltip: "Teaching through asking probing questions that lead students to discover truth themselves, rather than directly telling them answers",
     directive: "TEACHING STYLE (Socratic Method): Build entire lesson around sequential questions that lead to discovery. Never state conclusions directly—guide students to discover them. Use \"Why might...\" and \"What if...\" progressions."
+  },
+  { 
+    id: "storytelling", 
+    label: "Storytelling", 
+    description: "Narrative-driven teaching using stories and examples",
+    directive: "TEACHING STYLE (Storytelling): Frame biblical content through narrative arcs. Use vivid sensory details. Include character perspectives and emotions. Connect ancient stories to modern situations through parallel narratives."
   },
   { 
     id: "mixed", 
@@ -87,12 +87,6 @@ export const TEACHING_STYLES: PreferenceOption[] = [
 // ============================================================================
 
 export const LEARNING_STYLES: PreferenceOption[] = [
-  { 
-    id: "visual", 
-    label: "Visual Learners", 
-    description: "Learn best through images, diagrams, and visual aids",
-    directive: "LEARNING STYLE (Visual): Include diagram descriptions, charts, or visual metaphors in each section. Suggest whiteboard layouts. Use spatial language (\"picture this,\" \"imagine seeing\"). Recommend visual aids for activities."
-  },
   { 
     id: "auditory", 
     label: "Auditory Learners", 
@@ -110,6 +104,12 @@ export const LEARNING_STYLES: PreferenceOption[] = [
     label: "Reading/Writing", 
     description: "Learn best through reading and written exercises",
     directive: "LEARNING STYLE (Reading/Writing): Include journaling prompts throughout. Provide fill-in-the-blank options. Suggest note-taking frameworks. Include written reflection questions."
+  },
+  { 
+    id: "visual", 
+    label: "Visual Learners", 
+    description: "Learn best through images, diagrams, and visual aids",
+    directive: "LEARNING STYLE (Visual): Include diagram descriptions, charts, or visual metaphors in each section. Suggest whiteboard layouts. Use spatial language (\"picture this,\" \"imagine seeing\"). Recommend visual aids for activities."
   },
   { 
     id: "mixed", 
@@ -168,10 +168,10 @@ export const LESSON_LENGTHS: PreferenceOption[] = [
 
 export const GROUP_SIZES: PreferenceOption[] = [
   { 
-    id: "small-group", 
-    label: "Small Group (3-12)", 
-    description: "Intimate setting allowing individual attention",
-    directive: "GROUP SIZE (Small Group, 3-12): Design for intimate discussion. Every person should speak. Include pair-share activities. Use first names in example dialogues."
+    id: "family", 
+    label: "Family Setting", 
+    description: "Multi-generational family worship",
+    directive: "GROUP SIZE (Family/Intergenerational): Include age-spanning activities. Suggest parent-child discussion prompts. Vary complexity within same content. Include take-home family application."
   },
   { 
     id: "large-group", 
@@ -186,10 +186,10 @@ export const GROUP_SIZES: PreferenceOption[] = [
     directive: "GROUP SIZE (One-on-One): Highly personalized conversation format. Use \"you\" directly. Include space for personal sharing. Adapt pace to individual."
   },
   { 
-    id: "family", 
-    label: "Family Setting", 
-    description: "Multi-generational family worship",
-    directive: "GROUP SIZE (Family/Intergenerational): Include age-spanning activities. Suggest parent-child discussion prompts. Vary complexity within same content. Include take-home family application."
+    id: "small-group", 
+    label: "Small Group (3-12)", 
+    description: "Intimate setting allowing individual attention",
+    directive: "GROUP SIZE (Small Group, 3-12): Design for intimate discussion. Every person should speak. Include pair-share activities. Use first names in example dialogues."
   },
   { 
     id: "mixed", 
@@ -235,6 +235,12 @@ export const LEARNING_ENVIRONMENTS: PreferenceOption[] = [
     directive: "ENVIRONMENT (Virtual/Online): Include screen-sharing moments. Design for chat participation. Include breakout room instructions. Keep segments short (10-12 min max). Suggest interactive tools."
   },
   { 
+    id: "worship-center", 
+    label: "Worship Center / Sanctuary", 
+    description: "Main auditorium with pew seating",
+    directive: "ENVIRONMENT (Worship Center/Sanctuary): Assume pew seating in rows facing forward with no tables available. Design activities that work without table space—use pew backs, laps, or standing in place. Leverage the pulpit area for demonstrations or reader's theater. Account for reverent atmosphere in activity design. Suggest hymnals or Bibles from pew racks as available props. Include pair-share with pew neighbors for discussion. Movement activities should use aisles or standing at the pew."
+  },
+  { 
     id: "mixed", 
     label: "Mixed Environments", 
     description: "Variable locations",
@@ -247,6 +253,12 @@ export const LEARNING_ENVIRONMENTS: PreferenceOption[] = [
 // ============================================================================
 
 export const STUDENT_EXPERIENCE_LEVELS: PreferenceOption[] = [
+  { 
+    id: "seekers", 
+    label: "Seekers/Non-Believers", 
+    description: "Exploring faith questions",
+    directive: "STUDENT EXPERIENCE (Seekers/Exploring): Assume minimal Bible knowledge. Explain everything. Use accessible language. Focus on relevance and questions. Welcome doubt openly. Heavy on grace, light on church jargon."
+  },
   { 
     id: "new-believers", 
     label: "New Believers", 
@@ -266,12 +278,6 @@ export const STUDENT_EXPERIENCE_LEVELS: PreferenceOption[] = [
     directive: "STUDENT EXPERIENCE (Mature Christians): Assume biblical literacy. Include deeper word studies. Reference cross-biblical themes. Challenge with harder application questions. Less explanation, more exploration."
   },
   { 
-    id: "seekers", 
-    label: "Seekers/Non-Believers", 
-    description: "Exploring faith questions",
-    directive: "STUDENT EXPERIENCE (Seekers/Exploring): Assume minimal Bible knowledge. Explain everything. Use accessible language. Focus on relevance and questions. Welcome doubt openly. Heavy on grace, light on church jargon."
-  },
-  { 
     id: "mixed", 
     label: "Mixed Experience Levels", 
     description: "Variety of spiritual maturity",
@@ -280,7 +286,7 @@ export const STUDENT_EXPERIENCE_LEVELS: PreferenceOption[] = [
 ] as const;
 
 // ============================================================================
-// EDUCATION EXPERIENCE OPTIONS
+// STUDENT EDUCATION EXPERIENCE OPTIONS
 // ============================================================================
 
 export const EDUCATION_EXPERIENCES: PreferenceOption[] = [
@@ -352,24 +358,6 @@ export const EDUCATION_EXPERIENCES: PreferenceOption[] = [
 
 export const CULTURAL_CONTEXTS: PreferenceOption[] = [
   { 
-    id: "urban", 
-    label: "Urban", 
-    description: "City or metropolitan area context",
-    directive: "CULTURAL CONTEXT (Urban): Use city-life illustrations. Reference public transit, apartments, diverse neighbors. Include examples from fast-paced, diverse environments."
-  },
-  { 
-    id: "suburban", 
-    label: "Suburban", 
-    description: "Residential areas outside city centers",
-    directive: "CULTURAL CONTEXT (Suburban): Use family and neighborhood illustrations. Reference schools, sports, commuting. Include middle-class life applications."
-  },
-  { 
-    id: "rural", 
-    label: "Rural", 
-    description: "Country or small-town setting",
-    directive: "CULTURAL CONTEXT (Rural): Use agricultural and small-town illustrations. Reference land, seasons, tight-knit community. Include farming and nature metaphors."
-  },
-  { 
     id: "international", 
     label: "International", 
     description: "Multicultural or missionary context",
@@ -380,6 +368,24 @@ export const CULTURAL_CONTEXTS: PreferenceOption[] = [
     label: "Multicultural", 
     description: "Diverse cultural backgrounds",
     directive: "CULTURAL CONTEXT (Multicultural): Include diverse illustrations. Acknowledge varied backgrounds. Avoid single-culture assumptions. Celebrate diversity in examples."
+  },
+  { 
+    id: "rural", 
+    label: "Rural", 
+    description: "Country or small-town setting",
+    directive: "CULTURAL CONTEXT (Rural): Use agricultural and small-town illustrations. Reference land, seasons, tight-knit community. Include farming and nature metaphors."
+  },
+  { 
+    id: "suburban", 
+    label: "Suburban", 
+    description: "Residential areas outside city centers",
+    directive: "CULTURAL CONTEXT (Suburban): Use family and neighborhood illustrations. Reference schools, sports, commuting. Include middle-class life applications."
+  },
+  { 
+    id: "urban", 
+    label: "Urban", 
+    description: "City or metropolitan area context",
+    directive: "CULTURAL CONTEXT (Urban): Use city-life illustrations. Reference public transit, apartments, diverse neighbors. Include examples from fast-paced, diverse environments."
   },
   { 
     id: "mixed", 
@@ -401,16 +407,10 @@ export const SPECIAL_NEEDS_OPTIONS: PreferenceOption[] = [
     directive: ""
   },
   { 
-    id: "learning-disabilities", 
-    label: "Learning Disabilities", 
-    description: "Dyslexia, ADHD, etc.",
-    directive: "SPECIAL NEEDS (Learning Disabilities): Use short, clear sentences. Repeat key concepts multiple ways. Include multi-sensory reinforcement. Provide extra processing time in activities. Chunk information into small pieces."
-  },
-  { 
-    id: "visual-impaired", 
-    label: "Visual Impairment", 
-    description: "Low vision or blindness",
-    directive: "SPECIAL NEEDS (Visual Impairment): Include verbal descriptions of all visuals. Suggest large-print handout options. Avoid reliance on visual-only content. Emphasize auditory and tactile elements."
+    id: "esl", 
+    label: "ESL/English Learners", 
+    description: "English as second language",
+    directive: "SPECIAL NEEDS (ESL/English Learners): Use simple sentence structures. Define idioms and figures of speech. Avoid complex vocabulary when simple words work. Include visual supports. Speak/write key terms clearly."
   },
   { 
     id: "hearing-impaired", 
@@ -419,16 +419,22 @@ export const SPECIAL_NEEDS_OPTIONS: PreferenceOption[] = [
     directive: "SPECIAL NEEDS (Hearing Impairment): Include visual alternatives for all audio content. Suggest written materials. Recommend seating arrangements for lip-reading. Emphasize visual and written elements."
   },
   { 
-    id: "esl", 
-    label: "ESL/English Learners", 
-    description: "English as second language",
-    directive: "SPECIAL NEEDS (ESL/English Learners): Use simple sentence structures. Define idioms and figures of speech. Avoid complex vocabulary when simple words work. Include visual supports. Speak/write key terms clearly."
+    id: "learning-disabilities", 
+    label: "Learning Disabilities", 
+    description: "Dyslexia, ADHD, etc.",
+    directive: "SPECIAL NEEDS (Learning Disabilities): Use short, clear sentences. Repeat key concepts multiple ways. Include multi-sensory reinforcement. Provide extra processing time in activities. Chunk information into small pieces."
   },
   { 
     id: "mobility", 
     label: "Mobility Challenges", 
     description: "Physical movement limitations",
     directive: "SPECIAL NEEDS (Mobility Challenges): Design activities that can be done seated. Avoid activities requiring physical movement. Provide alternatives for any standing or walking elements. Consider accessibility of space."
+  },
+  { 
+    id: "visual-impaired", 
+    label: "Visual Impairment", 
+    description: "Low vision or blindness",
+    directive: "SPECIAL NEEDS (Visual Impairment): Include verbal descriptions of all visuals. Suggest large-print handout options. Avoid reliance on visual-only content. Emphasize auditory and tactile elements."
   },
   { 
     id: "mixed", 
@@ -444,22 +450,22 @@ export const SPECIAL_NEEDS_OPTIONS: PreferenceOption[] = [
 
 export const ASSESSMENT_STYLES: PreferenceOption[] = [
   { 
+    id: "project", 
+    label: "Group Project", 
+    description: "Collaborative demonstrations",
+    directive: "ASSESSMENT (Project-Based): Include creative project options. Design application projects. Provide rubric suggestions. Allow for extended completion time."
+  },
+  { 
     id: "discussion", 
     label: "Informal Discussion", 
     description: "Conversational assessment through dialogue",
     directive: "ASSESSMENT (Informal Discussion): Check understanding through conversation. Include \"How would you explain this to a friend?\" moments. Observe engagement rather than test."
   },
   { 
-    id: "written", 
-    label: "Written Reflection", 
-    description: "Journaling and written responses",
-    directive: "ASSESSMENT (Written Reflection): Include journaling prompts. Provide reflection questions for written response. Suggest take-home writing assignments."
-  },
-  { 
-    id: "quiz", 
-    label: "Quiz/Test", 
-    description: "Written tests and quizzes",
-    directive: "ASSESSMENT (Quiz/Review): Include review questions at end. Provide answer key for teacher. Design quick-check moments throughout."
+    id: "observation", 
+    label: "Observation Only", 
+    description: "Teacher observes without formal assessment",
+    directive: "ASSESSMENT (Observation): Include behavioral indicators of understanding. Design observable activities. Provide teacher observation prompts. No formal student assessment required."
   },
   { 
     id: "questionnaire", 
@@ -468,22 +474,22 @@ export const ASSESSMENT_STYLES: PreferenceOption[] = [
     directive: "ASSESSMENT (Questionnaire): Include structured self-assessment questions. Design reflection questionnaires. Provide rating scales or checklists for personal evaluation."
   },
   { 
+    id: "quiz", 
+    label: "Quiz/Test", 
+    description: "Written tests and quizzes",
+    directive: "ASSESSMENT (Quiz/Review): Include review questions at end. Provide answer key for teacher. Design quick-check moments throughout."
+  },
+  { 
     id: "presentation", 
     label: "Student Presentation", 
     description: "Oral presentations and sharing",
     directive: "ASSESSMENT (Presentation/Verbal): Include opportunities for students to teach back. Design share-with-class moments. Allow verbal demonstration of understanding."
   },
   { 
-    id: "project", 
-    label: "Group Project", 
-    description: "Collaborative demonstrations",
-    directive: "ASSESSMENT (Project-Based): Include creative project options. Design application projects. Provide rubric suggestions. Allow for extended completion time."
-  },
-  { 
-    id: "observation", 
-    label: "Observation Only", 
-    description: "Teacher observes without formal assessment",
-    directive: "ASSESSMENT (Observation): Include behavioral indicators of understanding. Design observable activities. Provide teacher observation prompts. No formal student assessment required."
+    id: "written", 
+    label: "Written Reflection", 
+    description: "Journaling and written responses",
+    directive: "ASSESSMENT (Written Reflection): Include journaling prompts. Provide reflection questions for written response. Suggest take-home writing assignments."
   },
 ] as const;
 
@@ -499,16 +505,16 @@ export const LANGUAGE_OPTIONS: PreferenceOption[] = [
     directive: ""
   },
   { 
-    id: "spanish", 
-    label: "Spanish", 
-    description: "Generate lesson in Spanish",
-    directive: "LANGUAGE: Generate the entire lesson in Spanish. All content, instructions, Scripture quotations, and student materials must be in Spanish."
-  },
-  { 
     id: "french", 
     label: "French", 
     description: "Generate lesson in French",
     directive: "LANGUAGE: Generate the entire lesson in French. All content, instructions, Scripture quotations, and student materials must be in French."
+  },
+  { 
+    id: "spanish", 
+    label: "Spanish", 
+    description: "Generate lesson in Spanish",
+    directive: "LANGUAGE: Generate the entire lesson in Spanish. All content, instructions, Scripture quotations, and student materials must be in Spanish."
   },
 ] as const;
 
@@ -518,16 +524,16 @@ export const LANGUAGE_OPTIONS: PreferenceOption[] = [
 
 export const LESSON_SEQUENCE_OPTIONS: PreferenceOption[] = [
   { 
-    id: "single_lesson", 
-    label: "Single Lesson", 
-    description: "Complete standalone lesson with all 8 sections",
-    directive: "LESSON SEQUENCE (Standalone): Design as complete unit. Include full context. No assumed prior knowledge from previous sessions. Resolve application within this lesson."
-  },
-  { 
     id: "part_of_series", 
     label: "Part of Series", 
     description: "One lesson in a connected series (7 max)",
     directive: "LESSON SEQUENCE (Part of Series): Include brief connection to series theme. Reference \"last week\" and \"next week\" concepts where appropriate. Build toward cumulative understanding. Include series memory work if applicable."
+  },
+  { 
+    id: "single_lesson", 
+    label: "Single Lesson", 
+    description: "Complete standalone lesson with all 8 sections",
+    directive: "LESSON SEQUENCE (Standalone): Design as complete unit. Include full context. No assumed prior knowledge from previous sessions. Resolve application within this lesson."
   },
 ] as const;
 
@@ -538,22 +544,10 @@ export const LESSON_SEQUENCE_OPTIONS: PreferenceOption[] = [
 
 export const EMOTIONAL_ENTRY_OPTIONS: PreferenceOption[] = [
   {
-    id: "curiosity",
-    label: "Curiosity",
-    description: "Open with mystery or unanswered questions",
-    directive: "EMOTIONAL ENTRY (Curiosity): Open with mystery or unanswered questions. Create \"I wonder...\" moments throughout. Delay resolution to build engagement. Use surprising facts or paradoxes to hook attention."
-  },
-  {
-    id: "conviction",
-    label: "Conviction",
-    description: "Open with bold truth claims",
-    directive: "EMOTIONAL ENTRY (Conviction): Open with bold truth claims. Create \"This matters because...\" urgency. Challenge comfort zones early. Build toward decisive response. Emphasize the stakes of the lesson's truth."
-  },
-  {
-    id: "comfort",
-    label: "Comfort",
-    description: "Open with assurance and safety",
-    directive: "EMOTIONAL ENTRY (Comfort): Open with assurance and safety. Create \"You are not alone...\" connection. Emphasize grace before challenge. Use gentle, pastoral tone. Meet students where they are hurting."
+    id: "celebration",
+    label: "Celebration",
+    description: "Open with gratitude and joy",
+    directive: "EMOTIONAL ENTRY (Celebration): Open with gratitude and joy. Create \"Look what God has done...\" wonder. Emphasize praise and thanksgiving throughout. Build toward worship response. Highlight blessings and victories."
   },
   {
     id: "challenge",
@@ -562,16 +556,28 @@ export const EMOTIONAL_ENTRY_OPTIONS: PreferenceOption[] = [
     directive: "EMOTIONAL ENTRY (Challenge): Open with disruption of assumptions. Create \"What if you're wrong about...\" tension. Push toward growth and transformation. Confront complacency. Call to higher commitment."
   },
   {
-    id: "celebration",
-    label: "Celebration",
-    description: "Open with gratitude and joy",
-    directive: "EMOTIONAL ENTRY (Celebration): Open with gratitude and joy. Create \"Look what God has done...\" wonder. Emphasize praise and thanksgiving throughout. Build toward worship response. Highlight blessings and victories."
+    id: "comfort",
+    label: "Comfort",
+    description: "Open with assurance and safety",
+    directive: "EMOTIONAL ENTRY (Comfort): Open with assurance and safety. Create \"You are not alone...\" connection. Emphasize grace before challenge. Use gentle, pastoral tone. Meet students where they are hurting."
   },
   {
     id: "connection",
     label: "Connection",
     description: "Open with shared human experience",
     directive: "EMOTIONAL ENTRY (Connection): Open with shared human experience. Create \"We've all been there...\" moments. Build community through vulnerability. Emphasize \"one another\" relationship. Use stories that unite rather than divide."
+  },
+  {
+    id: "conviction",
+    label: "Conviction",
+    description: "Open with bold truth claims",
+    directive: "EMOTIONAL ENTRY (Conviction): Open with bold truth claims. Create \"This matters because...\" urgency. Challenge comfort zones early. Build toward decisive response. Emphasize the stakes of the lesson's truth."
+  },
+  {
+    id: "curiosity",
+    label: "Curiosity",
+    description: "Open with mystery or unanswered questions",
+    directive: "EMOTIONAL ENTRY (Curiosity): Open with mystery or unanswered questions. Create \"I wonder...\" moments throughout. Delay resolution to build engagement. Use surprising facts or paradoxes to hook attention."
   },
 ] as const;
 
@@ -582,10 +588,22 @@ export const EMOTIONAL_ENTRY_OPTIONS: PreferenceOption[] = [
 
 export const THEOLOGICAL_LENS_OPTIONS: PreferenceOption[] = [
   {
-    id: "obedience",
-    label: "Obedience",
-    description: "Emphasize faithful response",
-    directive: "THEOLOGICAL LENS (Obedience): Emphasize faithful response before understanding. Highlight \"trust and obey\" moments. Application focuses on next steps of obedience. Connect blessing to faithful action. Include accountability elements."
+    id: "community",
+    label: "Community",
+    description: "Emphasize togetherness in faith",
+    directive: "THEOLOGICAL LENS (Community): Emphasize togetherness in the body of Christ. Highlight \"one another\" commands. Application focuses on relationships within the church. Include fellowship and accountability elements. Stress interdependence."
+  },
+  {
+    id: "discipleship",
+    label: "Discipleship",
+    description: "Emphasize spiritual growth and formation",
+    directive: "THEOLOGICAL LENS (Discipleship): Emphasize spiritual growth and formation. Highlight the journey of following Jesus. Application focuses on spiritual disciplines and maturity. Include mentoring elements. Connect to long-term transformation."
+  },
+  {
+    id: "evangelism",
+    label: "Evangelism",
+    description: "Emphasize sharing the Gospel and personal witness",
+    directive: "THEOLOGICAL LENS (Evangelism): Emphasize personal witness and sharing the Gospel. Highlight salvation moments and the plan of redemption in Scripture. Application focuses on how to share faith with specific people in the student's life. Include the Gospel message naturally woven into the lesson. Equip students to articulate what Christ has done for them using their own testimony. Connect every truth to its evangelistic implication—ask \"How does this truth help me tell someone about Jesus?\""
   },
   {
     id: "grace",
@@ -600,22 +618,16 @@ export const THEOLOGICAL_LENS_OPTIONS: PreferenceOption[] = [
     directive: "THEOLOGICAL LENS (Mission): Emphasize outward calling and witness. Highlight \"go and tell\" moments. Application focuses on sharing faith and serving others. Connect every truth to its missional implication. Include evangelistic elements."
   },
   {
+    id: "obedience",
+    label: "Obedience",
+    description: "Emphasize faithful response",
+    directive: "THEOLOGICAL LENS (Obedience): Emphasize faithful response before understanding. Highlight \"trust and obey\" moments. Application focuses on next steps of obedience. Connect blessing to faithful action. Include accountability elements."
+  },
+  {
     id: "worship",
     label: "Worship",
     description: "Emphasize God's worthiness",
     directive: "THEOLOGICAL LENS (Worship): Emphasize God's worthiness and our response. Highlight awe, reverence, and wonder. Application focuses on lifestyle worship. Connect truth to doxology. Include elements of praise and adoration."
-  },
-  {
-    id: "community",
-    label: "Community",
-    description: "Emphasize togetherness in faith",
-    directive: "THEOLOGICAL LENS (Community): Emphasize togetherness in the body of Christ. Highlight \"one another\" commands. Application focuses on relationships within the church. Include fellowship and accountability elements. Stress interdependence."
-  },
-  {
-    id: "discipleship",
-    label: "Discipleship",
-    description: "Emphasize spiritual growth and formation",
-    directive: "THEOLOGICAL LENS (Discipleship): Emphasize spiritual growth and formation. Highlight the journey of following Jesus. Application focuses on spiritual disciplines and maturity. Include mentoring elements. Connect to long-term transformation."
   },
 ] as const;
 
@@ -624,16 +636,6 @@ export const THEOLOGICAL_LENS_OPTIONS: PreferenceOption[] = [
 // ============================================================================
 
 export const ACTIVITY_TYPE_OPTIONS: CheckboxOption[] = [
-  { 
-    id: "written", 
-    label: "Written reflection",
-    directive: "ACTIVITY (Written Reflection): Include at least one journaling prompt per main section. Provide sentence starters for reluctant writers. Suggest private vs. shared writing options. Include take-home reflection questions."
-  },
-  { 
-    id: "verbal", 
-    label: "Verbal interaction",
-    directive: "ACTIVITY (Verbal Interaction): Include structured discussion questions with follow-ups. Design pair-share before whole-group sharing. Provide sentence frames for hesitant speakers. Include debate or perspective-taking options."
-  },
   { 
     id: "creative", 
     label: "Creative arts",
@@ -658,6 +660,16 @@ export const ACTIVITY_TYPE_OPTIONS: CheckboxOption[] = [
     id: "prayer", 
     label: "Prayer practices",
     directive: "ACTIVITY (Prayer Practices): Include structured prayer formats—ACTS, lectio divina, breath prayer, or written prayers. Provide prayer prompts. Design for varied comfort levels with public prayer."
+  },
+  { 
+    id: "verbal", 
+    label: "Verbal interaction",
+    directive: "ACTIVITY (Verbal Interaction): Include structured discussion questions with follow-ups. Design pair-share before whole-group sharing. Provide sentence frames for hesitant speakers. Include debate or perspective-taking options."
+  },
+  { 
+    id: "written", 
+    label: "Written reflection",
+    directive: "ACTIVITY (Written Reflection): Include at least one journaling prompt per main section. Provide sentence starters for reluctant writers. Suggest private vs. shared writing options. Include take-home reflection questions."
   },
 ] as const;
 

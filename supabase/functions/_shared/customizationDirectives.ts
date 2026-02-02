@@ -198,6 +198,12 @@ function buildVerificationChecklist(input: CustomizationInput): string {
     checks.push('☐ Activities designed for 13+ people; breakout instructions included');
   }
   
+  // Learning Environment checks
+  if (input.learning_environment === 'worship-center') {
+    checks.push('☐ All activities work without tables; pew-friendly design');
+    checks.push('☐ No activities requiring students to spread out materials on a surface');
+  }
+  
   // Activity Type checks
   if (input.activity_types?.includes('drama')) {
     checks.push('☐ At least one dramatic element (reader\'s theater, role-play, reenactment)');
@@ -235,6 +241,10 @@ function buildVerificationChecklist(input: CustomizationInput): string {
   }
   if (input.theological_lens === 'mission') {
     checks.push('☐ Application includes outward witness and sharing faith');
+  }
+  if (input.theological_lens === 'evangelism') {
+    checks.push('☐ Gospel message is woven naturally into lesson content');
+    checks.push('☐ Application equips students to share faith with specific people');
   }
   if (input.theological_lens === 'worship') {
     checks.push('☐ Content leads toward awe, reverence, and praise');
