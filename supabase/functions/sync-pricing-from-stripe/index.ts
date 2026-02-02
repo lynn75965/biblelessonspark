@@ -44,7 +44,7 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
+
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -66,23 +66,28 @@ serve(async (req) => {
     }
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
-    
-    // Check if we're in test mode
-    if (!stripeKey.startsWith("sk_test_")) {
+
+    if (!stripeKey) {
       return new Response(
-        JSON.stringify({ error: "This sync only runs in test mode." }), 
+        JSON.stringify({ error: "STRIPE_SECRET_KEY not configured" }),
         {
-          status: 400,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
+    // Log mode for diagnostics (no key details exposed)
+    const mode = stripeKey.startsWith("sk_test_") ? "test" : "live";
+    console.log(`Stripe sync running in ${mode} mode`);
+
+    // Let the SDK use its default API version for maximum compatibility
     const stripe = new Stripe(stripeKey, {
-      apiVersion: "2025-08-27.basil",
+      httpClient: Stripe.createFetchHttpClient(),
     });
 
     const summary = {
+      mode,
       updated: [] as any[],
       reused: [] as string[],
       errors: [] as any[],
@@ -93,7 +98,7 @@ serve(async (req) => {
 
     for (const lookupKey of CANONICAL_LOOKUP_KEYS) {
       console.log(`Fetching price for lookup_key: ${lookupKey}`);
-      
+
       try {
         const prices = await stripe.prices.list({
           lookup_keys: [lookupKey],
@@ -150,7 +155,7 @@ serve(async (req) => {
       }
 
       const planData = {
-        name: existingPlan?.name || `LessonSparkUSA — ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
+        name: existingPlan?.name || `BibleLessonSpark — ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
         lookup_key: data.monthly.lookupKey,
         price_monthly_cents: data.monthly.amount,
         price_yearly_cents: data.yearly.amount,
@@ -188,6 +193,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: error.message,
+        details: "Check Supabase Edge Function logs for full stack trace",
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
