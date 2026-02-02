@@ -8,11 +8,12 @@
  * SSOT Compliance: Frontend drives backend
  * All email delivery constants defined here, imported everywhere
  *
- * Version: 1.0.0
+ * Version: 1.1.0
  * Created: 2026-02-01
+ * Updated: 2026-02-01 — Added ROSTER_CONFIG for class email rosters
  */
 
-export const EMAIL_DELIVERY_VERSION = '1.0.0';
+export const EMAIL_DELIVERY_VERSION = '1.1.0';
 
 /**
  * Email delivery feature configuration
@@ -57,6 +58,44 @@ export const EMAIL_DELIVERY_CONFIG = {
     // Upgrade prompts (free users)
     upgradeTitle: 'Email Delivery — Premium Feature',
     upgradeMessage: 'Email delivery is available for paid subscribers. Upgrade to send lessons directly to your students and fellow teachers.',
+  },
+} as const;
+
+/**
+ * Class email roster configuration
+ */
+export const ROSTER_CONFIG = {
+  maxRosters: 10,
+  maxRosterNameLength: 50,
+
+  labels: {
+    // Dropdown / load
+    loadRoster: 'Load Class Roster',
+    noRosterSelected: '— Select a roster —',
+    noRosters: 'No saved rosters yet. Enter emails and save one below.',
+
+    // Save new
+    saveAsRoster: 'Save as New Roster',
+    rosterNamePlaceholder: 'e.g., Adult Sunday School',
+    rosterNameLabel: 'Roster Name',
+    saving: 'Saving...',
+
+    // Manage
+    manageRosters: 'Manage Rosters',
+    hideManage: 'Hide',
+    updateEmails: 'Update with current emails',
+    deleteRoster: 'Delete',
+    deleteConfirm: 'Delete "{name}" permanently? This cannot be undone.',
+    recipientCount: '{count} email(s)',
+
+    // Toasts
+    rosterSaved: 'Roster "{name}" saved with {count} email(s).',
+    rosterUpdated: 'Roster "{name}" updated with {count} email(s).',
+    rosterDeleted: 'Roster "{name}" deleted.',
+    maxRostersReached: 'Maximum of {max} rosters allowed. Delete one to add another.',
+    rosterNameRequired: 'Please enter a name for this roster.',
+    rosterNameTooLong: 'Roster name must be {max} characters or less.',
+    noEmailsToSave: 'Enter email addresses above before saving a roster.',
   },
 } as const;
 
