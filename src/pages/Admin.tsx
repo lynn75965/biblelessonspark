@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench } from "lucide-react";
+import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -24,6 +24,7 @@ import { PROGRAM_CONFIG } from "@/constants/programConfig";
 import { isBetaMode } from "@/constants/systemSettings";
 import { AdminSecurityPanel } from "@/components/admin/AdminSecurityPanel";
 import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
+import { ExportSettingsPanel } from "@/components/admin/ExportSettingsPanel";
 import { TransferRequestQueue } from "@/components/admin/TransferRequestQueue";
 import { BRANDING } from "@/config/branding";
 
@@ -37,6 +38,7 @@ import { BRANDING } from "@/config/branding";
 // Enrollment Analytics (Referral Sources + Church Directory) added (January 1, 2026)
 // Email Sequences tab added for onboarding automation (January 26, 2026)
 // Toolbelt Admin link added (January 28, 2026)
+// Export Settings tab added (February 2, 2026)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -248,6 +250,10 @@ export default function Admin() {
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
+            <TabsTrigger value="export-settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Export Settings</span>
+            </TabsTrigger>
             <TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Palette className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Branding</span>
@@ -367,6 +373,10 @@ export default function Admin() {
 
           <TabsContent value="security" className="mt-6 relative z-0">
             <AdminSecurityPanel />
+          </TabsContent>
+
+          <TabsContent value="export-settings" className="mt-6 relative z-0">
+            <ExportSettingsPanel />
           </TabsContent>
 
           <TabsContent value="branding" className="mt-6 relative z-0">
