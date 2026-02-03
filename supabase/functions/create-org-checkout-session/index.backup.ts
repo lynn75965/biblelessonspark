@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -34,17 +34,15 @@ serve(async (req) => {
       .single();
     if (orgError || !org) throw new Error("Organization not found");
 
-    // Check organization_members table for owner/manager role
-    const { data: membership } = await supabase
-      .from("organization_members")
-      .select("role")
-      .eq("organization_id", organization_id)
-      .eq("user_id", user.id)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("organization_id, organization_role")
+      .eq("id", user.id)
       .single();
 
     const isOrgCreator = org.created_by === user.id;
-    const isOrgOwnerOrManager = membership?.role === "owner" || membership?.role === "manager";
-    if (!isOrgCreator && !isOrgOwnerOrManager) throw new Error("Only organization managers can subscribe");
+    const isOrgManager = profile?.organization_id === organization_id && profile?.organization_role === "manager";
+    if (!isOrgCreator && !isOrgManager) throw new Error("Only organization managers can subscribe");
 
     const { data: tierConfig, error: tierError } = await supabase
       .from("org_tier_config")
@@ -81,9 +79,8 @@ serve(async (req) => {
       headers: { "Authorization": `Bearer ${stripeSecretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
         customer: stripeCustomerId, "line_items[0][price]": stripePriceId, "line_items[0][quantity]": "1", mode: "subscription",
-        success_url: `${siteUrl}/org?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${siteUrl}/org?checkout=cancelled`,
-        allow_promotion_codes: "true",
+        success_url: `${siteUrl}/org-manager?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${siteUrl}/org-manager?checkout=cancelled`,
         "metadata[organization_id]": organization_id, "metadata[tier]": tier, "metadata[billing_interval]": billing_interval,
         "subscription_data[metadata][organization_id]": organization_id, "subscription_data[metadata][tier]": tier,
       }),
