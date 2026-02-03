@@ -91,7 +91,7 @@ serve(async (req) => {
     if (!checkoutResponse.ok) { const err = await checkoutResponse.json(); throw new Error(`Checkout failed: ${err.error?.message}`); }
     const session = await checkoutResponse.json();
 
-    return new Response(JSON.stringify({ url: session.url, session_id: session.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    return new Response(JSON.stringify({ checkout_url: session.url, session_id: session.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
   } catch (error) {
     console.error("Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 });
