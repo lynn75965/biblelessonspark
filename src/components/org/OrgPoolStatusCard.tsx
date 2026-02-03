@@ -113,7 +113,7 @@ export function OrgPoolStatusCard({
         body: {
           organization_id: organizationId,
           tier: tier.tier,
-          billing_interval: interval,
+          billing_interval: interval === 'year' ? 'annual' : 'monthly',
         },
       });
 
