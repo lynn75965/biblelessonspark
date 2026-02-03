@@ -118,6 +118,11 @@ export function CreateChildOrgDialog({
 
       if (insertError) throw insertError;
 
+      // If manager email provided and different from current user,
+      // update created_by to that user (Admin-only flow)
+      // For now, the creating user becomes the Org Manager (created_by)
+      // Future: invitation workflow for designated manager
+
       toast({
         title: "Organization Created",
         description: `${formData.name} has been created as a ${childLevelName} under ${parentOrgName}`,
@@ -194,7 +199,7 @@ export function CreateChildOrgDialog({
               onChange={(e) => setFormData({ ...formData, org_type: e.target.value })}
               disabled={submitting}
             >
-              {Object.values(ORG_TYPES).map((type) => (
+              {ORG_TYPES.map((type) => (
                 <option key={type.id} value={type.id}>
                   {type.label}
                 </option>
