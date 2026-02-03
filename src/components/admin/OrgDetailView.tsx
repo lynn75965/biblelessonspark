@@ -1,5 +1,6 @@
 // OrgDetailView - Admin drill-down into organization details
 // SSOT: Uses ORG_DETAIL_TABS from orgManagerConfig.ts
+// FIX: Cascade delete invites, shared focus, transfer requests before org deletion
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -150,7 +151,66 @@ export function OrgDetailView({
         return;
       }
 
-      // Delete the organization
+      // ============================================================
+      // CASCADE DELETE RELATED RECORDS
+      // Order matters: delete FK-dependent records first
+      // ============================================================
+
+      // 1. Delete invites linked to this organization
+      const { error: invitesError } = await supabase
+        .from("invites")
+        .delete()
+        .eq("organization_id", organization.id);
+
+      if (invitesError) {
+        console.error("Error deleting invites:", invitesError);
+        // Continue anyway - invites are not critical
+      }
+
+      // 2. Delete shared focus records for this organization
+      const { error: focusError } = await supabase
+        .from("org_shared_focus")
+        .delete()
+        .eq("organization_id", organization.id);
+
+      if (focusError) {
+        console.error("Error deleting shared focus:", focusError);
+        // Continue anyway
+      }
+
+      // 3. Delete transfer requests where this org is source or target
+      const { error: transferError1 } = await supabase
+        .from("transfer_requests")
+        .delete()
+        .eq("source_org_id", organization.id);
+
+      if (transferError1) {
+        console.error("Error deleting source transfer requests:", transferError1);
+      }
+
+      const { error: transferError2 } = await supabase
+        .from("transfer_requests")
+        .delete()
+        .eq("target_org_id", organization.id);
+
+      if (transferError2) {
+        console.error("Error deleting target transfer requests:", transferError2);
+      }
+
+      // 4. Unlink any child organizations (set their parent_org_id to null)
+      const { error: childrenError } = await supabase
+        .from("organizations")
+        .update({ parent_org_id: null })
+        .eq("parent_org_id", organization.id);
+
+      if (childrenError) {
+        console.error("Error unlinking child organizations:", childrenError);
+      }
+
+      // ============================================================
+      // NOW DELETE THE ORGANIZATION
+      // ============================================================
+
       const { error } = await supabase
         .from("organizations")
         .delete()

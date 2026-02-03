@@ -253,7 +253,7 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
         .from("profiles")
         .update({
           organization_id: organizationId,
-          organization_role: ORG_ROLES.member
+          organization_role: ORG_ROLES.member,
         })
         .eq("id", selectedUserId);
 
@@ -276,6 +276,12 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchMembers(), fetchInvites()]);
+    setRefreshing(false);
+  };
+
   const handleRequestTransfer = (member: OrgMember) => {
     setSelectedMemberForTransfer(member);
     setTransferDialogOpen(true);
@@ -284,56 +290,51 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
   const getRoleBadge = (role: string | null) => {
     switch (role) {
       case ORG_ROLES.leader:
-        return <Badge className="bg-purple-500"><Crown className="h-3 w-3 mr-1" />Leader</Badge>;
+        return <Badge variant="default" className="bg-primary"><Crown className="h-3 w-3 mr-1" />Leader</Badge>;
       case ORG_ROLES.coLeader:
-        return <Badge className="bg-blue-500"><Crown className="h-3 w-3 mr-1" />Co-Leader</Badge>;
-      case ORG_ROLES.member:
-        return <Badge variant="secondary">Member</Badge>;
+        return <Badge variant="secondary"><Crown className="h-3 w-3 mr-1" />Co-Leader</Badge>;
       default:
         return <Badge variant="outline">Member</Badge>;
     }
   };
 
-  const refresh = async () => {
-    setRefreshing(true);
-    await fetchMembers();
-    await fetchInvites();
-    setRefreshing(false);
-    toast({
-      title: "Refreshed",
-      description: "Member list updated",
-    });
-  };
-
-  // Check if user can request transfers (org leaders and co-leaders)
-  const canRequestTransfer = userRole === ROLES.platformAdmin || 
-                             userRole === ROLES.orgLeader;
+  // Check if user can see add existing user button (admin only)
+  const canAddExistingUser = canAccessFeature(userRole, 'addExistingUserToOrg', true);
+  
+  // Check if user can request transfers (org leaders only, not members viewing their own org)
+  const canRequestTransfer = userRole === ROLES.platformAdmin || userRole === ROLES.orgLeader;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card className="bg-gradient-card">
+      {/* Header Card */}
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
-                Organization Members
-              </CardTitle>
-              <CardDescription>
-                Manage members for {organizationName}
-              </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle>Member Management</CardTitle>
+                <CardDescription>Manage {organizationName} members</CardDescription>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing}>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
                 <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
+
               {canAccessFeature(userRole, 'inviteOrgMembers', true) && (
                 <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm">
-                      <UserPlus className="h-4 w-4 mr-2" />
+                    <Button>
+                      <Mail className="h-4 w-4 mr-2" />
                       Invite Member
                     </Button>
                   </DialogTrigger>
@@ -341,16 +342,16 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                     <DialogHeader>
                       <DialogTitle>Invite New Member</DialogTitle>
                       <DialogDescription>
-                        Send an invitation to join {organizationName}
+                        Send an email invitation to join {organizationName}
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="invite-email">Email Address *</Label>
+                        <Label htmlFor="invite-email">Email Address</Label>
                         <Input
                           id="invite-email"
                           type="email"
-                          placeholder="you@yourplace.com"
+                          placeholder="teacher@example.com"
                           value={inviteEmail}
                           onChange={(e) => setInviteEmail(e.target.value)}
                         />
@@ -361,21 +362,22 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                         Cancel
                       </Button>
                       <Button onClick={handleSendInvite} disabled={inviteLoading}>
-                        <Mail className="h-4 w-4 mr-2" />
+                        <Send className="h-4 w-4 mr-2" />
                         Send Invitation
                       </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
               )}
-              {canAccessFeature(userRole, 'addExistingUserToOrg', true) && (
+
+              {canAddExistingUser && (
                 <Dialog open={addUserDialogOpen} onOpenChange={(open) => {
                   setAddUserDialogOpen(open);
                   if (open) fetchUnassignedUsers();
                 }}>
                   <DialogTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      <UserCheck className="h-4 w-4 mr-2" />
+                    <Button variant="outline">
+                      <UserPlus className="h-4 w-4 mr-2" />
                       Add Existing User
                     </Button>
                   </DialogTrigger>
@@ -383,31 +385,33 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                     <DialogHeader>
                       <DialogTitle>Add Existing User</DialogTitle>
                       <DialogDescription>
-                        Add a platform user to {organizationName}
+                        Add a user who already has an account but is not assigned to any organization
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <Label>Select User *</Label>
-                        {loadingUnassigned ? (
-                          <p className="text-sm text-muted-foreground">Loading users...</p>
-                        ) : unassignedUsers.length === 0 ? (
-                          <p className="text-sm text-muted-foreground">No unassigned users available</p>
-                        ) : (
+                      {loadingUnassigned ? (
+                        <p className="text-sm text-muted-foreground">Loading users...</p>
+                      ) : unassignedUsers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">
+                          No unassigned users available
+                        </p>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label>Select User</Label>
                           <Select value={selectedUserId} onValueChange={setSelectedUserId}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select a user..." />
+                              <SelectValue placeholder="Choose a user..." />
                             </SelectTrigger>
                             <SelectContent>
                               {unassignedUsers.map((user) => (
                                 <SelectItem key={user.id} value={user.id}>
-                                  {user.full_name || user.email}
+                                  {user.full_name || user.email} ({user.email})
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={() => setAddUserDialogOpen(false)}>
@@ -542,6 +546,20 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
                                 className="text-destructive"
                                 onClick={() => handleRemoveMember(member.id)}
                                 title="Remove from organization"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                          {/* LEADER ACTIONS - Platform Admin Only */}
+                          {member.organization_role === ORG_ROLES.leader && userRole === ROLES.platformAdmin && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-destructive"
+                                onClick={() => handleRemoveMember(member.id)}
+                                title="Remove leader from organization (Admin only)"
                               >
                                 <UserMinus className="h-4 w-4" />
                               </Button>
