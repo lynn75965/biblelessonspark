@@ -1,6 +1,11 @@
 // src/constants/orgPricingConfig.ts
 // SSOT: Organization Pricing Configuration
 // This file is the MASTER - database is synced via: npm run sync-org-pricing
+//
+// STACK 2 — SHEPHERD TIERS (Organization)
+// Single Staff | Starter | Growth | Develop | Expansion
+//
+// Updated: February 3, 2026
 
 // ============================================
 // ORGANIZATION SUBSCRIPTION TIERS
@@ -23,59 +28,73 @@ export interface OrgTier {
 
 export const ORG_TIERS: OrgTier[] = [
   {
+    tier: 'org_single_staff',
+    displayName: 'Single Staff',
+    lessonsLimit: 20,
+    priceMonthly: 19.00,
+    priceAnnual: 190.00,
+    stripeProductId: 'prod_TudPNi4TJKS8iP',
+    stripePriceIdMonthly: 'price_1Swo8cI4GLksxBfVmjDOAPsy',
+    stripePriceIdAnnual: 'price_1Swo8cI4GLksxBfVKrgbURbQ',
+    description: '20 lessons per month shared across unlimited teachers',
+    bestFor: 'Pastor + 3-5 teachers',
+    displayOrder: 1,
+    isActive: true,
+  },
+  {
     tier: 'org_starter',
-    displayName: 'Ministry Starter',
-    lessonsLimit: 25,
+    displayName: 'Starter',
+    lessonsLimit: 30,
     priceMonthly: 29.00,
     priceAnnual: 290.00,
     stripeProductId: 'prod_Tt8suAq0Ba5Kyy',
     stripePriceIdMonthly: 'price_1SvMaWI4GLksxBfVn6FVKKiG',
     stripePriceIdAnnual: 'price_1SvMcVI4GLksxBfVLG7k1F12',
-    description: '25 lessons per month shared across unlimited teachers',
-    bestFor: '2-10 teachers',
-    displayOrder: 1,
-    isActive: true,
-  },
-  {
-    tier: 'org_growth',
-    displayName: 'Ministry Growth',
-    lessonsLimit: 60,
-    priceMonthly: 59.00,
-    priceAnnual: 590.00,
-    stripeProductId: 'prod_Tt9AA0Mr8ggFm8',
-    stripePriceIdMonthly: 'price_1SvMt9I4GLksxBfV5hc6Rsox',
-    stripePriceIdAnnual: 'price_1SvMsCI4GLksxBfVDy8YjZYu',
-    description: '60 lessons per month shared across unlimited teachers',
-    bestFor: '10-15 teachers',
+    description: '30 lessons per month shared across unlimited teachers',
+    bestFor: '5-7 teachers',
     displayOrder: 2,
     isActive: true,
   },
   {
-    tier: 'org_ministry',
-    displayName: 'Ministry Full',
-    lessonsLimit: 120,
-    priceMonthly: 99.00,
-    priceAnnual: 990.00,
-    stripeProductId: 'prod_Tt9GvWKjoPutRs',
-    stripePriceIdMonthly: 'price_1SvN1lI4GLksxBfVEpU7eKq5',
-    stripePriceIdAnnual: 'price_1SvMxmI4GLksxBfVVOY3cOpb',
-    description: '120 lessons per month shared across unlimited teachers',
-    bestFor: '20-30 teachers',
+    tier: 'org_growth',
+    displayName: 'Growth',
+    lessonsLimit: 60,
+    priceMonthly: 49.00,
+    priceAnnual: 490.00,
+    stripeProductId: 'prod_Tt9AA0Mr8ggFm8',
+    stripePriceIdMonthly: 'price_1SvMt9I4GLksxBfV5hc6Rsox',
+    stripePriceIdAnnual: 'price_1SvMsCI4GLksxBfVDy8YjZYu',
+    description: '60 lessons per month shared across unlimited teachers',
+    bestFor: '10-14 teachers',
     displayOrder: 3,
     isActive: true,
   },
   {
-    tier: 'org_enterprise',
-    displayName: 'Ministry Enterprise',
-    lessonsLimit: 250,
-    priceMonthly: 179.00,
-    priceAnnual: 1790.00,
+    tier: 'org_develop',
+    displayName: 'Develop',
+    lessonsLimit: 100,
+    priceMonthly: 79.00,
+    priceAnnual: 790.00,
+    stripeProductId: 'prod_Tt9GvWKjoPutRs',
+    stripePriceIdMonthly: 'price_1SvN1lI4GLksxBfVEpU7eKq5',
+    stripePriceIdAnnual: 'price_1SvMxmI4GLksxBfVVOY3cOpb',
+    description: '100 lessons per month shared across unlimited teachers',
+    bestFor: '18-25 teachers',
+    displayOrder: 4,
+    isActive: true,
+  },
+  {
+    tier: 'org_expansion',
+    displayName: 'Expansion',
+    lessonsLimit: 200,
+    priceMonthly: 149.00,
+    priceAnnual: 1490.00,
     stripeProductId: 'prod_Tt9MztPmhtJnZ2',
     stripePriceIdMonthly: 'price_1SvN5RI4GLksxBfVrtZ2aDN9',
     stripePriceIdAnnual: 'price_1SvN4CI4GLksxBfVgdN7qjsr',
-    description: '250 lessons per month shared across unlimited teachers',
-    bestFor: 'Large churches, associations',
-    displayOrder: 4,
+    description: '200 lessons per month shared across unlimited teachers',
+    bestFor: '35-50 teachers',
+    displayOrder: 5,
     isActive: true,
   },
 ];
@@ -101,7 +120,7 @@ export const LESSON_PACKS: LessonPack[] = [
     packType: 'small',
     displayName: 'Lesson Pack - Small',
     lessonsIncluded: 10,
-    price: 15.00,
+    price: 12.00,
     stripeProductId: 'prod_Tt9VeUiXCse3Vf',
     stripePriceId: 'price_1SvNC3I4GLksxBfVzzp79bQP',
     description: '10 bonus lessons - never expire',
@@ -112,7 +131,7 @@ export const LESSON_PACKS: LessonPack[] = [
     packType: 'medium',
     displayName: 'Lesson Pack - Medium',
     lessonsIncluded: 25,
-    price: 35.00,
+    price: 25.00,
     stripeProductId: 'prod_Tt9c9VetZN2qmn',
     stripePriceId: 'price_1SvNImI4GLksxBfVl7fegaD8',
     description: '25 bonus lessons - never expire',
@@ -123,7 +142,7 @@ export const LESSON_PACKS: LessonPack[] = [
     packType: 'large',
     displayName: 'Lesson Pack - Large',
     lessonsIncluded: 50,
-    price: 60.00,
+    price: 45.00,
     stripeProductId: 'prod_Tt9fZtm3WFiKlh',
     stripePriceId: 'price_1SvNM4I4GLksxBfVhC8Gt23X',
     description: '50 bonus lessons - never expire',
@@ -212,6 +231,10 @@ export const getOrgTierByStripePriceId = (priceId: string): OrgTier | undefined 
   return ORG_TIERS.find(
     tier => tier.stripePriceIdMonthly === priceId || tier.stripePriceIdAnnual === priceId
   );
+};
+
+export const getOrgTierByTierKey = (tierKey: string): OrgTier | undefined => {
+  return ORG_TIERS.find(tier => tier.tier === tierKey);
 };
 
 export const getLessonPackByStripePriceId = (priceId: string): LessonPack | undefined => {
