@@ -8,7 +8,6 @@
  * - Shows transfer requests initiated by teachers in this org
  * - Allows Org Manager to agree or decline
  * - Shows status of all org transfer requests
- * - Filters out orphaned records (missing user profile or org)
  */
 
 import { useState, useEffect } from "react";
@@ -108,46 +107,33 @@ export function OrgManagerTransferRequests({
 
       const orgMap = new Map((orgs || []).map(o => [o.id, o]));
 
-      // Format data and filter out orphaned records
-      const formatted: TransferRequest[] = requestsData
-        .filter((r) => {
-          // Filter out records where user profile is missing
-          const hasProfile = profileMap.has(r.user_id);
-          
-          // For TO_ANOTHER_ORG type, also filter out if destination org is missing
-          if (r.transfer_type === TRANSFER_TYPE.TO_ANOTHER_ORG && r.to_organization_id) {
-            const hasDestOrg = orgMap.has(r.to_organization_id);
-            return hasProfile && hasDestOrg;
-          }
-          
-          return hasProfile;
-        })
-        .map((r) => {
-          const profile = profileMap.get(r.user_id);
-          const toOrg = r.to_organization_id ? orgMap.get(r.to_organization_id) : null;
+      // Format data
+      const formatted: TransferRequest[] = requestsData.map((r) => {
+        const profile = profileMap.get(r.user_id);
+        const toOrg = r.to_organization_id ? orgMap.get(r.to_organization_id) : null;
 
-          return {
-            id: r.id,
-            user_id: r.user_id,
-            user_name: profile?.full_name || "Unknown",
-            user_email: profile?.email || "",
-            from_organization_id: r.from_organization_id,
-            from_organization_name: organizationName,
-            to_organization_id: r.to_organization_id,
-            to_organization_name: toOrg?.name || null,
-            transfer_type: r.transfer_type,
-            status: r.status,
-            initiated_by: r.initiated_by,
-            reason: r.reason,
-            response_note: r.response_note,
-            responded_at: r.responded_at,
-            admin_notes: r.admin_notes,
-            requested_by: r.requested_by,
-            created_at: r.created_at,
-            processed_at: r.processed_at,
-            processed_by: r.processed_by,
-          };
-        });
+        return {
+          id: r.id,
+          user_id: r.user_id,
+          user_name: profile?.full_name || "Unknown",
+          user_email: profile?.email || "",
+          from_organization_id: r.from_organization_id,
+          from_organization_name: organizationName,
+          to_organization_id: r.to_organization_id,
+          to_organization_name: toOrg?.name || null,
+          transfer_type: r.transfer_type,
+          status: r.status,
+          initiated_by: r.initiated_by,
+          reason: r.reason,
+          response_note: r.response_note,
+          responded_at: r.responded_at,
+          admin_notes: r.admin_notes,
+          requested_by: r.requested_by,
+          created_at: r.created_at,
+          processed_at: r.processed_at,
+          processed_by: r.processed_by,
+        };
+      });
 
       setRequests(formatted);
     } catch (error) {
