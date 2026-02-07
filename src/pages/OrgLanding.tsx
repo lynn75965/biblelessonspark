@@ -299,8 +299,9 @@ const OrgLanding = () => {
           <p className="text-muted-foreground">
             The Shepherd tier gives your organization a shared lesson pool and management tools. 
             For your <em>own</em> lessons (personal preparation, devotionals), you'll also need 
-            a Personal subscription ($9/month). If you don't have one yet, we'll add it 
-            automatically at checkout — matched to your billing interval.
+            a Personal subscription ($9/month OR $90/year — $7.50 monthly). Be sure to match 
+            your choice with your organization's billing choice. If you don't have one yet, 
+            we'll add it automatically at checkout.
           </p>
         </div>
       </section>
