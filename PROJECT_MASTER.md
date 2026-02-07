@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** February 2, 2026 (Email Lesson Delivery Phase 25 COMPLETE, Series/Theme Mode Phase 24 IN PROGRESS)
+**Last Updated:** February 4, 2026 (Three Stacks Framework defined, Self-Service Shepherd Entry planned, Lesson Visibility planned, Org Tiers updated)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -18,6 +18,106 @@
 | **Platform Mode** | Production (as of Jan 10, 2026) |
 | **Launch Date** | January 27, 2026 |
 | **Reset Logic** | Rolling 30-day periods (per-user, not calendar month) |
+
+---
+
+## THREE STACKS FRAMEWORK (Agreed February 3, 2026)
+
+### Overview
+BibleLessonSpark operates across three distinct perspectives (Stacks), each serving a different calling within the ministry of teaching God's Word. Stacks define WHO is using the platform and WHAT they see. Tiers define WHAT they pay and HOW MUCH capacity they get. They are independent.
+
+### Stack Definitions
+
+| Stack | Name | Calling | Who |
+|-------|------|---------|-----|
+| 1 | **Discipler** | Discipling | Teacher or Teaching Team |
+| 2 | **Shepherd** | Shepherding | Org Manager (Pastor / Education Director) |
+| 3 | **Partner** | Stewarding the Platform | White-Label Great Commission Partner |
+
+### Stack 1: Discipler (Teacher)
+
+The teacher's calling is to disciple. Everything in their view serves preparing to faithfully teach God's Word to their class and walking alongside fellow teachers.
+
+**Personal stewardship:** Generate, refine, export, deliver lessons. Personal lesson library. DevotionalSpark. Account and preferences. Shared Focus participation (receive suggestion from org, choose to follow).
+
+**Team Teaching (peer coordination):** Teachers who share a class or age group can link accounts (opt-in, accept/decline, max 3 per team). See each other's Shared lessons for coordination. This is horizontal — no hierarchy. They're co-laborers.
+
+**Mentoring pathway:** A seasoned teacher can bring a class member alongside them into a teaching role — the Great Commission in action within the local church.
+
+**Boundary:** Personal and peer-level stewardship of the teaching gift. No administrative authority. No oversight dashboards.
+
+**Tiers:**
+| Tier | Lessons/Month | Price |
+|------|---------------|-------|
+| Free | 5 | $0 |
+| Subscribed | 20 | $9/mo ($90/yr) |
+
+### Stack 2: Shepherd (Org Manager)
+
+The org manager's calling is to shepherd the teaching ministry. A shepherd knows the flock — they see their teachers' lessons not to control, but to affirm, encourage, and ensure alignment.
+
+**Includes:** Member management (invite, remove, roles, transfers). Shared Focus management (set church-wide passage/theme). Shared Focus participation tracking (which teachers are aligned). Teacher lesson visibility (read-only for org-funded lessons; see Lesson Visibility below). Lesson pool and billing at the org level. Org profile and settings. Org-level branding controls (church identity on exports). Org-level admin tools (distinct from platform admin). Child org creation and network management.
+
+**Boundary:** Pastoral oversight of their organization's teaching team. Never touches system settings, pricing plans, export formatting defaults, or security dashboards.
+
+**Tiers:**
+| Tier | Pool | Monthly | Annual | Target |
+|------|------|---------|--------|--------|
+| Single Staff | 20 | $19 | $190 | 3-5 teachers |
+| Starter | 30 | $29 | $290 | 5-7 teachers |
+| Growth | 60 | $49 | $490 | 10-14 teachers |
+| Develop | 100 | $79 | $790 | 18-25 teachers |
+| Expansion | 200 | $149 | $1,490 | 35-50 teachers |
+
+### Stack 3: Partner (White-Label Great Commission Partner)
+
+Platform-level admin. Full Admin Panel. Platform branding (custom domain, logo, colors, fonts). Multi-org oversight. System settings, security, analytics, pricing, email sequences, export formatting, beta management. The root Partner is Lynn (BibleLessonSpark). Future licensed partners (Baptist associations, curriculum publishers) get this same level of control scoped to their tenant.
+
+**Boundary:** Institutional stewardship of the entire platform instance.
+
+**Tier:**
+| Level | Price |
+|-------|-------|
+| Level 1 | $199/mo ($1,990/yr) |
+
+### Key Principle
+**Every person generates lessons on their own individual subscription.** The org (Shepherd) and partner tiers buy management and stewardship capabilities, not lesson generation. A pastor paying for the org tier still needs their own Discipler subscription for their personal lessons.
+
+### Lesson Visibility (Planned — Phase 26)
+
+Each lesson has a visibility status controlled by its creator:
+
+| Status | Who Can See It | Default |
+|--------|----------------|---------|
+| **Private** | Only the creator | ✅ Always default |
+| **Shared** | Creator + Org Manager + linked Teaching Team | Manual toggle |
+
+**Private is the permanent default.** Teachers must explicitly mark a lesson as Shared.
+
+**Org Manager override:** Org Managers CAN view Private lessons that are org-funded (pool or pack), because the organization paid for them. Personal subscription lessons are never visible to the Org Manager unless Shared.
+
+**Funding badges (Org Lessons view):**
+- 🟢 **Pool** — monthly subscription lesson
+- 🔵 **Pack** — lesson pack purchase lesson
+- *(Personal lessons don't appear in org view at all)*
+
+**Visibility badges:**
+- ✅ **Shared** — teacher released it
+- 🔒 **Private** — Org Manager using override on org-funded lesson
+
+**Transparency messages:**
+- Teacher sees (when generating from org pool): "This lesson is funded by your [org name] lesson pool. [Org Manager name] may view it for shepherding purposes."
+- Org Manager sees (when using override): "🔒 This lesson has not been shared by the teacher. You have access because it was funded by your [org name] lesson pool."
+
+### Teaching Team (Planned — Phase 27)
+
+Peer-to-peer linked visibility for teachers sharing a class:
+- Teacher Z sends link request to Teacher Y
+- Teacher Y accepts or declines independently
+- If accepted, both see each other's **Shared** lessons (read-only)
+- Either can unlink at any time
+- Maximum 3 teachers per team
+- If 4+ teachers need coordination → graduate to Organization (Shepherd)
 
 ---
 
@@ -92,11 +192,11 @@ Maximum depth: 4 levels (enforced by Edge Function per SSOT `ORG_HIERARCHY.maxDe
 | Type | Label | Description |
 |------|-------|-------------|
 | `church` | Church | Local congregation (default) |
-| `association` | Association | Regional grouping of churches |
-| `network` | Network | Church planting or cooperative ministry network |
-| `convention` | Convention | State or national Baptist convention |
 | `ministry` | Ministry | Specialized ministry within a church |
-| `enterprise` | Enterprise | Convention, denomination, or large institutional organization |
+| `network` | Network | Church planting or cooperative ministry network |
+| `association` | Association | Regional grouping of churches |
+| `convention` | Convention | State or national Baptist convention |
+| `other` | Other | Any other organization type |
 
 ### SSOT Configuration (organizationConfig.ts)
 The SSOT defines all hierarchy rules, visibility boundaries, health indicators, and shared focus behavior:
@@ -378,17 +478,18 @@ Organization billing enables churches and associations to purchase shared lesson
 #### Organization Subscription Tiers
 | Tier | Lessons/Month | Price/Mo | Price/Yr | Target Size |
 |------|---------------|----------|----------|-------------|
-| Starter | 25 | $29 | $290 | 2-10 teachers |
-| Growth | 60 | $59 | $590 | 10-15 teachers |
-| Ministry Full | 120 | $99 | $990 | 20-30 teachers |
-| Enterprise | 250 | $179 | $1,790 | Large churches/associations |
+| Single Staff | 20 | $19 | $190 | 3-5 teachers |
+| Starter | 30 | $29 | $290 | 5-7 teachers |
+| Growth | 60 | $49 | $490 | 10-14 teachers |
+| Develop | 100 | $79 | $790 | 18-25 teachers |
+| Expansion | 200 | $149 | $1,490 | 35-50 teachers |
 
 #### Lesson Packs (One-Time, Never Expire)
 | Pack | Lessons | Price |
 |------|---------|-------|
-| Small | 10 | $15 |
-| Medium | 25 | $35 |
-| Large | 50 | $60 |
+| Small | 10 | $12 |
+| Medium | 25 | $25 |
+| Large | 50 | $45 |
 
 #### Onboarding Options (One-Time)
 | Option | Price | Description |
@@ -400,12 +501,20 @@ Organization billing enables churches and associations to purchase shared lesson
 ### Stripe Products (Live)
 
 **Organization Subscriptions:**
-| Tier | Product ID | Annual Price ID | Monthly Price ID |
-|------|------------|-----------------|------------------|
-| Starter | prod_Tt8suAq0Ba5Kyy | price_1SvMcVI4GLksxBfVLG7k1F12 | price_1SvMaWI4GLksxBfVn6FVKKiG |
-| Growth | prod_Tt9AA0Mr8ggFm8 | price_1SvMsCI4GLksxBfVDy8YjZYu | price_1SvMt9I4GLksxBfV5hc6Rsox |
-| Ministry Full | prod_Tt9GvWKjoPutRs | price_1SvMxmI4GLksxBfVVOY3cOpb | price_1SvN1lI4GLksxBfVEpU7eKq5 |
-| Enterprise | prod_Tt9MztPmhtJnZ2 | price_1SvN4CI4GLksxBfVgdN7qjsr | price_1SvN5RI4GLksxBfVrtZ2aDN9 |
+| Tier | Product ID | Monthly Price ID | Annual Price ID |
+|------|------------|------------------|-----------------|
+| Single Staff | prod_TudPNi4TJKS8iP | price_1Swo8cI4GLksxBfVmjDOAPsy | price_1Swo8cI4GLksxBfVKrgbURbQ |
+| Starter | prod_Tt8suAq0Ba5Kyy | price_1SvMaWI4GLksxBfVn6FVKKiG | price_1SvMcVI4GLksxBfVLG7k1F12 |
+| Growth | prod_Tt9AA0Mr8ggFm8 | price_1SvMt9I4GLksxBfV5hc6Rsox | price_1SvMsCI4GLksxBfVDy8YjZYu |
+| Develop | prod_Tt9GvWKjoPutRs | price_1SvN1lI4GLksxBfVEpU7eKq5 | price_1SvMxmI4GLksxBfVVOY3cOpb |
+| Expansion | prod_Tt9MztPmhtJnZ2 | price_1SvN5RI4GLksxBfVrtZ2aDN9 | price_1SvN4CI4GLksxBfVgdN7qjsr |
+
+**Beta Coupon:**
+| Item | Value |
+|------|-------|
+| Code | BETACHURCH2026 |
+| Type | 100% off, 2 months repeating |
+| Purpose | Beta church partner trial |
 
 **Lesson Packs:**
 | Pack | Product ID | Price ID |
@@ -434,7 +543,7 @@ Edge Functions read from database (never hardcoded)
 #### org_tier_config
 | Column | Type | Purpose |
 |--------|------|---------|
-| tier | text | Primary key (starter, growth, ministry, enterprise) |
+| tier | text | Primary key (org_single_staff, org_starter, org_growth, org_develop, org_expansion) |
 | display_name | text | UI display name |
 | lessons_limit | integer | Monthly lesson allocation |
 | price_monthly | numeric | Monthly price in dollars |
@@ -562,6 +671,7 @@ When org member generates a lesson:
 | 13.6 | Lesson Pool Tracking (Backend) | ✅ Complete |
 | 13.7 | Org Leader Dashboard (Frontend) | ✅ Complete |
 | 13.8 | Member Pool Awareness | ✅ Complete |
+| 13.9 | Tier Rename + Repricing (Feb 3, 2026) | ✅ Complete |
 
 ---
 
@@ -736,13 +846,19 @@ DevotionalSpark generates personal devotionals based on the same passage and foc
 | **Free** | 5 (2 full + 3 partial) | All 8 for first 2, then 1/5/8 | Basic generation | Forever free |
 | **Personal** | 20 | All 8 | DevotionalSpark, Student Teaser, Email Lesson Delivery | $9/mo or $90/yr |
 
-### Organization Plans
+### Organization Plans (Shepherd Tiers)
 | Tier | Lessons/Month | Features | Price |
 |------|---------------|----------|-------|
-| **Starter** | 25 | Shared pool, unlimited members | $29/mo or $290/yr |
-| **Growth** | 60 | Shared pool, unlimited members | $59/mo or $590/yr |
-| **Ministry Full** | 120 | Shared pool, unlimited members | $99/mo or $990/yr |
-| **Enterprise** | 250 | Shared pool, unlimited members | $179/mo or $1,790/yr |
+| **Single Staff** | 20 | Shared pool, unlimited members | $19/mo or $190/yr |
+| **Starter** | 30 | Shared pool, unlimited members | $29/mo or $290/yr |
+| **Growth** | 60 | Shared pool, unlimited members | $49/mo or $490/yr |
+| **Develop** | 100 | Shared pool, unlimited members | $79/mo or $790/yr |
+| **Expansion** | 200 | Shared pool, unlimited members | $149/mo or $1,490/yr |
+
+### White-Label Partner
+| Level | Price |
+|-------|-------|
+| Level 1 | $199/mo ($1,990/yr) |
 
 ---
 
@@ -922,10 +1038,34 @@ git push origin biblelessonspark
 
 ## POST-LAUNCH ROADMAP
 
+### Priority: HIGH (Revenue & Self-Service)
+
+| # | Feature | Description | Stack | Status |
+|---|---------|-------------|-------|--------|
+| 1 | **Self-Service Shepherd Entry** | Pastor creates org, selects tier, pays, becomes Org Manager — no admin intervention | 2 | 📋 Designed |
+| 2 | **Shepherd Landing Page** | `/org` — dedicated landing page for church leaders with Shepherd-focused messaging | 2 | 📋 Designed |
+| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org | 2 | 📋 Designed |
+| 4 | **Org Creation Form** | Collects: Org Name, Org Type (Church/Ministry/Network/Association/Convention/Other), Denomination, Org Leader Name/Email, Org Email | 2 | 📋 Designed |
+| 5 | **Personal Subscription Check + Bundled Checkout** | Auto-detects if Org Leader has personal subscription; if not, adds $9/mo or $90/yr to checkout (matching org billing interval) | 2 | 📋 Designed |
+| 6 | **Combined Stripe Checkout** | Single Stripe session with org tier + personal subscription (if needed) as line items | 2 | 📋 Designed |
+| 7 | **Auto Org Creation on Payment** | Webhook creates org, assigns leader, activates pool — all in one transaction | 2 | 📋 Designed |
+| 8 | **Interactive Org Manager Tour** | Post-purchase guided walkthrough: Lesson Pool → Invite Teachers → Shared Focus → Org Lessons | 2 | 📋 Designed |
+
+### Priority: MEDIUM (Shepherding Enhancements)
+
+| # | Feature | Description | Stack | Status |
+|---|---------|-------------|-------|--------|
+| 9 | **Lesson Visibility Status** | Private/Shared toggle per lesson; Private is permanent default | 1 + 2 | 📋 Designed (Phase 26) |
+| 10 | **Org Manager Override for Org-Funded Lessons** | Org Manager can view Private lessons funded by pool/pack with transparency notice | 2 | 📋 Designed (Phase 26) |
+| 11 | **Funding Badges on Org Lessons** | Pool (🟢) and Pack (🔵) badges on org lesson view | 2 | 📋 Designed (Phase 26) |
+| 12 | **Transparency Messages** | Teacher sees "[org name] lesson pool / [Org Manager name] may view"; Org Manager sees override notice | 1 + 2 | 📋 Designed (Phase 26) |
+| 13 | **Email Metadata Cleanup** | Remove ageGroup/theologyProfile from emailed lesson metadata | 1 | ✅ Done (Feb 4, 2026) |
+
 ### Priority: LOW (Post-Launch Enhancements)
 
 | Feature | Description | Estimated Effort | Status |
 |---------|-------------|------------------|--------|
+| Teaching Team Linked Visibility | Opt-in peer visibility for up to 3 teachers sharing a class (Phase 27) | 8-12 hours | 📋 Designed |
 | In-App Teacher Approval | Teacher receives notification, approves/declines transfer in app | 6-8 hours | Not Started |
 | Export Formatting Admin Panel | Admin UI to adjust Print/DOCX/PDF formatting without code changes | 4-6 hours | Not Started |
 | Organization-Scoped Beta Management | Org Leaders create own feedback surveys + analytics | 8-12 hours | Not Started |
@@ -933,6 +1073,26 @@ git push origin biblelessonspark
 | ~~Email/Text Lesson Delivery~~ | ~~Send lessons and teasers via email/SMS~~ | ~~6-8 hours~~ | ✅ Phase 25 COMPLETE |
 | White-Label Personalized Footer | Custom footer text for enterprise tenants | 2-3 hours | Not Started |
 | Email Unsubscribe Link | Add one-click unsubscribe to automated emails | 2-3 hours | Not Started |
+
+### Self-Service Shepherd Entry Point — Full Specification
+
+**Entry Points (All Three):**
+| Path | How They Get There |
+|------|-------------------|
+| Direct URL | `biblelessonspark.com/org` — standalone Shepherd landing page |
+| Post-signup prompt | Dashboard shows "Set Up Your Ministry Organization" option |
+| Direct link | Platform Admin sends pastor a URL during conversation |
+
+**Flow:**
+
+1. **Authentication Check** — Brand new visitor signs up first; existing users enter directly
+2. **Org Information** — Org Name (required), Org Type dropdown: Church, Ministry, Network, Association, Convention, Other (required), Denomination (optional)
+3. **Org Leader** — Name (pre-filled if logged in), Email (pre-filled), Org Email (optional, "if different from personal")
+4. **Tier Selection** — 5 Shepherd tiers with monthly/Annual toggle
+5. **Personal Subscription Check** — System checks if user has Subscribed tier; if not, adds $9/mo or $90/yr matching org interval
+6. **Stripe Checkout** — Single session with all line items
+7. **Post-Payment** — Org created, leader assigned as `created_by`, subscription activated, pool active
+8. **Interactive Tour** — Guided walkthrough of Org Manager experience
 
 ---
 
@@ -945,6 +1105,13 @@ git push origin biblelessonspark
 | Jan 27, 2026 | Public launch ✅ |
 | Feb 28, 2026 | Beta tester full access ends |
 | Mar 1, 2026 | Beta testers transition to free tier or subscribe |
+
+### Active Organization Beta Testers
+| Person | Org | Org ID | Tier | Beta End |
+|--------|-----|--------|------|----------|
+| Ellis Hayden (elhayden52@yahoo.com) | Fellowship Baptist - Lngvw, Tx | 5f1f1ad9-5048-4d8b-94fc-df0f5f07db87 | Single Staff | Feb 28, 2026 |
+
+**Beta Coupon:** BETACHURCH2026 (100% off, 2 months repeating, auto-converts to paid)
 
 ### Post-Transition Options
 | Tier | Lessons | Sections | Reset | Cost |
@@ -961,6 +1128,8 @@ git push origin biblelessonspark
 - Follow Claude Debugging Protocol: diagnose root cause before proposing fixes
 - All solutions must be SSOT compliant (frontend drives backend)
 - Platform is in Production mode - no "Beta" references in UI
+- **THREE STACKS FRAMEWORK** — Discipler (Teacher), Shepherd (Org Manager), Partner (White-Label). See full definitions above.
+- **CURRENT PRIORITY** — Self-Service Shepherd Entry Point (items 1-8 in roadmap). Removes Platform Admin as bottleneck for org creation.
 
 **Key Commands:**
 - `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
@@ -1000,8 +1169,13 @@ git push origin biblelessonspark
 **⚠️ IN PROGRESS:**
 - **Series/Theme Mode (Phase 24)** - Database + SSOT + hooks created; UI bugs remain (see Known Issues below)
 
+**📋 DESIGNED (Ready to Build):**
+- **Self-Service Shepherd Entry** - `/org` page, org creation form, bundled checkout, auto-creation on payment (next build priority)
+- **Lesson Visibility (Phase 26)** - Private/Shared toggle, org manager override for org-funded lessons, funding badges, transparency messages
+- **Teaching Team (Phase 27)** - Peer-to-peer linked visibility, max 3, opt-in accept/decline
+
 **Organization Billing Status (Phase 13 - COMPLETE ✅):**
-- ✅ 13.1: Stripe Products (9 products created)
+- ✅ 13.1: Stripe Products (9 products created + Single Staff added Feb 3)
 - ✅ 13.2: Database Schema + SSOT (`orgPricingConfig.ts`, 5 new tables)
 - ✅ 13.3: `create-org-checkout-session` Edge Function deployed
 - ✅ 13.4: `purchase-lesson-pack` Edge Function deployed
@@ -1009,6 +1183,7 @@ git push origin biblelessonspark
 - ✅ 13.6: Lesson Pool Tracking (`orgPoolCheck.ts`, modified `generate-lesson`)
 - ✅ 13.7: Org Leader Dashboard (`OrgPoolStatusCard`, `useOrgPoolStatus`, Lesson Pool tab)
 - ✅ 13.8: Member Pool Awareness (`MemberPoolStatusBanner`, Account page integration)
+- ✅ 13.9: Tier Rename + Repricing (Single Staff/Starter/Growth/Develop/Expansion, updated lesson pack prices $12/$25/$45)
 
 **Nested Organization Architecture (N1-N7 - COMPLETE ✅):**
 - ✅ N1: Database schema + SSOT (`organizationConfig.ts`, hierarchy columns)
@@ -1057,10 +1232,11 @@ git push origin biblelessonspark
 **Dependencies:**
 - `react-quill` - Rich text editor for email templates (both BLS and Toolbelt)
 
-**Bug Fixes Applied (Feb 1-2, 2026):**
+**Bug Fixes Applied (Feb 1-4, 2026):**
 - ✅ **Resend Tag Sanitization** — Dots not allowed in Resend API tags; `EMAIL_DELIVERY_VERSION` `1.1.0` sanitized to `1-1-0` (commit `44dd1db`)
 - ✅ **Section 8 Extraction** — Edge function regex only matched `**Section N**` bold markers; actual lessons use `## Section 8:` markdown headers. Replaced `extractLastSection()` with multi-format `extractSection8Content()` + `parseSectionHeaderNumber()` (commit `88e2ac0`)
 - ✅ **Lesson Count Double-Increment** — Both frontend `incrementUsage()` AND edge function `incrementLessonUsage()` were counting each lesson. SSOT fix: removed `incrementLessonUsage` from `generate-lesson` edge function (frontend drives backend). SQL correction applied to sync all user counts to actual. Org pool consumption remains in edge function (org-level logic).
+- ✅ **Email Lesson Metadata Leak** — `ageGroup` and `theologyProfile` were included in emailed lesson metadata, exposing internal teacher settings to recipients. Removed from EmailLessonDialog.tsx lines 329-333 (Feb 4, 2026)
 
 **Known Issues / Next Steps:**
 - ⚠️ Phase 24 Series/Theme Mode: lesson count not tracking after first generation; `result.data.lesson` → `result.data.id` fix needed; old duplicate files at `src/components/` need deletion (correct path is `src/components/dashboard/`)
@@ -1073,6 +1249,11 @@ git push origin biblelessonspark
 - Nested Organization Architecture: January 31, 2026 ✅ N1-N7 COMPLETE
 - Email Lesson Delivery: February 1-2, 2026 ✅ PHASE 25 COMPLETE
 - Series/Theme Mode: February 1, 2026 ⚠️ PHASE 24 IN PROGRESS
+- Org Tier Rename + Repricing: February 3, 2026 ✅ (Single Staff/Starter/Growth/Develop/Expansion)
+- Three Stacks Framework: February 3-4, 2026 ✅ DEFINED
+- Self-Service Shepherd Entry: February 4, 2026 📋 DESIGNED (next build priority)
+- Lesson Visibility (Phase 26): February 4, 2026 📋 DESIGNED
+- Teaching Team (Phase 27): February 4, 2026 📋 DESIGNED
 - All routes verified ✅
 - Email automation working ✅
 - Admin panel functional ✅

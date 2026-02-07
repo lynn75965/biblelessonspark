@@ -10,6 +10,7 @@
  *
  * Created: 2026-02-01
  * Updated: 2026-02-01 — Added roster load/save/manage
+ * Updated: 2026-02-04 — Removed ageGroup/theologyProfile from email metadata (internal teacher data)
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -304,7 +305,10 @@ export function EmailLessonDialog({
   };
 
   // ================================================================
-  // SEND EMAIL (unchanged from Phase 25)
+  // SEND EMAIL
+  // NOTE: ageGroup and theologyProfile are intentionally NOT sent
+  //       in the email metadata — that's internal teacher data,
+  //       not for recipients to see.
   // ================================================================
   const handleSend = async () => {
     const parsed = parseRecipients(recipientsInput);
@@ -363,8 +367,8 @@ export function EmailLessonDialog({
             senderName: senderName,
             personalMessage: personalMessage.trim() || null,
             metadata: {
-              ageGroup: lesson.metadata?.ageGroup || null,
-              theologyProfile: lesson.metadata?.theologyProfile || null,
+              // NOTE: ageGroup and theologyProfile intentionally omitted
+              // These are internal teacher settings, not for email recipients
               bibleVersion: lesson.metadata?.bibleVersion || null,
               copyrightNotice: lesson.metadata?.copyrightNotice || null,
             },
@@ -662,7 +666,7 @@ export function EmailLessonDialog({
           </div>
 
           {/* ============================================================ */}
-          {/* LESSON PREVIEW */}
+          {/* LESSON PREVIEW (for teacher reference only) */}
           {/* ============================================================ */}
           <div className="bg-muted/50 rounded-md p-3 text-sm">
             <p className="font-medium">{lesson.title}</p>
