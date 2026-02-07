@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** February 4, 2026 (Three Stacks Framework defined, Self-Service Shepherd Entry planned, Lesson Visibility planned, Org Tiers updated)
+**Last Updated:** February 7, 2026 (Self-Service Shepherd Entry Steps 1-6 COMPLETE, bundled checkout working, deployed to production)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -16,6 +16,7 @@
 | **Local Path** | C:\Users\Lynn\lesson-spark-usa |
 | **Supabase Project** | hphebzdftpjbiudpfcrs |
 | **Platform Mode** | Production (as of Jan 10, 2026) |
+| **Deployment Platform** | Netlify (NOT Lovable) |
 | **Launch Date** | January 27, 2026 |
 | **Reset Logic** | Rolling 30-day periods (per-user, not calendar month) |
 
@@ -1042,13 +1043,13 @@ git push origin biblelessonspark
 
 | # | Feature | Description | Stack | Status |
 |---|---------|-------------|-------|--------|
-| 1 | **Self-Service Shepherd Entry** | Pastor creates org, selects tier, pays, becomes Org Manager — no admin intervention | 2 | 📋 Designed |
-| 2 | **Shepherd Landing Page** | `/org` — dedicated landing page for church leaders with Shepherd-focused messaging | 2 | 📋 Designed |
-| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org | 2 | 📋 Designed |
-| 4 | **Org Creation Form** | Collects: Org Name, Org Type (Church/Ministry/Network/Association/Convention/Other), Denomination, Org Leader Name/Email, Org Email | 2 | 📋 Designed |
-| 5 | **Personal Subscription Check + Bundled Checkout** | Auto-detects if Org Leader has personal subscription; if not, adds $9/mo or $90/yr to checkout (matching org billing interval) | 2 | 📋 Designed |
-| 6 | **Combined Stripe Checkout** | Single Stripe session with org tier + personal subscription (if needed) as line items | 2 | 📋 Designed |
-| 7 | **Auto Org Creation on Payment** | Webhook creates org, assigns leader, activates pool — all in one transaction | 2 | 📋 Designed |
+| 1 | **Self-Service Shepherd Entry** | Pastor creates org, selects tier, pays, becomes Org Manager — no admin intervention | 2 | ✅ Complete (Feb 7) |
+| 2 | **Shepherd Landing Page** | `/org` — dedicated landing page for ministry leaders with Shepherd-focused messaging | 2 | ✅ Complete (Feb 7) |
+| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org | 2 | 📋 Not Started |
+| 4 | **Org Creation Form** | `/org/setup` — Collects: Org Name, Org Type, Denomination, Org Leader Name/Email, Org Email | 2 | ✅ Complete (Feb 7) |
+| 5 | **Personal Subscription Check + Bundled Checkout** | Auto-detects if Org Leader has personal subscription; if not, adds $9/mo or $90/yr to checkout (matching org billing interval) | 2 | ✅ Complete (Feb 7) |
+| 6 | **Combined Stripe Checkout** | Single Stripe session with org tier + personal subscription (if needed) as line items | 2 | ✅ Complete (Feb 7) |
+| 7 | **Auto Org Creation on Payment** | Webhook creates org, assigns leader, activates pool — all in one transaction | 2 | ✅ Complete (Feb 7) |
 | 8 | **Interactive Org Manager Tour** | Post-purchase guided walkthrough: Lesson Pool → Invite Teachers → Shared Focus → Org Lessons | 2 | 📋 Designed |
 
 ### Priority: MEDIUM (Shepherding Enhancements)
@@ -1096,6 +1097,100 @@ git push origin biblelessonspark
 
 ---
 
+## SELF-SERVICE SHEPHERD ENTRY POINT (Steps 1-6 - COMPLETE ✅)
+
+### Overview
+Self-service flow enables ministry leaders to create organizations, subscribe, and begin managing their teaching team without Platform Admin intervention. Deployed to production February 7, 2026.
+
+### Routes
+| Route | Purpose | Auth Required |
+|-------|---------|---------------|
+| `/org` | Landing page - marketing, tier display | No |
+| `/org/setup` | Org creation form + tier selection + checkout | Yes |
+| `/org/success` | Post-payment confirmation + next steps | Yes |
+
+### Files Created/Modified
+| File | Purpose |
+|------|---------|
+| `src/pages/OrgLanding.tsx` | Landing page with 5 org tiers, monthly/annual toggle, inclusive language |
+| `src/pages/OrgSetup.tsx` | 2-step form: Org Info → Plan Selection with personal sub check |
+| `src/pages/OrgSuccess.tsx` | Success page with org details, lesson pool stats, next steps |
+| `src/App.tsx` | Added routes: `/org`, `/org/setup`, `/org/success` |
+| `supabase/functions/create-org-checkout-session/index.ts` | Modified for self-service mode with bundled checkout |
+| `supabase/functions/stripe-webhook/index.ts` | Modified for auto org creation on payment |
+
+### Edge Function: create-org-checkout-session (Self-Service Mode)
+
+**Two Modes:**
+1. **Existing Org Mode** (original) — Requires `organization_id`, upgrades existing org
+2. **Self-Service Mode** (new) — Requires `orgMetadata`, creates org after payment
+
+**Self-Service Request Body:**
+```json
+{
+  "priceId": "price_xxx",
+  "billingInterval": "annual",
+  "orgMetadata": {
+    "orgName": "First Baptist Church",
+    "orgType": "church",
+    "denomination": "Southern Baptist",
+    "leaderName": "Pastor John",
+    "leaderEmail": "pastor@church.org",
+    "orgEmail": "office@church.org"
+  },
+  "includePersonalSubscription": true
+}
+```
+
+**Bundled Checkout Line Items:**
+- Line 0: Org subscription (priceId from frontend SSOT)
+- Line 1: Personal subscription (if `includePersonalSubscription: true`)
+
+**Personal Subscription Lookup:**
+- Queries `pricing_plans` table for tier='personal', is_active=true
+- Fallback to hardcoded SSOT price IDs if database lookup fails:
+  - Monthly: `price_1Sj3bRI4GLksxBfVfGVrgZXP`
+  - Annual: `price_1SMpypI4GLksxBfV6tytRIAO`
+
+### Stripe Webhook: Self-Service Flow
+
+**Trigger:** `checkout.session.completed` where `metadata.mode === 'self_service'`
+
+**Actions:**
+1. Creates organization record
+2. Adds user as 'owner' in organization_members
+3. Creates org_subscriptions record
+4. If personal sub bundled: updates user_subscriptions
+5. Sets user's primary_organization_id
+
+### Language Updates (Inclusivity)
+| From | To |
+|------|-----|
+| "AI-powered" | "BibleLessonSpark-powered" |
+| "Church leaders" | "Ministry leaders" |
+| "For Church Leaders" | "For Ministry Leaders" |
+| "Set Up Your Church" | "Set Up Your Organization" |
+| "church-wide" | "organization-wide" |
+
+### Testing Verified
+- [x] `/org` landing page displays all 5 tiers correctly
+- [x] "Get Started" redirects to auth then `/org/setup`
+- [x] Org creation form validates required fields
+- [x] Tier selection shows correct prices (monthly/annual)
+- [x] Personal subscription check works
+- [x] Order Summary calculates total correctly ($190 + $90 = $280)
+- [x] Stripe checkout shows both line items
+- [x] Checkout allows promo codes (BETACHURCH2026)
+- [x] `/org/success` shows org details and next steps
+
+### Remaining Work (Items 3 & 8)
+- [ ] Dashboard "Set Up Your Ministry Organization" prompt
+- [ ] Interactive Org Manager Tour
+- [ ] Help page: Add "Organizations & Shepherds" section
+- [ ] `/org` banner for logged-in users with existing org → link to `/org-manager`
+
+---
+
 ## BETA TESTER TRANSITION
 
 ### Timeline
@@ -1129,7 +1224,7 @@ git push origin biblelessonspark
 - All solutions must be SSOT compliant (frontend drives backend)
 - Platform is in Production mode - no "Beta" references in UI
 - **THREE STACKS FRAMEWORK** — Discipler (Teacher), Shepherd (Org Manager), Partner (White-Label). See full definitions above.
-- **CURRENT PRIORITY** — Self-Service Shepherd Entry Point (items 1-8 in roadmap). Removes Platform Admin as bottleneck for org creation.
+- **CURRENT PRIORITY** — Self-Service Shepherd Entry items 3 & 8 (dashboard prompt, interactive tour). Steps 1-6 COMPLETE as of Feb 7, 2026.
 
 **Key Commands:**
 - `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
@@ -1139,7 +1234,8 @@ git push origin biblelessonspark
 - `npm run sync-org-pricing` - **Syncs org pricing to database (Phase 13)**
 - `npx supabase functions deploy toolbelt-reflect` - Deploy Toolbelt reflection
 - `npx supabase functions deploy send-toolbelt-sequence` - Deploy Toolbelt emails
-- `npx supabase functions deploy create-org-checkout-session` - **Deploy org checkout (Phase 13)**
+- `npx supabase functions deploy create-org-checkout-session` - **Deploy org checkout (Phase 13 + Self-Service)**
+- `npx supabase functions deploy stripe-webhook` - **Deploy Stripe webhook (handles self-service org creation)**
 - `npx supabase functions deploy send-lesson-email` - **Deploy email lesson delivery (Phase 25)**
 - `npx supabase gen types typescript --project-id hphebzdftpjbiudpfcrs > src/integrations/supabase/types.ts` - Regenerate types
 
@@ -1170,7 +1266,7 @@ git push origin biblelessonspark
 - **Series/Theme Mode (Phase 24)** - Database + SSOT + hooks created; UI bugs remain (see Known Issues below)
 
 **📋 DESIGNED (Ready to Build):**
-- **Self-Service Shepherd Entry** - `/org` page, org creation form, bundled checkout, auto-creation on payment (next build priority)
+- **Self-Service Shepherd Entry** - Steps 1-6 COMPLETE ✅ (Feb 7). Remaining: dashboard prompt (item 3), interactive tour (item 8)
 - **Lesson Visibility (Phase 26)** - Private/Shared toggle, org manager override for org-funded lessons, funding badges, transparency messages
 - **Teaching Team (Phase 27)** - Peer-to-peer linked visibility, max 3, opt-in accept/decline
 
@@ -1251,7 +1347,7 @@ git push origin biblelessonspark
 - Series/Theme Mode: February 1, 2026 ⚠️ PHASE 24 IN PROGRESS
 - Org Tier Rename + Repricing: February 3, 2026 ✅ (Single Staff/Starter/Growth/Develop/Expansion)
 - Three Stacks Framework: February 3-4, 2026 ✅ DEFINED
-- Self-Service Shepherd Entry: February 4, 2026 📋 DESIGNED (next build priority)
+- Self-Service Shepherd Entry: February 7, 2026 ✅ Steps 1-6 COMPLETE (landing, setup, checkout, webhook, success)
 - Lesson Visibility (Phase 26): February 4, 2026 📋 DESIGNED
 - Teaching Team (Phase 27): February 4, 2026 📋 DESIGNED
 - All routes verified ✅
