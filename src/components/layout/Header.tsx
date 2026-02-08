@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { User } from "lucide-react";
+import { User, Users } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -48,6 +48,30 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
 
   // Use org name from hook if not passed as prop, BUT respect hideOrgContext
   const displayOrgName = hideOrgContext ? null : (organizationName || organization?.name);
+
+  // "Lead a Team" nav item logic (February 2026)
+  // - Solo teacher (no org): "Lead a Team" → /org
+  // - Org owner/leader: "{Org Name}" → /org-manager
+  // - Org member: "{Org Name}" → /dashboard
+  const getOrgNavItem = () => {
+    if (!authenticated || !user) return null;
+
+    if (hasOrganization && organization) {
+      const isLeader = userRole === 'owner' || userRole === 'leader';
+      return {
+        label: organization.name || 'My Organization',
+        route: isLeader ? '/org-manager' : '/dashboard',
+      };
+    }
+
+    // Solo teacher — no org
+    return {
+      label: 'Lead a Team',
+      route: '/org',
+    };
+  };
+
+  const orgNavItem = getOrgNavItem();
 
   useEffect(() => {
     const fetchTheologyProfile = async () => {
@@ -109,6 +133,24 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
           {authenticated ? (
             <>
               <NotificationBell />
+
+              {/* "Lead a Team" / Org Name nav item (February 2026)
+                  - Solo teacher: "Lead a Team" → /org landing page
+                  - Org owner/leader: "{Org Name}" → /org-manager
+                  - Org member: "{Org Name}" → /dashboard */}
+              {orgNavItem && (
+                <Link
+                  to={orgNavItem.route}
+                  className="hidden sm:flex items-center gap-1.5 h-9 sm:h-10 px-2 sm:px-3 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/10"
+                  title={hasOrganization ? `Go to ${orgNavItem.label}` : 'Start a ministry organization'}
+                >
+                  <Users className="h-4 w-4 shrink-0" />
+                  <span className="max-w-[120px] lg:max-w-[180px] truncate">
+                    {orgNavItem.label}
+                  </span>
+                </Link>
+              )}
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
