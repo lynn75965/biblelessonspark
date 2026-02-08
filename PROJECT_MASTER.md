@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** February 7, 2026 (Self-Service Shepherd Entry Steps 1-6 COMPLETE, bundled checkout working, deployed to production)
+**Last Updated:** February 8, 2026 (Self-Service Shepherd Entry ALL STEPS COMPLETE — dashboard prompt, interactive tour, Help Organizations & Shepherds section, /org owner banner)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -1045,12 +1045,12 @@ git push origin biblelessonspark
 |---|---------|-------------|-------|--------|
 | 1 | **Self-Service Shepherd Entry** | Pastor creates org, selects tier, pays, becomes Org Manager — no admin intervention | 2 | ✅ Complete (Feb 7) |
 | 2 | **Shepherd Landing Page** | `/org` — dedicated landing page for ministry leaders with Shepherd-focused messaging | 2 | ✅ Complete (Feb 7) |
-| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org | 2 | 📋 Not Started |
+| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org | 2 | ✅ Complete (Feb 8) |
 | 4 | **Org Creation Form** | `/org/setup` — Collects: Org Name, Org Type, Denomination, Org Leader Name/Email, Org Email | 2 | ✅ Complete (Feb 7) |
 | 5 | **Personal Subscription Check + Bundled Checkout** | Auto-detects if Org Leader has personal subscription; if not, adds $9/mo or $90/yr to checkout (matching org billing interval) | 2 | ✅ Complete (Feb 7) |
 | 6 | **Combined Stripe Checkout** | Single Stripe session with org tier + personal subscription (if needed) as line items | 2 | ✅ Complete (Feb 7) |
 | 7 | **Auto Org Creation on Payment** | Webhook creates org, assigns leader, activates pool — all in one transaction | 2 | ✅ Complete (Feb 7) |
-| 8 | **Interactive Org Manager Tour** | Post-purchase guided walkthrough: Lesson Pool → Invite Teachers → Shared Focus → Org Lessons | 2 | 📋 Designed |
+| 8 | **Interactive Org Manager Tour** | Post-purchase guided walkthrough: Lesson Pool → Invite Teachers → Shared Focus → Org Lessons | 2 | ✅ Complete (Feb 8) |
 
 ### Priority: MEDIUM (Shepherding Enhancements)
 
@@ -1183,11 +1183,11 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - [x] Checkout allows promo codes (BETACHURCH2026)
 - [x] `/org/success` shows org details and next steps
 
-### Remaining Work (Items 3 & 8)
-- [ ] Dashboard "Set Up Your Ministry Organization" prompt
-- [ ] Interactive Org Manager Tour
-- [ ] Help page: Add "Organizations & Shepherds" section
-- [ ] `/org` banner for logged-in users with existing org → link to `/org-manager`
+### Remaining Work (Items 3 & 8) — COMPLETE ✅ (Feb 8, 2026)
+- [x] Dashboard "Set Up Your Ministry Organization" prompt
+- [x] Interactive Org Manager Tour
+- [x] Help page: Add "Organizations & Shepherds" section (with scroll-to link from /org footer)
+- [x] `/org` banner for logged-in users with existing org → link to `/org-manager`
 
 ---
 
@@ -1224,7 +1224,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - All solutions must be SSOT compliant (frontend drives backend)
 - Platform is in Production mode - no "Beta" references in UI
 - **THREE STACKS FRAMEWORK** — Discipler (Teacher), Shepherd (Org Manager), Partner (White-Label). See full definitions above.
-- **CURRENT PRIORITY** — Self-Service Shepherd Entry items 3 & 8 (dashboard prompt, interactive tour). Steps 1-6 COMPLETE as of Feb 7, 2026.
+- **CURRENT PRIORITY** — Self-Service Shepherd Entry ALL STEPS COMPLETE ✅ (Steps 1-6: Feb 7, Items 3 & 8: Feb 8, 2026).
 
 **Key Commands:**
 - `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
@@ -1266,7 +1266,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - **Series/Theme Mode (Phase 24)** - Database + SSOT + hooks created; UI bugs remain (see Known Issues below)
 
 **📋 DESIGNED (Ready to Build):**
-- **Self-Service Shepherd Entry** - Steps 1-6 COMPLETE ✅ (Feb 7). Remaining: dashboard prompt (item 3), interactive tour (item 8)
+- **Self-Service Shepherd Entry** - ALL STEPS COMPLETE ✅ (Feb 7-8). Dashboard prompt, interactive tour, Help section, /org owner banner
 - **Lesson Visibility (Phase 26)** - Private/Shared toggle, org manager override for org-funded lessons, funding badges, transparency messages
 - **Teaching Team (Phase 27)** - Peer-to-peer linked visibility, max 3, opt-in accept/decline
 
@@ -1347,7 +1347,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - Series/Theme Mode: February 1, 2026 ⚠️ PHASE 24 IN PROGRESS
 - Org Tier Rename + Repricing: February 3, 2026 ✅ (Single Staff/Starter/Growth/Develop/Expansion)
 - Three Stacks Framework: February 3-4, 2026 ✅ DEFINED
-- Self-Service Shepherd Entry: February 7, 2026 ✅ Steps 1-6 COMPLETE (landing, setup, checkout, webhook, success)
+- Self-Service Shepherd Entry: February 7-8, 2026 ✅ ALL STEPS COMPLETE (landing, setup, checkout, webhook, success, dashboard prompt, interactive tour, Help section, /org owner banner)
 - Lesson Visibility (Phase 26): February 4, 2026 📋 DESIGNED
 - Teaching Team (Phase 27): February 4, 2026 📋 DESIGNED
 - All routes verified ✅
