@@ -10,7 +10,7 @@
 // Banner for existing org owners added (February 2026)
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BRANDING } from '@/config/branding';
 import { ORG_TIERS, getActiveOrgTiers } from '@/constants/orgPricingConfig';
@@ -230,7 +230,7 @@ const OrgLanding = () => {
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
                   <Shield className="h-6 w-6 text-primary" />
                 </div>
-                <CardTitle className="text-lg">Pastoral Oversight</CardTitle>
+                <CardTitle className="text-lg">Shepherd Oversight</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
@@ -406,9 +406,9 @@ const OrgLanding = () => {
             <a href="/legal/terms" className="text-muted-foreground hover:text-foreground">
               Terms
             </a>
-            <Link to="/help" state={{ scrollTo: 'organizations-shepherds' }} className="text-muted-foreground hover:text-foreground">
+            <a href="/help?scrollTo=organizations-shepherds" className="text-muted-foreground hover:text-foreground">
               Help
-            </Link>
+            </a>
           </div>
         </div>
       </footer>

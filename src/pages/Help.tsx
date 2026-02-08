@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { BRANDING } from "@/config/branding";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -27,27 +27,30 @@ import { SITE } from "@/config/site";
 
 const Help = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  // Scroll to section on mount — supports both state passing (from React Router Link)
-  // and hash fallback (from direct URL or external link)
+  // Scroll to section via ?scrollTo= query parameter, React Router state, or #hash
   useEffect(() => {
-    const scrollTarget = (location.state as any)?.scrollTo || 
+    const scrollTarget = searchParams.get('scrollTo') ||
+      (location.state as any)?.scrollTo || 
       (location.hash ? location.hash.substring(1) : null);
     
     if (scrollTarget) {
-      // Retry multiple times — ensures element exists and no scroll-to-top override
-      const attempts = [150, 400, 800, 1200];
-      const timers = attempts.map((delay) =>
-        setTimeout(() => {
-          const element = document.getElementById(scrollTarget);
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }, delay)
-      );
+      const scrollToElement = () => {
+        const element = document.getElementById(scrollTarget);
+        if (element) {
+          // Use both methods for maximum compatibility
+          const yOffset = element.getBoundingClientRect().top + window.pageYOffset - 20;
+          window.scrollTo({ top: yOffset, behavior: 'smooth' });
+        }
+      };
+      
+      // Retry aggressively — page must fully render before scroll works
+      const attempts = [200, 500, 1000, 1500, 2500];
+      const timers = attempts.map((delay) => setTimeout(scrollToElement, delay));
       return () => timers.forEach(clearTimeout);
     }
-  }, [location.state, location.hash]);
+  }, [searchParams, location.state, location.hash]);
   const quickLinks = [
     {
       title: "Getting Started",
