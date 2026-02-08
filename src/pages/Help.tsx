@@ -1,7 +1,8 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { BRANDING } from "@/config/branding";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
@@ -25,6 +26,25 @@ import {
 import { SITE } from "@/config/site";
 
 const Help = () => {
+  const location = useLocation();
+
+  // Scroll to hash anchor on mount (React Router doesn't do this automatically)
+  useEffect(() => {
+    if (location.hash) {
+      const targetId = location.hash.substring(1);
+      // Retry multiple times — React Router may scroll-to-top after initial render
+      const attempts = [150, 400, 800];
+      const timers = attempts.map((delay) =>
+        setTimeout(() => {
+          const element = document.getElementById(targetId);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, delay)
+      );
+      return () => timers.forEach(clearTimeout);
+    }
+  }, [location.hash]);
   const quickLinks = [
     {
       title: "Getting Started",
@@ -55,6 +75,7 @@ const Help = () => {
   const faqs = [
     {
       category: "Account & Access",
+      slug: "account-access",
       icon: CheckCircle,
       questions: [
         {
@@ -73,6 +94,7 @@ const Help = () => {
     },
     {
       category: "Generating Lessons",
+      slug: "generating-lessons",
       icon: CheckCircle,
       questions: [
         {
@@ -95,6 +117,7 @@ const Help = () => {
     },
     {
       category: "Lesson Content",
+      slug: "lesson-content",
       icon: CheckCircle,
       questions: [
         {
@@ -118,6 +141,7 @@ const Help = () => {
     // ─── Organizations & Shepherds (Self-Service Shepherd Entry) ───
     {
       category: "Organizations & Shepherds",
+      slug: "organizations-shepherds",
       icon: Church,
       questions: [
         {
@@ -164,6 +188,7 @@ const Help = () => {
     },
     {
       category: "Subscription & Billing",
+      slug: "subscription-billing",
       icon: CheckCircle,
       questions: [
         {
@@ -182,6 +207,7 @@ const Help = () => {
     },
     {
       category: "Technical Issues",
+      slug: "technical-issues",
       icon: CheckCircle,
       questions: [
         {
@@ -271,7 +297,7 @@ const Help = () => {
             {faqs.map((category, catIndex) => {
               const CategoryIcon = category.icon;
               return (
-                <div key={catIndex}>
+                <div key={catIndex} id={category.slug}>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <CategoryIcon className="h-5 w-5 text-primary" />
                     {category.category}
