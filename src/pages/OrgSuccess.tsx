@@ -3,7 +3,7 @@
 // Stack 2: Shepherd (Org Manager)
 //
 // User lands here after successful Stripe checkout
-// Shows confirmation and next steps
+// Shows confirmation, next steps, and Interactive Tour (item 8)
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -13,16 +13,78 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { 
   CheckCircle2, 
   Users, 
   BookOpen, 
   ArrowRight, 
+  ArrowLeft,
   Loader2,
   Church,
   Sparkles,
-  Mail
+  Mail,
+  LayoutDashboard,
+  Eye,
+  PartyPopper,
+  Play
 } from 'lucide-react';
+
+// ─── Interactive Tour Configuration (Self-Service Entry item 8) ───
+// Each step describes a key Org Manager feature the new Shepherd should know.
+const TOUR_STEPS = [
+  {
+    icon: LayoutDashboard,
+    title: "Your Org Manager Dashboard",
+    description:
+      "This is your central hub for shepherding your teaching ministry. " +
+      "From here you can see your lesson pool usage, manage your team, " +
+      "and set the direction for your teachers — all in one place.",
+    tip: "You can always reach it from the sidebar menu or by visiting /org-manager.",
+  },
+  {
+    icon: Users,
+    title: "Invite Your Teachers",
+    description:
+      "Add your teachers by email. They'll receive an invitation " +
+      "to join your organization and can immediately begin drawing from your " +
+      "shared lesson pool — no extra per-seat cost.",
+    tip: "Teachers keep their own personal workspace and lesson library too.",
+  },
+  {
+    icon: BookOpen,
+    title: "Set a Shared Focus",
+    description:
+      "Guide your teaching team with a Shared Focus — a suggested Bible passage " +
+      "or theme for the week or month. Teachers will see your suggestion when " +
+      "they open their lesson builder.",
+    tip: "Your teachers can follow the focus or teach their own calling. It's a gentle shepherd's nudge, not a mandate.",
+  },
+  {
+    icon: Eye,
+    title: "Monitor Your Ministry",
+    description:
+      "See which teachers are actively preparing, view lessons funded by your " +
+      "pool, and track your remaining lesson balance. Encourage your team " +
+      "and celebrate their faithfulness in preparation.",
+    tip: "You'll see activity summaries right on your dashboard — no digging required.",
+  },
+  {
+    icon: PartyPopper,
+    title: "You're All Set!",
+    description:
+      "Your organization is live, your subscription is active, and your " +
+      "lesson pool is ready. Head to your Org Manager Dashboard to invite " +
+      "your first teacher and set your first Shared Focus.",
+    tip: "Questions? Reach us anytime at support@biblelessonspark.com.",
+  },
+];
 
 interface OrgData {
   id: string;
@@ -40,6 +102,10 @@ const OrgSuccess = () => {
   const [orgData, setOrgData] = useState<OrgData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Interactive Tour state
+  const [showTour, setShowTour] = useState(false);
+  const [tourStep, setTourStep] = useState(0);
 
   const sessionId = searchParams.get('session_id');
 
@@ -121,6 +187,35 @@ const OrgSuccess = () => {
     };
     return tierMap[tier] || tier;
   };
+
+  // Tour navigation handlers
+  const handleTourNext = () => {
+    if (tourStep < TOUR_STEPS.length - 1) {
+      setTourStep(tourStep + 1);
+    }
+  };
+
+  const handleTourPrev = () => {
+    if (tourStep > 0) {
+      setTourStep(tourStep - 1);
+    }
+  };
+
+  const handleTourFinish = () => {
+    setShowTour(false);
+    setTourStep(0);
+    navigate('/org-manager');
+  };
+
+  const handleTourClose = () => {
+    setShowTour(false);
+    setTourStep(0);
+  };
+
+  const currentStep = TOUR_STEPS[tourStep];
+  const isLastStep = tourStep === TOUR_STEPS.length - 1;
+  const isFirstStep = tourStep === 0;
+  const StepIcon = currentStep.icon;
 
   if (authLoading || loading) {
     return (
@@ -204,6 +299,29 @@ const OrgSuccess = () => {
           </Card>
         )}
 
+        {/* Interactive Tour Prompt — Self-Service Entry item 8 */}
+        <Card className="mb-8 border-primary/30 bg-gradient-to-r from-primary/5 to-secondary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Play className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground mb-1">
+                  Take a Quick Tour
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  See what your Org Manager Dashboard can do — takes about 60 seconds.
+                </p>
+              </div>
+              <Button onClick={() => { setTourStep(0); setShowTour(true); }} size="sm">
+                Start Tour
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Next Steps */}
         <Card className="mb-8">
           <CardHeader>
@@ -277,6 +395,80 @@ const OrgSuccess = () => {
           </a>
         </p>
       </div>
+
+      {/* ─── Interactive Tour Modal (Self-Service Entry item 8) ─── */}
+      <Dialog open={showTour} onOpenChange={handleTourClose}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <StepIcon className="h-5 w-5 text-primary" />
+              </div>
+              <span>{currentStep.title}</span>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Org Manager tour step {tourStep + 1} of {TOUR_STEPS.length}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              {currentStep.description}
+            </p>
+            {currentStep.tip && (
+              <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground italic">
+                💡 {currentStep.tip}
+              </div>
+            )}
+          </div>
+
+          {/* Step indicators */}
+          <div className="flex items-center justify-center gap-1.5 py-2">
+            {TOUR_STEPS.map((_, index) => (
+              <div
+                key={index}
+                className={`h-2 rounded-full transition-all ${
+                  index === tourStep
+                    ? 'w-6 bg-primary'
+                    : index < tourStep
+                    ? 'w-2 bg-primary/40'
+                    : 'w-2 bg-muted-foreground/20'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between pt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleTourPrev}
+              disabled={isFirstStep}
+              className={isFirstStep ? 'invisible' : ''}
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Back
+            </Button>
+
+            <span className="text-xs text-muted-foreground">
+              {tourStep + 1} of {TOUR_STEPS.length}
+            </span>
+
+            {isLastStep ? (
+              <Button size="sm" onClick={handleTourFinish}>
+                Go to Dashboard
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            ) : (
+              <Button size="sm" onClick={handleTourNext}>
+                Next
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

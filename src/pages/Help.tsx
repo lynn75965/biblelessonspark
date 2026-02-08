@@ -19,7 +19,8 @@ import {
   Settings,
   AlertCircle,
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  Church
 } from "lucide-react";
 import { SITE } from "@/config/site";
 
@@ -54,6 +55,7 @@ const Help = () => {
   const faqs = [
     {
       category: "Account & Access",
+      icon: CheckCircle,
       questions: [
         {
           q: "How do I create an account?",
@@ -71,6 +73,7 @@ const Help = () => {
     },
     {
       category: "Generating Lessons",
+      icon: CheckCircle,
       questions: [
         {
           q: "How long does it take to generate a lesson?",
@@ -92,6 +95,7 @@ const Help = () => {
     },
     {
       category: "Lesson Content",
+      icon: CheckCircle,
       questions: [
         {
           q: "What is included in each lesson?",
@@ -111,8 +115,56 @@ const Help = () => {
         }
       ]
     },
+    // ─── Organizations & Shepherds (Self-Service Shepherd Entry) ───
+    {
+      category: "Organizations & Shepherds",
+      icon: Church,
+      questions: [
+        {
+          q: "What is a Shepherd subscription?",
+          a: "A Shepherd subscription lets pastors and ministry leaders create an organization on BibleLessonSpark. Your organization gets a shared lesson pool that all your teachers can draw from, plus tools to set a Shared Focus and monitor lesson activity across your teaching ministry."
+        },
+        {
+          q: "How do I set up an organization?",
+          a: "Visit biblelessonspark.com/org or click 'Set Up Your Ministry Organization' on your dashboard. You'll enter your organization name and type, choose a Shepherd tier, and complete payment through Stripe. Your organization is live within seconds of checkout."
+        },
+        {
+          q: "What are the Shepherd tiers?",
+          a: "There are five tiers based on your ministry's lesson needs: Single Staff, Starter, Growth, Develop, and Expansion. Every tier includes unlimited teachers — you're paying for lesson pool capacity, not per-seat fees. Visit biblelessonspark.com/org to compare tiers and pricing."
+        },
+        {
+          q: "How does the shared lesson pool work?",
+          a: "Your Shepherd tier provides a monthly pool of lessons (for example, Growth includes 100 lessons/month). Any teacher in your organization can generate lessons from this pool. The pool resets each billing cycle, and you can purchase Lesson Packs if you need more mid-month."
+        },
+        {
+          q: "How do I invite teachers to my organization?",
+          a: "From your Org Manager Dashboard, use the Invite Members feature to send email invitations. Teachers accept the invitation and are automatically linked to your organization. They'll see your Shared Focus and draw from your lesson pool when generating lessons."
+        },
+        {
+          q: "What is a Shared Focus?",
+          a: "A Shared Focus is a suggested Bible passage, topic, or theme you set for your teaching team. When your teachers open the lesson builder, they'll see your suggestion and can choose to follow it or teach their own calling. It's a gentle shepherd's nudge — not a mandate."
+        },
+        {
+          q: "Do my teachers also need Personal subscriptions?",
+          a: "Teachers need their own BibleLessonSpark account (free to create). When they generate lessons through your organization's pool, those lessons count against your Shepherd pool — not a personal allowance. If a teacher also wants to generate personal lessons outside your org, they would need their own Personal subscription."
+        },
+        {
+          q: "Do I need a Personal subscription as the Shepherd?",
+          a: "Yes. The Shepherd tier covers your organization's shared pool and management tools. For your own lesson preparation and devotionals, you also need a Personal subscription ($9/month or $90/year). If you don't already have one, it's automatically added at checkout when you set up your organization."
+        },
+        {
+          q: "Can I have more than one organization?",
+          a: "Currently, each account can manage one organization. If you lead multiple ministries, contact us at support@biblelessonspark.com and we'll work with you to find the best arrangement."
+        },
+        {
+          q: "What happens if I cancel my Shepherd subscription?",
+          a: "If you cancel, your organization's lesson pool will stop renewing at the end of your current billing period. Your teachers' accounts and any lessons already generated remain accessible. You can resubscribe at any time to reactivate your pool."
+        }
+      ]
+    },
     {
       category: "Subscription & Billing",
+      icon: CheckCircle,
       questions: [
         {
           q: "How do subscriptions work?",
@@ -130,6 +182,7 @@ const Help = () => {
     },
     {
       category: "Technical Issues",
+      icon: CheckCircle,
       questions: [
         {
           q: "My lesson is taking too long to generate. What should I do?",
@@ -203,7 +256,7 @@ const Help = () => {
                 <CardContent>
                   <CardDescription>{link.description}</CardDescription>
                   <Button asChild variant="link" className="px-0 mt-2">
-                    <Link to={link.href}>Learn more ?</Link>
+                    <Link to={link.href}>Learn more →</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -215,26 +268,29 @@ const Help = () => {
         <section>
           <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
           <div className="space-y-8">
-            {faqs.map((category, catIndex) => (
-              <div key={catIndex}>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-primary" />
-                  {category.category}
-                </h3>
-                <Accordion type="single" collapsible className="space-y-2">
-                  {category.questions.map((faq, faqIndex) => (
-                    <AccordionItem key={faqIndex} value={`${catIndex}-${faqIndex}`} className="border rounded-lg px-4">
-                      <AccordionTrigger className="hover:no-underline text-left">
-                        {faq.q}
-                      </AccordionTrigger>
-                      <AccordionContent className="text-muted-foreground">
-                        {faq.a}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </div>
-            ))}
+            {faqs.map((category, catIndex) => {
+              const CategoryIcon = category.icon;
+              return (
+                <div key={catIndex}>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <CategoryIcon className="h-5 w-5 text-primary" />
+                    {category.category}
+                  </h3>
+                  <Accordion type="single" collapsible className="space-y-2">
+                    {category.questions.map((faq, faqIndex) => (
+                      <AccordionItem key={faqIndex} value={`${catIndex}-${faqIndex}`} className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline text-left">
+                          {faq.q}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-muted-foreground">
+                          {faq.a}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -288,5 +344,3 @@ const Help = () => {
 };
 
 export default Help;
-
-

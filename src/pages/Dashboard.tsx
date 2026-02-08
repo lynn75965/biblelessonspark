@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -22,7 +22,9 @@ import {
   UserCircle,
   HelpCircle,
   PlayCircle,
-  X
+  X,
+  Church,
+  ArrowRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
@@ -42,6 +44,7 @@ import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/help
 
 
 // Public Beta Prompt Banner added (January 1, 2026)
+// Shepherd Prompt added (February 2026) — Self-Service Shepherd Entry item 3
 
 export default function Dashboard() {
   // STATE DECLARATIONS
@@ -54,8 +57,14 @@ export default function Dashboard() {
   const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
+  // Shepherd Prompt state — dismissible, persisted in localStorage
+  const [shepherdPromptDismissed, setShepherdPromptDismissed] = useState(() => {
+    return localStorage.getItem('bls_shepherd_prompt_dismissed') === 'true';
+  });
+
   // HOOKS
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const { settings } = useSystemSettings();
@@ -167,6 +176,12 @@ export default function Dashboard() {
     await loadUserProfile();
   };
 
+  // Shepherd Prompt dismiss handler
+  const handleDismissShepherdPrompt = () => {
+    setShepherdPromptDismissed(true);
+    localStorage.setItem('bls_shepherd_prompt_dismissed', 'true');
+  };
+
   // Handle banner dismiss
   const handleDismissBanner = () => {
     setBannerDismissed(true);
@@ -188,6 +203,11 @@ export default function Dashboard() {
     shouldShowFloatingButton() && 
     activeTab === 'enhance' && 
     !selectedLesson;
+
+  // Shepherd Prompt visibility: user loaded, no org, not dismissed
+  const showShepherdPrompt = userProfile !== null && 
+    !userProfile.organization_id && 
+    !shepherdPromptDismissed;
 
   return (
     <div className={BRANDING.layout.pageWrapper}>
@@ -217,6 +237,44 @@ export default function Dashboard() {
           userOrgId={userProfile?.organization_id || null}
           onEnrollmentComplete={handleBetaEnrollmentComplete}
         />
+
+        {/* Shepherd Prompt — Self-Service Entry item 3
+            Shows for authenticated users who do NOT belong to any organization.
+            Dismissible; state persisted in localStorage. */}
+        {showShepherdPrompt && (
+          <div className="mb-6 bg-gradient-to-r from-primary/5 to-secondary/5 border border-primary/20 rounded-lg p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                  <Church className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg text-foreground mb-1">
+                    Set Up Your Ministry Organization
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Are you a ministry leader? Create an organization to share 
+                    a lesson pool with your teaching team, set a Shared Focus, and shepherd 
+                    your teaching ministry — all from one dashboard.
+                  </p>
+                  <Button onClick={() => navigate('/org')} size="sm">
+                    Learn More
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <Button
+                onClick={handleDismissShepherdPrompt}
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Dismiss</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {hasActiveFocus && focusData.activeFocus && focusStatus && (
           <ActiveFocusBanner

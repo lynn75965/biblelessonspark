@@ -6,16 +6,19 @@
 //   A. Direct URL: biblelessonspark.com/org
 //   B. Post-signup prompt on dashboard
 //   C. Direct link sent by Platform Admin
+//
+// Banner for existing org owners added (February 2026)
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BRANDING } from '@/config/branding';
 import { ORG_TIERS, getActiveOrgTiers } from '@/constants/orgPricingConfig';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Church, Users, BookOpen, Shield, ArrowRight, Sparkles } from 'lucide-react';
+import { Check, Church, Users, BookOpen, Shield, ArrowRight, Sparkles, LayoutDashboard } from 'lucide-react';
 
 const OrgLanding = () => {
   const navigate = useNavigate();
@@ -23,7 +26,50 @@ const OrgLanding = () => {
   const { user, loading } = useAuth();
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('annual');
 
+  // Existing-org banner state
+  const [existingOrgName, setExistingOrgName] = useState<string | null>(null);
+  const [checkingOrg, setCheckingOrg] = useState(false);
+
   const activeTiers = getActiveOrgTiers();
+
+  // Check if logged-in user already owns an organization
+  useEffect(() => {
+    if (!user) {
+      setExistingOrgName(null);
+      return;
+    }
+
+    const checkExistingOrg = async () => {
+      setCheckingOrg(true);
+      try {
+        // Look for org membership with 'owner' role
+        const { data: membership } = await supabase
+          .from('organization_members')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .eq('role', 'owner')
+          .limit(1)
+          .maybeSingle();
+
+        if (membership?.organization_id) {
+          const { data: org } = await supabase
+            .from('organizations')
+            .select('name')
+            .eq('id', membership.organization_id)
+            .single();
+
+          if (org) {
+            setExistingOrgName(org.name);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking existing org:', error);
+      }
+      setCheckingOrg(false);
+    };
+
+    checkExistingOrg();
+  }, [user]);
 
   // Handle "Get Started" click
   const handleGetStarted = (tierKey?: string) => {
@@ -90,6 +136,31 @@ const OrgLanding = () => {
         </div>
       </header>
 
+      {/* Existing Org Banner — for logged-in users who already own an organization */}
+      {user && existingOrgName && (
+        <div className="bg-primary/5 border-b border-primary/20">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Church className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-sm text-foreground">
+                  You already manage <strong>{existingOrgName}</strong>.
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                onClick={() => navigate('/org-manager')}
+              >
+                <LayoutDashboard className="h-4 w-4 mr-2" />
+                Go to Org Manager
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
@@ -101,7 +172,7 @@ const OrgLanding = () => {
             Shepherd Your Teaching Ministry
           </h1>
           <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Equip your Sunday School teachers with BibleLessonSpark-powered lesson preparation. 
+            Equip your teachers with BibleLessonSpark-powered lesson preparation. 
             Share a lesson pool across your teaching team and see how God is working 
             through your teaching ministry in every way at any time.
           </p>
