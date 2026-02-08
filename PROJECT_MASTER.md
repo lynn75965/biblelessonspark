@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** February 8, 2026 (Self-Service Shepherd Entry ALL STEPS COMPLETE — dashboard prompt, interactive tour, Help Organizations & Shepherds section, /org owner banner)
+**Last Updated:** February 8, 2026 (Phase 26 Lesson Visibility COMPLETE — Private/Shared toggle, Org Manager Override, Funding Badges, Transparency Messages. Dashboard Shepherd Prompt relocated to Header nav "Lead a Team".)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -84,7 +84,7 @@ Platform-level admin. Full Admin Panel. Platform branding (custom domain, logo, 
 ### Key Principle
 **Every person generates lessons on their own individual subscription.** The org (Shepherd) and partner tiers buy management and stewardship capabilities, not lesson generation. A pastor paying for the org tier still needs their own Discipler subscription for their personal lessons.
 
-### Lesson Visibility (Planned — Phase 26)
+### Lesson Visibility (COMPLETE — Phase 26, Feb 8, 2026)
 
 Each lesson has a visibility status controlled by its creator:
 
@@ -96,6 +96,16 @@ Each lesson has a visibility status controlled by its creator:
 **Private is the permanent default.** Teachers must explicitly mark a lesson as Shared.
 
 **Org Manager override:** Org Managers CAN view Private lessons that are org-funded (pool or pack), because the organization paid for them. Personal subscription lessons are never visible to the Org Manager unless Shared.
+
+**Database:** `lessons.visibility` column (`text`, default `'private'`, CHECK `IN ('private', 'shared')`)
+
+**Implementation:**
+- Teacher toggle: Lock/Share2 icon button in Lesson Library card (LessonLibrary.tsx)
+- Visibility badge on each lesson card (Private = muted, Shared = emerald green)
+- Org Manager view: `isVisibleToOrgManager()` filter in OrgLessonsPanel.tsx
+- Override access: Private + org-funded lessons visible with amber highlight
+- Transparency notice in view modal: "🔒 This lesson has not been shared by the teacher. You have access because it was funded by your {orgName} lesson pool."
+- Funding badges: 🟢 Pool (emerald), Personal (yellow)
 
 **Funding badges (Org Lessons view):**
 - 🟢 **Pool** — monthly subscription lesson
@@ -1045,7 +1055,7 @@ git push origin biblelessonspark
 |---|---------|-------------|-------|--------|
 | 1 | **Self-Service Shepherd Entry** | Pastor creates org, selects tier, pays, becomes Org Manager — no admin intervention | 2 | ✅ Complete (Feb 7) |
 | 2 | **Shepherd Landing Page** | `/org` — dedicated landing page for ministry leaders with Shepherd-focused messaging | 2 | ✅ Complete (Feb 7) |
-| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org | 2 | ✅ Complete (Feb 8) |
+| 3 | **Dashboard "Set Up Your Ministry Organization" prompt** | Post-signup prompt for logged-in users without an org — relocated to Header nav "Lead a Team" (Feb 8) | 2 | ✅ Complete (Feb 8) |
 | 4 | **Org Creation Form** | `/org/setup` — Collects: Org Name, Org Type, Denomination, Org Leader Name/Email, Org Email | 2 | ✅ Complete (Feb 7) |
 | 5 | **Personal Subscription Check + Bundled Checkout** | Auto-detects if Org Leader has personal subscription; if not, adds $9/mo or $90/yr to checkout (matching org billing interval) | 2 | ✅ Complete (Feb 7) |
 | 6 | **Combined Stripe Checkout** | Single Stripe session with org tier + personal subscription (if needed) as line items | 2 | ✅ Complete (Feb 7) |
@@ -1056,10 +1066,10 @@ git push origin biblelessonspark
 
 | # | Feature | Description | Stack | Status |
 |---|---------|-------------|-------|--------|
-| 9 | **Lesson Visibility Status** | Private/Shared toggle per lesson; Private is permanent default | 1 + 2 | 📋 Designed (Phase 26) |
-| 10 | **Org Manager Override for Org-Funded Lessons** | Org Manager can view Private lessons funded by pool/pack with transparency notice | 2 | 📋 Designed (Phase 26) |
-| 11 | **Funding Badges on Org Lessons** | Pool (🟢) and Pack (🔵) badges on org lesson view | 2 | 📋 Designed (Phase 26) |
-| 12 | **Transparency Messages** | Teacher sees "[org name] lesson pool / [Org Manager name] may view"; Org Manager sees override notice | 1 + 2 | 📋 Designed (Phase 26) |
+| 9 | **Lesson Visibility Status** | Private/Shared toggle per lesson; Private is permanent default | 1 + 2 | ✅ Complete (Feb 8) |
+| 10 | **Org Manager Override for Org-Funded Lessons** | Org Manager can view Private lessons funded by pool/pack with transparency notice | 2 | ✅ Complete (Feb 8) |
+| 11 | **Funding Badges on Org Lessons** | Pool (🟢) and Pack (🔵) badges on org lesson view | 2 | ✅ Complete (Feb 8) |
+| 12 | **Transparency Messages** | Org Manager sees override notice on private org-funded lessons in view modal | 1 + 2 | ✅ Complete (Feb 8) |
 | 13 | **Email Metadata Cleanup** | Remove ageGroup/theologyProfile from emailed lesson metadata | 1 | ✅ Done (Feb 4, 2026) |
 
 ### Priority: LOW (Post-Launch Enhancements)
@@ -1184,10 +1194,11 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - [x] `/org/success` shows org details and next steps
 
 ### Remaining Work (Items 3 & 8) — COMPLETE ✅ (Feb 8, 2026)
-- [x] Dashboard "Set Up Your Ministry Organization" prompt
+- [x] Dashboard "Set Up Your Ministry Organization" prompt → relocated to Header nav "Lead a Team" (Feb 8 afternoon)
 - [x] Interactive Org Manager Tour
 - [x] Help page: Add "Organizations & Shepherds" section (with scroll-to link from /org footer)
 - [x] `/org` banner for logged-in users with existing org → link to `/org-manager`
+- [x] Help FAQ: Added Lesson Packs option to monthly limit answer (Feb 8)
 
 ---
 
@@ -1224,7 +1235,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - All solutions must be SSOT compliant (frontend drives backend)
 - Platform is in Production mode - no "Beta" references in UI
 - **THREE STACKS FRAMEWORK** — Discipler (Teacher), Shepherd (Org Manager), Partner (White-Label). See full definitions above.
-- **CURRENT PRIORITY** — Self-Service Shepherd Entry ALL STEPS COMPLETE ✅ (Steps 1-6: Feb 7, Items 3 & 8: Feb 8, 2026).
+- **CURRENT PRIORITY** — Phase 26 Lesson Visibility ALL ITEMS COMPLETE ✅ (Items 9-12: Feb 8, 2026). Next: Teaching Team (Phase 27) or teacher-side transparency message, or launch prep for Feb 28 beta deadline.
 
 **Key Commands:**
 - `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
@@ -1253,6 +1264,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - Domain URLs (all Edge Functions use branding config)
 - Transfer Request Statuses (transferRequestConfig.ts)
 - Email Sequence Templates (database-driven, Admin Panel editable)
+- **Lesson Visibility (Phase 26)** - `lessons.visibility` column, `contracts.ts` Lesson interface, `useLessons.tsx` toggle, `LessonLibrary.tsx` badge/button, `OrgLessonsPanel.tsx` override logic
 - Reset Logic (rolling 30-day, documented in trialConfig.ts)
 - FeaturesSection (dynamic from 5 SSOT files, hover-activated)
 - DevotionalSpark v2.1 (smooth prose, reader-focused, prayer ends with Jesus)
@@ -1266,9 +1278,10 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - **Series/Theme Mode (Phase 24)** - Database + SSOT + hooks created; UI bugs remain (see Known Issues below)
 
 **📋 DESIGNED (Ready to Build):**
-- **Self-Service Shepherd Entry** - ALL STEPS COMPLETE ✅ (Feb 7-8). Dashboard prompt, interactive tour, Help section, /org owner banner
-- **Lesson Visibility (Phase 26)** - Private/Shared toggle, org manager override for org-funded lessons, funding badges, transparency messages
+- **Self-Service Shepherd Entry** - ALL STEPS COMPLETE ✅ (Feb 7-8). Dashboard prompt relocated to Header nav "Lead a Team" (Feb 8)
+- **Lesson Visibility (Phase 26)** - ALL ITEMS COMPLETE ✅ (Feb 8). Private/Shared toggle, org manager override, funding badges, transparency messages
 - **Teaching Team (Phase 27)** - Peer-to-peer linked visibility, max 3, opt-in accept/decline
+- **Teacher-Side Transparency Message** - When generating from org pool: "This lesson is funded by your {org name} lesson pool. {Org Manager name} may view it for shepherding purposes."
 
 **Organization Billing Status (Phase 13 - COMPLETE ✅):**
 - ✅ 13.1: Stripe Products (9 products created + Single Staff added Feb 3)
@@ -1348,7 +1361,8 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - Org Tier Rename + Repricing: February 3, 2026 ✅ (Single Staff/Starter/Growth/Develop/Expansion)
 - Three Stacks Framework: February 3-4, 2026 ✅ DEFINED
 - Self-Service Shepherd Entry: February 7-8, 2026 ✅ ALL STEPS COMPLETE (landing, setup, checkout, webhook, success, dashboard prompt, interactive tour, Help section, /org owner banner)
-- Lesson Visibility (Phase 26): February 4, 2026 📋 DESIGNED
+- Lesson Visibility (Phase 26): February 8, 2026 ✅ COMPLETE (Private/Shared toggle, Org Manager Override, Funding Badges, Transparency Messages)
+- Dashboard Shepherd Prompt relocated to Header nav "Lead a Team": February 8, 2026 ✅
 - Teaching Team (Phase 27): February 4, 2026 📋 DESIGNED
 - All routes verified ✅
 - Email automation working ✅
