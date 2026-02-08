@@ -203,7 +203,7 @@ const Help = () => {
         },
         {
           q: "What happens if I reach my monthly lesson limit?",
-          a: "You'll be notified when approaching your limit. You can upgrade your plan for additional lessons. Your existing lessons remain accessible regardless of your current allowance."
+          a: "You'll be notified when approaching your limit. You can purchase Lesson Packs or upgrade your plan for additional lessons. Your existing lessons remain accessible regardless of your current allowance."
         },
         {
           q: "Can I get a refund?",
