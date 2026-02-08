@@ -161,7 +161,7 @@ const Help = () => {
         },
         {
           q: "How does the shared lesson pool work?",
-          a: "Your Shepherd tier provides a monthly pool of lessons (for example, Growth includes 100 lessons/month). Any teacher in your organization can generate lessons from this pool. The pool resets each billing cycle, and you can purchase Lesson Packs if you need more mid-month."
+          a: "Your Shepherd tier provides a monthly pool of lessons (for example, Growth includes 100 lessons/month). Any teacher in your organization can generate lessons from this pool. The pool resets each month, and you can purchase Lesson Packs if you need more mid-month."
         },
         {
           q: "How do I invite teachers to my organization?",
