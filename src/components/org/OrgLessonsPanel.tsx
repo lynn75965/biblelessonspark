@@ -8,7 +8,14 @@
  * 
  * Phase 13.7: Added org_pool_consumed tracking for reimbursement identification
  * 
- * SSOT: lessons.organization_id + lessons.org_pool_consumed
+ * Phase 26: Lesson Visibility + Org Manager Override (February 2026)
+ * - Visibility column: Private/Shared per lesson
+ * - Org Manager Override: Can view Private lessons IF org-funded (org_pool_consumed = true)
+ * - Personal-funded Private lessons are hidden from Org Manager
+ * - Funding badges: 🟢 Pool, 🔵 Pack (Pack ready for future use)
+ * - Transparency messages: Override notice on private org-funded lessons
+ * 
+ * SSOT: lessons.organization_id + lessons.org_pool_consumed + lessons.visibility
  * 
  * @location src/components/org/OrgLessonsPanel.tsx
  */
@@ -34,7 +41,10 @@ import {
   Wallet,
   AlertCircle,
   CheckCircle2,
-  Filter
+  Filter,
+  Lock,
+  Share2,
+  ShieldAlert
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -66,6 +76,7 @@ interface OrgLesson {
   user_id: string;
   organization_id: string | null;
   org_pool_consumed: boolean;
+  visibility: 'private' | 'shared';
 }
 
 interface ProfileMap {
@@ -80,25 +91,27 @@ interface OrgLessonsPanelProps {
 }
 
 // ============================================================================
-// FUNDING SOURCE CONSTANTS
+// FUNDING SOURCE CONSTANTS (Phase 26 — Funding Badges)
 // ============================================================================
 
 type FundingFilter = 'all' | 'org_pool' | 'personal';
 
 const FUNDING_LABELS = {
   org_pool: {
-    label: "Org Pool",
-    description: "Lesson funded by organization subscription",
+    label: "Pool",
+    description: "Lesson funded by organization subscription pool",
     icon: Building2,
     variant: "default" as const,
-    color: "text-primary",
+    badgeClass: "bg-emerald-100 text-emerald-800 border-emerald-300",
+    dotColor: "🟢",
   },
   personal: {
     label: "Personal",
-    description: "Member used personal account - consider reimbursement",
+    description: "Member used personal account — consider reimbursement",
     icon: Wallet,
     variant: "secondary" as const,
-    color: "text-yellow-600",
+    badgeClass: "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30",
+    dotColor: "",
   },
 } as const;
 
@@ -150,7 +163,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
       }
 
       // Step 2: Query lessons with organization_id set (org members' lessons)
-      // This includes lessons where org_pool_consumed = true OR false
+      // Phase 26: Now includes visibility column for override logic
       const { data: lessonsData, error: lessonsError } = await supabase
         .from('lessons')
         .select(`
@@ -163,7 +176,8 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
           created_at, 
           user_id,
           organization_id,
-          org_pool_consumed
+          org_pool_consumed,
+          visibility
         `)
         .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
@@ -210,11 +224,34 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
     return lesson.org_pool_consumed ? 'org_pool' : 'personal';
   };
 
+  /**
+   * Phase 26: Org Manager Override Logic
+   * - Shared lessons: always visible to Org Manager
+   * - Private + org-funded (org_pool_consumed = true): visible via override
+   * - Private + personal-funded: NOT visible to Org Manager
+   */
+  const isVisibleToOrgManager = (lesson: OrgLesson): boolean => {
+    if (lesson.visibility === 'shared') return true;
+    if (lesson.visibility === 'private' && lesson.org_pool_consumed) return true;
+    return false;
+  };
+
+  /**
+   * Is this lesson being viewed via Org Manager Override?
+   * (Private lesson that the org funded)
+   */
+  const isOverrideAccess = (lesson: OrgLesson): boolean => {
+    return lesson.visibility === 'private' && lesson.org_pool_consumed;
+  };
+
   // ============================================================================
-  // FILTERING
+  // FILTERING (Phase 26: applies visibility override logic)
   // ============================================================================
 
-  const filteredLessons = lessons.filter(lesson => {
+  // First apply visibility logic — only show what Org Manager should see
+  const visibleLessons = lessons.filter(isVisibleToOrgManager);
+
+  const filteredLessons = visibleLessons.filter(lesson => {
     // Text search filter
     const displayTitle = getDisplayTitle(lesson);
     const scripture = getScripture(lesson);
@@ -235,9 +272,11 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
     return matchesSearch && matchesFunding;
   });
 
-  // Calculate stats
-  const orgPoolCount = lessons.filter(l => l.org_pool_consumed === true).length;
-  const personalCount = lessons.filter(l => l.org_pool_consumed === false).length;
+  // Calculate stats (based on visible lessons only)
+  const orgPoolCount = visibleLessons.filter(l => l.org_pool_consumed === true).length;
+  const personalCount = visibleLessons.filter(l => l.org_pool_consumed === false).length;
+  const sharedCount = visibleLessons.filter(l => l.visibility === 'shared').length;
+  const overrideCount = visibleLessons.filter(l => isOverrideAccess(l)).length;
 
   const handleViewLesson = (lesson: OrgLesson) => { 
     setSelectedLesson(lesson); 
@@ -282,18 +321,22 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
           )}
 
           {/* Funding Summary Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <div className="p-3 bg-muted/50 rounded-lg text-center">
-              <p className="text-2xl font-bold">{lessons.length}</p>
-              <p className="text-xs text-muted-foreground">Total Lessons</p>
+              <p className="text-2xl font-bold">{visibleLessons.length}</p>
+              <p className="text-xs text-muted-foreground">Visible Lessons</p>
             </div>
-            <div className="p-3 bg-primary/10 rounded-lg text-center">
-              <p className="text-2xl font-bold text-primary">{orgPoolCount}</p>
-              <p className="text-xs text-muted-foreground">Org Pool Used</p>
+            <div className="p-3 bg-emerald-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-emerald-700">{orgPoolCount}</p>
+              <p className="text-xs text-muted-foreground">🟢 Org Pool</p>
             </div>
             <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
               <p className="text-2xl font-bold text-yellow-600">{personalCount}</p>
               <p className="text-xs text-muted-foreground">Personal Account</p>
+            </div>
+            <div className="p-3 bg-amber-50 rounded-lg text-center">
+              <p className="text-2xl font-bold text-amber-600">{overrideCount}</p>
+              <p className="text-xs text-muted-foreground">🔒 Override Access</p>
             </div>
           </div>
 
@@ -317,7 +360,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                 <SelectItem value="all">All Lessons</SelectItem>
                 <SelectItem value="org_pool">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-primary" />
+                    <Building2 className="h-4 w-4 text-emerald-600" />
                     Org Pool Only
                   </div>
                 </SelectItem>
@@ -352,6 +395,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                     <TableHead className="hidden lg:table-cell">Author</TableHead>
                     <TableHead className="hidden sm:table-cell">Age Group</TableHead>
                     <TableHead>Funding</TableHead>
+                    <TableHead>Visibility</TableHead>
                     <TableHead className="hidden sm:table-cell">Date</TableHead>
                     <TableHead className="w-[80px]">Actions</TableHead>
                   </TableRow>
@@ -361,9 +405,10 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                     const fundingSource = getFundingSource(lesson);
                     const fundingConfig = FUNDING_LABELS[fundingSource];
                     const FundingIcon = fundingConfig.icon;
+                    const override = isOverrideAccess(lesson);
 
                     return (
-                      <TableRow key={lesson.id}>
+                      <TableRow key={lesson.id} className={override ? "bg-amber-50/30" : ""}>
                         <TableCell className="font-medium">
                           <div className="max-w-[200px] truncate">
                             {getDisplayTitle(lesson)}
@@ -388,19 +433,17 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                             {getAgeGroup(lesson)}
                           </Badge>
                         </TableCell>
+                        {/* Funding Badge (Phase 26 — Item 11) */}
                         <TableCell>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Badge 
-                                  variant={fundingConfig.variant}
-                                  className={`text-xs cursor-help ${
-                                    fundingSource === 'personal' 
-                                      ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30' 
-                                      : ''
-                                  }`}
+                                  variant="outline"
+                                  className={`text-xs cursor-help ${fundingConfig.badgeClass}`}
                                 >
                                   <FundingIcon className="h-3 w-3 mr-1" />
+                                  {fundingConfig.dotColor && <span className="mr-0.5">{fundingConfig.dotColor}</span>}
                                   {fundingConfig.label}
                                 </Badge>
                               </TooltipTrigger>
@@ -409,6 +452,29 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                        </TableCell>
+                        {/* Visibility Badge (Phase 26 — Item 10) */}
+                        <TableCell>
+                          {lesson.visibility === 'shared' ? (
+                            <Badge variant="outline" className="text-xs text-emerald-700 border-emerald-300 bg-emerald-50">
+                              <Share2 className="h-3 w-3 mr-1" />
+                              Shared
+                            </Badge>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="text-xs text-amber-700 border-amber-300 bg-amber-50 cursor-help">
+                                    <Lock className="h-3 w-3 mr-1" />
+                                    Private
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[250px]">
+                                  <p className="text-sm">This lesson has not been shared by the teacher. You have access because it was funded by your organization.</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -465,6 +531,24 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
           <ScrollArea className="max-h-[60vh]">
             {selectedLesson && (
               <div className="space-y-4 p-4">
+
+                {/* Phase 26 — Transparency Message (Item 12): Override Notice */}
+                {isOverrideAccess(selectedLesson) && (
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <ShieldAlert className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm">
+                        <p className="font-medium text-amber-800">
+                          🔒 This lesson has not been shared by the teacher.
+                        </p>
+                        <p className="text-amber-700 mt-1">
+                          You have access because it was funded by your {organizationName} lesson pool.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Metadata Grid */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -489,26 +573,43 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                   )}
                 </div>
 
-                {/* Funding Source Badge */}
-                <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-                  <span className="font-medium text-sm">Funding Source:</span>
-                  {(() => {
-                    const fundingSource = getFundingSource(selectedLesson);
-                    const fundingConfig = FUNDING_LABELS[fundingSource];
-                    const FundingIcon = fundingConfig.icon;
-                    return (
-                      <Badge 
-                        variant={fundingConfig.variant}
-                        className={fundingSource === 'personal' 
-                          ? 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400' 
-                          : ''}
-                      >
-                        <FundingIcon className="h-3 w-3 mr-1" />
-                        {fundingConfig.label}
+                {/* Funding Source + Visibility Badges */}
+                <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  {/* Funding Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Funding:</span>
+                    {(() => {
+                      const fundingSource = getFundingSource(selectedLesson);
+                      const fundingConfig = FUNDING_LABELS[fundingSource];
+                      const FundingIcon = fundingConfig.icon;
+                      return (
+                        <Badge 
+                          variant="outline"
+                          className={fundingConfig.badgeClass}
+                        >
+                          <FundingIcon className="h-3 w-3 mr-1" />
+                          {fundingConfig.dotColor && <span className="mr-0.5">{fundingConfig.dotColor}</span>}
+                          {fundingConfig.label}
+                        </Badge>
+                      );
+                    })()}
+                  </div>
+                  {/* Visibility Badge */}
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">Visibility:</span>
+                    {selectedLesson.visibility === 'shared' ? (
+                      <Badge variant="outline" className="text-emerald-700 border-emerald-300 bg-emerald-50">
+                        <Share2 className="h-3 w-3 mr-1" />
+                        Shared
                       </Badge>
-                    );
-                  })()}
-                  <span className="text-xs text-muted-foreground ml-2">
+                    ) : (
+                      <Badge variant="outline" className="text-amber-700 border-amber-300 bg-amber-50">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Private
+                      </Badge>
+                    )}
+                  </div>
+                  <span className="text-xs text-muted-foreground">
                     {selectedLesson.org_pool_consumed 
                       ? "Organization paid for this lesson" 
                       : "Member used personal account"}
