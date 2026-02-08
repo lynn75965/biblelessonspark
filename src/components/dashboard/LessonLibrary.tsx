@@ -1,4 +1,4 @@
-﻿/**
+/**
  * LessonLibrary Component
  * Browse and manage saved Baptist Bible study lessons
  * 
@@ -15,6 +15,12 @@
  * - Devotional inherits lesson's theology_profile, age_group, bible_version
  * - Supports both passage-based AND theme/focus-based lessons
  * - User can override Target (audience) and Length in the devotional generator
+ * 
+ * Phase 26: Lesson Visibility Status (February 2026)
+ * - Private/Shared toggle per lesson card
+ * - Private is permanent default; teacher must explicitly share
+ * - 🔒 Private = only the creator can see it
+ * - 👁 Shared = creator + Org Manager + linked Teaching Team
  */
 
 import { useState } from "react";
@@ -26,7 +32,7 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Sparkles } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Sparkles, Lock, Share2 } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { Lesson } from "@/types/lesson";
 import { AGE_GROUPS } from "@/constants/ageGroups";
@@ -133,7 +139,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [profileFilter, setProfileFilter] = useState<string>("all");
 
-  const { lessons, loading, deleteLesson } = useLessons();
+  const { lessons, loading, deleteLesson, updateLessonVisibility } = useLessons();
 
   // Transform lessons for display
   const displayLessons: LessonDisplay[] = lessons.map((lesson) => {
@@ -199,6 +205,15 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
     if (window.confirm("Are you sure you want to delete this lesson? This action cannot be undone.")) {
       await deleteLesson(lessonId);
     }
+  };
+
+  /**
+   * Toggle lesson visibility between Private and Shared (Phase 26)
+   * Private is permanent default. Teacher must explicitly share.
+   */
+  const handleToggleVisibility = async (lesson: LessonDisplay) => {
+    const newVisibility = lesson.visibility === 'shared' ? 'private' : 'shared';
+    await updateLessonVisibility(lesson.id, newVisibility);
   };
 
   /**
@@ -356,6 +371,27 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}
                   </Badge>
+                  {/* Visibility Badge (Phase 26) */}
+                  <Badge
+                    variant="outline"
+                    className={
+                      lesson.visibility === 'shared'
+                        ? "text-emerald-700 border-emerald-300 bg-emerald-50"
+                        : "text-muted-foreground border-border bg-muted/50"
+                    }
+                  >
+                    {lesson.visibility === 'shared' ? (
+                      <>
+                        <Share2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                        Shared
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                        Private
+                      </>
+                    )}
+                  </Badge>
                   {!lesson.has_content && (
                     <Badge variant="outline" className="text-warning border-warning/20 bg-warning-light">
                       Draft
@@ -376,6 +412,24 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                   <Button data-tour="library-view-button" onClick={() => onViewLesson?.(lesson)} className="flex-1" size="sm">
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
+                  </Button>
+                  {/* Visibility Toggle (Phase 26) */}
+                  <Button
+                    onClick={() => handleToggleVisibility(lesson)}
+                    variant="outline"
+                    size="sm"
+                    className={
+                      lesson.visibility === 'shared'
+                        ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                        : "hover:bg-muted hover:text-foreground"
+                    }
+                    title={lesson.visibility === 'shared' ? "Set to Private" : "Share with your organization"}
+                  >
+                    {lesson.visibility === 'shared' ? (
+                      <Share2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <Lock className="h-3.5 w-3.5" />
+                    )}
                   </Button>
                   {lesson.has_content && (
                     <Button

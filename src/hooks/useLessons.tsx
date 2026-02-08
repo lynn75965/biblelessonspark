@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
@@ -115,11 +115,47 @@ export function useLessons() {
     }
   };
 
+  /**
+   * Update lesson visibility (Phase 26 — Lesson Visibility Status)
+   * Private is permanent default. Teacher must explicitly share.
+   */
+  const updateLessonVisibility = async (lessonId: string, visibility: 'private' | 'shared') => {
+    try {
+      const { error } = await supabase
+        .from('lessons')
+        .update({ visibility })
+        .eq('id', lessonId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setLessons(prev => prev.map(lesson =>
+        lesson.id === lessonId ? { ...lesson, visibility } : lesson
+      ));
+
+      toast({
+        title: visibility === 'shared' ? "Lesson shared" : "Lesson set to private",
+        description: visibility === 'shared'
+          ? "Your organization's Shepherd can now view this lesson."
+          : "This lesson is now visible only to you.",
+      });
+    } catch (error) {
+      console.error('Error updating lesson visibility:', error);
+      toast({
+        title: "Error updating visibility",
+        description: "Failed to update lesson visibility. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     lessons,
     loading,
     createLesson,
     deleteLesson,
+    updateLessonVisibility,
     refetch: fetchLessons,
   };
 }

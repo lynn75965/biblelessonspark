@@ -1,3 +1,9 @@
+/**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/contracts.ts
+ * Generated: 2026-01-28T22:25:06.622Z
+ */
 ﻿/**
  * LessonSparkUSA Constants - TypeScript Contracts
  * @version 1.1.0
@@ -195,6 +201,7 @@ export interface Lesson {
   created_at: string | null;
   user_id: string;
   organization_id: string | null;
+  visibility: 'private' | 'shared';
   theology_profile_id?: string | null;
   metadata?: {
     teaser?: string | null;
