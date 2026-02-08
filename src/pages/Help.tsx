@@ -28,15 +28,18 @@ import { SITE } from "@/config/site";
 const Help = () => {
   const location = useLocation();
 
-  // Scroll to hash anchor on mount (React Router doesn't do this automatically)
+  // Scroll to section on mount — supports both state passing (from React Router Link)
+  // and hash fallback (from direct URL or external link)
   useEffect(() => {
-    if (location.hash) {
-      const targetId = location.hash.substring(1);
-      // Retry multiple times — React Router may scroll-to-top after initial render
-      const attempts = [150, 400, 800];
+    const scrollTarget = (location.state as any)?.scrollTo || 
+      (location.hash ? location.hash.substring(1) : null);
+    
+    if (scrollTarget) {
+      // Retry multiple times — ensures element exists and no scroll-to-top override
+      const attempts = [150, 400, 800, 1200];
       const timers = attempts.map((delay) =>
         setTimeout(() => {
-          const element = document.getElementById(targetId);
+          const element = document.getElementById(scrollTarget);
           if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
@@ -44,7 +47,7 @@ const Help = () => {
       );
       return () => timers.forEach(clearTimeout);
     }
-  }, [location.hash]);
+  }, [location.state, location.hash]);
   const quickLinks = [
     {
       title: "Getting Started",
