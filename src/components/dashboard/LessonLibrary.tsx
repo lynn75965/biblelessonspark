@@ -423,7 +423,7 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                         ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
                         : "hover:bg-muted hover:text-foreground"
                     }
-                    title={lesson.visibility === 'shared' ? "Set to Private" : "Share with your organization"}
+                    title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
                   >
                     {lesson.visibility === 'shared' ? (
                       <Share2 className="h-3.5 w-3.5" />

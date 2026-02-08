@@ -137,7 +137,7 @@ export function useLessons() {
       toast({
         title: visibility === 'shared' ? "Lesson shared" : "Lesson set to private",
         description: visibility === 'shared'
-          ? "Your organization's Shepherd can now view this lesson."
+          ? "Share with Org Leaders"
           : "This lesson is now visible only to you.",
       });
     } catch (error) {
