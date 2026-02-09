@@ -372,28 +372,20 @@ export function useTeachingTeam() {
       // ── Fire-and-forget: Send email notification via Edge Function ─────
       // Frontend drives backend: we explicitly call the function after
       // the successful INSERT. If email fails, the invitation still stands.
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-team-invitation`,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ team_member_id: newMember.id }),
-            }
-          ).catch(emailErr => {
-            // Log but don't block — invitation already exists
-            console.error('Email notification failed (non-blocking):', emailErr);
-          });
-        }
-      } catch (emailErr) {
-        // Log but don't block — invitation already exists
-        console.error('Email notification failed (non-blocking):', emailErr);
-      }
+      // Uses supabase.functions.invoke() — the client already has the
+      // correct URL and auth token configured.
+      supabase.functions
+        .invoke('notify-team-invitation', {
+          body: { team_member_id: newMember.id },
+        })
+        .then(({ error: fnError }) => {
+          if (fnError) {
+            console.error('Email notification failed (non-blocking):', fnError);
+          }
+        })
+        .catch(emailErr => {
+          console.error('Email notification failed (non-blocking):', emailErr);
+        });
 
       // Add to local state with profile info (map full_name → display_name)
       const enriched: TeachingTeamMemberWithProfile = {
