@@ -20,6 +20,10 @@ import {
  * - Fetch team data and pending invitations
  *
  * One team at a time per teacher (lead or member, not both).
+ *
+ * SSOT: profiles table uses `full_name` column (not display_name).
+ * Frontend interface uses `display_name` for UI display; this hook
+ * maps full_name → display_name at the query boundary.
  */
 
 const MAX_TEAM_MEMBERS = 3;
@@ -130,10 +134,10 @@ export function useTeachingTeam() {
 
         if (inviteTeamError) throw inviteTeamError;
 
-        // Fetch lead teacher name
+        // Fetch lead teacher name (SSOT: profiles.full_name)
         const { data: leadProfile } = await supabase
           .from('profiles')
-          .select('display_name')
+          .select('full_name')
           .eq('id', inviteTeam.lead_teacher_id)
           .single();
 
@@ -141,7 +145,7 @@ export function useTeachingTeam() {
           membership_id: pendingMembership.id,
           team_id: inviteTeam.id,
           team_name: inviteTeam.name,
-          lead_teacher_name: leadProfile?.display_name || 'A fellow teacher',
+          lead_teacher_name: leadProfile?.full_name || 'A fellow teacher',
           invited_at: pendingMembership.invited_at,
         });
         setTeam(null);
@@ -164,7 +168,8 @@ export function useTeachingTeam() {
   }, [user]);
 
   /**
-   * Fetch all members for a given team (with profile display names)
+   * Fetch all members for a given team (with profile names)
+   * SSOT: profiles table uses full_name; mapped to display_name for UI
    */
   const fetchMembers = async (teamId: string) => {
     try {
@@ -177,26 +182,27 @@ export function useTeachingTeam() {
 
       if (error) throw error;
 
-      // Fetch profile info for each member
+      // Fetch profile info for each member (SSOT: full_name, email)
       const memberIds = (memberRows || []).map(m => m.user_id);
-      let profileMap: Record<string, { display_name: string | null; email: string | null }> = {};
+      let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
 
       if (memberIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, display_name, email')
+          .select('id, full_name, email')
           .in('id', memberIds);
 
         if (profiles) {
           profiles.forEach(p => {
-            profileMap[p.id] = { display_name: p.display_name, email: p.email };
+            profileMap[p.id] = { full_name: p.full_name, email: p.email };
           });
         }
       }
 
+      // Map full_name → display_name for frontend interface
       const enrichedMembers: TeachingTeamMemberWithProfile[] = (memberRows || []).map(m => ({
         ...m,
-        display_name: profileMap[m.user_id]?.display_name || null,
+        display_name: profileMap[m.user_id]?.full_name || null,
         email: profileMap[m.user_id]?.email || null,
       }));
 
@@ -286,6 +292,7 @@ export function useTeachingTeam() {
   /**
    * Invite a teacher by email address (Lead Teacher only)
    * Returns an object with { error, message } for the UI to display.
+   * SSOT: profiles table uses full_name (not display_name)
    */
   const inviteMember = async (email: string): Promise<{ error: boolean; message: string }> => {
     if (!user || !team || !isLeadTeacher) {
@@ -299,10 +306,10 @@ export function useTeachingTeam() {
     }
 
     try {
-      // Look up the invitee by email
+      // Look up the invitee by email (SSOT: full_name, email)
       const { data: inviteeProfile, error: lookupError } = await supabase
         .from('profiles')
-        .select('id, display_name, email')
+        .select('id, full_name, email')
         .eq('email', email.trim().toLowerCase())
         .maybeSingle();
 
@@ -330,7 +337,7 @@ export function useTeachingTeam() {
       if (existingLead) {
         return {
           error: true,
-          message: `${inviteeProfile.display_name || 'That teacher'} already leads a Teaching Team.`,
+          message: `${inviteeProfile.full_name || 'That teacher'} already leads a Teaching Team.`,
         };
       }
 
@@ -345,7 +352,7 @@ export function useTeachingTeam() {
       if (existingMembership) {
         return {
           error: true,
-          message: `${inviteeProfile.display_name || 'That teacher'} is already on a teaching team.`,
+          message: `${inviteeProfile.full_name || 'That teacher'} is already on a teaching team.`,
         };
       }
 
@@ -362,17 +369,17 @@ export function useTeachingTeam() {
 
       if (insertError) throw insertError;
 
-      // Add to local state with profile info
+      // Add to local state with profile info (map full_name → display_name)
       const enriched: TeachingTeamMemberWithProfile = {
         ...newMember,
-        display_name: inviteeProfile.display_name,
+        display_name: inviteeProfile.full_name,
         email: inviteeProfile.email,
       };
       setMembers(prev => [...prev, enriched]);
 
       toast({
         title: 'Invitation sent',
-        description: `Invitation sent to ${inviteeProfile.display_name || email}`,
+        description: `Invitation sent to ${inviteeProfile.full_name || email}`,
       });
       return { error: false, message: 'Invitation sent' };
     } catch (error) {
