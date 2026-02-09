@@ -369,6 +369,32 @@ export function useTeachingTeam() {
 
       if (insertError) throw insertError;
 
+      // ── Fire-and-forget: Send email notification via Edge Function ─────
+      // Frontend drives backend: we explicitly call the function after
+      // the successful INSERT. If email fails, the invitation still stands.
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-team-invitation`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ team_member_id: newMember.id }),
+            }
+          ).catch(emailErr => {
+            // Log but don't block — invitation already exists
+            console.error('Email notification failed (non-blocking):', emailErr);
+          });
+        }
+      } catch (emailErr) {
+        // Log but don't block — invitation already exists
+        console.error('Email notification failed (non-blocking):', emailErr);
+      }
+
       // Add to local state with profile info (map full_name → display_name)
       const enriched: TeachingTeamMemberWithProfile = {
         ...newMember,
@@ -379,7 +405,7 @@ export function useTeachingTeam() {
 
       toast({
         title: 'Invitation sent',
-        description: `Invitation sent to ${inviteeProfile.full_name || email}`,
+        description: `${inviteeProfile.full_name || email} has been invited and will receive an email notification.`,
       });
       return { error: false, message: 'Invitation sent' };
     } catch (error) {
