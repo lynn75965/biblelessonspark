@@ -21,9 +21,14 @@
  * - Private is permanent default; teacher must explicitly share
  * - 🔒 Private = only the creator can see it
  * - 👁 Shared = creator + Org Manager + linked Teaching Team
+ * 
+ * Phase 27: Teaching Team Lessons (February 2026)
+ * - "My Lessons" / "Team Lessons" scope toggle (visible only when user has a team)
+ * - Team Lessons shows shared lessons from all team members (read-only)
+ * - Author name displayed on team lesson cards
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,8 +37,9 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Sparkles, Lock, Share2 } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Sparkles, Lock, Share2, User } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
+import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { Lesson } from "@/types/lesson";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile } from "@/constants/theologyProfiles";
@@ -44,6 +50,7 @@ import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfil
 
 interface LessonLibraryProps {
   onViewLesson?: (lesson: any) => void;
+  onCreateNew?: () => void;
   organizationId?: string;
 }
 
@@ -58,6 +65,10 @@ interface LessonDisplay extends Lesson {
   created_by_name: string;
   has_content: boolean;
   updated_at?: string;
+  /** Phase 27: true if this lesson belongs to a team member (read-only) */
+  isTeamLesson?: boolean;
+  /** Phase 27: display name of the lesson author (for team lessons) */
+  authorName?: string;
 }
 
 // ============================================================================
@@ -127,11 +138,42 @@ const extractPrimaryScripture = (content: string): string | null => {
   return null;
 };
 
+/**
+ * Transform a raw lesson row into LessonDisplay format
+ * Used for both user's own lessons and team lessons
+ */
+const transformToDisplay = (
+  lesson: any,
+  options?: { isTeamLesson?: boolean; authorName?: string }
+): LessonDisplay => {
+  const filters = lesson.filters as Record<string, any> | null;
+  const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
+  const aiGeneratedScripture = extractPrimaryScripture(lesson.original_text || "");
+  const userInputPassage = filters?.bible_passage || null;
+  const userInputTopic = filters?.focused_topic || null;
+
+  return {
+    ...lesson,
+    ai_lesson_title: aiGeneratedTitle,
+    bible_passage: userInputPassage || aiGeneratedScripture,
+    focused_topic: userInputTopic,
+    passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
+    age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
+    theology_profile_id: filters?.theology_profile_id || getDefaultTheologyProfile().id,
+    bible_version_id: filters?.bible_version_id || "kjv",
+    created_by_name: options?.authorName || "Teacher",
+    has_content: !!lesson.original_text,
+    updated_at: lesson.created_at,
+    isTeamLesson: options?.isTeamLesson || false,
+    authorName: options?.authorName || undefined,
+  };
+};
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
 
-export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryProps) {
+export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: LessonLibraryProps) {
   const navigate = useNavigate();
   const [searchPassage, setSearchPassage] = useState("");
   const [showPassageSuggestions, setShowPassageSuggestions] = useState(false);
@@ -139,34 +181,67 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
   const [ageFilter, setAgeFilter] = useState<string>("all");
   const [profileFilter, setProfileFilter] = useState<string>("all");
 
+  // Phase 27: Scope toggle and team lessons state
+  const [scope, setScope] = useState<"my" | "team">("my");
+  const [teamLessons, setTeamLessons] = useState<LessonDisplay[]>([]);
+  const [teamLessonsLoading, setTeamLessonsLoading] = useState(false);
+
   const { lessons, loading, deleteLesson, updateLessonVisibility } = useLessons();
+  const { hasTeam, team, members, fetchTeamLessons } = useTeachingTeam();
 
-  // Transform lessons for display
-  const displayLessons: LessonDisplay[] = lessons.map((lesson) => {
-    const filters = lesson.filters as Record<string, any> | null;
+  // Transform user's own lessons for display
+  const displayLessons: LessonDisplay[] = lessons.map((lesson) =>
+    transformToDisplay(lesson, { isTeamLesson: false })
+  );
 
-    const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
-    const aiGeneratedScripture = extractPrimaryScripture(lesson.original_text || "");
-    const userInputPassage = filters?.bible_passage || null;
-    const userInputTopic = filters?.focused_topic || null;
+  // Phase 27: Fetch team lessons when scope switches to "team"
+  useEffect(() => {
+    if (scope === "team" && hasTeam) {
+      loadTeamLessons();
+    }
+  }, [scope, hasTeam]);
 
-    return {
-      ...lesson,
-      ai_lesson_title: aiGeneratedTitle,
-      bible_passage: userInputPassage || aiGeneratedScripture,
-      focused_topic: userInputTopic,
-      passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
-      age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
-      theology_profile_id: filters?.theology_profile_id || getDefaultTheologyProfile().id,
-      bible_version_id: filters?.bible_version_id || "kjv",
-      created_by_name: "Teacher",
-      has_content: !!lesson.original_text,
-      updated_at: lesson.created_at,
-    };
-  });
+  const loadTeamLessons = async () => {
+    setTeamLessonsLoading(true);
+    try {
+      const { data, error } = await fetchTeamLessons();
+      if (error) {
+        console.error("Error loading team lessons:", error);
+        setTeamLessons([]);
+        return;
+      }
+
+      // Build a map of user_id → display_name from team members + lead
+      const nameMap: Record<string, string> = {};
+      if (team) {
+        // Lead teacher name — look up from members or use team info
+        // For members, we have display_name in the enriched data
+        members.forEach((m) => {
+          if (m.display_name) nameMap[m.user_id] = m.display_name;
+          else if (m.email) nameMap[m.user_id] = m.email;
+        });
+      }
+
+      const transformed = (data || []).map((lesson: any) =>
+        transformToDisplay(lesson, {
+          isTeamLesson: true,
+          authorName: nameMap[lesson.user_id] || "Team Member",
+        })
+      );
+      setTeamLessons(transformed);
+    } catch (err) {
+      console.error("Error loading team lessons:", err);
+      setTeamLessons([]);
+    } finally {
+      setTeamLessonsLoading(false);
+    }
+  };
+
+  // Choose which lessons to display based on scope
+  const activeLessons = scope === "team" ? teamLessons : displayLessons;
 
   // Filter lessons
-  const filteredLessons = displayLessons.filter((lesson) => {
+  const filteredLessons = activeLessons.filter((lesson) => {
     const matchesPassage = !searchPassage || lesson.bible_passage?.toLowerCase().includes(searchPassage.toLowerCase());
     const matchesTitle = !searchTitle || lesson.ai_lesson_title?.toLowerCase().includes(searchTitle.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
@@ -260,8 +335,42 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
       {/* Search and Filters */}
       <Card className="bg-gradient-card border-border/50">
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl">My Lesson Library</CardTitle>
-          <CardDescription>Browse and manage your Baptist Bible study lessons</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">
+                {scope === "team" ? `${team?.name || "Team"} Lessons` : "My Lesson Library"}
+              </CardTitle>
+              <CardDescription>
+                {scope === "team"
+                  ? "Shared lessons from your teaching team members"
+                  : "Browse and manage your Baptist Bible study lessons"}
+              </CardDescription>
+            </div>
+
+            {/* Phase 27: Scope Toggle — only visible when user has a team */}
+            {hasTeam && (
+              <div className="flex bg-muted rounded-lg p-1 shrink-0 ml-4">
+                <Button
+                  variant={scope === "my" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setScope("my")}
+                  className={`text-xs px-3 ${scope === "my" ? "" : "text-muted-foreground"}`}
+                >
+                  <BookOpen className="h-3.5 w-3.5 mr-1.5" />
+                  My Lessons
+                </Button>
+                <Button
+                  variant={scope === "team" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setScope("team")}
+                  className={`text-xs px-3 ${scope === "team" ? "" : "text-muted-foreground"}`}
+                >
+                  <Users className="h-3.5 w-3.5 mr-1.5" />
+                  Team Lessons
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -338,8 +447,15 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
         </CardContent>
       </Card>
 
+      {/* Team Lessons Loading State */}
+      {scope === "team" && teamLessonsLoading && (
+        <div className="flex items-center justify-center p-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      )}
+
       {/* Lessons Grid */}
-      {filteredLessons.length > 0 ? (
+      {!(scope === "team" && teamLessonsLoading) && filteredLessons.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {filteredLessons.map((lesson) => (
             <Card key={lesson.id} className="group hover:shadow-glow transition-all duration-normal bg-gradient-card">
@@ -371,27 +487,36 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}
                   </Badge>
-                  {/* Visibility Badge (Phase 26) */}
-                  <Badge
-                    variant="outline"
-                    className={
-                      lesson.visibility === 'shared'
-                        ? "text-emerald-700 border-emerald-300 bg-emerald-50"
-                        : "text-muted-foreground border-border bg-muted/50"
-                    }
-                  >
-                    {lesson.visibility === 'shared' ? (
-                      <>
-                        <Share2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
-                        Shared
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
-                        Private
-                      </>
-                    )}
-                  </Badge>
+                  {/* Visibility Badge (Phase 26) — only on user's own lessons */}
+                  {!lesson.isTeamLesson && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        lesson.visibility === 'shared'
+                          ? "text-emerald-700 border-emerald-300 bg-emerald-50"
+                          : "text-muted-foreground border-border bg-muted/50"
+                      }
+                    >
+                      {lesson.visibility === 'shared' ? (
+                        <>
+                          <Share2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                          Shared
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                          Private
+                        </>
+                      )}
+                    </Badge>
+                  )}
+                  {/* Phase 27: Author badge for team lessons */}
+                  {lesson.isTeamLesson && lesson.authorName && (
+                    <Badge variant="outline" className="text-blue-700 border-blue-300 bg-blue-50">
+                      <User className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                      {lesson.authorName}
+                    </Badge>
+                  )}
                   {!lesson.has_content && (
                     <Badge variant="outline" className="text-warning border-warning/20 bg-warning-light">
                       Draft
@@ -413,25 +538,28 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>
-                  {/* Visibility Toggle (Phase 26) */}
-                  <Button
-                    onClick={() => handleToggleVisibility(lesson)}
-                    variant="outline"
-                    size="sm"
-                    className={
-                      lesson.visibility === 'shared'
-                        ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                        : "hover:bg-muted hover:text-foreground"
-                    }
-                    title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
-                  >
-                    {lesson.visibility === 'shared' ? (
-                      <Share2 className="h-3.5 w-3.5" />
-                    ) : (
-                      <Lock className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-                  {lesson.has_content && (
+                  {/* Visibility Toggle (Phase 26) — only on user's own lessons */}
+                  {!lesson.isTeamLesson && (
+                    <Button
+                      onClick={() => handleToggleVisibility(lesson)}
+                      variant="outline"
+                      size="sm"
+                      className={
+                        lesson.visibility === 'shared'
+                          ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                          : "hover:bg-muted hover:text-foreground"
+                      }
+                      title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
+                    >
+                      {lesson.visibility === 'shared' ? (
+                        <Share2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <Lock className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  )}
+                  {/* Devotional button — only on user's own lessons with content */}
+                  {!lesson.isTeamLesson && lesson.has_content && (
                     <Button
                       onClick={() => handleGenerateDevotional(lesson)}
                       variant="outline"
@@ -442,20 +570,23 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
                       <Sparkles className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  <Button
-                    onClick={() => handleDelete(lesson.id)}
-                    variant="outline"
-                    size="sm"
-                    className="hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {/* Delete — only on user's own lessons */}
+                  {!lesson.isTeamLesson && (
+                    <Button
+                      onClick={() => handleDelete(lesson.id)}
+                      variant="outline"
+                      size="sm"
+                      className="hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      ) : (
+      ) : !(scope === "team" && teamLessonsLoading) ? (
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -463,17 +594,21 @@ export function LessonLibrary({ onViewLesson, organizationId }: LessonLibraryPro
               <h3 className="text-lg font-semibold">
                 {searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all"
                   ? "No lessons match your filters"
-                  : "No lessons yet"}
+                  : scope === "team"
+                    ? "No shared lessons from your team"
+                    : "No lessons yet"}
               </h3>
               <p className="text-muted-foreground max-w-md">
                 {searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all"
                   ? "Try adjusting your search terms or filters to find the lessons you're looking for."
-                  : "Create your first Baptist-enhanced Bible study lesson to get started."}
+                  : scope === "team"
+                    ? "When your team members share lessons, they will appear here."
+                    : "Create your first Baptist-enhanced Bible study lesson to get started."}
               </p>
             </div>
           </CardContent>
         </Card>
-      )}
+      ) : null}
     </div>
   );
 }

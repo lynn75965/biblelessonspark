@@ -12,6 +12,8 @@ import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
+import { TeachingTeamCard } from "@/components/dashboard/TeachingTeamCard";
+import { TeamInvitationBanner } from "@/components/dashboard/TeamInvitationBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +30,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useLessons } from "@/hooks/useLessons";
+import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
@@ -43,6 +46,7 @@ import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/help
 
 // Public Beta Prompt Banner added (January 1, 2026)
 // Shepherd Prompt removed from Dashboard (February 2026) — relocated to Header nav item "Lead a Team"
+// Phase 27: Teaching Team Card and Invitation Banner added (February 2026)
 
 export default function Dashboard() {
   // STATE DECLARATIONS
@@ -63,6 +67,26 @@ export default function Dashboard() {
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
+
+  // Phase 27: Teaching Team Hook
+  const {
+    team,
+    members,
+    pendingInvitation,
+    isLeadTeacher,
+    isMember,
+    hasTeam,
+    maxMembers,
+    loading: teamLoading,
+    createTeam,
+    renameTeam,
+    inviteMember,
+    removeMember,
+    disbandTeam,
+    acceptInvitation,
+    declineInvitation,
+    leaveTeam,
+  } = useTeachingTeam();
 
   // Help Video Hook - respects BRANDING.helpVideos.enabled
   const { 
@@ -219,6 +243,15 @@ export default function Dashboard() {
           onEnrollmentComplete={handleBetaEnrollmentComplete}
         />
 
+        {/* Phase 27: Teaching Team Invitation Banner — shows when user has a pending invite */}
+        {pendingInvitation && (
+          <TeamInvitationBanner
+            invitation={pendingInvitation}
+            onAccept={acceptInvitation}
+            onDecline={declineInvitation}
+          />
+        )}
+
         {hasActiveFocus && focusData.activeFocus && focusStatus && (
           <ActiveFocusBanner
             focus={focusData.activeFocus}
@@ -230,6 +263,22 @@ export default function Dashboard() {
             dismissible
           />
         )}
+
+        {/* Phase 27: Teaching Team Card — create, manage, or view team */}
+        <TeachingTeamCard
+          team={team}
+          members={members}
+          isLeadTeacher={isLeadTeacher}
+          isMember={isMember}
+          maxMembers={maxMembers}
+          loading={teamLoading}
+          onCreateTeam={createTeam}
+          onRenameTeam={renameTeam}
+          onInviteMember={inviteMember}
+          onRemoveMember={removeMember}
+          onDisbandTeam={disbandTeam}
+          onLeaveTeam={leaveTeam}
+        />
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">

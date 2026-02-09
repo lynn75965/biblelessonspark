@@ -250,3 +250,53 @@ export interface OrganizationMember {
   joined_at: string;
 }
 
+// ============================================================================
+// Phase 27: Teaching Team Contracts
+// ============================================================================
+
+/**
+ * Teaching Team entity from teaching_teams table
+ * A lead teacher creates a team and invites up to 3 members.
+ * Members see each other's shared lessons only.
+ */
+export interface TeachingTeam {
+  id: string;
+  name: string;
+  lead_teacher_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Teaching Team Member entity from teaching_team_members table
+ */
+export type TeamMemberStatus = 'pending' | 'accepted' | 'declined';
+
+export interface TeachingTeamMember {
+  id: string;
+  team_id: string;
+  user_id: string;
+  status: TeamMemberStatus;
+  invited_at: string;
+  responded_at: string | null;
+}
+
+/**
+ * Extended team member with profile info (for display)
+ * Populated by joining teaching_team_members with profiles
+ */
+export interface TeachingTeamMemberWithProfile extends TeachingTeamMember {
+  display_name: string | null;
+  email: string | null;
+}
+
+/**
+ * Pending invitation view (for the invitee's dashboard banner)
+ */
+export interface PendingTeamInvitation {
+  membership_id: string;
+  team_id: string;
+  team_name: string;
+  lead_teacher_name: string | null;
+  invited_at: string;
+}
