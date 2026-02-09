@@ -28,6 +28,7 @@ import NotFound from "./pages/NotFound";
 import OrgLanding from "./pages/OrgLanding";
 import OrgSetup from "./pages/OrgSetup";
 import OrgSuccess from "./pages/OrgSuccess";
+import OrgManager from "./pages/OrgManager";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,11 @@ const App = () => (
             <Route path="/org/success" element={
               <ProtectedRoute>
                 <OrgSuccess />
+              </ProtectedRoute>
+            } />
+            <Route path="/org-manager" element={
+              <ProtectedRoute>
+                <OrgManager />
               </ProtectedRoute>
             } />
             
