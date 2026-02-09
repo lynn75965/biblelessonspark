@@ -1,6 +1,6 @@
 # PROJECT_MASTER.md
 ## BibleLessonSpark - Master Project Documentation
-**Last Updated:** February 8, 2026 (Phase 26 Lesson Visibility COMPLETE — Private/Shared toggle, Org Manager Override, Funding Badges, Transparency Messages. Dashboard Shepherd Prompt relocated to Header nav "Lead a Team".)
+**Last Updated:** February 9, 2026 (Phase 27 Teaching Team DEPLOYED — Team CRUD, invite by email, accept/decline banner, My Lessons/Team Lessons toggle, dedicated /teaching-team page. ⚠️ Email notification for invitations NOT yet implemented — invitee must log in to see invitation.)
 **Launch Date:** January 27, 2026 ✅ LAUNCHED
 
 ---
@@ -120,15 +120,89 @@ Each lesson has a visibility status controlled by its creator:
 - Teacher sees (when generating from org pool): "This lesson is funded by your [org name] lesson pool. [Org Manager name] may view it for shepherding purposes."
 - Org Manager sees (when using override): "🔒 This lesson has not been shared by the teacher. You have access because it was funded by your [org name] lesson pool."
 
-### Teaching Team (Planned — Phase 27)
+### Teaching Team (Phase 27 - DEPLOYED ⚠️ Feb 9, 2026)
 
 Peer-to-peer linked visibility for teachers sharing a class:
-- Teacher Z sends link request to Teacher Y
-- Teacher Y accepts or declines independently
-- If accepted, both see each other's **Shared** lessons (read-only)
-- Either can unlink at any time
-- Maximum 3 teachers per team
+- Lead Teacher creates a team (max 1 team per lead)
+- Lead Teacher invites members by email (max 3 members)
+- Invitee sees TeamInvitationBanner on Dashboard — accept or decline
+- Accepted members see each other's **Shared** lessons (read-only) via LessonLibrary "Team Lessons" tab
+- Either member can leave; Lead Teacher can remove members or disband team
+- A teacher can only be on one team at a time (lead or member, not both)
 - If 4+ teachers need coordination → graduate to Organization (Shepherd)
+
+**⚠️ KNOWN LIMITATION:** No email notification is sent when a teacher is invited. The invitee only discovers the invitation when they next log in and see the TeamInvitationBanner. Toast accurately says "Invitation created — [name] will see it when they next log in to BibleLessonSpark." Email notification via Supabase Edge Function is the next task to implement.
+
+**Database Tables:**
+
+#### teaching_teams
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key (gen_random_uuid) |
+| name | text | Team name (set by Lead Teacher) |
+| lead_teacher_id | uuid | FK to auth.users, UNIQUE (one team per lead) |
+| created_at | timestamptz | Creation timestamp |
+| updated_at | timestamptz | Last modified |
+
+#### teaching_team_members
+| Column | Type | Purpose |
+|--------|------|---------|
+| id | uuid | Primary key (gen_random_uuid) |
+| team_id | uuid | FK to teaching_teams(id) ON DELETE CASCADE |
+| user_id | uuid | FK to auth.users |
+| status | text | 'pending', 'accepted', 'declined' (CHECK constraint) |
+| invited_at | timestamptz | When invitation was created |
+| responded_at | timestamptz | When invitee accepted/declined |
+
+**RLS Helper Functions (SECURITY DEFINER — break circular RLS dependency):**
+| Function | Purpose |
+|----------|---------|
+| `is_team_member_of(team_uuid)` | Returns true if current user is an accepted member of specified team |
+| `is_team_lead_of(team_uuid)` | Returns true if current user is lead_teacher_id of specified team |
+
+**Frontend Components:**
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `TeachingTeamCard.tsx` | `src/components/` | Full team management UI (create, rename, invite, remove, disband, leave) |
+| `TeamInvitationBanner.tsx` | `src/components/` | Dashboard banner for pending invitations (accept/decline) |
+| `TeachingTeam.tsx` | `src/pages/` | Dedicated /teaching-team page |
+
+**Hook:**
+| Hook | Location | Purpose |
+|------|----------|---------|
+| `useTeachingTeam.tsx` | `src/hooks/` | All team CRUD, invitation logic, team lessons query |
+
+**Interfaces (contracts.ts):**
+- `TeachingTeam` — team record
+- `TeachingTeamMember` — member record
+- `TeachingTeamMemberWithProfile` — member + display_name + email (mapped from profiles.full_name)
+- `PendingTeamInvitation` — invitation banner data
+
+**Routes:**
+| Route | Purpose | Auth Required |
+|-------|---------|---------------|
+| `/teaching-team` | Teaching Team management page | Yes |
+
+**Navigation:** Teaching Team appears in dropdown menu for all roles (navigationConfig.ts)
+
+**LessonLibrary Integration:** "My Lessons" / "Team Lessons" scope toggle. Team Lessons shows shared lessons from all team participants except self.
+
+**SSOT Note:** profiles table uses `full_name` column (NOT display_name). The useTeachingTeam hook maps `full_name` → `display_name` at the query boundary for the frontend interface.
+
+**Git Commits (Phase 27):**
+| Commit | Message | Date |
+|--------|---------|------|
+| `ac38796` | Add /org-manager route to App.tsx | Feb 9, 2026 |
+| `4b797d5` | Phase 27: Relocate Teaching Team to dedicated page with dropdown nav | Feb 9, 2026 |
+| `c005fa8` | Bugfix: useTeachingTeam queries use full_name (actual profiles column) | Feb 9, 2026 |
+
+**Bugs Fixed During Phase 27 (Feb 9, 2026):**
+- ✅ **RLS infinite recursion** — teaching_teams and teaching_team_members had circular RLS policies. Fixed with SECURITY DEFINER helper functions (`is_team_member_of`, `is_team_lead_of`).
+- ✅ **Missing /org-manager route** — Route existed in Header.tsx links but was never added to App.tsx. Added alongside /teaching-team.
+- ✅ **display_name vs full_name** — useTeachingTeam.tsx queried `profiles.display_name` which doesn't exist. Actual column is `full_name`. Fixed all queries and mappings.
+- ✅ **Misleading "Invitation sent" toast** — Toast said "Invitation sent" when no email was actually sent. Fixed to say "Invitation created — [name] will see it when they next log in."
+
+**⚠️ NEXT: Email Notification Edge Function** — Supabase Edge Function triggered on `teaching_team_members` INSERT that sends actual email to invitee with team name, who invited them, and a login link to biblelessonspark.com/dashboard.
 
 ---
 
@@ -164,6 +238,8 @@ Peer-to-peer linked visibility for teachers sharing a class:
 | `src/constants/transferRequestConfig.ts` | Transfer request workflow statuses |
 | `src/constants/emailDeliveryConfig.ts` | **Email lesson delivery + class roster config (Phase 25)** |
 | `src/constants/seriesConfig.ts` | **Series/Theme Mode limits, statuses, interfaces (Phase 24)** |
+| `src/constants/contracts.ts` | **TypeScript interfaces for all features including TeachingTeam (Phase 27)** |
+| `src/constants/navigationConfig.ts` | **Dropdown menu items for all roles — includes Teaching Team (Phase 27)** |
 | `src/config/branding.ts` | **SSOT for ALL colors** |
 | `src/config/brand-values.json` | **SSOT for colors/typography** |
 
@@ -909,6 +985,8 @@ src/
 │   │   └── MyOrganizationSection.tsx # Updated with pool banner
 │   ├── EmailLessonDialog.tsx        # NEW: Email dialog with roster support (Phase 25)
 │   ├── LessonExportButtons.tsx      # Updated: Share removed, Email added (Phase 25)
+│   ├── TeachingTeamCard.tsx         # NEW: Team management UI (Phase 27)
+│   ├── TeamInvitationBanner.tsx     # NEW: Dashboard invitation banner (Phase 27)
 │   └── toolbelt/                    # Toolbelt shared components
 │       └── ToolbeltReflectionForm.tsx
 ├── hooks/
@@ -917,10 +995,12 @@ src/
 │   ├── useParentSharedFocus.ts      # Parent focus view + adopt (N6)
 │   ├── useFocusAdoptionMap.ts       # Adoption status for parent (N6)
 │   ├── useDisconnectFromNetwork.ts  # Disconnect RPC call (N7)
-│   └── useSeriesManager.ts          # NEW: Series CRUD + state (Phase 24)
+│   ├── useSeriesManager.ts          # NEW: Series CRUD + state (Phase 24)
+│   └── useTeachingTeam.tsx          # NEW: Teaching Team CRUD + invitations (Phase 27)
 ├── pages/
 │   ├── Admin.tsx
 │   ├── OrgManager.tsx               # Updated with Network tab, Focus banner, Disconnect
+│   ├── TeachingTeam.tsx             # NEW: Dedicated /teaching-team page (Phase 27)
 │   ├── ToolbeltAdmin.tsx            # Toolbelt admin center
 │   └── toolbelt/                    # Toolbelt public pages
 │       ├── ToolbeltLanding.tsx
@@ -939,6 +1019,8 @@ src/
 │   ├── devotionalConfig.ts          # DevotionalSpark config
 │   ├── emailDeliveryConfig.ts       # NEW: Email delivery + roster SSOT (Phase 25)
 │   ├── seriesConfig.ts              # NEW: Series/Theme Mode SSOT (Phase 24)
+│   ├── contracts.ts                 # Interfaces — includes TeachingTeam, TeachingTeamMember, etc. (Phase 27)
+│   ├── navigationConfig.ts          # Dropdown menu items — includes Teaching Team (Phase 27)
 │   └── [other SSOT files]
 ```
 
@@ -993,6 +1075,10 @@ organizations                        # Org details + billing columns + hierarchy
 organization_members                 # Org membership (role: 'member' only)
 transfer_requests                    # Org member transfer workflow
 org_shared_focus                     # Shared focus sets (+ adopted_from_focus_id for N6)
+
+# Teaching Team (Phase 27)
+teaching_teams                       # NEW: Team record with lead_teacher_id (UNIQUE)
+teaching_team_members                # NEW: Membership records (pending/accepted/declined)
 
 # Organization Billing (Phase 13)
 org_tier_config                      # SSOT for org subscription tiers
@@ -1076,7 +1162,7 @@ git push origin biblelessonspark
 
 | Feature | Description | Estimated Effort | Status |
 |---------|-------------|------------------|--------|
-| Teaching Team Linked Visibility | Opt-in peer visibility for up to 3 teachers sharing a class (Phase 27) | 8-12 hours | 📋 Designed |
+| Teaching Team Linked Visibility | Opt-in peer visibility for up to 3 teachers sharing a class (Phase 27) | 8-12 hours | ⚠️ Deployed (email notification pending) |
 | In-App Teacher Approval | Teacher receives notification, approves/declines transfer in app | 6-8 hours | Not Started |
 | Export Formatting Admin Panel | Admin UI to adjust Print/DOCX/PDF formatting without code changes | 4-6 hours | Not Started |
 | Organization-Scoped Beta Management | Org Leaders create own feedback surveys + analytics | 8-12 hours | Not Started |
@@ -1125,7 +1211,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 | `src/pages/OrgLanding.tsx` | Landing page with 5 org tiers, monthly/annual toggle, inclusive language |
 | `src/pages/OrgSetup.tsx` | 2-step form: Org Info → Plan Selection with personal sub check |
 | `src/pages/OrgSuccess.tsx` | Success page with org details, lesson pool stats, next steps |
-| `src/App.tsx` | Added routes: `/org`, `/org/setup`, `/org/success` |
+| `src/App.tsx` | Added routes: `/org`, `/org/setup`, `/org/success`, `/org-manager`, `/teaching-team` |
 | `supabase/functions/create-org-checkout-session/index.ts` | Modified for self-service mode with bundled checkout |
 | `supabase/functions/stripe-webhook/index.ts` | Modified for auto org creation on payment |
 
@@ -1235,7 +1321,8 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - All solutions must be SSOT compliant (frontend drives backend)
 - Platform is in Production mode - no "Beta" references in UI
 - **THREE STACKS FRAMEWORK** — Discipler (Teacher), Shepherd (Org Manager), Partner (White-Label). See full definitions above.
-- **CURRENT PRIORITY** — Phase 26 Lesson Visibility ALL ITEMS COMPLETE ✅ (Items 9-12: Feb 8, 2026). Next: Teaching Team (Phase 27) or teacher-side transparency message, or launch prep for Feb 28 beta deadline.
+- **profiles table uses `full_name`** — NOT `display_name`. This has caused bugs. ALWAYS verify column names against the actual database schema before writing queries.
+- **CURRENT PRIORITY** — Phase 27 Teaching Team DEPLOYED (Feb 9, 2026) but email notification for invitations NOT yet implemented. Next task: Supabase Edge Function to send invitation email on `teaching_team_members` INSERT. Then: launch prep for Feb 28 beta deadline.
 
 **Key Commands:**
 - `.\deploy.ps1 "message"` - SSOT deployment (validates branch, prevents errors)
@@ -1273,15 +1360,16 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - **Nested Organization Architecture (N1-N7)** - COMPLETE: Hierarchy, RLS, Network Dashboard, Child Creation, Focus Sharing, Disconnect
 - **Email Lesson Delivery (Phase 25)** - COMPLETE: Resend API, class rosters, Section 8 extraction, tier-gated
 - **Email Delivery Config (emailDeliveryConfig.ts)** - SSOT for delivery limits, labels, roster config
+- **Teaching Team (Phase 27)** - ⚠️ DEPLOYED: `teaching_teams` + `teaching_team_members` tables, RLS with SECURITY DEFINER helpers, useTeachingTeam hook, TeachingTeamCard, TeamInvitationBanner, /teaching-team page, LessonLibrary team toggle. Email notification NOT yet implemented.
 
 **⚠️ IN PROGRESS:**
 - **Series/Theme Mode (Phase 24)** - Database + SSOT + hooks created; UI bugs remain (see Known Issues below)
 
 **📋 DESIGNED (Ready to Build):**
-- **Self-Service Shepherd Entry** - ALL STEPS COMPLETE ✅ (Feb 7-8). Dashboard prompt relocated to Header nav "Lead a Team" (Feb 8)
-- **Lesson Visibility (Phase 26)** - ALL ITEMS COMPLETE ✅ (Feb 8). Private/Shared toggle, org manager override, funding badges, transparency messages
-- **Teaching Team (Phase 27)** - Peer-to-peer linked visibility, max 3, opt-in accept/decline
 - **Teacher-Side Transparency Message** - When generating from org pool: "This lesson is funded by your {org name} lesson pool. {Org Manager name} may view it for shepherding purposes."
+
+**⚠️ DEPLOYED (Needs Completion):**
+- **Teaching Team (Phase 27)** - DEPLOYED Feb 9: Team CRUD, invite by email, accept/decline, My Lessons/Team Lessons toggle. ⚠️ Email notification for invitations NOT implemented — next task is Supabase Edge Function for invite emails.
 
 **Organization Billing Status (Phase 13 - COMPLETE ✅):**
 - ✅ 13.1: Stripe Products (9 products created + Single Staff added Feb 3)
@@ -1331,12 +1419,15 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - UNIQUE constraint on `user_subscriptions.user_id` prevents duplicates
 - UNIQUE constraint on `toolbelt_email_captures.email` prevents duplicates
 - UNIQUE constraint on `email_rosters` name length (max 50) and email count (max 25)
+- UNIQUE constraint on `teaching_teams.lead_teacher_id` (one team per lead teacher)
 - RLS enabled on all Toolbelt tables
 - RLS enabled on org billing tables (org managers can view their org's purchases)
 - RLS enabled on `email_rosters` (users manage their own rosters only)
+- RLS enabled on `teaching_teams` and `teaching_team_members` (via SECURITY DEFINER helpers `is_team_member_of`, `is_team_lead_of`)
 - RLS policy `parent_org_manager_view_children` for hierarchy visibility (N2)
 - `user_parable_usage` view fixed with SECURITY INVOKER
 - All nested org functions are SECURITY DEFINER with `SET search_path = public`
+- Teaching Team RLS helper functions are SECURITY DEFINER to break circular policy dependency
 
 **Dependencies:**
 - `react-quill` - Rich text editor for email templates (both BLS and Toolbelt)
@@ -1347,9 +1438,16 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - ✅ **Lesson Count Double-Increment** — Both frontend `incrementUsage()` AND edge function `incrementLessonUsage()` were counting each lesson. SSOT fix: removed `incrementLessonUsage` from `generate-lesson` edge function (frontend drives backend). SQL correction applied to sync all user counts to actual. Org pool consumption remains in edge function (org-level logic).
 - ✅ **Email Lesson Metadata Leak** — `ageGroup` and `theologyProfile` were included in emailed lesson metadata, exposing internal teacher settings to recipients. Removed from EmailLessonDialog.tsx lines 329-333 (Feb 4, 2026)
 
+**Bug Fixes Applied (Feb 9, 2026 — Phase 27):**
+- ✅ **RLS Infinite Recursion** — teaching_teams and teaching_team_members had circular RLS policies. Fixed with SECURITY DEFINER helper functions `is_team_member_of()` and `is_team_lead_of()`.
+- ✅ **Missing /org-manager Route** — Route referenced in Header.tsx links but never added to App.tsx. Added commit `ac38796`.
+- ✅ **display_name vs full_name** — useTeachingTeam.tsx queried `profiles.display_name` which doesn't exist. Actual column is `full_name`. Fixed all Supabase queries and mappings (commit `c005fa8`).
+- ✅ **Misleading Invitation Toast** — Toast said "Invitation sent" when no email was sent. Changed to "Invitation created — [name] will see it when they next log in to BibleLessonSpark."
+
 **Known Issues / Next Steps:**
 - ⚠️ Phase 24 Series/Theme Mode: lesson count not tracking after first generation; `result.data.lesson` → `result.data.id` fix needed; old duplicate files at `src/components/` need deletion (correct path is `src/components/dashboard/`)
 - ⚠️ Phase 24 code may not be committed to git — verify with `git log --oneline -5` before continuing work
+- ⚠️ **Phase 27 Teaching Team: No email notification on invitation.** Invitee must log in to see TeamInvitationBanner. Need Supabase Edge Function triggered on `teaching_team_members` INSERT to send email with team name, inviter name, and login link.
 
 **Launch Status:**
 - Launch Date: January 27, 2026 ✅ LAUNCHED
@@ -1363,7 +1461,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 - Self-Service Shepherd Entry: February 7-8, 2026 ✅ ALL STEPS COMPLETE (landing, setup, checkout, webhook, success, dashboard prompt, interactive tour, Help section, /org owner banner)
 - Lesson Visibility (Phase 26): February 8, 2026 ✅ COMPLETE (Private/Shared toggle, Org Manager Override, Funding Badges, Transparency Messages)
 - Dashboard Shepherd Prompt relocated to Header nav "Lead a Team": February 8, 2026 ✅
-- Teaching Team (Phase 27): February 4, 2026 📋 DESIGNED
+- Teaching Team (Phase 27): February 9, 2026 ⚠️ DEPLOYED (email notification pending)
 - All routes verified ✅
 - Email automation working ✅
 - Admin panel functional ✅
