@@ -30,6 +30,9 @@ import OrgSetup from "./pages/OrgSetup";
 import OrgSuccess from "./pages/OrgSuccess";
 import OrgManager from "./pages/OrgManager";
 
+// Phase 27: Teaching Team
+import TeachingTeam from "./pages/TeachingTeam";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -98,6 +101,13 @@ const App = () => (
             <Route path="/org-manager" element={
               <ProtectedRoute>
                 <OrgManager />
+              </ProtectedRoute>
+            } />
+
+            {/* Phase 27: Teaching Team */}
+            <Route path="/teaching-team" element={
+              <ProtectedRoute>
+                <TeachingTeam />
               </ProtectedRoute>
             } />
             

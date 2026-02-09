@@ -15,9 +15,10 @@
  *
  * CHANGELOG:
  * - Jan 29, 2026: Added toolbeltAdmin for Teacher Toolbelt management
+ * - Feb 9, 2026: Added teachingTeam for Phase 27 Teaching Team
  */
 
-import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard, Wrench } from "lucide-react";
+import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard, Wrench, Users } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
 import { ROUTES as APP_ROUTES } from "./routes";
 
@@ -34,6 +35,7 @@ const NAV_ROUTES = {
   account: '/account',
   home: APP_ROUTES.HOME,
   toolbeltAdmin: '/admin/toolbelt',
+  teachingTeam: '/teaching-team',
 } as const;
 
 // =============================================================================
@@ -72,6 +74,14 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     route: NAV_ROUTES.org,
     icon: Building2,
     description: 'Manage your organization',
+    dividerAfter: false,
+  },
+  teachingTeam: {
+    id: 'teachingTeam',
+    label: 'Teaching Team',
+    route: NAV_ROUTES.teachingTeam,
+    icon: Users,
+    description: 'Share lessons with fellow teachers',
     dividerAfter: false,
   },
   workspace: {
@@ -129,6 +139,7 @@ export const MENU_BY_ROLE: Record<Role, string[]> = {
     'adminPanel',
     'toolbeltAdmin',
     'orgManager',
+    'teachingTeam',
     'workspace',
     'pricing',
     'settings',
@@ -136,18 +147,21 @@ export const MENU_BY_ROLE: Record<Role, string[]> = {
   ],
   [ROLES.orgLeader]: [
     'orgManager',
+    'teachingTeam',
     'workspace',
     'pricing',
     'settings',
     'signOut',
   ],
   [ROLES.orgMember]: [
+    'teachingTeam',
     'workspace',
     'pricing',
     'settings',
     'signOut',
   ],
   [ROLES.individual]: [
+    'teachingTeam',
     'workspace',
     'pricing',
     'settings',
