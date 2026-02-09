@@ -55,6 +55,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/workspace" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/admin" 
               element={
                 <ProtectedRoute>
