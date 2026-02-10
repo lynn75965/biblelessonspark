@@ -2102,7 +2102,7 @@ export function EnhanceLessonForm({
                       >
                         <div
                           className="whitespace-pre-wrap text-sm overflow-auto"
-                          style={{ lineHeight: "1.3" }}
+                          style={{ lineHeight: "1.6" }}
                           dangerouslySetInnerHTML={{ __html: formatted }}
                         />
                       </div>
