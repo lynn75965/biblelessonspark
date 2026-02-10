@@ -1,14 +1,16 @@
 /**
  * send-lesson-email Edge Function
  * ================================
- * Sends a Bible lesson TEASER + SECTION 8 ONLY via email to one or more recipients.
+ * Sends a Bible lesson TEASER via email, with optional STUDENT HANDOUT.
  *
  * SSOT: emailDeliveryConfig.ts (frontend drives backend)
  * Branding: branding.ts (database-driven with fallback)
  * Delivery: Resend API
  *
- * Email content: Teacher sends teaser + Section 8 body only (no Section 8 header).
- * Full lesson is NOT included — recipients see a preview to encourage attendance.
+ * Email content:
+ * - Always: teaser preview
+ * - Optional: Student Handout (teacher toggles "Include Student Handout")
+ * - Supports both original format (Section 8) and shaped format (STUDENT HANDOUT heading)
  *
  * Security:
  * - Requires valid Supabase JWT
@@ -17,8 +19,8 @@
  * - Each recipient receives an individual email (privacy)
  *
  * Created: 2026-02-01
- * Updated: 2026-02-02 — Fixed section extraction regex to match ## headers
- * Version: 1.1.0
+ * Updated: 2026-02-10 — Added includeHandout toggle, shaped content STUDENT HANDOUT detection
+ * Version: 1.2.0
  */
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -78,6 +80,12 @@ function escapeHtml(text: string): string {
  */
 function formatLessonForEmail(text: string): string {
   let html = escapeHtml(text);
+
+  // Major section headers within handout: ## Heading → styled major header
+  html = html.replace(
+    /^##\s+(.+)$/gm,
+    '<div style="font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#3D5C3D;margin:20px 0 8px 0;">$1</div>'
+  );
 
   // Sub-section headers within Section 8: ### Heading → styled subheader
   html = html.replace(
@@ -164,14 +172,29 @@ function parseSectionHeaderNumber(line: string): number {
 }
 
 /**
- * Extract Section 8's content (body only, no header line).
+ * Detect standalone "STUDENT HANDOUT" heading from shaped content.
+ * This appears in Lesson Shapes output where there's no "Section 8" numbering.
+ */
+function isStudentHandoutHeading(line: string): boolean {
+  const trimmed = line.trim();
+  let cleaned = trimmed.replace(/^#{1,4}\s*/, "");
+  cleaned = cleaned.replace(/^\*\*/, "").replace(/\*\*$/, "");
+  return /^STUDENT\s+HANDOUT\s*$/i.test(cleaned);
+}
+
+/**
+ * Extract Student Handout content (body only, no header line).
  *
- * Strategy: scan all lines, find the LAST line that is a Section header.
- * If it's Section 8, return everything after it (until end of text).
- * If no Section 8 found, return empty string (fallback handled by caller).
+ * Strategy:
+ * 1. First try: Find "Section 8" header (original format)
+ * 2. Fallback: Find "STUDENT HANDOUT" heading (shaped format)
+ * Return everything after the header line until end of text.
  */
 function extractSection8Content(lessonText: string): string {
   const lines = lessonText.split("\n");
+  let handoutLineIndex = -1;
+
+  // Strategy 1: Find Section 8 header (original format)
   let lastSectionLineIndex = -1;
   let lastSectionNumber = -1;
 
@@ -183,25 +206,36 @@ function extractSection8Content(lessonText: string): string {
     }
   }
 
-  // Diagnostic logging
-  if (lastSectionLineIndex === -1) {
-    console.log("[extractSection8] No section headers found in ANY format.");
+  if (lastSectionNumber === 8 && lastSectionLineIndex >= 0) {
+    handoutLineIndex = lastSectionLineIndex;
+    console.log(`[extractSection8] Found Section 8 header at line ${handoutLineIndex}`);
+  }
+
+  // Strategy 2: Find standalone "STUDENT HANDOUT" heading (shaped content)
+  if (handoutLineIndex === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      if (isStudentHandoutHeading(lines[i])) {
+        handoutLineIndex = i;
+        console.log(`[extractSection8] Found STUDENT HANDOUT heading at line ${handoutLineIndex}`);
+        break;
+      }
+    }
+  }
+
+  if (handoutLineIndex === -1) {
+    console.log("[extractSection8] No Student Handout section found in any format.");
     console.log("[extractSection8] First 300 chars:", lessonText.substring(0, 300));
     return "";
   }
 
-  console.log(
-    `[extractSection8] Last section found: Section ${lastSectionNumber} at line ${lastSectionLineIndex}: "${lines[lastSectionLineIndex].substring(0, 80)}"`
-  );
-
   // Grab everything after the header line
   const body = lines
-    .slice(lastSectionLineIndex + 1)
+    .slice(handoutLineIndex + 1)
     .join("\n")
     .trim();
 
   if (!body) {
-    console.log("[extractSection8] Section header found but body is empty.");
+    console.log("[extractSection8] Handout header found but body is empty.");
   }
 
   return body;
@@ -217,6 +251,7 @@ interface EmailTemplateParams {
   teaserContent?: string | null;
   senderName: string;
   personalMessage?: string | null;
+  includeHandout?: boolean;
   metadata?: {
     ageGroup?: string | null;
     theologyProfile?: string | null;
@@ -234,20 +269,25 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
     lessonContent,
     senderName,
     personalMessage,
+    includeHandout,
     metadata,
     appName,
     baseUrl,
   } = params;
 
   // ---------------------------------------------------------------
-  // Extract Section 8 body (no header) from the full lesson text
+  // Extract Student Handout — only if teacher toggled it on
   // ---------------------------------------------------------------
-  const section8Body = extractSection8Content(lessonContent);
+  let formattedSection8: string;
 
-  // Format for email — Section 8 body only, or fallback message
-  const formattedSection8 = section8Body
-    ? formatLessonForEmail(section8Body)
-    : '<p style="margin:0;font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic;">The full lesson is available from your teacher.</p>';
+  if (includeHandout) {
+    const section8Body = extractSection8Content(lessonContent);
+    formattedSection8 = section8Body
+      ? formatLessonForEmail(section8Body)
+      : '<p style="margin:0;font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic;">The full lesson is available from your teacher.</p>';
+  } else {
+    formattedSection8 = '<p style="margin:0;font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic;">The full lesson is available from your teacher.</p>';
+  }
 
   // Personal message section
   const personalMessageHtml = personalMessage
@@ -421,6 +461,7 @@ serve(async (req) => {
       teaserContent,
       senderName,
       personalMessage,
+      includeHandout,
       metadata,
     } = await req.json();
 
@@ -484,6 +525,7 @@ serve(async (req) => {
       teaserContent,
       senderName: senderName || "A teacher",
       personalMessage: trimmedMessage,
+      includeHandout: includeHandout === true,
       metadata,
       appName,
       baseUrl,
@@ -543,7 +585,7 @@ serve(async (req) => {
     // 8. LOG DELIVERY
     // ----------------------------------------------------------------
     console.log(
-      `[send-lesson-email] User ${user.id} sent "${lessonTitle}" to ${sent}/${validRecipients.length} recipients (teaser+section8 only)`
+      `[send-lesson-email] User ${user.id} sent "${lessonTitle}" to ${sent}/${validRecipients.length} recipients (teaser${includeHandout ? '+handout' : ' only'})`
     );
 
     // ----------------------------------------------------------------

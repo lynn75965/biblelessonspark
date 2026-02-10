@@ -42,6 +42,7 @@ import {
   RefreshCw,
   Trash2,
   Users,
+  FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -98,6 +99,7 @@ export function EmailLessonDialog({
   const [recipientsInput, setRecipientsInput] = useState("");
   const [personalMessage, setPersonalMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [includeHandout, setIncludeHandout] = useState(false);
 
   // --- Roster state ---
   const [rosters, setRosters] = useState<EmailRoster[]>([]);
@@ -366,6 +368,7 @@ export function EmailLessonDialog({
             teaserContent: lesson.metadata?.teaser || null,
             senderName: senderName,
             personalMessage: personalMessage.trim() || null,
+            includeHandout: includeHandout,
             metadata: {
               // NOTE: ageGroup and theologyProfile intentionally omitted
               // These are internal teacher settings, not for email recipients
@@ -663,6 +666,39 @@ export function EmailLessonDialog({
                 String(messageRemaining)
               )}
             </p>
+          </div>
+
+          {/* ============================================================ */}
+          {/* INCLUDE STUDENT HANDOUT TOGGLE */}
+          {/* ============================================================ */}
+          <div
+            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              includeHandout
+                ? "bg-primary/5 border-primary/30"
+                : "bg-muted/30 border-border"
+            }`}
+            onClick={() => setIncludeHandout(!includeHandout)}
+          >
+            <div
+              className={`relative flex-shrink-0 w-10 h-5 rounded-full transition-colors ${
+                includeHandout ? "bg-primary" : "bg-muted-foreground/30"
+              }`}
+            >
+              <div
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                  includeHandout ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                <span className="text-sm font-medium">{labels.includeHandoutLabel}</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {includeHandout ? labels.includeHandoutHelp : labels.teaserOnlyHelp}
+              </p>
+            </div>
           </div>
 
           {/* ============================================================ */}
