@@ -88,6 +88,8 @@ interface EnhanceLessonFormProps {
   defaultDoctrine?: string;
   viewingLesson?: any;
   onClearViewing?: () => void;
+  /** Phase 27: Called when reshape succeeds — updates local lessons array */
+  onLessonShapeUpdated?: (lessonId: string, shapedContent: string, shapeId: string) => void;
   initialFocusData?: FocusApplicationData;
   lessonCount?: number; // Used to conditionally show welcome banner for new users only
   lessonsLoading?: boolean; // Prevent flicker - don't show welcome banner while loading
@@ -344,6 +346,7 @@ export function EnhanceLessonForm({
   defaultDoctrine,
   viewingLesson,
   onClearViewing,
+  onLessonShapeUpdated,
   initialFocusData,
   lessonCount = 0,
   lessonsLoading = false,
@@ -1094,15 +1097,19 @@ export function EnhanceLessonForm({
       setReshapeViewMode('shaped');
       setShowReshapeSection(false);
 
-      // Save to database (non-blocking — UI already updated)
-      try {
-        await supabase
-          .from('lessons')
-          .update({ shaped_content: result.shaped_content, shape_id: shapeId })
-          .eq('id', currentLesson.id);
-      } catch (err) {
-        console.error('Error saving shaped content to DB:', err);
-        // Non-blocking: reshape succeeded, save failed — content still visible in session
+      // Save to database AND update local lessons array (fixes stale state on re-view)
+      if (onLessonShapeUpdated) {
+        onLessonShapeUpdated(currentLesson.id, result.shaped_content, shapeId);
+      } else {
+        // Fallback: direct DB write if no callback (shouldn't happen in normal flow)
+        try {
+          await supabase
+            .from('lessons')
+            .update({ shaped_content: result.shaped_content, shape_id: shapeId })
+            .eq('id', currentLesson.id);
+        } catch (err) {
+          console.error('Error saving shaped content to DB:', err);
+        }
       }
     }
   };

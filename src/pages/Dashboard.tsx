@@ -64,7 +64,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { settings } = useSystemSettings();
-  const { lessons, loading: lessonsLoading } = useLessons();
+  const { lessons, loading: lessonsLoading, updateLessonShape } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
 
@@ -325,6 +325,7 @@ export default function Dashboard() {
                 setSelectedLesson(null);
                 setActiveTab("library");
               }}
+              onLessonShapeUpdated={updateLessonShape}
               initialFocusData={focusDataToApply || undefined}
               lessonCount={lessons.length}
               lessonsLoading={lessonsLoading}
