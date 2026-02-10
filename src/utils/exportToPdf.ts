@@ -111,11 +111,14 @@ const isSectionHeader = (line: string): { isSection: boolean; num: number; clean
 };
 
 /**
- * Detect Section 8 specifically
+ * Detect Section 8 / Student Handout heading
+ * Matches both original format ("Section 8: Student Handout") and shaped format ("STUDENT HANDOUT")
  */
 const isSection8Line = (line: string): boolean => {
   let cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
-  return /^Section\s+8\s*[:\-–—]?\s*Student\s+Handout/i.test(cleaned);
+  if (/^Section\s+8/i.test(cleaned) && /Student\s+Handout/i.test(cleaned)) return true;
+  if (/^STUDENT\s+HANDOUT\s*$/i.test(cleaned)) return true;
+  return false;
 };
 
 // ============================================================================
