@@ -2078,31 +2078,32 @@ export function EnhanceLessonForm({
                     if (!trimmed) return null;
                     
                     // Format section: convert markdown to HTML
+                    // Uses same approach as formatSectionContent() for original sections
                     const formatted = normalizeLegacyContent(trimmed)
                       // Remove bare # on its own line
                       .replace(/^#\s*$/gm, '')
-                      // Collapse 3+ consecutive newlines to 2 (remove excessive blank lines)
+                      // Collapse 2+ consecutive newlines to exactly one blank line
                       .replace(/\n{3,}/g, '\n\n')
                       // ### sub-sub-headings
-                      .replace(/^### (.*?)$/gm, '<div style="font-weight:700;font-size:0.85rem;margin:6px 0 2px 0;">$1</div>')
+                      .replace(/^### (.*?)$/gm, '<strong>$1</strong>')
                       // ## sub-headings (Focus, Discover, Respond, etc.)
-                      .replace(/^## (.*?)$/gm, '<div style="font-weight:700;font-size:0.95rem;margin:8px 0 2px 0;">$1</div>')
+                      .replace(/^## (.*?)$/gm, '<strong>$1</strong>')
                       // # major headings (TEACHER PREPARATION, STUDENT HANDOUT)
-                      .replace(/^# (.*?)$/gm, '<div style="font-weight:700;font-size:1.05rem;margin:4px 0 2px 0;">$1</div>')
+                      .replace(/^# (.*?)$/gm, '<strong>$1</strong>')
                       // Bold
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      // Single paragraph break (not double)
-                      .replace(/\n\n/g, "<br>")
+                      // Match original: \n\n → <br><br>, \n → <br>
+                      .replace(/\n\n/g, "<br><br>")
                       .replace(/\n/g, "<br>");
                     
                     return (
                       <div
                         key={idx}
-                        className="bg-muted p-2.5 rounded-lg"
+                        className="bg-muted p-3 rounded-lg"
                       >
                         <div
                           className="whitespace-pre-wrap text-sm overflow-auto"
-                          style={{ lineHeight: "1.6" }}
+                          style={{ lineHeight: "1.4" }}
                           dangerouslySetInnerHTML={{ __html: formatted }}
                         />
                       </div>
