@@ -10,7 +10,7 @@
  * Email content:
  * - Always: teaser preview
  * - Optional: Student Handout (teacher toggles "Include Student Handout")
- * - Supports both original format (Section 8) and shaped format (STUDENT HANDOUT heading)
+ * - Supports both original format (Section 8) and shaped formats (STUDENT HANDOUT, Student Experience, etc.)
  *
  * Security:
  * - Requires valid Supabase JWT
@@ -19,7 +19,7 @@
  * - Each recipient receives an individual email (privacy)
  *
  * Created: 2026-02-01
- * Updated: 2026-02-10 — Added includeHandout toggle, shaped content STUDENT HANDOUT detection
+ * Updated: 2026-02-10 — Broadened Student Handout detection (Student Experience, etc.)
  * Version: 1.2.0
  */
 
@@ -172,14 +172,15 @@ function parseSectionHeaderNumber(line: string): number {
 }
 
 /**
- * Detect standalone "STUDENT HANDOUT" heading from shaped content.
+ * Detect standalone Student Handout heading from shaped content.
+ * Catches "STUDENT HANDOUT", "Student Experience", "Student Material", etc.
  * This appears in Lesson Shapes output where there's no "Section 8" numbering.
  */
 function isStudentHandoutHeading(line: string): boolean {
   const trimmed = line.trim();
   let cleaned = trimmed.replace(/^#{1,4}\s*/, "");
   cleaned = cleaned.replace(/^\*\*/, "").replace(/\*\*$/, "");
-  return /^STUDENT\s+HANDOUT\s*$/i.test(cleaned);
+  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))\s*$/i.test(cleaned);
 }
 
 /**
@@ -187,7 +188,7 @@ function isStudentHandoutHeading(line: string): boolean {
  *
  * Strategy:
  * 1. First try: Find "Section 8" header (original format)
- * 2. Fallback: Find "STUDENT HANDOUT" heading (shaped format)
+ * 2. Fallback: Find student handout heading (shaped format: "STUDENT HANDOUT", "Student Experience", etc.)
  * Return everything after the header line until end of text.
  */
 function extractSection8Content(lessonText: string): string {
@@ -211,12 +212,12 @@ function extractSection8Content(lessonText: string): string {
     console.log(`[extractSection8] Found Section 8 header at line ${handoutLineIndex}`);
   }
 
-  // Strategy 2: Find standalone "STUDENT HANDOUT" heading (shaped content)
+  // Strategy 2: Find standalone student heading (shaped content: "STUDENT HANDOUT", "Student Experience", etc.)
   if (handoutLineIndex === -1) {
     for (let i = 0; i < lines.length; i++) {
       if (isStudentHandoutHeading(lines[i])) {
         handoutLineIndex = i;
-        console.log(`[extractSection8] Found STUDENT HANDOUT heading at line ${handoutLineIndex}`);
+        console.log(`[extractSection8] Found student handout heading at line ${handoutLineIndex}: "${lines[i].trim()}"`);
         break;
       }
     }
