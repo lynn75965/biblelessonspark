@@ -64,11 +64,14 @@ function detectSectionHeader(line: string): { isSection: boolean; num: number; c
 }
 
 /**
- * Detect Section 8 specifically
+ * Detect Section 8 / Student Handout heading
+ * Matches both original format ("Section 8: Student Handout") and shaped format ("STUDENT HANDOUT")
  */
 function isSection8Line(line: string): boolean {
   const cleaned = cleanAllMarkdown(line);
-  return /^Section\s+8\s*[:\-–—]?\s*Student\s+Handout/i.test(cleaned);
+  if (/^Section\s+8/i.test(cleaned) && /Student\s+Handout/i.test(cleaned)) return true;
+  if (/^STUDENT\s+HANDOUT\s*$/i.test(cleaned)) return true;
+  return false;
 }
 
 /**
@@ -316,6 +319,37 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       continue;
     }
     
+    // Detect standalone ## / # headings from shaped content (e.g., "## Focus", "# Title")
+    if (/^#{1,3}\s+/.test(trimmed)) {
+      const headerText = trimmed.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').trim();
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ 
+          text: headerText, 
+          bold: true, 
+          size: body.fontHalfPt,
+          font: fonts.docx
+        })],
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+      }));
+      continue;
+    }
+    
+    // Detect standalone bold headings from shaped content (e.g., "**Focus**", "**Key Passages:**")
+    // These are short lines wrapped entirely in ** markers (or unclosed **)
+    if (/^\*\*[^*]+\*?\*?:?\s*$/.test(trimmed) && trimmed.length < 80) {
+      const headerText = trimmed.replace(/\*\*/g, '').trim();
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ 
+          text: headerText, 
+          bold: true, 
+          size: body.fontHalfPt,
+          font: fonts.docx
+        })],
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+      }));
+      continue;
+    }
+    
     if (/^[-*•]\s/.test(trimmed)) {
       const bulletText = trimmed.replace(/^[-*•]\s*/, '');
       paragraphs.push(new Paragraph({
@@ -395,6 +429,36 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       const withoutBold = trimmed.replace(/^\*\*/, '').replace(/\*\*$/, '');
       if (withoutBold.startsWith('#')) {
         const headerText = cleanAllMarkdown(trimmed);
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ 
+            text: headerText, 
+            bold: true, 
+            size: body.fontHalfPt,
+            font: fonts.docx
+          })],
+          spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        }));
+        continue;
+      }
+      
+      // Detect standalone ## / # headings from shaped content
+      if (/^#{1,3}\s+/.test(trimmed)) {
+        const headerText = trimmed.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').trim();
+        paragraphs.push(new Paragraph({
+          children: [new TextRun({ 
+            text: headerText, 
+            bold: true, 
+            size: body.fontHalfPt,
+            font: fonts.docx
+          })],
+          spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        }));
+        continue;
+      }
+      
+      // Detect standalone bold headings from shaped content
+      if (/^\*\*[^*]+\*?\*?:?\s*$/.test(trimmed) && trimmed.length < 80) {
+        const headerText = trimmed.replace(/\*\*/g, '').trim();
         paragraphs.push(new Paragraph({
           children: [new TextRun({ 
             text: headerText, 
