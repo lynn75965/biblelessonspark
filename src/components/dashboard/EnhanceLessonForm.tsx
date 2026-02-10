@@ -2069,28 +2069,44 @@ export function EnhanceLessonForm({
             <div className="prose-sm max-w-none space-y-3">
               {/* Phase 27: Show shaped content when in shaped view mode */}
               {reshapeViewMode === 'shaped' && localShapedContent ? (
-                <div
-                  className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
-                  style={{ lineHeight: "1.4" }}
-                  dangerouslySetInnerHTML={{
-                    __html: normalizeLegacyContent(localShapedContent)
-                      // Remove bare # on its own line (no heading text)
+                (() => {
+                  // Parse shaped content into visual sections, split on --- dividers
+                  const rawSections = localShapedContent.split(/\n---\n/);
+                  
+                  return rawSections.map((section, idx) => {
+                    const trimmed = section.trim();
+                    if (!trimmed) return null;
+                    
+                    // Format section: convert markdown to HTML
+                    const formatted = normalizeLegacyContent(trimmed)
+                      // Remove bare # on its own line
                       .replace(/^#\s*$/gm, '')
-                      // Convert ### headings first (most specific)
-                      .replace(/^### (.*?)$/gm, '<h3 class="text-sm font-bold mt-2 mb-0.5">$1</h3>')
-                      // Convert ## headings
-                      .replace(/^## (.*?)$/gm, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
-                      // Convert # headings (largest)
-                      .replace(/^# (.*?)$/gm, '<h1 class="text-lg font-bold mt-3 mb-1">$1</h1>')
-                      // Bold text
+                      // ### sub-sub-headings
+                      .replace(/^### (.*?)$/gm, '<div style="font-weight:700;font-size:0.85rem;margin:8px 0 4px 0;">$1</div>')
+                      // ## sub-headings (Focus, Discover, Respond, etc.)
+                      .replace(/^## (.*?)$/gm, '<div style="font-weight:700;font-size:0.95rem;margin:12px 0 4px 0;">$1</div>')
+                      // # major headings (TEACHER PREPARATION, STUDENT HANDOUT)
+                      .replace(/^# (.*?)$/gm, '<div style="font-weight:700;font-size:1.05rem;margin:4px 0 6px 0;">$1</div>')
+                      // Bold
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      // Horizontal rules
-                      .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
-                      // Paragraph spacing
+                      // Paragraphs and line breaks
                       .replace(/\n\n/g, "<br><br>")
-                      .replace(/\n/g, "<br>"),
-                  }}
-                />
+                      .replace(/\n/g, "<br>");
+                    
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-muted p-3 rounded-lg"
+                      >
+                        <div
+                          className="whitespace-pre-wrap text-sm overflow-auto"
+                          style={{ lineHeight: "1.4" }}
+                          dangerouslySetInnerHTML={{ __html: formatted }}
+                        />
+                      </div>
+                    );
+                  });
+                })()
               ) : (
               /* Original content — existing section-by-section rendering */
               (() => {
