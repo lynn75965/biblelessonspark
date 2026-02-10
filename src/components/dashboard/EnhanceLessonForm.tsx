@@ -2081,26 +2081,28 @@ export function EnhanceLessonForm({
                     const formatted = normalizeLegacyContent(trimmed)
                       // Remove bare # on its own line
                       .replace(/^#\s*$/gm, '')
+                      // Collapse 3+ consecutive newlines to 2 (remove excessive blank lines)
+                      .replace(/\n{3,}/g, '\n\n')
                       // ### sub-sub-headings
-                      .replace(/^### (.*?)$/gm, '<div style="font-weight:700;font-size:0.85rem;margin:8px 0 4px 0;">$1</div>')
+                      .replace(/^### (.*?)$/gm, '<div style="font-weight:700;font-size:0.85rem;margin:6px 0 2px 0;">$1</div>')
                       // ## sub-headings (Focus, Discover, Respond, etc.)
-                      .replace(/^## (.*?)$/gm, '<div style="font-weight:700;font-size:0.95rem;margin:12px 0 4px 0;">$1</div>')
+                      .replace(/^## (.*?)$/gm, '<div style="font-weight:700;font-size:0.95rem;margin:8px 0 2px 0;">$1</div>')
                       // # major headings (TEACHER PREPARATION, STUDENT HANDOUT)
-                      .replace(/^# (.*?)$/gm, '<div style="font-weight:700;font-size:1.05rem;margin:4px 0 6px 0;">$1</div>')
+                      .replace(/^# (.*?)$/gm, '<div style="font-weight:700;font-size:1.05rem;margin:4px 0 2px 0;">$1</div>')
                       // Bold
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      // Paragraphs and line breaks
-                      .replace(/\n\n/g, "<br><br>")
+                      // Single paragraph break (not double)
+                      .replace(/\n\n/g, "<br>")
                       .replace(/\n/g, "<br>");
                     
                     return (
                       <div
                         key={idx}
-                        className="bg-muted p-3 rounded-lg"
+                        className="bg-muted p-2.5 rounded-lg"
                       >
                         <div
                           className="whitespace-pre-wrap text-sm overflow-auto"
-                          style={{ lineHeight: "1.4" }}
+                          style={{ lineHeight: "1.3" }}
                           dangerouslySetInnerHTML={{ __html: formatted }}
                         />
                       </div>
