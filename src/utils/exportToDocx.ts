@@ -1,6 +1,6 @@
 // src/utils/exportToDocx.ts
 // SSOT COMPLIANT: All values imported from lessonStructure.ts
-// Version: 2.4.0 - Single-line footer, Section 8 standalone page
+// Version: 2.5.0 - Standalone Student Handout title, broadened detection
 
 import { 
   Document, 
@@ -65,12 +65,15 @@ function detectSectionHeader(line: string): { isSection: boolean; num: number; c
 
 /**
  * Detect Section 8 / Student Handout heading
- * Matches both original format ("Section 8: Student Handout") and shaped format ("STUDENT HANDOUT")
+ * Matches original format ("Section 8: Student Handout") and shaped variants
+ * ("STUDENT HANDOUT", "Student Experience", "Student Material", etc.)
  */
 function isSection8Line(line: string): boolean {
   const cleaned = cleanAllMarkdown(line);
-  if (/^Section\s+8/i.test(cleaned) && /Student\s+Handout/i.test(cleaned)) return true;
-  if (/^STUDENT\s+HANDOUT\s*$/i.test(cleaned)) return true;
+  // Original format: "Section 8: Student Handout"
+  if (/^Section\s+8/i.test(cleaned)) return true;
+  // Shaped formats: "STUDENT HANDOUT", "Student Experience", "Student Material", etc.
+  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))\s*$/i.test(cleaned)) return true;
   return false;
 }
 
@@ -225,7 +228,7 @@ interface DocxExportOptions {
 export const exportToDocx = async (options: DocxExportOptions): Promise<void> => {
   const { title: inputTitle, content, metadata: meta, teaserContent } = options;
   
-  console.log('[DOCX Export V2.4] Starting export with single-line footer...');
+  console.log('[DOCX Export V2.5] Starting export with standalone Student Handout title...');
   
   const lessonTitle = extractDocTitle(content);
   const docTitle = lessonTitle || inputTitle;
@@ -402,13 +405,14 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     }));
   }
   
-  // 7. SECTION 8 STANDALONE (new page)
+  // 7. SECTION 8 STANDALONE (new page, standalone title)
   if (section8Lines.length > 0) {
     paragraphs.push(new Paragraph({ children: [new PageBreak()] }));
     
+    // Standalone title: "Student Handout" (no "Section 8:" prefix)
     paragraphs.push(new Paragraph({
       children: [new TextRun({ 
-        text: EXPORT_FORMATTING.section8Title, 
+        text: EXPORT_FORMATTING.section8StandaloneTitle, 
         bold: true, 
         size: sectionHeaderFont.fontHalfPt,
         font: fonts.docx
@@ -531,5 +535,5 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
   const safeTitle = docTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 50);
   saveAs(blob, `${safeTitle}_Lesson.docx`);
   
-  console.log('[DOCX Export V2.4] Export complete with single-line footer!');
+  console.log('[DOCX Export V2.5] Export complete!');
 };

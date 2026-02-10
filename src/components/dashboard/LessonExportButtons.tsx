@@ -205,11 +205,11 @@ export function LessonExportButtons({
       : "";
 
     // Split at Section 8 / Student Handout for standalone page
-    // Matches both original format ("Section 8: Student Handout") and shaped format ("STUDENT HANDOUT")
+    // Matches original ("Section 8: Student Handout") and shaped variants ("STUDENT HANDOUT", "Student Experience", etc.)
     const section8Regex =
-      /<strong[^>]*>Section\s*8[:\s\-\u2013\u2014]+Student\s*Handout<\/strong>/i;
+      /<strong[^>]*>Section\s*8[:\s\-\u2013\u2014]*(?:Student\s*(?:Handout|Experience|Material|Section))?\s*<\/strong>/i;
     const handoutHeadingRegex =
-      /<(?:h[1-3]|strong)[^>]*>\s*(?:STUDENT\s+HANDOUT|Student\s+Handout)\s*<\/(?:h[1-3]|strong)>/i;
+      /<(?:h[1-3]|strong)[^>]*>\s*(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))\s*<\/(?:h[1-3]|strong)>/i;
     const section8Match = formattedContent.match(section8Regex) || formattedContent.match(handoutHeadingRegex);
 
     let mainContent = formattedContent;
@@ -258,7 +258,7 @@ ${teaserHtml}
 <div class="content">${mainContent}</div>
 ${
   section8Content
-    ? `<div class="section8-page"><div class="section8-header">${EXPORT_FORMATTING.section8Title}</div>${teaserHtml}<div class="content">${section8Content}</div></div>`
+    ? `<div class="section8-page"><div class="section8-header">${EXPORT_FORMATTING.section8StandaloneTitle}</div>${teaserHtml}<div class="content">${section8Content}</div></div>`
     : ""
 }
 ${copyrightHtml}

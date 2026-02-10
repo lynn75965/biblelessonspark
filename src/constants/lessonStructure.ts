@@ -8,7 +8,7 @@
 // SSOT: Single Source of Truth for lesson structure AND export formatting
 // Frontend drives backend - all values defined here, imported everywhere
 
-export const LESSON_STRUCTURE_VERSION = "2.4.2";
+export const LESSON_STRUCTURE_VERSION = "2.4.3";
 
 /**
  * SSOT: Export Spacing Constants
@@ -132,6 +132,8 @@ export const EXPORT_FORMATTING = {
   teaserLabel: "STUDENT TEASER",
   printTooltip: "Opens in new tab. Close that tab to return here.",
   section8Title: "Section 8: Student Handout",
+  /** Title for standalone Student Handout page (no "Section 8:" prefix — teachers distribute this to students) */
+  section8StandaloneTitle: "Student Handout",
 };
 
 export interface LessonSection {

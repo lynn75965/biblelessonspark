@@ -1,5 +1,5 @@
 // src/utils/exportToPdf.ts
-// Version: 2.4.0 - Single-line footer, Section 8 standalone page
+// Version: 2.5.0 - Standalone Student Handout title, broadened detection, no pagination on handout page
 // SSOT SOURCE: All values from EXPORT_SPACING in lessonStructure.ts
 // Frontend drives backend - change SSOT = changes PDF output
 
@@ -112,12 +112,15 @@ const isSectionHeader = (line: string): { isSection: boolean; num: number; clean
 
 /**
  * Detect Section 8 / Student Handout heading
- * Matches both original format ("Section 8: Student Handout") and shaped format ("STUDENT HANDOUT")
+ * Matches original format ("Section 8: Student Handout") and shaped variants
+ * ("STUDENT HANDOUT", "Student Experience", "Student Material", etc.)
  */
 const isSection8Line = (line: string): boolean => {
   let cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
-  if (/^Section\s+8/i.test(cleaned) && /Student\s+Handout/i.test(cleaned)) return true;
-  if (/^STUDENT\s+HANDOUT\s*$/i.test(cleaned)) return true;
+  // Original format: "Section 8: Student Handout"
+  if (/^Section\s+8/i.test(cleaned)) return true;
+  // Shaped formats: "STUDENT HANDOUT", "Student Experience", "Student Material", etc.
+  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))\s*$/i.test(cleaned)) return true;
   return false;
 };
 
@@ -140,7 +143,7 @@ interface ExportToPdfOptions {
 }
 
 export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, teaserContent }: ExportToPdfOptions): Promise<void> => {
-  console.log('[PDF Export V2.4] Starting export with single-line footer, Section 8 standalone...');
+  console.log('[PDF Export V2.5] Starting export with standalone Student Handout...');
   
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -463,16 +466,18 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
     doc.setFont(fonts.pdf, "normal");
   }
 
-  // 7. SECTION 8 STANDALONE (new page)
+  // 7. SECTION 8 STANDALONE (new page, no pagination)
+  let section8StartPage = -1;
   if (section8Lines.length > 0) {
     doc.addPage();
     yPosition = MARGIN_MM;
+    section8StartPage = doc.getNumberOfPages();
     
-    // Section 8 Title
+    // Standalone title: "Student Handout" (no "Section 8:" prefix)
     doc.setFontSize(sectionHeaderFont.fontPt);
     doc.setFont(fonts.pdf, "bold");
     doc.setTextColor(...PDF_COLORS.bodyText);
-    doc.text(EXPORT_FORMATTING.section8Title, MARGIN_MM, yPosition);
+    doc.text(EXPORT_FORMATTING.section8StandaloneTitle, MARGIN_MM, yPosition);
     yPosition += ptToMm(sectionHeaderFont.fontPt * body.lineHeight);
     addSpacing(sectionHeader.afterPt);
     
@@ -483,16 +488,20 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
     processContentLines(section8Lines, true);
   }
 
-  // 8. ADD SINGLE-LINE FOOTER TO ALL PAGES
+  // 8. ADD SINGLE-LINE FOOTER TO MAIN PAGES ONLY (skip Student Handout pages)
   // Format: BibleLessonSpark.com  •  Page 1 of 7
   const totalPages = doc.getNumberOfPages();
+  const mainPageCount = section8StartPage > 0 ? section8StartPage - 1 : totalPages;
   for (let p = 1; p <= totalPages; p++) {
+    // Skip footer on Student Handout pages (teachers distribute these to students)
+    if (section8StartPage > 0 && p >= section8StartPage) continue;
+    
     doc.setPage(p);
     doc.setFontSize(footer.fontPt);
     doc.setFont(fonts.pdf, "normal");
     doc.setTextColor(...PDF_COLORS.footerText);
     
-    const footerText = `${EXPORT_FORMATTING.footerText}  •  Page ${p} of ${totalPages}`;
+    const footerText = `${EXPORT_FORMATTING.footerText}  •  Page ${p} of ${mainPageCount}`;
     const footerWidth = doc.getTextWidth(footerText);
     doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 10);
   }
@@ -502,5 +511,5 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
   const filename = `${sanitizedTitle}_Lesson.pdf`;
   doc.save(filename);
   
-  console.log('[PDF Export V2.4] Export complete!');
+  console.log('[PDF Export V2.5] Export complete!');
 };
