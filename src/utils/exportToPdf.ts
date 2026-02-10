@@ -1,5 +1,5 @@
 // src/utils/exportToPdf.ts
-// Version: 2.5.0 - Standalone Student Handout title, broadened detection, no pagination on handout page
+// Version: 2.6.0 - Standalone Student Handout title, broadened detection, no pagination on handout page, skip bare # markers
 // SSOT SOURCE: All values from EXPORT_SPACING in lessonStructure.ts
 // Frontend drives backend - change SSOT = changes PDF output
 
@@ -272,6 +272,12 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
       
       if (!trimmedLine) {
         addSpacing(paragraph.afterPt);
+        i++;
+        continue;
+      }
+      
+      // Skip bare heading markers (shaped content uses these as section separators)
+      if (/^#{1,3}$/.test(trimmedLine)) {
         i++;
         continue;
       }

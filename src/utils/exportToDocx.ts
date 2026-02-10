@@ -1,6 +1,6 @@
 // src/utils/exportToDocx.ts
 // SSOT COMPLIANT: All values imported from lessonStructure.ts
-// Version: 2.5.0 - Standalone Student Handout title, broadened detection
+// Version: 2.6.0 - Standalone Student Handout title, broadened detection, skip bare # markers
 
 import { 
   Document, 
@@ -291,6 +291,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     const trimmed = line.trim();
     
     if (!trimmed || trimmed === '---') continue;
+    if (/^#{1,3}$/.test(trimmed)) continue; // Skip bare heading markers from shaped content
     if (/Lesson\s+Title/i.test(cleanAllMarkdown(trimmed))) continue;
     
     const sectionInfo = detectSectionHeader(trimmed);
@@ -429,6 +430,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       const trimmed = line.trim();
       
       if (!trimmed || trimmed === '---') continue;
+      if (/^#{1,3}$/.test(trimmed)) continue; // Skip bare heading markers from shaped content
       
       const withoutBold = trimmed.replace(/^\*\*/, '').replace(/\*\*$/, '');
       if (withoutBold.startsWith('#')) {

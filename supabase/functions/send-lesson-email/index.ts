@@ -10,7 +10,7 @@
  * Email content:
  * - Always: teaser preview
  * - Optional: Student Handout (teacher toggles "Include Student Handout")
- * - Supports both original format (Section 8) and shaped formats (STUDENT HANDOUT, Student Experience, etc.)
+ * - Supports both original format (Section 8) and shaped formats (STUDENT HANDOUT, Student Experience: Title, etc.)
  *
  * Security:
  * - Requires valid Supabase JWT
@@ -19,7 +19,7 @@
  * - Each recipient receives an individual email (privacy)
  *
  * Created: 2026-02-01
- * Updated: 2026-02-10 — Broadened Student Handout detection (Student Experience, etc.)
+ * Updated: 2026-02-10 — Broadened Student Handout detection (Student Experience: Title, etc.)
  * Version: 1.2.0
  */
 
@@ -79,7 +79,15 @@ function escapeHtml(text: string): string {
  * Any remaining sub-headers (### level) within Section 8 are styled.
  */
 function formatLessonForEmail(text: string): string {
-  let html = escapeHtml(text);
+  // Strip bare heading markers (shaped content uses these as section separators)
+  let cleaned = text.replace(/^#{1,3}\s*$/gm, '');
+  let html = escapeHtml(cleaned);
+
+  // Single # heading (title-level) → styled major header (must come before ## check)
+  html = html.replace(
+    /^#\s+(.+)$/gm,
+    '<div style="font-family:Georgia,serif;font-size:19px;font-weight:bold;color:#3D5C3D;margin:24px 0 10px 0;">$1</div>'
+  );
 
   // Major section headers within handout: ## Heading → styled major header
   html = html.replace(
@@ -173,14 +181,14 @@ function parseSectionHeaderNumber(line: string): number {
 
 /**
  * Detect standalone Student Handout heading from shaped content.
- * Catches "STUDENT HANDOUT", "Student Experience", "Student Material", etc.
- * This appears in Lesson Shapes output where there's no "Section 8" numbering.
+ * Catches "STUDENT HANDOUT", "Student Experience: Title", "Student Material", etc.
+ * Allows optional ": subtitle" after the keyword.
  */
 function isStudentHandoutHeading(line: string): boolean {
   const trimmed = line.trim();
   let cleaned = trimmed.replace(/^#{1,4}\s*/, "");
   cleaned = cleaned.replace(/^\*\*/, "").replace(/\*\*$/, "");
-  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))\s*$/i.test(cleaned);
+  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:–—\-].*)?$/i.test(cleaned);
 }
 
 /**
@@ -188,7 +196,7 @@ function isStudentHandoutHeading(line: string): boolean {
  *
  * Strategy:
  * 1. First try: Find "Section 8" header (original format)
- * 2. Fallback: Find student handout heading (shaped format: "STUDENT HANDOUT", "Student Experience", etc.)
+ * 2. Fallback: Find student handout heading (shaped format: "STUDENT HANDOUT", "Student Experience: Title", etc.)
  * Return everything after the header line until end of text.
  */
 function extractSection8Content(lessonText: string): string {
@@ -212,7 +220,7 @@ function extractSection8Content(lessonText: string): string {
     console.log(`[extractSection8] Found Section 8 header at line ${handoutLineIndex}`);
   }
 
-  // Strategy 2: Find standalone student heading (shaped content: "STUDENT HANDOUT", "Student Experience", etc.)
+  // Strategy 2: Find standalone student heading (shaped content: "STUDENT HANDOUT", "Student Experience: Title", etc.)
   if (handoutLineIndex === -1) {
     for (let i = 0; i < lines.length; i++) {
       if (isStudentHandoutHeading(lines[i])) {
