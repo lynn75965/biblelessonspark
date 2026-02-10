@@ -40,7 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Trash2, Search, BookOpen, Users, Sparkles, Lock, Share2, User } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
-import { Lesson } from "@/types/lesson";
+import { Lesson } from "@/constants/contracts";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile } from "@/constants/theologyProfiles";
 

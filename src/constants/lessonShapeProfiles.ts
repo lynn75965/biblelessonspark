@@ -71,8 +71,12 @@ export interface AgeGroupShapeMapping {
 /**
  * Prepended to EVERY reshape prompt — protects theological integrity
  * This is the reshape equivalent of the theology guardrails in generation
+ *
+ * The base guardrail is constant. Theology and age-group context are injected
+ * by assembleReshapePrompt() when available — the caller passes display names
+ * from theologyProfiles.ts and ageGroups.ts so this file stays dependency-free.
  */
-export const RESHAPE_UNIVERSAL_GUARDRAIL = `You are receiving a completed Bible study lesson that has already been theologically vetted and age-calibrated. Your task is to re-present this content in a specific teaching format. You must preserve every piece of Scripture, every doctrinal statement, every application point, and every discussion question from the original. You may reorganize, merge, reword for flow, and change the visible structure. You may not add new theological claims, remove any scriptural content, or alter the doctrinal position. The teacher's preparation content and the student-facing content should both reflect the selected format naturally.`;
+export const RESHAPE_UNIVERSAL_GUARDRAIL = `You are receiving a completed Bible study lesson that has already been theologically vetted and age-calibrated. Your task is to re-present this content in a specific teaching format. You must preserve every piece of Scripture, every doctrinal statement, every application point, and every discussion question from the original. Redistribute content into the new structure — do not discard any substantive material. If a section from the original does not map cleanly to the new format, fold its content into the most appropriate location rather than dropping it. You may reorganize, merge, reword for flow, and change the visible structure. You may not add new theological claims, remove any scriptural content, or alter the doctrinal position. The teacher's preparation content and the student-facing content should both reflect the selected format naturally.`;
 
 // ============================================================================
 // LESSON SHAPES DATA
@@ -285,15 +289,52 @@ export function getShapeOptions(ageGroupId?: string): Array<{
  * Assemble the complete reshape prompt for a given shape
  * This is what the frontend sends to the Edge Function
  *
- * Structure: Universal guardrail + shape-specific prompt
+ * Structure: Universal guardrail + theology context + age-group context + shape-specific prompt
  * The Edge Function receives this as a complete instruction block
+ *
+ * @param shapeId - Which shape to reshape into
+ * @param options.theologyProfileName - Display name from theologyProfiles.ts (e.g., "Reformed Baptist")
+ * @param options.ageGroupLabel - Display label from ageGroups.ts (e.g., "Young Adults (25-35)")
+ * @param options.vocabularyLevel - From ageGroup.teachingProfile.vocabularyLevel
  */
-export function assembleReshapePrompt(shapeId: ShapeId): string | null {
+export function assembleReshapePrompt(
+  shapeId: ShapeId,
+  options?: {
+    theologyProfileName?: string;
+    ageGroupLabel?: string;
+    vocabularyLevel?: string;
+  }
+): string | null {
   const shape = getShapeById(shapeId);
   if (!shape) return null;
 
-  return `${RESHAPE_UNIVERSAL_GUARDRAIL}
+  // Build context blocks only when data is available
+  const contextBlocks: string[] = [];
 
+  if (options?.theologyProfileName) {
+    contextBlocks.push(
+      `## THEOLOGICAL CONTEXT\nThis lesson was generated under the "${options.theologyProfileName}" theological perspective. Maintain this doctrinal lens throughout the reshaped output. Do not soften, generalize, or shift the theological position.`
+    );
+  }
+
+  if (options?.ageGroupLabel || options?.vocabularyLevel) {
+    const ageParts: string[] = [];
+    if (options?.ageGroupLabel) {
+      ageParts.push(`This lesson targets the "${options.ageGroupLabel}" age group.`);
+    }
+    if (options?.vocabularyLevel) {
+      ageParts.push(`Vocabulary level: ${options.vocabularyLevel}.`);
+    }
+    ageParts.push('Maintain age-appropriate vocabulary, illustrations, activities, and discussion complexity. Do not shift the reading level or maturity of examples.');
+    contextBlocks.push(`## AGE-GROUP CONTEXT\n${ageParts.join(' ')}`);
+  }
+
+  const contextSection = contextBlocks.length > 0
+    ? `\n\n${contextBlocks.join('\n\n')}\n`
+    : '';
+
+  return `${RESHAPE_UNIVERSAL_GUARDRAIL}
+${contextSection}
 ---
 
 ## RESHAPE FORMAT: ${shape.name}

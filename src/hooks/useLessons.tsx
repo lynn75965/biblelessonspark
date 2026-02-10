@@ -150,12 +150,84 @@ export function useLessons() {
     }
   };
 
+  /**
+   * Save reshaped lesson content (Phase 27 — Lesson Shapes)
+   * Stores shaped_content and shape_id on the lessons row
+   * One shaped version per lesson — reshaping again overwrites previous
+   */
+  const updateLessonShape = async (
+    lessonId: string,
+    shapedContent: string,
+    shapeId: string
+  ) => {
+    try {
+      const { error } = await supabase
+        .from('lessons')
+        .update({ shaped_content: shapedContent, shape_id: shapeId })
+        .eq('id', lessonId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setLessons(prev => prev.map(lesson =>
+        lesson.id === lessonId
+          ? { ...lesson, shaped_content: shapedContent, shape_id: shapeId }
+          : lesson
+      ));
+    } catch (error) {
+      console.error('Error saving reshaped lesson:', error);
+      toast({
+        title: "Error saving reshape",
+        description: "The lesson was reshaped but couldn't be saved. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  /**
+   * Clear shaped content from a lesson (Phase 27 — Lesson Shapes)
+   * Resets to original format only
+   */
+  const clearLessonShape = async (lessonId: string) => {
+    try {
+      const { error } = await supabase
+        .from('lessons')
+        .update({ shaped_content: null, shape_id: null })
+        .eq('id', lessonId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setLessons(prev => prev.map(lesson =>
+        lesson.id === lessonId
+          ? { ...lesson, shaped_content: null, shape_id: null }
+          : lesson
+      ));
+
+      toast({
+        title: "Shape cleared",
+        description: "Lesson restored to original format.",
+      });
+    } catch (error) {
+      console.error('Error clearing lesson shape:', error);
+      toast({
+        title: "Error clearing shape",
+        description: "Failed to clear shaped content. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     lessons,
     loading,
     createLesson,
     deleteLesson,
     updateLessonVisibility,
+    updateLessonShape,
+    clearLessonShape,
     refetch: fetchLessons,
   };
 }

@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library } from "lucide-react";
+import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
@@ -66,6 +66,13 @@ import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 import { SeriesStyleMetadata } from "@/constants/seriesConfig";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
+import { useReshapeLesson } from "@/hooks/useReshapeLesson";
+import {
+  ShapeId,
+  assembleReshapePrompt,
+  getShapesForAgeGroup,
+  getShapeById,
+} from "@/constants/lessonShapeProfiles";
 
 // ============================================================================
 // INTERFACES
@@ -421,6 +428,16 @@ export function EnhanceLessonForm({
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
   // ============================================================================
+  // PHASE 27: LESSON SHAPES STATE
+  // ============================================================================
+
+  const [reshapeViewMode, setReshapeViewMode] = useState<'original' | 'shaped'>('original');
+  const [localShapedContent, setLocalShapedContent] = useState<string | null>(null);
+  const [localShapeId, setLocalShapeId] = useState<string | null>(null);
+  const [selectedShapeForReshape, setSelectedShapeForReshape] = useState<string>("");
+  const [showReshapeSection, setShowReshapeSection] = useState(false);
+
+  // ============================================================================
   // SERIES MANAGER (Phase 24 - replaces manual Lesson X of Y)
   // ============================================================================
 
@@ -512,6 +529,7 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
+  const { reshapeLesson, isReshaping } = useReshapeLesson();
   const {
     tier,
     lessonsUsed: subLessonsUsed,
@@ -1010,6 +1028,86 @@ export function EnhanceLessonForm({
   };
 
   // ============================================================================
+  // PHASE 27: LESSON SHAPES — INIT & HANDLER
+  // ============================================================================
+
+  // Initialize reshape state when viewing a lesson that was previously reshaped
+  useEffect(() => {
+    if (viewingLesson?.shaped_content && viewingLesson?.shape_id) {
+      setLocalShapedContent(viewingLesson.shaped_content);
+      setLocalShapeId(viewingLesson.shape_id);
+      setReshapeViewMode('shaped');
+      setShowReshapeSection(false);
+    } else {
+      setLocalShapedContent(null);
+      setLocalShapeId(null);
+      setReshapeViewMode('original');
+      setShowReshapeSection(false);
+      setSelectedShapeForReshape("");
+    }
+  }, [viewingLesson?.id]);
+
+  /**
+   * Execute reshape: assemble prompt with theology + age context, call Edge Function, save to DB
+   */
+  const handleReshapeLesson = async () => {
+    if (!selectedShapeForReshape || !currentLesson) return;
+
+    const shapeId = selectedShapeForReshape as ShapeId;
+    const filters = currentLesson.filters as Record<string, any> | null;
+
+    // Get theology profile name for prompt context
+    const theologyId = filters?.theology_profile_id || theologyProfileId;
+    const theologyProfile = theologyId ? getTheologyProfile(theologyId) : null;
+
+    // Get age group context for prompt
+    const ageId = filters?.age_group || ageGroup;
+    const ageGroupData = ageId ? getAgeGroupById(ageId) : null;
+
+    // Assemble prompt with full context (prevents drift — see concerns #1 and #2)
+    const reshapePrompt = assembleReshapePrompt(shapeId, {
+      theologyProfileName: theologyProfile?.name,
+      ageGroupLabel: ageGroupData?.label,
+      vocabularyLevel: ageGroupData?.teachingProfile?.vocabularyLevel,
+    });
+
+    if (!reshapePrompt) {
+      toast({
+        title: "Error",
+        description: "Invalid shape selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const result = await reshapeLesson({
+      original_content: currentLesson.original_text || "",
+      reshape_prompt: reshapePrompt,
+      shape_id: shapeId,
+      lesson_id: currentLesson.id,
+    });
+
+    if (result.success && result.shaped_content) {
+      // Update local state immediately
+      setLocalShapedContent(result.shaped_content);
+      setLocalShapeId(shapeId);
+      setReshapeViewMode('shaped');
+      setShowReshapeSection(false);
+
+      // Save to database (non-blocking — UI already updated)
+      try {
+        await supabase
+          .from('lessons')
+          .update({ shaped_content: result.shaped_content, shape_id: shapeId })
+          .eq('id', currentLesson.id);
+      } catch (err) {
+        console.error('Error saving shaped content to DB:', err);
+        // Non-blocking: reshape succeeded, save failed — content still visible in session
+      }
+    }
+  };
+
+  // ============================================================================
   // RENDER
   // ============================================================================
 
@@ -1028,12 +1126,18 @@ export function EnhanceLessonForm({
   // SSOT: Business rule from pricingConfig.ts
   const isFreeOutputOnly = !isPaidUser && subLessonsUsed > PRICING_DISPLAY.free.complimentaryFullLessons;
   
-  // Compute lesson content for export based on subscription status
-  const lessonContentForExport = currentLesson?.original_text 
-    ? (isFreeOutputOnly 
-        ? getFreeTierContentForExport(currentLesson.original_text, FREE_SECTIONS)
-        : currentLesson.original_text)
-    : "";
+  // Compute lesson content for export based on subscription status and reshape view mode
+  const lessonContentForExport = (() => {
+    // Phase 27: Use shaped content when viewing reshaped version
+    if (reshapeViewMode === 'shaped' && localShapedContent) {
+      return localShapedContent;
+    }
+    // Original content path
+    if (!currentLesson?.original_text) return "";
+    return isFreeOutputOnly
+      ? getFreeTierContentForExport(currentLesson.original_text, FREE_SECTIONS)
+      : currentLesson.original_text;
+  })();
 
   // Step completion states
   const step1Complete = isStep1Complete();
@@ -1732,6 +1836,26 @@ export function EnhanceLessonForm({
                   isPaidUser={isPaidUser}
                   senderName={senderDisplayName}
                 />
+                {/* Phase 27: Reshape Button — only in viewing mode with content */}
+                {viewingLesson && currentLesson?.original_text && !isReshaping && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReshapeSection(!showReshapeSection)}
+                    className={`gap-2 ${showReshapeSection ? "bg-primary/10 border-primary/40 text-primary" : ""}`}
+                  >
+                    <Layers className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {localShapedContent ? "Reshape Again" : "Reshape"}
+                    </span>
+                  </Button>
+                )}
+                {isReshaping && (
+                  <Button variant="outline" size="sm" disabled className="gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="hidden sm:inline">Reshaping…</span>
+                  </Button>
+                )}
                 <Button
                   variant={viewingLesson ? "default" : "outline"}
                   size="sm"
@@ -1802,6 +1926,110 @@ export function EnhanceLessonForm({
             )}
           </CardHeader>
           <CardContent>
+            {/* ============================================================ */}
+            {/* PHASE 27: LESSON SHAPES — Shape Picker */}
+            {/* Shows when teacher clicks "Reshape" button */}
+            {/* ============================================================ */}
+            {showReshapeSection && viewingLesson && (
+              <div className="mb-4 p-4 bg-gradient-to-r from-primary/5 to-blue-50 border border-primary/20 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <Layers className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">Choose a Teaching Shape</span>
+                </div>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Reshape this lesson into a different pedagogical format. All content is preserved — only the structure changes.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Select value={selectedShapeForReshape} onValueChange={setSelectedShapeForReshape}>
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Select a shape…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(() => {
+                        const filters = currentLesson?.filters as Record<string, any> | null;
+                        const ageId = filters?.age_group || ageGroup || 'mixed';
+                        const shapes = getShapesForAgeGroup(ageId);
+                        return shapes.map((shape, index) => (
+                          <SelectItem key={shape.id} value={shape.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{shape.name}</span>
+                              {index === 0 && (
+                                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                  Recommended
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ));
+                      })()}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    onClick={handleReshapeLesson}
+                    disabled={!selectedShapeForReshape || isReshaping}
+                    size="sm"
+                    className="gap-2 shrink-0"
+                  >
+                    {isReshaping ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Reshaping…
+                      </>
+                    ) : (
+                      <>
+                        <Layers className="h-4 w-4" />
+                        Reshape Lesson
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {selectedShapeForReshape && (
+                  <p className="text-xs text-muted-foreground mt-2 italic">
+                    {getShapeById(selectedShapeForReshape as ShapeId)?.posture}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ============================================================ */}
+            {/* PHASE 27: LESSON SHAPES — Original / Shaped Toggle */}
+            {/* Shows when shaped content exists (from this session or DB) */}
+            {/* ============================================================ */}
+            {localShapedContent && localShapeId && viewingLesson && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-primary/5 to-blue-50 border border-primary/20 rounded-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium text-foreground">Lesson View:</span>
+                  </div>
+                  <div className="flex rounded-lg border border-primary/40 overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setReshapeViewMode('original')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        reshapeViewMode === 'original'
+                          ? "bg-primary text-white"
+                          : "bg-card text-muted-foreground hover:bg-primary/10"
+                      }`}
+                    >
+                      Original (8 Sections)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReshapeViewMode('shaped')}
+                      className={`px-4 py-2 text-sm font-medium transition-colors ${
+                        reshapeViewMode === 'shaped'
+                          ? "bg-primary text-white"
+                          : "bg-card text-muted-foreground hover:bg-primary/10"
+                      }`}
+                    >
+                      {getShapeById(localShapeId as ShapeId)?.shortName || "Shaped"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Teaser Section - Only show in Full mode */}
             {currentLesson.metadata?.teaser && lessonViewMode === "full" && (
               <div className="mb-3 p-2.5 bg-primary/5 border border-primary/30 rounded-lg">
@@ -1832,7 +2060,23 @@ export function EnhanceLessonForm({
 
             {/* Lesson Content - Section by Section */}
             <div className="prose-sm max-w-none space-y-3">
-              {(() => {
+              {/* Phase 27: Show shaped content when in shaped view mode */}
+              {reshapeViewMode === 'shaped' && localShapedContent ? (
+                <div
+                  className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
+                  style={{ lineHeight: "1.4" }}
+                  dangerouslySetInnerHTML={{
+                    __html: normalizeLegacyContent(localShapedContent)
+                      .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
+                      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                      .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+                      .replace(/\n\n/g, "<br><br>")
+                      .replace(/\n/g, "<br>"),
+                  }}
+                />
+              ) : (
+              /* Original content — existing section-by-section rendering */
+              (() => {
                 const sections = parseLessonSections(currentLesson.original_text || "", FREE_SECTIONS);
                 
                 // If no structured sections found, show original content
@@ -1912,7 +2156,8 @@ export function EnhanceLessonForm({
                     );
                   }
                 });
-              })()}
+              })()
+              )}
             </div>
 
             {/* Upgrade CTA - Only show in Free mode for free users */}

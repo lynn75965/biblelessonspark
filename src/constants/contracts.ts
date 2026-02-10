@@ -203,6 +203,10 @@ export interface Lesson {
   organization_id: string | null;
   visibility: 'private' | 'shared';
   theology_profile_id?: string | null;
+  /** Phase 27: Lesson Shapes — reshaped content from reshape-lesson Edge Function */
+  shaped_content?: string | null;
+  /** Phase 27: Lesson Shapes — which shape was applied (ShapeId from lessonShapeProfiles.ts) */
+  shape_id?: string | null;
   metadata?: {
     teaser?: string | null;
     ageGroup?: string;
