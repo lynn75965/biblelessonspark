@@ -2071,23 +2071,23 @@ export function EnhanceLessonForm({
               {reshapeViewMode === 'shaped' && localShapedContent ? (
                 <div
                   className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
-                  style={{ lineHeight: "1.6" }}
+                  style={{ lineHeight: "1.4" }}
                   dangerouslySetInnerHTML={{
                     __html: normalizeLegacyContent(localShapedContent)
                       // Remove bare # on its own line (no heading text)
                       .replace(/^#\s*$/gm, '')
                       // Convert ### headings first (most specific)
-                      .replace(/^### (.*?)$/gm, '<h3 class="text-sm font-bold mt-3 mb-1">$1</h3>')
+                      .replace(/^### (.*?)$/gm, '<h3 class="text-sm font-bold mt-2 mb-0.5">$1</h3>')
                       // Convert ## headings
-                      .replace(/^## (.*?)$/gm, '<h2 class="text-base font-bold mt-4 mb-1">$1</h2>')
+                      .replace(/^## (.*?)$/gm, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
                       // Convert # headings (largest)
-                      .replace(/^# (.*?)$/gm, '<h1 class="text-lg font-bold mt-4 mb-2">$1</h1>')
+                      .replace(/^# (.*?)$/gm, '<h1 class="text-lg font-bold mt-3 mb-1">$1</h1>')
                       // Bold text
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
                       // Horizontal rules
-                      .replace(/\n---\n/g, '<hr class="my-3 border-t border-muted-foreground/20">')
+                      .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
                       // Paragraph spacing
-                      .replace(/\n\n/g, '<div class="mb-3"></div>')
+                      .replace(/\n\n/g, "<br><br>")
                       .replace(/\n/g, "<br>"),
                   }}
                 />

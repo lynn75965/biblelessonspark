@@ -204,10 +204,13 @@ export function LessonExportButtons({
       ? `<div class="teaser"><b>${EXPORT_FORMATTING.teaserLabel}:</b> <i>${lesson.metadata.teaser}</i></div>`
       : "";
 
-    // Split at Section 8 for standalone page
+    // Split at Section 8 / Student Handout for standalone page
+    // Matches both original format ("Section 8: Student Handout") and shaped format ("STUDENT HANDOUT")
     const section8Regex =
       /<strong[^>]*>Section\s*8[:\s\-\u2013\u2014]+Student\s*Handout<\/strong>/i;
-    const section8Match = formattedContent.match(section8Regex);
+    const handoutHeadingRegex =
+      /<(?:h[1-3]|strong)[^>]*>\s*(?:STUDENT\s+HANDOUT|Student\s+Handout)\s*<\/(?:h[1-3]|strong)>/i;
+    const section8Match = formattedContent.match(section8Regex) || formattedContent.match(handoutHeadingRegex);
 
     let mainContent = formattedContent;
     let section8Content = "";
@@ -217,7 +220,7 @@ export function LessonExportButtons({
       mainContent = formattedContent.substring(0, idx);
       section8Content = formattedContent
         .substring(idx)
-        .replace(section8Regex, "");
+        .replace(section8Match[0], "");
     }
 
     const copyrightLine = getCopyrightLine();
