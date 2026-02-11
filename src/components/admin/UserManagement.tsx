@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Mail, Loader2, Clock, Send, X, Gift, Calendar } from "lucide-react";
+import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Users, Mail, Loader2, Clock, Send, X, Gift, Calendar, Layers, Download, Filter } from "lucide-react";
 import { format, isPast, addDays, differenceInDays } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
@@ -25,7 +25,14 @@ interface UserProfile {
   created_at: string;
   user_roles?: Array<{ role: string }>;
   trial_full_lesson_granted_until?: string | null;
+  // Feature Adoption fields
+  lessons_count?: number;
+  shaped_lessons_count?: number;
+  team_role?: string | null;
+  team_name?: string | null;
 }
+
+type AdoptionFilter = 'all' | 'no_lessons' | 'has_lessons_no_shapes' | 'has_shapes' | 'no_team' | 'has_team';
 
 interface PendingInvite {
   id: string;
@@ -64,6 +71,9 @@ export function UserManagement() {
   
   // Trial revoke state
   const [revokingTrialUserId, setRevokingTrialUserId] = useState<string | null>(null);
+  
+  // Feature Adoption filter state
+  const [adoptionFilter, setAdoptionFilter] = useState<AdoptionFilter>('all');
   
   const { toast } = useToast();
   const { updateUserRole, deleteUser, loading: adminLoading } = useAdminOperations();
@@ -352,11 +362,65 @@ export function UserManagement() {
     fetchPendingInvites();
   }, []);
 
-  const filteredUsers = users.filter(user => 
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredUsers = users.filter(user => {
+    // Text search filter
+    const matchesSearch = 
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    // Adoption filter
+    switch (adoptionFilter) {
+      case 'no_lessons':
+        return (user.lessons_count || 0) === 0;
+      case 'has_lessons_no_shapes':
+        return (user.lessons_count || 0) > 0 && (user.shaped_lessons_count || 0) === 0;
+      case 'has_shapes':
+        return (user.shaped_lessons_count || 0) > 0;
+      case 'no_team':
+        return !user.team_role;
+      case 'has_team':
+        return !!user.team_role;
+      default:
+        return true;
+    }
+  });
+
+  // CSV Export
+  const handleExportCSV = () => {
+    const headers = ['Name', 'Role', 'Lessons', 'Shaped', 'Team Status', 'Team Name', 'Trial Status', 'Created'];
+    const rows = filteredUsers.map(user => [
+      user.full_name || 'Unnamed',
+      user.role,
+      (user.lessons_count || 0).toString(),
+      (user.shaped_lessons_count || 0).toString(),
+      user.team_role || 'None',
+      user.team_name || '',
+      hasActiveTrial(user.trial_full_lesson_granted_until) 
+        ? `Active until ${format(new Date(user.trial_full_lesson_granted_until!), 'MMM d, yyyy')}` 
+        : 'None',
+      format(new Date(user.created_at), 'yyyy-MM-dd'),
+    ]);
+    
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `biblelessonspark-users-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "CSV Exported",
+      description: `${filteredUsers.length} users exported to CSV.`,
+    });
+  };
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -434,6 +498,41 @@ export function UserManagement() {
                 Invite User
               </Button>
             </div>
+          </div>
+
+          {/* Feature Adoption Filter Row */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2 flex-1">
+              <Filter className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <Select value={adoptionFilter} onValueChange={(v) => setAdoptionFilter(v as AdoptionFilter)}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Filter by feature adoption..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Users</SelectItem>
+                  <SelectItem value="no_lessons">Never Generated a Lesson</SelectItem>
+                  <SelectItem value="has_lessons_no_shapes">Has Lessons, Never Reshaped</SelectItem>
+                  <SelectItem value="has_shapes">Has Used Lesson Shapes</SelectItem>
+                  <SelectItem value="no_team">Not on a Teaching Team</SelectItem>
+                  <SelectItem value="has_team">On a Teaching Team</SelectItem>
+                </SelectContent>
+              </Select>
+              {adoptionFilter !== 'all' && (
+                <Button variant="ghost" size="sm" onClick={() => setAdoptionFilter('all')}>
+                  <X className="h-3 w-3 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={handleExportCSV}
+              disabled={filteredUsers.length === 0}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV ({filteredUsers.length})
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -600,6 +699,9 @@ export function UserManagement() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead className="hidden md:table-cell text-center">Lessons</TableHead>
+                  <TableHead className="hidden md:table-cell text-center">Shapes</TableHead>
+                  <TableHead className="hidden lg:table-cell">Team</TableHead>
                   <TableHead className="hidden md:table-cell">Trial Status</TableHead>
                   <TableHead className="hidden sm:table-cell">Created</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -608,7 +710,7 @@ export function UserManagement() {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No users found matching your search.
                     </TableCell>
                   </TableRow>
@@ -632,6 +734,34 @@ export function UserManagement() {
                             <RoleIcon className="h-3 w-3 mr-1" />
                             {user.role}
                           </Badge>
+                        </TableCell>
+                        {/* Feature Adoption: Lessons Count */}
+                        <TableCell className="hidden md:table-cell text-center">
+                          <span className={`text-sm font-medium ${(user.lessons_count || 0) === 0 ? 'text-muted-foreground' : ''}`}>
+                            {user.lessons_count || 0}
+                          </span>
+                        </TableCell>
+                        {/* Feature Adoption: Shaped Lessons */}
+                        <TableCell className="hidden md:table-cell text-center">
+                          {(user.shaped_lessons_count || 0) > 0 ? (
+                            <Badge variant="outline" className="text-primary border-primary">
+                              <Layers className="h-3 w-3 mr-1" />
+                              {user.shaped_lessons_count}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        {/* Feature Adoption: Teaching Team */}
+                        <TableCell className="hidden lg:table-cell">
+                          {user.team_role ? (
+                            <Badge variant="outline" className="text-success border-success">
+                              <Users className="h-3 w-3 mr-1" />
+                              {user.team_role === 'lead' ? 'Lead' : 'Member'}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {userHasActiveTrial && TRIAL_BADGE.show ? (

@@ -1,12 +1,12 @@
 # BibleLessonSpark — Project Master Document
-## Date: February 10, 2026 (End of Phase 27)
+## Date: February 11, 2026 (Phase 28 — Multi-Tenant Architecture Planning)
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
 
 ## PROJECT OVERVIEW
 
-BibleLessonSpark (biblelessonspark.com) is a Baptist Bible study lesson generator platform targeting volunteer Sunday School teachers in Baptist churches. Built with React/TypeScript frontend, Supabase backend, deployed via Netlify.
+BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platform targeting volunteer Sunday School teachers in Christian churches. Built with React/TypeScript frontend, Supabase backend, deployed via Netlify. Supports Baptist traditions today with architecture designed for any Christian denomination, network, association, or congregation.
 
 **Owner:** Lynn, 74-year-old retired Baptist minister, PhD from Southwestern Baptist Theological Seminary, 55 years ministry experience. Non-programmer solopreneur.
 
@@ -25,11 +25,45 @@ BibleLessonSpark (biblelessonspark.com) is a Baptist Bible study lesson generato
 4. **Claude Debugging Protocol:** Root-cause diagnosis BEFORE proposing solutions. No guessing.
 5. **Deployment:** Netlify (not Lovable, not Vercel)
 6. **profiles table column:** Uses `full_name` (NOT `display_name`). This caused a bug — never assume column names.
-7. **ROUTE BUG PATTERN:** Every route added to `routes.ts` MUST also be added to `App.tsx`. This has caused bugs THREE times (`/org-manager`, `/workspace`). Verify BOTH files on every route change.
+7. **ROUTE BUG PATTERN:** Every route added to `routes.ts` MUST also be added to `App.tsx`. This has caused bugs FOUR times (`/org-manager`, `/workspace`, `/admin/toolbelt`). Verify BOTH files on every route change.
 8. **Never propose database triggers or autonomous backend actions.** Frontend drives backend — always. No "Option B" that violates this.
 9. **Never present options you aren't certain about.** If you don't know where a Supabase setting lives, say so instead of giving confident wrong directions.
 10. **Dependency check before deployment.** Every deployment must verify that all files referencing new properties, exports, or constants have those dependencies already deployed or included in the same deployment batch.
 11. **Test regex patterns against real data before shipping.** Never assume a regex works — run it against actual content from the application.
+
+---
+
+## PHASE 28 STATUS: 🔄 IN PROGRESS (February 11, 2026)
+
+Phase 28 covers multi-tenant architecture planning, Admin Panel consolidation strategy, and Feature Adoption design.
+
+### Completed February 11, 2026
+
+**Bug Fix: `/admin/toolbelt` 404**
+- Root cause: Same route bug pattern (#7 above) — `ToolbeltAdmin.tsx` existed but was never wired into routes
+- Fix: Added `ADMIN_TOOLBELT: '/admin/toolbelt'` to `routes.ts`, added import + route to `App.tsx`
+- Commit: `0a8e5cf`
+
+**Bug Fix: `deploy.ps1` success message**
+- Changed "Vercel build" to "Netlify build" in deploy script
+
+**Multi-Tenant Architecture Planning**
+- Complete database audit: 60 tables classified (34 need `tenant_id`, 16 platform-level, 6 need verification)
+- Three-tier role system designed: `platform_admin`, `tenant_admin`, `teacher`
+- Theology system architecture designed with three new tables
+- RLS policy patterns defined (4 patterns covering all table types)
+- Admin Panel consolidation proposed: 11 tabs → 6
+- Feature Adoption strategy: expandable user rows inside User Management
+- Full migration plan documented in `MULTI_TENANT_MIGRATION_PLAN.md`
+
+### Key Architecture Decisions Made
+
+1. **Theology flows downward from authority, not upward from teacher choice.** Pastor/elder board/convention sets the doctrinal standard. Teachers teach within that standard. No theology picker for org members.
+2. **Two-tier theology catalog:** Platform profiles (10 Baptist, expanding) + tenant custom profiles (Statement of Faith / Church Covenant). Tenant admin enables from platform catalog and/or creates custom. Org manager selects ONE for their church.
+3. **Custom theology profiles require platform admin approval** before they can drive lesson generation (guardrail against prompt injection and heresy).
+4. **Platform guardrails are hardcoded and non-negotiable** — no tenant can weaken Christian orthodoxy boundaries.
+5. **`system_settings.current_phase` moves to `tenant_config.platform_mode`** — each tenant controls their own beta → production transition.
+6. **Admin Panel consolidation:** 11 tabs → 6 (People, Content, Configuration, Analytics, Security, Growth). Growth tab is platform-admin only.
 
 ---
 
@@ -88,6 +122,12 @@ Allows optional subtitle after keyword (e.g., "Student Experience: The Heart of 
 - All spacing values from `EXPORT_SPACING` in `lessonStructure.ts` (SSOT)
 
 ---
+
+## GIT COMMIT HISTORY — PHASE 28
+
+| Commit | Description |
+|--------|-------------|
+| `0a8e5cf` | Fix /admin/toolbelt 404: add route to routes.ts and App.tsx |
 
 ## GIT COMMIT HISTORY — PHASE 27B (Lesson Shapes)
 
@@ -178,6 +218,32 @@ CREATE OR REPLACE FUNCTION is_team_lead_of(team_uuid uuid) ...
 
 ---
 
+## COMPLETE DATABASE TABLE INVENTORY (60 tables as of February 11, 2026)
+
+### Tables Requiring tenant_id for Multi-Tenant (34)
+
+**Core User & Content:** profiles, lessons, lesson_series, refinements, reshape_metrics, generation_metrics, devotionals, devotional_usage
+
+**Organizations & Teams:** organizations, organization_members, organization_contacts, organization_focus, org_shared_focus, org_lesson_pack_purchases, org_onboarding_purchases, teaching_teams, teaching_team_members, transfer_requests, invites
+
+**User Management & Subscriptions:** user_roles, user_subscriptions, credits_ledger, teacher_preference_profiles, setup_progress
+
+**Feedback & Analytics:** feedback, beta_feedback, beta_testers, feedback_questions (if tenant-customizable)
+
+**Security & Audit:** events, guardrail_violations, guardrail_violation_summary, admin_audit, notifications
+
+**Email & Toolbelt:** email_rosters, email_sequence_tracking, toolbelt_email_captures, toolbelt_email_tracking, toolbelt_usage
+
+### Tables NOT Requiring tenant_id — Platform-Level (16)
+
+tenant_config, pricing_plans, subscription_plans, tier_config, org_tier_config, bible_versions, email_sequence_templates, onboarding_config, lesson_pack_config, modern_parables, app_settings, rate_limits, stripe_events, branding_config, outputs (verify), anonymous_parable_usage (verify)
+
+### Views (inherit filtering from source tables)
+
+beta_feedback_view, production_feedback_view, parable_usage (verify), user_parable_usage (verify)
+
+---
+
 ## EMAIL CONFIGURATION (Verified February 10, 2026)
 
 - **Provider:** Resend (smtp.resend.com, port 587)
@@ -218,7 +284,7 @@ CREATE OR REPLACE FUNCTION is_team_lead_of(team_uuid uuid) ...
 | routes.ts | src/constants/ | Route path definitions |
 | navigationConfig.ts | src/constants/ | Dropdown menu items |
 | ageGroups.ts | src/constants/ | Age group definitions |
-| theologyProfiles.ts | src/constants/ | 10 Baptist theology profiles |
+| theologyProfiles.ts | src/constants/ | 10 Baptist theology profiles (will migrate to platform_theology_profiles table) |
 
 ### Backend Mirrors (read-only copies synced from frontend)
 | File | Location | Source |
@@ -259,7 +325,7 @@ CREATE OR REPLACE FUNCTION is_team_lead_of(team_uuid uuid) ...
 | TeamInvitationBanner.tsx | src/components/ | Dashboard banner for pending invitations |
 | TeachingTeam.tsx | src/pages/ | Dedicated /teaching-team page |
 | Dashboard.tsx | src/pages/ | Mounts TeamInvitationBanner |
-| App.tsx | src/ | Routes for /teaching-team, /workspace, /org-manager |
+| App.tsx | src/ | Routes for /teaching-team, /workspace, /org-manager, /admin/toolbelt |
 | notify-team-invitation/index.ts | supabase/functions/ | Edge Function for team invitation email |
 | team-invite-email.tsx | supabase/functions/notify-team-invitation/_templates/ | Email template |
 
@@ -277,6 +343,7 @@ CREATE OR REPLACE FUNCTION is_team_lead_of(team_uuid uuid) ...
 8. **Bare # markdown markers in shaped content** — Shaped content used bare `#` lines as section separators. These rendered as literal `#` characters in print, PDF, DOCX, and email. Fixed by stripping bare `#{1,3}` lines in formatLessonContent.ts, exportToPdf.ts, exportToDocx.ts, and send-lesson-email.
 9. **Missing heading level support** — `formatLessonContent.ts` only handled `##` headings. Shaped content uses `#`, `##`, and `###`. All three levels now handled in screen display, print, PDF, DOCX, and email.
 10. **Missing dependency in deployment** — `lessonStructure.ts` added `section8StandaloneTitle` property, but was omitted from the deployment file list. Three files (PDF, DOCX, Print) referenced it and would have rendered "undefined". Always verify the full dependency chain before deploying.
+11. **Missing /admin/toolbelt route** — Same pattern as #3, #4. `ToolbeltAdmin.tsx` page existed (built January 28) but route was never added to `routes.ts` or `App.tsx`. Fixed February 11, 2026 (commit `0a8e5cf`).
 
 ---
 
@@ -285,6 +352,66 @@ CREATE OR REPLACE FUNCTION is_team_lead_of(team_uuid uuid) ...
 - **Beta launch date:** February 28, 2026
 - **Active beta tester:** Ellis Hayden (elhayden52@yahoo.com) from Fellowship Baptist in Longview, TX
 - **Lynn's test accounts:** pastorlynn2024@gmail.com (invitee for testing — email notifications confirmed working)
+- **Current user count:** 1 admin + 38 teachers = 39 total users
+
+---
+
+## WHITE-LABEL ARCHITECTURE SUMMARY
+
+Full details in `MULTI_TENANT_MIGRATION_PLAN.md` (companion document).
+
+### Two White-Label Models
+
+| Model | Example | Infrastructure |
+|-------|---------|----------------|
+| A: Subdomain | `firstbaptist.biblelessonspark.com` | Shared Supabase, multi-tenant, usage-based billing |
+| B: Self-Managed | `lessons.firstbaptist.org` | Their own Supabase, annual license fee |
+
+### Theology Hierarchy
+
+```
+PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
+  └── TENANT THEOLOGY IDENTITY (tenant admin defines — approved by Lynn)
+       └── ORGANIZATION PROFILE SELECTION (org manager picks ONE)
+            └── TEACHER (no theology choice — teaches within church's identity)
+```
+
+### Role System
+
+| Role | Scope |
+|------|-------|
+| `platform_admin` | All tenants, all data (Lynn) |
+| `tenant_admin` | One tenant — full admin within their fence |
+| `teacher` | Own data within their tenant |
+
+### New Theology Tables (not yet created)
+
+| Table | Purpose |
+|-------|---------|
+| `platform_theology_profiles` | 10 Baptist profiles (expanding to other traditions) |
+| `tenant_enabled_profiles` | Which platform profiles a tenant makes available |
+| `tenant_theology_profiles` | Custom Statements of Faith (require platform admin approval) |
+
+### Admin Panel Consolidation (proposed, not yet built)
+
+| New Tab | Contains | White-label visible? |
+|---------|----------|---------------------|
+| People | User Management + Organizations | ✅ Yes |
+| Content | All Lessons | ✅ Yes |
+| Configuration | Settings + Exports + Branding + Theology | ✅ Yes |
+| Analytics | System Analytics | ✅ Yes |
+| Security | Security + Guardrails | ✅ Yes |
+| Growth | Beta + Email + Pricing | ❌ Platform-admin only |
+
+### Migration Status
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1: Foundation | Helper functions, tenant_id columns, role system | ❌ Not started |
+| Phase 2: Theology System | 3 new tables, seed data | ❌ Not started |
+| Phase 3: RLS Policies | Drop old, create tenant-scoped | ❌ Not started |
+| Phase 4: System Settings | platform_mode to tenant_config | ❌ Not started |
+| Phase 5: Frontend | Admin Panel, theology UI, generate-lesson changes | ❌ Not started |
 
 ---
 
@@ -293,7 +420,19 @@ CREATE OR REPLACE FUNCTION is_team_lead_of(team_uuid uuid) ...
 1. **Quality validation** — Reshape a lesson into each of the 4 untested shapes (Passage Walk-Through, Life Connection, Gospel-Centered, Focus-Discover-Respond) and verify theological accuracy, age-appropriate language, and clean export formatting
 2. **Beta launch preparation** — Review all features for February 28 launch readiness
 3. **Test Teaching Team end-to-end with Ellis Hayden** — Invite Ellis to a team, verify email arrives, verify accept/decline flow
-4. **Update PROJECT_MASTER.md** after each session
+4. **Feature Adoption view** — Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
+5. **Verify uncertain tables** — Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
+6. **Backup existing RLS policies** — Run export query from Appendix B before any multi-tenant work begins
+7. **Update PROJECT_MASTER.md** after each session
+
+---
+
+## COMPANION DOCUMENTS
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| `PROJECT_MASTER.md` | Repo root | This file — session continuity |
+| `MULTI_TENANT_MIGRATION_PLAN.md` | Repo root | Complete multi-tenant architecture: 34 table classifications, 4 RLS patterns, 3 theology tables, 5-phase execution plan, rollback procedures |
 
 ---
 
