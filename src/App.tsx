@@ -33,6 +33,9 @@ import OrgManager from "./pages/OrgManager";
 // Phase 27: Teaching Team
 import TeachingTeam from "./pages/TeachingTeam";
 
+// Admin Toolbelt
+import ToolbeltAdmin from "./pages/ToolbeltAdmin";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -67,6 +70,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Admin />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/toolbelt" 
+              element={
+                <ProtectedRoute>
+                  <ToolbeltAdmin />
                 </ProtectedRoute>
               } 
             />
