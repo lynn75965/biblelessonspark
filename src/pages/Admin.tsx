@@ -39,6 +39,9 @@ import { BRANDING } from "@/config/branding";
 // Email Sequences tab added for onboarding automation (January 26, 2026)
 // Toolbelt Admin link added (January 28, 2026)
 // Export Settings tab added (February 2, 2026)
+// TAB CONSOLIDATION: 11 tabs → 6 (February 11, 2026)
+//   People (Users + Orgs) | Content | Configuration (Settings + Exports + Branding)
+//   Analytics | Security | Growth (Beta + Email + Pricing)
 
 export default function Admin() {
   const { user } = useAuth();
@@ -211,176 +214,218 @@ export default function Admin() {
           </Button>
         </div>
 
-        {/* Admin Tabs - Email Sequences added (January 26, 2026) */}
-        <Tabs defaultValue="users" className="w-full">
+        {/* Admin Tabs - Consolidated 11 → 6 (February 11, 2026) */}
+        <Tabs defaultValue="people" className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
-            <TabsTrigger value="users" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+            <TabsTrigger value="people" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Users className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">User Management</span>
+              <span className="hidden sm:inline">People</span>
             </TabsTrigger>
-            <TabsTrigger value="organizations" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Building2 className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Organizations</span>
-            </TabsTrigger>
-            <TabsTrigger value="lessons" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+            <TabsTrigger value="content" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">All Lessons</span>
+              <span className="hidden sm:inline">Content</span>
             </TabsTrigger>
-            <TabsTrigger value="email" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Mail className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Email Sequences</span>
-            </TabsTrigger>
-            <TabsTrigger value="beta" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Rocket className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Beta Program</span>
-            </TabsTrigger>
-            <TabsTrigger value="pricing" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <DollarSign className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Pricing & Plans</span>
+            <TabsTrigger value="configuration" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Settings className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Configuration</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">System Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Settings className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">System Settings</span>
+              <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <Shield className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
-            <TabsTrigger value="export-settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Export Settings</span>
-            </TabsTrigger>
-            <TabsTrigger value="branding" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Palette className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Branding</span>
+            <TabsTrigger value="growth" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Rocket className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Growth</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* MOBILE FIX: Add relative z-0 to all TabsContent */}
-          <TabsContent value="users" className="mt-6 relative z-0">
-            <div className="space-y-6">
-              <UserManagement />
-              <TransferRequestQueue />
-            </div>
+          {/* ═══════════════════════════════════════════════════════════
+              PEOPLE — Users + Organizations (with sub-tabs)
+              ═══════════════════════════════════════════════════════════ */}
+          <TabsContent value="people" className="mt-6 relative z-0">
+            <Tabs defaultValue="users">
+              <TabsList className="bg-background border mb-4">
+                <TabsTrigger value="users" className="flex items-center gap-1.5 text-sm">
+                  <Users className="h-3.5 w-3.5" />
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="organizations" className="flex items-center gap-1.5 text-sm">
+                  <Building2 className="h-3.5 w-3.5" />
+                  Organizations
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="users">
+                <div className="space-y-6">
+                  <UserManagement />
+                  <TransferRequestQueue />
+                </div>
+              </TabsContent>
+              <TabsContent value="organizations">
+                <OrganizationManagement />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="organizations" className="mt-6 relative z-0">
-            <OrganizationManagement />
-          </TabsContent>
-
-          <TabsContent value="lessons" className="mt-6 relative z-0">
+          {/* ═══════════════════════════════════════════════════════════
+              CONTENT — All Lessons (single panel)
+              ═══════════════════════════════════════════════════════════ */}
+          <TabsContent value="content" className="mt-6 relative z-0">
             <AllLessonsPanel />
           </TabsContent>
 
-          <TabsContent value="email" className="mt-6 relative z-0">
-            <EmailSequenceManager />
+          {/* ═══════════════════════════════════════════════════════════
+              CONFIGURATION — Settings + Export + Branding (with sub-tabs)
+              ═══════════════════════════════════════════════════════════ */}
+          <TabsContent value="configuration" className="mt-6 relative z-0">
+            <Tabs defaultValue="settings">
+              <TabsList className="bg-background border mb-4">
+                <TabsTrigger value="settings" className="flex items-center gap-1.5 text-sm">
+                  <Settings className="h-3.5 w-3.5" />
+                  Settings
+                </TabsTrigger>
+                <TabsTrigger value="export" className="flex items-center gap-1.5 text-sm">
+                  <FileText className="h-3.5 w-3.5" />
+                  Export
+                </TabsTrigger>
+                <TabsTrigger value="branding" className="flex items-center gap-1.5 text-sm">
+                  <Palette className="h-3.5 w-3.5" />
+                  Branding
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="settings">
+                <SystemSettingsPanel />
+              </TabsContent>
+              <TabsContent value="export">
+                <ExportSettingsPanel />
+              </TabsContent>
+              <TabsContent value="branding">
+                <TenantBrandingPanel />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
-          <TabsContent value="beta" className="mt-6 relative z-0">
-            <div className="space-y-6">
-              {/* Beta Program Header */}
-              <Card className="bg-gradient-card">
-                <CardHeader>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <Rocket className="h-5 w-5 text-primary" />
-                        Beta Program Management
-                      </CardTitle>
-                      <CardDescription>
-                        Monitor beta testers, feedback, and program progress
-                      </CardDescription>
-                    </div>
-                    {isBetaMode(settings.current_phase as string) && (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline">{settings.current_phase}</Badge>
-                        <Badge variant="secondary">Target: {settings.target_launch}</Badge>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Beta Stats Row - NOW SHOWS ONLY BETA TESTER DATA */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{betaStats.totalBetaTesters}</p>
-                      <p className="text-xs text-muted-foreground">Beta Testers</p>
-                    </div>
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{betaStats.betaTesterLessons}</p>
-                      <p className="text-xs text-muted-foreground">Lessons Created</p>
-                    </div>
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <Gift className="h-6 w-6 mx-auto mb-2 text-primary" />
-                      <p className="text-2xl font-bold">{betaStats.feedbackCount}</p>
-                      <p className="text-xs text-muted-foreground">Feedback Received</p>
-                    </div>
-                    <div className="text-center p-4 bg-muted rounded-lg">
-                      <BarChart3 className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
-                      <p className="text-2xl font-bold">{betaStats.averageRating ?? "N/A"}</p>
-                      <p className="text-xs text-muted-foreground">Avg Rating</p>
-                    </div>
-                  </div>
-
-                  {/* Beta Benefits */}
-                  {isBetaMode(settings.current_phase as string) && (
-                    <div className="p-4 border rounded-lg">
-                      <h4 className="font-semibold mb-2 flex items-center gap-2">
-                        <Gift className="h-4 w-4 text-primary" />
-                        Beta Tester Benefits
-                      </h4>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <span className="text-primary">•</span>
-                            {benefit}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Enrollment Analytics - Referral Sources & Church Directory */}
-              <EnrollmentAnalyticsPanel />
-
-              {/* Beta Analytics Dashboard */}
-              <BetaAnalyticsDashboard />
-
-              {/* Manage Beta Feedback Questions */}
-              <FeedbackQuestionsManager />
-            </div>
-          </TabsContent>
-
-          <TabsContent value="pricing" className="mt-6 relative z-0">
-            <PricingPlansManager />
-          </TabsContent>
-
+          {/* ═══════════════════════════════════════════════════════════
+              ANALYTICS — System Analytics (single panel)
+              ═══════════════════════════════════════════════════════════ */}
           <TabsContent value="analytics" className="mt-6 relative z-0">
             <SystemAnalyticsDashboard />
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-6 relative z-0">
-            <SystemSettingsPanel />
-          </TabsContent>
-
+          {/* ═══════════════════════════════════════════════════════════
+              SECURITY — Security Panel (single panel)
+              ═══════════════════════════════════════════════════════════ */}
           <TabsContent value="security" className="mt-6 relative z-0">
             <AdminSecurityPanel />
           </TabsContent>
 
-          <TabsContent value="export-settings" className="mt-6 relative z-0">
-            <ExportSettingsPanel />
-          </TabsContent>
+          {/* ═══════════════════════════════════════════════════════════
+              GROWTH — Beta + Email + Pricing (with sub-tabs)
+              ═══════════════════════════════════════════════════════════ */}
+          <TabsContent value="growth" className="mt-6 relative z-0">
+            <Tabs defaultValue="beta">
+              <TabsList className="bg-background border mb-4">
+                <TabsTrigger value="beta" className="flex items-center gap-1.5 text-sm">
+                  <Rocket className="h-3.5 w-3.5" />
+                  Beta Program
+                </TabsTrigger>
+                <TabsTrigger value="email" className="flex items-center gap-1.5 text-sm">
+                  <Mail className="h-3.5 w-3.5" />
+                  Email Sequences
+                </TabsTrigger>
+                <TabsTrigger value="pricing" className="flex items-center gap-1.5 text-sm">
+                  <DollarSign className="h-3.5 w-3.5" />
+                  Pricing & Plans
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="beta">
+                <div className="space-y-6">
+                  {/* Beta Program Header */}
+                  <Card className="bg-gradient-card">
+                    <CardHeader>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                          <CardTitle className="flex items-center gap-2">
+                            <Rocket className="h-5 w-5 text-primary" />
+                            Beta Program Management
+                          </CardTitle>
+                          <CardDescription>
+                            Monitor beta testers, feedback, and program progress
+                          </CardDescription>
+                        </div>
+                        {isBetaMode(settings.current_phase as string) && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline">{settings.current_phase}</Badge>
+                            <Badge variant="secondary">Target: {settings.target_launch}</Badge>
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {/* Beta Stats Row - NOW SHOWS ONLY BETA TESTER DATA */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <Users className="h-6 w-6 mx-auto mb-2 text-primary" />
+                          <p className="text-2xl font-bold">{betaStats.totalBetaTesters}</p>
+                          <p className="text-xs text-muted-foreground">Beta Testers</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <TrendingUp className="h-6 w-6 mx-auto mb-2 text-primary" />
+                          <p className="text-2xl font-bold">{betaStats.betaTesterLessons}</p>
+                          <p className="text-xs text-muted-foreground">Lessons Created</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <Gift className="h-6 w-6 mx-auto mb-2 text-primary" />
+                          <p className="text-2xl font-bold">{betaStats.feedbackCount}</p>
+                          <p className="text-xs text-muted-foreground">Feedback Received</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <BarChart3 className="h-6 w-6 mx-auto mb-2 text-yellow-500" />
+                          <p className="text-2xl font-bold">{betaStats.averageRating ?? "N/A"}</p>
+                          <p className="text-xs text-muted-foreground">Avg Rating</p>
+                        </div>
+                      </div>
 
-          <TabsContent value="branding" className="mt-6 relative z-0">
-            <TenantBrandingPanel />
+                      {/* Beta Benefits */}
+                      {isBetaMode(settings.current_phase as string) && (
+                        <div className="p-4 border rounded-lg">
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            <Gift className="h-4 w-4 text-primary" />
+                            Beta Tester Benefits
+                          </h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-primary">•</span>
+                                {benefit}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Enrollment Analytics - Referral Sources & Church Directory */}
+                  <EnrollmentAnalyticsPanel />
+
+                  {/* Beta Analytics Dashboard */}
+                  <BetaAnalyticsDashboard />
+
+                  {/* Manage Beta Feedback Questions */}
+                  <FeedbackQuestionsManager />
+                </div>
+              </TabsContent>
+              <TabsContent value="email">
+                <EmailSequenceManager />
+              </TabsContent>
+              <TabsContent value="pricing">
+                <PricingPlansManager />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </main>
