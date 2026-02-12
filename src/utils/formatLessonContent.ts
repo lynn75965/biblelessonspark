@@ -1,8 +1,10 @@
 /**
  * formatLessonContent.ts
- * Version: 2.1.0 — Handle all markdown heading levels (#, ##, ###) for shaped content
+ * Version: 2.2.0 – Handle all markdown heading levels (#, ##, ###, ####) for shaped content
  * SSOT COMPLIANT: All values imported from lessonStructure.ts
  * NO hardcoded spacing/font values - frontend drives backend
+ * 
+ * v2.2.0 — Added #### (h4) support for Focus-Discover-Respond shaped content
  */
 import React from "react";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "../constants/lessonStructure";
@@ -15,17 +17,17 @@ function normalizeLineEndings(text: string): string {
 }
 
 /**
- * Strip bare heading markers — lines that are just "#", "##", or "###" with no content.
+ * Strip bare heading markers – lines that are just "#", "##", "###", or "####" with no content.
  * Shaped content sometimes uses these as section separators.
  */
 function stripBareHeadingMarkers(text: string): string {
-  return text.replace(/^#{1,3}\s*$/gm, '');
+  return text.replace(/^#{1,4}\s*$/gm, '');
 }
 
 function ensureLineBreaks(text: string): string {
   return text
-    // Ensure blank line before any heading level (shaped content uses #, ##, ###)
-    .replace(/([^\s])(\s*#{1,3}\s+)/g, '$1\n\n$2')
+    // Ensure blank line before any heading level (shaped content uses #, ##, ###, ####)
+    .replace(/([^\s])(\s*#{1,4}\s+)/g, '$1\n\n$2')
     .replace(/([^\n])(\s*---\s*)/g, '$1\n$2')
     .replace(/(---\s*)([^\n])/g, '$1\n$2')
     .replace(/\n{3,}/g, '\n\n')
@@ -40,10 +42,10 @@ export function normalizeLegacyContent(text: string): string {
   if (!text) return text;
   let normalized = text;
   EXPORT_FORMATTING.boldLabels.forEach(label => {
-    // Handle all heading levels (#, ##, ###) for known bold labels
-    const hashPattern = new RegExp(`^(#{1,3})\\s*(${escapeRegExp(label)}):?\\s*$`, 'gmi');
+    // Handle all heading levels (#, ##, ###, ####) for known bold labels
+    const hashPattern = new RegExp(`^(#{1,4})\\s*(${escapeRegExp(label)}):?\\s*$`, 'gmi');
     normalized = normalized.replace(hashPattern, `**${label}:**`);
-    const hashWithContentPattern = new RegExp(`^(#{1,3})\\s*(${escapeRegExp(label)}):?\\s+(.+)$`, 'gmi');
+    const hashWithContentPattern = new RegExp(`^(#{1,4})\\s*(${escapeRegExp(label)}):?\\s+(.+)$`, 'gmi');
     normalized = normalized.replace(hashWithContentPattern, `**${label}:** $3`);
   });
   normalized = normalized.replace(/^\*\*(\d+)\.\*\*\s*/gm, '**$1)** ');
@@ -62,7 +64,7 @@ export function stripMarkdown(text: string): string {
     .replace(/(?<![a-zA-Z])_([^_\n]+)_(?![a-zA-Z])/g, '$1')
     .replace(/^#{1,6}\s+(.+)$/gm, '$1')
     // Strip bare heading markers
-    .replace(/^#{1,3}\s*$/gm, '')
+    .replace(/^#{1,4}\s*$/gm, '')
     .replace(/^[\*\-]\s+/gm, '• ')
     .replace(/^[\-\*]{3,}$/gm, '')
     .replace(/```[a-z]*\n?/g, '')
@@ -77,7 +79,7 @@ export function convertToRichHtml(text: string): string {
   let html = text
     .replace(/\r\n/g, '\n').replace(/\r/g, '\n')
     // Strip bare heading markers before HTML encoding
-    .replace(/^#{1,3}\s*$/gm, '')
+    .replace(/^#{1,4}\s*$/gm, '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/^#{1,6}\s+(Section \d+:.+)$/gm, '<p><strong>$1</strong></p>')
     .replace(/^#{1,6}\s+(.+)$/gm, '<p><strong>$1</strong></p>')
@@ -116,7 +118,8 @@ export function formatLessonContentToHtml(content: string | null | undefined): s
   text = ensureLineBreaks(text);
   text = normalizeLegacyContent(text);
   return text
-    // Handle all heading levels: # → h1, ## → h2, ### → h3
+    // Handle all heading levels: #### → h4, ### → h3, ## → h2, # → h1 (most specific first)
+    .replace(/^#### (.*?)$/gm, '<h4 class="text-sm font-bold mt-2 mb-1 text-primary">$1</h4>')
     .replace(/^### (.*?)$/gm, '<h3 class="text-base font-bold mt-3 mb-1 text-primary">$1</h3>')
     .replace(/^## (.*?)$/gm, '<h2 class="text-lg font-bold mt-4 mb-2 text-primary">$1</h2>')
     .replace(/^# (.*?)$/gm, '<h1 class="text-xl font-bold mt-5 mb-2 text-primary">$1</h1>')
@@ -132,7 +135,7 @@ export function formatLessonContentToHtml(content: string | null | undefined): s
 
 /**
  * Format for print - uses SSOT values from EXPORT_SPACING
- * Handles all markdown heading levels (#, ##, ###) for shaped content
+ * Handles all markdown heading levels (#, ##, ###, ####) for shaped content
  */
 export function formatLessonContentForPrint(content: string | null | undefined): string {
   if (!content) return "";
@@ -145,7 +148,8 @@ export function formatLessonContentForPrint(content: string | null | undefined):
   const sectionMargin = `${sectionHeader.beforePt}pt 0 ${sectionHeader.afterPt}pt 0`;
   
   let html = text
-    // Handle all heading levels: ###, ##, # (order matters — most specific first)
+    // Handle all heading levels: ####, ###, ##, # (order matters – most specific first)
+    .replace(/^#### (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};font-size:${body.fontPt}pt;">$1</strong>`)
     .replace(/^### (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};font-size:${body.fontPt}pt;">$1</strong>`)
     .replace(/^## (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};">$1</strong>`)
     .replace(/^# (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};font-size:${EXPORT_SPACING.sectionHeaderFont.fontPt}pt;">$1</strong>`)
