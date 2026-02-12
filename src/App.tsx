@@ -23,6 +23,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Cookie from "./pages/legal/Cookie";
 import NotFound from "./pages/NotFound";
+import Devotionals from "./pages/Devotionals";
 
 // Self-Service Shepherd Entry Point (Stack 2)
 import OrgLanding from "./pages/OrgLanding";
@@ -127,6 +128,13 @@ const App = () => (
             <Route path="/teaching-team" element={
               <ProtectedRoute>
                 <TeachingTeam />
+              </ProtectedRoute>
+            } />
+
+            {/* Devotionals */}
+            <Route path="/devotionals" element={
+              <ProtectedRoute>
+                <Devotionals />
               </ProtectedRoute>
             } />
             
