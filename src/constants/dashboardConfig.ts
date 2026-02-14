@@ -4,7 +4,7 @@
 export const DASHBOARD_TABS = {
   enhance: {
     value: "enhance",
-    label: "Enhance Lesson",
+    label: "Build Lesson",
     mobileLabel: "Enhance",
     clearViewingOnClick: true,  // Clear any viewed lesson when navigating here
   },

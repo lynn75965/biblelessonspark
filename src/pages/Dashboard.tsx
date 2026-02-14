@@ -273,7 +273,7 @@ export default function Dashboard() {
               className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap"
             >
               <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Enhance Lesson</span>
+              <span className="hidden sm:inline">Build Lesson</span>
             </TabsTrigger>
             <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
