@@ -102,7 +102,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
     window.location.href = '/';
   };
 
-  return (
+  return (<>
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
@@ -234,5 +234,5 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
           onOpenChange={setShowProfileModal}
         />
       )}
-    );
+    </>);
 }
