@@ -12,7 +12,6 @@ import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
-import { WorkspaceSettingsPanel } from "@/components/workspace/WorkspaceSettingsPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -382,9 +381,6 @@ export default function Dashboard() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Settings — lesson defaults, teaching context, export, notifications */}
-            <WorkspaceSettingsPanel />
           </TabsContent>
         </Tabs>
       </main>
