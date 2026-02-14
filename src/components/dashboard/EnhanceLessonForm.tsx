@@ -1208,7 +1208,7 @@ export function EnhanceLessonForm({
             {!lessonsLoading && lessonCount === 0 && !step1Complete && !step2Complete && (
               <div data-tour="workspace-welcome" className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">??</span>
+                  <Sparkles className="h-6 w-6 text-primary shrink-0" />
                   <div>
                     <h3 className="font-semibold text-foreground">Welcome! Create your first lesson in 3 simple steps.</h3>
                     <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
