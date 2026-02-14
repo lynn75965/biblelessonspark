@@ -27,7 +27,7 @@ type Language = typeof LANGUAGE_OPTIONS[number]["value"];
 interface UserProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProfileUpdated: () => void;
+  onProfileUpdated?: () => void;
 }
 
 export function UserProfileModal({
@@ -145,7 +145,7 @@ export function UserProfileModal({
         throw error;
       }
 
-      onProfileUpdated();
+      onProfileUpdated?.();
 
       toast({
         title: "Profile Updated",
