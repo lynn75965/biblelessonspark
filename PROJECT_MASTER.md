@@ -1,5 +1,5 @@
 # BibleLessonSpark — Project Master Document
-## Date: February 11, 2026 (Phase 28 — Multi-Tenant Architecture Planning)
+## Date: February 14, 2026 (Session: Profile/Settings Split, Deploy Simplification, UX Cleanup)
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -10,9 +10,9 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 
 **Owner:** Lynn, 74-year-old retired Baptist minister, PhD from Southwestern Baptist Theological Seminary, 55 years ministry experience. Non-programmer solopreneur.
 
-**Local repo:** `C:\Users\Lynn\lesson-spark-usa`
-**Branch:** `biblelessonspark`
-**Deploy command:** `.\deploy.ps1 "commit message"` (Netlify via Git)
+**Local repo:** `C:\Users\Lynn\biblelessonspark`
+**Branch:** `main` (single branch — no secondary branches)
+**Deploy command:** `.\deploy.ps1 "commit message"` (pushes to `main`, Netlify auto-builds)
 **Supabase project URL:** `https://hphebzdftpjbiudpfcrs.supabase.co`
 
 ---
@@ -23,13 +23,93 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 2. **Non-programmer workflow:** Provide complete file replacements + PowerShell Copy-Item commands. No diffs.
 3. **Frontend drives backend.** Access uploaded files during session — never re-request what's already provided.
 4. **Claude Debugging Protocol:** Root-cause diagnosis BEFORE proposing solutions. No guessing.
-5. **Deployment:** Netlify (not Lovable, not Vercel)
+5. **Deployment:** Netlify (not Lovable, not Vercel). Single branch: `main`. Deploy script: `.\deploy.ps1 "message"`.
 6. **profiles table column:** Uses `full_name` (NOT `display_name`). This caused a bug — never assume column names.
 7. **ROUTE BUG PATTERN:** Every route added to `routes.ts` MUST also be added to `App.tsx`. This has caused bugs FOUR times (`/org-manager`, `/workspace`, `/admin/toolbelt`). Verify BOTH files on every route change.
 8. **Never propose database triggers or autonomous backend actions.** Frontend drives backend — always. No "Option B" that violates this.
 9. **Never present options you aren't certain about.** If you don't know where a Supabase setting lives, say so instead of giving confident wrong directions.
 10. **Dependency check before deployment.** Every deployment must verify that all files referencing new properties, exports, or constants have those dependencies already deployed or included in the same deployment batch.
 11. **Test regex patterns against real data before shipping.** Never assume a regex works — run it against actual content from the application.
+12. **Branch discipline:** Single branch (`main`) only. Deploy script enforces `$PRODUCTION_BRANCH = "main"`. The old `biblelessonspark` branch was deleted February 14, 2026 to prevent branch-juggling confusion.
+
+---
+
+## SESSION LOG: February 14, 2026
+
+### Profile vs Settings Split
+
+Separated user identity defaults from workspace preferences:
+
+**User Profile Modal (identity defaults — accessible from dropdown):**
+- Read-only: Email, Member ID (first 8 chars), Role, Organization
+- Editable: Full Name, Language (en/es/fr), Default Bible Version (8 from SSOT), Baptist Theology Profile (10 from SSOT with summary)
+- Saves to profiles: `full_name`, `preferred_language`, `default_bible_version`, `theology_profile_id`
+
+**Settings tab removed entirely from workspace.** All settings content (Lesson Defaults, Teaching Context, Export Preferences, Notifications) was stripped. Only the Profile card with "Update Profile" button remained, and that was also removed when the dropdown was rewired.
+
+### Dropdown "User Profile" Opens Modal Directly
+
+- Renamed "Settings" → "User Profile" in dropdown menu (navigationConfig.ts)
+- Dropdown item now opens `UserProfileModal` directly via `onClick` handler in Header.tsx (no page navigation)
+- Header.tsx wrapped in `<>...</>` fragment to render both `<header>` and modal
+- `onProfileUpdated` prop made optional (`?.()` safe-call) so Header can open modal without callback
+
+### Settings Tab Removed from Workspace
+
+- Removed Settings `TabsTrigger` and `TabsContent` from Dashboard.tsx
+- Workspace now has 3 tabs: Build Lesson, Lesson Library, Devotional Library
+
+### Deploy Script Simplified — Single Branch
+
+- Changed `deploy.ps1` production branch from `biblelessonspark` to `main`
+- Deleted `biblelessonspark` branch locally and on remote
+- All deploys now: `.\deploy.ps1 "message"` → pushes to `main` → Netlify builds
+- No more branch switching, merging, or juggling
+
+### Database Fix: Theology Profile Constraint Dropped
+
+- `profiles` table had CHECK constraint `valid_theology_profile_id` allowing only 4 values
+- Frontend SSOT has 10 theology profiles including default "baptist-core-beliefs"
+- Dropped constraint: `ALTER TABLE profiles DROP CONSTRAINT valid_theology_profile_id;`
+- Frontend SSOT now controls valid values per "frontend drives backend"
+
+### Bug Fixes
+
+- **display_name → full_name:** EnhanceLessonForm.tsx line 683 queried `profiles.display_name` (doesn't exist). Changed to `full_name`.
+- **Broken welcome icon:** `<span className="text-2xl">??</span>` was a corrupted emoji. Replaced with `<Sparkles className="h-6 w-6 text-primary shrink-0" />`.
+- **"Build Lesson" tab label reverted:** Dashboard.tsx and dashboardConfig.ts both showed "Enhance Lesson" again. Fixed both back to "Build Lesson".
+- **Navigation routing:** Settings dropdown routed to `/account` instead of workspace. Fixed to open modal directly.
+
+### Pending: Old Branding Cleanup
+
+A scan found ~60+ references to "LessonSparkUSA" / "LessonSpark USA" / "lessonsparkusa.com" across these files (NOT a reversion — these were never cleaned up in the January rebrand):
+
+**User-facing (needs cleanup):**
+- `useBranding.ts` — 40+ references (emails, URLs, legal text, sender names)
+- `footerLinks.ts` — support@lessonsparkusa.com
+- `tenantConfig.ts` — "Join LessonSpark USA", "Welcome to LessonSpark USA!"
+- `betaEnrollmentConfig.ts` — "Join the LessonSpark USA Beta"
+- `pricingPlans.ts` — "Try LessonSparkUSA"
+- `programConfig.ts` — maintenance message
+- `parableDirectives.ts` — AI prompt instructions reference LessonSparkUSA
+
+**Comments only (low priority):**
+- `branding.ts`, `ageGroups.ts`, `contracts.ts`, `index.ts`, `routes.ts` — file header comments
+
+---
+
+## GIT COMMIT HISTORY — February 14, 2026
+
+| Commit | Description |
+|--------|-------------|
+| `ef9f852` | Remove settings panels from Settings tab - keep only User Profile card |
+| `a37c7d6` | SSOT: Set main as production branch in deploy script |
+| `d420c12` | UX: Rename dropdown Settings to User Profile, remove Settings tab from workspace |
+| `5b25a42` | User Profile dropdown opens modal directly instead of navigating to Settings tab |
+| `aa7ac0a` | Fix: Wrap Header return in fragment to include UserProfileModal |
+| `fc229e1` | Fix: Make onProfileUpdated optional so Header can open profile modal without callback |
+| `774fe37` | Fix: Replace broken ?? emoji with Sparkles icon in welcome banner |
+| `d8fabb5` | Fix: Restore Build Lesson tab label per SSOT dashboardConfig |
 
 ---
 
@@ -207,7 +287,13 @@ CREATE TABLE reshape_metrics (
 id (UUID, PK, references auth.users)
 full_name (TEXT)       ← THIS IS THE COLUMN NAME, NOT display_name
 email (TEXT)
+preferred_language (TEXT)         ← en, es, fr
+default_bible_version (TEXT)     ← e.g., 'esv', 'kjv', 'nasb'
+theology_profile_id (TEXT)       ← e.g., 'southern-baptist-bfm-1963'
+organization_role (TEXT)
+organization_id (UUID)
 ```
+**Note:** The CHECK constraint `valid_theology_profile_id` was dropped February 14, 2026. Frontend SSOT (THEOLOGY_PROFILES) controls valid values.
 
 ### RLS Helper Functions (already exist)
 ```sql
@@ -282,8 +368,10 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | emailDeliveryConfig.ts | src/constants/ | Email limits, templates, tier gating |
 | contracts.ts | src/constants/ | TypeScript interfaces |
 | routes.ts | src/constants/ | Route path definitions |
-| navigationConfig.ts | src/constants/ | Dropdown menu items |
+| navigationConfig.ts | src/constants/ | Dropdown menu items ("User Profile" opens modal) |
+| dashboardConfig.ts | src/constants/ | Dashboard tab config ("Build Lesson", not "Enhance Lesson") |
 | ageGroups.ts | src/constants/ | Age group definitions |
+| bibleVersions.ts | src/constants/ | 8 Bible versions (KJV, WEB, NKJV, NASB default, ESV, NIV, CSB, NLT) |
 | theologyProfiles.ts | src/constants/ | 10 Baptist theology profiles (will migrate to platform_theology_profiles table) |
 
 ### Backend Mirrors (read-only copies synced from frontend)
@@ -292,6 +380,21 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | lessonShapeProfiles.ts | supabase/functions/_shared/ | ← src/constants/lessonShapeProfiles.ts |
 | emailDeliveryConfig.ts | supabase/functions/_shared/ | ← src/constants/emailDeliveryConfig.ts |
 | branding.ts | supabase/functions/_shared/ | Database-driven with fallback |
+
+---
+
+## KEY FILES — February 14 Session
+
+| File | Location | Change |
+|------|----------|--------|
+| UserProfileModal.tsx | src/components/dashboard/ | Full profile modal (read-only + editable fields), onProfileUpdated now optional |
+| Header.tsx | src/components/layout/ | Opens UserProfileModal directly from dropdown (fragment wrapper) |
+| Dashboard.tsx | src/pages/ | Settings tab removed, 3 tabs remain (Build Lesson, Lesson Library, Devotional Library) |
+| navigationConfig.ts | src/constants/ | "Settings" → "User Profile" label |
+| dashboardConfig.ts | src/constants/ | label: "Build Lesson" (restored from "Enhance Lesson" reversion) |
+| EnhanceLessonForm.tsx | src/components/dashboard/ | full_name fix (line 683), broken emoji → Sparkles icon |
+| WorkspaceSettingsPanel.tsx | src/components/workspace/ | Stripped to settings-only (later removed from Dashboard entirely) |
+| deploy.ps1 | repo root | PRODUCTION_BRANCH = "main" (was "biblelessonspark") |
 
 ---
 
@@ -344,6 +447,9 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 9. **Missing heading level support** — `formatLessonContent.ts` only handled `##` headings. Shaped content uses `#`, `##`, and `###`. All three levels now handled in screen display, print, PDF, DOCX, and email.
 10. **Missing dependency in deployment** — `lessonStructure.ts` added `section8StandaloneTitle` property, but was omitted from the deployment file list. Three files (PDF, DOCX, Print) referenced it and would have rendered "undefined". Always verify the full dependency chain before deploying.
 11. **Missing /admin/toolbelt route** — Same pattern as #3, #4. `ToolbeltAdmin.tsx` page existed (built January 28) but route was never added to `routes.ts` or `App.tsx`. Fixed February 11, 2026 (commit `0a8e5cf`).
+12. **Branch mismatch causing invisible deploys** — Netlify built from `main` but deploy script pushed to `biblelessonspark` branch. Changes were invisible on live site. Fixed February 14, 2026: consolidated to single `main` branch, deleted `biblelessonspark` branch.
+13. **Theology profile constraint too restrictive** — `profiles` table had CHECK constraint `valid_theology_profile_id` allowing only 4 values, but frontend SSOT has 10. Dropped constraint February 14, 2026.
+14. **onProfileUpdated not optional** — UserProfileModal required `onProfileUpdated` callback. When opened from Header (which doesn't pass it), save crashed with "r is not a function". Fixed by making prop optional with `?.()` call.
 
 ---
 
@@ -417,13 +523,14 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 
 ## WHAT'S NEXT (Suggested priorities for next session)
 
-1. **Quality validation** — Reshape a lesson into each of the 4 untested shapes (Passage Walk-Through, Life Connection, Gospel-Centered, Focus-Discover-Respond) and verify theological accuracy, age-appropriate language, and clean export formatting
-2. **Beta launch preparation** — Review all features for February 28 launch readiness
-3. **Test Teaching Team end-to-end with Ellis Hayden** — Invite Ellis to a team, verify email arrives, verify accept/decline flow
-4. **Feature Adoption view** — Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
-5. **Verify uncertain tables** — Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
-6. **Backup existing RLS policies** — Run export query from Appendix B before any multi-tenant work begins
-7. **Update PROJECT_MASTER.md** after each session
+1. **Old branding cleanup** — Sweep ~60+ "LessonSparkUSA" / "lessonsparkusa.com" references across user-facing files (useBranding.ts, footerLinks.ts, tenantConfig.ts, betaEnrollmentConfig.ts, pricingPlans.ts, programConfig.ts, parableDirectives.ts)
+2. **Quality validation** — Reshape a lesson into each of the 4 untested shapes (Passage Walk-Through, Life Connection, Gospel-Centered, Focus-Discover-Respond) and verify theological accuracy, age-appropriate language, and clean export formatting
+3. **Beta launch preparation** — Review all features for February 28 launch readiness
+4. **Test Teaching Team end-to-end with Ellis Hayden** — Invite Ellis to a team, verify email arrives, verify accept/decline flow
+5. **Feature Adoption view** — Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
+6. **Verify uncertain tables** — Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
+7. **Backup existing RLS policies** — Run export query from Appendix B before any multi-tenant work begins
+8. **Update PROJECT_MASTER.md** after each session
 
 ---
 
@@ -438,6 +545,6 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 
 ## HOW TO START THE NEW CHAT
 
-Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\lesson-spark-usa\src\` as needed.
+Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\biblelessonspark\src\` as needed.
 
-**Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend — always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions.
+**Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend — always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`.

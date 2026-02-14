@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { SITE } from '@/config/site';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +89,7 @@ const BetaSignup = () => {
       }
 
       toast({
-        title: "Welcome to the Beta Program! ??",
+        title: "Welcome to the Beta Program!",
         description: "Thank you for joining. Check your email for next steps.",
       });
 

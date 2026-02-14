@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useBranding Hook
  * =================
  * 
@@ -105,9 +105,9 @@ const FALLBACK_BRANDING: BrandingConfig = {
     allowPublicSignup: true,
     multiLanguage: true,
     availableLanguages: [
-      { code: "en", name: "English", flag: "ðŸ‡ºðŸ‡¸" },
-      { code: "es", name: "EspaÃ±ol", flag: "ðŸ‡²ðŸ‡½" },
-      { code: "fr", name: "FranÃ§ais", flag: "ðŸ‡«ðŸ‡·" },
+      { code: "en", name: "English", flag: "US" },
+      { code: "es", name: "Español", flag: "MX" },
+      { code: "fr", name: "Français", flag: "FR" },
     ],
     defaultLanguage: "en",
     organizationsEnabled: true,
@@ -158,7 +158,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
       },
     },
     subjects: {
-      welcome: "Welcome to LessonSpark USA! ðŸŽ‰",
+      welcome: "Welcome to LessonSpark USA!",
       emailVerification: "Verify your LessonSpark USA email address",
       signup: "Welcome to LessonSpark USA - Confirm Your Email",
       magiclink: "Your LessonSpark USA Login Link",
@@ -423,7 +423,7 @@ export function getCopyrightNotice(branding: BrandingConfig): string {
   const yearRange = startYear === String(currentYear)
     ? startYear
     : `${startYear}-${currentYear}`;
-  return `Â© ${yearRange} ${branding.legal.copyrightHolder}. All rights reserved.`;
+  return `© ${yearRange} ${branding.legal.copyrightHolder}. All rights reserved.`;
 }
 
 /**
