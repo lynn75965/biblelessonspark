@@ -111,9 +111,9 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   settings: {
     id: 'settings',
     label: 'Settings',
-    route: NAV_ROUTES.account,
+    route: '/workspace?tab=settings',
     icon: Settings,
-    description: 'Account settings',
+    description: 'Profile and workspace settings',
     dividerAfter: true,
   },
   signOut: {
