@@ -283,11 +283,7 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Devotional Library</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Settings className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-          </TabsList>
+</TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
@@ -361,28 +357,7 @@ export default function Dashboard() {
           <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
           </TabsContent>
-
-          <TabsContent value="settings" className="mt-6 relative z-0">
-            {/* User Profile Card — opens expanded Profile modal */}
-            <Card className="bg-gradient-card mb-6">
-              <CardHeader>
-                <CardTitle>User Profile</CardTitle>
-                <CardDescription>Your identity and personal defaults — Bible version, theology profile, language</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Workspace</span>
-                    <Badge variant="outline">Personal</Badge>
-                  </div>
-                  <Button variant="outline" className="w-full" onClick={() => setShowProfileModal(true)}>
-                    Update Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+</Tabs>
       </main>
 
       <Footer />

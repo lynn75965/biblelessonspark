@@ -110,10 +110,10 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   },
   settings: {
     id: 'settings',
-    label: 'Settings',
+    label: 'User Profile',
     route: '/workspace?tab=settings',
     icon: Settings,
-    description: 'Profile and workspace settings',
+    description: 'Update your profile defaults',
     dividerAfter: true,
   },
   signOut: {
