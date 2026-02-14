@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
 import { supabase } from "@/integrations/supabase/client";
+import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
@@ -36,6 +37,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
   const { isAdmin } = useAdminAccess();
   const { organization, userRole, hasOrganization } = useOrganization();
   const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
@@ -174,6 +176,16 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
                   {navigationItems.map((item, index) => {
                     const IconComponent = item.icon;
 
+                    // Handle User Profile specially (open modal, not navigate)
+                    if (item.id === 'settings') {
+                      return (
+                        <DropdownMenuItem key={item.id} onClick={() => setShowProfileModal(true)}>
+                          <IconComponent className="mr-2 h-4 w-4" />
+                          <span>{item.label}</span>
+                        </DropdownMenuItem>
+                      );
+                    }
+
                     // Handle Sign Out specially (onClick, not Link)
                     if (item.id === 'signOut') {
                       return (
@@ -215,5 +227,12 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
         </div>
       </div>
     </header>
-  );
+
+      {showProfileModal && (
+        <UserProfileModal
+          open={showProfileModal}
+          onOpenChange={setShowProfileModal}
+        />
+      )}
+    );
 }
