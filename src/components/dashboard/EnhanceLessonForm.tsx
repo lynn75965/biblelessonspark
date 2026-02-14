@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -20,7 +20,7 @@
  * Updated: January 24, 2026 - CONSISTENT STYLE MODE FIX
  * - Extracted fetchLessonsWithStyle to useCallback for manual refresh capability
  * - Added toast notification when style metadata is captured from Lesson 1
- * - Auto-advances lesson number for series (1â†’2â†’3) after generation
+ * - Auto-advances lesson number for series (1?2?3) after generation
  * - Auto-refreshes "Copy style from" dropdown after generating Lesson 1
  * - Preserves freshnessMode when generating series lessons
  *
@@ -88,7 +88,7 @@ interface EnhanceLessonFormProps {
   defaultDoctrine?: string;
   viewingLesson?: any;
   onClearViewing?: () => void;
-  /** Phase 27: Called when reshape succeeds â€” updates local lessons array */
+  /** Phase 27: Called when reshape succeeds — updates local lessons array */
   onLessonShapeUpdated?: (lessonId: string, shapedContent: string, shapeId: string) => void;
   initialFocusData?: FocusApplicationData;
   lessonCount?: number; // Used to conditionally show welcome banner for new users only
@@ -308,7 +308,7 @@ const parseLessonSections = (content: string, freeSections: number[]): LessonSec
 
 // Format section content for display (remove header line since we display it separately)
 const formatSectionContent = (content: string): string => {
-  // First normalize legacy content (## headers â†’ **bold:**, 1. â†’ **1.**)
+  // First normalize legacy content (## headers ? **bold:**, 1. ? **1.**)
   const normalized = normalizeLegacyContent(content);
   return normalized
     // Remove section header line in various formats
@@ -461,7 +461,7 @@ export function EnhanceLessonForm({
     hasStyleMetadata,
   } = useSeriesManager();
 
-  // Series style context â€” derived from selectedSeries
+  // Series style context — derived from selectedSeries
   const seriesStyleContext: SeriesStyleMetadata | null = selectedSeries?.style_metadata || null;
 
   // ============================================================================
@@ -499,7 +499,7 @@ export function EnhanceLessonForm({
     const parts = [];
     if (biblePassage.trim()) parts.push(biblePassage.trim());
     if (focusedTopic.trim()) parts.push(`"${focusedTopic.trim()}"`);
-    return parts.join(" â€¢ ") || "";
+    return parts.join(" • ") || "";
   };
 
   const getStep2Summary = (): string => {
@@ -516,7 +516,7 @@ export function EnhanceLessonForm({
       const version = getBibleVersion(bibleVersionId);
       parts.push(version?.abbreviation || "");
     }
-    return parts.filter(Boolean).join(" â€¢ ");
+    return parts.filter(Boolean).join(" • ");
   };
 
   const getStep3Summary = (): string => {
@@ -524,7 +524,7 @@ export function EnhanceLessonForm({
     if (teachingStyle) parts.push(teachingStyle);
     if (learningStyle) parts.push(learningStyle);
     if (lessonLength) parts.push(lessonLength);
-    return parts.filter(Boolean).join(" â€¢ ") || "Optional customizations";
+    return parts.filter(Boolean).join(" • ") || "Optional customizations";
   };
 
   // ============================================================================
@@ -680,7 +680,7 @@ export function EnhanceLessonForm({
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("theology_profile_id, display_name")
+          .select("theology_profile_id, full_name")
           .eq("id", user.id)
           .single();
 
@@ -689,7 +689,7 @@ export function EnhanceLessonForm({
         }
         // Store sender name for Email Lesson feature (Phase 25)
         setSenderDisplayName(
-          profile?.display_name ||
+          profile?.full_name ||
           user.user_metadata?.full_name ||
           user.email ||
           ""
@@ -976,7 +976,7 @@ export function EnhanceLessonForm({
         if (result.data.style_metadata && isConsistentSeriesLesson1 && selectedSeries) {
           await updateStyleMetadata(selectedSeries.id, result.data.style_metadata);
           toast({
-            title: "Series Style Captured âœ¨",
+            title: "Series Style Captured ?",
             description: `Style saved for "${selectedSeries.series_name}". Lessons 2+ will automatically match this approach.`,
           });
           console.log('Style metadata stored in series:', result.data.style_metadata);
@@ -1031,7 +1031,7 @@ export function EnhanceLessonForm({
   };
 
   // ============================================================================
-  // PHASE 27: LESSON SHAPES â€” INIT & HANDLER
+  // PHASE 27: LESSON SHAPES — INIT & HANDLER
   // ============================================================================
 
   // Initialize reshape state when viewing a lesson that was previously reshaped
@@ -1067,7 +1067,7 @@ export function EnhanceLessonForm({
     const ageId = filters?.age_group || ageGroup;
     const ageGroupData = ageId ? getAgeGroupById(ageId) : null;
 
-    // Assemble prompt with full context (prevents drift â€” see concerns #1 and #2)
+    // Assemble prompt with full context (prevents drift — see concerns #1 and #2)
     const reshapePrompt = assembleReshapePrompt(shapeId, {
       theologyProfileName: theologyProfile?.name,
       ageGroupLabel: ageGroupData?.label,
@@ -1154,7 +1154,7 @@ export function EnhanceLessonForm({
   // Track previous step2Complete state to detect completion transition
   const prevStep2CompleteRef = useRef(step2Complete);
 
-  // AUTO-EXPAND STEP 3: Only when Step 2 BECOMES complete (falseâ†’true), not when already complete
+  // AUTO-EXPAND STEP 3: Only when Step 2 BECOMES complete (false?true), not when already complete
   // This allows Edit button to work without auto-advancing away
   useEffect(() => {
     const wasComplete = prevStep2CompleteRef.current;
@@ -1208,7 +1208,7 @@ export function EnhanceLessonForm({
             {!lessonsLoading && lessonCount === 0 && !step1Complete && !step2Complete && (
               <div data-tour="workspace-welcome" className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">ðŸŽ‰</span>
+                  <span className="text-2xl">??</span>
                   <div>
                     <h3 className="font-semibold text-foreground">Welcome! Create your first lesson in 3 simple steps.</h3>
                     <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
@@ -1320,7 +1320,7 @@ export function EnhanceLessonForm({
                             )}
                             {extractedContent && (
                               <div className="text-sm text-primary">
-                                âœ“ File content extracted ({extractedContent.length} characters)
+                                ? File content extracted ({extractedContent.length} characters)
                               </div>
                             )}
                           </div>
@@ -1341,7 +1341,7 @@ export function EnhanceLessonForm({
                             {pastedContent.trim() && (
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-sm text-primary">
-                                  âœ“ {pastedContent.length} characters entered
+                                  ? {pastedContent.length} characters entered
                                 </span>
                                 <Button
                                   type="button"
@@ -1433,7 +1433,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(2)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 2 â†’
+                    Continue to Step 2 ?
                   </Button>
                 </div>
               )}
@@ -1447,7 +1447,7 @@ export function EnhanceLessonForm({
             data-tour="workspace-step2"
             stepNumber={2}
             title={<>Set Your <GoldAccent>Teaching Context</GoldAccent></>}
-            description="Tell us about your class â€” age group, theology profile, and Bible version. We'll tailor the lesson to fit."
+            description="Tell us about your class — age group, theology profile, and Bible version. We'll tailor the lesson to fit."
             isExpanded={expandedStep === 2}
             isComplete={step2Complete}
             isLocked={!step1Complete}
@@ -1530,7 +1530,7 @@ export function EnhanceLessonForm({
                       <SelectItem key={version.id} value={version.id}>
                         {version.name} ({version.abbreviation})
                         {version.copyrightStatus === 'public_domain' && (
-                          <span className="ml-2 text-xs text-primary">â€¢ Direct quotes</span>
+                          <span className="ml-2 text-xs text-primary">• Direct quotes</span>
                         )}
                       </SelectItem>
                     ))}
@@ -1552,7 +1552,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(3)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 3 â†’
+                    Continue to Step 3 ?
                   </Button>
                 </div>
               )}
@@ -1654,7 +1654,7 @@ export function EnhanceLessonForm({
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes</Label>
                 <p className="text-sm text-muted-foreground">
-                  Add specific requests â€” describe your focus or primary thought
+                  Add specific requests — describe your focus or primary thought
                 </p>
                 <Textarea
                   id="notes"
@@ -1744,7 +1744,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">ðŸ“± Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">?? Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
               </p>
             </div>
 
@@ -1756,7 +1756,7 @@ export function EnhanceLessonForm({
             >
               {subLessonsUsed >= subLessonsLimit ? (
                 <span>
-                  Limit reached â€” resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
+                  Limit reached — resets on {resetDate ? resetDate.toLocaleDateString() : "next billing cycle"}
                 </span>
               ) : (
                 <span>
@@ -1843,7 +1843,7 @@ export function EnhanceLessonForm({
                   isPaidUser={isPaidUser}
                   senderName={senderDisplayName}
                 />
-                {/* Phase 27: Reshape Button â€” only in viewing mode with content */}
+                {/* Phase 27: Reshape Button — only in viewing mode with content */}
                 {viewingLesson && currentLesson?.original_text && !isReshaping && (
                   <Button
                     variant="outline"
@@ -1860,7 +1860,7 @@ export function EnhanceLessonForm({
                 {isReshaping && (
                   <Button variant="outline" size="sm" disabled className="gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="hidden sm:inline">Reshapingâ€¦</span>
+                    <span className="hidden sm:inline">Reshaping…</span>
                   </Button>
                 )}
                 <Button
@@ -1926,7 +1926,7 @@ export function EnhanceLessonForm({
                 </div>
                 {lessonViewMode === "free" && (
                   <p className="text-xs text-amber-700 mt-2">
-                    Showing sections 1, 5, and 8 only â€” this is what free accounts receive after complimentary lessons expire.
+                    Showing sections 1, 5, and 8 only — this is what free accounts receive after complimentary lessons expire.
                   </p>
                 )}
               </div>
@@ -1934,7 +1934,7 @@ export function EnhanceLessonForm({
           </CardHeader>
           <CardContent>
             {/* ============================================================ */}
-            {/* PHASE 27: LESSON SHAPES â€” Shape Picker */}
+            {/* PHASE 27: LESSON SHAPES — Shape Picker */}
             {/* Shows when teacher clicks "Reshape" button */}
             {/* ============================================================ */}
             {showReshapeSection && viewingLesson && (
@@ -1944,12 +1944,12 @@ export function EnhanceLessonForm({
                   <span className="text-sm font-semibold text-foreground">Choose a Teaching Shape</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Reshape this lesson into a different pedagogical format. All content is preserved â€” only the structure changes.
+                  Reshape this lesson into a different pedagogical format. All content is preserved — only the structure changes.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select value={selectedShapeForReshape} onValueChange={setSelectedShapeForReshape}>
                     <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select a shapeâ€¦" />
+                      <SelectValue placeholder="Select a shape…" />
                     </SelectTrigger>
                     <SelectContent>
                       {(() => {
@@ -1980,7 +1980,7 @@ export function EnhanceLessonForm({
                     {isReshaping ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Reshapingâ€¦
+                        Reshaping…
                       </>
                     ) : (
                       <>
@@ -1999,7 +1999,7 @@ export function EnhanceLessonForm({
             )}
 
             {/* ============================================================ */}
-            {/* PHASE 27: LESSON SHAPES â€” Original / Shaped Toggle */}
+            {/* PHASE 27: LESSON SHAPES — Original / Shaped Toggle */}
             {/* Shows when shaped content exists (from this session or DB) */}
             {/* ============================================================ */}
             {localShapedContent && localShapeId && viewingLesson && (
@@ -2059,7 +2059,7 @@ export function EnhanceLessonForm({
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">
-                    Student Teaser â€” Premium Feature
+                    Student Teaser — Premium Feature
                   </span>
                 </div>
               </div>
@@ -2092,7 +2092,7 @@ export function EnhanceLessonForm({
                       .replace(/^# (.*?)$/gm, '<strong>$1</strong>')
                       // Bold
                       .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      // Match original: \n\n â†’ <br><br>, \n â†’ <br>
+                      // Match original: \n\n ? <br><br>, \n ? <br>
                       .replace(/\n\n/g, "<br><br>")
                       .replace(/\n/g, "<br>");
                     
@@ -2111,7 +2111,7 @@ export function EnhanceLessonForm({
                   });
                 })()
               ) : (
-              /* Original content â€” existing section-by-section rendering */
+              /* Original content — existing section-by-section rendering */
               (() => {
                 const sections = parseLessonSections(currentLesson.original_text || "", FREE_SECTIONS);
                 
@@ -2151,7 +2151,7 @@ export function EnhanceLessonForm({
                           {section.title}
                           {section.isFreeTier && lessonViewMode === "free" && !isPaidUser && (
                             <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              âœ“ Included in Free
+                              ? Included in Free
                             </span>
                           )}
                         </h3>
@@ -2186,7 +2186,7 @@ export function EnhanceLessonForm({
                           onClick={() => setLessonViewMode("full")}
                           className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
                         >
-                          â†’ See what the full lesson includes
+                          ? See what the full lesson includes
                         </button>
                       </div>
                     );
@@ -2204,13 +2204,13 @@ export function EnhanceLessonForm({
                     This is what free accounts receive after your {PRICING_DISPLAY.free.complimentaryFullLessons} complimentary lessons.
                   </h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You'll still get the overview, teaching script, and student handoutâ€”but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
+                    You'll still get the overview, teaching script, and student handout—but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
                   </p>
                   <Button 
                     type="button"
                     onClick={() => navigate(ROUTES.PRICING)}
                     className="bg-secondary hover:bg-secondary text-white">
-                    {PRICING_DISPLAY.personal.upgradeButton} â€” {PRICING_DISPLAY.personal.ctaFull}
+                    {PRICING_DISPLAY.personal.upgradeButton} — {PRICING_DISPLAY.personal.ctaFull}
                   </Button>
                 </div>
               </div>
