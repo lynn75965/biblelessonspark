@@ -3,13 +3,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
-import { AGE_GROUPS, getDefaultAgeGroupLabel, getDefaultAgeGroup } from "@/constants/ageGroups";
+import { BIBLE_VERSIONS, getDefaultBibleVersion } from "@/constants/bibleVersions";
+import { THEOLOGY_PROFILES, getTheologyProfile } from "@/constants/theologyProfiles";
+
+// =============================================================================
+// LANGUAGE OPTIONS — SSOT for User Profile language selector
+// =============================================================================
+const LANGUAGE_OPTIONS = [
+  { value: "en", label: "English (US)" },
+  { value: "es", label: "Español" },
+  { value: "fr", label: "Français" },
+] as const;
+
+type Language = typeof LANGUAGE_OPTIONS[number]["value"];
 
 interface UserProfileModalProps {
   open: boolean;
@@ -22,8 +35,18 @@ export function UserProfileModal({
   onOpenChange,
   onProfileUpdated
 }: UserProfileModalProps) {
+  // Editable fields
   const [fullName, setFullName] = useState("");
-  const [preferredAgeGroup, setPreferredAgeGroup] = useState(getDefaultAgeGroup());
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>("en");
+  const [defaultBibleVersion, setDefaultBibleVersion] = useState(getDefaultBibleVersion().id);
+  const [theologyProfileId, setTheologyProfileId] = useState("baptist-core-beliefs");
+
+  // Read-only fields
+  const [memberId, setMemberId] = useState("");
+  const [role, setRole] = useState("");
+  const [orgName, setOrgName] = useState("");
+
+  // UI state
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const { toast } = useToast();
@@ -37,23 +60,51 @@ export function UserProfileModal({
 
   const loadProfile = async () => {
     if (!user) return;
-    
+
     setInitialLoading(true);
     try {
+      // Load profile with org info
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, preferred_age_group')
+        .select('full_name, preferred_language, default_bible_version, theology_profile_id, organization_role, organization_id')
         .eq('id', user.id)
         .single();
 
       if (error) {
         console.error('Error loading profile:', error);
         setFullName(user.user_metadata?.full_name || user.email?.split('@')[0] || '');
-        setPreferredAgeGroup(getDefaultAgeGroup());
+        setMemberId(user.id?.substring(0, 8) || '');
+        return;
+      }
+
+      // Set editable fields
+      setFullName(profile?.full_name || '');
+      setPreferredLanguage((profile?.preferred_language as Language) || 'en');
+      setDefaultBibleVersion(profile?.default_bible_version || getDefaultBibleVersion().id);
+      setTheologyProfileId(profile?.theology_profile_id || 'baptist-core-beliefs');
+
+      // Set read-only fields
+      setMemberId(user.id?.substring(0, 8) || '');
+
+      // Format role display
+      const roleMap: Record<string, string> = {
+        'platform_admin': 'Administrator',
+        'org_leader': 'Organization Manager',
+        'org_member': 'Organization Member',
+        'individual': 'Individual',
+      };
+      setRole(roleMap[profile?.organization_role || ''] || 'Individual');
+
+      // Fetch org name if user belongs to one
+      if (profile?.organization_id) {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', profile.organization_id)
+          .single();
+        setOrgName(org?.name || '');
       } else {
-        setFullName(profile?.full_name || '');
-        const ageGroup = profile?.preferred_age_group as string | undefined;
-        setPreferredAgeGroup(ageGroup || getDefaultAgeGroup());
+        setOrgName('');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -65,39 +116,42 @@ export function UserProfileModal({
 
   const handleSave = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const sanitizedName = sanitizeText(fullName.trim());
-      
+
       if (!sanitizedName) {
         toast({
           title: "Error",
           description: "Name cannot be empty.",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
       const { error } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           full_name: sanitizedName,
-          preferred_age_group: preferredAgeGroup
+          preferred_language: preferredLanguage,
+          default_bible_version: defaultBibleVersion,
+          theology_profile_id: theologyProfileId,
         })
         .eq('id', user.id);
 
       if (error) {
         throw error;
       }
-      
+
       onProfileUpdated();
-      
+
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
       });
-      
+
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -113,33 +167,73 @@ export function UserProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Update Profile</DialogTitle>
+          <DialogTitle>User Profile</DialogTitle>
           <DialogDescription>
-            Update your personal information and preferences.
+            Your identity and personal defaults. These pre-populate throughout BibleLessonSpark.
           </DialogDescription>
         </DialogHeader>
-        
+
         {initialLoading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin" />
           </div>
         ) : (
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+            {/* ── READ-ONLY IDENTITY FIELDS ─────────────────────── */}
+
+            {/* Email */}
+            <div className="grid gap-1">
+              <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={user?.email || ''}
                 disabled
-                className="bg-muted"
+                className="bg-muted h-9 text-sm"
               />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
             </div>
-            
-            <div className="grid gap-2">
+
+            {/* Member ID & Role — side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1">
+                <Label className="text-xs text-muted-foreground">Member ID</Label>
+                <Input
+                  value={memberId}
+                  disabled
+                  className="bg-muted h-9 text-sm font-mono"
+                />
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs text-muted-foreground">Role</Label>
+                <Input
+                  value={role}
+                  disabled
+                  className="bg-muted h-9 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Organization */}
+            {orgName && (
+              <div className="grid gap-1">
+                <Label className="text-xs text-muted-foreground">Organization</Label>
+                <Input
+                  value={orgName}
+                  disabled
+                  className="bg-muted h-9 text-sm"
+                />
+              </div>
+            )}
+
+            {/* ── DIVIDER ───────────────────────────────────────── */}
+            <div className="border-t my-1" />
+
+            {/* ── EDITABLE FIELDS ───────────────────────────────── */}
+
+            {/* Full Name */}
+            <div className="grid gap-1">
               <Label htmlFor="fullName">Full Name</Label>
               <Input
                 id="fullName"
@@ -151,40 +245,83 @@ export function UserProfileModal({
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="preferredAgeGroup">Preferred Age Group</Label>
+            {/* Language */}
+            <div className="grid gap-1">
+              <Label>Language</Label>
               <Select
-                value={preferredAgeGroup}
-                onValueChange={(value) => setPreferredAgeGroup(value as typeof preferredAgeGroup)}
+                value={preferredLanguage}
+                onValueChange={(value) => setPreferredLanguage(value as Language)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select age group" />
+                  <SelectValue placeholder="Select language" />
                 </SelectTrigger>
                 <SelectContent>
-                  {AGE_GROUPS.map(ageGroup => (
-                    <SelectItem key={ageGroup.id} value={ageGroup.label}>
-                      <div className="flex flex-col">
-                        <span>{ageGroup.label}</span>
-                        <span className="text-xs text-muted-foreground">{ageGroup.description}</span>
-                      </div>
+                  {LANGUAGE_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Default Bible Version */}
+            <div className="grid gap-1">
+              <Label>Default Bible Version</Label>
+              <Select
+                value={defaultBibleVersion}
+                onValueChange={(value) => setDefaultBibleVersion(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select Bible version" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BIBLE_VERSIONS.map(version => (
+                    <SelectItem key={version.id} value={version.id}>
+                      {version.name} ({version.abbreviation})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Baptist Theology Profile */}
+            <div className="grid gap-1">
+              <Label>Baptist Theology Profile</Label>
+              <Select
+                value={theologyProfileId}
+                onValueChange={(value) => setTheologyProfileId(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select theology profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  {THEOLOGY_PROFILES.map(profile => (
+                    <SelectItem key={profile.id} value={profile.id}>
+                      {profile.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {theologyProfileId && (
+                <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
+                  {getTheologyProfile(theologyProfileId)?.summary}
+                </p>
+              )}
+            </div>
           </div>
         )}
-        
+
         <div className="flex justify-end gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading || initialLoading}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={loading || initialLoading}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -195,5 +332,3 @@ export function UserProfileModal({
     </Dialog>
   );
 }
-
-

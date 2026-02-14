@@ -12,13 +12,15 @@ import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
-import { TeamInvitationBanner } from "@/components/dashboard/TeamInvitationBanner";
+import { WorkspaceSettingsPanel } from "@/components/workspace/WorkspaceSettingsPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BookOpen,
   Sparkles,
+  Settings,
   MessageSquare,
   UserCircle,
   HelpCircle,
@@ -29,7 +31,6 @@ import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useLessons } from "@/hooks/useLessons";
-import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
@@ -42,11 +43,7 @@ import { useHelpVideo } from "@/hooks/useHelpVideo";
 import { VideoModal } from "@/components/help/VideoModal";
 import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
 
-
 // Public Beta Prompt Banner added (January 1, 2026)
-// Shepherd Prompt removed from Dashboard (February 2026) — relocated to Header nav item "Lead a Team"
-// Phase 27: TeachingTeamCard relocated to /teaching-team page (February 2026)
-// TeamInvitationBanner remains on Dashboard for urgent pending invitations
 
 export default function Dashboard() {
   // STATE DECLARATIONS
@@ -64,12 +61,9 @@ export default function Dashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { settings } = useSystemSettings();
-  const { lessons, loading: lessonsLoading, updateLessonShape } = useLessons();
+  const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
-
-  // Phase 27: Teaching Team — only need pending invitation for Dashboard banner
-  const { pendingInvitation, acceptInvitation, declineInvitation } = useTeachingTeam();
 
   // Help Video Hook - respects BRANDING.helpVideos.enabled
   const { 
@@ -124,6 +118,11 @@ export default function Dashboard() {
   useEffect(() => {
     loadUserProfile();
   }, [user]);
+
+  const stats = {
+    lessonsCreated: lessons.length,
+    aiGenerations: lessons.length * 3
+  };
 
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
 
@@ -209,7 +208,7 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold">
-                  Welcome, <span className="gradient-text">{userName}!</span>
+                  Welcome back, <span className="gradient-text">{userName}!</span>
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground">
                   Your Personal Bible Study Workspace
@@ -226,15 +225,6 @@ export default function Dashboard() {
           onEnrollmentComplete={handleBetaEnrollmentComplete}
         />
 
-        {/* Phase 27: Teaching Team Invitation Banner — shows when user has a pending invite */}
-        {pendingInvitation && (
-          <TeamInvitationBanner
-            invitation={pendingInvitation}
-            onAccept={acceptInvitation}
-            onDecline={declineInvitation}
-          />
-        )}
-
         {hasActiveFocus && focusData.activeFocus && focusStatus && (
           <ActiveFocusBanner
             focus={focusData.activeFocus}
@@ -247,6 +237,35 @@ export default function Dashboard() {
           />
         )}
 
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <Card className="bg-gradient-card">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-primary shrink-0">
+                  <BookOpen className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{stats.lessonsCreated}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">My Lessons</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-gradient-card">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-gradient-secondary shrink-0">
+                  <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-xl lg:text-2xl font-bold truncate">{stats.aiGenerations}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground truncate">Enhancements</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             <TabsTrigger 
@@ -255,7 +274,7 @@ export default function Dashboard() {
               className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap"
             >
               <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Build Lesson</span>
+              <span className="hidden sm:inline">Enhance Lesson</span>
             </TabsTrigger>
             <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
@@ -265,12 +284,16 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Devotional Library</span>
             </TabsTrigger>
+            <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <Settings className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Settings</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
             {showHelpBanner && (
-              <div className="mb-6 bg-blue-50 border border-accent/50 rounded-lg p-4">
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 shrink-0">
@@ -285,7 +308,7 @@ export default function Dashboard() {
                     <Button
                       onClick={triggerHelp}
                       size="sm"
-                      className="bg-accent hover:bg-accent text-white"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
                       <PlayCircle className="h-4 w-4 mr-1" />
                       Watch Video
@@ -315,7 +338,7 @@ export default function Dashboard() {
                 });
               }}
               onExport={() => {
-                  if (FEEDBACK_TRIGGER.autoPopupOnExport) { setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs); }
+                setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
               }}
               organizationId={userProfile?.organization_id}
               userPreferredAgeGroup={userProfile?.preferred_age_group || "youngadult"}
@@ -325,10 +348,7 @@ export default function Dashboard() {
                 setSelectedLesson(null);
                 setActiveTab("library");
               }}
-              onLessonShapeUpdated={updateLessonShape}
               initialFocusData={focusDataToApply || undefined}
-              lessonCount={lessons.length}
-              lessonsLoading={lessonsLoading}
             />
           </TabsContent>
 
@@ -342,6 +362,30 @@ export default function Dashboard() {
           <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
           </TabsContent>
+
+          <TabsContent value="settings" className="mt-6 relative z-0">
+            {/* User Profile Card — opens expanded Profile modal */}
+            <Card className="bg-gradient-card mb-6">
+              <CardHeader>
+                <CardTitle>User Profile</CardTitle>
+                <CardDescription>Your identity and personal defaults — Bible version, theology profile, language</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Workspace</span>
+                    <Badge variant="outline">Personal</Badge>
+                  </div>
+                  <Button variant="outline" className="w-full" onClick={() => setShowProfileModal(true)}>
+                    Update Profile
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Settings — lesson defaults, teaching context, export, notifications */}
+            <WorkspaceSettingsPanel />
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -352,7 +396,7 @@ export default function Dashboard() {
         <Button
           onClick={triggerHelp}
           size="icon"
-          className="fixed bottom-4 left-4 h-12 w-12 rounded-full bg-accent hover:bg-accent text-white shadow-lg z-40"
+          className="fixed bottom-4 left-4 h-12 w-12 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg z-40"
           title="How to Create a Lesson"
         >
           <HelpCircle className="h-6 w-6" />
@@ -393,3 +437,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+
+

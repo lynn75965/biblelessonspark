@@ -1,42 +1,36 @@
-﻿// ============================================================================
+// ============================================================================
 // WorkspaceSettingsPanel.tsx
 // ============================================================================
-// Comprehensive user settings panel for workspace
-// Sections: Lesson Defaults, Teaching Context, Language, Export, Notifications, Account
+// Lesson and teaching settings panel for workspace Settings tab.
+//
+// PROFILE FIELDS (Bible Version, Theology Profile, Language, Name, Email)
+// are in UserProfileModal.tsx — NOT here.
+//
+// This panel covers: Lesson Defaults, Teaching Context, Export, Notifications
 //
 // SSOT CONSISTENCY: Dropdowns match EnhanceLessonForm.tsx exactly
-// - Age Group: label in dropdown, description after selection
-// - Theology Profile: name in dropdown, summary after selection  
-// - Bible Version: name (abbrev) + usageHint, description after selection
 // ============================================================================
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  BookOpen, 
-  Clock, 
-  Download, 
-  Bell, 
-  User, 
+import {
+  BookOpen,
+  Clock,
+  Download,
+  Bell,
   Users,
   Save,
   Loader2,
   Check,
-  Globe
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { AGE_GROUPS, getAgeGroupById } from '@/constants/ageGroups';
-import { getBibleVersionOptions, getBibleVersion } from '@/constants/bibleVersions';
-import { getTheologyProfileOptions, getTheologyProfile } from '@/constants/theologyProfiles';
-import LanguageSelector from '@/components/settings/LanguageSelector';
 
 // ============================================================================
 // SSOT: Settings Configuration
@@ -48,26 +42,26 @@ const SETTINGS_CONFIG = {
     { value: '60', label: '60 minutes (1 hour)' },
     { value: '90', label: '90 minutes (1.5 hours)' },
   ],
-  
+
   exportFormats: [
     { value: 'pdf', label: 'PDF Document' },
     { value: 'docx', label: 'Word Document (.docx)' },
     { value: 'print', label: 'Print-Ready' },
   ],
-  
+
   teachingEnvironments: [
     { value: 'classroom', label: 'Traditional Classroom' },
     { value: 'home', label: 'Home/Small Group' },
     { value: 'online', label: 'Online/Virtual' },
     { value: 'hybrid', label: 'Hybrid (In-person + Online)' },
   ],
-  
+
   classSizes: [
     { value: 'small', label: 'Small (1-5 students)' },
     { value: 'medium', label: 'Medium (6-15 students)' },
     { value: 'large', label: 'Large (16+ students)' },
   ],
-  
+
   ui: {
     saveButton: 'Save Changes',
     savingButton: 'Saving...',
@@ -80,12 +74,7 @@ const SETTINGS_CONFIG = {
 // Types
 // ============================================================================
 interface UserSettings {
-  full_name: string;
-  email: string;
   preferred_age_group: string;
-  preferred_language: string;
-  theology_profile_id: string;
-  default_bible_version: string;
   default_lesson_duration: number;
   default_export_format: string;
   include_student_handouts: boolean;
@@ -95,12 +84,7 @@ interface UserSettings {
 }
 
 const DEFAULT_SETTINGS: UserSettings = {
-  full_name: '',
-  email: '',
   preferred_age_group: '',
-  preferred_language: 'en',
-  theology_profile_id: 'baptist-core-beliefs',
-  default_bible_version: 'nasb',
   default_lesson_duration: 45,
   default_export_format: 'pdf',
   include_student_handouts: true,
@@ -118,7 +102,7 @@ export function WorkspaceSettingsPanel() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  
+
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -144,18 +128,13 @@ export function WorkspaceSettingsPanel() {
   // --------------------------------------------------------------------------
   const loadSettings = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select(`
-          full_name,
-          email,
           preferred_age_group,
-          preferred_language,
-          theology_profile_id,
-          default_bible_version,
           default_lesson_duration,
           default_export_format,
           include_student_handouts,
@@ -169,12 +148,7 @@ export function WorkspaceSettingsPanel() {
       if (error) throw error;
 
       const loadedSettings: UserSettings = {
-        full_name: data?.full_name || user.user_metadata?.full_name || '',
-        email: data?.email || user.email || '',
         preferred_age_group: data?.preferred_age_group || DEFAULT_SETTINGS.preferred_age_group,
-        preferred_language: data?.preferred_language || DEFAULT_SETTINGS.preferred_language,
-        theology_profile_id: data?.theology_profile_id || DEFAULT_SETTINGS.theology_profile_id,
-        default_bible_version: data?.default_bible_version || DEFAULT_SETTINGS.default_bible_version,
         default_lesson_duration: data?.default_lesson_duration || DEFAULT_SETTINGS.default_lesson_duration,
         default_export_format: data?.default_export_format || DEFAULT_SETTINGS.default_export_format,
         include_student_handouts: data?.include_student_handouts ?? DEFAULT_SETTINGS.include_student_handouts,
@@ -201,52 +175,12 @@ export function WorkspaceSettingsPanel() {
   // Save settings to database
   // --------------------------------------------------------------------------
   const handleSave = async () => {
-    if (!user) {
-      console.error('SAVE BLOCKED: No user');
-      return;
-    }
-    
+    if (!user) return;
+
     setSaving(true);
-    console.log('========== SETTINGS SAVE START ==========');
-    console.log('User ID:', user.id);
-    console.log('User email:', user.email);
-    
     try {
-      // STEP 1: Test with ONLY full_name to verify RLS works
-      console.log('STEP 1: Testing basic update with full_name only...');
-      
-      const testPayload = {
-        full_name: settings.full_name.trim(),
-      };
-      console.log('Test payload:', testPayload);
-      
-      const { data: testData, error: testError } = await supabase
-        .from('profiles')
-        .update(testPayload)
-        .eq('id', user.id)
-        .select();
-      
-      if (testError) {
-        console.error('STEP 1 FAILED - Basic update error:', {
-          message: testError.message,
-          details: testError.details,
-          hint: testError.hint,
-          code: testError.code,
-          full: testError
-        });
-        throw new Error(`Basic update failed: ${testError.message}`);
-      }
-      
-      console.log('STEP 1 SUCCESS - Basic update worked:', testData);
-      
-      // STEP 2: Now try the full update
-      console.log('STEP 2: Attempting full settings update...');
-      
-      const fullPayload = {
-        full_name: settings.full_name.trim(),
+      const payload = {
         preferred_age_group: settings.preferred_age_group || null,
-        theology_profile_id: settings.theology_profile_id || null,
-        default_bible_version: settings.default_bible_version,
         default_lesson_duration: Number(settings.default_lesson_duration),
         default_export_format: settings.default_export_format,
         include_student_handouts: Boolean(settings.include_student_handouts),
@@ -254,40 +188,23 @@ export function WorkspaceSettingsPanel() {
         teaching_environment: settings.teaching_environment,
         typical_class_size: settings.typical_class_size,
       };
-      
-      console.log('Full payload:', JSON.stringify(fullPayload, null, 2));
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(fullPayload)
-        .eq('id', user.id)
-        .select();
 
-      if (error) {
-        console.error('STEP 2 FAILED - Full update error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-          full: error
-        });
-        throw new Error(`Full update failed: ${error.message}`);
-      }
-      
-      console.log('STEP 2 SUCCESS - Full update worked:', data);
-      console.log('========== SETTINGS SAVE COMPLETE ==========');
+      const { error } = await supabase
+        .from('profiles')
+        .update(payload)
+        .eq('id', user.id);
+
+      if (error) throw error;
 
       setOriginalSettings(settings);
       setHasChanges(false);
-      
+
       toast({
         title: 'Settings Saved',
         description: SETTINGS_CONFIG.ui.savedMessage,
       });
     } catch (error: any) {
-      console.error('========== SETTINGS SAVE FAILED ==========');
-      console.error('Error object:', error);
-      console.error('Error message:', error?.message);
+      console.error('Error saving settings:', error);
       toast({
         title: 'Error',
         description: error?.message || SETTINGS_CONFIG.ui.errorMessage,
@@ -372,65 +289,9 @@ export function WorkspaceSettingsPanel() {
                 ))}
               </SelectContent>
             </Select>
-            {/* Description shown after selection - matches EnhanceLessonForm */}
             {settings.preferred_age_group && (
               <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
                 {getAgeGroupById(settings.preferred_age_group)?.description}
-              </p>
-            )}
-          </div>
-
-          {/* Theology Profile - MATCHES EnhanceLessonForm exactly */}
-          <div className="space-y-2">
-            <Label>Theological Lens</Label>
-            <Select
-              value={settings.theology_profile_id}
-              onValueChange={(value) => updateSetting('theology_profile_id', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select theological tradition" />
-              </SelectTrigger>
-              <SelectContent>
-                {getTheologyProfileOptions().map((profile) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {profile.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Summary shown after selection - matches EnhanceLessonForm */}
-            {settings.theology_profile_id && (
-              <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
-                {getTheologyProfile(settings.theology_profile_id)?.summary}
-              </p>
-            )}
-          </div>
-
-          {/* Bible Version - MATCHES EnhanceLessonForm exactly */}
-          <div className="space-y-2">
-            <Label>Default Bible Version</Label>
-            <Select
-              value={settings.default_bible_version}
-              onValueChange={(value) => updateSetting('default_bible_version', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select Bible version" />
-              </SelectTrigger>
-              <SelectContent>
-                {getBibleVersionOptions().map((version) => (
-                  <SelectItem key={version.id} value={version.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{version.name} ({version.abbreviation})</span>
-                      <span className="text-xs text-primary">{version.usageHint}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* Description shown after selection - matches EnhanceLessonForm */}
-            {settings.default_bible_version && (
-              <p className="text-xs text-muted-foreground leading-relaxed mt-1 p-2 bg-muted/50 rounded-md">
-                {getBibleVersion(settings.default_bible_version)?.description}
               </p>
             )}
           </div>
@@ -523,24 +384,6 @@ export function WorkspaceSettingsPanel() {
       </Card>
 
       {/* ================================================================
-          LANGUAGE PREFERENCES
-          ================================================================ */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5 text-primary" />
-            Language Preferences
-          </CardTitle>
-          <CardDescription>
-            Choose your preferred language for lesson plans and content
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LanguageSelector />
-        </CardContent>
-      </Card>
-
-      {/* ================================================================
           EXPORT PREFERENCES
           ================================================================ */}
       <Card className="bg-gradient-card">
@@ -600,7 +443,7 @@ export function WorkspaceSettingsPanel() {
             Notifications
           </CardTitle>
           <CardDescription>
-            Control how and when you receive updates from LessonSpark
+            Control how and when you receive updates from BibleLessonSpark
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -621,59 +464,11 @@ export function WorkspaceSettingsPanel() {
       </Card>
 
       {/* ================================================================
-          ACCOUNT
-          ================================================================ */}
-      <Card className="bg-gradient-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Account
-          </CardTitle>
-          <CardDescription>
-            Manage your account information
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Full Name */}
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input
-              id="fullName"
-              value={settings.full_name}
-              onChange={(e) => updateSetting('full_name', e.target.value)}
-              placeholder="Enter your full name"
-              maxLength={100}
-            />
-          </div>
-
-          {/* Email (Read-only) */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              value={settings.email}
-              disabled
-              className="bg-muted"
-            />
-            <p className="text-xs text-muted-foreground">
-              Email cannot be changed. Contact support if you need to update it.
-            </p>
-          </div>
-
-          {/* Workspace Badge */}
-          <div className="flex items-center justify-between pt-2">
-            <span className="text-sm">Workspace</span>
-            <Badge variant="outline">Personal</Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ================================================================
           BOTTOM SAVE BUTTON
           ================================================================ */}
       <div className="flex justify-end pt-4">
-        <Button 
-          onClick={handleSave} 
+        <Button
+          onClick={handleSave}
           disabled={saving || !hasChanges}
           size="lg"
         >
