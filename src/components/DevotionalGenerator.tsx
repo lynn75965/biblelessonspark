@@ -45,6 +45,7 @@ import {
 } from "@/constants/devotionalConfig";
 import { UI_SYMBOLS } from "@/constants/uiSymbols";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
+import { ROUTES } from "@/constants/routes";
 
 // ============================================================================
 // INTERFACES
@@ -360,7 +361,7 @@ export function DevotionalGenerator() {
 
   const handleBack = () => {
     if (context === "lessonspark" && lessonId) {
-      navigate("/workspace");
+      navigate(ROUTES.DASHBOARD);
     } else {
       navigate(-1);
     }
@@ -624,3 +625,4 @@ export function DevotionalGenerator() {
     </div>
   );
 }
+

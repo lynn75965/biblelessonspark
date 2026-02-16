@@ -1,10 +1,11 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Users, MessageSquare, TrendingUp, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
+import { ROUTES } from "@/constants/routes";
 
 interface BetaTester {
   id: string;
@@ -50,7 +51,7 @@ const AdminBetaMetrics = () => {
           description: "This page is only accessible to administrators.",
           variant: "destructive",
         });
-        navigate("/dashboard");
+        navigate(ROUTES.DASHBOARD);
         return;
       }
 
@@ -58,7 +59,7 @@ const AdminBetaMetrics = () => {
       await loadData();
     } catch (error) {
       console.error("Authorization error:", error);
-      navigate("/dashboard");
+      navigate(ROUTES.DASHBOARD);
     }
   };
 
@@ -285,5 +286,6 @@ const AdminBetaMetrics = () => {
 };
 
 export default AdminBetaMetrics;
+
 
 

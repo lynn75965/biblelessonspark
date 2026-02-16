@@ -35,7 +35,7 @@ export default function PricingPage() {
   const handleSelectPlan = async (tier: SubscriptionTier) => {
     if (tier === 'free') {
       if (user) {
-        navigate('/dashboard');
+        navigate(ROUTES.DASHBOARD);
       } else {
         navigate('/auth');
       }
@@ -48,7 +48,7 @@ export default function PricingPage() {
     }
 
     if (currentTier === tier) {
-      navigate('/dashboard');
+      navigate(ROUTES.DASHBOARD);
       return;
     }
 
@@ -61,7 +61,7 @@ export default function PricingPage() {
       const url = await startCheckout({
         priceId,
         billingInterval,
-        successUrl: `${window.location.origin}/dashboard?payment=success`,
+        successUrl: `${window.location.origin}${ROUTES.DASHBOARD}?payment=success`,
         cancelUrl: `${window.location.origin}/pricing?payment=canceled`,
       });
 
@@ -340,3 +340,4 @@ export default function PricingPage() {
     </div>
   );
 }
+

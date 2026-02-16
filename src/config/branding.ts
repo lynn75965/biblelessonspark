@@ -29,6 +29,7 @@
 // ============================================================================
 
 import brandValues from './brand-values.json';
+import { ROUTES } from "@/constants/routes";
 
 // ============================================================================
 // COLOR UTILITY FUNCTIONS (HEX to HSL conversion for Tailwind)
@@ -695,7 +696,7 @@ With BibleLessonSpark, you can:
 
 Ready to create your first lesson?`,
         buttonText: "Create Your First Lesson",
-        buttonUrl: "{baseUrl}/dashboard",
+        buttonUrl: `{baseUrl}${ROUTES.DASHBOARD}`,
       },
       orgInvitation: {
         heading: "You've Been Invited!",

@@ -27,6 +27,7 @@ import { TenantBrandingPanel } from "@/components/admin/TenantBrandingPanel";
 import { ExportSettingsPanel } from "@/components/admin/ExportSettingsPanel";
 import { TransferRequestQueue } from "@/components/admin/TransferRequestQueue";
 import { BRANDING } from "@/config/branding";
+import { ROUTES } from "@/constants/routes";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -90,7 +91,7 @@ export default function Admin() {
             description: "Could not verify admin access.",
             variant: "destructive",
           });
-          navigate('/dashboard');
+          navigate(ROUTES.DASHBOARD);
           return;
         }
 
@@ -107,7 +108,7 @@ export default function Admin() {
             description: "You don't have permission to access the admin panel.",
             variant: "destructive",
           });
-          navigate('/dashboard');
+          navigate(ROUTES.DASHBOARD);
           return;
         }
 
@@ -165,7 +166,7 @@ export default function Admin() {
 
       } catch (error) {
         console.error('Error checking admin access:', error);
-        navigate('/dashboard');
+        navigate(ROUTES.DASHBOARD);
       } finally {
         setLoading(false);
       }
@@ -432,3 +433,4 @@ export default function Admin() {
     </div>
   );
 }
+

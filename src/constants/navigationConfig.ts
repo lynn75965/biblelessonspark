@@ -29,7 +29,7 @@ import { ROUTES as APP_ROUTES } from "./routes";
 const NAV_ROUTES = {
   admin: APP_ROUTES.ADMIN,
   org: APP_ROUTES.ORG,
-  workspace: APP_ROUTES.WORKSPACE,
+  workspace: APP_ROUTES.DASHBOARD,
   parables: '/parables',
   pricing: '/pricing',
   account: '/account',
@@ -111,7 +111,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   settings: {
     id: 'settings',
     label: 'User Profile',
-    route: '/workspace?tab=settings',
+    route: `${APP_ROUTES.DASHBOARD}?tab=settings`,
     icon: Settings,
     description: 'Update your profile defaults',
     dividerAfter: true,
@@ -188,3 +188,5 @@ export const canAccessNavItem = (role: Role, itemId: string): boolean => {
   const allowedItems = MENU_BY_ROLE[role] || [];
   return allowedItems.includes(itemId);
 };
+
+

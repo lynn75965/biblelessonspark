@@ -5,7 +5,7 @@ import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { BRANDING } from "@/config/branding";
 import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
-import { WORKSPACE_QUERY_PARAMS, WORKSPACE_TABS } from "@/constants/routes";
+import { DASHBOARD_QUERY_PARAMS, DASHBOARD_TAB_VALUES } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -78,10 +78,10 @@ export default function Dashboard() {
 
   // Handle URL query parameters (SSOT: routes.ts)
   useEffect(() => {
-    const tabParam = searchParams.get(WORKSPACE_QUERY_PARAMS.TAB);
-    const viewLessonId = searchParams.get(WORKSPACE_QUERY_PARAMS.VIEW_LESSON);
+    const tabParam = searchParams.get(DASHBOARD_QUERY_PARAMS.TAB);
+    const viewLessonId = searchParams.get(DASHBOARD_QUERY_PARAMS.VIEW_LESSON);
     
-    const validTabs = Object.values(WORKSPACE_TABS);
+    const validTabs = Object.values(DASHBOARD_TAB_VALUES);
     if (tabParam && validTabs.includes(tabParam as any)) {
       setActiveTab(tabParam);
     }
@@ -408,6 +408,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 

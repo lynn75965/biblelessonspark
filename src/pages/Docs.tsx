@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import {
   Shield
 } from "lucide-react";
 import { SITE } from "@/config/site";
+import { ROUTES } from "@/constants/routes";
 import {
   Accordion,
   AccordionContent,
@@ -509,7 +510,7 @@ const Docs = () => {
               </a>
             </Button>
             <Button asChild size="lg">
-              <Link to="/dashboard">Go to Dashboard</Link>
+              <Link to={ROUTES.DASHBOARD}>Go to Dashboard</Link>
             </Button>
           </div>
         </section>
@@ -523,4 +524,5 @@ const Docs = () => {
 };
 
 export default Docs;
+
 

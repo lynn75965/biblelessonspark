@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import {
 import { SITE } from "@/config/site";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { isBetaMode } from "@/constants/systemSettings";
+import { ROUTES } from "@/constants/routes";
 
 const Community = () => {
   const { settings } = useSystemSettings();
@@ -269,7 +270,7 @@ const Community = () => {
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <Link to="/dashboard">Current User? Go to Dashboard</Link>
+                  <Link to={ROUTES.DASHBOARD}>Current User? Go to Dashboard</Link>
                 </Button>
               </div>
             </>
@@ -288,7 +289,7 @@ const Community = () => {
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <Link to="/dashboard">Current User? Go to Dashboard</Link>
+                  <Link to={ROUTES.DASHBOARD}>Current User? Go to Dashboard</Link>
                 </Button>
               </div>
             </>
@@ -320,5 +321,6 @@ const Community = () => {
 };
 
 export default Community;
+
 
 

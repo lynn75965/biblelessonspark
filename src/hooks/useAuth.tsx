@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { logAuthEvent, logSecurityEvent } from '@/lib/auditLogger';
+import { ROUTES } from "@/constants/routes";
 
 interface AuthContextType {
   user: User | null;
@@ -132,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}${ROUTES.DASHBOARD}`,
           data: {
             full_name: fullName,
           },

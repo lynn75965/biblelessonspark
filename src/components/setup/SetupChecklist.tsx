@@ -23,6 +23,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSetupProgress, StepKey } from "@/hooks/useSetupProgress";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ROUTES } from "@/constants/routes";
 
 interface SetupStep {
   id: StepKey;
@@ -145,7 +146,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       title: 'Generate your first lesson',
       description: 'Try creating an enhanced Bible study lesson',
       icon: <BookOpen className="h-6 w-6" />,
-      action: () => navigate('/dashboard'),
+      action: () => navigate(ROUTES.DASHBOARD),
       actionLabel: 'Create Lesson',
       showAction: progress['generate_lesson'] !== 'complete',
     },
@@ -155,7 +156,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       description: 'Familiarize yourself with your workspace',
       icon: <LayoutDashboard className="h-6 w-6" />,
       action: async () => {
-        navigate('/dashboard');
+        navigate(ROUTES.DASHBOARD);
         await updateStep('review_dashboard', 'complete');
       },
       actionLabel: 'View Dashboard',
@@ -351,7 +352,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                 You're all set to start creating amazing Baptist Bible study lessons!
               </p>
               <Button 
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate(ROUTES.DASHBOARD)}
                 className="bg-gradient-primary"
               >
                 Go to Dashboard
@@ -378,4 +379,5 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
     </div>
   );
 }
+
 

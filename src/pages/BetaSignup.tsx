@@ -18,6 +18,7 @@ import { AGE_GROUPS } from "@/constants/ageGroups";
 import { THEOLOGY_PROFILE_OPTIONS } from "@/constants/theologyProfiles";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ROUTES } from "@/constants/routes";
 
 const BetaSignup = () => {
   const { toast } = useToast();
@@ -82,7 +83,7 @@ const BetaSignup = () => {
             title: "Already Registered",
             description: "You're already part of the beta program!",
           });
-          navigate("/dashboard");
+          navigate(ROUTES.DASHBOARD);
           return;
         }
         throw error;
@@ -93,7 +94,7 @@ const BetaSignup = () => {
         description: "Thank you for joining. Check your email for next steps.",
       });
 
-      navigate("/dashboard");
+      navigate(ROUTES.DASHBOARD);
     } catch (error) {
       console.error("Beta signup error:", error);
       toast({
@@ -286,4 +287,5 @@ const BetaSignup = () => {
 };
 
 export default BetaSignup;
+
 

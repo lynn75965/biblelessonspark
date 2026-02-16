@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { isBetaMode } from '@/constants/systemSettings';
 import { LegalModal } from '@/components/LegalModal';
 import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from '@/constants/betaEnrollmentConfig';
+import { ROUTES } from "@/constants/routes";
 
 // Public Beta Organization ID - SSOT: This should match system_settings or be fetched
 const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
@@ -89,7 +90,7 @@ export default function Auth() {
   useEffect(() => {
     const resetParam = searchParams.get('reset');
     if (user && resetParam !== 'true' && !inviteToken && !showEmailConfirmation) {
-      navigate('/dashboard');
+      navigate(ROUTES.DASHBOARD);
     }
   }, [user, searchParams, navigate, inviteToken, showEmailConfirmation]);
 
@@ -298,7 +299,7 @@ export default function Auth() {
       } else {
         // CHECK FOR EXISTING USER: Supabase returns fake success with empty identities
         // when "Confirm email" is ON and the email already exists (security measure).
-        // No email is sent in this case — detect it and redirect to Sign In.
+        // No email is sent in this case � detect it and redirect to Sign In.
         const isExistingUser = data?.user?.identities?.length === 0;
         
         if (isExistingUser) {
@@ -348,7 +349,7 @@ export default function Auth() {
           });
           // Remember this browser has an account
           try { localStorage.setItem('bls_has_account', 'true'); } catch {}
-          navigate('/dashboard');
+          navigate(ROUTES.DASHBOARD);
           return;
         }
 
@@ -480,7 +481,7 @@ export default function Auth() {
           description: "Your password has been successfully reset.",
         });
         setIsResetMode(false);
-        navigate('/dashboard');
+        navigate(ROUTES.DASHBOARD);
       }
     } catch (error) {
       toast({
@@ -656,7 +657,7 @@ export default function Auth() {
                   <p className="font-medium mb-1">Password requirements:</p>
                   <ul className="space-y-0.5">
                     {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                      <li key={i}>â€¢ {req}</li>
+                      <li key={i}>• {req}</li>
                     ))}
                   </ul>
                 </div>
@@ -862,7 +863,7 @@ export default function Auth() {
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>â€¢ {req}</li>
+                          <li key={i}>• {req}</li>
                         ))}
                       </ul>
                     </div>
@@ -944,7 +945,7 @@ export default function Auth() {
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>â€¢ {req}</li>
+                          <li key={i}>• {req}</li>
                         ))}
                       </ul>
                     </div>
@@ -1027,3 +1028,4 @@ export default function Auth() {
     </div>
   );
 }
+

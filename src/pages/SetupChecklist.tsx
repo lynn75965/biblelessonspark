@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { SetupChecklist as SetupChecklistComponent } from "@/components/setup/SetupChecklist";
+import { ROUTES } from "@/constants/routes";
 
 export default function SetupChecklist() {
   return (

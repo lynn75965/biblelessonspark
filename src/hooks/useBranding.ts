@@ -15,6 +15,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { BrandingConfig } from '@/types/branding';
+import { ROUTES } from "@/constants/routes";
 
 // ============================================================================
 // FALLBACK BRANDING (used during loading or if database fetch fails)
@@ -210,7 +211,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
         heading: "Welcome to LessonSpark USA!",
         body: "Thank you for joining LessonSpark USA!",
         buttonText: "Create Your First Lesson",
-        buttonUrl: "{baseUrl}/dashboard",
+        buttonUrl: `{baseUrl}${ROUTES.DASHBOARD}`,
       },
       orgInvitation: {
         heading: "You've Been Invited!",

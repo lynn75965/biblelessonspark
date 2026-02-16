@@ -24,6 +24,7 @@ import {
   Church
 } from "lucide-react";
 import { SITE } from "@/config/site";
+import { ROUTES } from "@/constants/routes";
 
 const Help = () => {
   const location = useLocation();
@@ -363,7 +364,7 @@ const Help = () => {
               </a>
             </Button>
             <Button asChild size="lg">
-              <Link to="/dashboard">Go to Dashboard</Link>
+              <Link to={ROUTES.DASHBOARD}>Go to Dashboard</Link>
             </Button>
           </div>
         </section>
@@ -376,3 +377,4 @@ const Help = () => {
 };
 
 export default Help;
+

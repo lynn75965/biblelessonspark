@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ROUTES } from "@/constants/routes";
 import { 
   CheckCircle2, 
   Users, 
@@ -381,7 +382,7 @@ const OrgSuccess = () => {
             size="lg" 
             variant="outline"
             className="flex-1"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(ROUTES.DASHBOARD)}
           >
             Go to My Dashboard
           </Button>
@@ -474,3 +475,4 @@ const OrgSuccess = () => {
 };
 
 export default OrgSuccess;
+

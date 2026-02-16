@@ -24,6 +24,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { getEffectiveRole } from "@/constants/accessControl";
 import { getNavigationForRole, NavigationItem } from "@/constants/navigationConfig";
 import { BRANDING } from "@/config/branding";
+import { ROUTES } from "@/constants/routes";
 
 interface HeaderProps {
   onAuthClick?: () => void;
@@ -62,7 +63,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
       const isLeader = userRole === 'owner' || userRole === 'leader';
       return {
         label: organization.name || 'My Organization',
-        route: isLeader ? '/org-manager' : '/dashboard',
+        route: isLeader ? '/org-manager' : ROUTES.DASHBOARD,
       };
     }
 

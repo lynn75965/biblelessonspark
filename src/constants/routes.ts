@@ -20,8 +20,7 @@ export const ROUTES = {
   COMMUNITY: '/community',
   
   // Protected routes
-  WORKSPACE: '/workspace',
-  DASHBOARD: '/dashboard', // Redirects to WORKSPACE
+  DASHBOARD: '/dashboard',
   CREATE_LESSON: '/create',
   MY_LESSONS: '/lessons',
   ORG: '/org',
@@ -47,18 +46,18 @@ export const AUTH_QUERY_PARAMS = {
   ERROR: 'error',
 } as const;
 /**
- * Query parameter keys used in workspace/dashboard navigation
+ * Query parameter keys used in dashboard navigation
  */
-export const WORKSPACE_QUERY_PARAMS = {
+export const DASHBOARD_QUERY_PARAMS = {
   TAB: 'tab',
   VIEW_LESSON: 'viewLesson',
   SESSION_ID: 'session_id',
 } as const;
 
 /**
- * Valid workspace tab values
+ * Valid dashboard tab values
  */
-export const WORKSPACE_TABS = {
+export const DASHBOARD_TAB_VALUES = {
   ENHANCE: 'enhance',
   LIBRARY: 'library',
   DEVOTIONAL_LIBRARY: 'devotional-library',
@@ -77,3 +76,6 @@ export const buildInviteUrl = (baseUrl: string, token: string): string => {
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
+
+
+

@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { ROUTES } from "@/constants/routes";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const Index = () => {
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      navigate(ROUTES.DASHBOARD);
     }
   }, [user, navigate]);
 
@@ -160,3 +161,4 @@ const Index = () => {
 };
 
 export default Index;
+

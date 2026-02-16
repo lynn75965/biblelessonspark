@@ -18,6 +18,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { SITE } from "@/config/site";
+import { ROUTES } from "@/constants/routes";
 
 const Training = () => {
   const quickStartSteps = [
@@ -198,7 +199,7 @@ const Training = () => {
 
           <div className="text-center mt-8">
             <Button asChild size="lg">
-              <Link to="/dashboard" className="flex items-center gap-2">
+              <Link to={ROUTES.DASHBOARD} className="flex items-center gap-2">
                 Start Creating Lessons
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -331,5 +332,6 @@ const Training = () => {
 };
 
 export default Training;
+
 
 

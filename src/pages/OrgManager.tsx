@@ -39,6 +39,7 @@ import { ORG_ROLES, ROLES, getEffectiveRole } from "@/constants/accessControl";
 import { isWithinMaxDepth } from "@/constants/organizationConfig";
 import { useDisconnectFromNetwork } from "@/hooks/useDisconnectFromNetwork";
 import { useToast } from "@/hooks/use-toast";
+import { ROUTES } from "@/constants/routes";
 
 export default function OrgManager() {
   const { user } = useAuth();
@@ -138,12 +139,12 @@ export default function OrgManager() {
 
   // Redirect if no org access
   if (!orgLoading && !hasAccess) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 
   // Redirect if no organization
   if (!orgLoading && !hasOrganization && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={ROUTES.DASHBOARD} replace />;
   }
 
   if (orgLoading) {
@@ -161,7 +162,7 @@ export default function OrgManager() {
       <main className="container py-4 sm:py-6 px-4 sm:px-6 flex-1">
         {/* Header Section */}
         <div className="flex items-center gap-4 mb-6">
-          <Link to="/dashboard">
+          <Link to={ROUTES.DASHBOARD}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Workspace
@@ -520,3 +521,4 @@ export default function OrgManager() {
     </div>
   );
 }
+

@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Check, Church, Users, BookOpen, Shield, ArrowRight, Sparkles, LayoutDashboard } from 'lucide-react';
+import { ROUTES } from "@/constants/routes";
 
 const OrgLanding = () => {
   const navigate = useNavigate();
@@ -119,7 +120,7 @@ const OrgLanding = () => {
           </a>
           <div className="flex items-center gap-3">
             {user ? (
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>
+              <Button variant="outline" onClick={() => navigate(ROUTES.DASHBOARD)}>
                 Go to Dashboard
               </Button>
             ) : (
@@ -417,3 +418,4 @@ const OrgLanding = () => {
 };
 
 export default OrgLanding;
+

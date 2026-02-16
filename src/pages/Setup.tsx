@@ -19,6 +19,7 @@ import {
   Globe
 } from "lucide-react";
 import { SITE } from "@/config/site";
+import { ROUTES } from "@/constants/routes";
 
 const Setup = () => {
   const setupSteps = [
@@ -327,7 +328,7 @@ const Setup = () => {
               </a>
             </Button>
             <Button asChild size="lg">
-              <Link to="/dashboard">Go to Dashboard</Link>
+              <Link to={ROUTES.DASHBOARD}>Go to Dashboard</Link>
             </Button>
           </div>
         </section>
@@ -340,3 +341,4 @@ const Setup = () => {
 };
 
 export default Setup;
+

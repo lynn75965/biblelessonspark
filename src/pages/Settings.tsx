@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, ArrowLeft } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -74,7 +75,7 @@ export default function Settings() {
       <div className="max-w-4xl mx-auto p-6">
         <Button
           variant="ghost"
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate(ROUTES.DASHBOARD)}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -136,3 +137,4 @@ export default function Settings() {
     </div>
   );
 }
+

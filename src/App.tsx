@@ -36,6 +36,7 @@ import TeachingTeam from "./pages/TeachingTeam";
 
 // Admin Toolbelt
 import ToolbeltAdmin from "./pages/ToolbeltAdmin";
+import { ROUTES } from "@/constants/routes";
 
 const queryClient = new QueryClient();
 
@@ -51,15 +52,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/workspace" 
+              path={ROUTES.DASHBOARD} 
               element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -148,3 +141,5 @@ const App = () => (
 );
 
 export default App;
+
+
