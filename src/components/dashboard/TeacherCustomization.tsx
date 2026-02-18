@@ -628,7 +628,7 @@ export function TeacherCustomization({
 
             {/* Education Experience */}
             <div className="space-y-2">
-              <Label htmlFor="education-experience">Student Education Experience</Label>
+              <Label htmlFor="education-experience">Student Education Level</Label>
               <Select value={educationExperience} onValueChange={setEducationExperience} disabled={disabled}>
                 <SelectTrigger id="education-experience" className={FORM_STYLING.selectMaxWidth}>
                   <SelectValue placeholder="Select education level" />
