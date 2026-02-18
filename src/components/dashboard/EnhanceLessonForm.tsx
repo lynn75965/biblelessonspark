@@ -680,7 +680,7 @@ export function EnhanceLessonForm({
       if (user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("theology_profile_id, full_name, default_bible_version")
+          .select("theology_profile_id, full_name, default_bible_version, preferred_language")
           .eq("id", user.id)
           .single();
 
@@ -689,6 +689,9 @@ export function EnhanceLessonForm({
         }
         if (profile?.default_bible_version) {
           setBibleVersionId(profile.default_bible_version);
+        }
+        if (profile?.preferred_language) {
+          setLanguage(profile.preferred_language);
         }
         // Store sender name for Email Lesson feature (Phase 25)
         setSenderDisplayName(
