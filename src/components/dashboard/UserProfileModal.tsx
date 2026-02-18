@@ -13,21 +13,14 @@ import { sanitizeText } from "@/lib/inputSanitization";
 import { BIBLE_VERSIONS, getDefaultBibleVersion } from "@/constants/bibleVersions";
 import { THEOLOGY_PROFILES, getTheologyProfile } from "@/constants/theologyProfiles";
 
-// =============================================================================
-// LANGUAGE OPTIONS — SSOT for User Profile language selector
-// =============================================================================
-const LANGUAGE_OPTIONS = [
-  { value: "en", label: "English (US)" },
-  { value: "es", label: "Español" },
-  { value: "fr", label: "Français" },
-] as const;
+import { LANGUAGE_OPTIONS } from "@/constants/teacherPreferences";
 
-type Language = typeof LANGUAGE_OPTIONS[number]["value"];
+type Language = typeof LANGUAGE_OPTIONS[number]["id"];
 
 interface UserProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onProfileUpdated: () => void;
+  onProfileUpdated?: () => void;
 }
 
 export function UserProfileModal({
@@ -37,7 +30,7 @@ export function UserProfileModal({
 }: UserProfileModalProps) {
   // Editable fields
   const [fullName, setFullName] = useState("");
-  const [preferredLanguage, setPreferredLanguage] = useState<Language>("en");
+  const [preferredLanguage, setPreferredLanguage] = useState<Language>("english");
   const [defaultBibleVersion, setDefaultBibleVersion] = useState(getDefaultBibleVersion().id);
   const [theologyProfileId, setTheologyProfileId] = useState("baptist-core-beliefs");
 
@@ -79,7 +72,7 @@ export function UserProfileModal({
 
       // Set editable fields
       setFullName(profile?.full_name || '');
-      setPreferredLanguage((profile?.preferred_language as Language) || 'en');
+      setPreferredLanguage((profile?.preferred_language as Language) || 'english');
       setDefaultBibleVersion(profile?.default_bible_version || getDefaultBibleVersion().id);
       setTheologyProfileId(profile?.theology_profile_id || 'baptist-core-beliefs');
 
@@ -145,7 +138,7 @@ export function UserProfileModal({
         throw error;
       }
 
-      onProfileUpdated();
+      onProfileUpdated?.();
 
       toast({
         title: "Profile Updated",
@@ -257,7 +250,7 @@ export function UserProfileModal({
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGE_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>
+                    <SelectItem key={opt.id} value={opt.id}>
                       {opt.label}
                     </SelectItem>
                   ))}
