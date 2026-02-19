@@ -1,7 +1,7 @@
 /**
  * THEOLOGY PROFILES - Single Source of Truth (SSOT)
  * 
- * This file defines all Baptist theology profiles for BibleLessonSpark.
+ * This file defines all Baptist theology profiles for LessonSparkUSA.
  * 
  * ARCHITECTURE:
  * - `summary`: User-facing description (shown in UI)
@@ -14,12 +14,7 @@
  * DISPLAY ORDER: As specified by product owner
  * DEFAULT PROFILE: Baptist Core Beliefs
  * 
- * Updated: January 2026
- * 
- * CRITICAL TERMINOLOGY FIX (January 2026):
- * - ALL profiles EXCEPT Reformed Baptist now prohibit "sacrament", "sacraments", "Eucharist"
- * - Baptists use "ordinance" (not "sacrament") and "Lord's Supper" (not "Eucharist")
- * - Reformed Baptists MAY use sacramental language due to their confessional heritage (1689 LBCF)
+ * Updated: December 2025
  */
 
 // ============================================================================
@@ -94,22 +89,14 @@ export const THEOLOGY_PROFILES: TheologyProfile[] = [
       "prophecy as normative",
       // Avoid disputed mission stances
       "anti-mission",
-      "mission boards",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "mission boards"
     ],
     preferredTerminology: {
       "Total Depravity": "humanity has fallen into sin",
       "election": "God's saving purpose in Christ",
       "atonement": "Christ's death and resurrection are the basis of salvation",
       "grace": "salvation is by grace through faith",
-      "security": "believers are kept by God's power",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "security": "believers are kept by God's power"
     },
     requiredTerminology: [],
     guardrails: [
@@ -198,11 +185,7 @@ This profile must EXCLUDE all doctrines not unanimously affirmed across Baptist 
       "ordained to salvation",
       "predestined individuals",
       "meticulous sovereignty",
-      "determinism",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "determinism"
     ],
     preferredTerminology: {
       "Total Depravity": "fallen humanity / sinful nature",
@@ -211,11 +194,7 @@ This profile must EXCLUDE all doctrines not unanimously affirmed across Baptist 
       "Irresistible Grace": "the Spirit draws and convicts; individuals may respond or resist",
       "regeneration precedes faith": "faith and repentance precede regeneration",
       "the elect": "believers / those who trust in Christ",
-      "Effectual Calling": "the Spirit's conviction and drawing",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "Effectual Calling": "the Spirit's conviction and drawing"
     },
     requiredTerminology: [],
     guardrails: [
@@ -283,11 +262,7 @@ Warm, pastoral, Christ-centered, Scripture-rooted. Emphasize soul competency, Ch
       "ordained to salvation",
       "predestined individuals",
       "meticulous sovereignty",
-      "determinism",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "determinism"
     ],
     preferredTerminology: {
       "Total Depravity": "fallen humanity / sinful nature",
@@ -296,11 +271,7 @@ Warm, pastoral, Christ-centered, Scripture-rooted. Emphasize soul competency, Ch
       "Irresistible Grace": "the Spirit draws and convicts; individuals may respond or resist",
       "regeneration precedes faith": "faith and repentance precede regeneration",
       "the elect": "believers / those who trust in Christ",
-      "Effectual Calling": "the Spirit's conviction and drawing",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "Effectual Calling": "the Spirit's conviction and drawing"
     },
     requiredTerminology: [],
     guardrails: [
@@ -367,11 +338,7 @@ Biblical, doctrinally clear, conservative, evangelistic. Accuracy, clarity, and 
       "regeneration precedes faith",
       "ordained to salvation",
       "meticulous sovereignty",
-      "determinism",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "determinism"
     ],
     preferredTerminology: {
       "Total Depravity": "fallen humanity / sinful nature",
@@ -379,11 +346,7 @@ Biblical, doctrinally clear, conservative, evangelistic. Accuracy, clarity, and 
       "Limited Atonement": "Christ died for the sins of the whole world",
       "Irresistible Grace": "grace calls, convicts, enables—but does not coerce",
       "regeneration precedes faith": "faith and repentance precede conversion",
-      "the elect": "believers / those who trust in Christ",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "the elect": "believers / those who trust in Christ"
     },
     requiredTerminology: [],
     guardrails: [
@@ -454,11 +417,7 @@ Warm, pastoral, inspirational, biblically grounded. Emphasize hope, encouragemen
       "ordained to salvation",
       "meticulous sovereignty",
       "determinism",
-      "covenant theology",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "covenant theology"
     ],
     preferredTerminology: {
       "Total Depravity": "fallen humanity capable of responding to God's conviction",
@@ -466,11 +425,7 @@ Warm, pastoral, inspirational, biblically grounded. Emphasize hope, encouragemen
       "Limited Atonement": "Christ died for the sins of all people everywhere",
       "Irresistible Grace": "the Spirit convicts, but grace is resistible",
       "regeneration precedes faith": "regeneration follows faith and repentance",
-      "the elect": "believers / those who have trusted Christ",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "the elect": "believers / those who have trusted Christ"
     },
     requiredTerminology: [],
     guardrails: [
@@ -540,22 +495,14 @@ Clear, direct, evangelistic, Scripture-first. Practical application emphasized. 
       "regeneration precedes faith",
       "ordained to salvation",
       "meticulous sovereignty",
-      "determinism",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "determinism"
     ],
     preferredTerminology: {
       "Total Depravity": "fallen humanity capable of responding to God",
       "Unconditional Election": "election based on foreknowledge / whosoever will",
       "Limited Atonement": "Christ died for all people",
       "Irresistible Grace": "grace can be resisted; salvation involves genuine response",
-      "regeneration precedes faith": "regeneration follows faith and repentance",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "regeneration precedes faith": "regeneration follows faith and repentance"
     },
     requiredTerminology: [],
     guardrails: [
@@ -622,22 +569,14 @@ Clear, evangelistic, practical, warm, and accessible. Emphasis on missions, disc
       "regeneration precedes faith",
       "ordained to salvation",
       "meticulous sovereignty",
-      "determinism",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "determinism"
     ],
     preferredTerminology: {
       "Total Depravity": "fallen humanity able to respond to prevenient grace",
       "Unconditional Election": "election is conditional, based on God's foreknowledge of faith",
       "Limited Atonement": "Christ died for all people without exception",
       "Irresistible Grace": "prevenient grace—God empowers but does not coerce",
-      "regeneration precedes faith": "regeneration follows repentance and faith",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "regeneration precedes faith": "regeneration follows repentance and faith"
     },
     requiredTerminology: [],
     guardrails: [
@@ -707,11 +646,7 @@ Warm, evangelistic, accessible, Scripture-grounded. Practical, encouraging, and 
       "eternal security",
       "meticulous sovereignty",
       "determinism",
-      "perseverance of the saints",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "perseverance of the saints"
     ],
     preferredTerminology: {
       "Total Depravity": "humans retain God-given capacity to respond to grace",
@@ -720,11 +655,7 @@ Warm, evangelistic, accessible, Scripture-grounded. Practical, encouraging, and 
       "Irresistible Grace": "prevenient grace enables but does not compel belief",
       "regeneration precedes faith": "faith and repentance precede regeneration",
       "eternal security": "conditional security—salvation can be forfeited by persistent unbelief",
-      "perseverance of the saints": "continued faith is necessary; apostasy is possible",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "perseverance of the saints": "continued faith is necessary; apostasy is possible"
     },
     requiredTerminology: [],
     guardrails: [
@@ -795,21 +726,13 @@ Warm, evangelistic, holiness-oriented, and practical. Clear moral application. A
       "altar call",
       "sinner's prayer",
       "mission boards",
-      "denominational programs",
-      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
-      "sacrament",
-      "sacraments",
-      "Eucharist"
+      "denominational programs"
     ],
     preferredTerminology: {
       "unlimited atonement": "particular redemption / Christ died for the elect",
       "Christ died for all": "Christ died effectually for His people",
       "free will": "human responsibility under God's sovereign decree",
-      "decision for Christ": "evidence of regeneration already accomplished by God",
-      // CRITICAL: Baptist terminology for ordinances
-      "sacrament": "ordinance",
-      "sacraments": "ordinances",
-      "Eucharist": "Lord's Supper"
+      "decision for Christ": "evidence of regeneration already accomplished by God"
     },
     requiredTerminology: [
       "unconditional election",
@@ -953,143 +876,6 @@ Doctrinally precise, reverent, confessional language. Avoid pragmatism. Focus on
 ];
 
 // ============================================================================
-// BAPTIST TERMINOLOGY GUARDRAILS (SSOT)
-// Universal rules that apply to ALL Baptist theology profiles
-// These prevent non-Baptist terminology from appearing in generated content
-// ============================================================================
-
-/**
- * BAPTIST TERMINOLOGY GUARDRAILS
- * 
- * These terms and substitutions apply to ALL Baptist theology profiles.
- * They ensure generated content sounds authentically Baptist, not Catholic,
- * Anglican, Lutheran, or generic Protestant.
- * 
- * PRINCIPLE: Baptists use specific terminology that reflects their beliefs
- * about church, ordinances, ministry, and worship. Using incorrect terminology
- * immediately signals "this wasn't written by someone who understands Baptists."
- */
-export const BAPTIST_TERMINOLOGY_GUARDRAILS = {
-  /**
-   * PROHIBITED TERMS
-   * These terms should NEVER appear when describing Baptist practices
-   * (They may appear when DISCUSSING other traditions)
-   */
-  prohibitedForBaptistPractices: [
-    "ritual",
-    "rituals",
-    "altar",
-    "priest",
-    "clergy",
-    "laity",
-    "mass",
-    "holy orders",
-    "confirmation",
-    "penance",
-    "absolution",
-    "liturgy",
-    "vestments",
-    "chalice",
-    "host",
-    "consecration",
-    "transubstantiation",
-    "consubstantiation",
-    "real presence"
-  ],
-
-  /**
-   * REQUIRED SUBSTITUTIONS
-   * When these terms would naturally occur, substitute with Baptist equivalents
-   */
-  substitutions: {
-    "sacrament": "ordinance",
-    "sacraments": "ordinances",
-    "Eucharist": "Lord's Supper",
-    "Holy Communion": "Lord's Supper",
-    "the mass": "the Lord's Supper",
-    "altar": "Lord's table",
-    "sanctuary": "worship center",
-    "nave": "auditorium",
-    "chancel": "platform",
-    "priest": "pastor",
-    "clergy": "ministers",
-    "rector": "pastor",
-    "vicar": "pastor",
-    "ritual": "practice",
-    "rituals": "practices",
-    "rite": "observance",
-    "rites": "observances",
-    "liturgy": "order of worship",
-    "liturgical": "worship",
-    "means of grace": "spiritual disciplines"
-  },
-
-  /**
-   * CONTEXTUAL EXCEPTIONS
-   * When these terms ARE acceptable
-   */
-  contextualExceptions: [
-    {
-      term: "ritual",
-      acceptable: "When describing OTHER religious traditions or when used negatively to warn against empty formalism",
-      example: "Jesus warned against empty rituals that replace genuine faith"
-    },
-    {
-      term: "priest",
-      acceptable: "When referring to Old Testament priests, Catholic/Orthodox clergy, or the priesthood of all believers doctrine",
-      example: "As believer-priests, we all have direct access to God"
-    },
-    {
-      term: "altar",
-      acceptable: "When referring to Old Testament altars or metaphorically to sacrifice/dedication",
-      example: "Abraham built an altar to the Lord"
-    },
-    {
-      term: "sacrament",
-      acceptable: "ONLY in Reformed Baptist context (1689 LBCF) or when explaining what Baptists DON'T believe",
-      example: "Unlike some traditions that view baptism as a sacrament, Baptists understand it as an ordinance"
-    }
-  ],
-
-  /**
-   * BAPTIST-PREFERRED TERMS
-   * These terms sound authentically Baptist and should be used freely
-   */
-  preferredTerms: [
-    "ordinance",
-    "ordinances",
-    "Lord's Supper",
-    "believer's baptism",
-    "baptism by immersion",
-    "pastor",
-    "deacon",
-    "church member",
-    "congregation",
-    "worship service",
-    "invitation",
-    "altar call",
-    "decision",
-    "profession of faith",
-    "believer-priest",
-    "soul competency",
-    "priesthood of all believers",
-    "local church autonomy",
-    "cooperative missions",
-    "Great Commission",
-    "personal relationship with Christ",
-    "quiet time",
-    "devotional",
-    "Bible study",
-    "Sunday School",
-    "Vacation Bible School",
-    "revival",
-    "evangelism",
-    "witness",
-    "testimony"
-  ]
-} as const;
-
-// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -1132,48 +918,6 @@ export function getTheologyProfileOptions(): Array<{
     summary: profile.summary,
     isDefault: profile.isDefault
   }));
-}
-
-/**
- * Generate Baptist terminology guardrails for AI prompt injection
- * These apply to ALL Baptist theology profiles to ensure authentic Baptist voice
- */
-export function generateBaptistTerminologyGuardrails(): string {
-  const guardrails = BAPTIST_TERMINOLOGY_GUARDRAILS;
-  
-  return `
-## BAPTIST TERMINOLOGY GUARDRAILS — UNIVERSAL COMPLIANCE
-
-These terminology rules ensure generated content sounds authentically Baptist.
-Violations immediately signal "this wasn't written by someone who understands Baptists."
-
-### PROHIBITED TERMS (When Describing Baptist Practices)
-The following terms must NOT be used to describe what Baptists do or believe:
-${guardrails.prohibitedForBaptistPractices.map(term => `- "${term}"`).join('\n')}
-
-### MANDATORY SUBSTITUTIONS
-When these terms would naturally occur, use the Baptist equivalent:
-${Object.entries(guardrails.substitutions).map(([avoid, use]) => `- Instead of "${avoid}" → use "${use}"`).join('\n')}
-
-### CONTEXTUAL EXCEPTIONS
-These terms ARE acceptable in specific contexts:
-- "ritual" - When warning against empty formalism or describing OTHER traditions
-- "priest" - When referring to OT priests or explaining "priesthood of all believers"
-- "altar" - When referring to OT altars or metaphorically (but NOT Baptist church furniture)
-- "sacrament" - ONLY when explaining what Baptists DON'T believe or in Reformed Baptist context
-
-### AUTHENTICALLY BAPTIST LANGUAGE
-Use these terms freely - they sound genuinely Baptist:
-ordinance, Lord's Supper, believer's baptism, pastor, deacon, congregation, 
-worship service, invitation, profession of faith, believer-priest, 
-soul competency, local church autonomy, Great Commission, testimony
-
-### VERIFICATION CHECK
-Before outputting content, scan for:
-1. Any prohibited term used to describe Baptist practices
-2. Any missed substitutions (especially "ritual" or "sacrament")
-3. Overly formal/liturgical language that doesn't fit Baptist culture
-`;
 }
 
 /**
@@ -1227,11 +971,7 @@ Before outputting the lesson, verify:
 3. ${profile.tulipStance === 'anti' ? 'No TULIP/Calvinist terminology is present' : 'Reformed/TULIP terminology is used appropriately'}
 4. Security doctrine reflects: ${profile.securityDoctrine === 'eternal' ? 'Eternal Security (once saved, always saved)' : profile.securityDoctrine === 'conditional' ? 'Conditional Security (salvation can be forfeited through persistent unbelief)' : 'Perseverance of the Saints (the truly elect will persevere)'}
 5. Content aligns with the theological lens described above
-6. No non-Baptist terminology appears (see Baptist Terminology Guardrails below)
 `;
-
-  // Append universal Baptist terminology guardrails
-  guardrailsBlock += '\n\n' + generateBaptistTerminologyGuardrails();
 
   return guardrailsBlock;
 }
