@@ -119,7 +119,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
   theological: {
     denomination: "Baptist",
     tradition: "Southern Baptist",
-    defaultBibleTranslation: "KJV",
+    // defaultBibleTranslation removed — SSOT is bibleVersions.ts → getDefaultBibleVersion()
     theologicalTagline: "Rooted in Baptist Heritage, Relevant for Today",
     theologicalStatement: "LessonSpark USA creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
   },

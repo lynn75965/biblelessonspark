@@ -587,7 +587,7 @@ export const BRANDING = {
   theological: {
     denomination: "Baptist",
     tradition: "Southern Baptist",
-    defaultBibleTranslation: "KJV",
+    // Bible version default: SSOT is bibleVersions.ts ? getDefaultBibleVersion()
     theologicalTagline: "Rooted in Baptist Heritage, Relevant for Today",
     theologicalStatement: "BibleLessonSpark creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
   },

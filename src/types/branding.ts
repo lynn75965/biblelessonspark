@@ -121,7 +121,11 @@ export interface BrandingFeatures {
 export interface BrandingTheological {
   denomination: string;
   tradition: string;
-  defaultBibleTranslation: string;
+  /**
+   * @deprecated SSOT for Bible version defaults is bibleVersions.ts → getDefaultBibleVersion().
+   * This field may exist in legacy database rows but should not be used by new code.
+   */
+  defaultBibleTranslation?: string;
   theologicalTagline: string;
   theologicalStatement: string;
 }
