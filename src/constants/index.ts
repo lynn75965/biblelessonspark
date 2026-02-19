@@ -1,31 +1,54 @@
 /**
- * LessonSparkUSA Constants - Barrel Export
- * @version 1.3.0
- * @lastUpdated 2025-12-04
+ * BibleLessonSpark Constants - Barrel Export
+ * @version 2.0.0
+ * @lastUpdated 2026-02-19
  * 
- * SSOT Update: Removed legacy theologicalPreferences.ts exports.
- * All theology profile exports now come from theologyProfiles.ts (10 profiles).
+ * SSOT Update v2.0.0:
+ * - Added new types from contracts.ts v2.0.0: TeachingTeam, TeachingTeamMember,
+ *   TeachingTeamMemberStatus, ReshapeMetrics, UserProfile, Lesson,
+ *   Organization, OrganizationMember
+ * - contracts.ts no longer duplicates types owned by other SSOT files
+ *   (theology profile IDs, bible version IDs, lesson shape IDs live in
+ *   their respective SSOT files — not here)
+ * - Legacy types (TheologicalPreferenceKey, SBConfessionVersionKey, etc.)
+ *   still exported with @deprecated tags for backward compatibility
  */
 // ============================================================================
 // TypeScript Contracts (Interfaces & Types)
 // ============================================================================
 export type {
+  // Lesson structure
   LessonSection,
   LessonStructure,
+  // Age groups
   TeachingProfile,
   AgeGroup,
-  TheologicalPreferenceKey,
-  SBConfessionVersionKey,
-  SBConfessionVersion,
-  TheologicalPreference,
-  PreferenceOption,
-  TeacherPreferences,
+  // Language
   LanguageKey,
   LanguageConfig,
+  // Teacher preferences
+  PreferenceOption,
+  TeacherPreferences,
+  // Teaching teams (Phase 27A)
+  TeachingTeam,
+  TeachingTeamMember,
+  TeachingTeamMemberStatus,
+  // API contracts
   LessonGenerationRequest,
   LessonContent,
   LessonGenerationResponse,
   LessonFilters,
+  // Database entities
+  Lesson,
+  ReshapeMetrics,
+  UserProfile,
+  Organization,
+  OrganizationMember,
+  // Legacy (deprecated — migrate to theologyProfiles.ts types)
+  TheologicalPreferenceKey,
+  SBConfessionVersionKey,
+  SBConfessionVersion,
+  TheologicalPreference,
 } from './contracts';
 // ============================================================================
 // Lesson Structure (Tier 1)
