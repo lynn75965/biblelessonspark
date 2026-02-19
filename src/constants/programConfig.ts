@@ -1,4 +1,4 @@
-// =====================================================
+﻿// =====================================================
 // PROGRAM CONFIG - Static Content Only
 // =====================================================
 // This file contains ONLY static content arrays and text.
@@ -10,7 +10,7 @@ export const PROGRAM_CONFIG = {
   // Maintenance mode static content
   maintenance: {
     title: "We'll Be Right Back",
-    message: "LessonSparkUSA is currently undergoing scheduled maintenance. We apologize for any inconvenience and appreciate your patience.",
+    message: "BibleLessonSpark is currently undergoing scheduled maintenance. We apologize for any inconvenience and appreciate your patience.",
     subtext: "Please check back shortly."
   },
   // Beta-specific static content

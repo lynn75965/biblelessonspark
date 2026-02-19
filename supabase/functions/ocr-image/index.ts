@@ -1,10 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 // Secure CORS configuration
 const allowedOrigins = [
-  'https://lessonsparkusa.com',
-  'https://www.lessonsparkusa.com'
+  'https://biblelessonspark.com',
+  'https://www.biblelessonspark.com'
 ];
 
 // In development, also allow localhost

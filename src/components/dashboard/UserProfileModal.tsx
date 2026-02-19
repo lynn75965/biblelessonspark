@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { sanitizeText } from "@/lib/inputSanitization";
 import { BIBLE_VERSIONS, getDefaultBibleVersion } from "@/constants/bibleVersions";
-import { THEOLOGY_PROFILES, getTheologyProfile } from "@/constants/theologyProfiles";
+import { THEOLOGY_PROFILES, getTheologyProfile, DEFAULT_THEOLOGY_PROFILE_ID } from "@/constants/theologyProfiles";
 
 import { LANGUAGE_OPTIONS } from "@/constants/teacherPreferences";
 
@@ -32,7 +32,7 @@ export function UserProfileModal({
   const [fullName, setFullName] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState<Language>("english");
   const [defaultBibleVersion, setDefaultBibleVersion] = useState(getDefaultBibleVersion().id);
-  const [theologyProfileId, setTheologyProfileId] = useState("baptist-core-beliefs");
+  const [theologyProfileId, setTheologyProfileId] = useState(DEFAULT_THEOLOGY_PROFILE_ID);
 
   // Read-only fields
   const [memberId, setMemberId] = useState("");
@@ -74,7 +74,7 @@ export function UserProfileModal({
       setFullName(profile?.full_name || '');
       setPreferredLanguage((profile?.preferred_language as Language) || 'english');
       setDefaultBibleVersion(profile?.default_bible_version || getDefaultBibleVersion().id);
-      setTheologyProfileId(profile?.theology_profile_id || 'baptist-core-beliefs');
+      setTheologyProfileId(profile?.theology_profile_id || DEFAULT_THEOLOGY_PROFILE_ID);
 
       // Set read-only fields
       setMemberId(user.id?.substring(0, 8) || '');

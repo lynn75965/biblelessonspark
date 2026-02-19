@@ -1,6 +1,6 @@
 ﻿// ============================================================================
 // SSOT: Beta Enrollment Configuration
-// LessonSparkUSA - Master Definition
+// BibleLessonSpark - Master Definition
 // Controls Public Beta enrollment flow UI and behavior
 // Mirror: supabase/functions/_shared/betaEnrollmentConfig.ts
 // DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants
@@ -53,14 +53,14 @@ export const BETA_ENROLLMENT_CONFIG = {
     ],
     
     // Trust indicators
-    trustText: 'Join hundreds of Baptist teachers already using LessonSpark USA',
+    trustText: 'Join hundreds of Baptist teachers already using BibleLessonSpark',
   },
 
   // -------------------------------------------------------------------------
   // ENROLLMENT FORM UI
   // -------------------------------------------------------------------------
   form: {
-    title: 'Join the LessonSpark USA Beta',
+    title: 'Join the BibleLessonSpark Beta',
     subtitle: 'Start creating Bible study lessons in minutes.',
     
     // Field labels and placeholders
@@ -115,7 +115,7 @@ export const BETA_ENROLLMENT_CONFIG = {
   // -------------------------------------------------------------------------
   messages: {
     enrollmentSuccess: {
-      title: 'Welcome to LessonSpark USA!',
+      title: 'Welcome to BibleLessonSpark!',
       description: 'Your account has been created. Check your email to verify your account.',
     },
     enrollmentError: {

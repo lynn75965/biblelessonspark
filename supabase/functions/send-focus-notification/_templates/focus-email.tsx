@@ -75,7 +75,7 @@ export const FocusNotificationEmail = ({
           </Section>
 
           <Text style={footer}>
-            Log in to LessonSpark USA to create your lesson using this focus.
+            Log in to BibleLessonSpark to create your lesson using this focus.
           </Text>
         </Container>
       </Body>

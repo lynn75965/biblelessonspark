@@ -1,4 +1,4 @@
-/**
+﻿/**
  * BrandingProvider - SSOT Color System
  * =====================================
  * 
@@ -71,8 +71,6 @@ export function BrandingProvider({ children, tenantBranding }: BrandingProviderP
     // Generate CSS from branding.ts (SSOT)
     styleElement.textContent = generateTailwindCSSVariables();
     
-    console.log('[BrandingProvider] Base theme injected from branding.ts (SSOT)');
-    console.log('[BrandingProvider] Primary:', BRANDING.colors.primary.DEFAULT);
     
     return () => {
       // Don't remove on unmount - theme should persist
@@ -98,7 +96,6 @@ export function BrandingProvider({ children, tenantBranding }: BrandingProviderP
 
     // Only inject if tenant has different colors
     if (!hasCustomPrimary && !hasCustomSecondary) {
-      console.log('[BrandingProvider] Tenant using default SSOT colors');
       return;
     }
 
@@ -137,11 +134,6 @@ export function BrandingProvider({ children, tenantBranding }: BrandingProviderP
 
     document.head.appendChild(tenantStyle);
 
-    console.log('[BrandingProvider] Tenant overrides applied:', {
-      tenant: tenantBranding.name || 'custom',
-      primary: hasCustomPrimary ? tenantBranding.primaryColor : 'SSOT default',
-      secondary: hasCustomSecondary ? tenantBranding.secondaryColor : 'SSOT default',
-    });
 
     return () => {
       const el = document.getElementById(TENANT_STYLE_ID);

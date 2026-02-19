@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -110,7 +110,6 @@ export function AllLessonsPanel() {
 
         const fetchedLessons = (lessonsData as AdminLessonView[]) || [];
         setLessons(fetchedLessons);
-        console.log('Lessons fetched:', fetchedLessons.length);
 
         // Query 2: Fetch profiles for all unique user_ids (separate query - no FK)
         const uniqueUserIds = [...new Set(fetchedLessons.map(l => l.user_id).filter(Boolean))];
@@ -131,7 +130,6 @@ export function AllLessonsPanel() {
               map[p.id] = { full_name: p.full_name };
             });
             setProfileMap(map);
-            console.log('Profiles fetched:', Object.keys(map).length);
           }
         }
 

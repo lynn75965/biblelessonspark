@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+﻿import { supabase } from '@/integrations/supabase/client';
 
 export interface AuditLogEntry {
   user_id: string;
@@ -28,7 +28,6 @@ export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
 
     // Log to console in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('Audit Log:', auditEntry);
     }
 
     // In production, you would send this to your logging service

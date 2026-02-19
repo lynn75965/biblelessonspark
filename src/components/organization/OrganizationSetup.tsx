@@ -155,7 +155,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
         <DialogHeader>
           <DialogTitle>Setup Your Organization</DialogTitle>
           <DialogDescription>
-            Create a new organization or join an existing one. You can also use LessonSpark individually.
+            Create a new organization or join an existing one. You can also use BibleLessonSpark individually.
           </DialogDescription>
         </DialogHeader>
 
@@ -286,7 +286,7 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
                   <User className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold mb-2">Use LessonSpark Individually</h3>
+                  <h3 className="text-lg font-semibold mb-2">Use BibleLessonSpark Individually</h3>
                   <p className="text-muted-foreground mb-4">
                     Perfect for homeschool educators, independent Bible study leaders, or teachers who prefer a personal workspace.
                   </p>

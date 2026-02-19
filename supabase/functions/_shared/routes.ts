@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/routes.ts
@@ -72,7 +72,7 @@ export const DASHBOARD_TAB_VALUES = {
 
 /**
  * Build a complete invite URL for email links
- * @param baseUrl - The site base URL (e.g., https://lessonsparkusa.com)
+ * @param baseUrl - The site base URL (e.g., https://biblelessonspark.com)
  * @param token - The invite token UUID
  * @returns Complete invite URL
  */

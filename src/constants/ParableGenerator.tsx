@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ParableGenerator.tsx
  * Phase 17.4: Modern Parable Generator UI Component
  * 
@@ -339,15 +339,6 @@ export function ParableGenerator({
         lesson_id: lessonId,
       };
 
-      console.log('Sending SSOT-compliant request:', {
-        bible_passage: request.bible_passage,
-        theology_profile: request.theology_profile.name,
-        bible_version: request.bible_version.name,
-        audience_lens: request.audience_lens.name,
-        modern_setting: request.modern_setting.name,
-        word_count_target: request.word_count_target.name,
-        age_group: request.age_group.name,
-      });
 
       const { data, error: fnError } = await supabase.functions.invoke('generate-parable', {
         body: request,
@@ -521,7 +512,7 @@ export function ParableGenerator({
           {preferences && (
             <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
               <strong>Using your preferences:</strong>{' '}
-              {resolveTheologyProfile().name} • {resolveBibleVersion().abbreviation} • {resolveAgeGroup().name}
+              {resolveTheologyProfile().name} â€¢ {resolveBibleVersion().abbreviation} â€¢ {resolveAgeGroup().name}
             </div>
           )}
 
@@ -571,11 +562,11 @@ export function ParableGenerator({
             </div>
             <CardDescription className="flex items-center gap-4 text-xs">
               <span>{generatedParable.word_count} words</span>
-              <span>•</span>
+              <span>â€¢</span>
               <span>{(generatedParable.generation_time_ms / 1000).toFixed(1)}s</span>
               {generatedParable.news_source !== 'generated' && (
                 <>
-                  <span>•</span>
+                  <span>â€¢</span>
                   <span className="flex items-center gap-1">
                     <Newspaper className="h-3 w-3" />
                     Inspired by: {generatedParable.news_headline.slice(0, 50)}...

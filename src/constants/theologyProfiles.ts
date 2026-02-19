@@ -1,7 +1,7 @@
-/**
+﻿/**
  * THEOLOGY PROFILES - Single Source of Truth (SSOT)
  * 
- * This file defines all Baptist theology profiles for LessonSparkUSA.
+ * This file defines all Baptist theology profiles for BibleLessonSpark.
  * 
  * ARCHITECTURE:
  * - `summary`: User-facing description (shown in UI)
@@ -35,6 +35,7 @@ export interface TheologyProfile {
   guardrails: string[];
   securityDoctrine: 'eternal' | 'conditional' | 'perseverance';
   tulipStance: 'anti' | 'pro';
+  badgeClass: string;
 }
 
 // ============================================================================
@@ -54,6 +55,7 @@ export const THEOLOGY_PROFILES: TheologyProfile[] = [
     summary: "All Baptists affirm the authority of Scripture, salvation by grace through faith in Christ, believer's baptism by immersion, the autonomy of the local church, two symbolic ordinances, evangelistic responsibility, moral living, and the future return of Christ.",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
     avoidTerminology: [
       // Avoid ALL disputed terminology - Calvinist
       "Total Depravity",
@@ -170,6 +172,7 @@ This profile must EXCLUDE all doctrines not unanimously affirmed across Baptist 
     summary: "A Christ-centered, Scripture-authoritative, evangelistic, missions-minded Southern Baptist doctrinal identity emphasizing universal atonement, human responsibility, believer's baptism, congregational autonomy, eternal security, warm worship, and strong personal discipleship—interpreted through the lens of Christ as the criterion of Scripture.",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-primary-light text-primary border-primary/20',
     avoidTerminology: [
       "Total Depravity",
       "Unconditional Election",
@@ -247,6 +250,7 @@ Warm, pastoral, Christ-centered, Scripture-rooted. Emphasize soul competency, Ch
     summary: "A conservative, Scripture-authoritative, complementarian, evangelistic Southern Baptist doctrinal framework emphasizing biblical inerrancy, universal atonement, salvation by grace through faith, believer's baptism, eternal security, global missions, moral clarity, and congregational autonomy — shaped by the official Baptist Faith & Message (2000).",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-primary-light text-primary border-primary/20',
     avoidTerminology: [
       "Total Depravity",
       "Unconditional Election",
@@ -324,6 +328,7 @@ Biblical, doctrinally clear, conservative, evangelistic. Accuracy, clarity, and 
     summary: "A warm, evangelistic, Scripture-rooted, Christ-centered Baptist doctrinal identity emphasizing universal atonement, genuine human freedom, believer's baptism, congregational autonomy, strong community witness, expressive worship, moral integrity, and holistic Christian mission (personal salvation + community transformation).",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
     avoidTerminology: [
       "Total Depravity",
       "Unconditional Election",
@@ -401,6 +406,7 @@ Warm, pastoral, inspirational, biblically grounded. Emphasize hope, encouragemen
     summary: "A conservative, evangelistic, dispensational, non-charismatic doctrinal baseline emphasizing Scripture authority, unlimited atonement, personal decision for Christ, eternal security, believer's baptism, local church autonomy, and strong separation from secular values.",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-blue-100 text-blue-800 border-accent/50',
     avoidTerminology: [
       "Total Depravity",
       "Total Inability",
@@ -480,6 +486,7 @@ Clear, direct, evangelistic, Scripture-first. Practical application emphasized. 
     summary: "A conservative, evangelistic, missions-driven doctrine emphasizing believer's baptism, local church autonomy, unlimited atonement, personal response to the gospel, eternal security, dispensational leanings, non-charismatic worship, and practical Christian living rooted in Scripture.",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-cyan-100 text-cyan-800 border-cyan-200',
     avoidTerminology: [
       "Total Depravity",
       "Total Inability",
@@ -554,6 +561,7 @@ Clear, evangelistic, practical, warm, and accessible. Emphasis on missions, disc
     summary: "A warm, evangelistic, Arminian Baptist doctrinal baseline emphasizing universal atonement, human freedom, prevenient grace, believer's baptism, local church autonomy, eternal security (modern view), missions, and practical Christian living rooted in Scripture.",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
+    badgeClass: 'bg-teal-100 text-teal-800 border-teal-200',
     avoidTerminology: [
       "Total Depravity",
       "Total Inability",
@@ -628,6 +636,7 @@ Warm, evangelistic, accessible, Scripture-grounded. Practical, encouraging, and 
     summary: "A warm, evangelistic, holiness-focused, Arminian Baptist doctrinal profile emphasizing universal atonement, genuine human free will, prevenient grace, conditional security, believer's baptism, three ordinances (baptism, Lord's Supper, foot washing), local church autonomy, and a life of obedience empowered by the Holy Spirit.",
     securityDoctrine: 'conditional',
     tulipStance: 'anti',
+    badgeClass: 'bg-violet-100 text-violet-800 border-violet-200',
     avoidTerminology: [
       "Total Depravity",
       "Total Inability",
@@ -712,6 +721,7 @@ Warm, evangelistic, holiness-oriented, and practical. Clear moral application. A
     summary: "A deeply Calvinistic, predestinarian, Old School Baptist doctrinal identity emphasizing unconditional election, particular redemption, regeneration without means, absolute security, a cappella worship, local church autonomy, foot washing, and simple, experiential Christian living rooted in Scripture.",
     securityDoctrine: 'perseverance',
     tulipStance: 'pro',
+    badgeClass: 'bg-rose-100 text-rose-800 border-rose-200',
     avoidTerminology: [
       "unlimited atonement",
       "Christ died for all",
@@ -802,6 +812,7 @@ Warm, experiential, reverent, Scripture-saturated. Avoid institutional language.
     summary: "A confessional, sovereign-grace, 1689-aligned theological baseline emphasizing God's exhaustive sovereignty, unconditional election, particular redemption, irresistible grace, covenant theology, plurality of elders, strict congregationalism, and reverent Scripture-regulated worship.",
     securityDoctrine: 'perseverance',
     tulipStance: 'pro',
+    badgeClass: 'bg-secondary-light text-secondary border-secondary/20',
     avoidTerminology: [
       "unlimited atonement",
       "Christ died for all",
@@ -983,3 +994,20 @@ Before outputting the lesson, verify:
 // Legacy export for existing code that expects simple array
 // Uses sorted order to respect displayOrder
 export const THEOLOGY_PROFILE_OPTIONS = getTheologyProfileOptions();
+
+
+// =============================================================================
+// SSOT DEFAULTS AND HELPERS
+// =============================================================================
+
+/** Default theology profile ID - used as fallback across the platform */
+export const DEFAULT_THEOLOGY_PROFILE_ID = 'baptist-core-beliefs';
+
+/** Default badge class for unknown/missing profiles */
+export const DEFAULT_BADGE_CLASS = 'bg-muted text-foreground border-border';
+
+/** Get badge CSS class for a theology profile ID */
+export const getProfileBadgeClass = (profileId: string): string => {
+  const profile = THEOLOGY_PROFILES.find(p => p.id === profileId);
+  return profile?.badgeClass ?? DEFAULT_BADGE_CLASS;
+};

@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Container,
   Head,
@@ -28,10 +28,10 @@ export const SignupConfirmationEmail = ({
 }: SignupConfirmationEmailProps) => (
   <Html>
     <Head />
-    <Preview>Confirm your email to get started with LessonSpark USA</Preview>
+    <Preview>Confirm your email to get started with BibleLessonSpark</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Welcome to LessonSpark USA! 🎓</Heading>
+        <Heading style={h1}>Welcome to BibleLessonSpark! 🎓</Heading>
         <Text style={text}>
           Thank you for signing up! We're excited to help you enhance your Bible study lessons with AI-powered tools.
         </Text>
@@ -53,10 +53,10 @@ export const SignupConfirmationEmail = ({
           {`${supabase_url}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to}`}
         </Text>
         <Text style={footnote}>
-          If you didn't create an account with LessonSpark USA, you can safely ignore this email.
+          If you didn't create an account with BibleLessonSpark, you can safely ignore this email.
         </Text>
         <Text style={footer}>
-          LessonSpark USA - AI-Powered Bible Study Enhancement
+          BibleLessonSpark - AI-Powered Bible Study Enhancement
         </Text>
       </Container>
     </Body>

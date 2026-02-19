@@ -1,4 +1,4 @@
-export const FOOTER_LINKS = {
+﻿export const FOOTER_LINKS = {
   product: {
     features: "/#features",
     pricing: "/pricing",
@@ -7,13 +7,13 @@ export const FOOTER_LINKS = {
   },
   support: {
     help: "/help",
-    contact: "mailto:support@lessonsparkusa.com",
+    contact: "mailto:support@biblelessonspark.com",
     training: "/training",
     community: "/community"
   },
   legal: {
-    privacy: "/privacy-policy",
-    terms: "/terms-of-service",
+    privacy: "/legal/privacy",
+    terms: "/legal/terms",
     cookie: "/legal/cookie"
   }
 };

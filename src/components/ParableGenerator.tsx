@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ParableGenerator.tsx
  * Phase 17.6: Modern Parable Generator UI Component
  * 
@@ -80,7 +80,7 @@ import {
 // ============================================================================
 
 // Standalone context uses Baptist Core Beliefs and WEB silently (not exposed to UI)
-const STANDALONE_THEOLOGY_ID = 'baptist-core-beliefs';
+const STANDALONE_THEOLOGY_ID = DEFAULT_THEOLOGY_PROFILE_ID;
 const STANDALONE_BIBLE_VERSION_ID = 'web';
 
 // ============================================================================

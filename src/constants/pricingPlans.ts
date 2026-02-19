@@ -67,7 +67,7 @@ export const PRICING_PLANS: Record<PlanTier, PricingPlan> = {
   free: {
     id: 'free',
     name: 'Free',
-    description: 'Try LessonSparkUSA with limited features',
+    description: 'Try BibleLessonSpark with limited features',
     stripeProductId: null,
     prices: {
       monthly: { amount: 0, stripePriceId: null },

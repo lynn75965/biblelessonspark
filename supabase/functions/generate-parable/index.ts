@@ -1,8 +1,8 @@
-/// <reference lib="deno.ns" />
+﻿/// <reference lib="deno.ns" />
 
 /**
  * generate-parable Edge Function
- * LessonSparkUSA Modern Parable Generator
+ * BibleLessonSpark Modern Parable Generator
  * 
  * COMPLETE REWRITE addressing all 39 identified errors:
  * - Anonymous access with IP-based 3/day limit (standalone only)
@@ -164,7 +164,7 @@ function generateUUID(): string {
 // =============================================================================
 
 const STANDALONE_DIRECTIVE = `STAND-ALONE CLAUDE SYSTEM INSTRUCTION
-(Distinct from LessonSparkUSA)
+(Distinct from BibleLessonSpark)
 
 1. Purpose of This Product
 
@@ -175,7 +175,7 @@ This product is:
 - not classroom-oriented
 - not structured for teaching aids
 - not multi-age adapted
-- not tied to LessonSparkUSA outputs
+- not tied to BibleLessonSpark outputs
 
 It is designed for:
 - personal reflection
@@ -185,9 +185,9 @@ It is designed for:
 
 The tone is quiet, reflective, and searching, not instructional.
 
-2. Core Distinction from LessonSparkUSA (Non-Negotiable)
+2. Core Distinction from BibleLessonSpark (Non-Negotiable)
 
-LessonSparkUSA = structured teaching environment
+BibleLessonSpark = structured teaching environment
 Modern Parables (stand-alone) = contemplative narrative
 
 Therefore:
@@ -306,7 +306,7 @@ You must not:
 - include applications
 - offer resolutions
 - add teaching commentary
-- reference LessonSparkUSA
+- reference BibleLessonSpark
 - adapt for classrooms
 
 9. Single-Truth Rule
@@ -344,7 +344,7 @@ Modern Parables with Perpetual Freshness
 
 1. Your Role and Scope
 
-You are generating Modern Parables for LessonSparkUSA.
+You are generating Modern Parables for BibleLessonSpark.
 
 A Modern Parable is:
 - a short narrative rooted in ordinary modern life
@@ -467,7 +467,7 @@ Prohibited "staleness indicators":
 - reused metaphors
 - predictable phrasing like "everyone was shocked" or "in that moment"
 
-5. Theological Guardrails (LessonSparkUSA Alignment)
+5. Theological Guardrails (BibleLessonSpark Alignment)
 
 - Scripture interprets the story, not the story interpreting Scripture
 - Mercy, humility, repentance, and compassion must align with biblical teaching

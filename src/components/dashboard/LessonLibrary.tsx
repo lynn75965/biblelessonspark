@@ -1,4 +1,4 @@
-/**
+﻿/**
  * LessonLibrary Component
  * Browse and manage saved Baptist Bible study lessons
  * 
@@ -42,7 +42,7 @@ import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { Lesson } from "@/constants/contracts";
 import { AGE_GROUPS } from "@/constants/ageGroups";
-import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile } from "@/constants/theologyProfiles";
+import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
 
 // ============================================================================
 // INTERFACES
@@ -90,20 +90,7 @@ const AGE_GROUP_BADGE_COLOR_MAP: Record<string, string> = {
   "mixed": "bg-muted text-foreground border-border",
 };
 
-const THEOLOGY_BADGE_COLOR_MAP: Record<string, string> = {
-  "baptist-core-beliefs": "bg-amber-100 text-amber-800 border-amber-200",
-  "southern-baptist-bfm-1963": "bg-primary-light text-primary border-primary/20",
-  "southern-baptist-bfm-2000": "bg-primary-light text-primary border-primary/20",
-  "national-baptist-convention": "bg-emerald-100 text-emerald-800 border-emerald-200",
-  "independent-baptist": "bg-blue-100 text-blue-800 border-accent/50",
-  "missionary-baptist": "bg-cyan-100 text-cyan-800 border-cyan-200",
-  "general-baptist": "bg-teal-100 text-teal-800 border-teal-200",
-  "free-will-baptist": "bg-violet-100 text-violet-800 border-violet-200",
-  "primitive-baptist": "bg-rose-100 text-rose-800 border-rose-200",
-  "reformed-baptist": "bg-secondary-light text-secondary border-secondary/20",
-};
-
-const DEFAULT_BADGE_COLOR = "bg-muted text-foreground border-border";
+// SSOT: Theology badge colors now served by getProfileBadgeClass() from theologyProfiles.ts
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -250,11 +237,11 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   });
 
   const getAgeGroupBadgeColor = (ageGroup: string): string => {
-    return AGE_GROUP_BADGE_COLOR_MAP[ageGroup] || DEFAULT_BADGE_COLOR;
+    return AGE_GROUP_BADGE_COLOR_MAP[ageGroup] || DEFAULT_BADGE_CLASS;
   };
 
   const getProfileBadgeColor = (profileId: string): string => {
-    return THEOLOGY_BADGE_COLOR_MAP[profileId] || DEFAULT_BADGE_COLOR;
+    return getProfileBadgeClass(profileId);
   };
 
   const getProfileDisplayName = (profileId: string): string => {

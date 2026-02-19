@@ -1,6 +1,6 @@
-// ============================================================================
+﻿// ============================================================================
 // SSOT: Trial Feature Configuration
-// LessonSparkUSA - Master Definition
+// BibleLessonSpark - Master Definition
 // Database columns store data; THIS FILE defines logic and rules
 // Mirror: supabase/functions/_shared/trialConfig.ts
 // DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants

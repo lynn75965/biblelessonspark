@@ -1,5 +1,5 @@
-/**
- * LessonSparkUSA Constants - Age Groups
+﻿/**
+ * BibleLessonSpark Constants - Age Groups
  *
  * SINGLE SOURCE OF TRUTH for all age group data.
  * Includes display labels, descriptions, and teaching profiles.

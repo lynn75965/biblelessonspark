@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Sparkles, Users, Clock, Star } from "lucide-react";
@@ -36,7 +36,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
     ? tenant.beta.landingPage.trustText
     : tenant.production.landingPage.trustText;
 
-  // SSOT: Headline font from brand-values.json (primary = Inter/sans-serif to match lessonsparkusa.com)
+  // SSOT: Headline font from brand-values.json (primary = Inter/sans-serif to match biblelessonspark.com)
   const headlineFont = brandValues.typography.fontFamily.primary;
 
   return (

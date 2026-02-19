@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CORS Configuration (SSOT)
  *
  * Single Source of Truth for allowed origins across all Edge Functions.
@@ -15,8 +15,6 @@
 export const PRODUCTION_ORIGINS = [
   'https://biblelessonspark.com',
   'https://www.biblelessonspark.com',
-  'https://lessonsparkusa.com',
-  'https://www.lessonsparkusa.com',
 ] as const;
 /**
  * Development origins - allowed for local testing

@@ -1,4 +1,4 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
@@ -36,7 +36,7 @@ import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } fr
 
 // Legacy corsHeaders for backward compatibility - dynamic version preferred
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://lessonsparkusa.com',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://biblelessonspark.com',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
@@ -624,7 +624,7 @@ serve(async (req) => {
 
     const copyrightGuardrails = generateCopyrightGuardrails(bibleVersion.id);
 
-    const systemPrompt = `You are a Baptist Bible study lesson generator using the LessonSparkUSA Framework.
+    const systemPrompt = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
 
 -------------------------------------------------------------------------------
 THEOLOGY PROFILE: ${theologyProfile.name}

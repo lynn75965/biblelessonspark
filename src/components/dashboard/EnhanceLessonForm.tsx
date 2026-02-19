@@ -1,4 +1,4 @@
-/**
+﻿/**
  * EnhanceLessonForm Component
  * Main form for generating Baptist-enhanced Bible study lessons
  *
@@ -985,7 +985,6 @@ export function EnhanceLessonForm({
             title: "Series Style Captured ?",
             description: `Style saved for "${selectedSeries.series_name}". Lessons 2+ will automatically match this approach.`,
           });
-          console.log('Style metadata stored in series:', result.data.style_metadata);
         }
 
         // SERIES MODE: Link lesson to series and add summary
@@ -1950,7 +1949,7 @@ export function EnhanceLessonForm({
                   <span className="text-sm font-semibold text-foreground">Choose a Teaching Shape</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Reshape this lesson into a different pedagogical format. All content is preserved � only the structure changes.
+                  Reshape this lesson into a different pedagogical format. All content is preserved — only the structure changes.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select value={selectedShapeForReshape} onValueChange={setSelectedShapeForReshape}>

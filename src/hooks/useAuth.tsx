@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+﻿import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -117,7 +117,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!error) {
         // Log successful login attempt
-        console.log('Login attempt for:', email);
       }
       
       return { error };

@@ -1,5 +1,5 @@
-// ============================================================
-// LESSONSPARK USA - ORGANIZATION POOL CHECK (SHARED)
+﻿// ============================================================
+// BIBLELESSONSPARK - ORGANIZATION POOL CHECK (SHARED)
 // Location: supabase/functions/_shared/orgPoolCheck.ts
 //
 // SSOT COMPLIANCE:

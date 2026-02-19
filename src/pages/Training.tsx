@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,7 +122,7 @@ const Training = () => {
     },
     {
       title: "Provide Feedback",
-      description: "Use the feedback button to help us improve. Your insights shape the future of LessonSpark for all Baptist teachers."
+      description: "Use the feedback button to help us improve. Your insights shape the future of BibleLessonSpark for all Baptist teachers."
     }
   ];
 
@@ -212,7 +212,7 @@ const Training = () => {
           <div className="text-center mb-8">
             <Badge variant="outline" className="mb-4">Coming Soon</Badge>
             <h2 className="text-2xl font-bold">Video Tutorials</h2>
-            <p className="text-muted-foreground mt-2">Visual guides to help you get the most from LessonSpark</p>
+            <p className="text-muted-foreground mt-2">Visual guides to help you get the most from BibleLessonSpark</p>
           </div>
           
           <div className="grid sm:grid-cols-3 gap-6">

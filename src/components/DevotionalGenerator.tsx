@@ -1,4 +1,4 @@
-/**
+﻿/**
  * DevotionalGenerator Component
  * 
  * Generates personal devotionals anchored to lessons.
@@ -46,6 +46,7 @@ import {
 import { UI_SYMBOLS } from "@/constants/uiSymbols";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 import { ROUTES } from "@/constants/routes";
+import { DEFAULT_THEOLOGY_PROFILE_ID } from "@/constants/theologyProfiles";
 
 // ============================================================================
 // INTERFACES
@@ -78,7 +79,7 @@ export function DevotionalGenerator() {
   const lessonTitle = searchParams.get("lessonTitle") || "";
   const passage = searchParams.get("passage") || "";
   const theme = searchParams.get("theme") || "";
-  const theologyProfile = searchParams.get("theologyProfile") || "baptist-core-beliefs";
+  const theologyProfile = searchParams.get("theologyProfile") || DEFAULT_THEOLOGY_PROFILE_ID;
   const ageGroup = searchParams.get("ageGroup") || "";
   const bibleVersion = searchParams.get("bibleVersion") || "kjv";
 

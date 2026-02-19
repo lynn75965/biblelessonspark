@@ -1,11 +1,11 @@
-/**
+﻿/**
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/ageGroups.ts
  * Generated: 2026-01-28T22:25:06.605Z
  */
 /**
- * LessonSparkUSA Constants - Age Groups
+ * BibleLessonSpark Constants - Age Groups
  *
  * SINGLE SOURCE OF TRUTH for all age group data.
  * Includes display labels, descriptions, and teaching profiles.

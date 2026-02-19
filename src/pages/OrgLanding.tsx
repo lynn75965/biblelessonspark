@@ -1,4 +1,4 @@
-// src/pages/OrgLanding.tsx
+﻿// src/pages/OrgLanding.tsx
 // Self-Service Shepherd Entry Point - Landing Page
 // Stack 2: Shepherd (Org Manager) - Ministry leaders managing their teaching ministry
 //
@@ -401,10 +401,10 @@ const OrgLanding = () => {
             © {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm">
-            <a href="/legal/privacy" className="text-muted-foreground hover:text-foreground">
+            <a href={ROUTES.PRIVACY} className="text-muted-foreground hover:text-foreground">
               Privacy
             </a>
-            <a href="/legal/terms" className="text-muted-foreground hover:text-foreground">
+            <a href={ROUTES.TERMS} className="text-muted-foreground hover:text-foreground">
               Terms
             </a>
             <a href="/help?scrollTo=organizations-shepherds" className="text-muted-foreground hover:text-foreground">

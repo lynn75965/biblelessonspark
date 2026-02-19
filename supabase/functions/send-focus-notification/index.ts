@@ -158,7 +158,7 @@ const handler = async (req: Request): Promise<Response> => {
           : `New Focus Set for ${orgName}`;
 
         const { error: emailError } = await resend.emails.send({
-          from: "LessonSpark USA <noreply@lessonsparkusa.com>",
+          from: "BibleLessonSpark <noreply@biblelessonspark.com>",
           to: member.email,
           subject,
           html: emailHtml,

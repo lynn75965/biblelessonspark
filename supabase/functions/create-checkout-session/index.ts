@@ -1,5 +1,5 @@
 ﻿// ============================================================
-// LESSONSPARK USA - CREATE CHECKOUT SESSION
+// BIBLELESSONSPARK - CREATE CHECKOUT SESSION
 // Location: supabase/functions/create-checkout-session/index.ts
 // ============================================================
 

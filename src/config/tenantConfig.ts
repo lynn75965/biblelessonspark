@@ -182,7 +182,7 @@ export interface TenantConfigRow {
   updated_at: string;
 }
 
-export const DEFAULT_TENANT_ID = "lessonsparkusa";
+export const DEFAULT_TENANT_ID = "biblelessonspark";
 
 export const DEFAULT_TENANT_CONFIG: TenantConfig = {
   tenantId: DEFAULT_TENANT_ID,
@@ -213,11 +213,11 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       ctaTitle: "Get Started Free",
       ctaSubtitle: "Create engaging Bible study lessons for your Sunday School class in minutes.",
       ctaButton: "Get Started Free",
-      trustText: "Join hundreds of Baptist teachers already using LessonSpark USA",
+      trustText: "Join hundreds of Baptist teachers already using BibleLessonSpark",
       badgeText: "Public Beta • Free for Baptist Teachers",
     },
     form: {
-      title: "Join LessonSpark USA",
+      title: "Join BibleLessonSpark",
       subtitle: "Start creating Bible study lessons in minutes.",
       fullNameLabel: "Full Name",
       fullNamePlaceholder: "Enter your full name",
@@ -244,7 +244,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       dismissButton: "Maybe Later",
     },
     messages: {
-      enrollmentSuccessTitle: "Welcome to LessonSpark USA!",
+      enrollmentSuccessTitle: "Welcome to BibleLessonSpark!",
       enrollmentSuccessDescription: "Your account has been created. Check your email to verify your account.",
       enrollmentErrorTitle: "Enrollment Failed",
       enrollmentErrorDescription: "Something went wrong. Please try again or contact support.",
@@ -313,7 +313,7 @@ export const FEATURE_FLAGS = [
     key: "whiteLabel" as const,
     dbKey: "feature_white_label" as const,
     label: "White Label Mode",
-    description: "Remove LessonSparkUSA branding for enterprise clients",
+    description: "Remove BibleLessonSpark branding for enterprise clients",
   },
 ] as const;
 
@@ -343,7 +343,7 @@ export const BETA_FIELD_GROUPS = {
     label: "Enrollment Form",
     description: "Labels and placeholders for the enrollment form",
     fields: [
-      { key: "title", label: "Form Title", placeholder: "Join LessonSpark USA" },
+      { key: "title", label: "Form Title", placeholder: "Join BibleLessonSpark" },
       { key: "subtitle", label: "Form Subtitle", placeholder: "Start creating Bible study lessons..." },
       { key: "fullNameLabel", label: "Full Name Label", placeholder: "Full Name" },
       { key: "fullNamePlaceholder", label: "Full Name Placeholder", placeholder: "Enter your full name" },
@@ -378,7 +378,7 @@ export const BETA_FIELD_GROUPS = {
     label: "Status Messages",
     description: "Success, error, and status messages",
     fields: [
-      { key: "enrollmentSuccessTitle", label: "Success Title", placeholder: "Welcome to LessonSpark USA!" },
+      { key: "enrollmentSuccessTitle", label: "Success Title", placeholder: "Welcome to BibleLessonSpark!" },
       { key: "enrollmentSuccessDescription", label: "Success Description", placeholder: "Your account has been created..." },
       { key: "enrollmentErrorTitle", label: "Error Title", placeholder: "Enrollment Failed" },
       { key: "enrollmentErrorDescription", label: "Error Description", placeholder: "Something went wrong..." },

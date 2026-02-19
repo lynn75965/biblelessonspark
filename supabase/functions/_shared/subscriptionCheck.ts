@@ -1,5 +1,5 @@
-// ============================================================
-// LESSONSPARK USA - SUBSCRIPTION CHECK (SHARED)
+﻿// ============================================================
+// BIBLELESSONSPARK - SUBSCRIPTION CHECK (SHARED)
 // Location: supabase/functions/_shared/subscriptionCheck.ts
 //
 // SSOT COMPLIANT: Imports tier sections from pricingConfig.ts

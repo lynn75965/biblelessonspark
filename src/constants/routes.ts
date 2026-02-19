@@ -1,4 +1,4 @@
-// SSOT MASTER: Frontend route definitions
+﻿// SSOT MASTER: Frontend route definitions
 // Backend mirror: supabase/functions/_shared/routes.ts
 // Last updated: 2026-02-11
 
@@ -31,9 +31,15 @@ export const ROUTES = {
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',
   
+  // Organization routes
+  ORG_SETUP: '/org/setup',
+  ORG_SUCCESS: '/org/success',
+  ORG_MANAGER: '/org-manager',
+  // Teaching Team
+  TEACHING_TEAM: '/teaching-team',
   // Legal routes
-  PRIVACY: '/privacy-policy',
-  TERMS: '/terms-of-service',
+  PRIVACY: '/legal/privacy',
+  TERMS: '/legal/terms',
   COOKIE: '/legal/cookie',
 } as const;
 
@@ -66,7 +72,7 @@ export const DASHBOARD_TAB_VALUES = {
 
 /**
  * Build a complete invite URL for email links
- * @param baseUrl - The site base URL (e.g., https://lessonsparkusa.com)
+ * @param baseUrl - The site base URL (e.g., https://biblelessonspark.com)
  * @param token - The invite token UUID
  * @returns Complete invite URL
  */

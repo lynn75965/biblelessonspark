@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -126,7 +126,7 @@ const Setup = () => {
     {
       icon: Lightbulb,
       title: "Start Simple",
-      description: "Begin with a familiar passage to see how LessonSpark enhances your existing knowledge."
+      description: "Begin with a familiar passage to see how BibleLessonSpark enhances your existing knowledge."
     },
     {
       icon: Clock,
