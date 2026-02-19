@@ -1,7 +1,9 @@
+
 // =============================================================================
 // ORGANIZATION VALIDATION CONSTANTS
 // SSOT Reference: Phase 11-B1 Org Leader Activation
 // =============================================================================
+
 export const ORGANIZATION_VALIDATION = {
   // Organization name
   NAME_MIN_LENGTH: 3,
@@ -21,20 +23,24 @@ export type OrganizationStatus = typeof ORGANIZATION_VALIDATION.STATUS_VALUES[nu
 // Re-export ORG_ROLES from accessControl for validation use
 export { ORG_ROLES } from './accessControl';
 
-// Denomination options for organizations (SSOT)
+// Denomination options for organizations (SSOT for org signup)
+// Cross-reference: theologyProfiles.ts owns theology profile definitions.
+// Denomination != theology profile (one denomination may map to multiple profiles,
+// e.g., "Southern Baptist Convention" maps to BF&M 1963 and BF&M 2000).
+// "Other Baptist" has no dedicated profile — uses Baptist Core Beliefs default.
 export const DENOMINATION_OPTIONS = [
   "Southern Baptist Convention",
   "National Baptist",
   "Independent Baptist",
-  "Reformed Baptist",
-  "General Baptist",
   "Missionary Baptist",
+  "General Baptist",
+  "Free Will Baptist",
   "Primitive Baptist",
-  "Other",
+  "Reformed Baptist",
+  "Other Baptist",
 ] as const;
 
 export type DenominationType = typeof DENOMINATION_OPTIONS[number];
-
 // =============================================================================
 // PASSWORD VALIDATION CONSTANTS
 // SSOT Reference: Phase 12 - Beta User Authentication

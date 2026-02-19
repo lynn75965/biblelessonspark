@@ -1,3 +1,9 @@
+/**
+ * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
+ *
+ * Source: src/constants/bibleVersions.ts
+ * Generated: 2026-02-19
+ */
 // =============================================================================
 // BIBLE VERSIONS - Single Source of Truth (SSOT)
 // =============================================================================
@@ -9,7 +15,8 @@
 // 2. Run `npm run sync-constants` to update backend mirror
 // 3. NEVER edit the backend mirror directly
 //
-// UPDATED: January 2026
+// UPDATED: February 2026
+// - Added Amplified Bible (AMP) as 9th version (Lockman Foundation, same fair use as NASB)
 // - Changed all versions to allow direct quotation (up to 10 verses per lesson)
 // - Added usageHint for user-friendly copyright guidance
 // - All copyrighted versions now within fair use thresholds
@@ -144,6 +151,19 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     displayOrder: 8,
     isDefault: false,
     description: 'Thought-for-thought translation emphasizing clarity. Direct quotation permitted within fair use guidelines.'
+  },
+  {
+    id: 'amp',
+    name: 'Amplified Bible',
+    abbreviation: 'AMP',
+    copyrightStatus: 'copyrighted',
+    quoteType: 'direct',
+    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    copyrightHolder: 'The Lockman Foundation',
+    copyrightNotice: 'Scripture quotations taken from the Amplified® Bible (AMP), Copyright © 2015 by The Lockman Foundation. Used by permission. www.lockman.org',
+    displayOrder: 9,
+    isDefault: false,
+    description: 'Expanded translation with inline amplifications for deeper meaning. Direct quotation permitted within fair use guidelines.'
   }
 ];
 
