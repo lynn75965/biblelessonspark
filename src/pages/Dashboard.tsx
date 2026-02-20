@@ -5,14 +5,13 @@ import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { BRANDING } from "@/config/branding";
 import { DASHBOARD_TABS, DASHBOARD_TEXT } from "@/constants/dashboardConfig";
-import { WORKSPACE_QUERY_PARAMS, WORKSPACE_TABS } from "@/constants/routes";
+import { DASHBOARD_QUERY_PARAMS, DASHBOARD_TAB_VALUES } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
-import { WorkspaceSettingsPanel } from "@/components/workspace/WorkspaceSettingsPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,10 +78,10 @@ export default function Dashboard() {
 
   // Handle URL query parameters (SSOT: routes.ts)
   useEffect(() => {
-    const tabParam = searchParams.get(WORKSPACE_QUERY_PARAMS.TAB);
-    const viewLessonId = searchParams.get(WORKSPACE_QUERY_PARAMS.VIEW_LESSON);
+    const tabParam = searchParams.get(DASHBOARD_QUERY_PARAMS.TAB);
+    const viewLessonId = searchParams.get(DASHBOARD_QUERY_PARAMS.VIEW_LESSON);
     
-    const validTabs = Object.values(WORKSPACE_TABS);
+    const validTabs = Object.values(DASHBOARD_TAB_VALUES);
     if (tabParam && validTabs.includes(tabParam as any)) {
       setActiveTab(tabParam);
     }
@@ -274,7 +273,7 @@ export default function Dashboard() {
               className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap"
             >
               <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Enhance Lesson</span>
+              <span className="hidden sm:inline">Build Lesson</span>
             </TabsTrigger>
             <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BookOpen className="h-4 w-4 flex-shrink-0" />
@@ -284,11 +283,7 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Devotional Library</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Settings className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Settings</span>
-            </TabsTrigger>
-          </TabsList>
+</TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
@@ -362,31 +357,7 @@ export default function Dashboard() {
           <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
           </TabsContent>
-
-          <TabsContent value="settings" className="mt-6 relative z-0">
-            {/* User Profile Card — opens expanded Profile modal */}
-            <Card className="bg-gradient-card mb-6">
-              <CardHeader>
-                <CardTitle>User Profile</CardTitle>
-                <CardDescription>Your identity and personal defaults — Bible version, theology profile, language</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Workspace</span>
-                    <Badge variant="outline">Personal</Badge>
-                  </div>
-                  <Button variant="outline" className="w-full" onClick={() => setShowProfileModal(true)}>
-                    Update Profile
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Settings — lesson defaults, teaching context, export, notifications */}
-            <WorkspaceSettingsPanel />
-          </TabsContent>
-        </Tabs>
+</Tabs>
       </main>
 
       <Footer />
@@ -437,6 +408,7 @@ export default function Dashboard() {
     </div>
   );
 }
+
 
 
 
