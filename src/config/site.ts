@@ -1,6 +1,8 @@
+import { BRANDING } from "@/config/branding";
+
 export const SITE = {
-  name: "BibleLessonSpark",
-  tagline: "Personalized Bible Study Lessons for Baptist Teachers",
-  supportEmail: "support@biblelessonspark.com",
-  url: "https://biblelessonspark.com"
+  name: BRANDING.appName,
+  tagline: BRANDING.tagline,
+  supportEmail: BRANDING.contact.supportEmail,
+  url: BRANDING.urls.baseUrl,
 };

@@ -315,8 +315,8 @@ export const DATE_FILTER_OPTIONS = [
 
 export const EXPORT_CONFIG = {
   filename: CURRENT_FEEDBACK_MODE === 'beta' 
-    ? 'lessonspark_beta_feedback' 
-    : 'lessonspark_user_feedback',
+    ? 'biblelessonspark_beta_feedback' 
+    : 'biblelessonspark_user_feedback',
   includeTimestamp: true,
   dateFormat: 'YYYY-MM-DD HH:mm',
 } as const;
