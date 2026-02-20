@@ -1,6 +1,6 @@
-﻿// SSOT MASTER: Frontend route definitions
+// SSOT MASTER: Frontend route definitions
 // Backend mirror: supabase/functions/_shared/routes.ts
-// Last updated: 2026-02-11
+// Last updated: 2026-02-20
 
 /**
  * Application route paths
@@ -21,8 +21,6 @@ export const ROUTES = {
   
   // Protected routes
   DASHBOARD: '/dashboard',
-  CREATE_LESSON: '/create',
-  MY_LESSONS: '/lessons',
   ORG: '/org',
   ADMIN: '/admin',
   ADMIN_TOOLBELT: '/admin/toolbelt',
@@ -30,6 +28,7 @@ export const ROUTES = {
   BETA_SIGNUP: '/beta-signup',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',
+  DEVOTIONALS: '/devotionals',
   
   // Organization routes
   ORG_SETUP: '/org/setup',
@@ -82,7 +81,3 @@ export const buildInviteUrl = (baseUrl: string, token: string): string => {
 
 export type RouteKey = keyof typeof ROUTES;
 export type RoutePath = typeof ROUTES[RouteKey];
-
-
-
-

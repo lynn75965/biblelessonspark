@@ -19,6 +19,9 @@ import Docs from "./pages/Docs";
 import Help from "./pages/Help";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
+import PricingPage from "./pages/PricingPage";
+import BetaSignup from "./pages/BetaSignup";
+import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Cookie from "./pages/legal/Cookie";
@@ -51,6 +54,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/pricing" element={<PricingPage />} />
             <Route 
               path={ROUTES.DASHBOARD} 
               element={
@@ -76,6 +80,14 @@ const App = () => (
               } 
             />
             <Route 
+              path="/admin/beta-metrics" 
+              element={
+                <ProtectedRoute>
+                  <AdminBetaMetrics />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/account" 
               element={
                 <ProtectedRoute>
@@ -89,6 +101,11 @@ const App = () => (
             <Route path="/preferences/lens" element={
               <ProtectedRoute>
                 <PreferencesLens />
+              </ProtectedRoute>
+            } />
+            <Route path="/beta-signup" element={
+              <ProtectedRoute>
+                <BetaSignup />
               </ProtectedRoute>
             } />
             <Route path="/docs" element={<Docs />} />
@@ -141,5 +158,3 @@ const App = () => (
 );
 
 export default App;
-
-
