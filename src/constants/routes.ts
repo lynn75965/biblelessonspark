@@ -28,6 +28,7 @@ export const ROUTES = {
   BETA_SIGNUP: '/beta-signup',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',
+  PARABLES: '/parables',
   DEVOTIONALS: '/devotionals',
   
   // Organization routes
@@ -61,12 +62,14 @@ export const DASHBOARD_QUERY_PARAMS = {
 
 /**
  * Valid dashboard tab values
+ * NOTE: BUILD value is 'enhance' for URL backward-compatibility.
+ * Display label "Build Lesson" lives in dashboardConfig.ts (SSOT).
+ * Settings tab removed Feb 14, 2026 - profile moved to modal.
  */
 export const DASHBOARD_TAB_VALUES = {
-  ENHANCE: 'enhance',
+  BUILD: 'enhance',
   LIBRARY: 'library',
   DEVOTIONAL_LIBRARY: 'devotional-library',
-  SETTINGS: 'settings',
 } as const;
 
 /**
