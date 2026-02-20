@@ -12,7 +12,7 @@
  * - Added shaped_content and shape_id to Lesson interface
  * - Updated LessonGenerationRequest, LessonGenerationResponse, LessonFilters
  * - Added UserProfile interface matching profiles table schema
- * - Added BibleVersionKey type for the 8 supported translations
+ * - Added BibleVersionKey type for the 9 supported translations
  * 
  * CROSS-FILE DEPENDENCIES:
  * - ageGroups.ts imports: AgeGroup, TeachingProfile
@@ -113,7 +113,7 @@ export type TulipStance = 'anti' | 'pro';
  * KJV is public domain (direct quotes allowed).
  * All others require paraphrase for copyright compliance.
  */
-export type BibleVersionKey = 'kjv' | 'nkjv' | 'esv' | 'nasb' | 'niv' | 'csb' | 'nlt' | 'amp';
+export type BibleVersionKey = 'kjv' | 'web' | 'nkjv' | 'esv' | 'nasb' | 'niv' | 'csb' | 'nlt' | 'amp';
 
 /** The default Bible version */
 export const DEFAULT_BIBLE_VERSION: BibleVersionKey = 'nasb';
@@ -145,11 +145,11 @@ export const DEFAULT_LANGUAGE: LanguageKey = 'en';
  * live in lessonShapeProfiles.ts. This type covers just the ID.
  */
 export type LessonShapeId =
-  | 'passage-walk-through'      // Verse-by-verse guided study
-  | 'life-connection'           // Real-life situation → Scripture → response
-  | 'gospel-centered'           // Creation–Fall–Redemption–Restoration arc
-  | 'focus-discover-respond'    // Three-movement: focus → discover → respond
-  | 'story-driven';             // Narrative experience; truth from story
+  | 'passage_walkthrough'      // Verse-by-verse guided study
+  | 'life_connection'           // Real-life situation → Scripture → response
+  | 'gospel_centered'           // Creation–Fall–Redemption–Restoration arc
+  | 'focus_discover_respond'    // Three-movement: focus → discover → respond
+  | 'story_driven';             // Narrative experience; truth from story
 
 // ============================================================================
 // TIER 2: Teacher Preference Contracts
@@ -328,7 +328,7 @@ export interface Lesson {
   theology_profile_id?: TheologyProfileId | null;
   /** Reshaped lesson content (null = not reshaped) */
   shaped_content?: string | null;
-  /** ID of the shape used for reshaping (e.g., 'passage-walk-through') */
+  /** ID of the shape used for reshaping (e.g., 'passage_walkthrough') */
   shape_id?: LessonShapeId | null;
   metadata?: {
     teaser?: string | null;
