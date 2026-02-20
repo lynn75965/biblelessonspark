@@ -1,13 +1,13 @@
-﻿/**
+/**
  * ParableGenerator.tsx
  * Phase 17.6: Modern Parable Generator UI Component
  * 
  * DUAL CONTEXT ARCHITECTURE:
  * 
- * 1. LESSONSPARK CONTEXT
+ * 1. TEACHING CONTEXT
  *    - Inherits settings from lesson (passage, theology, age group, Bible version)
  *    - Shows collapsed summary with "Customize" toggle
- *    - Uses LESSONSPARK_DIRECTIVE for teaching parables
+ *    - Uses TEACHING_DIRECTIVE for teaching parables
  *    - User can override via explicit checkbox
  * 
  * 2. STANDALONE CONTEXT  
@@ -212,7 +212,7 @@ export function ParableGenerator({
   onParableGenerated 
 }: ParableGeneratorProps) {
   const { toast } = useToast();
-  const isLessonSparkContext = context === 'lessonspark' && !!lessonSettings;
+  const isTeachingContext = context === 'teaching' && !!lessonSettings;
   
   // =========================================================================
   // STATE
@@ -227,7 +227,7 @@ export function ParableGenerator({
   const [modernSettingId, setModernSettingId] = useState('family');
   const [wordCountTargetId, setWordCountTargetId] = useState('standard');
   
-  // Override settings (for LessonSpark context)
+  // Override settings (for TEACHING CONTEXT)
   const [customizeSettings, setCustomizeSettings] = useState(false);
   const [overrideTheologyId, setOverrideTheologyId] = useState(lessonSettings?.theologyProfile || '');
   const [overrideAgeGroupId, setOverrideAgeGroupId] = useState(lessonSettings?.ageGroup || '');
@@ -319,7 +319,7 @@ export function ParableGenerator({
   // =========================================================================
 
   function getEffectiveTheologyId(): string {
-    if (isLessonSparkContext) {
+    if (isTeachingContext) {
       return customizeSettings ? overrideTheologyId : (lessonSettings?.theologyProfile || getDefaultTheologyProfile().id);
     }
     // Standalone: Always use Baptist Core Beliefs (applied silently)
@@ -327,14 +327,14 @@ export function ParableGenerator({
   }
 
   function getEffectiveAgeGroupId(): string {
-    if (isLessonSparkContext) {
+    if (isTeachingContext) {
       return customizeSettings ? overrideAgeGroupId : (lessonSettings?.ageGroup || getDefaultAgeGroup().id);
     }
     return standaloneAgeGroupId || getDefaultAgeGroup().id;
   }
 
   function getEffectiveBibleVersionId(): string {
-    if (isLessonSparkContext) {
+    if (isTeachingContext) {
       return customizeSettings ? overrideBibleVersionId : (lessonSettings?.bibleVersion || getDefaultBibleVersion().id);
     }
     // Standalone: Always use WEB (applied silently)
@@ -467,7 +467,7 @@ export function ParableGenerator({
         modern_setting: resolveModernSetting(),
         word_count_target: resolveWordCountTarget(),
         age_group: resolveAgeGroup(),
-        lesson_id: isLessonSparkContext ? lessonSettings?.lessonId : undefined,
+        lesson_id: isTeachingContext ? lessonSettings?.lessonId : undefined,
       };
 
       const { data, error: fnError } = await supabase.functions.invoke('generate-parable', {
@@ -571,10 +571,10 @@ export function ParableGenerator({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            {isLessonSparkContext ? 'Generate Teaching Parable' : 'Create Your Parable'}
+            {isTeachingContext ? 'Generate Teaching Parable' : 'Create Your Parable'}
           </CardTitle>
           <CardDescription>
-            {isLessonSparkContext
+            {isTeachingContext
               ? 'Create a contemporary parable that reinforces your lesson\'s biblical teaching.'
               : 'Enter a Bible passage or spiritual theme to generate a modern parable.'
             }
@@ -607,10 +607,10 @@ export function ParableGenerator({
         <CardContent className="space-y-6">
           
           {/* ============================================================= */}
-          {/* LESSONSPARK CONTEXT: Show Lesson Settings */}
+          {/* TEACHING CONTEXT: Show Lesson Settings */}
           {/* ============================================================= */}
           
-          {isLessonSparkContext && (
+          {isTeachingContext && (
             <>
               {/* Lesson Context Banner */}
               <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-accent/50 dark:border-blue-800 rounded-lg">
@@ -698,7 +698,7 @@ export function ParableGenerator({
           {/* STANDALONE CONTEXT: Bible Passage + Age Group Only */}
           {/* ============================================================= */}
           
-          {!isLessonSparkContext && (
+          {!isTeachingContext && (
             <>
               {/* Bible Passage Input */}
               <div className="space-y-2">
@@ -836,7 +836,7 @@ export function ParableGenerator({
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Generate {isLessonSparkContext ? 'Teaching' : 'Modern'} Parable
+                Generate {isTeachingContext ? 'Teaching' : 'Modern'} Parable
               </>
             )}
           </Button>
@@ -901,7 +901,7 @@ export function ParableGenerator({
                         rel="noopener noreferrer"
                         className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline"
                       >
-                        View original article â†’
+                        View original article →
                       </a>
                     )}
                   </div>

@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * BibleLessonSpark Constants - Parable Directives
  *
  * SINGLE SOURCE OF TRUTH for Modern Parable generation directives.
@@ -15,7 +15,7 @@
 // DIRECTIVE TYPES
 // =============================================================================
 
-export type ParableContext = 'standalone' | 'lessonspark';
+export type ParableContext = 'standalone' | 'teaching';
 
 export interface ParableDirective {
   id: ParableContext;
@@ -128,10 +128,10 @@ One Scripture. Scripture closes the parable. No commentary afterward.
 
 Each parable must include one subtle attribution line, either at the beginning or end:
 
-Inspired by real-life situations reported in MMâ€“YYYY within [general locale].
+Inspired by real-life situations reported in MM–YYYY within [general locale].
 
 Rules:
-- Monthâ€“Year only
+- Month–Year only
 - Geographic region only
 - No media names
 - No real people or organizations
@@ -226,16 +226,16 @@ Speak softly. Let the heart listen. Let Scripture speak last.`,
 };
 
 // =============================================================================
-// LESSONSPARK DIRECTIVE (Teaching Context)
+// TEACHING DIRECTIVE (Teaching Context)
 // =============================================================================
 
-export const LESSONSPARK_DIRECTIVE: ParableDirective = {
-  id: 'lessonspark',
+export const TEACHING_DIRECTIVE: ParableDirective = {
+  id: 'teaching',
   name: 'BibleLessonSpark Modern Parable',
   description: 'Teaching parable for volunteer Bible teachers and church settings',
   systemInstruction: `MASTER CLAUDE SYSTEM INSTRUCTION
 Modern Parables with Perpetual Freshness
-(Authoritative â€” Non-Negotiable)
+(Authoritative — Non-Negotiable)
 
 1. Your Role and Scope
 
@@ -255,7 +255,7 @@ You are not writing:
 - news analysis
 - allegories with explained symbols
 
-You are writing parable mirrors â€” stories that allow the listener to recognize themselves before recognizing the lesson.
+You are writing parable mirrors — stories that allow the listener to recognize themselves before recognizing the lesson.
 
 2. Non-Negotiable Structural Framework
 
@@ -305,7 +305,7 @@ Do not over-explain.
 
 **The Question That Searches the Listener**
 Jesus-style intent: Force self-examination, not agreement.
-Ask 1â€“2 probing questions.
+Ask 1–2 probing questions.
 No yes/no questions.
 No rhetorical answers.
 Questions must turn the story outward toward the listener.
@@ -323,10 +323,10 @@ Introduce with a brief framing line only if necessary.
 
 Each Modern Parable must include one attribution line at the top or bottom:
 
-Inspired by real-life situations reported in MMâ€“YYYY within [general locale].
+Inspired by real-life situations reported in MM–YYYY within [general locale].
 
 Rules:
-- Monthâ€“Year only (MMâ€“YYYY)
+- Month–Year only (MM–YYYY)
 - Geographic reference only (city/region/state/country)
 - Never name news outlets
 - Never name real people or organizations
@@ -407,10 +407,10 @@ When generating a Modern Parable:
 - Use the exact section labels above
 - Include the attribution line
 - Maintain consistent length and tone
-- Deliver the parable only â€” no meta commentary
+- Deliver the parable only — no meta commentary
 
 Closing Instruction:
-Modern Parables are not teaching tools first â€” they are mirrors.
+Modern Parables are not teaching tools first — they are mirrors.
 Your task is not to persuade, but to reveal.
 Let the story do the work. Let Scripture have the final word.`,
 };
@@ -426,10 +426,10 @@ export function getParableDirective(context: ParableContext): ParableDirective {
   switch (context) {
     case 'standalone':
       return STANDALONE_DIRECTIVE;
-    case 'lessonspark':
-      return LESSONSPARK_DIRECTIVE;
+    case 'teaching':
+      return TEACHING_DIRECTIVE;
     default:
-      return LESSONSPARK_DIRECTIVE; // Default to teaching context
+      return TEACHING_DIRECTIVE; // Default to teaching context
   }
 }
 
@@ -437,7 +437,7 @@ export function getParableDirective(context: ParableContext): ParableDirective {
  * Get all available directives for dropdown/selection
  */
 export function getParableDirectiveOptions(): ParableDirective[] {
-  return [STANDALONE_DIRECTIVE, LESSONSPARK_DIRECTIVE];
+  return [STANDALONE_DIRECTIVE, TEACHING_DIRECTIVE];
 }
 
 /**

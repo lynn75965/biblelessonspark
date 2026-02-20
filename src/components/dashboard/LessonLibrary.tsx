@@ -1,4 +1,4 @@
-Ôªø/**
+/**
  * LessonLibrary Component
  * Browse and manage saved Baptist Bible study lessons
  * 
@@ -19,8 +19,8 @@
  * Phase 26: Lesson Visibility Status (February 2026)
  * - Private/Shared toggle per lesson card
  * - Private is permanent default; teacher must explicitly share
- * - üîí Private = only the creator can see it
- * - üëÅ Shared = creator + Org Manager + linked Teaching Team
+ * - ?? Private = only the creator can see it
+ * - ?? Shared = creator + Org Manager + linked Teaching Team
  * 
  * Phase 27: Teaching Team Lessons (February 2026)
  * - "My Lessons" / "Team Lessons" scope toggle (visible only when user has a team)
@@ -198,10 +198,10 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
         return;
       }
 
-      // Build a map of user_id ‚Üí display_name from team members + lead
+      // Build a map of user_id ? display_name from team members + lead
       const nameMap: Record<string, string> = {};
       if (team) {
-        // Lead teacher name ‚Äî look up from members or use team info
+        // Lead teacher name ó look up from members or use team info
         // For members, we have display_name in the enriched data
         members.forEach((m) => {
           if (m.display_name) nameMap[m.user_id] = m.display_name;
@@ -286,7 +286,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
    */
   const handleGenerateDevotional = (lesson: LessonDisplay) => {
     const params = new URLSearchParams({
-      context: "lessonspark",
+      context: "teaching",
       lessonId: lesson.id,
       lessonTitle: lesson.ai_lesson_title || lesson.title || "Untitled",
     });
@@ -334,7 +334,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
               </CardDescription>
             </div>
 
-            {/* Phase 27: Scope Toggle ‚Äî only visible when user has a team */}
+            {/* Phase 27: Scope Toggle ó only visible when user has a team */}
             {hasTeam && (
               <div className="flex bg-muted rounded-lg p-1 shrink-0 ml-4">
                 <Button
@@ -474,7 +474,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}
                   </Badge>
-                  {/* Visibility Badge (Phase 26) ‚Äî only on user's own lessons */}
+                  {/* Visibility Badge (Phase 26) ó only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Badge
                       variant="outline"
@@ -525,7 +525,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>
-                  {/* Visibility Toggle (Phase 26) ‚Äî only on user's own lessons */}
+                  {/* Visibility Toggle (Phase 26) ó only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
                       onClick={() => handleToggleVisibility(lesson)}
@@ -545,7 +545,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       )}
                     </Button>
                   )}
-                  {/* Devotional button ‚Äî only on user's own lessons with content */}
+                  {/* Devotional button ó only on user's own lessons with content */}
                   {!lesson.isTeamLesson && lesson.has_content && (
                     <Button
                       onClick={() => handleGenerateDevotional(lesson)}
@@ -557,7 +557,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       <Sparkles className="h-3.5 w-3.5" />
                     </Button>
                   )}
-                  {/* Delete ‚Äî only on user's own lessons */}
+                  {/* Delete ó only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
                       onClick={() => handleDelete(lesson.id)}

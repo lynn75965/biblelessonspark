@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DevotionalGenerator Component
  * 
  * Generates personal devotionals anchored to lessons.
@@ -118,9 +118,9 @@ export function DevotionalGenerator() {
       setProgress(0);
       
       // Calculate increment based on length to reach ~95% at estimated time
-      // short (3 min): ~4 sec generation â†’ 95/4 = 24% per sec
-      // medium (5 min): ~11 sec generation â†’ 95/11 = 8.6% per sec  
-      // long (10 min): ~34 sec generation â†’ 95/34 = 2.8% per sec
+      // short (3 min): ~4 sec generation → 95/4 = 24% per sec
+      // medium (5 min): ~11 sec generation → 95/11 = 8.6% per sec  
+      // long (10 min): ~34 sec generation → 95/34 = 2.8% per sec
       const incrementPerSecond = lengthId === 'short' ? 24 
         : lengthId === 'long' ? 2.8 
         : 8.6; // medium default
@@ -361,7 +361,7 @@ export function DevotionalGenerator() {
   };
 
   const handleBack = () => {
-    if (context === "lessonspark" && lessonId) {
+    if (context === "teaching" && lessonId) {
       navigate(ROUTES.DASHBOARD);
     } else {
       navigate(-1);
@@ -392,7 +392,7 @@ export function DevotionalGenerator() {
       </div>
 
       {/* Source Lesson Info */}
-      {context === "lessonspark" && lessonTitle && (
+      {context === "teaching" && lessonTitle && (
         <Card className="mb-6 bg-amber-50 border-amber-200">
           <CardContent className="py-4">
             <div className="flex items-start gap-3">

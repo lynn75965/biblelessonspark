@@ -4,11 +4,11 @@
  * 
  * DUAL CONTEXT SUPPORT:
  * 
- * 1. LESSONSPARK CONTEXT (from Lesson Library sparkle button)
- *    - URL includes: ?context=lessonspark&lessonId=...&passage=...&theologyProfile=...
+ * 1. TEACHING CONTEXT (from Lesson Library sparkle button)
+ *    - URL includes: ?context=teaching&lessonId=...&passage=...&theologyProfile=...
  *    - Inherits lesson's settings as defaults
  *    - User can override via "Customize" toggle
- *    - LESSONSPARK_DIRECTIVE used for teaching context
+ *    - TEACHING_DIRECTIVE used for teaching context
  * 
  * 2. STANDALONE CONTEXT (direct navigation to /parables)
  *    - No URL params or context=standalone
@@ -48,10 +48,10 @@ export default function Parables() {
   
   // Determine context from URL
   const contextParam = searchParams.get("context") as ParableContext | null;
-  const isLessonSparkContext = contextParam === "lessonspark";
+  const isTeachingContext = contextParam === "teaching";
   
   // Extract lesson settings if coming from BibleLessonSpark
-  const lessonSettings: LessonSettings | undefined = isLessonSparkContext ? {
+  const lessonSettings: LessonSettings | undefined = isTeachingContext ? {
     lessonId: searchParams.get("lessonId") || "",
     lessonTitle: searchParams.get("lessonTitle") || "Untitled Lesson",
     passage: searchParams.get("passage") || "",
@@ -65,10 +65,10 @@ export default function Parables() {
       {/* Header - Different messaging based on context */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">
-          {isLessonSparkContext ? "Modern Parable Generator" : "✨ Modern Parable Generator"}
+          {isTeachingContext ? "Modern Parable Generator" : "✨ Modern Parable Generator"}
         </h1>
         <p className="text-muted-foreground">
-          {isLessonSparkContext 
+          {isTeachingContext 
             ? "Generate a contemporary parable to enhance your Bible study lesson."
             : "Create contemporary parables inspired by today's news, crafted in the teaching style of Jesus."
           }
@@ -76,7 +76,7 @@ export default function Parables() {
       </div>
       
       {/* Standalone Context: Condensed Explanation */}
-      {!isLessonSparkContext && (
+      {!isTeachingContext && (
         <Card className="mb-6 border-accent/50 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
           <CardContent className="pt-4 pb-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -87,7 +87,7 @@ export default function Parables() {
       )}
       
       <ParableGenerator 
-        context={isLessonSparkContext ? "lessonspark" : "standalone"}
+        context={isTeachingContext ? "teaching" : "standalone"}
         lessonSettings={lessonSettings}
       />
     </div>
