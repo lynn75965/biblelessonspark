@@ -1,9 +1,9 @@
 # BETA TESTER ONBOARDING GUIDE
-## LessonSparkUSA Beta Program
+## BibleBibleLessonSpark Beta Program
 
 ### Welcome to the Beta Program!
 
-Thank you for joining the LessonSparkUSA beta program. This guide will help you get started and make the most of your beta testing experience.
+Thank you for joining the BibleBibleLessonSpark beta program. This guide will help you get started and make the most of your beta testing experience.
 
 ---
 
@@ -15,7 +15,7 @@ Thank you for joining the LessonSparkUSA beta program. This guide will help you 
 - **Goal:** Generate 3-5 lessons and provide honest feedback
 
 ### What You'll Get
-- ? Lifetime 75% discount on LessonSparkUSA
+- ? Lifetime 75% discount on BibleBibleLessonSpark
 - ? Early access to all features
 - ? Direct influence on development
 - ? Community with other Bible teachers
@@ -26,7 +26,7 @@ Thank you for joining the LessonSparkUSA beta program. This guide will help you 
 
 ### Step 1: Account Setup (5 minutes)
 1. Check your email for login credentials
-2. Visit: https://lessonsparkusa.com
+2. Visit: https://bibleBibleLessonSpark.com
 3. Sign in with your credentials
 4. Complete your profile setup
 
@@ -43,7 +43,7 @@ Thank you for joining the LessonSparkUSA beta program. This guide will help you 
 
 ### Step 3: Join Facebook Group (5 minutes)
 1. Check your email for Facebook group invitation
-2. Join: "LessonSparkUSA Beta Testers" (Private Group)
+2. Join: "BibleBibleLessonSpark Beta Testers" (Private Group)
 3. Introduce yourself to fellow testers
 4. Ask questions and share experiences
 
@@ -88,7 +88,7 @@ Thank you for joining the LessonSparkUSA beta program. This guide will help you 
 3. Share screenshots if helpful
 
 **Option 4: Direct Contact**
-- Email: lynn@lessonsparkusa.com
+- Email: lynn@bibleBibleLessonSpark.com
 - Phone: 214.893.5179
 
 ### What Makes Good Feedback?
@@ -213,7 +213,7 @@ Screenshot: [attached]
 
 ### Facebook Group Rules
 1. **Be Respectful:** We're all serving the same Lord
-2. **Stay Focused:** Keep discussions about LessonSparkUSA
+2. **Stay Focused:** Keep discussions about BibleBibleLessonSpark
 3. **Be Honest:** Constructive criticism helps us improve
 4. **Protect Privacy:** Don't share personal info of others
 5. **Ask Questions:** No question is too basic!
@@ -223,25 +223,25 @@ Screenshot: [attached]
 ## ?? RESOURCES
 
 ### Platform Resources
-- User Guide: https://lessonsparkusa.com/docs
-- Video Tutorials: https://lessonsparkusa.com/training
-- Help Center: https://lessonsparkusa.com/help
+- User Guide: https://bibleBibleLessonSpark.com/docs
+- Video Tutorials: https://bibleBibleLessonSpark.com/training
+- Help Center: https://bibleBibleLessonSpark.com/help
 
 ### Contact Information
 - **Founder:** Lynn Eckeberger, PhD SWBTS
-- **Email:** lynn@lessonsparkusa.com
+- **Email:** lynn@bibleBibleLessonSpark.com
 - **Phone:** 214.893.5179
-- **Facebook Group:** LessonSparkUSA Beta Testers
+- **Facebook Group:** BibleBibleLessonSpark Beta Testers
 
 ---
 
 ## ?? THANK YOU!
 
-Your participation in this beta program is helping create a tool that will serve thousands of Baptist Bible teachers. Your feedback directly shapes the future of LessonSparkUSA.
+Your participation in this beta program is helping create a tool that will serve thousands of Baptist Bible teachers. Your feedback directly shapes the future of BibleBibleLessonSpark.
 
 **May God bless your ministry and your work with this platform!**
 
 ---
 
 *Last Updated: November 25, 2025*
-*Questions? Contact lynn@lessonsparkusa.com*
+*Questions? Contact lynn@bibleBibleLessonSpark.com*

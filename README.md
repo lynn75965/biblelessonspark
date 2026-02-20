@@ -1,8 +1,8 @@
-# LessonSpark USA
+# BibleBibleLessonSpark
 
 ## About
 
-LessonSpark USA is a Baptist Bible Study Enhancement Platform that provides AI-powered lesson enhancement for Baptist churches across America. Generate age-appropriate activities, discussion prompts, and modern applications aligned with SBC, Reformed Baptist, and Independent Baptist theology.
+BibleBibleLessonSpark is a Baptist Bible Study Enhancement Platform that provides AI-powered lesson enhancement for Baptist churches across America. Generate age-appropriate activities, discussion prompts, and modern applications aligned with SBC, Reformed Baptist, and Independent Baptist theology.
 
 ## Project info
 
@@ -31,7 +31,7 @@ Follow these steps:
 git clone <YOUR_GIT_URL>
 
 # Step 2: Navigate to the project directory.
-cd lessonspark-usa
+cd Biblebiblelessonspark
 
 # Step 3: Install the necessary dependencies.
 npm i
@@ -87,4 +87,4 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 
 ## Contact
 
-For support, email: support@lessonspark.com
+For support, email: support@bibleBibleLessonSpark.com

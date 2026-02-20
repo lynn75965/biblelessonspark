@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to integrate `branding.ts` into your LessonSparkUSA codebase to prepare for white-label deployments.
+This guide explains how to integrate `branding.ts` into your BibleBibleLessonSpark codebase to prepare for white-label deployments.
 
 ---
 
@@ -48,9 +48,9 @@ Search your codebase for these patterns and replace with branding imports:
 
 ```bash
 # In your project, search for:
-"LessonSpark"
+"BibleLessonSpark"
 "Lesson Spark"
-"lessonsparkusa"
+"BibleBibleLessonSpark"
 ```
 
 ### Common Files to Check
@@ -72,8 +72,8 @@ Search your codebase for these patterns and replace with branding imports:
 
 ```tsx
 // Header.tsx
-<h1 className="text-xl font-bold">LessonSpark USA</h1>
-<img src="/logo.svg" alt="LessonSpark Logo" />
+<h1 className="text-xl font-bold">BibleBibleLessonSpark</h1>
+<img src="/logo.svg" alt="BibleLessonSpark Logo" />
 ```
 
 ### After (using branding):
@@ -92,7 +92,7 @@ import { BRANDING } from '@/config/branding';
 
 ```tsx
 // SomePage.tsx
-<title>Dashboard - LessonSpark USA</title>
+<title>Dashboard - BibleBibleLessonSpark</title>
 ```
 
 ### After (using helper function):
@@ -102,7 +102,7 @@ import { BRANDING } from '@/config/branding';
 import { getPageTitle } from '@/config/branding';
 
 <title>{getPageTitle('Dashboard')}</title>
-// Outputs: "Dashboard | LessonSpark USA"
+// Outputs: "Dashboard | BibleBibleLessonSpark"
 ```
 
 ---
@@ -111,7 +111,7 @@ import { getPageTitle } from '@/config/branding';
 
 ```tsx
 // Footer.tsx
-<p>© 2024 LessonSpark USA. All rights reserved.</p>
+<p>© 2024 BibleBibleLessonSpark. All rights reserved.</p>
 ```
 
 ### After (dynamic copyright):
@@ -121,7 +121,7 @@ import { getPageTitle } from '@/config/branding';
 import { BRANDING } from '@/config/branding';
 
 <p>{BRANDING.legal.copyrightNotice}</p>
-// Outputs: "© 2024-2025 LessonSpark USA. All rights reserved."
+// Outputs: "© 2024-2025 BibleBibleLessonSpark. All rights reserved."
 ```
 
 ---
@@ -193,7 +193,7 @@ After integration, verify branding appears correctly:
 2. **Search verification**: Run a final search for hardcoded values:
    ```bash
    # Should return only the branding.ts file
-   grep -r "LessonSpark" src/
+   grep -r "BibleLessonSpark" src/
    ```
 
 3. **White-label test**: Temporarily change values in `branding.ts` and verify the app updates throughout.

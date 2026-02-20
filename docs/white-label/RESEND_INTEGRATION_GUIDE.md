@@ -17,29 +17,29 @@ const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 async function sendInvitation(email: string, orgName: string, inviterName: string, inviteUrl: string) {
   await resend.emails.send({
-    from: 'LessonSpark USA <noreply@lessonsparkusa.com>',  // Hardcoded
+    from: 'BibleBibleLessonSpark <noreply@bibleBibleLessonSpark.com>',  // Hardcoded
     to: email,
-    replyTo: 'support@lessonsparkusa.com',  // Hardcoded
-    subject: `You've been invited to join ${orgName} on LessonSpark USA`,  // Hardcoded
+    replyTo: 'support@bibleBibleLessonSpark.com',  // Hardcoded
+    subject: `You've been invited to join ${orgName} on BibleBibleLessonSpark`,  // Hardcoded
     html: `
       <div style="background-color: #F9FAFB; padding: 40px;">
         <div style="max-width: 600px; margin: 0 auto; background: white;">
           <div style="background-color: #4F46E5; padding: 24px; text-align: center;">
-            <img src="https://lessonsparkusa.com/logo.png" alt="LessonSpark USA" />
+            <img src="https://bibleBibleLessonSpark.com/logo.png" alt="BibleBibleLessonSpark" />
           </div>
           <div style="padding: 32px;">
             <h1>You've Been Invited!</h1>
-            <p>${inviterName} has invited you to join ${orgName} on LessonSpark USA.</p>
+            <p>${inviterName} has invited you to join ${orgName} on BibleBibleLessonSpark.</p>
             <a href="${inviteUrl}" style="background-color: #4F46E5; color: white; padding: 12px 24px;">
               Accept Invitation
             </a>
           </div>
           <div style="background-color: #F3F4F6; padding: 24px; text-align: center;">
             <p style="color: #6B7280; font-size: 12px;">
-              © 2024 LessonSpark USA. All rights reserved.
+              © 2024 BibleBibleLessonSpark. All rights reserved.
             </p>
             <p style="color: #6B7280; font-size: 12px;">
-              LessonSpark USA, Nacogdoches, TX 75965, USA
+              BibleBibleLessonSpark, Nacogdoches, TX 75965, USA
             </p>
           </div>
         </div>
@@ -227,7 +227,7 @@ import { BRANDING, getEmailSubject } from '../_shared/branding.ts';
 | `getEmailSignoff(style)` | Get sign-off text | `getEmailSignoff('default')` → "Blessings," |
 | `getEmailInlineStyles()` | Get all inline CSS styles | Returns object with all style strings |
 | `getResendEmailOptions(overrides)` | Build Resend options with defaults | Applies from, replyTo, tags automatically |
-| `BRANDING.email.from` | Get formatted From field | "LessonSpark USA <noreply@lessonsparkusa.com>" |
+| `BRANDING.email.from` | Get formatted From field | "BibleBibleLessonSpark <noreply@bibleBibleLessonSpark.com>" |
 
 ---
 

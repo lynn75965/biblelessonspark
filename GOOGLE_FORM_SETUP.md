@@ -2,9 +2,9 @@
 
 ## Step 1: Create the Form
 1. Go to: https://docs.google.com/forms
-2. Make sure you're logged into: lessonsparkusa@gmail.com
+2. Make sure you're logged into: bibleBibleLessonSpark@gmail.com
 3. Click "Blank" to create new form
-4. Title: "LessonSparkUSA Beta Program Sign-Up"
+4. Title: "BibleBibleLessonSpark Beta Program Sign-Up"
 
 ## Step 2: Add Questions (in this exact order)
 
@@ -97,7 +97,7 @@
 ## Step 6: Create Response Spreadsheet
 1. In "Responses" tab, click green Sheets icon
 2. Select "Create a new spreadsheet"
-3. Name it: "LessonSparkUSA Beta Sign-Ups"
+3. Name it: "BibleBibleLessonSpark Beta Sign-Ups"
 4. This will auto-populate with all submissions
 
 ## Step 7: Update Your Email Template

@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     const testNotifications = [
       {
         user_id: user.id,
-        title: 'Welcome to LessonSpark! 🎉',
+        title: 'Welcome to BibleLessonSpark! 🎉',
         body: 'Start creating amazing lesson plans with AI-powered assistance.',
         href: '/dashboard',
       },

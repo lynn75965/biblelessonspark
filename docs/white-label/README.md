@@ -1,6 +1,6 @@
 # White-Label Preparation Documentation
 
-This folder contains documentation and code for preparing LessonSparkUSA 
+This folder contains documentation and code for preparing BibleBibleLessonSpark 
 for white-label enterprise sales.
 
 ## Contents

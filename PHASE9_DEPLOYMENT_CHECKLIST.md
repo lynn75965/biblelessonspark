@@ -20,7 +20,7 @@
 - [ ] All imports working correctly
 
 ### External Setup
-- [ ] Google Form created (lessonsparkusa@gmail.com)
+- [ ] Google Form created (bibleBibleLessonSpark@gmail.com)
 - [ ] Google Form link added to email template
 - [ ] Email template finalized
 - [ ] Facebook group created (or ready to create)
@@ -53,7 +53,7 @@ git push origin main
 4. Verify deployment succeeded
 
 ### Step 4: Test Production Site
-Visit https://lessonsparkusa.com and test:
+Visit https://bibleBibleLessonSpark.com and test:
 - [ ] /beta-signup loads correctly
 - [ ] Can submit beta signup form
 - [ ] Generate a lesson

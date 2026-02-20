@@ -116,7 +116,7 @@ Self-service flow enables ministry leaders to create organizations, subscribe, a
 ### Language Updates (Inclusivity)
 | From | To |
 |------|-----|
-| "AI-powered" | "BibleLessonSpark-powered" |
+| "AI-powered" | "BibleBibleLessonSpark-powered" |
 | "Church leaders" | "Ministry leaders" |
 | "For Church Leaders" | "For Ministry Leaders" |
 | "Set Up Your Church" | "Set Up Your Organization" |

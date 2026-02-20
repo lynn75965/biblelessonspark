@@ -1,4 +1,4 @@
-# LESSONSPARKUSA MASTER PLAN
+# BibleBibleLessonSpark MASTER PLAN
 Last Updated: 2025-11-23 21:30 CT
 Status: Phase 5 In Progress - Timeout Debugging Required
 
@@ -16,7 +16,7 @@ Baptist Bible study lesson generator serving volunteer teachers in Southern Bapt
 - **Backend**: Supabase (PostgreSQL, Edge Functions, Auth)
 - **AI**: Claude Sonnet 4 (Anthropic API)
 - **Payments**: Stripe
-- **Hosting**: Netlify (custom domain: lessonsparkusa.com)
+- **Hosting**: Netlify (custom domain: bibleBibleLessonSpark.com)
 - **Version Control**: GitHub (lynn75965/lesson-spark-usa)
 - **Development**: Lovable.dev with automatic deployment
 
@@ -239,7 +239,7 @@ Baptist Bible study lesson generator serving volunteer teachers in Southern Bapt
 1. Edit in Lovable.dev
 2. Auto-commit to GitHub (lynn75965/lesson-spark-usa)
 3. Netlify auto-deploys from main branch
-4. Live at: lessonsparkusa.com
+4. Live at: bibleBibleLessonSpark.com
 
 ### Backend (Supabase Edge Functions)
 ```powershell
@@ -280,7 +280,7 @@ supabase functions deploy
 2. **Implementation**
    - Frontend: Edit in Lovable.dev
    - Backend: Local PowerShell + Supabase CLI
-   - Test: lessonsparkusa.com/dashboard
+   - Test: bibleBibleLessonSpark.com/dashboard
 
 3. **Deployment**
    - Frontend: Auto-deploy via Netlify
@@ -307,7 +307,7 @@ supabase functions deploy
 ### Netlify
 - Site: lesson-spark-usa
 - Deploys: Auto from main branch
-- Domain: lessonsparkusa.com
+- Domain: bibleBibleLessonSpark.com
 
 ## CRITICAL REMINDERS
 
@@ -349,4 +349,4 @@ Content shaped invisibly by theology profile - users see results, not the guardr
 **LAST SESSION**: Phase 5 UI expansion complete, timeout debugging required
 **NEXT SESSION**: Check Supabase logs, identify timeout cause, implement fix
 **REPOSITORY**: https://github.com/lynn75965/lesson-spark-usa
-**LIVE SITE**: https://lessonsparkusa.com
+**LIVE SITE**: https://bibleBibleLessonSpark.com

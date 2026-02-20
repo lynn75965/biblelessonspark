@@ -1,5 +1,5 @@
 # FACEBOOK GROUP SETUP GUIDE
-## LessonSparkUSA Beta Testers Private Group
+## BibleBibleLessonSpark Beta Testers Private Group
 
 ### Purpose
 Create a private Facebook group for beta testers to:
@@ -19,18 +19,18 @@ Create a private Facebook group for beta testers to:
    - Make sure you're logged into your personal Facebook account
 
 2. **Group Settings**
-   - **Name:** LessonSparkUSA Beta Testers
+   - **Name:** BibleBibleLessonSpark Beta Testers
    - **Privacy:** Private (only members can see posts)
    - **Visibility:** Hidden (people need invite link to find it)
 
 3. **Description**
 ```
-   Welcome to the LessonSparkUSA Beta Testing Community!
+   Welcome to the BibleBibleLessonSpark Beta Testing Community!
    
    This private group is for beta testers helping shape the future of Baptist Bible study lesson creation. 
    
    ?? What We Do:
-   - Test and provide feedback on LessonSparkUSA
+   - Test and provide feedback on BibleBibleLessonSpark
    - Share experiences and tips
    - Support fellow Bible teachers
    - Influence platform development
@@ -39,7 +39,7 @@ Create a private Facebook group for beta testers to:
    ?? Limited to 20 testers
    
    Questions? Contact Lynn Eckeberger
-   ?? lynn@lessonsparkusa.com
+   ?? lynn@bibleBibleLessonSpark.com
    ?? 214.893.5179
 ```
 
@@ -71,7 +71,7 @@ Create a private Facebook group for beta testers to:
       We're all servants in ministry. Treat everyone with Christian love and respect.
    
    2. Stay On Topic
-      This group is for LessonSparkUSA beta testing. Other discussions belong elsewhere.
+      This group is for BibleBibleLessonSpark beta testing. Other discussions belong elsewhere.
    
    3. Constructive Feedback Only
       Honest criticism is welcome. Unproductive complaining is not.
@@ -96,19 +96,19 @@ Create a private Facebook group for beta testers to:
 
 **Post this as your first announcement:**
 ```
-?? Welcome to the LessonSparkUSA Beta Testing Community!
+?? Welcome to the BibleBibleLessonSpark Beta Testing Community!
 
-I'm Lynn Eckeberger, the founder of LessonSparkUSA. Thank you for joining this exclusive beta program!
+I'm Lynn Eckeberger, the founder of BibleBibleLessonSpark. Thank you for joining this exclusive beta program!
 
 ?? ABOUT THIS GROUP
-This is your space to share experiences, ask questions, report issues, and connect with fellow Baptist Bible teachers testing LessonSparkUSA.
+This is your space to share experiences, ask questions, report issues, and connect with fellow Baptist Bible teachers testing BibleBibleLessonSpark.
 
 ?? WHAT TO EXPECT
 Over the next 3-4 weeks, we'll be testing the platform together. I'll be here daily to answer questions and gather your feedback.
 
 ? TO GET STARTED:
 1. Introduce yourself below (name, church, teaching role)
-2. Visit https://lessonsparkusa.com and log in
+2. Visit https://bibleBibleLessonSpark.com and log in
 3. Review the Beta Onboarding Guide (sent via email)
 4. Generate your first lesson
 5. Share your experience here!
@@ -122,14 +122,14 @@ Over the next 3-4 weeks, we'll be testing the platform together. I'll be here da
 
 ?? DIRECT CONTACT:
 For urgent issues or private concerns:
-?? lynn@lessonsparkusa.com
+?? lynn@bibleBibleLessonSpark.com
 ?? 214.893.5179
 
 Let's make this an amazing tool for Baptist Bible teachers!
 
 Serving Him together,
 Lynn Eckeberger, PhD SWBTS
-Founder, LessonSparkUSA
+Founder, BibleBibleLessonSpark
 ```
 
 ---
@@ -142,9 +142,9 @@ Founder, LessonSparkUSA
 ```
    ?? QUICK LINKS
    
-   ?? LessonSparkUSA: https://lessonsparkusa.com
+   ?? BibleBibleLessonSpark: https://bibleBibleLessonSpark.com
    ?? Onboarding Guide: [link to guide]
-   ?? Email Lynn: lynn@lessonsparkusa.com
+   ?? Email Lynn: lynn@bibleBibleLessonSpark.com
    ?? Call Lynn: 214.893.5179
    
    ?? HELPFUL POSTS:
@@ -226,7 +226,7 @@ Founder, LessonSparkUSA
 ```
 Hi [Name],
 
-Welcome to the LessonSparkUSA Beta Program!
+Welcome to the BibleBibleLessonSpark Beta Program!
 
 I've added you to our private Facebook group where beta testers share experiences and support each other.
 
@@ -237,7 +237,7 @@ Answer the 3 membership questions, and I'll approve you within a few hours.
 Looking forward to your feedback!
 
 Lynn Eckeberger
-lynn@lessonsparkusa.com
+lynn@bibleBibleLessonSpark.com
 214.893.5179
 ```
 

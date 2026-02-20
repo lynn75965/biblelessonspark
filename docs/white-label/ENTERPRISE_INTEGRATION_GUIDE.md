@@ -8,7 +8,7 @@ White-label buyers (large churches, state conventions, national entities) typica
 - **Email Systems**: Mailchimp, Constant Contact, SendGrid, Exchange, Google Workspace
 - **Authentication**: Active Directory, Google SSO, custom identity providers
 
-This guide outlines how to architect LessonSparkUSA for seamless integration with buyer's existing systems.
+This guide outlines how to architect BibleBibleLessonSpark for seamless integration with buyer's existing systems.
 
 ---
 
@@ -16,11 +16,11 @@ This guide outlines how to architect LessonSparkUSA for seamless integration wit
 
 ### Option A: Webhook Events (Recommended)
 
-LessonSparkUSA fires webhooks when events occur. Buyer's systems receive and handle accordingly.
+BibleBibleLessonSpark fires webhooks when events occur. Buyer's systems receive and handle accordingly.
 
 ```
 ┌─────────────────────┐         ┌─────────────────────┐
-│   LessonSparkUSA    │         │   Buyer's Systems   │
+│   BibleBibleLessonSpark    │         │   Buyer's Systems   │
 │                     │         │                     │
 │  User registers ────┼────────►│  CRM adds contact   │
 │                     │  POST   │  Email system sends │
@@ -41,11 +41,11 @@ LessonSparkUSA fires webhooks when events occur. Buyer's systems receive and han
 
 ### Option B: Email Provider Abstraction
 
-LessonSparkUSA supports multiple email providers. Buyer configures their preferred provider.
+BibleBibleLessonSpark supports multiple email providers. Buyer configures their preferred provider.
 
 ```
 ┌─────────────────────┐
-│   LessonSparkUSA    │
+│   BibleBibleLessonSpark    │
 │                     │
 │   Email Service     │──► Resend (default)
 │   Abstraction       │──► SendGrid
@@ -59,7 +59,7 @@ LessonSparkUSA supports multiple email providers. Buyer configures their preferr
 
 ### Option C: Hybrid (Webhooks + Optional Email)
 
-Buyer chooses per-event whether LessonSparkUSA sends email OR just fires webhook.
+Buyer chooses per-event whether BibleBibleLessonSpark sends email OR just fires webhook.
 
 ---
 
@@ -142,7 +142,7 @@ interface WebhookPayload {
   
   // Source identification
   source: {
-    app: string;             // "lessonspark" or white-label name
+    app: string;             // "BibleLessonSpark" or white-label name
     environment: string;     // "production", "staging"
     organization_id?: string;
   };
@@ -164,7 +164,7 @@ interface WebhookPayload {
   "event_type": "user.registered",
   "event_timestamp": "2025-01-15T10:30:00Z",
   "source": {
-    "app": "lessonspark",
+    "app": "BibleLessonSpark",
     "environment": "production",
     "organization_id": "org_xyz789"
   },
@@ -188,7 +188,7 @@ interface WebhookPayload {
   "event_type": "invitation.sent",
   "event_timestamp": "2025-01-15T09:00:00Z",
   "source": {
-    "app": "lessonspark",
+    "app": "BibleLessonSpark",
     "environment": "production",
     "organization_id": "org_xyz789"
   },
@@ -215,7 +215,7 @@ interface WebhookPayload {
   "event_type": "lesson.created",
   "event_timestamp": "2025-01-15T14:22:00Z",
   "source": {
-    "app": "lessonspark",
+    "app": "BibleLessonSpark",
     "environment": "production",
     "organization_id": "org_xyz789"
   },
@@ -406,7 +406,7 @@ White-label buyers need an admin interface to configure:
 │                                                             │
 │ Endpoint URL:                                               │
 │ ┌─────────────────────────────────────────────────────────┐ │
-│ │ https://your-crm.com/api/webhooks/lessonspark          │ │
+│ │ https://your-crm.com/api/webhooks/BibleLessonSpark          │ │
 │ └─────────────────────────────────────────────────────────┘ │
 │                                                             │
 │ Authentication:                                             │
@@ -537,7 +537,7 @@ CREATE TABLE sso_configurations (
 
 ### 5. Data Export / Sync API
 
-Buyers may want to sync LessonSparkUSA data into their CRM.
+Buyers may want to sync BibleBibleLessonSpark data into their CRM.
 
 #### Read-Only API Endpoints
 
@@ -622,7 +622,7 @@ Buyers may want to sync LessonSparkUSA data into their CRM.
 
 A buyer using Planning Center could:
 
-1. **Disable all LessonSparkUSA emails**
+1. **Disable all BibleBibleLessonSpark emails**
 2. **Configure webhook** to their middleware/Zapier
 3. **Middleware receives** `invitation.sent` event
 4. **Middleware calls** Planning Center API to:
@@ -630,7 +630,7 @@ A buyer using Planning Center could:
    - Add to "Sunday School Teachers" list
    - Trigger Planning Center email workflow
 
-This keeps their data centralized in Planning Center while using LessonSparkUSA for lesson generation.
+This keeps their data centralized in Planning Center while using BibleBibleLessonSpark for lesson generation.
 
 ---
 
@@ -641,7 +641,7 @@ Include these in your sales/onboarding process:
 1. What CRM/membership system do you currently use?
 2. What email system do you use for member communication?
 3. Do you need users to log in with existing credentials (SSO)?
-4. Do you want LessonSparkUSA to send emails, or will you handle all communication?
+4. Do you want BibleBibleLessonSpark to send emails, or will you handle all communication?
 5. Do you have a technical team to set up webhook integrations?
 6. Do you need to sync user/lesson data back to your systems?
 
