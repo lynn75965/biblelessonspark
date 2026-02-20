@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { BRANDING } from "@/config/branding";
-import { DASHBOARD_TABS } from "@/constants/dashboardConfig";
+import { DASHBOARD_TABS, DASHBOARD_TEXT } from "@/constants/dashboardConfig";
 import { WORKSPACE_QUERY_PARAMS, WORKSPACE_TABS } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
@@ -208,10 +208,10 @@ export default function Dashboard() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold">
-                  Welcome back, <span className="gradient-text">{userName}!</span>
+                  {DASHBOARD_TEXT.greeting} <span className="gradient-text">{userName}!</span>
                 </h1>
                 <p className="text-sm sm:text-base text-muted-foreground">
-                  Your Personal Bible Study Workspace
+                  {DASHBOARD_TEXT.subtitle}
                 </p>
               </div>
             </div>

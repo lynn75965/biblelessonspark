@@ -8,6 +8,11 @@
 // Settings tab was removed Feb 14, 2026 (profile moved to modal in Header.tsx)
 // Members/Analytics tabs are in org-manager, not dashboard workspace
 
+export const DASHBOARD_TEXT = {
+  greeting: "Welcome,",
+  subtitle: "Your Personal Bible Study Workspace",
+} as const;
+
 export const DASHBOARD_TABS = {
   enhance: {
     value: "enhance",
