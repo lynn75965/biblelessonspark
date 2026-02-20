@@ -1,4 +1,4 @@
-ï»¿/**
+/**
  * BibleLessonSpark Constants - Barrel Export
  * @version 2.0.0
  * @lastUpdated 2026-02-19
@@ -9,7 +9,7 @@
  *   Organization, OrganizationMember
  * - contracts.ts no longer duplicates types owned by other SSOT files
  *   (theology profile IDs, bible version IDs, lesson shape IDs live in
- *   their respective SSOT files â€” not here)
+ *   their respective SSOT files — not here)
  *   still exported with @deprecated tags for backward compatibility
  */
 // ============================================================================
@@ -43,7 +43,7 @@ export type {
   UserProfile,
   Organization,
   OrganizationMember,
-  // Legacy (deprecated â€” migrate to theologyProfiles.ts types)
+  // Legacy (deprecated — migrate to theologyProfiles.ts types)
 } from './contracts';
 // ============================================================================
 // Lesson Structure (Tier 1)
@@ -94,8 +94,6 @@ export type {
   PreferenceOption as TeacherPreferenceOption,
   CheckboxOption,
   TeachingStyleKey,
-  ClassroomManagementKey,
-  TechIntegrationKey,
   AssessmentPreferenceKey,
   ClassSizeKey,
   MeetingFrequencyKey,

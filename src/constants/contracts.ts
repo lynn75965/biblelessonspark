@@ -197,7 +197,7 @@ export interface TeacherPreferences {
   lessonSequence?: 'single' | 'series';
   /** 5o. Activity Types (multi-select) */
   activityTypes?: string[];
-  /** Legacy fields retained for backward compatibility */
+  /** Legacy optional fields — may exist in older saved preferences */
   classroomManagement?: string;
   techIntegration?: string;
 }
@@ -411,60 +411,3 @@ export interface OrganizationMember {
   joined_at: string;
 }
 
-// ============================================================================
-// LEGACY TYPE ALIASES â€” Backward Compatibility
-// ============================================================================
-// 
-// These types supported the original 3-key theology system and the
-// SBConfessionVersion sub-selection. They were superseded by the
-// 10-profile TheologyProfileId system in December 2025.
-//
-// MIGRATION STATUS: These aliases exist so that any files still importing
-// the old type names will compile. Each should be migrated to the new
-// types and then removed.
-//
-// To find remaining consumers, search the codebase for:
-//   TheologicalPreferenceKey
-//   SBConfessionVersionKey
-//   SBConfessionVersion
-//   TheologicalPreference
-//   theologicalPreference (in request/filter objects)
-// ============================================================================
-
-/**
- * @deprecated Use TheologyProfileId instead.
- * Legacy 3-key type from contracts.ts v1.x.
- */
-export type TheologicalPreferenceKey = 'southern_baptist' | 'reformed_baptist' | 'independent_baptist';
-
-/**
- * @deprecated No longer used. SBC versions are now distinct profiles:
- *   'southern-baptist-bfm-1963' and 'southern-baptist-bfm-2000'
- */
-export type SBConfessionVersionKey = 'bfm_1963' | 'bfm_2000';
-
-/**
- * @deprecated No longer used. See SBConfessionVersionKey.
- */
-export interface SBConfessionVersion {
-  id: SBConfessionVersionKey;
-  label: string;
-  year: number;
-  distinctives: string[];
-}
-
-/**
- * @deprecated Use TheologyProfile from theologyProfiles.ts instead.
- */
-export interface TheologicalPreference {
-  id: TheologicalPreferenceKey;
-  name: string;
-  short: string;
-  label: string;
-  description: string;
-  distinctives: string[];
-  hasVersions: boolean;
-  versions?: Record<SBConfessionVersionKey, SBConfessionVersion>;
-  defaultVersion?: SBConfessionVersionKey;
-  contextDescription: string;
-}
