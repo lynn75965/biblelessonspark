@@ -30,12 +30,11 @@ const NAV_ROUTES = {
   admin: APP_ROUTES.ADMIN,
   org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.DASHBOARD,
-  parables: '/parables',
-  pricing: '/pricing',
-  account: '/account',
-  home: APP_ROUTES.HOME,
-  toolbeltAdmin: '/admin/toolbelt',
-  teachingTeam: '/teaching-team',
+  parables: APP_ROUTES.PARABLES,
+  pricing: APP_ROUTES.PRICING,
+  account: APP_ROUTES.ACCOUNT,
+  toolbeltAdmin: APP_ROUTES.ADMIN_TOOLBELT,
+  teachingTeam: APP_ROUTES.TEACHING_TEAM,
 } as const;
 
 // =============================================================================
@@ -111,7 +110,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   settings: {
     id: 'settings',
     label: 'User Profile',
-    route: `${APP_ROUTES.DASHBOARD}?tab=settings`,
+    route: '', // Handled by onClick in Header.tsx — opens UserProfileModal directly
     icon: Settings,
     description: 'Update your profile defaults',
     dividerAfter: true,

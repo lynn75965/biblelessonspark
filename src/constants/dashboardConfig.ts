@@ -1,5 +1,12 @@
 // SSOT MASTER: Dashboard tab configuration
 // Controls tab behavior, labels, and navigation rules
+//
+// ARCHITECTURE: Dashboard.tsx imports labels from this file.
+// DO NOT hardcode tab labels in Dashboard.tsx — always use DASHBOARD_TABS.*.label
+//
+// ACTIVE TABS (February 2026): enhance, library, devotionalLibrary
+// Settings tab was removed Feb 14, 2026 (profile moved to modal in Header.tsx)
+// Members/Analytics tabs are in org-manager, not dashboard workspace
 
 export const DASHBOARD_TABS = {
   enhance: {
@@ -10,26 +17,14 @@ export const DASHBOARD_TABS = {
   },
   library: {
     value: "library",
-    label: "My Lesson Library",
+    label: "Lesson Library",
     mobileLabel: "Library",
     clearViewingOnClick: false,
   },
-  members: {
-    value: "members",
-    label: "Members",
-    mobileLabel: "Members",
-    clearViewingOnClick: false,
-  },
-  analytics: {
-    value: "analytics",
-    label: "Beta Analytics",
-    mobileLabel: "Analytics",
-    clearViewingOnClick: false,
-  },
-  settings: {
-    value: "settings",
-    label: "Settings",
-    mobileLabel: "Settings",
+  devotionalLibrary: {
+    value: "devotional-library",
+    label: "Devotional Library",
+    mobileLabel: "Devotional",
     clearViewingOnClick: false,
   },
 } as const;

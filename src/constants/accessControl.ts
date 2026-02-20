@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ACCESS CONTROL CONSTANTS
  * Single Source of Truth for role-based feature visibility
  * 
@@ -71,10 +71,11 @@ export type OrgRole = typeof ORG_ROLES[keyof typeof ORG_ROLES];
 export const TAB_ACCESS = {
   enhance: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   library: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+  devotionalLibrary: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   members: [ROLES.platformAdmin, ROLES.orgLeader],
   analytics: [ROLES.platformAdmin],
   orgAnalytics: [ROLES.platformAdmin, ROLES.orgLeader],
-  settings: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+  // Settings tab removed Feb 14, 2026 — profile moved to UserProfileModal in Header.tsx
 } as const;
 
 export type TabKey = keyof typeof TAB_ACCESS;
