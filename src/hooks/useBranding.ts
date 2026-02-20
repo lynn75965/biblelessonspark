@@ -23,31 +23,31 @@ import { ROUTES } from "@/constants/routes";
 // This ensures the app never breaks, even if branding can't be loaded
 
 const FALLBACK_BRANDING: BrandingConfig = {
-  appName: "LessonSpark USA",
-  appNameShort: "LessonSparkUSA",
+  appName: "BibleLessonSpark",
+  appNameShort: "BibleLessonSpark",
   tagline: "Baptist Bible Study Enhancement Platform",
   description: "Personalized Bible study lesson generator for Baptist Sunday School teachers.",
   keywords: ["Baptist", "Bible study", "Sunday School"],
   
   urls: {
-    domain: "lessonsparkusa.com",
-    baseUrl: "https://lessonsparkusa.com",
-    support: "https://lessonsparkusa.com/support",
-    termsOfService: "https://lessonsparkusa.com/terms",
-    privacyPolicy: "https://lessonsparkusa.com/privacy",
-    documentation: "https://lessonsparkusa.com/help",
-    unsubscribe: "https://lessonsparkusa.com/unsubscribe?token={token}",
-    emailPreferences: "https://lessonsparkusa.com/settings/notifications",
+    domain: "biblelessonspark.com",
+    baseUrl: "https://biblelessonspark.com",
+    support: "https://biblelessonspark.com/support",
+    termsOfService: "https://biblelessonspark.com/terms",
+    privacyPolicy: "https://biblelessonspark.com/privacy",
+    documentation: "https://biblelessonspark.com/help",
+    unsubscribe: "https://biblelessonspark.com/unsubscribe?token={token}",
+    emailPreferences: "https://biblelessonspark.com/settings/notifications",
   },
   
   contact: {
-    supportEmail: "support@lessonsparkusa.com",
-    infoEmail: "info@lessonsparkusa.com",
-    noReplyEmail: "noreply@lessonsparkusa.com",
-    emailSenderName: "LessonSpark USA",
+    supportEmail: "support@biblelessonspark.com",
+    infoEmail: "info@biblelessonspark.com",
+    noReplyEmail: "noreply@biblelessonspark.com",
+    emailSenderName: "BibleLessonSpark",
     phone: null,
     address: {
-      line1: "LessonSpark USA",
+      line1: "BibleLessonSpark",
       line2: null,
       city: "Nacogdoches",
       state: "TX",
@@ -63,7 +63,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
     favicon: "/favicon.ico",
     appleTouchIcon: "/apple-touch-icon.png",
     ogImage: "/assets/og-image.png",
-    altText: "LessonSpark USA Logo",
+    altText: "BibleLessonSpark Logo",
   },
   
   colors: {
@@ -87,9 +87,9 @@ const FALLBACK_BRANDING: BrandingConfig = {
   },
   
   legal: {
-    copyrightHolder: "LessonSpark USA",
+    copyrightHolder: "BibleLessonSpark",
     copyrightYear: "2024",
-    legalEntityName: "LessonSpark USA",
+    legalEntityName: "BibleLessonSpark",
     jurisdiction: "Texas, United States",
   },
   
@@ -121,13 +121,13 @@ const FALLBACK_BRANDING: BrandingConfig = {
     tradition: "Southern Baptist",
     // defaultBibleTranslation removed — SSOT is bibleVersions.ts → getDefaultBibleVersion()
     theologicalTagline: "Rooted in Baptist Heritage, Relevant for Today",
-    theologicalStatement: "LessonSpark USA creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
+    theologicalStatement: "BibleLessonSpark creates Bible study content aligned with historic Baptist theology and the Baptist Faith & Message.",
   },
   
   email: {
-    fromEmail: "noreply@lessonsparkusa.com",
-    fromName: "LessonSpark USA",
-    replyTo: "support@lessonsparkusa.com",
+    fromEmail: "noreply@biblelessonspark.com",
+    fromName: "BibleLessonSpark",
+    replyTo: "support@biblelessonspark.com",
     styles: {
       headerBackground: "#4F46E5",
       headerTextColor: "#FFFFFF",
@@ -147,42 +147,42 @@ const FALLBACK_BRANDING: BrandingConfig = {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
     images: {
-      headerLogo: "https://lessonsparkusa.com/assets/email-logo.png",
+      headerLogo: "https://biblelessonspark.com/assets/email-logo.png",
       headerLogoWidth: 180,
       headerLogoHeight: 40,
-      headerLogoAlt: "LessonSpark USA",
-      iconLogo: "https://lessonsparkusa.com/assets/email-icon.png",
+      headerLogoAlt: "BibleLessonSpark",
+      iconLogo: "https://biblelessonspark.com/assets/email-icon.png",
       socialIcons: {
-        facebook: "https://lessonsparkusa.com/assets/email/icon-facebook.png",
-        twitter: "https://lessonsparkusa.com/assets/email/icon-twitter.png",
-        instagram: "https://lessonsparkusa.com/assets/email/icon-instagram.png",
+        facebook: "https://biblelessonspark.com/assets/email/icon-facebook.png",
+        twitter: "https://biblelessonspark.com/assets/email/icon-twitter.png",
+        instagram: "https://biblelessonspark.com/assets/email/icon-instagram.png",
       },
     },
     subjects: {
-      welcome: "Welcome to LessonSpark USA!",
-      emailVerification: "Verify your LessonSpark USA email address",
-      signup: "Welcome to LessonSpark USA - Confirm Your Email",
-      magiclink: "Your LessonSpark USA Login Link",
-      passwordReset: "Reset your LessonSpark USA password",
-      recovery: "Reset Your LessonSpark USA Password",
-      passwordChanged: "Your LessonSpark USA password has been changed",
-      orgInvitation: "You've been invited to join {orgName} on LessonSpark USA",
+      welcome: "Welcome to BibleLessonSpark!",
+      emailVerification: "Verify your BibleLessonSpark email address",
+      signup: "Welcome to BibleLessonSpark - Confirm Your Email",
+      magiclink: "Your BibleLessonSpark Login Link",
+      passwordReset: "Reset your BibleLessonSpark password",
+      recovery: "Reset Your BibleLessonSpark Password",
+      passwordChanged: "Your BibleLessonSpark password has been changed",
+      orgInvitation: "You've been invited to join {orgName} on BibleLessonSpark",
       orgInvitationAccepted: "{userName} has joined {orgName}",
       orgRoleChanged: "Your role in {orgName} has been updated",
       orgRemoved: "You've been removed from {orgName}",
       lessonShared: "{userName} shared a lesson with you",
       lessonComplete: "Your lesson is ready: {lessonTitle}",
       feedbackReceived: "New feedback received from {userName}",
-      weeklyDigest: "Your LessonSpark USA weekly summary",
-      systemNotice: "Important notice from LessonSpark USA",
-      betaInvitation: "You're invited to try LessonSpark USA Beta!",
+      weeklyDigest: "Your BibleLessonSpark weekly summary",
+      systemNotice: "Important notice from BibleLessonSpark",
+      betaInvitation: "You're invited to try BibleLessonSpark Beta!",
       featureAnnouncement: "New feature: {featureName}",
     },
     content: {
       footerTagline: "Helping Baptist teachers create engaging Bible studies",
       unsubscribeText: "Unsubscribe from these emails",
       preferencesText: "Manage email preferences",
-      disclaimer: "This email was sent by LessonSpark USA. You received this email because you have an account with us or someone invited you to join.",
+      disclaimer: "This email was sent by BibleLessonSpark. You received this email because you have an account with us or someone invited you to join.",
       supportPrompt: "Questions? Contact us at",
       greetings: {
         default: "Hello {firstName},",
@@ -194,7 +194,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
         default: "Blessings,",
         formal: "Sincerely,",
         friendly: "God bless,",
-        team: "The LessonSpark USA Team",
+        team: "The BibleLessonSpark Team",
       },
       buttons: {
         verifyEmail: "Verify Email Address",
@@ -208,8 +208,8 @@ const FALLBACK_BRANDING: BrandingConfig = {
     },
     templates: {
       welcome: {
-        heading: "Welcome to LessonSpark USA!",
-        body: "Thank you for joining LessonSpark USA!",
+        heading: "Welcome to BibleLessonSpark!",
+        body: "Thank you for joining BibleLessonSpark!",
         buttonText: "Create Your First Lesson",
         buttonUrl: `{baseUrl}${ROUTES.DASHBOARD}`,
       },
@@ -244,10 +244,10 @@ const FALLBACK_BRANDING: BrandingConfig = {
     },
     resend: {
       defaultTags: [
-        { name: "app", value: "lessonspark" },
+        { name: "app", value: "biblelessonspark" },
         { name: "environment", value: "production" },
       ],
-      webhookEndpoint: "https://lessonsparkusa.com/api/webhooks/resend",
+      webhookEndpoint: "https://biblelessonspark.com/api/webhooks/resend",
       trackOpens: true,
       trackClicks: true,
     },
@@ -278,7 +278,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
 // CACHE CONFIGURATION
 // ============================================================================
 
-const CACHE_KEY = 'lessonspark_branding';
+const CACHE_KEY = 'biblelessonspark_branding';
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CachedBranding {
