@@ -1,4 +1,4 @@
-ï»¿// =====================================================
+// =====================================================
 // PROGRAM CONFIG - Static Content Only
 // =====================================================
 // This file contains ONLY static content arrays and text.
@@ -22,10 +22,12 @@ export const PROGRAM_CONFIG = {
       "Direct input on features we build"
     ],
     recentUpdates: [
-      { date: "Dec 8", text: "Beta launch - SMS invitations sent" },
-      { date: "Nov 29", text: "New form layout with helper text" },
-      { date: "Nov 28", text: "Footer links and Help pages added" },
-      { date: "Nov 25", text: "PDF/DOCX export now available" }
+      { date: "Feb 21", text: "Complete rebrand to BibleLessonSpark" },
+      { date: "Feb 14", text: "Lesson Shapes — reshape any lesson into 5 teaching styles" },
+      { date: "Feb 11", text: "Teaching Teams — invite up to 2 co-teachers to share lessons" },
+      { date: "Feb 7", text: "Modern Parable Generator with perpetual freshness" },
+      { date: "Jan 28", text: "DevotionalSpark v2.1 — personal quiet-time companion" },
+      { date: "Jan 15", text: "PDF, DOCX, and Print export with optimized formatting" }
     ],
   },
   // Production static content
