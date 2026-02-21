@@ -1,4 +1,4 @@
-﻿import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
@@ -26,7 +26,10 @@ import {
   SeriesStyleMetadata
 } from '../_shared/freshnessOptions.ts';
 import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
-import { TRIAL_CONFIG, isTrialAvailable, doesTrialApply } from '../_shared/trialConfig.ts';
+// ============================================================
+// TRIAL: Updated to rolling 30-day period (3 full + 2 short)
+// ============================================================
+import { TRIAL_CONFIG, getTrialStatus, doesTrialApply, TrialStatus } from '../_shared/trialConfig.ts';
 // Phase 13.6: Organization Pool Check
 import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_shared/orgPoolCheck.ts';
 // Output Guardrails: Post-generation truth & integrity verification (SSOT: outputGuardrails.ts)
@@ -402,6 +405,9 @@ serve(async (req) => {
     
     let sectionsToGenerate: number[];
     let isTrialLesson = false;
+    let isFullTrialLesson = false;
+    let trialProfileData: any = null;
+    let trialStatus: TrialStatus | null = null;
     
     if (isAdmin) {
       sectionsToGenerate = getRequiredSections().map(s => s.id);
@@ -417,22 +423,52 @@ serve(async (req) => {
       if (doesTrialApply(platformMode, userTier)) {
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('trial_full_lesson_last_used, trial_full_lesson_granted_until')
+          .select('trial_period_start, trial_full_lessons_used, trial_short_lessons_used, trial_full_lesson_granted_until')
           .eq('id', user.id)
           .single();
-        
-        const trialAvailable = isTrialAvailable(
-          profileData?.trial_full_lesson_last_used,
-          profileData?.trial_full_lesson_granted_until
+
+        trialProfileData = profileData;
+        trialStatus = getTrialStatus(
+          profileData?.trial_period_start             ?? null,
+          profileData?.trial_full_lessons_used        ?? 0,
+          profileData?.trial_short_lessons_used       ?? 0,
+          profileData?.trial_full_lesson_granted_until ?? null
         );
-        
-        if (trialAvailable) {
+
+        // If period expired, reset counts immediately so next lesson starts fresh
+        if (trialStatus.periodExpired) {
+          await supabase
+            .from('profiles')
+            .update({ trial_full_lessons_used: 0, trial_short_lessons_used: 0, trial_period_start: null })
+            .eq('id', user.id);
+          console.log('Trial period expired — counts reset for user:', user.id);
+        }
+
+        if (trialStatus.fullAvailable || trialStatus.isAdminGrant) {
+          // Full (8-section) lesson available
           sectionsToGenerate = getRequiredSections().map(s => s.id);
           isTrialLesson = true;
-          console.log('Trial lesson: Free user gets all sections (monthly trial)');
-        } else {
+          isFullTrialLesson = true;
+          console.log('Trial: Free user gets full 8 sections');
+        } else if (trialStatus.shortAvailable) {
+          // Full lessons exhausted — short (3-section) lesson available
           sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
-          console.log('Production mode: User tier', userTier, 'gets sections:', sectionsToGenerate);
+          isTrialLesson = true;
+          isFullTrialLesson = false;
+          console.log('Trial: Full lessons exhausted — generating short 3-section lesson');
+        } else {
+          // Both full and short exhausted for this period
+          return new Response(JSON.stringify({
+            error:              'Lesson limit reached',
+            code:               'TRIAL_EXHAUSTED',
+            message:            'You have used all your free lessons for this period.',
+            full_lessons_used:  trialStatus.fullLessonsUsed,
+            short_lessons_used: trialStatus.shortLessonsUsed,
+            period_end:         trialStatus.periodEnd?.toISOString() ?? null,
+          }), {
+            status: 403,
+            headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
+          });
         }
       } else {
         sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
@@ -809,9 +845,6 @@ ${styleExtractionPromptAddition}
 
       // =========================================================================
       // POST-GENERATION GUARDRAIL CHECK (SSOT: outputGuardrails.ts)
-      // Checks for fabricated events, fake quotes, made-up statistics, etc.
-      // If violations found, automatically rewrites ONLY the offending sections.
-      // Clean lessons pass through with ZERO added cost or delay.
       // =========================================================================
       let guardrailCheckPassed = true;
       let wasRewritten = false;
@@ -827,7 +860,6 @@ ${styleExtractionPromptAddition}
 
         const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
 
-        // Log each violation for audit trail
         for (const section of violatedSections) {
           for (const v of section.violations) {
             console.log(`  [${v.patternId}] Section ${section.sectionId}: ${v.description}`);
@@ -835,7 +867,6 @@ ${styleExtractionPromptAddition}
           }
         }
 
-        // Build targeted rewrite prompt for ONLY the offending sections
         const rewritePrompt = buildRewritePrompt(violatedSections);
 
         try {
@@ -865,7 +896,6 @@ ${styleExtractionPromptAddition}
             const rewriteData = await rewriteResponse.json();
             const rewrittenContent = rewriteData.content[0].text;
 
-            // Parse rewritten sections and replace in original lesson
             const rewrittenParsed = parseLessonSections(rewrittenContent);
 
             if (rewrittenParsed.length > 0) {
@@ -873,17 +903,14 @@ ${styleExtractionPromptAddition}
               rewrittenSectionIds = rewrittenParsed.map(s => s.id);
               wasRewritten = true;
 
-              // Recalculate word count after rewrite
               wordCount = generatedLesson.split(/\s+/).length;
 
-              // Track rewrite API costs separately
               rewriteTokensInput = rewriteData.usage?.input_tokens || 0;
               rewriteTokensOutput = rewriteData.usage?.output_tokens || 0;
 
               console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully`);
               console.log(`Rewrite tokens — Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
 
-              // Verify the rewrite resolved all violations
               const postRewriteCheck = checkOutputGuardrails(generatedLesson);
               if (!postRewriteCheck.passed) {
                 console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite — delivering as-is`);
@@ -903,7 +930,6 @@ ${styleExtractionPromptAddition}
           } else {
             console.error('GUARDRAIL REWRITE ERROR:', rewriteError);
           }
-          // Continue with original content — don't block lesson delivery
         }
       } else {
         console.log('GUARDRAIL: Passed — no violations detected');
@@ -913,16 +939,12 @@ ${styleExtractionPromptAddition}
 
       // =========================================================================
       // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
-      // organization_id: ALWAYS set for org members (Org Leader sees all)
-      // org_pool_consumed: true only if consumed from org pool (reimbursement indicator)
       // =========================================================================
       const lessonData = {
         user_id: user.id,
         title: lessonInput,
         original_text: generatedLesson,
-        // Phase 13.6: Organization context - ALWAYS set for org members
         organization_id: orgPoolResult?.organization_id || null,
-        // Phase 13.6: Pool consumption flag - true = church paid, false = member paid
         org_pool_consumed: useOrgPool,
         series_style_metadata: extractedStyleMetadata,
         filters: {
@@ -974,14 +996,13 @@ ${styleExtractionPromptAddition}
           teaserFreshnessSuggestions: selectedTeaserFreshness,
           platformMode: platformMode,
           isTrialLesson: isTrialLesson,
+          isFullTrialLesson: isFullTrialLesson,
           sectionsGenerated: filteredSections.map(s => s.id),
           extractedStyleMetadata: extract_style_metadata,
           usedSeriesStyleContext: !!series_style_context,
-          // Phase 13.6: Org pool metadata for audit trail
           usedOrgPool: useOrgPool,
           organizationId: orgPoolResult?.organization_id || null,
           organizationName: orgPoolResult?.organization_name || null,
-          // Output Guardrails: Truth & integrity verification audit trail
           outputGuardrailsVersion: OUTPUT_GUARDRAILS_VERSION,
           guardrailCheckPassed: guardrailCheckPassed,
           guardrailRewritten: wasRewritten,
@@ -1023,8 +1044,6 @@ ${styleExtractionPromptAddition}
 
       // =========================================================================
       // PHASE 13.6: CONSUME FROM ORG POOL (if applicable)
-      // Individual usage increment is handled by frontend (SSOT: frontend drives backend)
-      // Only org pool consumption happens here (org-level logic, not individual)
       // =========================================================================
       if (useOrgPool && orgPoolResult?.organization_id) {
         const consumed = await consumeFromOrgPool(supabase, orgPoolResult.organization_id);
@@ -1035,12 +1054,33 @@ ${styleExtractionPromptAddition}
         }
       }
 
-      if (isTrialLesson) {
+      // =========================================================================
+      // TRIAL CONSUMPTION: Update rolling period counters
+      // Full lesson: increments full count + sets period_start on first lesson
+      // Short lesson: increments short count only (no effect on period clock)
+      // =========================================================================
+      if (isTrialLesson && trialProfileData !== null) {
+        const now = new Date().toISOString();
+        const updateData: Record<string, unknown> = {};
+
+        if (isFullTrialLesson) {
+          // Increment full lesson count; set period start on first full lesson of period
+          const currentFull = trialStatus?.periodExpired ? 0 : (trialProfileData.trial_full_lessons_used ?? 0);
+          updateData.trial_full_lessons_used = currentFull + 1;
+          if (!trialProfileData.trial_period_start || trialStatus?.periodExpired) {
+            updateData.trial_period_start = now;
+          }
+        } else {
+          // Increment short lesson count only
+          const currentShort = trialStatus?.periodExpired ? 0 : (trialProfileData.trial_short_lessons_used ?? 0);
+          updateData.trial_short_lessons_used = currentShort + 1;
+        }
+
         await supabase
           .from('profiles')
-          .update({ trial_full_lesson_last_used: new Date().toISOString() })
+          .update(updateData)
           .eq('id', user.id);
-        console.log('Trial lesson consumed for user:', user.id);
+        console.log('Trial consumed:', isFullTrialLesson ? 'full (8-section)' : 'short (3-section)', 'for user:', user.id);
       }
 
       if (metricId) {

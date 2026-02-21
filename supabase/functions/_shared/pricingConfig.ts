@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BIBLELESSONSPARK - PRICING CONFIGURATION (BACKEND SSOT)
 // Location: supabase/functions/_shared/pricingConfig.ts
 //
@@ -12,9 +12,9 @@ export type SubscriptionTier = 'free' | 'personal' | 'admin';
 
 // Section mappings - SSOT for tier-based access
 export const TIER_SECTIONS = {
-  free: ['1', '5', '8'],
+  free:     ['1', '5', '8'],
   personal: ['1', '2', '3', '4', '5', '6', '7', '8'],
-  admin: ['1', '2', '3', '4', '5', '6', '7', '8'],
+  admin:    ['1', '2', '3', '4', '5', '6', '7', '8'],
 } as const;
 
 // Free tier sections as numbers (for comparison/display logic)
@@ -23,12 +23,21 @@ export const FREE_TIER_SECTION_NUMBERS = [1, 5, 8] as const;
 // Full tier sections as numbers (for lessonTiers.ts import)
 export const FULL_TIER_SECTION_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 
-// Helper function to get sections for a tier
+// Trial allowances per rolling 30-day period (mirrors trialConfig.ts)
+export const TRIAL_FULL_LESSONS_PER_PERIOD  = 3;
+export const TRIAL_SHORT_LESSONS_PER_PERIOD = 2;
+
+// Helper: get sections for a tier
 export function getTierSections(tier: SubscriptionTier): string[] {
   return [...TIER_SECTIONS[tier]];
 }
 
-// Helper to convert string sections to numbers
+// Helper: convert string sections to numbers
 export function getTierSectionsAsNumbers(tier: SubscriptionTier): number[] {
   return TIER_SECTIONS[tier].map(s => parseInt(s, 10));
+}
+
+// Helper: returns true for any paid subscription tier
+export function isPaidTier(tier: SubscriptionTier): boolean {
+  return tier === 'personal' || tier === 'admin';
 }
