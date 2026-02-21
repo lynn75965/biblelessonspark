@@ -16,7 +16,7 @@ import { Check, X, Sparkles, Loader2, AlertCircle, CheckCircle } from 'lucide-re
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
-import { STRIPE_CONFIG, UPGRADE_PROMPTS, formatPrice, SubscriptionTier, DEFAULT_BILLING_INTERVAL } from '@/constants/pricingConfig';
+import { STRIPE_INDIVIDUAL, UPGRADE_PROMPTS, formatPrice, SubscriptionTier, DEFAULT_BILLING_INTERVAL } from '@/constants/pricingConfig';
 import { ROUTES } from '@/constants/routes';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -55,8 +55,8 @@ export default function PricingPage() {
     setLoadingPlan(tier);
     try {
       const priceId = billingInterval === 'year'
-        ? STRIPE_CONFIG.PRICES.PERSONAL_ANNUAL
-        : STRIPE_CONFIG.PRICES.PERSONAL_MONTHLY;
+        ? STRIPE_INDIVIDUAL.personal.prices.annual
+        : STRIPE_INDIVIDUAL.personal.prices.monthly;
 
       const url = await startCheckout({
         priceId,
@@ -217,7 +217,7 @@ export default function PricingPage() {
                       <span>{section}</span>
                     </li>
                   ))}
-                  {UPGRADE_PROMPTS.sections.personalAdds.slice(0, 3).map((section) => (
+                  {UPGRADE_PROMPTS.sections.paidAdds.slice(0, 3).map((section) => (
                     <li key={section} className="flex items-center gap-3 text-muted-foreground/50">
                       <X className="h-5 w-5 flex-shrink-0" />
                       <span>{section}</span>
@@ -280,7 +280,7 @@ export default function PricingPage() {
                       <span>{section}</span>
                     </li>
                   ))}
-                  {UPGRADE_PROMPTS.sections.personalAdds.map((section) => (
+                  {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
                     <li key={section} className="flex items-center gap-3 font-medium text-primary">
                       <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
                       <span>{section}</span>

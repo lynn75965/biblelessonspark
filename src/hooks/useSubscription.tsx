@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { STRIPE_CONFIG, SubscriptionTier, getTierSections } from '@/constants/pricingConfig';
+import { STRIPE_INDIVIDUAL, SubscriptionTier, getTierSections, isPaidTier } from '@/constants/pricingConfig';
 
 interface SubscriptionState {
   tier: SubscriptionTier;
@@ -183,7 +183,7 @@ export function useSubscription() {
     if (!state.canGenerate) {
       return {
         canGenerate: false,
-        reason: `You have used all ${state.lessonsLimit} lessons this month. Upgrade to Personal for more lessons.`,
+        reason: `You have used all ${state.lessonsLimit} lessons this period. Upgrade for more lessons.`,
         sectionsAllowed: state.sectionsAllowed,
       };
     }
@@ -195,9 +195,9 @@ export function useSubscription() {
   }, [fetchSubscription, state]);
 
   const getUpgradeUrl = useCallback(async (interval: 'month' | 'year' = 'month'): Promise<string | null> => {
-    const priceId = interval === 'year' 
-      ? STRIPE_CONFIG.PRICES.PERSONAL_ANNUAL 
-      : STRIPE_CONFIG.PRICES.PERSONAL_MONTHLY;
+    const priceId = interval === 'year'
+      ? STRIPE_INDIVIDUAL.personal.prices.annual
+      : STRIPE_INDIVIDUAL.personal.prices.monthly;
 
     return startCheckout({
       priceId,
@@ -214,7 +214,7 @@ export function useSubscription() {
     checkCanGenerate,
     getUpgradeUrl,
     isFreeTier: state.tier === 'free',
-    isPaidTier: state.tier === 'personal',
+    isPaidTier: isPaidTier(state.tier),
     usagePercentage: state.lessonsLimit > 0 
       ? Math.round((state.lessonsUsed / state.lessonsLimit) * 100) 
       : 0,

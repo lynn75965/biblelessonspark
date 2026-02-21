@@ -149,7 +149,7 @@ export function PricingSection() {
                     <span>{section}</span>
                   </li>
                 ))}
-                {UPGRADE_PROMPTS.sections.personalAdds.slice(0, 3).map((section) => (
+                {UPGRADE_PROMPTS.sections.paidAdds.slice(0, 3).map((section) => (
                   <li key={section} className="flex items-center gap-3 text-sm text-muted-foreground/50">
                     <X className="h-5 w-5 flex-shrink-0" />
                     <span>{section}</span>
@@ -212,7 +212,7 @@ export function PricingSection() {
                     <span>{section}</span>
                   </li>
                 ))}
-                {UPGRADE_PROMPTS.sections.personalAdds.map((section) => (
+                {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
                   <li key={section} className="flex items-center gap-3 text-sm font-medium text-accent">
                     <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
                     <span>{section}</span>

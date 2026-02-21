@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
-import { STRIPE_CONFIG, UPGRADE_PROMPTS, formatPrice } from '@/constants/pricingConfig';
+import { UPGRADE_PROMPTS, formatPrice } from '@/constants/pricingConfig';
 
 interface UpgradePromptModalProps {
   isOpen: boolean;
@@ -41,12 +41,12 @@ export function UpgradePromptModal({
   const handleUpgrade = async () => {
     setIsLoading(true);
     try {
-      const priceId = billingInterval === 'year' 
-        ? STRIPE_CONFIG.PRICES.PERSONAL_ANNUAL 
-        : STRIPE_CONFIG.PRICES.PERSONAL_MONTHLY;
+      const priceId = billingInterval === 'year'
+        ? personalPlan.stripePriceIdAnnual
+        : personalPlan.stripePriceIdMonthly;
 
       const url = await startCheckout({
-        priceId,
+        priceId: priceId ?? '',
         billingInterval,
       });
 
@@ -75,12 +75,6 @@ export function UpgradePromptModal({
         </DialogContent>
       </Dialog>
     );
-  }
-
-  // Admin users should NEVER see this modal - close it immediately
-  if (tier === 'admin') {
-    onClose();
-    return null;
   }
 
   // Personal tier users who hit their limit - show "wait for reset" message
@@ -164,14 +158,14 @@ export function UpgradePromptModal({
                   {section}
                 </li>
               ))}
-              {UPGRADE_PROMPTS.sections.personalAdds.slice(0, 3).map((section) => (
+              {UPGRADE_PROMPTS.sections.paidAdds.slice(0, 3).map((section) => (
                 <li key={section} className="flex items-center gap-2 text-muted-foreground">
                   <X className="h-4 w-4" />
                   {section}
                 </li>
               ))}
               <li className="text-muted-foreground text-xs ml-6">
-                + {UPGRADE_PROMPTS.sections.personalAdds.length - 3} more sections...
+                + {UPGRADE_PROMPTS.sections.paidAdds.length - 3} more sections...
               </li>
             </ul>
           </div>
@@ -209,7 +203,7 @@ export function UpgradePromptModal({
                   {section}
                 </li>
               ))}
-              {UPGRADE_PROMPTS.sections.personalAdds.map((section) => (
+              {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
                 <li key={section} className="flex items-center gap-2 text-accent font-medium">
                   <Sparkles className="h-4 w-4 text-amber-500" />
                   {section}
