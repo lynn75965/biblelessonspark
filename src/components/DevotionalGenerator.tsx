@@ -47,6 +47,11 @@ import { UI_SYMBOLS } from "@/constants/uiSymbols";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 import { ROUTES } from "@/constants/routes";
 import { DEFAULT_THEOLOGY_PROFILE_ID } from "@/constants/theologyProfiles";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
+import { useNavigate as useNavigateUpgrade } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
+import { Lock } from "lucide-react";
 
 // ============================================================================
 // INTERFACES
@@ -72,6 +77,9 @@ export function DevotionalGenerator() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { tier, isFreeTier } = useSubscription();
+  const navigateUpgrade = useNavigateUpgrade();
+  const canUseDevotional = hasFeatureAccess(tier, 'devotional');
 
   // URL Parameters (inherited from lesson)
   const context = searchParams.get("context") || "standalone";
@@ -412,8 +420,31 @@ export function DevotionalGenerator() {
         </Card>
       )}
 
+      {/* Feature Gate: Devotional requires Personal Plan */}
+      {!canUseDevotional && (
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="py-8 flex flex-col items-center text-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+              <Lock className="h-6 w-6 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-amber-900 mb-1">Personal Plan Required</h3>
+              <p className="text-sm text-amber-700 max-w-sm">
+                {getUpgradePrompt(tier, 'devotional')}
+              </p>
+            </div>
+            <button
+              onClick={() => navigateUpgrade(ROUTES.PRICING)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-sm font-medium transition-colors"
+            >
+              View Plans
+            </button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Generation Form */}
-      {!devotional && (
+      {canUseDevotional && !devotional && (
         <Card>
           <CardHeader>
             <CardTitle>Customize Your Devotional</CardTitle>
@@ -548,7 +579,7 @@ export function DevotionalGenerator() {
       )}
 
       {/* Generated Devotional Display */}
-      {devotional && (
+      {canUseDevotional && devotional && (
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">

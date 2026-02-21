@@ -40,6 +40,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Trash2, Search, BookOpen, Users, Sparkles, Lock, Share2, User } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
+import { useSubscription } from "@/hooks/useSubscription";
+import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
+import { useToast } from "@/hooks/use-toast";
+import { ROUTES } from "@/constants/routes";
 import { Lesson } from "@/constants/contracts";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
@@ -175,6 +179,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
 
   const { lessons, loading, deleteLesson, updateLessonVisibility } = useLessons();
   const { hasTeam, team, members, fetchTeamLessons } = useTeachingTeam();
+  const { tier } = useSubscription();
+  const { toast } = useToast();
+  const canUseDevotional = hasFeatureAccess(tier, 'devotional');
 
   // Transform user's own lessons for display
   const displayLessons: LessonDisplay[] = lessons.map((lesson) =>
@@ -201,7 +208,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
       // Build a map of user_id ? display_name from team members + lead
       const nameMap: Record<string, string> = {};
       if (team) {
-        // Lead teacher name — look up from members or use team info
+        // Lead teacher name ï¿½ look up from members or use team info
         // For members, we have display_name in the enriched data
         members.forEach((m) => {
           if (m.display_name) nameMap[m.user_id] = m.display_name;
@@ -334,7 +341,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
               </CardDescription>
             </div>
 
-            {/* Phase 27: Scope Toggle — only visible when user has a team */}
+            {/* Phase 27: Scope Toggle ï¿½ only visible when user has a team */}
             {hasTeam && (
               <div className="flex bg-muted rounded-lg p-1 shrink-0 ml-4">
                 <Button
@@ -474,7 +481,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}
                   </Badge>
-                  {/* Visibility Badge (Phase 26) — only on user's own lessons */}
+                  {/* Visibility Badge (Phase 26) ï¿½ only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Badge
                       variant="outline"
@@ -525,7 +532,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>
-                  {/* Visibility Toggle (Phase 26) — only on user's own lessons */}
+                  {/* Visibility Toggle (Phase 26) ï¿½ only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
                       onClick={() => handleToggleVisibility(lesson)}
@@ -545,19 +552,37 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       )}
                     </Button>
                   )}
-                  {/* Devotional button — only on user's own lessons with content */}
+                  {/* Devotional button â€” only on user's own lessons with content */}
                   {!lesson.isTeamLesson && lesson.has_content && (
-                    <Button
-                      onClick={() => handleGenerateDevotional(lesson)}
-                      variant="outline"
-                      size="sm"
-                      className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
-                      title="Generate a devotional from this lesson"
-                    >
-                      <Sparkles className="h-3.5 w-3.5" />
-                    </Button>
+                    canUseDevotional ? (
+                      <Button
+                        onClick={() => handleGenerateDevotional(lesson)}
+                        variant="outline"
+                        size="sm"
+                        className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
+                        title="Generate a devotional from this lesson"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => {
+                          toast({
+                            title: "Personal Plan Required",
+                            description: getUpgradePrompt(tier, 'devotional'),
+                          });
+                          navigate(ROUTES.PRICING);
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="opacity-50 hover:opacity-75"
+                        title={getUpgradePrompt(tier, 'devotional')}
+                      >
+                        <Lock className="h-3.5 w-3.5" />
+                      </Button>
+                    )
                   )}
-                  {/* Delete — only on user's own lessons */}
+                  {/* Delete ï¿½ only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
                       onClick={() => handleDelete(lesson.id)}

@@ -3,6 +3,9 @@ import { Footer } from "@/components/layout/Footer";
 import { BRANDING } from "@/config/branding";
 import { TeachingTeamCard } from "@/components/dashboard/TeachingTeamCard";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
 import { Users } from "lucide-react";
 
 /**
@@ -28,6 +31,9 @@ export default function TeachingTeam() {
     disbandTeam,
     leaveTeam,
   } = useTeachingTeam();
+
+  const { isPaidTier } = useSubscription();
+  const navigate = useNavigate();
 
   return (
     <div className={BRANDING.layout.pageWrapper}>
@@ -61,6 +67,8 @@ export default function TeachingTeam() {
             onRemoveMember={removeMember}
             onDisbandTeam={disbandTeam}
             onLeaveTeam={leaveTeam}
+            isPaidUser={isPaidTier}
+            onUpgrade={() => navigate(ROUTES.PRICING)}
           />
         </div>
       </main>

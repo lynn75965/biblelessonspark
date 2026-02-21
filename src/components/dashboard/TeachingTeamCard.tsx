@@ -27,6 +27,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { TeachingTeam, TeachingTeamMemberWithProfile } from "@/constants/contracts";
+import { getUpgradePrompt } from "@/constants/featureFlags";
+import { Lock } from "lucide-react";
 
 interface TeachingTeamCardProps {
   team: TeachingTeam | null;
@@ -35,6 +37,9 @@ interface TeachingTeamCardProps {
   isMember: boolean;
   maxMembers: number;
   loading: boolean;
+  /** isPaidTier from useSubscription() in parent */
+  isPaidUser?: boolean;
+  onUpgrade?: () => void;
   // Lead Teacher actions
   onCreateTeam: (name: string) => Promise<{ error: any }>;
   onRenameTeam: (name: string) => Promise<void>;
@@ -62,6 +67,8 @@ export function TeachingTeamCard({
   isMember,
   maxMembers,
   loading,
+  isPaidUser = true,
+  onUpgrade,
   onCreateTeam,
   onRenameTeam,
   onInviteMember,
@@ -164,7 +171,23 @@ export function TeachingTeamCard({
           </div>
         </CardHeader>
         <CardContent>
-          {!showCreateForm ? (
+          {!isPaidUser ? (
+            <div className="flex flex-col gap-3 p-4 rounded-lg bg-amber-50 border border-amber-200">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-amber-600 shrink-0" />
+                <p className="text-sm text-amber-800">
+                  {getUpgradePrompt('free', 'teachingTeam')}
+                </p>
+              </div>
+              <Button
+                onClick={onUpgrade}
+                size="sm"
+                className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                View Plans
+              </Button>
+            </div>
+          ) : !showCreateForm ? (
             <Button
               onClick={() => setShowCreateForm(true)}
               variant="outline"
