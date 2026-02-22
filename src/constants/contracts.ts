@@ -1,5 +1,6 @@
 import type { TeacherPreferences } from './teacherPreferences';
 import type { BibleVersionId } from './bibleVersions';
+import type { ShapeId } from './lessonShapeProfiles';
 
 /**
  * BibleLessonSpark — TypeScript Contracts (SSOT)
