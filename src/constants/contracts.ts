@@ -1,4 +1,5 @@
 import type { TeacherPreferences } from './teacherPreferences';
+import type { BibleVersionId } from './bibleVersions';
 
 /**
  * BibleLessonSpark — TypeScript Contracts (SSOT)
@@ -102,7 +103,7 @@ export type TulipStance = 'anti' | 'pro';
  * KJV is public domain (direct quotes allowed).
  * All others require paraphrase for copyright compliance.
  */
-export type BibleVersionKey = 'kjv' | 'web' | 'nkjv' | 'esv' | 'nasb' | 'niv' | 'csb' | 'nlt' | 'amp';
+/** Re-exported from bibleVersions.ts SSOT */\nexport type BibleVersionKey = BibleVersionId;
 
 /** The default Bible version */
 export const DEFAULT_BIBLE_VERSION: BibleVersionKey = 'nasb';
