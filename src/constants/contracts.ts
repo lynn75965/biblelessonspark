@@ -1,4 +1,4 @@
-import type { TeacherPreferences } from './teacherPreferences';
+import type { TeacherPreferences, LanguageKey as TPLanguageKey } from './teacherPreferences';
 import type { BibleVersionId } from './bibleVersions';
 import type { ShapeId } from './lessonShapeProfiles';
 
@@ -113,7 +113,8 @@ export const DEFAULT_BIBLE_VERSION: BibleVersionKey = 'nasb';
 // TIER 2: Language Configuration Contracts
 // ============================================================================
 
-export type LanguageKey = 'en' | 'es' | 'fr';
+/** Re-exported from teacherPreferences.ts SSOT */
+export type LanguageKey = TPLanguageKey;
 
 export interface LanguageConfig {
   id: LanguageKey;
