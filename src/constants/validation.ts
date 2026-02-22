@@ -1,4 +1,4 @@
-﻿
+
 // =============================================================================
 // ORGANIZATION VALIDATION CONSTANTS
 // SSOT Reference: Phase 11-B1 Org Leader Activation
@@ -27,7 +27,7 @@ export { ORG_ROLES } from './accessControl';
 // Cross-reference: theologyProfiles.ts owns theology profile definitions.
 // Denomination != theology profile (one denomination may map to multiple profiles,
 // e.g., "Southern Baptist Convention" maps to BF&M 1963 and BF&M 2000).
-// "Other Baptist" has no dedicated profile — uses Baptist Core Beliefs default.
+// "Other Baptist" has no dedicated profile � uses Baptist Core Beliefs default.
 export const DENOMINATION_OPTIONS = [
   "Southern Baptist Convention",
   "National Baptist",
@@ -99,8 +99,8 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 export const TEACHING_TEAM_VALIDATION = {
   TEAM_NAME_MIN_LENGTH: 3,
   TEAM_NAME_MAX_LENGTH: 60,
-  MAX_TEAM_MEMBERS: 4,
-  MAX_INVITED_MEMBERS: 3,
+  MAX_TEAM_MEMBERS: 3, // Lead teacher + up to 2 invited = 3 total
+  MAX_INVITED_MEMBERS: 2, // Matches project spec: up to 3 teachers total
 } as const;
 
 // =============================================================================
