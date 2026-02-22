@@ -112,6 +112,15 @@ export const FEATURE_ACCESS = {
   createLesson: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   viewOwnLessons: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   exportOwnLessons: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+
+  // Teaching Teams (role access — tier gating handled by featureFlags.ts)
+  createTeam: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+  inviteTeamMember: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+  removeTeamMember: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+  viewTeamLessons: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
+
+  // Lesson Shapes (role access — tier gating handled by featureFlags.ts)
+  reshapeLesson: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
 } as const;
 
 export type FeatureKey = keyof typeof FEATURE_ACCESS;
@@ -228,4 +237,39 @@ export const canManageOrgMember = (
   
   // Org members cannot manage anyone
   return false;
+};
+
+// =============================================================================
+// TEACHING TEAM PERMISSIONS
+// =============================================================================
+
+/**
+ * Check if a user can manage a teaching team.
+ * Only the team lead (creator) or platform admin can invite/remove members.
+ * Tier gating (is the feature available at all?) is handled by featureFlags.ts.
+ */
+export const canManageTeam = (
+  actorRole: Role,
+  actorUserId: string,
+  teamLeadId: string
+): boolean => {
+  if (actorRole === ROLES.platformAdmin) {
+    return true;
+  }
+  return actorUserId === teamLeadId;
+};
+
+/**
+ * Check if a user can view lessons shared within a teaching team.
+ * Team members (accepted status) and the lead can view shared lessons.
+ * Platform admin can view any team's lessons.
+ */
+export const canViewTeamLessons = (
+  actorRole: Role,
+  isTeamMember: boolean
+): boolean => {
+  if (actorRole === ROLES.platformAdmin) {
+    return true;
+  }
+  return isTeamMember;
 };
