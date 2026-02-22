@@ -1,3 +1,5 @@
+import type { TeacherPreferences } from './teacherPreferences';
+
 /**
  * BibleLessonSpark — TypeScript Contracts (SSOT)
  * 
@@ -148,46 +150,7 @@ export interface PreferenceOption {
   description?: string;
 }
 
-/**
- * Teacher preferences that fine-tune lesson generation.
- * Maps to the Teacher Customization Handout (Steps 5a–5o).
- * All fields optional — defaults apply when omitted.
- */
-export interface TeacherPreferences {
-  /** 5a. Teaching Style */
-  teachingStyle?: string;
-  /** 5b. Learning Style */
-  learnerTypes?: string[];
-  /** 5c. Lesson Length in minutes */
-  sessionDuration?: string;
-  /** 5d. Group Size */
-  classSize?: string;
-  /** 5e. Learning Environment */
-  learningEnvironment?: string;
-  /** 5f. Student Experience Level */
-  studentExperienceLevel?: string;
-  /** 5g. Student Education Level */
-  studentEducationLevel?: string;
-  /** 5h. Cultural Context */
-  culturalContext?: string;
-  /** 5i. Special Needs */
-  accessibilityNeeds?: string[];
-  /** 5j. Assessment Style */
-  assessmentStyle?: string;
-  /** 5k. Emotional Entry Point */
-  emotionalEntryPoint?: string;
-  /** 5l. Theological Lens (distinct from theology profile) */
-  theologicalLens?: string;
-  /** 5m. Language — overridden by top-level language field */
-  language?: LanguageKey;
-  /** 5n. Lesson Sequence: single lesson or part of series */
-  lessonSequence?: 'single' | 'series';
-  /** 5o. Activity Types (multi-select) */
-  activityTypes?: string[];
-  /** Legacy optional fields � may exist in older saved preferences */
-  classroomManagement?: string;
-  techIntegration?: string;
-}
+
 
 // ============================================================================
 // TIER 2: Teaching Team Contracts (Phase 27A)

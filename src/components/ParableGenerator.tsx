@@ -96,7 +96,7 @@ interface LessonSettings {
   bibleVersion: string;
 }
 
-interface TeacherPreferences {
+interface ParableTeacherPrefs {
   theology_profile?: string;
   bible_version?: string;
   age_group?: string;
@@ -237,7 +237,7 @@ export function ParableGenerator({
   const [standaloneAgeGroupId, setStandaloneAgeGroupId] = useState('');
   
   // User preferences (from database - for standalone context)
-  const [preferences, setPreferences] = useState<TeacherPreferences | null>(null);
+  const [preferences, setPreferences] = useState<ParableTeacherPrefs | null>(null);
   const [loadingPreferences, setLoadingPreferences] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
