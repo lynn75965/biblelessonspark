@@ -1,4 +1,6 @@
-ï»¿/**
+import type { TheologyProfileId, SecurityDoctrine, TulipStance } from './contracts';
+
+/**
  * THEOLOGY PROFILES - Single Source of Truth (SSOT)
  * 
  * This file defines all Baptist theology profiles for BibleLessonSpark.
@@ -22,7 +24,7 @@
 // ============================================================================
 
 export interface TheologyProfile {
-  id: string;
+  id: TheologyProfileId;
   name: string;
   shortName: string;
   displayOrder: number;
@@ -33,8 +35,8 @@ export interface TheologyProfile {
   preferredTerminology: Record<string, string>;
   requiredTerminology: string[];
   guardrails: string[];
-  securityDoctrine: 'eternal' | 'conditional' | 'perseverance';
-  tulipStance: 'anti' | 'pro';
+  securityDoctrine: SecurityDoctrine;
+  tulipStance: TulipStance;
   badgeClass: string;
 }
 
@@ -169,7 +171,7 @@ This profile must EXCLUDE all doctrines not unanimously affirmed across Baptist 
     shortName: "SBC 1963",
     displayOrder: 2,
     isDefault: false,
-    summary: "A Christ-centered, Scripture-authoritative, evangelistic, missions-minded Southern Baptist doctrinal identity emphasizing universal atonement, human responsibility, believer's baptism, congregational autonomy, eternal security, warm worship, and strong personal discipleshipâ€”interpreted through the lens of Christ as the criterion of Scripture.",
+    summary: "A Christ-centered, Scripture-authoritative, evangelistic, missions-minded Southern Baptist doctrinal identity emphasizing universal atonement, human responsibility, believer's baptism, congregational autonomy, eternal security, warm worship, and strong personal discipleship—interpreted through the lens of Christ as the criterion of Scripture.",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
     badgeClass: 'bg-primary-light text-primary border-primary/20',
@@ -229,7 +231,7 @@ God is sovereign, holy, righteous, loving, and personal. His sovereignty include
 The Spirit convicts, regenerates, indwells, sanctifies, and empowers believers. Non-charismatic: miraculous gifts are not normative for the church today.
 
 ### Church
-Local church autonomy; congregational governance. BF&M 1963 is less explicit on gender rolesâ€”traditional male pastoral leadership is customary.
+Local church autonomy; congregational governance. BF&M 1963 is less explicit on gender roles—traditional male pastoral leadership is customary.
 
 ### Ethics
 Holiness, obedience, prayer, service, and Christlike character expected. Marriage traditionally between one man and one woman. Life is sacred from conception.
@@ -247,7 +249,7 @@ Warm, pastoral, Christ-centered, Scripture-rooted. Emphasize soul competency, Ch
     shortName: "SBC 2000",
     displayOrder: 3,
     isDefault: false,
-    summary: "A conservative, Scripture-authoritative, complementarian, evangelistic Southern Baptist doctrinal framework emphasizing biblical inerrancy, universal atonement, salvation by grace through faith, believer's baptism, eternal security, global missions, moral clarity, and congregational autonomy â€” shaped by the official Baptist Faith & Message (2000).",
+    summary: "A conservative, Scripture-authoritative, complementarian, evangelistic Southern Baptist doctrinal framework emphasizing biblical inerrancy, universal atonement, salvation by grace through faith, believer's baptism, eternal security, global missions, moral clarity, and congregational autonomy — shaped by the official Baptist Faith & Message (2000).",
     securityDoctrine: 'eternal',
     tulipStance: 'anti',
     badgeClass: 'bg-primary-light text-primary border-primary/20',
@@ -349,7 +351,7 @@ Biblical, doctrinally clear, conservative, evangelistic. Accuracy, clarity, and 
       "Total Depravity": "fallen humanity / sinful nature",
       "Unconditional Election": "election understood in foreknowledge-based or corporate terms",
       "Limited Atonement": "Christ died for the sins of the whole world",
-      "Irresistible Grace": "grace calls, convicts, enablesâ€”but does not coerce",
+      "Irresistible Grace": "grace calls, convicts, enables—but does not coerce",
       "regeneration precedes faith": "faith and repentance precede conversion",
       "the elect": "believers / those who trust in Christ"
     },
@@ -374,7 +376,7 @@ God is sovereign, omniscient, omnipotent, holy, just, and loving. God's sovereig
 ### Salvation
 - Election is understood in foreknowledge-based or corporate terms; rejects Calvinistic unconditional election
 - Unlimited Atonement: Christ died for the sins of the whole world
-- Grace calls, convicts, enables, and empowersâ€”but does not coerce
+- Grace calls, convicts, enables, and empowers—but does not coerce
 - Faith and repentance precede conversion
 - Eternal Security is widely held; emphasis on living faith and obedience as marks of genuine salvation
 
@@ -583,7 +585,7 @@ Clear, evangelistic, practical, warm, and accessible. Emphasis on missions, disc
       "Total Depravity": "fallen humanity able to respond to prevenient grace",
       "Unconditional Election": "election is conditional, based on God's foreknowledge of faith",
       "Limited Atonement": "Christ died for all people without exception",
-      "Irresistible Grace": "prevenient graceâ€”God empowers but does not coerce",
+      "Irresistible Grace": "prevenient grace—God empowers but does not coerce",
       "regeneration precedes faith": "regeneration follows repentance and faith"
     },
     requiredTerminology: [],
@@ -607,7 +609,7 @@ God is sovereign but His sovereignty does not override human free will. God desi
 ### Salvation
 - Election is conditional, based on God's foreknowledge of faith; God elects "in Christ"
 - Unlimited Atonement: Christ died for all people without exception
-- Prevenient graceâ€”God empowers all people to believe but does not coerce
+- Prevenient grace—God empowers all people to believe but does not coerce
 - Regeneration follows repentance and faith
 - Eternal Security (modern view): salvation cannot be lost once genuinely received
 
@@ -663,7 +665,7 @@ Warm, evangelistic, accessible, Scripture-grounded. Practical, encouraging, and 
       "Limited Atonement": "Christ died for every person / general atonement",
       "Irresistible Grace": "prevenient grace enables but does not compel belief",
       "regeneration precedes faith": "faith and repentance precede regeneration",
-      "eternal security": "conditional securityâ€”salvation can be forfeited by persistent unbelief",
+      "eternal security": "conditional security—salvation can be forfeited by persistent unbelief",
       "perseverance of the saints": "continued faith is necessary; apostasy is possible"
     },
     requiredTerminology: [],
@@ -689,10 +691,10 @@ God is sovereign but exercises sovereignty without negating human freedom. God g
 - General/Unlimited Atonement: Christ died for every person
 - Prevenient grace enables all people to believe without compelling belief
 - Faith and repentance precede regeneration
-- CONDITIONAL SECURITY: Salvation can be forfeited by persistent, willful unbelief. Apostasy is possible but never accidentalâ€”requires conscious, ongoing rejection of Christ.
+- CONDITIONAL SECURITY: Salvation can be forfeited by persistent, willful unbelief. Apostasy is possible but never accidental—requires conscious, ongoing rejection of Christ.
 
 ### Holy Spirit
-The Spirit convicts, calls, regenerates, indwells, sanctifies, and empowers. Non-charismaticâ€”tongues and sign gifts are not normative. Holiness strongly emphasized.
+The Spirit convicts, calls, regenerates, indwells, sanctifies, and empowers. Non-charismatic—tongues and sign gifts are not normative. Holiness strongly emphasized.
 
 ### Three Ordinances
 1. Baptism: believers only, immersion
@@ -916,7 +918,7 @@ export function getTheologyProfilesSorted(): TheologyProfile[] {
  * Returns only id, name, shortName, and summary
  */
 export function getTheologyProfileOptions(): Array<{
-  id: string;
+  id: TheologyProfileId;
   name: string;
   shortName: string;
   summary: string;
@@ -938,7 +940,7 @@ export function generateTheologicalGuardrails(profileId: string): string {
   const profile = getTheologyProfile(profileId) || getDefaultTheologyProfile();
   
   let guardrailsBlock = `
-## THEOLOGICAL GUARDRAILS â€” MANDATORY COMPLIANCE
+## THEOLOGICAL GUARDRAILS — MANDATORY COMPLIANCE
 
 **Selected Theology Profile:** ${profile.name}
 
@@ -959,7 +961,7 @@ ${profile.avoidTerminology.map(term => `- "${term}"`).join('\n')}
   if (Object.keys(profile.preferredTerminology).length > 0) {
     guardrailsBlock += `
 **REQUIRED SUBSTITUTIONS:**
-${Object.entries(profile.preferredTerminology).map(([avoid, prefer]) => `- Instead of "${avoid}" â†’ use "${prefer}"`).join('\n')}
+${Object.entries(profile.preferredTerminology).map(([avoid, prefer]) => `- Instead of "${avoid}" ? use "${prefer}"`).join('\n')}
 `;
   }
 
