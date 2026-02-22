@@ -1,4 +1,4 @@
-ï»¿// src/pages/OrgLanding.tsx
+// src/pages/OrgLanding.tsx
 // Self-Service Shepherd Entry Point - Landing Page
 // Stack 2: Shepherd (Org Manager) - Ministry leaders managing their teaching ministry
 //
@@ -25,7 +25,7 @@ const OrgLanding = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('annual');
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
 
   // Existing-org banner state
   const [existingOrgName, setExistingOrgName] = useState<string | null>(null);
@@ -137,7 +137,7 @@ const OrgLanding = () => {
         </div>
       </header>
 
-      {/* Existing Org Banner â€” for logged-in users who already own an organization */}
+      {/* Existing Org Banner — for logged-in users who already own an organization */}
       {user && existingOrgName && (
         <div className="bg-primary/5 border-b border-primary/20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
@@ -206,7 +206,7 @@ const OrgLanding = () => {
               <CardContent>
                 <p className="text-muted-foreground">
                   Your teachers draw from a shared monthly pool of lessons. 
-                  No per-seat pricing â€” invite as many teachers as you need.
+                  No per-seat pricing — invite as many teachers as you need.
                 </p>
               </CardContent>
             </Card>
@@ -221,7 +221,7 @@ const OrgLanding = () => {
               <CardContent>
                 <p className="text-muted-foreground">
                   Set an organization-wide passage or theme. Your teachers see your suggestion 
-                  and can align their lessons â€” or teach their own calling.
+                  and can align their lessons — or teach their own calling.
                 </p>
               </CardContent>
             </Card>
@@ -236,7 +236,7 @@ const OrgLanding = () => {
               <CardContent>
                 <p className="text-muted-foreground">
                   See which teachers are preparing, view lessons funded by your pool, 
-                  and encourage your team â€” all from one dashboard.
+                  and encourage your team — all from one dashboard.
                 </p>
               </CardContent>
             </Card>
@@ -258,9 +258,9 @@ const OrgLanding = () => {
             {/* Billing Toggle */}
             <div className="inline-flex items-center gap-2 bg-muted rounded-lg p-1">
               <button
-                onClick={() => setBillingInterval('monthly')}
+                onClick={() => setBillingInterval('month')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  billingInterval === 'monthly'
+                  billingInterval === 'month'
                     ? 'bg-background shadow-sm text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
@@ -268,9 +268,9 @@ const OrgLanding = () => {
                 Monthly
               </button>
               <button
-                onClick={() => setBillingInterval('annual')}
+                onClick={() => setBillingInterval('year')}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  billingInterval === 'annual'
+                  billingInterval === 'year'
                     ? 'bg-background shadow-sm text-foreground'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
@@ -284,7 +284,7 @@ const OrgLanding = () => {
           {/* Tier Cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {activeTiers.map((tier) => {
-              const price = billingInterval === 'annual' ? tier.priceAnnual : tier.priceMonthly;
+              const price = billingInterval === 'year' ? tier.priceAnnual : tier.priceMonthly;
               const { savings } = calculateSavings(tier.priceMonthly, tier.priceAnnual);
               const isPopular = tier.tier === 'org_growth'; // Middle tier
 
@@ -312,10 +312,10 @@ const OrgLanding = () => {
                       <div className="flex items-baseline gap-1">
                         <span className="text-3xl font-bold">{formatPrice(price)}</span>
                         <span className="text-muted-foreground text-sm">
-                          /{billingInterval === 'annual' ? 'year' : 'month'}
+                          /{billingInterval === 'year' ? 'year' : 'month'}
                         </span>
                       </div>
-                      {billingInterval === 'annual' && (
+                      {billingInterval === 'year' && (
                         <p className="text-xs text-green-600 mt-1">
                           Save {formatPrice(savings)} per year
                         </p>
@@ -357,7 +357,7 @@ const OrgLanding = () => {
           {/* Lesson Packs Note */}
           <p className="text-center text-sm text-muted-foreground mt-8">
             Need more lessons mid-month? You can always purchase a{' '}
-            <span className="font-medium">Lesson Pack</span> â€” bonus lessons that never expire.
+            <span className="font-medium">Lesson Pack</span> — bonus lessons that never expire.
           </p>
         </div>
       </section>
@@ -371,7 +371,7 @@ const OrgLanding = () => {
           <p className="text-muted-foreground">
             The Shepherd tier gives your organization a shared lesson pool and management tools. 
             For your <em>own</em> lessons (personal preparation, devotionals), you'll also need 
-            a Personal subscription ($9/month OR $90/year â€” $7.50 monthly). Be sure to match 
+            a Personal subscription ($9/month OR $90/year — $7.50 monthly). Be sure to match 
             your choice with your organization's billing choice. If you don't have a Personal subscription yet, 
             we'll add it automatically at checkout.
           </p>
@@ -398,7 +398,7 @@ const OrgLanding = () => {
       <footer className="border-t py-8 px-4 sm:px-6 bg-background">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Â© {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
+            © {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm">
             <a href={ROUTES.PRIVACY} className="text-muted-foreground hover:text-foreground">

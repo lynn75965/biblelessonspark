@@ -79,7 +79,7 @@ const OrgSetup = () => {
   const [selectedTier, setSelectedTier] = useState<string>(
     searchParams.get('tier') || ''
   );
-  const [billingInterval, setBillingInterval] = useState<'monthly' | 'annual'>('annual');
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
 
   // Personal subscription check
   const [personalSub, setPersonalSub] = useState<PersonalSubStatus>({
@@ -210,7 +210,7 @@ const OrgSetup = () => {
       const tier = activeTiers.find((t) => t.tier === selectedTier);
       if (!tier) throw new Error('Invalid tier selected');
 
-      const priceId = billingInterval === 'annual' 
+      const priceId = billingInterval === 'year' 
         ? tier.stripePriceIdAnnual 
         : tier.stripePriceIdMonthly;
 
@@ -271,12 +271,12 @@ const OrgSetup = () => {
   const getSelectedTierPrice = (): number => {
     const tier = activeTiers.find((t) => t.tier === selectedTier);
     if (!tier) return 0;
-    return billingInterval === 'annual' ? tier.priceAnnual : tier.priceMonthly;
+    return billingInterval === 'year' ? tier.priceAnnual : tier.priceMonthly;
   };
 
   const getPersonalSubPrice = (): number => {
     if (personalSub.hasSubscription) return 0;
-    return billingInterval === 'annual' ? 90 : 9;
+    return billingInterval === 'year' ? 90 : 9;
   };
 
   const getTotalPrice = (): number => {
@@ -500,9 +500,9 @@ const OrgSetup = () => {
                 <div className="flex justify-center mb-6">
                   <div className="inline-flex items-center gap-2 bg-muted rounded-lg p-1">
                     <button
-                      onClick={() => setBillingInterval('monthly')}
+                      onClick={() => setBillingInterval('month')}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        billingInterval === 'monthly'
+                        billingInterval === 'month'
                           ? 'bg-background shadow-sm text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
@@ -510,9 +510,9 @@ const OrgSetup = () => {
                       Monthly
                     </button>
                     <button
-                      onClick={() => setBillingInterval('annual')}
+                      onClick={() => setBillingInterval('year')}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                        billingInterval === 'annual'
+                        billingInterval === 'year'
                           ? 'bg-background shadow-sm text-foreground'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
@@ -526,7 +526,7 @@ const OrgSetup = () => {
                 {/* Tier Options */}
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {activeTiers.map((tier) => {
-                    const price = billingInterval === 'annual' ? tier.priceAnnual : tier.priceMonthly;
+                    const price = billingInterval === 'year' ? tier.priceAnnual : tier.priceMonthly;
                     const isSelected = selectedTier === tier.tier;
                     const isPopular = tier.tier === 'org_growth';
 
@@ -560,7 +560,7 @@ const OrgSetup = () => {
                         <div className="mt-3">
                           <span className="text-2xl font-bold">{formatPrice(price)}</span>
                           <span className="text-muted-foreground text-sm">
-                            /{billingInterval === 'annual' ? 'year' : 'month'}
+                            /{billingInterval === 'year' ? 'year' : 'month'}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-2">
@@ -605,7 +605,7 @@ const OrgSetup = () => {
                     <AlertDescription>
                       <strong>A Personal subscription will be added.</strong> The Shepherd tier covers your organization's shared pool. 
                       For your own lessons and devotionals, you need a Personal subscription 
-                      ({formatPrice(getPersonalSubPrice())}/{billingInterval === 'annual' ? 'year' : 'month'}).
+                      ({formatPrice(getPersonalSubPrice())}/{billingInterval === 'year' ? 'year' : 'month'}).
                       It will be included in your checkout.
                     </AlertDescription>
                   </Alert>
@@ -659,7 +659,7 @@ const OrgSetup = () => {
                       <span>{formatPrice(getTotalPrice())}</span>
                     </div>
 
-                    {billingInterval === 'annual' && (
+                    {billingInterval === 'year' && (
                       <p className="text-xs text-muted-foreground text-center">
                         Billed annually. Cancel anytime.
                       </p>
