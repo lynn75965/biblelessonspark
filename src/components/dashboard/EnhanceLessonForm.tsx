@@ -245,17 +245,17 @@ const extractLessonTitle = (content: string): string | null => {
 };
 
 // Parse lesson content into sections for Full/Free toggle display
-interface LessonSection {
+interface ParsedDisplaySection {
   sectionNumber: number;
   title: string;
   content: string;
   isFreeTier: boolean;
 }
 
-const parseLessonSections = (content: string, freeSections: number[]): LessonSection[] => {
+const parseLessonSections = (content: string, freeSections: number[]): ParsedDisplaySection[] => {
   if (!content) return [];
   
-  const sections: LessonSection[] = [];
+  const sections: ParsedDisplaySection[] = [];
   
   // Match section header formats - MUST have "Section" keyword OR "##" prefix
   // This prevents matching numbered questions like "1. Paul says..."

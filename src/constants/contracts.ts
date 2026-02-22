@@ -25,22 +25,9 @@
  */
 
 // ============================================================================
-// TIER 1: Lesson Structure Contracts
-// ============================================================================
+// TIER 1: Lesson Structure — SSOT is lessonStructure.ts (not here)
 
-export interface LessonSection {
-  id: number;
-  name: string;
-  description: string;
-  required: boolean;
-  targetWordCount: number;
-  requiredElements: string[];
-}
 
-export interface LessonStructure {
-  version: string;
-  sections: LessonSection[];
-}
 
 // ============================================================================
 // TIER 2: Age Group Contracts

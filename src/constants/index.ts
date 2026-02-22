@@ -16,9 +16,6 @@
 // TypeScript Contracts (Interfaces & Types)
 // ============================================================================
 export type {
-  // Lesson structure
-  LessonSection,
-  LessonStructure,
   // Age groups
   TeachingProfile,
   AgeGroup,
