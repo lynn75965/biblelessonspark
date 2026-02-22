@@ -1,4 +1,4 @@
-# BibleBibleLessonSpark — Project Master Document
+# BibleLessonSpark — Project Master Document
 ## Date: February 14, 2026 (Session: Profile/Settings Split, Deploy Simplification, UX Cleanup)
 ## Purpose: Continue from exactly where we left off in a new chat
 
@@ -6,11 +6,11 @@
 
 ## PROJECT OVERVIEW
 
-BibleBibleLessonSpark (bibleBibleLessonSpark.com) is a Bible study lesson generator platform targeting volunteer Sunday School teachers in Christian churches. Built with React/TypeScript frontend, Supabase backend, deployed via Netlify. Supports Baptist traditions today with architecture designed for any Christian denomination, network, association, or congregation.
+BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platform targeting volunteer Sunday School teachers in Christian churches. Built with React/TypeScript frontend, Supabase backend, deployed via Netlify. Supports Baptist traditions today with architecture designed for any Christian denomination, network, association, or congregation.
 
 **Owner:** Lynn, 74-year-old retired Baptist minister, PhD from Southwestern Baptist Theological Seminary, 55 years ministry experience. Non-programmer solopreneur.
 
-**Local repo:** `C:\Users\Lynn\bibleBibleLessonSpark`
+**Local repo:** `C:\Users\Lynn\biblelessonspark`
 **Branch:** `main` (single branch — no secondary branches)
 **Deploy command:** `.\deploy.ps1 "commit message"` (pushes to `main`, Netlify auto-builds)
 **Supabase project URL:** `https://hphebzdftpjbiudpfcrs.supabase.co`
@@ -30,7 +30,7 @@ BibleBibleLessonSpark (bibleBibleLessonSpark.com) is a Bible study lesson genera
 9. **Never present options you aren't certain about.** If you don't know where a Supabase setting lives, say so instead of giving confident wrong directions.
 10. **Dependency check before deployment.** Every deployment must verify that all files referencing new properties, exports, or constants have those dependencies already deployed or included in the same deployment batch.
 11. **Test regex patterns against real data before shipping.** Never assume a regex works — run it against actual content from the application.
-12. **Branch discipline:** Single branch (`main`) only. Deploy script enforces `$PRODUCTION_BRANCH = "main"`. The old `bibleBibleLessonSpark` branch was deleted February 14, 2026 to prevent branch-juggling confusion.
+12. **Branch discipline:** Single branch (`main`) only. Deploy script enforces `$PRODUCTION_BRANCH = "main"`. The old `biblelessonspark` branch was deleted February 14, 2026 to prevent branch-juggling confusion.
 
 ---
 
@@ -61,8 +61,8 @@ Separated user identity defaults from workspace preferences:
 
 ### Deploy Script Simplified — Single Branch
 
-- Changed `deploy.ps1` production branch from `bibleBibleLessonSpark` to `main`
-- Deleted `bibleBibleLessonSpark` branch locally and on remote
+- Changed `deploy.ps1` production branch from `biblelessonspark` to `main`
+- Deleted `biblelessonspark` branch locally and on remote
 - All deploys now: `.\deploy.ps1 "message"` → pushes to `main` → Netlify builds
 - No more branch switching, merging, or juggling
 
@@ -82,16 +82,16 @@ Separated user identity defaults from workspace preferences:
 
 ### Pending: Old Branding Cleanup
 
-A scan found ~60+ references to "BibleBibleLessonSpark" / "BibleBibleLessonSpark" / "bibleBibleLessonSpark.com" across these files (NOT a reversion — these were never cleaned up in the January rebrand):
+A scan found ~60+ references to "LessonSparkUSA" / "LessonSpark USA" / "lessonsparkusa.com" across these files (NOT a reversion — these were never cleaned up in the January rebrand):
 
 **User-facing (needs cleanup):**
 - `useBranding.ts` — 40+ references (emails, URLs, legal text, sender names)
-- `footerLinks.ts` — support@bibleBibleLessonSpark.com
-- `tenantConfig.ts` — "Join BibleBibleLessonSpark", "Welcome to BibleBibleLessonSpark!"
-- `betaEnrollmentConfig.ts` — "Join the BibleBibleLessonSpark Beta"
-- `pricingPlans.ts` — "Try BibleBibleLessonSpark"
+- `footerLinks.ts` — support@lessonsparkusa.com
+- `tenantConfig.ts` — "Join LessonSpark USA", "Welcome to LessonSpark USA!"
+- `betaEnrollmentConfig.ts` — "Join the LessonSpark USA Beta"
+- `pricingPlans.ts` — "Try LessonSparkUSA"
 - `programConfig.ts` — maintenance message
-- `parableDirectives.ts` — AI prompt instructions reference BibleBibleLessonSpark
+- `parableDirectives.ts` — AI prompt instructions reference LessonSparkUSA
 
 **Comments only (low priority):**
 - `branding.ts`, `ageGroups.ts`, `contracts.ts`, `index.ts`, `routes.ts` — file header comments
@@ -162,7 +162,7 @@ Peer-to-peer lesson sharing system where a lead teacher creates a team, invites 
 - Teaching Team page at `/teaching-team` (in dropdown menu for all roles)
 - LessonLibrary has "My Lessons" / "Team Lessons" scope toggle
 - `notify-team-invitation` Edge Function — sends email when a teacher is invited
-- Email arrives from support@bibleBibleLessonSpark.com via Resend
+- Email arrives from support@biblelessonspark.com via Resend
 - `/workspace` route fixed (was missing from App.tsx)
 
 ### Phase 27B: Lesson Shapes (Completed February 10, 2026)
@@ -333,9 +333,9 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 ## EMAIL CONFIGURATION (Verified February 10, 2026)
 
 - **Provider:** Resend (smtp.resend.com, port 587)
-- **Sender email:** support@bibleBibleLessonSpark.com
-- **Sender name:** BibleBibleLessonSpark Support (in Supabase SMTP settings)
-- **Edge Function sender:** Uses `_shared/branding.ts` → `getEmailFrom()` which returns `BibleBibleLessonSpark <noreply@bibleBibleLessonSpark.com>`
+- **Sender email:** support@biblelessonspark.com
+- **Sender name:** BibleLessonSpark Support (in Supabase SMTP settings)
+- **Edge Function sender:** Uses `_shared/branding.ts` → `getEmailFrom()` which returns `BibleLessonSpark <noreply@biblelessonspark.com>`
 - **RESEND_API_KEY:** Stored in Supabase Edge Function secrets (starts with `re_`)
 - **Supabase SMTP:** Custom SMTP enabled, pointing to Resend
 
@@ -394,7 +394,7 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | dashboardConfig.ts | src/constants/ | label: "Build Lesson" (restored from "Enhance Lesson" reversion) |
 | EnhanceLessonForm.tsx | src/components/dashboard/ | full_name fix (line 683), broken emoji → Sparkles icon |
 | WorkspaceSettingsPanel.tsx | src/components/workspace/ | Stripped to settings-only (later removed from Dashboard entirely) |
-| deploy.ps1 | repo root | PRODUCTION_BRANCH = "main" (was "bibleBibleLessonSpark") |
+| deploy.ps1 | repo root | PRODUCTION_BRANCH = "main" (was "biblelessonspark") |
 
 ---
 
@@ -447,7 +447,7 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 9. **Missing heading level support** — `formatLessonContent.ts` only handled `##` headings. Shaped content uses `#`, `##`, and `###`. All three levels now handled in screen display, print, PDF, DOCX, and email.
 10. **Missing dependency in deployment** — `lessonStructure.ts` added `section8StandaloneTitle` property, but was omitted from the deployment file list. Three files (PDF, DOCX, Print) referenced it and would have rendered "undefined". Always verify the full dependency chain before deploying.
 11. **Missing /admin/toolbelt route** — Same pattern as #3, #4. `ToolbeltAdmin.tsx` page existed (built January 28) but route was never added to `routes.ts` or `App.tsx`. Fixed February 11, 2026 (commit `0a8e5cf`).
-12. **Branch mismatch causing invisible deploys** — Netlify built from `main` but deploy script pushed to `bibleBibleLessonSpark` branch. Changes were invisible on live site. Fixed February 14, 2026: consolidated to single `main` branch, deleted `bibleBibleLessonSpark` branch.
+12. **Branch mismatch causing invisible deploys** — Netlify built from `main` but deploy script pushed to `biblelessonspark` branch. Changes were invisible on live site. Fixed February 14, 2026: consolidated to single `main` branch, deleted `biblelessonspark` branch.
 13. **Theology profile constraint too restrictive** — `profiles` table had CHECK constraint `valid_theology_profile_id` allowing only 4 values, but frontend SSOT has 10. Dropped constraint February 14, 2026.
 14. **onProfileUpdated not optional** — UserProfileModal required `onProfileUpdated` callback. When opened from Header (which doesn't pass it), save crashed with "r is not a function". Fixed by making prop optional with `?.()` call.
 
@@ -470,7 +470,7 @@ Full details in `MULTI_TENANT_MIGRATION_PLAN.md` (companion document).
 
 | Model | Example | Infrastructure |
 |-------|---------|----------------|
-| A: Subdomain | `firstbaptist.bibleBibleLessonSpark.com` | Shared Supabase, multi-tenant, usage-based billing |
+| A: Subdomain | `firstbaptist.biblelessonspark.com` | Shared Supabase, multi-tenant, usage-based billing |
 | B: Self-Managed | `lessons.firstbaptist.org` | Their own Supabase, annual license fee |
 
 ### Theology Hierarchy
@@ -523,7 +523,7 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 
 ## WHAT'S NEXT (Suggested priorities for next session)
 
-1. **Old branding cleanup** — Sweep ~60+ "BibleBibleLessonSpark" / "bibleBibleLessonSpark.com" references across user-facing files (useBranding.ts, footerLinks.ts, tenantConfig.ts, betaEnrollmentConfig.ts, pricingPlans.ts, programConfig.ts, parableDirectives.ts)
+1. **Old branding cleanup** — Sweep ~60+ "LessonSparkUSA" / "lessonsparkusa.com" references across user-facing files (useBranding.ts, footerLinks.ts, tenantConfig.ts, betaEnrollmentConfig.ts, pricingPlans.ts, programConfig.ts, parableDirectives.ts)
 2. **Quality validation** — Reshape a lesson into each of the 4 untested shapes (Passage Walk-Through, Life Connection, Gospel-Centered, Focus-Discover-Respond) and verify theological accuracy, age-appropriate language, and clean export formatting
 3. **Beta launch preparation** — Review all features for February 28 launch readiness
 4. **Test Teaching Team end-to-end with Ellis Hayden** — Invite Ellis to a team, verify email arrives, verify accept/decline flow
@@ -545,6 +545,6 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 
 ## HOW TO START THE NEW CHAT
 
-Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\bibleBibleLessonSpark\src\` as needed.
+Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\biblelessonspark\src\` as needed.
 
 **Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend — always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`.
