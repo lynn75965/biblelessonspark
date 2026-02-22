@@ -23,7 +23,6 @@ export type {
   LanguageKey,
   LanguageConfig,
   // Teacher preferences
-  PreferenceOption,
   TeacherPreferences,
   // Teaching teams (Phase 27A)
   TeachingTeam,

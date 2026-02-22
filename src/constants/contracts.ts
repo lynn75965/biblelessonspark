@@ -144,11 +144,6 @@ export type LessonShapeId =
 // TIER 2: Teacher Preference Contracts
 // ============================================================================
 
-export interface PreferenceOption {
-  id: string;
-  label: string;
-  description?: string;
-}
 
 
 
