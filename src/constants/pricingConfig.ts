@@ -204,7 +204,7 @@ export const PRICING_DISPLAY = {
     displayText: 'Free',
     sectionsIncluded: 3,
     lessonsPerMonth: TIER_LESSON_LIMITS.free,
-    complimentaryFullLessons: 2,
+    complimentaryFullLessons: 3,
   },
   personal: {
     monthly: {
