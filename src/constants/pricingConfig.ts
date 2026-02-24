@@ -258,7 +258,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
 
 export const UPGRADE_PROMPTS = {
   limitReached: {
-    title: "You've reached your monthly limit",
+    title: "You've reached your 30-day lesson limit",
     description: "Upgrade for more lessons and complete 8-section lessons.",
   },
   featureTeaser: {

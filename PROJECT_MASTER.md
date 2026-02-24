@@ -1,5 +1,5 @@
 # BibleLessonSpark — Project Master Document
-## Date: February 14, 2026 (Session: Profile/Settings Split, Deploy Simplification, UX Cleanup)
+## Date: February 22, 2026 (Session: SSOT Violation Sweep Complete, Feature Flags, Pricing Reconciliation)
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -31,6 +31,84 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 10. **Dependency check before deployment.** Every deployment must verify that all files referencing new properties, exports, or constants have those dependencies already deployed or included in the same deployment batch.
 11. **Test regex patterns against real data before shipping.** Never assume a regex works — run it against actual content from the application.
 12. **Branch discipline:** Single branch (`main`) only. Deploy script enforces `$PRODUCTION_BRANCH = "main"`. The old `biblelessonspark` branch was deleted February 14, 2026 to prevent branch-juggling confusion.
+13. **Never overwrite working code with stale file copies.** Always verify the file being deployed is newer than what's live. This has caused regressions.
+14. **Always `npm run build` before deploying.** Never push code that hasn't compiled cleanly.
+
+---
+
+## SESSION LOG: February 22, 2026
+
+### SSOT Violation Sweep — COMPLETE
+
+Comprehensive audit of all SSOT config files identified and resolved 14 violations:
+
+| # | Violation | Resolution |
+|---|-----------|------------|
+| 1 | contracts.ts `LanguageKey = 'en' \| 'es' \| 'fr'` hardcoded union | Changed to `string` with JSDoc pointing to branding.ts |
+| 2 | branding.ts `defaultBibleTranslation: "KJV"` conflicts with bibleVersions.ts NASB | Removed from branding.ts entirely |
+| 3 | validation.ts DENOMINATION_OPTIONS missing Free Will Baptist | Added Free Will Baptist (now 9 denominations) |
+| 4 | theologyProfiles.ts encoding artifacts in AI prompts | Confirmed codebase is clean — mojibake was project reference copy only |
+| 5 | bibleVersions.ts encoding artifacts | Confirmed codebase is clean |
+| 6 | Handout lists AMP but SSOT had WEB | Added AMP as 9th Bible version, kept WEB |
+| 7 | contracts.ts hardcoded TheologyProfileId, BibleVersionKey, LessonShapeId | Removed duplicated unions, fields typed as string with JSDoc to SSOT owners |
+| 8 | useBranding.ts duplicated ~250 lines from branding.ts SSOT | Wired to import from BRANDING constant |
+| 9 | Shape ID format mismatch (hyphens in contracts vs underscores in lessonShapeProfiles) | Standardized to underscores everywhere |
+| 10 | Parable context discriminator 'lessonspark' | Renamed to 'teaching' across 6 frontend + 1 Edge Function |
+| 11 | 639 lines dead legacy types in contracts.ts | Purged (old TheologicalPreferenceKey, SBConfessionVersion system) |
+| 12 | Orphaned constants/branding.ts file | Deleted |
+| 13 | pricingPlans.ts conflicted with pricingConfig.ts | pricingPlans.ts deleted; pricingConfig.ts is sole pricing authority |
+| 14 | accessControl.ts missing team/shape permissions | Added 5 FEATURE_ACCESS keys + canManageTeam/canViewTeamLessons functions |
+
+### Feature Flags System — NEW
+
+Created `featureFlags.ts` as centralized SSOT for subscription-gated features:
+- `devotionalGeneration` — tier-gated
+- `teachingTeamManagement` — tier-gated
+- `lessonReshaping` — tier-gated
+- `studentTeaserGeneration` — tier-gated
+
+Wired to 5 React components: LessonLibrary, DevotionalGenerator, EnhanceLessonForm, TeachingTeamCard, and export components. Free users see upgrade prompts; paid users retain full functionality.
+
+### Pricing Reconciliation — COMPLETE
+
+Discovered both pricing config files were completely stale vs. live Stripe catalog. Resolution:
+- Deleted pricingPlans.ts (conflicting 4-tier system)
+- pricingConfig.ts updated as sole pricing authority matching live Stripe catalog
+
+### Complete Rebrand — COMPLETE
+
+Eliminated all "LessonSparkUSA" / "LessonSpark USA" / "lessonsparkusa" references:
+- ~100+ string replacements across 12 TypeScript files
+- Database tenant_id updated from 'lessonsparkusa' to 'biblelessonspark' in 3 tables
+- useBranding.ts rewired to BRANDING SSOT (eliminated ~250 duplicate lines)
+- Orphaned constants/branding.ts deleted
+- 12 markdown documentation files updated
+- AI prompt references in parableDirectives.ts and parableConfig.ts updated
+
+### accessControl.ts Expansion
+
+Added teaching team and lesson shape permissions:
+- 5 new FEATURE_ACCESS keys: createTeam, inviteTeamMember, removeTeamMember, viewTeamLessons, reshapeLesson
+- `canManageTeam(role, actorUserId, teamLeadId)` — ownership check
+- `canViewTeamLessons(role, isTeamMember)` — membership check
+- Clear boundary: accessControl.ts = role-based access, featureFlags.ts = tier-based gating
+
+### Teacher Customization Handout Updated
+
+Updated DOCX + PDF with 9 Bible versions (added AMP).
+
+---
+
+## SESSION LOG: February 21, 2026
+
+### Comprehensive Codebase Cleanup
+
+- 8 separate deployments
+- ~890 lines of dead code eliminated
+- Zero old brand references remaining in TypeScript files, Edge Functions, and documentation
+- Shape ID mismatches fixed
+- Parable context discriminator renamed
+- programConfig.ts recentUpdates refreshed with Jan-Feb 2026 features
 
 ---
 
@@ -42,7 +120,7 @@ Separated user identity defaults from workspace preferences:
 
 **User Profile Modal (identity defaults — accessible from dropdown):**
 - Read-only: Email, Member ID (first 8 chars), Role, Organization
-- Editable: Full Name, Language (en/es/fr), Default Bible Version (8 from SSOT), Baptist Theology Profile (10 from SSOT with summary)
+- Editable: Full Name, Language (en/es/fr), Default Bible Version (9 from SSOT), Baptist Theology Profile (10 from SSOT with summary)
 - Saves to profiles: `full_name`, `preferred_language`, `default_bible_version`, `theology_profile_id`
 
 **Settings tab removed entirely from workspace.** All settings content (Lesson Defaults, Teaching Context, Export Preferences, Notifications) was stripped. Only the Profile card with "Update Profile" button remained, and that was also removed when the dropdown was rewired.
@@ -80,40 +158,9 @@ Separated user identity defaults from workspace preferences:
 - **"Build Lesson" tab label reverted:** Dashboard.tsx and dashboardConfig.ts both showed "Enhance Lesson" again. Fixed both back to "Build Lesson".
 - **Navigation routing:** Settings dropdown routed to `/account` instead of workspace. Fixed to open modal directly.
 
-### Pending: Old Branding Cleanup
-
-A scan found ~60+ references to "LessonSparkUSA" / "LessonSpark USA" / "lessonsparkusa.com" across these files (NOT a reversion — these were never cleaned up in the January rebrand):
-
-**User-facing (needs cleanup):**
-- `useBranding.ts` — 40+ references (emails, URLs, legal text, sender names)
-- `footerLinks.ts` — support@lessonsparkusa.com
-- `tenantConfig.ts` — "Join LessonSpark USA", "Welcome to LessonSpark USA!"
-- `betaEnrollmentConfig.ts` — "Join the LessonSpark USA Beta"
-- `pricingPlans.ts` — "Try LessonSparkUSA"
-- `programConfig.ts` — maintenance message
-- `parableDirectives.ts` — AI prompt instructions reference LessonSparkUSA
-
-**Comments only (low priority):**
-- `branding.ts`, `ageGroups.ts`, `contracts.ts`, `index.ts`, `routes.ts` — file header comments
-
 ---
 
-## GIT COMMIT HISTORY — February 14, 2026
-
-| Commit | Description |
-|--------|-------------|
-| `ef9f852` | Remove settings panels from Settings tab - keep only User Profile card |
-| `a37c7d6` | SSOT: Set main as production branch in deploy script |
-| `d420c12` | UX: Rename dropdown Settings to User Profile, remove Settings tab from workspace |
-| `5b25a42` | User Profile dropdown opens modal directly instead of navigating to Settings tab |
-| `aa7ac0a` | Fix: Wrap Header return in fragment to include UserProfileModal |
-| `fc229e1` | Fix: Make onProfileUpdated optional so Header can open profile modal without callback |
-| `774fe37` | Fix: Replace broken ?? emoji with Sparkles icon in welcome banner |
-| `d8fabb5` | Fix: Restore Build Lesson tab label per SSOT dashboardConfig |
-
----
-
-## PHASE 28 STATUS: 🔄 IN PROGRESS (February 11, 2026)
+## PHASE 28 STATUS: IN PROGRESS
 
 Phase 28 covers multi-tenant architecture planning, Admin Panel consolidation strategy, and Feature Adoption design.
 
@@ -147,13 +194,13 @@ Phase 28 covers multi-tenant architecture planning, Admin Panel consolidation st
 
 ---
 
-## PHASE 27 STATUS: ✅ COMPLETE
+## PHASE 27 STATUS: COMPLETE
 
 Phase 27 covered two major feature areas: Teaching Team and Lesson Shapes.
 
 ### Phase 27A: Teaching Team (Completed February 9, 2026)
 
-Peer-to-peer lesson sharing system where a lead teacher creates a team, invites members, and shares lessons.
+Peer-to-peer lesson sharing system where a lead teacher creates a team, invites members, and shares lessons. **Team size: 3 total (lead + 2 invited).**
 
 **What's deployed:**
 - Database tables: `teaching_teams` and `teaching_team_members` with RLS (SECURITY DEFINER helpers to prevent infinite recursion)
@@ -203,34 +250,6 @@ Allows optional subtitle after keyword (e.g., "Student Experience: The Heart of 
 
 ---
 
-## GIT COMMIT HISTORY — PHASE 28
-
-| Commit | Description |
-|--------|-------------|
-| `0a8e5cf` | Fix /admin/toolbelt 404: add route to routes.ts and App.tsx |
-
-## GIT COMMIT HISTORY — PHASE 27B (Lesson Shapes)
-
-| Commit | Description |
-|--------|-------------|
-| `e483a76` | Database migration: shaped_content, shape_id, reshape_metrics |
-| `01f50c6` | Lesson Shapes frontend: reshape button, shape picker, Original/Shaped toggle |
-| `6b3f431` | Fix shaped content rendering: remove bare #, handle heading levels, spacing |
-| `007f095` | Fix local state sync: reshape persists on re-view without refresh |
-| `d117b56` | Tighten shaped spacing, Student Handout page break for shaped exports |
-| `954417b` | DOCX export: Student Handout page break, fix raw ** markers |
-| `ed20ebb` | Shaped content section cards: match original lesson visual style |
-| `a934f3d` | Tighten shaped content spacing: eliminate wasted vertical space |
-| `67d6aee` | Email: Student Handout toggle, shaped content STUDENT HANDOUT detection |
-| `ba9e3f7` | Match shaped content rendering to original section formatting |
-| `66ca60d` | PDF Student Handout page break for shaped content |
-| `635d8fc` | Standalone Student Handout title, suppress pagination on handout pages |
-| `7051892` | Broaden detection: Student Experience, Student Material, Student Section |
-| `98c2ba0` | Fix Student Handout detection: allow subtitle after heading keyword |
-| `be7a600` | Handle all markdown heading levels in shaped content exports |
-
----
-
 ## DATABASE SCHEMA (Relevant Tables)
 
 ### teaching_teams
@@ -261,7 +280,7 @@ CREATE TABLE teaching_team_members (
 ```sql
 -- Added columns:
 shaped_content TEXT,        -- Reshaped lesson content (null = not reshaped)
-shape_id TEXT               -- ID of the shape used (e.g., 'passage-walk-through')
+shape_id TEXT               -- ID of the shape used (e.g., 'passage_walkthrough')
 ```
 
 ### reshape_metrics
@@ -346,9 +365,9 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | Function | Purpose |
 |----------|---------|
 | generate-lesson | Core lesson generation via Claude |
-| **reshape-lesson** | **Reshape lesson into pedagogical shape (claude-sonnet-4)** |
+| reshape-lesson | Reshape lesson into pedagogical shape (claude-sonnet-4) |
 | extract-lesson | File extraction (TXT, PDF, DOCX, images) |
-| **send-lesson-email** | **Lesson email with optional Student Handout (teaser + handout)** |
+| send-lesson-email | Lesson email with optional Student Handout (teaser + handout) |
 | send-invite | Organization invitation emails |
 | notify-team-invitation | Teaching Team invitation emails |
 | setup-lynn-admin | Admin account setup |
@@ -363,74 +382,57 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 ### Frontend Masters (source of truth)
 | File | Location | Drives |
 |------|----------|--------|
-| lessonStructure.ts | src/constants/ | All export spacing, fonts, colors, formatting constants |
-| lessonShapeProfiles.ts | src/constants/ | Shape definitions, prompts, age-group mappings, heading regex |
-| emailDeliveryConfig.ts | src/constants/ | Email limits, templates, tier gating |
-| contracts.ts | src/constants/ | TypeScript interfaces |
+| contracts.ts | src/constants/ | TypeScript interfaces (delegates domain types to SSOT owners via string + JSDoc) |
+| ageGroups.ts | src/constants/ | 11 age group definitions |
+| theologyProfiles.ts | src/constants/ | 10 Baptist theology profiles (will migrate to platform_theology_profiles table) |
+| bibleVersions.ts | src/constants/ | 9 Bible versions (KJV, WEB, NKJV, NASB default, ESV, NIV, CSB, NLT, AMP) |
+| teacherPreferences.ts | src/constants/ | 15 teacher customization fields with Claude behavioral directives |
+| accessControl.ts | src/constants/ | Role-based feature visibility + team/shape permissions |
+| validation.ts | src/constants/ | Validation rules for orgs, passwords, teams, profiles, lessons |
+| featureFlags.ts | src/constants/ | Subscription tier-based feature gating (NEW Feb 22) |
+| pricingConfig.ts | src/constants/ | Sole pricing authority — matches live Stripe catalog |
+| lessonStructure.ts | src/constants/ | Export spacing, fonts, colors, section definitions |
+| lessonShapeProfiles.ts | src/constants/ | 5 shapes, prompts, age-group mappings, heading regex |
+| branding.ts | src/config/ | Application identity, URLs, legal, email templates |
 | routes.ts | src/constants/ | Route path definitions |
 | navigationConfig.ts | src/constants/ | Dropdown menu items ("User Profile" opens modal) |
 | dashboardConfig.ts | src/constants/ | Dashboard tab config ("Build Lesson", not "Enhance Lesson") |
-| ageGroups.ts | src/constants/ | Age group definitions |
-| bibleVersions.ts | src/constants/ | 8 Bible versions (KJV, WEB, NKJV, NASB default, ESV, NIV, CSB, NLT) |
-| theologyProfiles.ts | src/constants/ | 10 Baptist theology profiles (will migrate to platform_theology_profiles table) |
+| emailDeliveryConfig.ts | src/constants/ | Email limits, templates, tier gating |
 
 ### Backend Mirrors (read-only copies synced from frontend)
 | File | Location | Source |
 |------|----------|--------|
 | lessonShapeProfiles.ts | supabase/functions/_shared/ | ← src/constants/lessonShapeProfiles.ts |
 | emailDeliveryConfig.ts | supabase/functions/_shared/ | ← src/constants/emailDeliveryConfig.ts |
+| teacherPreferences.ts | supabase/functions/_shared/ | ← src/constants/teacherPreferences.ts |
 | branding.ts | supabase/functions/_shared/ | Database-driven with fallback |
 
----
-
-## KEY FILES — February 14 Session
-
-| File | Location | Change |
-|------|----------|--------|
-| UserProfileModal.tsx | src/components/dashboard/ | Full profile modal (read-only + editable fields), onProfileUpdated now optional |
-| Header.tsx | src/components/layout/ | Opens UserProfileModal directly from dropdown (fragment wrapper) |
-| Dashboard.tsx | src/pages/ | Settings tab removed, 3 tabs remain (Build Lesson, Lesson Library, Devotional Library) |
-| navigationConfig.ts | src/constants/ | "Settings" → "User Profile" label |
-| dashboardConfig.ts | src/constants/ | label: "Build Lesson" (restored from "Enhance Lesson" reversion) |
-| EnhanceLessonForm.tsx | src/components/dashboard/ | full_name fix (line 683), broken emoji → Sparkles icon |
-| WorkspaceSettingsPanel.tsx | src/components/workspace/ | Stripped to settings-only (later removed from Dashboard entirely) |
-| deploy.ps1 | repo root | PRODUCTION_BRANCH = "main" (was "biblelessonspark") |
+### Deleted Files — Do Not Recreate
+| File | Reason | Deleted |
+|------|--------|---------|
+| pricingPlans.ts | Conflicted with pricingConfig.ts; stale Stripe IDs | Feb 22, 2026 |
+| src/constants/branding.ts | Orphaned duplicate of src/config/branding.ts | Feb 21, 2026 |
+| site.ts | Duplicated branding.ts | Feb 21, 2026 |
 
 ---
 
-## KEY FILES — PHASE 27B (Lesson Shapes)
+## SUBSCRIPTION TIERS & STRIPE CATALOG
 
-| File | Location | Purpose |
-|------|----------|---------|
-| lessonShapeProfiles.ts | src/constants/ + _shared/ | SSOT: 5 shapes, prompts, age-group mappings, heading regex |
-| lessonStructure.ts | src/constants/ | SSOT: export spacing, section8StandaloneTitle, bold labels |
-| formatLessonContent.ts | src/utils/ | Markdown→HTML for screen + print (all heading levels) |
-| exportToPdf.ts | src/utils/ | PDF export with standalone Student Handout page |
-| exportToDocx.ts | src/utils/ | DOCX export with page break before Student Handout |
-| LessonExportButtons.tsx | src/components/dashboard/ | Print export + export button group |
-| EnhanceLessonForm.tsx | src/components/dashboard/ | Lesson viewer with reshape UI and export integration |
-| useReshapeLesson.tsx | src/hooks/ | Reshape hook: calls Edge Function, saves to DB |
-| useLessons.tsx | src/hooks/ | Lesson CRUD including shaped_content, shape_id |
-| LessonLibrary.tsx | src/components/ | Lesson list with reshape status indicators |
-| contracts.ts | src/constants/ | Lesson interface with shaped_content, shape_id fields |
-| EmailLessonDialog.tsx | src/components/ | Email dialog with "Include Student Handout" toggle |
-| reshape-lesson/index.ts | supabase/functions/ | Edge Function: Claude reshape + metrics logging |
-| send-lesson-email/index.ts | supabase/functions/ | Edge Function: email with handout detection |
+### Free Tier
+- Sections visible: 1 (Title/Overview), 5 (Teacher Transcript), 8 (Student Handout)
+- Limited generation credits
+- No devotionals, reshaping, or teaching teams
 
----
+### Personal Plan
+- $9/month or $90/year
+- All 8 lesson sections
+- DevotionalSpark, lesson reshaping, teaching teams
+- Full export (PDF, DOCX, Email, Print)
 
-## KEY FILES — PHASE 27A (Teaching Team)
-
-| File | Location | Purpose |
-|------|----------|---------|
-| useTeachingTeam.tsx | src/hooks/ | All team CRUD operations, invitation logic, Edge Function call |
-| TeachingTeamCard.tsx | src/components/ | UI for team management |
-| TeamInvitationBanner.tsx | src/components/ | Dashboard banner for pending invitations |
-| TeachingTeam.tsx | src/pages/ | Dedicated /teaching-team page |
-| Dashboard.tsx | src/pages/ | Mounts TeamInvitationBanner |
-| App.tsx | src/ | Routes for /teaching-team, /workspace, /org-manager, /admin/toolbelt |
-| notify-team-invitation/index.ts | supabase/functions/ | Edge Function for team invitation email |
-| team-invite-email.tsx | supabase/functions/notify-team-invitation/_templates/ | Email template |
+### Tier Gating Architecture
+- **featureFlags.ts** — defines which features require which tier
+- **accessControl.ts** — defines which roles can access which features
+- Both must pass for a user to access a gated feature
 
 ---
 
@@ -442,7 +444,7 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 4. **Missing /workspace route** — Same pattern as #3. Route existed in routes.ts/navigationConfig.ts but was never added to App.tsx. Fixed February 9, 2026.
 5. **Misleading toast** — Toast said "Invitation sent" when no email was actually sent. Fixed: toast now says invitee will receive email notification (and they actually do).
 6. **Raw fetch() to Edge Function failed silently** — `import.meta.env.VITE_SUPABASE_URL` was not available/correct. Fixed by using `supabase.functions.invoke()` which uses the already-configured client.
-7. **Student Handout subtitle detection** — Regex required line to END after keyword (`\s*$`), but shaped content produced headings like "Student Experience: The Heart of Divine Love". Fixed by allowing optional `(?:\s*[:–—\-].*)?$` suffix in all 5 detection files.
+7. **Student Handout subtitle detection** — Regex required line to END after keyword (`\s*$`), but shaped content produced headings like "Student Experience: The Heart of Divine Love". Fixed by allowing optional `(?:\s*[:\u2014\u2013\-].*)?$` suffix in all 5 detection files.
 8. **Bare # markdown markers in shaped content** — Shaped content used bare `#` lines as section separators. These rendered as literal `#` characters in print, PDF, DOCX, and email. Fixed by stripping bare `#{1,3}` lines in formatLessonContent.ts, exportToPdf.ts, exportToDocx.ts, and send-lesson-email.
 9. **Missing heading level support** — `formatLessonContent.ts` only handled `##` headings. Shaped content uses `#`, `##`, and `###`. All three levels now handled in screen display, print, PDF, DOCX, and email.
 10. **Missing dependency in deployment** — `lessonStructure.ts` added `section8StandaloneTitle` property, but was omitted from the deployment file list. Three files (PDF, DOCX, Print) referenced it and would have rendered "undefined". Always verify the full dependency chain before deploying.
@@ -450,6 +452,7 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 12. **Branch mismatch causing invisible deploys** — Netlify built from `main` but deploy script pushed to `biblelessonspark` branch. Changes were invisible on live site. Fixed February 14, 2026: consolidated to single `main` branch, deleted `biblelessonspark` branch.
 13. **Theology profile constraint too restrictive** — `profiles` table had CHECK constraint `valid_theology_profile_id` allowing only 4 values, but frontend SSOT has 10. Dropped constraint February 14, 2026.
 14. **onProfileUpdated not optional** — UserProfileModal required `onProfileUpdated` callback. When opened from Header (which doesn't pass it), save crashed with "r is not a function". Fixed by making prop optional with `?.()` call.
+15. **Stale file overwrite pattern** — Deploying a file generated earlier in the session can overwrite fixes made later. Always verify the file being deployed reflects all changes from the current session.
 
 ---
 
@@ -459,6 +462,9 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 - **Active beta tester:** Ellis Hayden (elhayden52@yahoo.com) from Fellowship Baptist in Longview, TX
 - **Lynn's test accounts:** pastorlynn2024@gmail.com (invitee for testing — email notifications confirmed working)
 - **Current user count:** 1 admin + 38 teachers = 39 total users
+- **Teaching team tested end-to-end** with Ellis Hayden (Feb 22, 2026)
+- **All 5 lesson shapes tested** (Feb 22, 2026)
+- **Platform mode:** beta (in Supabase system_settings)
 
 ---
 
@@ -490,47 +496,24 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 | `tenant_admin` | One tenant — full admin within their fence |
 | `teacher` | Own data within their tenant |
 
-### New Theology Tables (not yet created)
-
-| Table | Purpose |
-|-------|---------|
-| `platform_theology_profiles` | 10 Baptist profiles (expanding to other traditions) |
-| `tenant_enabled_profiles` | Which platform profiles a tenant makes available |
-| `tenant_theology_profiles` | Custom Statements of Faith (require platform admin approval) |
-
-### Admin Panel Consolidation (proposed, not yet built)
-
-| New Tab | Contains | White-label visible? |
-|---------|----------|---------------------|
-| People | User Management + Organizations | ✅ Yes |
-| Content | All Lessons | ✅ Yes |
-| Configuration | Settings + Exports + Branding + Theology | ✅ Yes |
-| Analytics | System Analytics | ✅ Yes |
-| Security | Security + Guardrails | ✅ Yes |
-| Growth | Beta + Email + Pricing | ❌ Platform-admin only |
-
 ### Migration Status
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1: Foundation | Helper functions, tenant_id columns, role system | ❌ Not started |
-| Phase 2: Theology System | 3 new tables, seed data | ❌ Not started |
-| Phase 3: RLS Policies | Drop old, create tenant-scoped | ❌ Not started |
-| Phase 4: System Settings | platform_mode to tenant_config | ❌ Not started |
-| Phase 5: Frontend | Admin Panel, theology UI, generate-lesson changes | ❌ Not started |
+| Phase 1: Foundation | Helper functions, tenant_id columns, role system | Not started |
+| Phase 2: Theology System | 3 new tables, seed data | Not started |
+| Phase 3: RLS Policies | Drop old, create tenant-scoped | Not started |
+| Phase 4: System Settings | platform_mode to tenant_config | Not started |
+| Phase 5: Frontend | Admin Panel, theology UI, generate-lesson changes | Not started |
 
 ---
 
 ## WHAT'S NEXT (Suggested priorities for next session)
 
-1. **Old branding cleanup** — Sweep ~60+ "LessonSparkUSA" / "lessonsparkusa.com" references across user-facing files (useBranding.ts, footerLinks.ts, tenantConfig.ts, betaEnrollmentConfig.ts, pricingPlans.ts, programConfig.ts, parableDirectives.ts)
-2. **Quality validation** — Reshape a lesson into each of the 4 untested shapes (Passage Walk-Through, Life Connection, Gospel-Centered, Focus-Discover-Respond) and verify theological accuracy, age-appropriate language, and clean export formatting
-3. **Beta launch preparation** — Review all features for February 28 launch readiness
-4. **Test Teaching Team end-to-end with Ellis Hayden** — Invite Ellis to a team, verify email arrives, verify accept/decline flow
-5. **Feature Adoption view** — Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
-6. **Verify uncertain tables** — Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
-7. **Backup existing RLS policies** — Run export query from Appendix B before any multi-tenant work begins
-8. **Update PROJECT_MASTER.md** after each session
+1. **Beta launch preparation** — Final review of all features for February 28 launch readiness
+2. **Feature Adoption view** — Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
+3. **Verify uncertain tables** — Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
+4. **Backup existing RLS policies** — Run export query from Appendix B before any multi-tenant work begins
 
 ---
 
@@ -540,6 +523,8 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 |----------|----------|---------|
 | `PROJECT_MASTER.md` | Repo root | This file — session continuity |
 | `MULTI_TENANT_MIGRATION_PLAN.md` | Repo root | Complete multi-tenant architecture: 34 table classifications, 4 RLS patterns, 3 theology tables, 5-phase execution plan, rollback procedures |
+| `BLS_vs_Traditional_Curriculum_Comparison.docx` | Repo root | Marketing comparison document |
+| `Teacher_Customization_Handout.docx` | Repo root | Teacher-facing handout for customization options |
 
 ---
 
@@ -547,4 +532,4 @@ PLATFORM GUARDRAILS (Lynn owns — non-negotiable Christian orthodoxy)
 
 Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\biblelessonspark\src\` as needed.
 
-**Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend — always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`.
+**Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend — always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`. Always `npm run build` before deploying. Never edit stale file copies.
