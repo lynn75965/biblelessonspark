@@ -13,7 +13,6 @@ import { useInvites } from '@/hooks/useInvites';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
-import { BRANDING } from "@/config/branding";
 import { BRANDING } from '@/config/branding';
 import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
@@ -282,10 +281,18 @@ export default function Auth() {
       const { error, data } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
 
       if (error) {
-        if (error.message.includes('User already registered')) {
+        // ---------------------------------------------------------------
+        // DUPLICATE EMAIL: Supabase returns either of these two messages
+        // when signup is attempted with an already-registered email.
+        // Both route to the same friendly, actionable toast.
+        // ---------------------------------------------------------------
+        if (
+          error.message.includes('User already registered') ||
+          error.message.includes('Database error saving new user')
+        ) {
           toast({
-            title: "Account exists",
-            description: "An account with this email already exists. Please sign in instead.",
+            title: "Email already registered",
+            description: "An account with this email already exists. Please sign in, or use 'Forgot Password' if you need to reset your password.",
             variant: "destructive",
           });
           setActiveTab('signin');
@@ -299,7 +306,7 @@ export default function Auth() {
       } else {
         // CHECK FOR EXISTING USER: Supabase returns fake success with empty identities
         // when "Confirm email" is ON and the email already exists (security measure).
-        // No email is sent in this case — detect it and redirect to Sign In.
+        // No email is sent in this case â€” detect it and redirect to Sign In.
         const isExistingUser = data?.user?.identities?.length === 0;
         
         if (isExistingUser) {
@@ -1028,4 +1035,3 @@ export default function Auth() {
     </div>
   );
 }
-
