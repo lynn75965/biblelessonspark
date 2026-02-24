@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Transfer Request Configuration - SSOT
  * 
  * MUTUAL INITIATION WORKFLOW:

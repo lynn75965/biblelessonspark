@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BibleLessonSpark - SUBSCRIPTION MANAGEMENT COMPONENT
 // Location: src/components/subscription/SubscriptionManagement.tsx
 // ============================================================

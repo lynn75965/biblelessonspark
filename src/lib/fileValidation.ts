@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 
 // File validation constants - SSOT for allowed file types
 // Supported: PDF, TXT, JPG, JPEG, PNG (DOCX removed - Claude API limitation)

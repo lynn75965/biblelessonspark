@@ -1,4 +1,4 @@
-﻿// =============================================================================
+// =============================================================================
 // RATE LIMIT CONSTANTS
 // SSOT MASTER: Frontend rate limit definitions
 // Backend mirror: supabase/functions/_shared/rateLimit.ts

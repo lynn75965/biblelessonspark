@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useTeacherProfiles Hook
  * CRUD operations for teacher preference profiles
  * 

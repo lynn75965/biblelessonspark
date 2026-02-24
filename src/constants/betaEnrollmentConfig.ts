@@ -1,4 +1,4 @@
-﻿// ============================================================================
+// ============================================================================
 // SSOT: Beta Enrollment Configuration
 // BibleLessonSpark - Master Definition
 // Controls Public Beta enrollment flow UI and behavior

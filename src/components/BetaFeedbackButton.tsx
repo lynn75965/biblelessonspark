@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 
 interface BetaFeedbackButtonProps {

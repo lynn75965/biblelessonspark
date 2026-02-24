@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BibleLessonSpark Constants - Age Groups
  *
  * SINGLE SOURCE OF TRUTH for all age group data.

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API Error Codes - SSOT
  * Used by both Edge Functions and frontend error handling
  */

@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BibleLessonSpark - UPGRADE PROMPT MODAL (SSOT-COMPLIANT)
 // Location: src/components/subscription/UpgradePromptModal.tsx
 // ============================================================

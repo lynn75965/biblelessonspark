@@ -1,4 +1,4 @@
-﻿import { ReactNode } from "react";
+import { ReactNode } from "react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { PROGRAM_CONFIG } from "@/constants/programConfig";

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SSOT: Security & Events Configuration
  * Location: src/constants/securityConfig.ts
  * 

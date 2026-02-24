@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SITE } from '@/config/site';
+import { BRANDING } from "@/config/branding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -273,7 +273,7 @@ const BetaSignup = () => {
             <div className="mt-6 text-center text-sm text-muted-foreground">
               <p>Questions? Contact Lynn Eckeberger at</p>
               <p className="font-semibold">
-                <a href={`mailto:${SITE.supportEmail}`} className="text-blue-600 hover:underline">
+                <a href={`mailto:${BRANDING.contact.supportEmail}`} className="text-blue-600 hover:underline">
                   lynn@biblelessonspark.com
                 </a>
                 {" "}| 214.893.5179

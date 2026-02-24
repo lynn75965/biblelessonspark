@@ -1,4 +1,4 @@
-﻿import { BRANDING } from "@/config/branding";
+import { BRANDING } from "@/config/branding";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";

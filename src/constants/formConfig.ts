@@ -1,4 +1,4 @@
-﻿// SSOT MASTER: Form field styling configuration
+// SSOT MASTER: Form field styling configuration
 // Controls consistent form element appearance across the platform
 
 export const FORM_STYLING = {

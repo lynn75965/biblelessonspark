@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Cookie as CookieIcon, Mail } from "lucide-react";
-import { SITE } from "@/config/site";
+import { BRANDING } from "@/config/branding";
 
 const Cookie = () => {
   return (
@@ -42,13 +42,13 @@ const Cookie = () => {
 
             <h2 className="text-2xl font-semibold mt-8">Contact Us</h2>
             <p>
-              If you have questions about our use of cookies, please contact us at {SITE.supportEmail}.
+              If you have questions about our use of cookies, please contact us at {BRANDING.contact.supportEmail}.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 border-t">
             <Button variant="outline" size="lg" asChild>
-              <a href={`mailto:${SITE.supportEmail}`} className="flex items-center gap-2">
+              <a href={`mailto:${BRANDING.contact.supportEmail}`} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email Support
               </a>

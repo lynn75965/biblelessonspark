@@ -93,7 +93,7 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 // =============================================================================
 // TEACHING TEAM VALIDATION CONSTANTS
 // SSOT Reference: Phase 27A - Teaching Teams
-// Lead teacher + up to 3 invited = 4 total
+// Lead teacher + up to 2 invited = 3 total
 // =============================================================================
 
 export const TEACHING_TEAM_VALIDATION = {

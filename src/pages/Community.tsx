@@ -17,7 +17,7 @@ import {
   Calendar,
   ArrowRight
 } from "lucide-react";
-import { SITE } from "@/config/site";
+import { BRANDING } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { isBetaMode } from "@/constants/systemSettings";
 import { ROUTES } from "@/constants/routes";
@@ -54,25 +54,25 @@ const Community = () => {
       title: "Share Your Experience",
       description: "Tell us how BibleLessonSpark has impacted your teaching ministry. Your story could encourage other teachers.",
       action: "Share Your Story",
-      href: `mailto:${SITE.supportEmail}?subject=My BibleLessonSpark Story`
+      href: `mailto:${BRANDING.contact.supportEmail}?subject=My BibleLessonSpark Story`
     },
     {
       title: "Suggest Features",
       description: "Have an idea that would help Baptist teachers? We actively incorporate user feedback into our roadmap.",
       action: "Submit Idea",
-      href: `mailto:${SITE.supportEmail}?subject=Feature Suggestion`
+      href: `mailto:${BRANDING.contact.supportEmail}?subject=Feature Suggestion`
     },
     {
       title: "Report Issues",
       description: "Found a bug or theological concern? Help us maintain the highest standards of quality and accuracy.",
       action: "Report Issue",
-      href: `mailto:${SITE.supportEmail}?subject=Issue Report`
+      href: `mailto:${BRANDING.contact.supportEmail}?subject=Issue Report`
     },
     {
       title: "Partner With Us",
       description: "Associations, seminaries, and church networks - let's discuss how we can serve your teachers together.",
       action: "Explore Partnership",
-      href: `mailto:${SITE.supportEmail}?subject=Partnership Inquiry`
+      href: `mailto:${BRANDING.contact.supportEmail}?subject=Partnership Inquiry`
     }
   ];
 
@@ -306,9 +306,9 @@ const Community = () => {
             Questions, ideas, or just want to say hello? Reach out anytime.
           </p>
           <Button variant="outline" size="lg" asChild>
-            <a href={`mailto:${SITE.supportEmail}`} className="flex items-center gap-2">
+            <a href={`mailto:${BRANDING.contact.supportEmail}`} className="flex items-center gap-2">
               <Mail className="h-4 w-4" />
-              {SITE.supportEmail}
+              {BRANDING.contact.supportEmail}
             </a>
           </Button>
         </section>

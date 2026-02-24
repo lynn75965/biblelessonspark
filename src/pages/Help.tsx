@@ -23,7 +23,7 @@ import {
   MessageSquare,
   Church
 } from "lucide-react";
-import { SITE } from "@/config/site";
+import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 
 const Help = () => {
@@ -137,7 +137,7 @@ const Help = () => {
         },
         {
           q: "What if I find a theological error?",
-          a: "Please report it immediately using the feedback button or email us at " + SITE.supportEmail + ". We take theological accuracy seriously and will review and address any concerns promptly."
+          a: "Please report it immediately using the feedback button or email us at " + BRANDING.contact.supportEmail + ". We take theological accuracy seriously and will review and address any concerns promptly."
         },
         {
           q: "Are lessons available in Spanish or French?",
@@ -358,7 +358,7 @@ const Help = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="outline" size="lg" asChild>
-              <a href={`mailto:${SITE.supportEmail}`} className="flex items-center gap-2">
+              <a href={`mailto:${BRANDING.contact.supportEmail}`} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email Support
               </a>

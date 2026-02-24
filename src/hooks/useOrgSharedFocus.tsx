@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useOrgSharedFocus - Fetch active shared focus and org settings
  * 
  * SSOT: src/constants/sharedFocusConfig.ts

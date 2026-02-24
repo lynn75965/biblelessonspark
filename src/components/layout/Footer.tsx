@@ -1,6 +1,6 @@
 import { Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
-import { SITE } from "@/config/site";
+import { BRANDING } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { BRANDING } from "@/config/branding";
 
@@ -110,11 +110,11 @@ export function Footer() {
         <div className="flex flex-col sm:flex-row justify-between items-center mt-6 sm:mt-8 pt-6 sm:pt-8 border-t text-xs sm:text-sm text-muted-foreground gap-3 sm:gap-0">
           <p>&copy; {new Date().getFullYear()} {BRANDING.copyrightHolder}. All rights reserved.</p>
           <a
-            href={`mailto:${SITE.supportEmail}`}
+            href={`mailto:${BRANDING.contact.supportEmail}`}
             className="flex items-center gap-1.5 hover:text-primary transition-colors"
           >
             <Mail className="h-3.5 w-3.5" />
-            {SITE.supportEmail}
+            {BRANDING.contact.supportEmail}
           </a>
         </div>
       </div>

@@ -1,9 +1,9 @@
-﻿/**
+/**
  * Modern Parable Generator Configuration
  * SSOT for DevotionalSpark / BibleLessonSpark Parable Generator
  * 
  * Based on Jesus' parable teaching patterns:
- * - Hook (ordinary life) → Tension → Escalation → Reversal → Reveal → Response → Anchor
+ * - Hook (ordinary life) ? Tension ? Escalation ? Reversal ? Reveal ? Response ? Anchor
  * 
  * @version 1.0.0
  * @lastUpdated 2025-12-20
@@ -91,7 +91,7 @@ export const PARABLE_STEPS: readonly ParableStep[] = [
     id: 'escalation',
     name: 'Escalation',
     order: 3,
-    description: '2-4 beats of rising stakes: action → complication → pressure',
+    description: '2-4 beats of rising stakes: action ? complication ? pressure',
     promptGuidance: 'Move in 2-4 short, memorable beats. Beat A: first response (often predictable). Beat B: complication (cost rises). Beat C: pressure moment (decision point). Keep it retellable - short escalation makes it memorable.',
     wordRange: { min: 80, max: 150 },
   },
@@ -516,7 +516,7 @@ Follow this 7-step structure:
 
 1. HOOK (20-40 words): Open with ordinary life. "There was a [role] who [routine]."
 2. TENSION (20-40 words): Introduce moral tension fast. Something is "off."
-3. ESCALATION (80-150 words): 2-4 beats of rising stakes. Action → Complication → Pressure.
+3. ESCALATION (80-150 words): 2-4 beats of rising stakes. Action ? Complication ? Pressure.
 4. REVERSAL (40-80 words): The Kingdom twist. Unexpected hero OR exposed heart.
 5. REVEAL (40-80 words): Name the heart condition being exposed.
 6. RESPONSE (15-35 words): End with a Jesus-style question or call.

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -211,9 +211,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                âœ“ Perfect for memorization<br />
-                âœ“ Exact quotes in handouts<br />
-                âœ“ No paraphrasing
+                ✓ Perfect for memorization<br />
+                ✓ Exact quotes in handouts<br />
+                ✓ No paraphrasing
               </p>
             </div>
           </div>
@@ -234,7 +234,7 @@ function ParaphraseExplainerDialog() {
                   <strong>Ephesians 2:8 (CSB)</strong>
                 </p>
                 <p className="text-xs">
-                  Paul teaches that we are saved by God's grace through faithâ€”this salvation 
+                  Paul teaches that we are saved by God's grace through faith—this salvation 
                   is not from ourselves but is God's gift.
                 </p>
                 <p className="text-xs italic mt-2">
@@ -242,9 +242,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                âœ“ Doctrinally faithful summaries<br />
-                âœ“ Clear verse references included<br />
-                âœ“ Read exact text from your own Bible in class
+                ✓ Doctrinally faithful summaries<br />
+                ✓ Clear verse references included<br />
+                ✓ Read exact text from your own Bible in class
               </p>
             </div>
           </div>

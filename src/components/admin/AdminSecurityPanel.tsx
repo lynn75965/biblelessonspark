@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Admin Security Panel
  *
  * SSOT COMPLIANCE:

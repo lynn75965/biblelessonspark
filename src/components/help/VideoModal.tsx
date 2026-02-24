@@ -1,4 +1,4 @@
-﻿/**
+/**
  * VideoModal - Reusable Help Video Modal Component
  * 
  * ARCHITECTURE NOTES:

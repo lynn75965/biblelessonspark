@@ -1,4 +1,4 @@
-﻿/**
+/**
  * BrandingProvider - SSOT Color System
  * =====================================
  * 

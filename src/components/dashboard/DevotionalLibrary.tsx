@@ -1,4 +1,4 @@
-﻿/**
+/**
  * DevotionalLibrary Component
  *
  * Displays and manages user's generated devotionals.

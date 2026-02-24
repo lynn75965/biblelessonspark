@@ -1,4 +1,4 @@
-﻿// src/utils/exportToDocx.ts
+// src/utils/exportToDocx.ts
 // SSOT COMPLIANT: All values imported from lessonStructure.ts
 // Version: 2.6.0 - Standalone Student Handout title, broadened detection, skip bare # markers
 
@@ -48,7 +48,7 @@ function cleanAllMarkdown(text: string): string {
  */
 function detectSectionHeader(line: string): { isSection: boolean; num: number; cleanTitle: string } {
   const cleaned = cleanAllMarkdown(line);
-  const match = cleaned.match(/^Section\s+(\d+)\s*[:\-â€“â€”]?\s*(.*)$/i);
+  const match = cleaned.match(/^Section\s+(\d+)\s*[:\-–—]?\s*(.*)$/i);
   
   if (match) {
     const num = parseInt(match[1], 10);
@@ -73,7 +73,7 @@ function isSection8Line(line: string): boolean {
   // Original format: "Section 8: Student Handout"
   if (/^Section\s+8/i.test(cleaned)) return true;
   // Shaped formats: "STUDENT HANDOUT", "Student Experience: Title", etc.
-  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:â€“â€”\-].*)?$/i.test(cleaned)) return true;
+  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:–—\-].*)?$/i.test(cleaned)) return true;
   return false;
 }
 
@@ -169,7 +169,7 @@ function buildTextRuns(text: string, fontSize: number = body.fontHalfPt): TextRu
 
 /**
  * Create SINGLE-LINE page footer with page numbers and branding
- * Format: BibleLessonSpark.com  â€¢  Page 1 of 7
+ * Format: BibleLessonSpark.com  •  Page 1 of 7
  */
 function createPageFooter(): Footer {
   return new Footer({
@@ -178,7 +178,7 @@ function createPageFooter(): Footer {
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: EXPORT_FORMATTING.footerText + '  â€¢  Page ',
+            text: EXPORT_FORMATTING.footerText + '  •  Page ',
             size: footer.fontHalfPt,
             color: colors.footerText,
             font: fonts.docx
@@ -353,8 +353,8 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       continue;
     }
     
-    if (/^[-*â€¢]\s/.test(trimmed)) {
-      const bulletText = trimmed.replace(/^[-*â€¢]\s*/, '');
+    if (/^[-*•]\s/.test(trimmed)) {
+      const bulletText = trimmed.replace(/^[-*•]\s*/, '');
       paragraphs.push(new Paragraph({
         children: buildTextRuns(bulletText),
         bullet: { level: 0 },
@@ -476,8 +476,8 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
         continue;
       }
       
-      if (/^[-*â€¢]\s/.test(trimmed)) {
-        const bulletText = trimmed.replace(/^[-*â€¢]\s*/, '');
+      if (/^[-*•]\s/.test(trimmed)) {
+        const bulletText = trimmed.replace(/^[-*•]\s*/, '');
         paragraphs.push(new Paragraph({
           children: buildTextRuns(bulletText),
           bullet: { level: 0 },

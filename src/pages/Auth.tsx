@@ -13,7 +13,7 @@ import { useInvites } from '@/hooks/useInvites';
 import { supabase } from '@/integrations/supabase/client';
 import { sanitizeEmail, sanitizeText } from '@/lib/inputSanitization';
 import Footer from '@/components/Footer';
-import { SITE } from '@/config/site';
+import { BRANDING } from "@/config/branding";
 import { BRANDING } from '@/config/branding';
 import { validatePassword, PASSWORD_REQUIREMENTS_TEXT } from '@/constants/validation';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
@@ -121,7 +121,7 @@ export default function Auth() {
 
           toast({
             title: "You've been invited!",
-            description: `${invite.inviter_name || 'Someone'} has invited you to join ${invite.organization_name || SITE.name}.`,
+            description: `${invite.inviter_name || 'Someone'} has invited you to join ${invite.organization_name || BRANDING.appName}.`,
           });
         } else {
           toast({
@@ -509,7 +509,7 @@ export default function Auth() {
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
                 <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+              <span className="text-xl sm:text-2xl font-bold gradient-text">{BRANDING.appName}</span>
             </div>
           </div>
 
@@ -596,7 +596,7 @@ export default function Auth() {
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
                 <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+              <span className="text-xl sm:text-2xl font-bold gradient-text">{BRANDING.appName}</span>
             </div>
           </div>
 
@@ -688,7 +688,7 @@ export default function Auth() {
               <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
                 <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+              <span className="text-xl sm:text-2xl font-bold gradient-text">{BRANDING.appName}</span>
             </div>
           </div>
 
@@ -776,13 +776,13 @@ export default function Auth() {
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-primary">
               <BookOpen className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
-            <span className="text-xl sm:text-2xl font-bold gradient-text">{SITE.name}</span>
+            <span className="text-xl sm:text-2xl font-bold gradient-text">{BRANDING.appName}</span>
           </div>
           <h1 data-tour="signup-welcome" className="text-xl sm:text-2xl font-bold mb-2">
-            {organizationName ? `Join ${organizationName} on ${SITE.name}` : (isPublicBeta ? FORM_TEXT.title : `Welcome to ${SITE.name}`)}
+            {organizationName ? `Join ${organizationName} on ${BRANDING.appName}` : (isPublicBeta ? FORM_TEXT.title : `Welcome to ${BRANDING.appName}`)}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            {isPublicBeta ? FORM_TEXT.subtitle : SITE.tagline}
+            {isPublicBeta ? FORM_TEXT.subtitle : BRANDING.tagline}
           </p>
         </div>
 
@@ -793,7 +793,7 @@ export default function Auth() {
             </CardTitle>
             <CardDescription className="text-sm">
               {inviteToken
-                ? `Create your account to join ${organizationName || SITE.name}`
+                ? `Create your account to join ${organizationName || BRANDING.appName}`
                 : 'Sign in to enhance your Bible study lessons'}
             </CardDescription>
           </CardHeader>

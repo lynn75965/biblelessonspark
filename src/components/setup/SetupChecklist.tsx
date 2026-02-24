@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -340,7 +340,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                 <Sparkles className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-2">
-                Congratulations! ðŸŽ‰
+                Congratulations! 🎉
               </h3>
               <p className="text-muted-foreground mb-4">
                 You're all set to start creating amazing Baptist Bible study lessons!

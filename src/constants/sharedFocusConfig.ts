@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Shared Focus Configuration - SSOT
  * 
  * Controls org-wide passage/theme assignments for coordinated Bible study.

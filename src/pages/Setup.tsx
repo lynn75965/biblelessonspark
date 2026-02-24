@@ -1,4 +1,4 @@
-﻿import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +18,7 @@ import {
   Shield,
   Globe
 } from "lucide-react";
-import { SITE } from "@/config/site";
+import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 
 const Setup = () => {
@@ -322,7 +322,7 @@ const Setup = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button variant="outline" size="lg" asChild>
-              <a href={`mailto:${SITE.supportEmail}`} className="flex items-center gap-2">
+              <a href={`mailto:${BRANDING.contact.supportEmail}`} className="flex items-center gap-2">
                 <Mail className="h-4 w-4" />
                 Email Support
               </a>
