@@ -150,6 +150,19 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     displayOrder: 8,
     isDefault: false,
     description: 'Thought-for-thought translation emphasizing clarity. Direct quotation permitted within fair use guidelines.'
+  },
+  {
+    id: 'amp',
+    name: 'Amplified Bible',
+    abbreviation: 'AMP',
+    copyrightStatus: 'copyrighted',
+    quoteType: 'direct',
+    usageHint: '? Quote directly — up to 10 verses per lesson',
+    copyrightHolder: 'The Lockman Foundation',
+    copyrightNotice: 'Scripture quotations taken from the Amplified® Bible (AMP), Copyright © 2015 by The Lockman Foundation. Used by permission. www.lockman.org',
+    displayOrder: 9,
+    isDefault: false,
+    description: 'Expanded translation with inline amplifications for deeper meaning. Direct quotation permitted within fair use guidelines.'
   }
 ];
 
@@ -161,7 +174,7 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
  * Get a Bible version by ID
  */
 export function getBibleVersion(id: string): BibleVersion | undefined {
-  return BIBLE_VERSIONS.find(v => v.id === id);
+  return BIBLE_VERSIONS.find(v => v.id === id.toLowerCase());
 }
 
 /**
