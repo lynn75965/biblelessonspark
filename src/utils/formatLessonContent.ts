@@ -70,7 +70,7 @@ export function stripMarkdown(text: string): string {
     .replace(/```[a-z]*\n?/g, '')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/(* .+)\n\n(* )/g, '$1\n$2')
+    .replace(/(\* .+)\n\n(\* )/g, '$1\n$2')
     .trim();
 }
 

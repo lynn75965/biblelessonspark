@@ -73,7 +73,7 @@ function isSection8Line(line: string): boolean {
   // Original format: "Section 8: Student Handout"
   if (/^Section\s+8/i.test(cleaned)) return true;
   // Shaped formats: "STUDENT HANDOUT", "Student Experience: Title", etc.
-  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:---\-].*)?$/i.test(cleaned)) return true;
+  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:\-\u2013\u2014].*)?$/i.test(cleaned)) return true;
   return false;
 }
 

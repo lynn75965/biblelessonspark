@@ -289,7 +289,7 @@ const Help = () => {
                 <CardContent>
                   <CardDescription>{link.description}</CardDescription>
                   <Button asChild variant="link" className="px-0 mt-2">
-                    <Link to={link.href}>Learn more -></Link>
+                    <Link to={link.href}>Learn more ?</Link>
                   </Button>
                 </CardContent>
               </Card>

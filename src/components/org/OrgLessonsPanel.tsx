@@ -328,7 +328,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
             </div>
             <div className="p-3 bg-emerald-50 rounded-lg text-center">
               <p className="text-2xl font-bold text-emerald-700">{orgPoolCount}</p>
-              <p className="text-xs text-muted-foreground">\u{1F7E2} Org Pool</p>
+              <p className="text-xs text-muted-foreground">{"\u{1F7E2}"} Org Pool</p>
             </div>
             <div className="p-3 bg-yellow-500/10 rounded-lg text-center">
               <p className="text-2xl font-bold text-yellow-600">{personalCount}</p>
@@ -336,7 +336,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
             </div>
             <div className="p-3 bg-amber-50 rounded-lg text-center">
               <p className="text-2xl font-bold text-amber-600">{overrideCount}</p>
-              <p className="text-xs text-muted-foreground">\u{1F512} Override Access</p>
+              <p className="text-xs text-muted-foreground">{"\u{1F512}"} Override Access</p>
             </div>
           </div>
 
@@ -539,7 +539,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
                       <ShieldAlert className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
                       <div className="text-sm">
                         <p className="font-medium text-amber-800">
-                          \u{1F512} This lesson has not been shared by the teacher.
+                          {"\u{1F512}"} This lesson has not been shared by the teacher.
                         </p>
                         <p className="text-amber-700 mt-1">
                           You have access because it was funded by your {organizationName} lesson pool.

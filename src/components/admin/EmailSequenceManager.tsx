@@ -157,9 +157,9 @@ function textToHtml(text: string): string {
                         url === "https://biblelessonspark.com";
       
       if (isMainCta) {
-        let buttonText = "Get Started ->";
-        if (url.includes("/pricing")) buttonText = "View Pricing Plans ->";
-        if (url.includes("/lesson-generator")) buttonText = "Create Your Lesson ->";
+        let buttonText = "Get Started ?";
+        if (url.includes("/pricing")) buttonText = "View Pricing Plans ?";
+        if (url.includes("/lesson-generator")) buttonText = "Create Your Lesson ?";
         
         htmlLines.push(`
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px 0;">

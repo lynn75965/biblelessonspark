@@ -901,7 +901,7 @@ export function ParableGenerator({
                         rel="noopener noreferrer"
                         className="text-xs text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200 underline"
                       >
-                        View original article ->
+                        View original article ?
                       </a>
                     )}
                   </div>

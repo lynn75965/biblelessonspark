@@ -23,10 +23,10 @@ export const PROGRAM_CONFIG = {
     ],
     recentUpdates: [
       { date: "Feb 21", text: "Complete rebrand to BibleLessonSpark" },
-      { date: "Feb 10", text: "Lesson Shapes - reshape any lesson into 5 teaching styles" },
-      { date: "Feb 9", text: "Teaching Teams - invite up to 2 co-teachers to share lessons" },
+      { date: "Feb 10", text: "Lesson Shapes — reshape any lesson into 5 teaching styles" },
+      { date: "Feb 9", text: "Teaching Teams — invite up to 2 co-teachers to share lessons" },
       { date: "Feb 7", text: "Modern Parable Generator with perpetual freshness" },
-      { date: "Jan 28", text: "DevotionalSpark v2.1 -- personal quiet-time companion" },
+      { date: "Jan 28", text: "DevotionalSpark v2.1 — personal quiet-time companion" },
       { date: "Jan 15", text: "PDF, DOCX, and Print export with optimized formatting" }
     ],
   },

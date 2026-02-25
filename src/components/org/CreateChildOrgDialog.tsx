@@ -167,7 +167,7 @@ export function CreateChildOrgDialog({
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Parent:</span>
             <Badge variant="outline">{parentOrgName}</Badge>
-            <span className="text-muted-foreground">-></span>
+            <span className="text-muted-foreground">?</span>
             <Badge variant="secondary">Level {childLevel}: {childLevelName}</Badge>
           </div>
 

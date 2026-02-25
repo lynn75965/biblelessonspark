@@ -34,7 +34,8 @@ import {
   LayoutDashboard,
   Eye,
   PartyPopper,
-  Play
+  Play,
+  Lightbulb
 } from 'lucide-react';
 
 // --- Interactive Tour Configuration (Self-Service Entry item 8) ---
@@ -418,7 +419,7 @@ const OrgSuccess = () => {
             </p>
             {currentStep.tip && (
               <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground italic">
-                \u{1F4A1} {currentStep.tip}
+                <Lightbulb className="h-4 w-4 inline mr-1" /> {currentStep.tip}
               </div>
             )}
           </div>
