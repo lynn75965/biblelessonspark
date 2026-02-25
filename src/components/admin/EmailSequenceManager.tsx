@@ -132,7 +132,7 @@ function textToHtml(text: string): string {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
     
-    const bulletMatch = line.match(/^[•\-]\s+(.+)$/);
+    const bulletMatch = line.match(/^[*\-]\s+(.+)$/);
     if (bulletMatch) {
       if (!inList) {
         htmlLines.push(`<ul style="margin: 12px 0; padding-left: 24px;">`);
@@ -157,9 +157,9 @@ function textToHtml(text: string): string {
                         url === "https://biblelessonspark.com";
       
       if (isMainCta) {
-        let buttonText = "Get Started →";
-        if (url.includes("/pricing")) buttonText = "View Pricing Plans →";
-        if (url.includes("/lesson-generator")) buttonText = "Create Your Lesson →";
+        let buttonText = "Get Started ->";
+        if (url.includes("/pricing")) buttonText = "View Pricing Plans ->";
+        if (url.includes("/lesson-generator")) buttonText = "Create Your Lesson ->";
         
         htmlLines.push(`
 <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px 0;">
@@ -210,7 +210,7 @@ function generatePreviewHtml(subject: string, body: string, isHtml: boolean): st
           <tr>
             <td style="background: linear-gradient(135deg, ${BRAND.primaryGreen} 0%, ${BRAND.primaryGreenLight} 100%); padding: 24px 32px; text-align: center;">
               <h1 style="margin: 0; font-family: Georgia, serif; font-size: 24px; font-weight: bold; color: #ffffff;">
-                ✦ BibleLessonSpark
+                \u2726 BibleLessonSpark
               </h1>
               <p style="margin: 6px 0 0 0; font-family: Georgia, serif; font-size: 13px; color: rgba(255,255,255,0.9); font-style: italic;">
                 Personalized Bible Studies in Minutes
@@ -225,10 +225,10 @@ function generatePreviewHtml(subject: string, body: string, isHtml: boolean): st
           <tr>
             <td style="background-color: #f8f8f6; padding: 20px 32px; border-top: 1px solid ${BRAND.borderColor};">
               <p style="margin: 0 0 8px 0; font-family: Georgia, serif; font-size: 13px; color: ${BRAND.mutedText}; text-align: center;">
-                <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> — AI-powered lesson preparation for Baptist teachers
+                <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> -- AI-powered lesson preparation for Baptist teachers
               </p>
               <p style="margin: 0; font-family: Georgia, serif; font-size: 11px; color: #999999; text-align: center;">
-                © ${new Date().getFullYear()} BibleLessonSpark • <a href="https://biblelessonspark.com" style="color: #999999;">biblelessonspark.com</a>
+                \u00A9 ${new Date().getFullYear()} BibleLessonSpark * <a href="https://biblelessonspark.com" style="color: #999999;">biblelessonspark.com</a>
               </p>
             </td>
           </tr>
@@ -423,7 +423,7 @@ export function EmailSequenceManager() {
                       )}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Day {template.send_day} • {template.is_active ? 'Active' : 'Inactive'}
+                      Day {template.send_day} * {template.is_active ? 'Active' : 'Inactive'}
                     </p>
                   </div>
                 </div>

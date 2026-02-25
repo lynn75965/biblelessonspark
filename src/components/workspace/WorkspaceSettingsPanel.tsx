@@ -4,7 +4,7 @@
 // Lesson and teaching settings panel for workspace Settings tab.
 //
 // PROFILE FIELDS (Bible Version, Theology Profile, Language, Name, Email)
-// are in UserProfileModal.tsx — NOT here.
+// are in UserProfileModal.tsx -- NOT here.
 //
 // This panel covers: Lesson Defaults, Teaching Context, Export, Notifications
 //

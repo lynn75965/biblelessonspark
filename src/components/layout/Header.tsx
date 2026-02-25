@@ -53,9 +53,9 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
   const displayOrgName = hideOrgContext ? null : (organizationName || organization?.name);
 
   // "Lead a Team" nav item logic (February 2026)
-  // - Solo teacher (no org): "Lead a Team" → /org
-  // - Org owner/leader: "{Org Name}" → /org-manager
-  // - Org member: "{Org Name}" → /dashboard
+  // - Solo teacher (no org): "Lead a Team" -> /org
+  // - Org owner/leader: "{Org Name}" -> /org-manager
+  // - Org member: "{Org Name}" -> /dashboard
   const getOrgNavItem = () => {
     if (!authenticated || !user) return null;
 
@@ -67,7 +67,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
       };
     }
 
-    // Solo teacher — no org
+    // Solo teacher -- no org
     return {
       label: 'Lead a Team',
       route: '/org',
@@ -138,9 +138,9 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
               <NotificationBell />
 
               {/* "Lead a Team" / Org Name nav item (February 2026)
-                  - Solo teacher: "Lead a Team" → /org landing page
-                  - Org owner/leader: "{Org Name}" → /org-manager
-                  - Org member: "{Org Name}" → /dashboard */}
+                  - Solo teacher: "Lead a Team" -> /org landing page
+                  - Org owner/leader: "{Org Name}" -> /org-manager
+                  - Org member: "{Org Name}" -> /dashboard */}
               {orgNavItem && (
                 <Link
                   to={orgNavItem.route}

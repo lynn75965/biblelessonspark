@@ -54,9 +54,9 @@ interface TeachingTeamCardProps {
  * Phase 27: Teaching Team Card
  *
  * Three states:
- * 1. No team — "Start a Teaching Team" prompt with create form
- * 2. Lead Teacher — Team management: rename, invite, remove, disband
- * 3. Member — View team, option to leave
+ * 1. No team -- "Start a Teaching Team" prompt with create form
+ * 2. Lead Teacher -- Team management: rename, invite, remove, disband
+ * 3. Member -- View team, option to leave
  *
  * Collapsible card on the Dashboard.
  */
@@ -93,7 +93,7 @@ export function TeachingTeamCard({
 
   if (loading) return null;
 
-  // ── Handlers ────────────────────────────────────────────────────────
+  // -- Handlers --------------------------------------------------------
 
   const handleCreate = async () => {
     if (!teamName.trim()) return;
@@ -152,7 +152,7 @@ export function TeachingTeamCard({
   const acceptedOrPending = members.filter(m => m.status === "accepted" || m.status === "pending");
   const teamFull = acceptedOrPending.length >= maxMembers;
 
-  // ── STATE 1: No Team ──────────────────────────────────────────────
+  // -- STATE 1: No Team ----------------------------------------------
 
   if (!team) {
     return (
@@ -230,7 +230,7 @@ export function TeachingTeamCard({
     );
   }
 
-  // ── STATE 2 & 3: Has Team (Lead or Member) ────────────────────────
+  // -- STATE 2 & 3: Has Team (Lead or Member) ------------------------
 
   return (
     <Card className="mb-6">
@@ -241,7 +241,7 @@ export function TeachingTeamCard({
               <Users className="h-5 w-5 text-blue-600" />
             </div>
 
-            {/* Team Name — editable by lead */}
+            {/* Team Name -- editable by lead */}
             {editing && isLeadTeacher ? (
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Input
@@ -285,14 +285,14 @@ export function TeachingTeamCard({
         {/* Role badge */}
         <p className="text-sm text-muted-foreground ml-12">
           {isLeadTeacher ? "You are the Lead Teacher" : "You are a team member"}
-          {" · "}
+          {" | "}
           {acceptedOrPending.filter(m => m.status === "accepted").length + 1} member{acceptedOrPending.filter(m => m.status === "accepted").length + 1 !== 1 ? "s" : ""}
         </p>
       </CardHeader>
 
       {!collapsed && (
         <CardContent className="space-y-4">
-          {/* ── Members List ────────────────────────────────────── */}
+          {/* -- Members List -------------------------------------- */}
           <div className="space-y-2">
             {acceptedOrPending.map((member) => (
               <div
@@ -351,7 +351,7 @@ export function TeachingTeamCard({
             )}
           </div>
 
-          {/* ── Invite Form (Lead Teacher only) ─────────────────── */}
+          {/* -- Invite Form (Lead Teacher only) ------------------- */}
           {isLeadTeacher && !teamFull && (
             <div>
               {!showInviteForm ? (
@@ -408,7 +408,7 @@ export function TeachingTeamCard({
             </p>
           )}
 
-          {/* ── Action Buttons ──────────────────────────────────── */}
+          {/* -- Action Buttons ------------------------------------ */}
           <div className="flex flex-wrap gap-2 pt-2 border-t">
             {/* Lead Teacher: Disband */}
             {isLeadTeacher && (

@@ -2,7 +2,7 @@
  * getActiveExportSpacing - Returns EXPORT_SPACING with admin overrides applied
  *
  * SSOT Chain:
- *   Admin Panel → system_settings DB → this function → export utilities
+ *   Admin Panel -> system_settings DB -> this function -> export utilities
  *
  * This function fetches admin overrides from the database, merges them
  * with EXPORT_SPACING defaults from lessonStructure.ts, and computes
@@ -43,7 +43,7 @@ export async function getActiveExportSpacing(): Promise<typeof EXPORT_SPACING> {
       .maybeSingle();
 
     if (error || !data?.value) {
-      // No overrides — use defaults
+      // No overrides -- use defaults
       cachedSpacing = { ...EXPORT_SPACING };
       cacheTimestamp = Date.now();
       return cachedSpacing;

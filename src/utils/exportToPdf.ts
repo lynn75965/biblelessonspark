@@ -95,7 +95,7 @@ const extractLessonTitle = (content: string): string | null => {
  */
 const isSectionHeader = (line: string): { isSection: boolean; num: number; cleanTitle: string } => {
   let cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
-  const match = cleaned.match(/^Section\s+(\d+)\s*[:\-–—]?\s*(.*)$/i);
+  const match = cleaned.match(/^Section\s+(\d+)\s*[:\----]?\s*(.*)$/i);
   
   if (match) {
     const num = parseInt(match[1], 10);
@@ -120,7 +120,7 @@ const isSection8Line = (line: string): boolean => {
   // Original format: "Section 8: Student Handout"
   if (/^Section\s+8/i.test(cleaned)) return true;
   // Shaped formats: "STUDENT HANDOUT", "Student Experience: Title", etc.
-  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:–—\-].*)?$/i.test(cleaned)) return true;
+  if (/^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:---\-].*)?$/i.test(cleaned)) return true;
   return false;
 };
 
@@ -336,16 +336,16 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
       }
       
       // Bullet points
-      if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ") || trimmedLine.startsWith("• ")) {
-        const bulletText = trimmedLine.replace(/^[-*•]\s*/, '');
+      if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ") || trimmedLine.startsWith("* ")) {
+        const bulletText = trimmedLine.replace(/^[-**]\s*/, '');
         const boldMatch = bulletText.match(/^\*\*(.+?):\*\*\s*(.*)$/);
         if (boldMatch) {
-          addLabeledText("• " + boldMatch[1] + ":", boldMatch[2], body.fontPt);
+          addLabeledText("* " + boldMatch[1] + ":", boldMatch[2], body.fontPt);
         } else {
           doc.setFontSize(body.fontPt);
           doc.setFont(fonts.pdf, "normal");
           doc.setTextColor(...PDF_COLORS.bodyText);
-          const bulletLines = doc.splitTextToSize("• " + sanitizeText(bulletText), contentWidth - 5);
+          const bulletLines = doc.splitTextToSize("* " + sanitizeText(bulletText), contentWidth - 5);
           if (yPosition + 5 > pageHeight - MARGIN_MM - footerHeightMm) {
             doc.addPage();
             yPosition = MARGIN_MM;
@@ -494,7 +494,7 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
   }
 
   // 8. ADD SINGLE-LINE FOOTER TO MAIN PAGES ONLY (skip Student Handout pages)
-  // Format: BibleLessonSpark.com  •  Page 1 of 7
+  // Format: BibleLessonSpark.com  *  Page 1 of 7
   const totalPages = doc.getNumberOfPages();
   const mainPageCount = section8StartPage > 0 ? section8StartPage - 1 : totalPages;
   for (let p = 1; p <= totalPages; p++) {
@@ -506,7 +506,7 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
     doc.setFont(fonts.pdf, "normal");
     doc.setTextColor(...PDF_COLORS.footerText);
     
-    const footerText = `${EXPORT_FORMATTING.footerText}  •  Page ${p} of ${mainPageCount}`;
+    const footerText = `${EXPORT_FORMATTING.footerText}  *  Page ${p} of ${mainPageCount}`;
     const footerWidth = doc.getTextWidth(footerText);
     doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 10);
   }

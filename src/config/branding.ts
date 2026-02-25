@@ -459,7 +459,7 @@ export const BRANDING = {
       const yearRange = this.copyrightYear === String(currentYear)
         ? this.copyrightYear
         : `${this.copyrightYear}-${currentYear}`;
-      return `© ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
+      return `-- ${yearRange} ${this.copyrightHolder}. All rights reserved.`;
     },
     legalEntityName: "BibleLessonSpark",
     jurisdiction: "Texas, United States",
@@ -487,8 +487,8 @@ export const BRANDING = {
     multiLanguage: true,
     availableLanguages: [
       { code: "en", name: "English", flag: "????" },
-      { code: "es", name: "Español", flag: "????" },
-      { code: "fr", name: "Français", flag: "????" },
+      { code: "es", name: "Espa--ol", flag: "????" },
+      { code: "fr", name: "Fran--ais", flag: "????" },
     ],
     defaultLanguage: "en",
     organizationsEnabled: true,
@@ -690,9 +690,9 @@ export const BRANDING = {
         body: `Thank you for joining BibleLessonSpark! We're excited to help you create engaging, theologically sound Bible study lessons for your Sunday School class.
 
 With BibleLessonSpark, you can:
-• Generate customized lessons in minutes
-• Tailor content to your specific teaching context
-• Access lessons aligned with Baptist theology
+-- Generate customized lessons in minutes
+-- Tailor content to your specific teaching context
+-- Access lessons aligned with Baptist theology
 
 Ready to create your first lesson?`,
         buttonText: "Create Your First Lesson",
@@ -703,9 +703,9 @@ Ready to create your first lesson?`,
         body: `{inviterName} has invited you to join {orgName} on BibleLessonSpark.
 
 As a member of {orgName}, you'll be able to:
-• Access shared lesson resources
-• Collaborate with other teachers
-• Use organization-wide settings and preferences
+-- Access shared lesson resources
+-- Collaborate with other teachers
+-- Use organization-wide settings and preferences
 
 Click the button below to accept this invitation:`,
         buttonText: "Accept Invitation",

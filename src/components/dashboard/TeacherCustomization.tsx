@@ -200,7 +200,7 @@ interface TeacherCustomizationProps {
   theologicalLens: string;
   setTheologicalLens: (value: string) => void;
 
-  // Part of Series — Phase 24: Series Manager props (replaces manual Lesson X of Y)
+  // Part of Series -- Phase 24: Series Manager props (replaces manual Lesson X of Y)
   activeSeries: LessonSeries[];
   selectedSeries: LessonSeries | null;
   isLoadingSeries: boolean;
@@ -436,7 +436,7 @@ export function TeacherCustomization({
               Check-off any of YOUR teaching environment descriptions below
             </CardDescription>
             <CardDescription className="text-muted-foreground text-xs mt-1">
-              Hint: You can save up to 7 profiles — choose a saved profile & it preloads
+              Hint: You can save up to 7 profiles -- choose a saved profile & it preloads
             </CardDescription>
           </div>
           <div className="flex items-center gap-3">
@@ -481,7 +481,7 @@ export function TeacherCustomization({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__" className="text-muted-foreground">
-                      — None —
+                      -- None --
                     </SelectItem>
                     {profiles.map((profile) => (
                       <SelectItem key={profile.id} value={profile.id}>
@@ -780,7 +780,7 @@ export function TeacherCustomization({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__" className="text-muted-foreground">
-                      — Select a series —
+                      -- Select a series --
                     </SelectItem>
                     <SelectItem value="__new__" className="text-primary font-medium">
                       + Start New Series

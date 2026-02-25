@@ -9,7 +9,7 @@
  *   Organization, OrganizationMember
  * - contracts.ts no longer duplicates types owned by other SSOT files
  *   (theology profile IDs, bible version IDs, lesson shape IDs live in
- *   their respective SSOT files — not here)
+ *   their respective SSOT files -- not here)
  *   still exported with @deprecated tags for backward compatibility
  */
 // ============================================================================
@@ -39,7 +39,7 @@ export type {
   UserProfile,
   Organization,
   OrganizationMember,
-  // Legacy (deprecated — migrate to theologyProfiles.ts types)
+  // Legacy (deprecated -- migrate to theologyProfiles.ts types)
 } from './contracts';
 // ============================================================================
 // Lesson Structure (Tier 1)

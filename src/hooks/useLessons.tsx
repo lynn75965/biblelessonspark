@@ -116,7 +116,7 @@ export function useLessons() {
   };
 
   /**
-   * Update lesson visibility (Phase 26 — Lesson Visibility Status)
+   * Update lesson visibility (Phase 26 -- Lesson Visibility Status)
    * Private is permanent default. Teacher must explicitly share.
    */
   const updateLessonVisibility = async (lessonId: string, visibility: 'private' | 'shared') => {
@@ -151,9 +151,9 @@ export function useLessons() {
   };
 
   /**
-   * Save reshaped lesson content (Phase 27 — Lesson Shapes)
+   * Save reshaped lesson content (Phase 27 -- Lesson Shapes)
    * Stores shaped_content and shape_id on the lessons row
-   * One shaped version per lesson — reshaping again overwrites previous
+   * One shaped version per lesson -- reshaping again overwrites previous
    */
   const updateLessonShape = async (
     lessonId: string,
@@ -186,7 +186,7 @@ export function useLessons() {
   };
 
   /**
-   * Clear shaped content from a lesson (Phase 27 — Lesson Shapes)
+   * Clear shaped content from a lesson (Phase 27 -- Lesson Shapes)
    * Resets to original format only
    */
   const clearLessonShape = async (lessonId: string) => {

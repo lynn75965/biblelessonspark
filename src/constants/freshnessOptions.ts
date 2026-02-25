@@ -554,11 +554,11 @@ export function generateTeaserContentGuardrails(): string {
     .join(', ');
   
   const approved = TEASER_CONTENT_GUARDRAILS.approvedUniversalThemes
-    .map(t => `• ${t}`)
+    .map(t => `* ${t}`)
     .join('\n');
 
   return `
-🚨 ABSOLUTE CONTENT BLEEDING PREVENTION 🚨
+!! ABSOLUTE CONTENT BLEEDING PREVENTION !!
 
 The teaser MUST be so generic that it could apply to DOZENS of different lessons.
 A reader should NOT be able to guess what the lesson topic is from the teaser.
@@ -971,27 +971,27 @@ export function buildFreshnessSuggestionsPrompt(
   const directives: string[] = [];
   
   if (suggestions.openingHook) {
-    directives.push(`• OPENING HOOK: Use a "${suggestions.openingHook}" approach`);
+    directives.push(`* OPENING HOOK: Use a "${suggestions.openingHook}" approach`);
   }
   
   if (suggestions.illustrationType) {
-    directives.push(`• ILLUSTRATION STYLE: Feature a "${suggestions.illustrationType}" as your main example`);
+    directives.push(`* ILLUSTRATION STYLE: Feature a "${suggestions.illustrationType}" as your main example`);
   }
   
   if (suggestions.teachingAngle) {
-    directives.push(`• TEACHING ANGLE: Emphasize a "${suggestions.teachingAngle}" perspective`);
+    directives.push(`* TEACHING ANGLE: Emphasize a "${suggestions.teachingAngle}" perspective`);
   }
   
   if (suggestions.activityFormat) {
-    directives.push(`• ACTIVITY FORMAT: Include a "${suggestions.activityFormat}" in Section 6`);
+    directives.push(`* ACTIVITY FORMAT: Include a "${suggestions.activityFormat}" in Section 6`);
   }
   
   if (suggestions.applicationContext) {
-    directives.push(`• APPLICATION CONTEXT: Focus applications on "${suggestions.applicationContext}"`);
+    directives.push(`* APPLICATION CONTEXT: Focus applications on "${suggestions.applicationContext}"`);
   }
   
   if (suggestions.closingChallenge) {
-    directives.push(`• CLOSING CHALLENGE: End with a "${suggestions.closingChallenge}"`);
+    directives.push(`* CLOSING CHALLENGE: End with a "${suggestions.closingChallenge}"`);
   }
   
   if (directives.length === 0) {
@@ -1031,9 +1031,9 @@ export function buildTeaserFreshnessPrompt(
 ): string {
   return `
 TEASER STYLE DIRECTIVES (MANDATORY):
-• OPENING STYLE: Use a "${suggestions.openingStyle}" approach - NOT "Ever wonder/feel/notice"
-• EMOTIONAL ANGLE: Tap into "${suggestions.emotionalAngle}"
-• SIGNOFF STYLE: Close with a "${suggestions.signoffStyle}" approach
+* OPENING STYLE: Use a "${suggestions.openingStyle}" approach - NOT "Ever wonder/feel/notice"
+* EMOTIONAL ANGLE: Tap into "${suggestions.emotionalAngle}"
+* SIGNOFF STYLE: Close with a "${suggestions.signoffStyle}" approach
 `;
 }
 

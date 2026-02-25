@@ -1,7 +1,7 @@
 // ============================================================
 // useChildOrgSummaries.ts
 // React hook for fetching child organization summary data
-// SSOT Source: organizationConfig.ts → PARENT_VISIBILITY
+// SSOT Source: organizationConfig.ts -> PARENT_VISIBILITY
 // Database Source: get_child_org_summaries() secure function
 // ============================================================
 
@@ -24,7 +24,7 @@ export interface ChildOrgSummary {
   health_status: 'healthy' | 'attention' | 'critical';
   health_color: string;
   /** Phase N6: True if this child adopted the parent's current active focus.
-   *  Set by OrgManager via useFocusAdoptionMap merge — not from the RPC. */
+   *  Set by OrgManager via useFocusAdoptionMap merge -- not from the RPC. */
   has_adopted_focus?: boolean;
 }
 

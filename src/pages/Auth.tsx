@@ -306,7 +306,7 @@ export default function Auth() {
       } else {
         // CHECK FOR EXISTING USER: Supabase returns fake success with empty identities
         // when "Confirm email" is ON and the email already exists (security measure).
-        // No email is sent in this case — detect it and redirect to Sign In.
+        // No email is sent in this case -- detect it and redirect to Sign In.
         const isExistingUser = data?.user?.identities?.length === 0;
         
         if (isExistingUser) {
@@ -664,7 +664,7 @@ export default function Auth() {
                   <p className="font-medium mb-1">Password requirements:</p>
                   <ul className="space-y-0.5">
                     {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                      <li key={i}>• {req}</li>
+                      <li key={i}>{req}</li>
                     ))}
                   </ul>
                 </div>
@@ -870,7 +870,7 @@ export default function Auth() {
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>• {req}</li>
+                          <li key={i}>{req}</li>
                         ))}
                       </ul>
                     </div>
@@ -952,7 +952,7 @@ export default function Auth() {
                       <p className="font-medium mb-1">Password requirements:</p>
                       <ul className="space-y-0.5">
                         {PASSWORD_REQUIREMENTS_TEXT.map((req, i) => (
-                          <li key={i}>• {req}</li>
+                          <li key={i}>{req}</li>
                         ))}
                       </ul>
                     </div>

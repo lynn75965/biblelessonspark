@@ -190,7 +190,7 @@ export function OrganizationSettingsModal({
               <Label htmlFor="phone">Phone {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
               <Input
                 id="phone"
-                value={isAdmin ? formData.phone : "••••••••••"}
+                value={isAdmin ? formData.phone : "--------------------"}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
                 disabled={!isAdmin}
                 placeholder={isAdmin ? "(555) 123-4567" : ""}
@@ -202,7 +202,7 @@ export function OrganizationSettingsModal({
             <Label htmlFor="address">Address {!isAdmin && <span className="text-sm text-muted-foreground">(Admin only)</span>}</Label>
             <Input
               id="address"
-              value={isAdmin ? formData.address : "••••••••••"}
+              value={isAdmin ? formData.address : "--------------------"}
               onChange={(e) => handleInputChange("address", e.target.value)}
               disabled={!isAdmin}
               placeholder={isAdmin ? "Street address" : ""}
@@ -214,7 +214,7 @@ export function OrganizationSettingsModal({
             <Input
               id="orgEmail"
               type="email"
-              value={isAdmin ? formData.email : "••••••••••"}
+              value={isAdmin ? formData.email : "--------------------"}
               onChange={(e) => handleInputChange("email", e.target.value)}
               disabled={!isAdmin}
               placeholder={isAdmin ? "contact@organization.com" : ""}

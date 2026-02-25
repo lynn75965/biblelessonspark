@@ -214,7 +214,7 @@ export const DEFAULT_TENANT_CONFIG: TenantConfig = {
       ctaSubtitle: "Create engaging Bible study lessons for your Sunday School class in minutes.",
       ctaButton: "Get Started Free",
       trustText: "Join hundreds of Baptist teachers already using BibleLessonSpark",
-      badgeText: "Public Beta • Free for Baptist Teachers",
+      badgeText: "Public Beta -- Free for Baptist Teachers",
     },
     form: {
       title: "Join BibleLessonSpark",
@@ -336,7 +336,7 @@ export const BETA_FIELD_GROUPS = {
       { key: "ctaSubtitle", label: "CTA Subtitle", placeholder: "Create engaging Bible study lessons..." },
       { key: "ctaButton", label: "CTA Button Text", placeholder: "Get Started Free" },
       { key: "trustText", label: "Trust Text", placeholder: "Join hundreds of Baptist teachers..." },
-      { key: "badgeText", label: "Badge Text", placeholder: "Public Beta • Free for Baptist Teachers" },
+      { key: "badgeText", label: "Badge Text", placeholder: "Public Beta -- Free for Baptist Teachers" },
     ],
   },
   form: {

@@ -65,7 +65,7 @@ export default function Parables() {
       {/* Header - Different messaging based on context */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">
-          {isTeachingContext ? "Modern Parable Generator" : "✨ Modern Parable Generator"}
+          {isTeachingContext ? "Modern Parable Generator" : "\u2728 Modern Parable Generator"}
         </h1>
         <p className="text-muted-foreground">
           {isTeachingContext 
@@ -80,7 +80,7 @@ export default function Parables() {
         <Card className="mb-6 border-accent/50 dark:border-blue-800 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
           <CardContent className="pt-4 pb-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>How it works:</strong> Enter a passage or theme, and we'll find a recent news story to inspire a parable in Jesus' teaching style—complete with source attribution.
+              <strong>How it works:</strong> Enter a passage or theme, and we'll find a recent news story to inspire a parable in Jesus' teaching style--complete with source attribution.
             </p>
           </CardContent>
         </Card>

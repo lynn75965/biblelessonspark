@@ -3,7 +3,7 @@
  *
  * SSOT: src/constants/exportSettingsConfig.ts
  * Storage: system_settings table, key = 'export_formatting'
- * Location: Admin Panel → "Export Settings" tab
+ * Location: Admin Panel -> "Export Settings" tab
  *
  * Features:
  * - Edit fonts, sizes, spacing, colors, labels

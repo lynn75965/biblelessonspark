@@ -50,12 +50,12 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'KJV',
     copyrightStatus: 'public_domain',
     quoteType: 'direct',
-    usageHint: '✓ Quote freely — public domain, no limits',
+    usageHint: '[x] Quote freely -- public domain, no limits',
     copyrightHolder: null,
     copyrightNotice: null,
     displayOrder: 1,
     isDefault: false,
-    description: 'The classic 1611 translation. Public domain — quote any length freely.'
+    description: 'The classic 1611 translation. Public domain -- quote any length freely.'
   },
   {
     id: 'web',
@@ -63,16 +63,16 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'WEB',
     copyrightStatus: 'public_domain',
     quoteType: 'direct',
-    usageHint: '✓ Quote freely — public domain, no limits',
+    usageHint: '[x] Quote freely -- public domain, no limits',
     copyrightHolder: null,
     copyrightNotice: null,
     displayOrder: 2,
     isDefault: false,
-    description: 'Modern English translation in public domain — quote any length freely.'
+    description: 'Modern English translation in public domain -- quote any length freely.'
   },
 
   // -------------------------------------------------------------------------
-  // COPYRIGHTED VERSIONS (Direct Quotation — Up to 10 Verses Per Lesson)
+  // COPYRIGHTED VERSIONS (Direct Quotation -- Up to 10 Verses Per Lesson)
   // -------------------------------------------------------------------------
   {
     id: 'nkjv',
@@ -80,9 +80,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'NKJV',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'Thomas Nelson',
-    copyrightNotice: 'Scripture taken from the New King James Version®. Copyright © 1982 by Thomas Nelson. Used by permission. All rights reserved.',
+    copyrightNotice: 'Scripture taken from the New King James Version\u00AE. Copyright \u00A9 1982 by Thomas Nelson. Used by permission. All rights reserved.',
     displayOrder: 3,
     isDefault: false,
     description: 'Modern update of the KJV. Direct quotation permitted within fair use guidelines.'
@@ -93,9 +93,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'NASB',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'Lockman Foundation',
-    copyrightNotice: 'Scripture quotations taken from the (NASB®) New American Standard Bible®, Copyright © 1960, 1971, 1977, 1995, 2020 by The Lockman Foundation. Used by permission. All rights reserved. lockman.org',
+    copyrightNotice: 'Scripture quotations taken from the (NASB\u00AE) New American Standard Bible\u00AE, Copyright \u00A9 1960, 1971, 1977, 1995, 2020 by The Lockman Foundation. Used by permission. All rights reserved. lockman.org',
     displayOrder: 4,
     isDefault: true,
     description: 'Literal word-for-word translation. Direct quotation permitted within fair use guidelines.'
@@ -106,9 +106,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'ESV',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'Crossway',
-    copyrightNotice: 'Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), copyright © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.',
+    copyrightNotice: 'Scripture quotations are from the ESV\u00AE Bible (The Holy Bible, English Standard Version\u00AE), copyright \u00A9 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved.',
     displayOrder: 5,
     isDefault: false,
     description: 'Essentially literal translation. Direct quotation permitted within fair use guidelines.'
@@ -119,9 +119,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'NIV',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'Biblica',
-    copyrightNotice: 'Scripture quotations taken from The Holy Bible, New International Version® NIV®. Copyright © 1973, 1978, 1984, 2011 by Biblica, Inc.™ Used by permission. All rights reserved worldwide.',
+    copyrightNotice: 'Scripture quotations taken from The Holy Bible, New International Version\u00AE NIV\u00AE. Copyright \u00A9 1973, 1978, 1984, 2011 by Biblica, Inc.\u2122 Used by permission. All rights reserved worldwide.',
     displayOrder: 6,
     isDefault: false,
     description: 'Popular modern translation. Direct quotation permitted within fair use guidelines.'
@@ -132,9 +132,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'CSB',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'Holman Bible Publishers',
-    copyrightNotice: 'Scripture quotations marked CSB have been taken from the Christian Standard Bible®, Copyright © 2017 by Holman Bible Publishers. Used by permission. Christian Standard Bible® and CSB® are federally registered trademarks of Holman Bible Publishers.',
+    copyrightNotice: 'Scripture quotations marked CSB have been taken from the Christian Standard Bible\u00AE, Copyright \u00A9 2017 by Holman Bible Publishers. Used by permission. Christian Standard Bible\u00AE and CSB\u00AE are federally registered trademarks of Holman Bible Publishers.',
     displayOrder: 7,
     isDefault: false,
     description: 'Balance of accuracy and readability. Direct quotation permitted within fair use guidelines.'
@@ -145,9 +145,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'NLT',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'Tyndale House Publishers',
-    copyrightNotice: 'Scripture quotations marked NLT are taken from the Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Carol Stream, Illinois 60188. All rights reserved.',
+    copyrightNotice: 'Scripture quotations marked NLT are taken from the Holy Bible, New Living Translation, copyright \u00A9 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Carol Stream, Illinois 60188. All rights reserved.',
     displayOrder: 8,
     isDefault: false,
     description: 'Thought-for-thought translation emphasizing clarity. Direct quotation permitted within fair use guidelines.'
@@ -158,9 +158,9 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
     abbreviation: 'AMP',
     copyrightStatus: 'copyrighted',
     quoteType: 'direct',
-    usageHint: '✓ Quote directly — up to 10 verses per lesson',
+    usageHint: '[x] Quote directly -- up to 10 verses per lesson',
     copyrightHolder: 'The Lockman Foundation',
-    copyrightNotice: 'Scripture quotations taken from the Amplified® Bible (AMP), Copyright © 2015 by The Lockman Foundation. Used by permission. www.lockman.org',
+    copyrightNotice: 'Scripture quotations taken from the Amplified\u00AE Bible (AMP), Copyright \u00A9 2015 by The Lockman Foundation. Used by permission. www.lockman.org',
     displayOrder: 9,
     isDefault: false,
     description: 'Expanded translation with inline amplifications for deeper meaning. Direct quotation permitted within fair use guidelines.'
@@ -244,7 +244,7 @@ export function generateCopyrightGuardrails(versionId: string): string {
 
 ### QUOTATION RULES
 
-✅ **PERMITTED - Direct Quotation:**
+[OK] **PERMITTED - Direct Quotation:**
 - You MAY quote Scripture passages directly and verbatim
 - You MAY include extended quotations of any length
 - You MAY reproduce the exact wording of the ${version.abbreviation}
@@ -264,7 +264,7 @@ Inline: Jesus said, "For God so loved the world, that he gave his only begotten 
 
 Block quote:
 > "For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."
-> — John 3:16 (${version.abbreviation})
+> -- John 3:16 (${version.abbreviation})
 `;
   } else {
     // COPYRIGHTED - Direct quotation permitted (up to 10 verses)
@@ -277,7 +277,7 @@ Block quote:
 
 ### QUOTATION RULES
 
-✅ **PERMITTED - Direct Quotation (Up to 10 Verses Per Lesson):**
+[OK] **PERMITTED - Direct Quotation (Up to 10 Verses Per Lesson):**
 - You MAY quote Scripture passages directly and verbatim
 - Keep direct quotations to approximately 10 verses or fewer per lesson
 - This is well within the publisher's fair use threshold (500+ verses allowed)
@@ -297,7 +297,7 @@ Inline: Paul writes, "And we know that in all things God works for the good of t
 
 Block quote:
 > "And we know that in all things God works for the good of those who love him, who have been called according to his purpose."
-> — Romans 8:28 (${version.abbreviation})
+> -- Romans 8:28 (${version.abbreviation})
 
 ### COPYRIGHT NOTICE (Auto-included in lesson footer)
 ${version.copyrightNotice}

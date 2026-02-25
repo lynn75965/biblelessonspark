@@ -137,7 +137,7 @@ const OrgLanding = () => {
         </div>
       </header>
 
-      {/* Existing Org Banner — for logged-in users who already own an organization */}
+      {/* Existing Org Banner -- for logged-in users who already own an organization */}
       {user && existingOrgName && (
         <div className="bg-primary/5 border-b border-primary/20">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3">
@@ -206,7 +206,7 @@ const OrgLanding = () => {
               <CardContent>
                 <p className="text-muted-foreground">
                   Your teachers draw from a shared monthly pool of lessons. 
-                  No per-seat pricing — invite as many teachers as you need.
+                  No per-seat pricing -- invite as many teachers as you need.
                 </p>
               </CardContent>
             </Card>
@@ -221,7 +221,7 @@ const OrgLanding = () => {
               <CardContent>
                 <p className="text-muted-foreground">
                   Set an organization-wide passage or theme. Your teachers see your suggestion 
-                  and can align their lessons — or teach their own calling.
+                  and can align their lessons -- or teach their own calling.
                 </p>
               </CardContent>
             </Card>
@@ -236,7 +236,7 @@ const OrgLanding = () => {
               <CardContent>
                 <p className="text-muted-foreground">
                   See which teachers are preparing, view lessons funded by your pool, 
-                  and encourage your team — all from one dashboard.
+                  and encourage your team -- all from one dashboard.
                 </p>
               </CardContent>
             </Card>
@@ -357,7 +357,7 @@ const OrgLanding = () => {
           {/* Lesson Packs Note */}
           <p className="text-center text-sm text-muted-foreground mt-8">
             Need more lessons mid-month? You can always purchase a{' '}
-            <span className="font-medium">Lesson Pack</span> — bonus lessons that never expire.
+            <span className="font-medium">Lesson Pack</span> -- bonus lessons that never expire.
           </p>
         </div>
       </section>
@@ -371,7 +371,7 @@ const OrgLanding = () => {
           <p className="text-muted-foreground">
             The Shepherd tier gives your organization a shared lesson pool and management tools. 
             For your <em>own</em> lessons (personal preparation, devotionals), you'll also need 
-            a Personal subscription ($9/month OR $90/year — $7.50 monthly). Be sure to match 
+            a Personal subscription ($9/month OR $90/year -- $7.50 monthly). Be sure to match 
             your choice with your organization's billing choice. If you don't have a Personal subscription yet, 
             we'll add it automatically at checkout.
           </p>
@@ -398,7 +398,7 @@ const OrgLanding = () => {
       <footer className="border-t py-8 px-4 sm:px-6 bg-background">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
+            -- {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm">
             <a href={ROUTES.PRIVACY} className="text-muted-foreground hover:text-foreground">

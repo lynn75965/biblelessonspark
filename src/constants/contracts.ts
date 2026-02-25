@@ -3,7 +3,7 @@ import type { BibleVersionId } from './bibleVersions';
 import type { ShapeId } from './lessonShapeProfiles';
 
 /**
- * BibleLessonSpark — TypeScript Contracts (SSOT)
+ * BibleLessonSpark -- TypeScript Contracts (SSOT)
  * 
  * Single Source of Truth for all shared TypeScript interfaces and types.
  * Every consumer imports from this file. No duplicate definitions.
@@ -29,7 +29,7 @@ import type { ShapeId } from './lessonShapeProfiles';
  */
 
 // ============================================================================
-// TIER 1: Lesson Structure � SSOT is lessonStructure.ts (not here)
+// TIER 1: Lesson Structure -- SSOT is lessonStructure.ts (not here)
 
 
 
@@ -138,9 +138,9 @@ export const DEFAULT_LANGUAGE: LanguageKey = 'en';
  */
 export type LessonShapeId =
   | 'passage_walkthrough'      // Verse-by-verse guided study
-  | 'life_connection'           // Real-life situation → Scripture → response
-  | 'gospel_centered'           // Creation–Fall–Redemption–Restoration arc
-  | 'focus_discover_respond'    // Three-movement: focus → discover → respond
+  | 'life_connection'           // Real-life situation -> Scripture -> response
+  | 'gospel_centered'           // Creation-Fall-Redemption-Restoration arc
+  | 'focus_discover_respond'    // Three-movement: focus -> discover -> respond
   | 'story_driven';             // Narrative experience; truth from story
 
 // ============================================================================
@@ -307,7 +307,7 @@ export interface ReshapeMetrics {
  * User profile entity from profiles table.
  * 
  * CRITICAL: The column is `full_name`, NOT `display_name`.
- * This has caused a bug before — see PROJECT_MASTER Bug #1.
+ * This has caused a bug before -- see PROJECT_MASTER Bug #1.
  */
 export interface UserProfile {
   id: string;

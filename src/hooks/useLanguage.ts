@@ -28,8 +28,8 @@ export function useLanguage(): UseLanguageReturn {
 
   const languageNames = {
     en: 'English',
-    es: 'Español',
-    fr: 'Français'
+    es: 'Espa\u00F1ol',
+    fr: 'Fran\u00E7ais'
   };
 
   // Load language preference from database on mount

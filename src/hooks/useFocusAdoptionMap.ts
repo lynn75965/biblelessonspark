@@ -1,7 +1,7 @@
 // ============================================================
 // useFocusAdoptionMap.ts
 // React hook for parent org managers to see focus adoption status
-// SSOT Source: organizationConfig.ts → SHARED_FOCUS_INHERITANCE
+// SSOT Source: organizationConfig.ts -> SHARED_FOCUS_INHERITANCE
 //   parentSeesAdoptionStatus: true (informational only)
 // Database Source: get_focus_adoption_map() secure function
 //
@@ -18,7 +18,7 @@ interface AdoptionMapEntry {
 }
 
 interface UseFocusAdoptionMapResult {
-  /** Map of child_org_id → adopted boolean */
+  /** Map of child_org_id -> adopted boolean */
   adoptionMap: Record<string, boolean>;
   /** True if the parent org has a currently active focus */
   hasActiveFocus: boolean;
@@ -58,7 +58,7 @@ export function useFocusAdoptionMap(parentOrgId: string | undefined): UseFocusAd
         .rpc('get_focus_adoption_map', { p_parent_org_id: parentOrgId });
 
       if (error) {
-        // Silently handle — may not be a parent org, or no active focus
+        // Silently handle -- may not be a parent org, or no active focus
         // Access denied is also expected if user isn't the leader
         setEntries([]);
       } else {
@@ -75,7 +75,7 @@ export function useFocusAdoptionMap(parentOrgId: string | undefined): UseFocusAd
     fetchAdoptionMap();
   }, [fetchAdoptionMap]);
 
-  // Build lookup map: child_org_id → boolean
+  // Build lookup map: child_org_id -> boolean
   const adoptionMap: Record<string, boolean> = {};
   entries.forEach(e => { adoptionMap[e.child_org_id] = e.has_adopted; });
 

@@ -212,9 +212,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                ✓ Perfect for memorization<br />
-                ✓ Exact quotes in handouts<br />
-                ✓ No paraphrasing
+                [x] Perfect for memorization<br />
+                [x] Exact quotes in handouts<br />
+                [x] No paraphrasing
               </p>
             </div>
           </div>
@@ -235,7 +235,7 @@ function ParaphraseExplainerDialog() {
                   <strong>Ephesians 2:8 (CSB)</strong>
                 </p>
                 <p className="text-xs">
-                  Paul teaches that we are saved by God's grace through faith—this salvation 
+                  Paul teaches that we are saved by God's grace through faith--this salvation 
                   is not from ourselves but is God's gift.
                 </p>
                 <p className="text-xs italic mt-2">
@@ -243,9 +243,9 @@ function ParaphraseExplainerDialog() {
                 </p>
               </div>
               <p className="text-xs">
-                ✓ Doctrinally faithful summaries<br />
-                ✓ Clear verse references included<br />
-                ✓ Read exact text from your own Bible in class
+                [x] Doctrinally faithful summaries<br />
+                [x] Clear verse references included<br />
+                [x] Read exact text from your own Bible in class
               </p>
             </div>
           </div>

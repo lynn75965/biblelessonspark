@@ -110,7 +110,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   settings: {
     id: 'settings',
     label: 'User Profile',
-    route: '', // Handled by onClick in Header.tsx — opens UserProfileModal directly
+    route: '', // Handled by onClick in Header.tsx -- opens UserProfileModal directly
     icon: Settings,
     description: 'Update your profile defaults',
     dividerAfter: true,

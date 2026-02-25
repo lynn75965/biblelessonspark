@@ -10,7 +10,7 @@
  *
  * Version: 1.1.0
  * Created: 2026-02-01
- * Updated: 2026-02-01 — Added ROSTER_CONFIG for class email rosters
+ * Updated: 2026-02-01 -- Added ROSTER_CONFIG for class email rosters
  */
 
 export const EMAIL_DELIVERY_VERSION = '1.1.0';
@@ -23,7 +23,7 @@ export const EMAIL_DELIVERY_CONFIG = {
   maxRecipients: 25,
   maxPersonalMessageLength: 500,
 
-  // Tier gating — minimum subscription tier required
+  // Tier gating -- minimum subscription tier required
   minimumTier: 'personal' as const,
 
   // Email subject template (used by edge function)
@@ -56,12 +56,12 @@ export const EMAIL_DELIVERY_CONFIG = {
     errorTooManyRecipients: 'Maximum {max} recipients allowed.',
 
     // Upgrade prompts (free users)
-    upgradeTitle: 'Email Delivery — Premium Feature',
+    upgradeTitle: 'Email Delivery -- Premium Feature',
     upgradeMessage: 'Email delivery is available for paid subscribers. Upgrade to send lessons directly to your students and fellow teachers.',
 
     // Student Handout toggle
     includeHandoutLabel: 'Include Student Handout',
-    includeHandoutHelp: 'Send the teaser plus the full Student Handout — ideal for paperless classrooms.',
+    includeHandoutHelp: 'Send the teaser plus the full Student Handout -- ideal for paperless classrooms.',
     teaserOnlyHelp: 'Send the pre-class teaser only. Students receive the handout in class.',
   },
 } as const;
@@ -76,7 +76,7 @@ export const ROSTER_CONFIG = {
   labels: {
     // Dropdown / load
     loadRoster: 'Load Class Roster',
-    noRosterSelected: '— Select a roster —',
+    noRosterSelected: '-- Select a roster --',
     noRosters: 'No saved rosters yet. Enter emails and save one below.',
 
     // Save new

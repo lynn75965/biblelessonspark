@@ -208,7 +208,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
       // Build a map of user_id ? display_name from team members + lead
       const nameMap: Record<string, string> = {};
       if (team) {
-        // Lead teacher name � look up from members or use team info
+        // Lead teacher name -- look up from members or use team info
         // For members, we have display_name in the enriched data
         members.forEach((m) => {
           if (m.display_name) nameMap[m.user_id] = m.display_name;
@@ -341,7 +341,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
               </CardDescription>
             </div>
 
-            {/* Phase 27: Scope Toggle � only visible when user has a team */}
+            {/* Phase 27: Scope Toggle -- only visible when user has a team */}
             {hasTeam && (
               <div className="flex bg-muted rounded-lg p-1 shrink-0 ml-4">
                 <Button
@@ -481,7 +481,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   <Badge className={getProfileBadgeColor(lesson.theology_profile_id)} variant="secondary">
                     {getProfileDisplayName(lesson.theology_profile_id)}
                   </Badge>
-                  {/* Visibility Badge (Phase 26) � only on user's own lessons */}
+                  {/* Visibility Badge (Phase 26) -- only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Badge
                       variant="outline"
@@ -532,7 +532,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     <Eye className="h-3.5 w-3.5 mr-1.5" />
                     View
                   </Button>
-                  {/* Visibility Toggle (Phase 26) � only on user's own lessons */}
+                  {/* Visibility Toggle (Phase 26) -- only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
                       onClick={() => handleToggleVisibility(lesson)}
@@ -552,7 +552,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       )}
                     </Button>
                   )}
-                  {/* Devotional button — only on user's own lessons with content */}
+                  {/* Devotional button -- only on user's own lessons with content */}
                   {!lesson.isTeamLesson && lesson.has_content && (
                     canUseDevotional ? (
                       <Button
@@ -582,7 +582,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       </Button>
                     )
                   )}
-                  {/* Delete � only on user's own lessons */}
+                  {/* Delete -- only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
                       onClick={() => handleDelete(lesson.id)}

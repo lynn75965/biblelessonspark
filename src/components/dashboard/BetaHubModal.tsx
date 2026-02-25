@@ -185,7 +185,7 @@ export function BetaHubModal({
                   <ul className="text-sm space-y-2 text-muted-foreground">
                     {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                       <li key={index} className="flex items-start gap-2">
-                        <span className="text-primary">•</span>
+                        <span className="text-primary">--</span>
                         {benefit}
                       </li>
                     ))}

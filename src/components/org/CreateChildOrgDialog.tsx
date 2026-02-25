@@ -1,7 +1,7 @@
 // ============================================================
 // CreateChildOrgDialog.tsx
 // Dialog for creating child organizations under a parent org
-// SSOT Source: organizationConfig.ts → CHILD_ORG_CREATION, ORG_HIERARCHY
+// SSOT Source: organizationConfig.ts -> CHILD_ORG_CREATION, ORG_HIERARCHY
 // 
 // Used by:
 //   - OrgManager.tsx (parent Org Manager creates child)
@@ -167,7 +167,7 @@ export function CreateChildOrgDialog({
           <div className="flex items-center gap-2 text-sm">
             <span className="text-muted-foreground">Parent:</span>
             <Badge variant="outline">{parentOrgName}</Badge>
-            <span className="text-muted-foreground">→</span>
+            <span className="text-muted-foreground">-></span>
             <Badge variant="secondary">Level {childLevel}: {childLevelName}</Badge>
           </div>
 
@@ -201,7 +201,7 @@ export function CreateChildOrgDialog({
               ))}
             </select>
             <p className="text-xs text-muted-foreground">
-              Informational label only — all organizations have identical capabilities.
+              Informational label only -- all organizations have identical capabilities.
             </p>
           </div>
 

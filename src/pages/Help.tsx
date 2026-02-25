@@ -46,7 +46,7 @@ const Help = () => {
         }
       };
       
-      // Retry aggressively — page must fully render before scroll works
+      // Retry aggressively -- page must fully render before scroll works
       const attempts = [200, 500, 1000, 1500, 2500];
       const timers = attempts.map((delay) => setTimeout(scrollToElement, delay));
       return () => timers.forEach(clearTimeout);
@@ -145,7 +145,7 @@ const Help = () => {
         }
       ]
     },
-    // ─── Organizations & Shepherds (Self-Service Shepherd Entry) ───
+    // --- Organizations & Shepherds (Self-Service Shepherd Entry) ---
     {
       category: "Organizations & Shepherds",
       slug: "organizations-shepherds",
@@ -161,7 +161,7 @@ const Help = () => {
         },
         {
           q: "What are the Shepherd tiers?",
-          a: "There are five tiers based on your ministry's lesson needs: Single Staff, Starter, Growth, Develop, and Expansion. Every tier includes unlimited teachers — you're paying for lesson pool capacity, not per-seat fees. Visit biblelessonspark.com/org to compare tiers and pricing."
+          a: "There are five tiers based on your ministry's lesson needs: Single Staff, Starter, Growth, Develop, and Expansion. Every tier includes unlimited teachers -- you're paying for lesson pool capacity, not per-seat fees. Visit biblelessonspark.com/org to compare tiers and pricing."
         },
         {
           q: "How does the shared lesson pool work?",
@@ -173,11 +173,11 @@ const Help = () => {
         },
         {
           q: "What is a Shared Focus?",
-          a: "A Shared Focus is a suggested Bible passage, topic, or theme you set for your teaching team. When your teachers open the lesson builder, they'll see your suggestion and can choose to follow it or teach their own calling. It's a gentle shepherd's nudge — not a mandate."
+          a: "A Shared Focus is a suggested Bible passage, topic, or theme you set for your teaching team. When your teachers open the lesson builder, they'll see your suggestion and can choose to follow it or teach their own calling. It's a gentle shepherd's nudge -- not a mandate."
         },
         {
           q: "Do my teachers also need Personal subscriptions?",
-          a: "Teachers need their own BibleLessonSpark account (free to create). When they generate lessons through your organization's pool, those lessons count against your Shepherd pool — not a personal allowance. If a teacher also wants to generate personal lessons outside your org, they would need their own Personal subscription."
+          a: "Teachers need their own BibleLessonSpark account (free to create). When they generate lessons through your organization's pool, those lessons count against your Shepherd pool -- not a personal allowance. If a teacher also wants to generate personal lessons outside your org, they would need their own Personal subscription."
         },
         {
           q: "Do I need a Personal subscription as the Shepherd?",
@@ -289,7 +289,7 @@ const Help = () => {
                 <CardContent>
                   <CardDescription>{link.description}</CardDescription>
                   <Button asChild variant="link" className="px-0 mt-2">
-                    <Link to={link.href}>Learn more →</Link>
+                    <Link to={link.href}>Learn more -></Link>
                   </Button>
                 </CardContent>
               </Card>

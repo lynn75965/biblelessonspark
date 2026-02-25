@@ -12,9 +12,9 @@
  *
  * ARCHITECTURE:
  * - Frontend assembles the complete reshape prompt (from lessonShapeProfiles.ts)
- * - Edge Function is a pure relay — receives prompt, calls Claude, returns content
+ * - Edge Function is a pure relay -- receives prompt, calls Claude, returns content
  * - Edge Function writes metrics to reshape_metrics table (non-blocking)
- * - This hook does NOT write to the lessons table — caller uses useLessons.updateLessonShape()
+ * - This hook does NOT write to the lessons table -- caller uses useLessons.updateLessonShape()
  */
 
 import { useState } from "react";
@@ -102,7 +102,7 @@ export const useReshapeLesson = () => {
                 description: "The AI service is temporarily busy. Please try again in a moment.",
                 variant: "destructive",
               });
-              return { success: false, error: "Rate limited — please retry" };
+              return { success: false, error: "Rate limited -- please retry" };
             }
 
             // Timeout

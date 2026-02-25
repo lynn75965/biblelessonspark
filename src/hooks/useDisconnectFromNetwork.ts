@@ -1,7 +1,7 @@
 // ============================================================
 // useDisconnectFromNetwork.ts
 // React hook for disconnecting an org from its parent network
-// SSOT Source: organizationConfig.ts → DISCONNECT_RULES
+// SSOT Source: organizationConfig.ts -> DISCONNECT_RULES
 // Database Source: disconnect_org_from_network() secure function
 //
 // PRINCIPLE: Any child block can detach at any time. Nothing breaks.

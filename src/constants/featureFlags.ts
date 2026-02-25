@@ -4,7 +4,7 @@
 // Location: src/constants/featureFlags.ts
 //
 // Controls which features are accessible by subscription tier.
-// Locked features always show with an upgrade prompt — never hidden.
+// Locked features always show with an upgrade prompt -- never hidden.
 //
 // USAGE:
 //   import { hasFeatureAccess, getUpgradePrompt } from '@/constants/featureFlags';
@@ -26,7 +26,7 @@ export interface FeatureFlag {
 
 // ----------------------------------------------------------------------------
 // FEATURE DEFINITIONS
-// Add new features here — nowhere else
+// Add new features here -- nowhere else
 // ----------------------------------------------------------------------------
 export const FEATURE_FLAGS = {
 

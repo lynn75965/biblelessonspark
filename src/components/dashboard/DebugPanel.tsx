@@ -44,12 +44,12 @@ export default function DebugPanel({ job }: DebugPanelProps) {
       boxShadow: DEBUG_PANEL_STYLES.shadow,
     }}>
       <strong>Job Tracker</strong><br />
-      Job: {jobId || '—'}<br />
+      Job: {jobId || '--'}<br />
       State: {state} {progress ? `(${progress}%)` : ''}<br />
-      sessionId: {sessionId?.slice(0, 8)}…<br />
-      uploadId: {uploadId?.slice(0, 8)}…<br />
-      fileHash: {fileHash?.slice(0, 8)}…<br />
-      source: {source || '—'}
+      sessionId: {sessionId?.slice(0, 8)}...<br />
+      uploadId: {uploadId?.slice(0, 8)}...<br />
+      fileHash: {fileHash?.slice(0, 8)}...<br />
+      source: {source || '--'}
     </div>
   );
 }

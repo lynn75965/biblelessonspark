@@ -882,7 +882,7 @@ export function OrganizationManagement() {
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="text-xs">
-                        L{orgLevel} · {getLevelName(orgLevel)}
+                        L{orgLevel} | {getLevelName(orgLevel)}
                       </Badge>
                     </TableCell>
                     <TableCell>{org.denomination || "-"}</TableCell>

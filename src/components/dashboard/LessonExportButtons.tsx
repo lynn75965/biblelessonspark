@@ -107,7 +107,7 @@ export function LessonExportButtons({
   };
 
   // ================================================================
-  // COPY — rich HTML + plain text to clipboard
+  // COPY -- rich HTML + plain text to clipboard
   // ================================================================
   const handleCopy = async () => {
     try {
@@ -172,7 +172,7 @@ export function LessonExportButtons({
   };
 
   // ================================================================
-  // PRINT — opens formatted lesson in new tab for browser print
+  // PRINT -- opens formatted lesson in new tab for browser print
   // ================================================================
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
@@ -335,7 +335,7 @@ ${copyrightHtml}
   };
 
   // ================================================================
-  // EMAIL — tier-gated, opens dialog for paid users
+  // EMAIL -- tier-gated, opens dialog for paid users
   // ================================================================
   const handleEmailClick = () => {
     if (!isPaidUser) {

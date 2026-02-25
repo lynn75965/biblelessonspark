@@ -66,7 +66,7 @@ export const TEACHING_STYLES: PreferenceOption[] = [
     label: "Socratic Method", 
     description: "Teaching through probing questions that lead students to discover truth themselves", 
     tooltip: "Teaching through asking probing questions that lead students to discover truth themselves, rather than directly telling them answers",
-    directive: "TEACHING STYLE (Socratic Method): Build entire lesson around sequential questions that lead to discovery. Never state conclusions directly—guide students to discover them. Use \"Why might...\" and \"What if...\" progressions."
+    directive: "TEACHING STYLE (Socratic Method): Build entire lesson around sequential questions that lead to discovery. Never state conclusions directly--guide students to discover them. Use \"Why might...\" and \"What if...\" progressions."
   },
   { 
     id: "storytelling", 
@@ -238,7 +238,7 @@ export const LEARNING_ENVIRONMENTS: PreferenceOption[] = [
     id: "worship-center", 
     label: "Worship Center / Sanctuary", 
     description: "Main auditorium with pew seating",
-    directive: "ENVIRONMENT (Worship Center/Sanctuary): Assume pew seating in rows facing forward with no tables available. Design activities that work without table space—use pew backs, laps, or standing in place. Leverage the pulpit area for demonstrations or reader's theater. Account for reverent atmosphere in activity design. Suggest hymnals or Bibles from pew racks as available props. Include pair-share with pew neighbors for discussion. Movement activities should use aisles or standing at the pew."
+    directive: "ENVIRONMENT (Worship Center/Sanctuary): Assume pew seating in rows facing forward with no tables available. Design activities that work without table space--use pew backs, laps, or standing in place. Leverage the pulpit area for demonstrations or reader's theater. Account for reverent atmosphere in activity design. Suggest hymnals or Bibles from pew racks as available props. Include pair-share with pew neighbors for discussion. Movement activities should use aisles or standing at the pew."
   },
   { 
     id: "mixed", 
@@ -294,7 +294,7 @@ export const EDUCATION_EXPERIENCES: PreferenceOption[] = [
     id: "preschool", 
     label: "Preschool", 
     description: "Early childhood education",
-    directive: "EDUCATION LEVEL (Preschool): Use very simple vocabulary (1-2 syllable words). Short sentences only. Heavy repetition. Concrete concepts only—no abstractions. Include songs, rhymes, and movement. Visual and tactile emphasis."
+    directive: "EDUCATION LEVEL (Preschool): Use very simple vocabulary (1-2 syllable words). Short sentences only. Heavy repetition. Concrete concepts only--no abstractions. Include songs, rhymes, and movement. Visual and tactile emphasis."
   },
   { 
     id: "elementary", 
@@ -603,7 +603,7 @@ export const THEOLOGICAL_LENS_OPTIONS: PreferenceOption[] = [
     id: "evangelism",
     label: "Evangelism",
     description: "Emphasize sharing the Gospel and personal witness",
-    directive: "THEOLOGICAL LENS (Evangelism): Emphasize personal witness and sharing the Gospel. Highlight salvation moments and the plan of redemption in Scripture. Application focuses on how to share faith with specific people in the student's life. Include the Gospel message naturally woven into the lesson. Equip students to articulate what Christ has done for them using their own testimony. Connect every truth to its evangelistic implication—ask \"How does this truth help me tell someone about Jesus?\""
+    directive: "THEOLOGICAL LENS (Evangelism): Emphasize personal witness and sharing the Gospel. Highlight salvation moments and the plan of redemption in Scripture. Application focuses on how to share faith with specific people in the student's life. Include the Gospel message naturally woven into the lesson. Equip students to articulate what Christ has done for them using their own testimony. Connect every truth to its evangelistic implication--ask \"How does this truth help me tell someone about Jesus?\""
   },
   {
     id: "grace",
@@ -644,7 +644,7 @@ export const ACTIVITY_TYPE_OPTIONS: CheckboxOption[] = [
   { 
     id: "drama", 
     label: "Drama & role-play",
-    directive: "ACTIVITY (Drama/Role-Play): Include at least one dramatic element—reader's theater, improvisation, or reenactment. Provide scripts or scenario cards. Include debrief questions after performance."
+    directive: "ACTIVITY (Drama/Role-Play): Include at least one dramatic element--reader's theater, improvisation, or reenactment. Provide scripts or scenario cards. Include debrief questions after performance."
   },
   { 
     id: "games", 
@@ -659,7 +659,7 @@ export const ACTIVITY_TYPE_OPTIONS: CheckboxOption[] = [
   { 
     id: "prayer", 
     label: "Prayer practices",
-    directive: "ACTIVITY (Prayer Practices): Include structured prayer formats—ACTS, lectio divina, breath prayer, or written prayers. Provide prayer prompts. Design for varied comfort levels with public prayer."
+    directive: "ACTIVITY (Prayer Practices): Include structured prayer formats--ACTS, lectio divina, breath prayer, or written prayers. Provide prayer prompts. Design for varied comfort levels with public prayer."
   },
   { 
     id: "verbal", 

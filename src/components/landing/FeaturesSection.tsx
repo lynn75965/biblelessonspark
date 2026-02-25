@@ -134,9 +134,9 @@ export function FeaturesSection() {
         {/* Founder Quote Banner */}
         <div className="text-center mb-6 sm:mb-8 px-4">
           <blockquote className="text-sm sm:text-base italic text-muted-foreground max-w-2xl mx-auto">
-            "BibleLessonSpark creates lessons for your class—timely, personal, relevant, and never one-size-fits-all."
+            "BibleLessonSpark creates lessons for your class--timely, personal, relevant, and never one-size-fits-all."
             <footer className="mt-1 text-xs sm:text-sm font-medium text-primary not-italic">
-              — Founder, BibleLessonSpark
+              -- Founder, BibleLessonSpark
             </footer>
           </blockquote>
         </div>

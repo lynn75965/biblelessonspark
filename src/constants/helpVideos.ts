@@ -8,7 +8,7 @@
  * - Frontend controls when help is allowed; backend never pushes videos
  * 
  * SSOT COMPLIANCE:
- * - Master config: src/config/branding.ts → helpVideos section
+ * - Master config: src/config/branding.ts -> helpVideos section
  * - This file: Helper functions and type definitions
  * - No backend mirror needed (frontend-only feature)
  * 

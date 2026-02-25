@@ -76,24 +76,24 @@ const resources = {
       // Navigation & General
       "home": "Inicio",
       "dashboard": "Panel",
-      "settings": "Configuración",
-      "logout": "Cerrar Sesión",
-      "login": "Iniciar Sesión",
+      "settings": "Configuraci\u00F3n",
+      "logout": "Cerrar Sesi\u00F3n",
+      "login": "Iniciar Sesi\u00F3n",
       "signUp": "Registrarse",
       
       // Lesson Generation
-      "generateLesson": "Generar Lección",
-      "teacherTranscript": "Transcripción del Maestro",
+      "generateLesson": "Generar Lecci\u00F3n",
+      "teacherTranscript": "Transcripci\u00F3n del Maestro",
       "studentHandout": "Material del Estudiante",
-      "lessonPlan": "Plan de Lección",
-      "createNewLesson": "Crear Nueva Lección",
+      "lessonPlan": "Plan de Lecci\u00F3n",
+      "createNewLesson": "Crear Nueva Lecci\u00F3n",
       
       // Form Labels
       "topic": "Tema",
-      "passage": "Pasaje Bíblico",
+      "passage": "Pasaje B\u00EDblico",
       "gradeLevel": "Nivel de Grado",
-      "duration": "Duración de la Lección",
-      "lessonType": "Tipo de Lección",
+      "duration": "Duraci\u00F3n de la Lecci\u00F3n",
+      "lessonType": "Tipo de Lecci\u00F3n",
       "additionalNotes": "Notas Adicionales",
       
       // Actions
@@ -101,7 +101,7 @@ const resources = {
       "download": "Descargar",
       "downloadPDF": "Descargar PDF",
       "downloadDOCX": "Descargar DOCX",
-      "emailLesson": "Enviar Lección por Email",
+      "emailLesson": "Enviar Lecci\u00F3n por Email",
       "print": "Imprimir",
       "share": "Compartir",
       "save": "Guardar",
@@ -110,8 +110,8 @@ const resources = {
       "delete": "Eliminar",
       
       // Status Messages
-      "generating": "Generando lección...",
-      "success": "¡Éxito!",
+      "generating": "Generando lecci\u00F3n...",
+      "success": "\u00A1\u00C9xito!",
       "error": "Error",
       "loading": "Cargando...",
       "saved": "Guardado exitosamente",
@@ -131,12 +131,12 @@ const resources = {
       
       // Settings
       "languagePreference": "Idioma del Contenido",
-      "accountSettings": "Configuración de Cuenta",
+      "accountSettings": "Configuraci\u00F3n de Cuenta",
       "profile": "Perfil",
       
       // Descriptions
-      "lessonDescription": "Crea lecciones de Escuela Dominical atractivas y bíblicamente sólidas",
-      "selectLanguage": "Elige el idioma para el contenido de tu lección",
+      "lessonDescription": "Crea lecciones de Escuela Dominical atractivas y b\u00EDblicamente s\u00F3lidas",
+      "selectLanguage": "Elige el idioma para el contenido de tu lecci\u00F3n",
     }
   },
   fr: {
@@ -144,32 +144,32 @@ const resources = {
       // Navigation & General
       "home": "Accueil",
       "dashboard": "Tableau de Bord",
-      "settings": "Paramètres",
-      "logout": "Déconnexion",
+      "settings": "Param\u00E8tres",
+      "logout": "D\u00E9connexion",
       "login": "Connexion",
       "signUp": "S'inscrire",
       
       // Lesson Generation
-      "generateLesson": "Générer la Leçon",
+      "generateLesson": "G\u00E9n\u00E9rer la Le\u00E7on",
       "teacherTranscript": "Transcription de l'Enseignant",
-      "studentHandout": "Document pour l'Élève",
-      "lessonPlan": "Plan de Leçon",
-      "createNewLesson": "Créer une Nouvelle Leçon",
+      "studentHandout": "Document pour l'\u00C9l\u00E8ve",
+      "lessonPlan": "Plan de Le\u00E7on",
+      "createNewLesson": "Cr\u00E9er une Nouvelle Le\u00E7on",
       
       // Form Labels
       "topic": "Sujet",
       "passage": "Passage Biblique",
       "gradeLevel": "Niveau Scolaire",
-      "duration": "Durée de la Leçon",
-      "lessonType": "Type de Leçon",
-      "additionalNotes": "Notes Supplémentaires",
+      "duration": "Dur\u00E9e de la Le\u00E7on",
+      "lessonType": "Type de Le\u00E7on",
+      "additionalNotes": "Notes Suppl\u00E9mentaires",
       
       // Actions
-      "generate": "Générer",
-      "download": "Télécharger",
-      "downloadPDF": "Télécharger le PDF",
-      "downloadDOCX": "Télécharger le DOCX",
-      "emailLesson": "Envoyer la Leçon par Email",
+      "generate": "G\u00E9n\u00E9rer",
+      "download": "T\u00E9l\u00E9charger",
+      "downloadPDF": "T\u00E9l\u00E9charger le PDF",
+      "downloadDOCX": "T\u00E9l\u00E9charger le DOCX",
+      "emailLesson": "Envoyer la Le\u00E7on par Email",
       "print": "Imprimer",
       "share": "Partager",
       "save": "Enregistrer",
@@ -178,17 +178,17 @@ const resources = {
       "delete": "Supprimer",
       
       // Status Messages
-      "generating": "Génération de la leçon...",
-      "success": "Succès !",
+      "generating": "G\u00E9n\u00E9ration de la le\u00E7on...",
+      "success": "Succ\u00E8s !",
       "error": "Erreur",
       "loading": "Chargement...",
-      "saved": "Enregistré avec succès",
+      "saved": "Enregistr\u00E9 avec succ\u00E8s",
       
       // Grade Levels
-      "preschool": "Préscolaire",
-      "elementary": "Élémentaire",
-      "middleSchool": "Collège",
-      "highSchool": "Lycée",
+      "preschool": "Pr\u00E9scolaire",
+      "elementary": "\u00C9l\u00E9mentaire",
+      "middleSchool": "Coll\u00E8ge",
+      "highSchool": "Lyc\u00E9e",
       "adult": "Adultes",
       
       // Time Durations
@@ -199,12 +199,12 @@ const resources = {
       
       // Settings
       "languagePreference": "Langue du Contenu",
-      "accountSettings": "Paramètres du Compte",
+      "accountSettings": "Param\u00E8tres du Compte",
       "profile": "Profil",
       
       // Descriptions
-      "lessonDescription": "Créez des leçons d'école du dimanche engageantes et bibliquement solides",
-      "selectLanguage": "Choisissez la langue pour le contenu de votre leçon",
+      "lessonDescription": "Cr\u00E9ez des le\u00E7ons d'\u00E9cole du dimanche engageantes et bibliquement solides",
+      "selectLanguage": "Choisissez la langue pour le contenu de votre le\u00E7on",
     }
   }
 };

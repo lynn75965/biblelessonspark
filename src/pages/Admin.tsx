@@ -40,7 +40,7 @@ import { ROUTES } from "@/constants/routes";
 // Email Sequences tab added for onboarding automation (January 26, 2026)
 // Toolbelt Admin link added (January 28, 2026)
 // Export Settings tab added (February 2, 2026)
-// TAB CONSOLIDATION: 11 tabs → 6 (February 11, 2026)
+// TAB CONSOLIDATION: 11 tabs -> 6 (February 11, 2026)
 //   People (Users + Orgs) | Content | Configuration (Settings + Exports + Branding)
 //   Analytics | Security | Growth (Beta + Email + Pricing)
 
@@ -215,7 +215,7 @@ export default function Admin() {
           </Button>
         </div>
 
-        {/* Admin Tabs - Consolidated 11 → 6 (February 11, 2026) */}
+        {/* Admin Tabs - Consolidated 11 -> 6 (February 11, 2026) */}
         <Tabs defaultValue="people" className="w-full">
           <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             <TabsTrigger value="people" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
@@ -244,9 +244,9 @@ export default function Admin() {
             </TabsTrigger>
           </TabsList>
 
-          {/* ═══════════════════════════════════════════════════════════
-              PEOPLE — Users + Organizations (with sub-tabs)
-              ═══════════════════════════════════════════════════════════ */}
+          {/* ===========================================================
+              PEOPLE -- Users + Organizations (with sub-tabs)
+              =========================================================== */}
           <TabsContent value="people" className="mt-6 relative z-0">
             <Tabs defaultValue="users">
               <TabsList className="bg-background border mb-4">
@@ -271,16 +271,16 @@ export default function Admin() {
             </Tabs>
           </TabsContent>
 
-          {/* ═══════════════════════════════════════════════════════════
-              CONTENT — All Lessons (single panel)
-              ═══════════════════════════════════════════════════════════ */}
+          {/* ===========================================================
+              CONTENT -- All Lessons (single panel)
+              =========================================================== */}
           <TabsContent value="content" className="mt-6 relative z-0">
             <AllLessonsPanel />
           </TabsContent>
 
-          {/* ═══════════════════════════════════════════════════════════
-              CONFIGURATION — Settings + Export + Branding (with sub-tabs)
-              ═══════════════════════════════════════════════════════════ */}
+          {/* ===========================================================
+              CONFIGURATION -- Settings + Export + Branding (with sub-tabs)
+              =========================================================== */}
           <TabsContent value="configuration" className="mt-6 relative z-0">
             <Tabs defaultValue="settings">
               <TabsList className="bg-background border mb-4">
@@ -309,23 +309,23 @@ export default function Admin() {
             </Tabs>
           </TabsContent>
 
-          {/* ═══════════════════════════════════════════════════════════
-              ANALYTICS — System Analytics (single panel)
-              ═══════════════════════════════════════════════════════════ */}
+          {/* ===========================================================
+              ANALYTICS -- System Analytics (single panel)
+              =========================================================== */}
           <TabsContent value="analytics" className="mt-6 relative z-0">
             <SystemAnalyticsDashboard />
           </TabsContent>
 
-          {/* ═══════════════════════════════════════════════════════════
-              SECURITY — Security Panel (single panel)
-              ═══════════════════════════════════════════════════════════ */}
+          {/* ===========================================================
+              SECURITY -- Security Panel (single panel)
+              =========================================================== */}
           <TabsContent value="security" className="mt-6 relative z-0">
             <AdminSecurityPanel />
           </TabsContent>
 
-          {/* ═══════════════════════════════════════════════════════════
-              GROWTH — Beta + Email + Pricing (with sub-tabs)
-              ═══════════════════════════════════════════════════════════ */}
+          {/* ===========================================================
+              GROWTH -- Beta + Email + Pricing (with sub-tabs)
+              =========================================================== */}
           <TabsContent value="growth" className="mt-6 relative z-0">
             <Tabs defaultValue="beta">
               <TabsList className="bg-background border mb-4">
@@ -400,7 +400,7 @@ export default function Admin() {
                           <ul className="text-sm text-muted-foreground space-y-1">
                             {PROGRAM_CONFIG.beta.benefits.map((benefit, index) => (
                               <li key={index} className="flex items-start gap-2">
-                                <span className="text-primary">•</span>
+                                <span className="text-primary">*</span>
                                 {benefit}
                               </li>
                             ))}

@@ -2,15 +2,15 @@
  * EmailLessonDialog Component
  * ============================
  * Modal dialog for emailing a lesson to recipients
- * Now with CLASS EMAIL ROSTERS — save/load named email lists
+ * Now with CLASS EMAIL ROSTERS -- save/load named email lists
  *
  * SSOT: All labels/limits from emailDeliveryConfig.ts
  * Tier gating handled by parent (only opens for paid users)
  * Rosters stored in email_rosters table via Supabase client (RLS)
  *
  * Created: 2026-02-01
- * Updated: 2026-02-01 — Added roster load/save/manage
- * Updated: 2026-02-04 — Removed ageGroup/theologyProfile from email metadata (internal teacher data)
+ * Updated: 2026-02-01 -- Added roster load/save/manage
+ * Updated: 2026-02-04 -- Removed ageGroup/theologyProfile from email metadata (internal teacher data)
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -155,7 +155,7 @@ export function EmailLessonDialog({
   }, [open, loadRosters]);
 
   // ================================================================
-  // SELECT ROSTER → populate recipients
+  // SELECT ROSTER -> populate recipients
   // ================================================================
   const handleRosterSelect = (rosterId: string) => {
     if (rosterId === "__none__") {
@@ -309,7 +309,7 @@ export function EmailLessonDialog({
   // ================================================================
   // SEND EMAIL
   // NOTE: ageGroup and theologyProfile are intentionally NOT sent
-  //       in the email metadata — that's internal teacher data,
+  //       in the email metadata -- that's internal teacher data,
   //       not for recipients to see.
   // ================================================================
   const handleSend = async () => {

@@ -1,7 +1,7 @@
 // ============================================================
 // ChildOrgCard.tsx
 // Displays a single child organization's summary data
-// SSOT Source: organizationConfig.ts → PARENT_VISIBILITY, CHILD_ORG_HEALTH
+// SSOT Source: organizationConfig.ts -> PARENT_VISIBILITY, CHILD_ORG_HEALTH
 // 
 // Shows ONLY fields allowed by PARENT_VISIBILITY:
 //   org name, Org Manager name, member count, lessons/month,
@@ -109,7 +109,7 @@ export function ChildOrgCard({ child }: ChildOrgCardProps) {
           </span>
         </div>
 
-        {/* Phase N6: Focus adoption indicator — only shown when data is present */}
+        {/* Phase N6: Focus adoption indicator -- only shown when data is present */}
         {child.has_adopted_focus !== undefined && (
           <div className="flex items-center gap-1.5">
             {child.has_adopted_focus ? (

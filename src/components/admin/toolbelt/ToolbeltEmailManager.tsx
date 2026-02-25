@@ -173,7 +173,7 @@ function convertPlainTextToEmailHtml(text: string): string {
         <tr>
           <td style="border-radius: 6px; background: ${BRAND.primaryGreen};">
             <a href="${urlOnlyMatch[1]}" target="_blank" style="background: ${BRAND.primaryGreen}; font-family: Georgia, serif; font-size: 15px; text-decoration: none; padding: 12px 24px; color: #ffffff; border-radius: 6px; display: inline-block; font-weight: bold;">
-              Visit Link →
+              Visit Link ->
             </a>
           </td>
         </tr>
@@ -447,14 +447,14 @@ export function ToolbeltEmailManager() {
 <body>
   <div class="container">
     <div class="header">
-      <h1>✦ BibleLessonSpark</h1>
+      <h1>\u2726 BibleLessonSpark</h1>
       <p>Personalized Bible Studies in Minutes</p>
     </div>
     <div class="body">
       ${bodyHtml}
     </div>
     <div class="footer">
-      <p>© 2026 BibleLessonSpark. All rights reserved.</p>
+      <p>\u00A9 2026 BibleLessonSpark. All rights reserved.</p>
       <p><a href="#">Unsubscribe</a></p>
     </div>
   </div>
@@ -548,7 +548,7 @@ export function ToolbeltEmailManager() {
                             )}
                           </CardTitle>
                           <CardDescription>
-                            Day {template.send_day} • {template.is_active ? 'Active' : 'Inactive'}
+                            Day {template.send_day} * {template.is_active ? 'Active' : 'Inactive'}
                           </CardDescription>
                         </div>
                       </div>

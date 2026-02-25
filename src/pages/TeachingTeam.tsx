@@ -53,7 +53,7 @@ export default function TeachingTeam() {
             </div>
           </div>
 
-          {/* Teaching Team Card — handles all 3 states */}
+          {/* Teaching Team Card -- handles all 3 states */}
           <TeachingTeamCard
             team={team}
             members={members}

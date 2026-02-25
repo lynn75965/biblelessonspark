@@ -1,4 +1,4 @@
-﻿// =====================================================
+// =====================================================
 // PROGRAM CONFIG - Static Content Only
 // =====================================================
 // This file contains ONLY static content arrays and text.
@@ -26,7 +26,7 @@ export const PROGRAM_CONFIG = {
       { date: "Feb 10", text: "Lesson Shapes - reshape any lesson into 5 teaching styles" },
       { date: "Feb 9", text: "Teaching Teams - invite up to 2 co-teachers to share lessons" },
       { date: "Feb 7", text: "Modern Parable Generator with perpetual freshness" },
-      { date: "Jan 28", text: "DevotionalSpark v2.1 � personal quiet-time companion" },
+      { date: "Jan 28", text: "DevotionalSpark v2.1 -- personal quiet-time companion" },
       { date: "Jan 15", text: "PDF, DOCX, and Print export with optimized formatting" }
     ],
   },

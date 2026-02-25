@@ -7,9 +7,9 @@
  *
  * SSOT Chain:
  *   exportSettingsConfig.ts (defines what's editable + defaults)
- *   → useExportSettings.ts (admin panel read/write)
- *   → getActiveExportSpacing.ts (export utilities read merged values)
- *   → lessonStructure.ts EXPORT_SPACING (fallback defaults)
+ *   -> useExportSettings.ts (admin panel read/write)
+ *   -> getActiveExportSpacing.ts (export utilities read merged values)
+ *   -> lessonStructure.ts EXPORT_SPACING (fallback defaults)
  */
 
 // ============================================================
@@ -85,7 +85,7 @@ export type ExportSetting = NumberSetting | SelectSetting | TextSetting | ColorS
 // ============================================================
 
 export const EXPORT_SETTINGS: ExportSetting[] = [
-  // ── Typography ──────────────────────────────────────────────
+  // -- Typography ----------------------------------------------
   {
     key: "font_primary",
     label: "Primary Font",
@@ -184,10 +184,10 @@ export const EXPORT_SETTINGS: ExportSetting[] = [
     min: 1.0,
     max: 2.0,
     step: 0.1,
-    unit: "×",
+    unit: "x",
   },
 
-  // ── Spacing ─────────────────────────────────────────────────
+  // -- Spacing -------------------------------------------------
   {
     key: "margins_inches",
     label: "Page Margins",
@@ -238,7 +238,7 @@ export const EXPORT_SETTINGS: ExportSetting[] = [
     unit: "pt",
   },
 
-  // ── Colors ──────────────────────────────────────────────────
+  // -- Colors --------------------------------------------------
   {
     key: "colors_bodyText",
     label: "Body Text",
@@ -296,7 +296,7 @@ export const EXPORT_SETTINGS: ExportSetting[] = [
     default: "CCCCCC",
   },
 
-  // ── Labels & Text ───────────────────────────────────────────
+  // -- Labels & Text -------------------------------------------
   {
     key: "label_footerText",
     label: "Footer Text",
@@ -328,7 +328,7 @@ export function getExportSettingsByCategory(
   return EXPORT_SETTINGS.filter((s) => s.category === category);
 }
 
-/** Get all default values as a flat key→value record */
+/** Get all default values as a flat key->value record */
 export function getExportSettingDefaults(): Record<string, string | number> {
   const defaults: Record<string, string | number> = {};
   for (const setting of EXPORT_SETTINGS) {

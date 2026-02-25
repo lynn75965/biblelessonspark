@@ -56,7 +56,7 @@ export const DEVICE_ICON_MAP: Record<string, string> = {
 // DURATION DISPLAY HELPERS
 // -----------------------------------------------------
 export function formatDuration(ms: number | null): string {
-  if (ms === null || ms === undefined) return '—';
+  if (ms === null || ms === undefined) return '--';
   const seconds = Math.round(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
@@ -75,7 +75,7 @@ export function getDurationColor(ms: number | null): string {
 // TOKEN DISPLAY HELPERS
 // -----------------------------------------------------
 export function formatTokens(count: number | null): string {
-  if (count === null || count === undefined) return '—';
+  if (count === null || count === undefined) return '--';
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
   return count.toString();

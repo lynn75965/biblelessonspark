@@ -261,7 +261,7 @@ export default function OrgManager() {
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
-            {/* Phase N3/N4: Network tab — visible when org has children OR can create them */}
+            {/* Phase N3/N4: Network tab -- visible when org has children OR can create them */}
             {(hasChildren || canCreateChild) && (
               <TabsTrigger value="network" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
                 <Network className="h-4 w-4 flex-shrink-0" />
@@ -304,9 +304,9 @@ export default function OrgManager() {
             )}
           </TabsContent>
 
-          {/* Shared Focus Tab — Phase N6: ParentFocusBanner added for child orgs */}
+          {/* Shared Focus Tab -- Phase N6: ParentFocusBanner added for child orgs */}
           <TabsContent value="focus" className="mt-6">
-            {/* Phase N6: Parent Focus Banner — visible only for child orgs with parent focus */}
+            {/* Phase N6: Parent Focus Banner -- visible only for child orgs with parent focus */}
             {organization?.id && isChildOrg && (
               <ParentFocusBanner
                 childOrgId={organization.id}
@@ -357,10 +357,10 @@ export default function OrgManager() {
             )}
           </TabsContent>
 
-          {/* Phase N3/N4/N6: Network Tab — Child Org Dashboard + Adoption Status */}
+          {/* Phase N3/N4/N6: Network Tab -- Child Org Dashboard + Adoption Status */}
           {(hasChildren || canCreateChild) && (
             <TabsContent value="network" className="mt-6">
-              {/* Phase N6: Focus adoption summary — visible when parent has active focus */}
+              {/* Phase N6: Focus adoption summary -- visible when parent has active focus */}
               {parentHasActiveFocus && enrichedChildren.length > 0 && (
                 <div className="mb-4 p-3 bg-muted/50 rounded-lg flex items-center gap-2 text-sm text-muted-foreground">
                   <Target className="h-4 w-4 shrink-0" />
@@ -443,7 +443,7 @@ export default function OrgManager() {
               </Card>
             </div>
 
-            {/* Phase N7: Disconnect from Network — visible only for child orgs */}
+            {/* Phase N7: Disconnect from Network -- visible only for child orgs */}
             {isChildOrg && (
               <Card className="mt-6 border-destructive/30">
                 <CardHeader>

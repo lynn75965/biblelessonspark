@@ -10,7 +10,7 @@
 // - Analytics display configuration
 // - Type definitions
 //
-// To modify survey questions: Use Admin Panel → Beta Feedback Questions
+// To modify survey questions: Use Admin Panel -> Beta Feedback Questions
 // ============================================================================
 
 // ----------------------------------------------------------------------------

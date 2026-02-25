@@ -376,7 +376,7 @@ export function OrgManagerTransferRequests({
                       <span className="text-sm text-muted-foreground">
                         {request.processed_at || request.responded_at
                           ? new Date(request.processed_at || request.responded_at!).toLocaleDateString()
-                          : "—"}
+                          : "--"}
                       </span>
                     )}
                   </TableCell>

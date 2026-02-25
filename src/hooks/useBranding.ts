@@ -174,7 +174,7 @@ export function getCopyrightNotice(branding: BrandingConfig): string {
   const yearRange = startYear === String(currentYear)
     ? startYear
     : `${startYear}-${currentYear}`;
-  return `© ${yearRange} ${branding.legal.copyrightHolder}. All rights reserved.`;
+  return `\u00A9 ${yearRange} ${branding.legal.copyrightHolder}. All rights reserved.`;
 }
 
 /**

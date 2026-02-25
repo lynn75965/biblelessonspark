@@ -1,13 +1,13 @@
 // ============================================================
 // ParentFocusBanner.tsx
 // Banner shown to child org managers when parent has active focus
-// SSOT Source: organizationConfig.ts → SHARED_FOCUS_INHERITANCE
+// SSOT Source: organizationConfig.ts -> SHARED_FOCUS_INHERITANCE
 //
 // States:
-//   1. Loading → hidden
-//   2. No parent focus → hidden
-//   3. Parent has focus, not adopted → blue banner with "Adopt" button
-//   4. Parent has focus, already adopted → green confirmation banner
+//   1. Loading -> hidden
+//   2. No parent focus -> hidden
+//   3. Parent has focus, not adopted -> blue banner with "Adopt" button
+//   4. Parent has focus, already adopted -> green confirmation banner
 //
 // PRINCIPLE: Suggestion, never enforcement. "Tap to adopt" not "must comply."
 // ============================================================
@@ -38,7 +38,7 @@ interface ParentFocusBannerProps {
  * Builds the human-readable focus label from passage/theme.
  */
 function buildFocusLabel(passage: string | null, theme: string | null): string {
-  if (passage && theme) return `${passage} — ${theme}`;
+  if (passage && theme) return `${passage} -- ${theme}`;
   return passage || theme || 'Shared Focus';
 }
 
@@ -48,7 +48,7 @@ function buildFocusLabel(passage: string | null, theme: string | null): string {
 function formatDateRange(startDate: string, endDate: string): string {
   const start = new Date(startDate + 'T00:00:00');
   const end = new Date(endDate + 'T00:00:00');
-  return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
 
 export function ParentFocusBanner({ childOrgId, onAdopted }: ParentFocusBannerProps) {
@@ -87,7 +87,7 @@ export function ParentFocusBanner({ childOrgId, onAdopted }: ParentFocusBannerPr
     }
   };
 
-  // ── Already Adopted State ──────────────────────────────────────────
+  // -- Already Adopted State ------------------------------------------
   if (parentFocus.already_adopted) {
     return (
       <Card className="mb-4 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
@@ -120,7 +120,7 @@ export function ParentFocusBanner({ childOrgId, onAdopted }: ParentFocusBannerPr
     );
   }
 
-  // ── Available to Adopt State ───────────────────────────────────────
+  // -- Available to Adopt State ---------------------------------------
   return (
     <Card className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
       <CardContent className="p-4">

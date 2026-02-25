@@ -2,7 +2,7 @@
 // SSOT: Organization Pricing Configuration
 // This file is the MASTER - database is synced via: npm run sync-org-pricing
 //
-// STACK 2 — SHEPHERD TIERS (Organization)
+// STACK 2 -- SHEPHERD TIERS (Organization)
 // Single Staff | Starter | Growth | Develop | Expansion
 //
 // Updated: February 3, 2026

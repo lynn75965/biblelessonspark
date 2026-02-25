@@ -6,7 +6,7 @@
 // - Frontend drives backend: these constants are authoritative
 // - Backend (Supabase) validates against values defined here
 // - SSOT: all Stripe IDs, tier definitions, and section mappings
-//   live here and are imported everywhere — never duplicated
+//   live here and are imported everywhere -- never duplicated
 //
 // STRIPE CATALOG (complete as of 2026-02-21):
 // - 1 Individual subscription: Personal
@@ -18,7 +18,7 @@
 // ============================================================
 
 // ============================================================
-// STRIPE IDS — INDIVIDUAL SUBSCRIPTION
+// STRIPE IDS -- INDIVIDUAL SUBSCRIPTION
 // ============================================================
 
 export const STRIPE_INDIVIDUAL = {
@@ -33,7 +33,7 @@ export const STRIPE_INDIVIDUAL = {
 } as const;
 
 // ============================================================
-// STRIPE IDS — ORGANIZATION SUBSCRIPTIONS
+// STRIPE IDS -- ORGANIZATION SUBSCRIPTIONS
 // ============================================================
 
 export const STRIPE_ORG = {
@@ -72,7 +72,7 @@ export const STRIPE_ORG = {
 } as const;
 
 // ============================================================
-// STRIPE IDS — LESSON PACKS (ONE-TIME PURCHASES)
+// STRIPE IDS -- LESSON PACKS (ONE-TIME PURCHASES)
 // ============================================================
 
 export const STRIPE_LESSON_PACKS = {
@@ -97,7 +97,7 @@ export const STRIPE_LESSON_PACKS = {
 } as const;
 
 // ============================================================
-// STRIPE IDS — ONBOARDING OPTIONS (ONE-TIME PURCHASES)
+// STRIPE IDS -- ONBOARDING OPTIONS (ONE-TIME PURCHASES)
 // ============================================================
 
 export const STRIPE_ONBOARDING = {
@@ -115,7 +115,7 @@ export const STRIPE_ONBOARDING = {
 
 // ============================================================
 // SUBSCRIPTION TIER TYPE
-// Matches database enum exactly — frontend is authoritative
+// Matches database enum exactly -- frontend is authoritative
 // NOTE: 'admin' is a ROLE (see accessControl.ts), not a tier
 // ============================================================
 
@@ -153,9 +153,9 @@ export const TIER_LESSON_LIMITS: Record<SubscriptionTier, number> = {
 } as const;
 
 // ============================================================
-// SECTION ARRAYS — SINGLE SOURCE OF TRUTH
+// SECTION ARRAYS -- SINGLE SOURCE OF TRUTH
 // These arrays define which lesson sections each tier receives.
-// Import these constants — NEVER hardcode section numbers.
+// Import these constants -- NEVER hardcode section numbers.
 //
 // FREE TIER SECTIONS: 1, 5, 8
 //   Section 1: Lens + Lesson Overview
@@ -311,7 +311,7 @@ export function isPaidTier(tier: SubscriptionTier): boolean {
 }
 
 // ============================================================
-// DATABASE TYPE — matches Supabase pricing_plans table
+// DATABASE TYPE -- matches Supabase pricing_plans table
 // ============================================================
 
 export interface PricingPlanFromDB {

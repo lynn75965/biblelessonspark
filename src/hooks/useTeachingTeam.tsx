@@ -23,7 +23,7 @@ import {
  *
  * SSOT: profiles table uses `full_name` column (not display_name).
  * Frontend interface uses `display_name` for UI display; this hook
- * maps full_name → display_name at the query boundary.
+ * maps full_name -> display_name at the query boundary.
  */
 
 const MAX_TEAM_MEMBERS = 3;
@@ -38,7 +38,7 @@ export function useTeachingTeam() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // ── Fetch team data on mount ──────────────────────────────────────────
+  // -- Fetch team data on mount ------------------------------------------
 
   useEffect(() => {
     if (user) {
@@ -199,7 +199,7 @@ export function useTeachingTeam() {
         }
       }
 
-      // Map full_name → display_name for frontend interface
+      // Map full_name -> display_name for frontend interface
       const enrichedMembers: TeachingTeamMemberWithProfile[] = (memberRows || []).map(m => ({
         ...m,
         display_name: profileMap[m.user_id]?.full_name || null,
@@ -212,7 +212,7 @@ export function useTeachingTeam() {
     }
   };
 
-  // ── Lead Teacher Actions ──────────────────────────────────────────────
+  // -- Lead Teacher Actions ----------------------------------------------
 
   /**
    * Create a new Teaching Team
@@ -229,7 +229,7 @@ export function useTeachingTeam() {
 
       if (error) {
         if (error.code === '23505') {
-          // Unique constraint violation — already leads a team
+          // Unique constraint violation -- already leads a team
           toast({
             title: 'Already leading a team',
             description: 'You already have a Teaching Team. Disband it first to create a new one.',
@@ -356,7 +356,7 @@ export function useTeachingTeam() {
         };
       }
 
-      // All checks passed — create invitation
+      // All checks passed -- create invitation
       const { data: newMember, error: insertError } = await supabase
         .from('teaching_team_members')
         .insert([{
@@ -369,10 +369,10 @@ export function useTeachingTeam() {
 
       if (insertError) throw insertError;
 
-      // ── Fire-and-forget: Send email notification via Edge Function ─────
+      // -- Fire-and-forget: Send email notification via Edge Function -----
       // Frontend drives backend: we explicitly call the function after
       // the successful INSERT. If email fails, the invitation still stands.
-      // Uses supabase.functions.invoke() — the client already has the
+      // Uses supabase.functions.invoke() -- the client already has the
       // correct URL and auth token configured.
       supabase.functions
         .invoke('notify-team-invitation', {
@@ -387,7 +387,7 @@ export function useTeachingTeam() {
           console.error('Email notification failed (non-blocking):', emailErr);
         });
 
-      // Add to local state with profile info (map full_name → display_name)
+      // Add to local state with profile info (map full_name -> display_name)
       const enriched: TeachingTeamMemberWithProfile = {
         ...newMember,
         display_name: inviteeProfile.full_name,
@@ -472,7 +472,7 @@ export function useTeachingTeam() {
     }
   };
 
-  // ── Invitee / Member Actions ──────────────────────────────────────────
+  // -- Invitee / Member Actions ------------------------------------------
 
   /**
    * Accept a pending invitation
@@ -572,7 +572,7 @@ export function useTeachingTeam() {
     }
   };
 
-  // ── Team Lessons Query (for LessonLibrary) ────────────────────────────
+  // -- Team Lessons Query (for LessonLibrary) ----------------------------
 
   /**
    * Fetch shared lessons from all team members (including lead teacher).

@@ -17,7 +17,7 @@
  * - Admin display configuration
  * 
  * VOICE PHILOSOPHY (v2.0 - January 2026):
- * Reflect → Support → Equip
+ * Reflect -> Support -> Equip
  * - Reflect: Name the pattern the teacher is experiencing
  * - Support: Affirm their instinct is valid and worth honoring
  * - Equip: Offer practical frameworks and options (not commands)
@@ -59,7 +59,7 @@ export const TOOLBELT_TOOLS: Record<ToolbeltToolId, ToolbeltToolDefinition> = {
     route: '/toolbelt/lesson-fit',
     emailSubject: 'Your reflection from Does This Lesson Fit My Class?',
     estimatedMinutes: 2,
-    headline: "Here's what your instincts are picking up — and some approaches that may help",
+    headline: "Here's what your instincts are picking up -- and some approaches that may help",
   },
   'left-out': {
     id: 'left-out',
@@ -69,7 +69,7 @@ export const TOOLBELT_TOOLS: Record<ToolbeltToolId, ToolbeltToolDefinition> = {
     route: '/toolbelt/left-out-safely',
     emailSubject: 'Your reflection from What Can Be Left Out Safely?',
     estimatedMinutes: 3,
-    headline: "Here's what your discernment is telling you — and some ways to act on it",
+    headline: "Here's what your discernment is telling you -- and some ways to act on it",
   },
   'one-truth': {
     id: 'one-truth',
@@ -79,7 +79,7 @@ export const TOOLBELT_TOOLS: Record<ToolbeltToolId, ToolbeltToolDefinition> = {
     route: '/toolbelt/one-truth',
     emailSubject: 'Your reflection from One-Truth Focus Finder',
     estimatedMinutes: 2,
-    headline: "Here's the anchor your lesson is pointing toward — and how to build around it",
+    headline: "Here's the anchor your lesson is pointing toward -- and how to build around it",
   },
 } as const;
 
@@ -295,7 +295,7 @@ export const ONE_TRUTH_INPUTS: FormInputDefinition[] = [
 // VOICE GUARDRAILS (Embedded in Claude Prompts)
 // ============================================================================
 // 
-// PHILOSOPHY: Reflect → Support → Equip
+// PHILOSOPHY: Reflect -> Support -> Equip
 // 
 // The teacher comes with a real concern. We:
 // 1. REFLECT - Name the pattern they're experiencing (validation)
@@ -362,7 +362,7 @@ You are NOT condescending or preachy.`,
 
 3. SUPPORT (1 paragraph):
    Affirm that their instinct is valid. Acknowledge what their awareness says about their care for the class.
-   Example: "That awareness is not a sign of being unprepared—it's a sign of paying attention. Teachers who notice these gaps before Sunday morning are the ones whose classes actually learn."
+   Example: "That awareness is not a sign of being unprepared--it's a sign of paying attention. Teachers who notice these gaps before Sunday morning are the ones whose classes actually learn."
 
 4. EQUIP (1-2 paragraphs):
    Offer 2-3 practical approaches that address the specific tension they described.
@@ -376,7 +376,7 @@ You are NOT condescending or preachy.`,
 
 5. CLOSING (1 short paragraph):
    Affirm their capacity to make the right choice for their class.
-   Example: "You know your class. These are options—use what fits, adapt what helps, and trust the instincts that brought you here."
+   Example: "You know your class. These are options--use what fits, adapt what helps, and trust the instincts that brought you here."
 
 CRITICAL: Write in flowing prose paragraphs. No bullet points. No numbered lists. No questions.`,
 
@@ -518,16 +518,16 @@ export const TOOLBELT_ADMIN_CONFIG = {
 export const TOOLBELT_LANDING_CONFIG = {
   headline: 'A Toolbelt for Faithful Bible Teachers',
   subheadline: 'Practical help for moments when teaching feels heavier than it should.',
-  supportText: 'These tools are optional, free, and designed to support your judgment—not replace it.\nUse what helps. Leave the rest.',
+  supportText: 'These tools are optional, free, and designed to support your judgment--not replace it.\nUse what helps. Leave the rest.',
   
   introHeading: 'Why This Toolbelt Exists',
-  introText: `In the guide, we talked about the unseen work teachers already carry—adapting lessons, guarding faithfulness, and caring for real learners in real settings.
+  introText: `In the guide, we talked about the unseen work teachers already carry--adapting lessons, guarding faithfulness, and caring for real learners in real settings.
 
 These short tools exist to help in specific moments, without adding to your workload. Each one is designed to address a common tension faithful teachers experience, quietly and respectfully.`,
 
-  theologicalReassurance: 'BibleLessonSpark is built on the conviction that Scripture deserves clarity, teachers deserve support, and learners deserve understanding.\n\nThese tools exist to serve that calling—one small moment at a time.',
+  theologicalReassurance: 'BibleLessonSpark is built on the conviction that Scripture deserves clarity, teachers deserve support, and learners deserve understanding.\n\nThese tools exist to serve that calling--one small moment at a time.',
   
-  softBridge: 'Some teachers eventually want a single workspace where preparation, clarity, and context come together.\n\nBibleLessonSpark exists for that—when and if it\'s helpful.',
+  softBridge: 'Some teachers eventually want a single workspace where preparation, clarity, and context come together.\n\nBibleLessonSpark exists for that--when and if it\'s helpful.',
 } as const;
 
 // ============================================================================

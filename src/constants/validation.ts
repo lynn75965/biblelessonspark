@@ -27,7 +27,7 @@ export { ORG_ROLES } from './accessControl';
 // Cross-reference: theologyProfiles.ts owns theology profile definitions.
 // Denomination != theology profile (one denomination may map to multiple profiles,
 // e.g., "Southern Baptist Convention" maps to BF&M 1963 and BF&M 2000).
-// "Other Baptist" has no dedicated profile — uses Baptist Core Beliefs default.
+// "Other Baptist" has no dedicated profile -- uses Baptist Core Beliefs default.
 export const DENOMINATION_OPTIONS = [
   "Southern Baptist Convention",
   "National Baptist",

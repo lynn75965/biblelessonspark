@@ -2,7 +2,7 @@
 // Controls tab behavior, labels, and navigation rules
 //
 // ARCHITECTURE: Dashboard.tsx imports labels from this file.
-// DO NOT hardcode tab labels in Dashboard.tsx — always use DASHBOARD_TABS.*.label
+// DO NOT hardcode tab labels in Dashboard.tsx -- always use DASHBOARD_TABS.*.label
 //
 // ACTIVE TABS (February 2026): enhance, library, devotionalLibrary
 // Settings tab was removed Feb 14, 2026 (profile moved to modal in Header.tsx)

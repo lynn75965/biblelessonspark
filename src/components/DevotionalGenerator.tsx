@@ -126,9 +126,9 @@ export function DevotionalGenerator() {
       setProgress(0);
       
       // Calculate increment based on length to reach ~95% at estimated time
-      // short (3 min): ~4 sec generation → 95/4 = 24% per sec
-      // medium (5 min): ~11 sec generation → 95/11 = 8.6% per sec  
-      // long (10 min): ~34 sec generation → 95/34 = 2.8% per sec
+      // short (3 min): ~4 sec generation -> 95/4 = 24% per sec
+      // medium (5 min): ~11 sec generation -> 95/11 = 8.6% per sec  
+      // long (10 min): ~34 sec generation -> 95/34 = 2.8% per sec
       const incrementPerSecond = lengthId === 'short' ? 24 
         : lengthId === 'long' ? 2.8 
         : 8.6; // medium default

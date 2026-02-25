@@ -512,7 +512,7 @@ export function ParableGenerator({
           {preferences && (
             <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
               <strong>Using your preferences:</strong>{' '}
-              {resolveTheologyProfile().name} • {resolveBibleVersion().abbreviation} • {resolveAgeGroup().name}
+              {resolveTheologyProfile().name} * {resolveBibleVersion().abbreviation} * {resolveAgeGroup().name}
             </div>
           )}
 
@@ -562,11 +562,11 @@ export function ParableGenerator({
             </div>
             <CardDescription className="flex items-center gap-4 text-xs">
               <span>{generatedParable.word_count} words</span>
-              <span>•</span>
+              <span>*</span>
               <span>{(generatedParable.generation_time_ms / 1000).toFixed(1)}s</span>
               {generatedParable.news_source !== 'generated' && (
                 <>
-                  <span>•</span>
+                  <span>*</span>
                   <span className="flex items-center gap-1">
                     <Newspaper className="h-3 w-3" />
                     Inspired by: {generatedParable.news_headline.slice(0, 50)}...

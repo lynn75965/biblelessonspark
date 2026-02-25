@@ -1,6 +1,6 @@
 // src/constants/lessonShapeProfiles.ts
 // SSOT: Single Source of Truth for Lesson Shapes feature
-// Frontend drives backend — all shape definitions, prompts, and mappings defined here
+// Frontend drives backend -- all shape definitions, prompts, and mappings defined here
 //
 // ARCHITECTURE:
 // - Shape definitions: ID, labels, descriptions, visible structure rules
@@ -20,7 +20,7 @@ export const LESSON_SHAPES_VERSION = "1.0.0";
 // ============================================================================
 
 /**
- * Valid shape IDs — used as discriminated union throughout the app
+ * Valid shape IDs -- used as discriminated union throughout the app
  */
 export type ShapeId =
   | 'passage_walkthrough'
@@ -33,7 +33,7 @@ export type ShapeId =
  * A single Lesson Shape definition
  */
 export interface LessonShape {
-  /** Internal identifier — stored in lessons.shape_id */
+  /** Internal identifier -- stored in lessons.shape_id */
   id: ShapeId;
   /** Teacher-facing label shown in UI */
   name: string;
@@ -54,13 +54,13 @@ export interface LessonShape {
 }
 
 /**
- * Age-group shape recommendation — ordered list of shape IDs
+ * Age-group shape recommendation -- ordered list of shape IDs
  * All five shapes always present; order determines "recommended" surfacing
  */
 export interface AgeGroupShapeMapping {
   /** Must match an id from ageGroups.ts */
   ageGroupId: string;
-  /** Ordered shape IDs — first is "best fit," all five always included */
+  /** Ordered shape IDs -- first is "best fit," all five always included */
   recommendedOrder: ShapeId[];
 }
 
@@ -69,14 +69,14 @@ export interface AgeGroupShapeMapping {
 // ============================================================================
 
 /**
- * Prepended to EVERY reshape prompt — protects theological integrity
+ * Prepended to EVERY reshape prompt -- protects theological integrity
  * This is the reshape equivalent of the theology guardrails in generation
  *
  * The base guardrail is constant. Theology and age-group context are injected
- * by assembleReshapePrompt() when available — the caller passes display names
+ * by assembleReshapePrompt() when available -- the caller passes display names
  * from theologyProfiles.ts and ageGroups.ts so this file stays dependency-free.
  */
-export const RESHAPE_UNIVERSAL_GUARDRAIL = `You are receiving a completed Bible study lesson that has already been theologically vetted and age-calibrated. Your task is to re-present this content in a specific teaching format. You must preserve every piece of Scripture, every doctrinal statement, every application point, and every discussion question from the original. Redistribute content into the new structure — do not discard any substantive material. If a section from the original does not map cleanly to the new format, fold its content into the most appropriate location rather than dropping it. You may reorganize, merge, reword for flow, and change the visible structure. You may not add new theological claims, remove any scriptural content, or alter the doctrinal position. The teacher's preparation content and the student-facing content should both reflect the selected format naturally.
+export const RESHAPE_UNIVERSAL_GUARDRAIL = `You are receiving a completed Bible study lesson that has already been theologically vetted and age-calibrated. Your task is to re-present this content in a specific teaching format. You must preserve every piece of Scripture, every doctrinal statement, every application point, and every discussion question from the original. Redistribute content into the new structure -- do not discard any substantive material. If a section from the original does not map cleanly to the new format, fold its content into the most appropriate location rather than dropping it. You may reorganize, merge, reword for flow, and change the visible structure. You may not add new theological claims, remove any scriptural content, or alter the doctrinal position. The teacher's preparation content and the student-facing content should both reflect the selected format naturally.
 
 CRITICAL: The student-facing section of the reshaped lesson MUST use the exact heading "STUDENT HANDOUT" (all capitals, on its own line). Do not use any other heading such as "Student Experience", "Student Material", or "Student Section". This heading is required for the platform's export and email systems to detect and format the student content correctly.`;
 
@@ -86,7 +86,7 @@ CRITICAL: The student-facing section of the reshaped lesson MUST use the exact h
  * ("STUDENT HANDOUT"). Used by all export utilities and the email Edge Function.
  * Safety-net also catches variants Claude might generate despite the guardrail.
  */
-export const STUDENT_HANDOUT_HEADING_REGEX = /^(?:#{1,3}\s*)?(?:Section\s*8[:\s]*)?(?:Student\s+(?:Handout|Experience|Material|Section)|STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION))(?:\s*[:–—\-].*)?$/im;
+export const STUDENT_HANDOUT_HEADING_REGEX = /^(?:#{1,3}\s*)?(?:Section\s*8[:\s]*)?(?:Student\s+(?:Handout|Experience|Material|Section)|STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION))(?:\s*[:---\-].*)?$/im;
 
 /**
  * SSOT: Title displayed on the standalone Student Handout page in exports.
@@ -110,8 +110,8 @@ export const LESSON_SHAPES: LessonShape[] = [
     posture: "Let's walk through the passage together.",
     description: 'A verse-by-verse guided study that follows the natural flow of the Scripture passage. The text determines the outline.',
     competitiveFeel: 'Explore the Bible (Lifeway)',
-    visibleStructure: 'Structure follows the passage itself — no original section headings. Headings emerge from the text (e.g., verse groupings, paragraph divisions).',
-    reshapePrompt: `Present this lesson as a verse-by-verse guided study of the primary Scripture passage. Open with brief historical and literary context that orients the teacher to the passage — who wrote it, to whom, and why it matters. Then move through the passage sequentially, surfacing theological insights, teaching points, and application moments as they naturally emerge from the text. The teacher's transcript should sound like someone walking a class through an open Bible: 'Now look at verse 12. Notice what Paul says here...' Weave discussion questions into the flow at natural pause points rather than grouping them separately. The student handout should present the passage with study notes alongside the text. Do not use the original section headings. The visible structure should follow the passage itself — the text determines the outline.`,
+    visibleStructure: 'Structure follows the passage itself -- no original section headings. Headings emerge from the text (e.g., verse groupings, paragraph divisions).',
+    reshapePrompt: `Present this lesson as a verse-by-verse guided study of the primary Scripture passage. Open with brief historical and literary context that orients the teacher to the passage -- who wrote it, to whom, and why it matters. Then move through the passage sequentially, surfacing theological insights, teaching points, and application moments as they naturally emerge from the text. The teacher's transcript should sound like someone walking a class through an open Bible: 'Now look at verse 12. Notice what Paul says here...' Weave discussion questions into the flow at natural pause points rather than grouping them separately. The student handout should present the passage with study notes alongside the text. Do not use the original section headings. The visible structure should follow the passage itself -- the text determines the outline.`,
   },
 
   // ---------------------------------------------------------------------------
@@ -122,11 +122,11 @@ export const LESSON_SHAPES: LessonShape[] = [
     name: 'Life Connection',
     shortName: 'Life Connection',
     displayOrder: 2,
-    posture: "Here's a real-life tension — and how Scripture speaks to it.",
+    posture: "Here's a real-life tension -- and how Scripture speaks to it.",
     description: 'Opens with a vivid real-life situation, then introduces Scripture as God\'s voice speaking into that reality, landing on concrete next steps.',
     competitiveFeel: 'Bible Studies for Life (Lifeway)',
     visibleStructure: 'No original section headings. Visible structure follows the life-to-Scripture-to-response arc.',
-    reshapePrompt: `Present this lesson as a journey from a shared human experience into Scripture and back out to practical response. Open with a vivid, age-appropriate real-life situation that creates tension or raises a question the class will recognize from their own lives. Do not open with Scripture — open with life. Then introduce the biblical passage as God's voice speaking into that reality. Weave the theological depth into the explanation of why this passage matters for this situation rather than presenting it as separate background study. The teacher's transcript should sound relational and pastoral: 'Have you ever felt like nobody noticed what you were going through? Open to Psalm 139...' Land the lesson on concrete, specific next steps the class can take this week. The student handout should lead with the real-life hook and close with actionable application. Do not use the original section headings. The visible structure should follow the life-to-Scripture-to-response arc.`,
+    reshapePrompt: `Present this lesson as a journey from a shared human experience into Scripture and back out to practical response. Open with a vivid, age-appropriate real-life situation that creates tension or raises a question the class will recognize from their own lives. Do not open with Scripture -- open with life. Then introduce the biblical passage as God's voice speaking into that reality. Weave the theological depth into the explanation of why this passage matters for this situation rather than presenting it as separate background study. The teacher's transcript should sound relational and pastoral: 'Have you ever felt like nobody noticed what you were going through? Open to Psalm 139...' Land the lesson on concrete, specific next steps the class can take this week. The student handout should lead with the real-life hook and close with actionable application. Do not use the original section headings. The visible structure should follow the life-to-Scripture-to-response arc.`,
   },
 
   // ---------------------------------------------------------------------------
@@ -138,25 +138,25 @@ export const LESSON_SHAPES: LessonShape[] = [
     shortName: 'Gospel-Centered',
     displayOrder: 3,
     posture: 'Every story points to Jesus.',
-    description: 'Locates the passage within Creation–Fall–Redemption–Restoration and explicitly connects every teaching point to Christ.',
+    description: 'Locates the passage within Creation-Fall-Redemption-Restoration and explicitly connects every teaching point to Christ.',
     competitiveFeel: 'The Gospel Project (Lifeway)',
     visibleStructure: 'No original section headings. Visible structure follows the redemptive narrative arc.',
-    reshapePrompt: `Present this lesson by locating it within the overarching story of Scripture — Creation, Fall, Redemption, Restoration. Open by establishing where this passage sits in the biblical narrative and why it matters in God's redemptive plan. Every teaching point should explicitly connect to Christ — either pointing forward to Him, fulfilled in Him, or flowing from His finished work. The theological depth should emphasize how this particular text reveals something about the gospel. The teacher's transcript should make the connections overt: 'This isn't just a story about David's courage — it's pointing forward to a greater King.' Include a clear gospel presentation moment within the lesson flow appropriate to the age group. The student handout should include a 'Big Picture' element showing where this lesson fits in the sweep of Scripture. Do not use the original section headings. The visible structure should follow the redemptive narrative arc.`,
+    reshapePrompt: `Present this lesson by locating it within the overarching story of Scripture -- Creation, Fall, Redemption, Restoration. Open by establishing where this passage sits in the biblical narrative and why it matters in God's redemptive plan. Every teaching point should explicitly connect to Christ -- either pointing forward to Him, fulfilled in Him, or flowing from His finished work. The theological depth should emphasize how this particular text reveals something about the gospel. The teacher's transcript should make the connections overt: 'This isn't just a story about David's courage -- it's pointing forward to a greater King.' Include a clear gospel presentation moment within the lesson flow appropriate to the age group. The student handout should include a 'Big Picture' element showing where this lesson fits in the sweep of Scripture. Do not use the original section headings. The visible structure should follow the redemptive narrative arc.`,
   },
 
   // ---------------------------------------------------------------------------
-  // 4. FOCUS–DISCOVER–RESPOND
+  // 4. FOCUS-DISCOVER-RESPOND
   // ---------------------------------------------------------------------------
   {
     id: 'focus_discover_respond',
-    name: 'Focus–Discover–Respond',
-    shortName: 'Focus–Disc–Resp',
+    name: 'Focus-Discover-Respond',
+    shortName: 'Focus-Disc-Resp',
     displayOrder: 4,
     posture: 'Three clean movements.',
     description: 'Exactly three sections: Focus (opening hook), Discover (core Bible study), and Respond (application and commitment). Clean and rhythmic.',
     competitiveFeel: 'Scripture Press (David C Cook)',
     visibleStructure: 'Exactly three headings: Focus, Discover, Respond. No other headings.',
-    reshapePrompt: `Present this lesson in exactly three movements: Focus, Discover, and Respond. Use only these three headings. Focus is the opening hook — an activity, question, scenario, or illustration that captures attention and surfaces the topic. Keep it brief and engaging. Discover is the core Bible study — Scripture reading, exploration, theological insight, and teaching content. This is the largest section and carries all the doctrinal weight. Respond is the application — what the class does with what they've learned. Include discussion questions, personal reflection, a weekly challenge, and a closing prayer or commitment moment. Fold all content from the original lesson into these three movements seamlessly. The teacher's transcript should feel clean and rhythmic — three beats, no clutter. The student handout should mirror the same three-movement structure.`,
+    reshapePrompt: `Present this lesson in exactly three movements: Focus, Discover, and Respond. Use only these three headings. Focus is the opening hook -- an activity, question, scenario, or illustration that captures attention and surfaces the topic. Keep it brief and engaging. Discover is the core Bible study -- Scripture reading, exploration, theological insight, and teaching content. This is the largest section and carries all the doctrinal weight. Respond is the application -- what the class does with what they've learned. Include discussion questions, personal reflection, a weekly challenge, and a closing prayer or commitment moment. Fold all content from the original lesson into these three movements seamlessly. The teacher's transcript should feel clean and rhythmic -- three beats, no clutter. The student handout should mirror the same three-movement structure.`,
   },
 
   // ---------------------------------------------------------------------------
@@ -170,8 +170,8 @@ export const LESSON_SHAPES: LessonShape[] = [
     posture: 'Let me tell you a story.',
     description: 'A flowing narrative experience with no section headings. Teaching points emerge from the story rather than being declared as exposition.',
     competitiveFeel: 'Gospel Light / narrative curriculum',
-    visibleStructure: 'No headings at all — one continuous narrative arc with natural movement from story to truth to response.',
-    reshapePrompt: `Present this lesson as a narrative experience. Open inside a story — either a vivid retelling of the biblical narrative or a modern parallel that creates emotional engagement. Do not introduce the passage academically. Let the class feel the scene before they analyze it. Build tension or curiosity within the narrative before drawing out the theological truth. The teaching points should emerge from the story rather than being declared as exposition. The teacher's transcript should read like preparation for a storyteller: vivid description, pacing cues, emotional beats, moments of silence. Weave discussion and application into the narrative flow naturally rather than separating them. The student handout should capture the story and let the truth emerge from it — no section headings, no bulleted doctrine, just narrative with embedded reflection questions. Do not use any section headings in either the teacher or student material. The visible structure should feel like one continuous narrative arc with natural movement from story to truth to response.`,
+    visibleStructure: 'No headings at all -- one continuous narrative arc with natural movement from story to truth to response.',
+    reshapePrompt: `Present this lesson as a narrative experience. Open inside a story -- either a vivid retelling of the biblical narrative or a modern parallel that creates emotional engagement. Do not introduce the passage academically. Let the class feel the scene before they analyze it. Build tension or curiosity within the narrative before drawing out the theological truth. The teaching points should emerge from the story rather than being declared as exposition. The teacher's transcript should read like preparation for a storyteller: vivid description, pacing cues, emotional beats, moments of silence. Weave discussion and application into the narrative flow naturally rather than separating them. The student handout should capture the story and let the truth emerge from it -- no section headings, no bulleted doctrine, just narrative with embedded reflection questions. Do not use any section headings in either the teacher or student material. The visible structure should feel like one continuous narrative arc with natural movement from story to truth to response.`,
   },
 ];
 
@@ -181,7 +181,7 @@ export const LESSON_SHAPES: LessonShape[] = [
 
 /**
  * Recommended shape ordering by age group
- * All five shapes are ALWAYS available — ordering determines which appear first
+ * All five shapes are ALWAYS available -- ordering determines which appear first
  * Keyed to ageGroups.ts IDs (SSOT for age group definitions)
  *
  * Rationale documented in LESSON_SHAPES_HANDOFF.md
@@ -253,7 +253,7 @@ export function getShapesSorted(): LessonShape[] {
 
 /**
  * Get shapes ordered by age-group recommendation
- * Returns all five shapes — recommended ones first
+ * Returns all five shapes -- recommended ones first
  * Falls back to displayOrder if age group not found
  */
 export function getShapesForAgeGroup(ageGroupId: string): LessonShape[] {

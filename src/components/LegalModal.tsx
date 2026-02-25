@@ -51,7 +51,7 @@ export function LegalModal({ open, onClose, type }: LegalModalProps) {
             <ul className="space-y-2">
               {content.points.map((point, i) => (
                 <li key={i} className="text-sm flex gap-2">
-                  <span className="text-primary">•</span>
+                  <span className="text-primary">--</span>
                   <span>{point}</span>
                 </li>
               ))}

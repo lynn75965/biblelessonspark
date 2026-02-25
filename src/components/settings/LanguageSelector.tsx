@@ -14,9 +14,9 @@ interface LanguageOption {
 }
 
 const LANGUAGE_OPTIONS: LanguageOption[] = [
-  { value: "en", label: "English", flag: "🇺🇸" },
-  { value: "es", label: "Español", flag: "🇪🇸" },
-  { value: "fr", label: "Français", flag: "🇫🇷" }
+  { value: "en", label: "English", flag: "" },
+  { value: "es", label: "Espa\u00F1ol", flag: "\u{1F1EA}\u{1F1F8}" },
+  { value: "fr", label: "Fran\u00E7ais", flag: "" }
 ];
 
 export default function LanguageSelector() {

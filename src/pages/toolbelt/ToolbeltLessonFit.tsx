@@ -393,7 +393,7 @@ export default function ToolbeltLessonFit() {
                   </CardTitle>
                   <CardDescription>
                     Email yourself a copy to reference later. We'll also send occasional 
-                    encouragements for your teaching—unsubscribe anytime.
+                    encouragements for your teaching--unsubscribe anytime.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

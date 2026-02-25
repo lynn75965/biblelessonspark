@@ -749,7 +749,7 @@ export function UserManagement() {
                               {user.shaped_lessons_count}
                             </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">--</span>
                           )}
                         </TableCell>
                         {/* Feature Adoption: Teaching Team */}
@@ -760,7 +760,7 @@ export function UserManagement() {
                               {user.team_role === 'lead' ? 'Lead' : 'Member'}
                             </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">--</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
@@ -770,7 +770,7 @@ export function UserManagement() {
                               {TRIAL_BADGE.prefix} {format(new Date(user.trial_full_lesson_granted_until!), 'MMM d')}
                             </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
+                            <span className="text-xs text-muted-foreground">--</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-muted-foreground">

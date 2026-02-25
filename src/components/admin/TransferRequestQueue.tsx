@@ -338,7 +338,7 @@ export function TransferRequestQueue() {
                       <span className="text-sm text-muted-foreground">
                         {request.processed_at
                           ? `Processed ${new Date(request.processed_at).toLocaleDateString()}`
-                          : "—"}
+                          : "--"}
                       </span>
                     )}
                   </TableCell>

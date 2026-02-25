@@ -1,7 +1,7 @@
 // ============================================================
 // ChildOrgDashboard.tsx
-// Network tab content — responsive grid of child org cards
-// SSOT Source: organizationConfig.ts → PARENT_VISIBILITY
+// Network tab content -- responsive grid of child org cards
+// SSOT Source: organizationConfig.ts -> PARENT_VISIBILITY
 // 
 // This is the primary dashboard view for parent Org Managers.
 // Shows each direct child org as a card with health indicators.
@@ -174,12 +174,12 @@ export function ChildOrgDashboard({
         </CardContent>
       </Card>
 
-      {/* Child org cards grid — Phase N7: each card has a disconnect option */}
+      {/* Child org cards grid -- Phase N7: each card has a disconnect option */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {children.map((child) => (
           <div key={child.org_id} className="relative group">
             <ChildOrgCard child={child} />
-            {/* Phase N7: Disconnect button — appears on hover */}
+            {/* Phase N7: Disconnect button -- appears on hover */}
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <Button
                 variant="ghost"

@@ -1,7 +1,7 @@
 // ============================================================
 // useParentSharedFocus.ts
 // React hook for child org managers to see parent org's active focus
-// SSOT Source: organizationConfig.ts → SHARED_FOCUS_INHERITANCE
+// SSOT Source: organizationConfig.ts -> SHARED_FOCUS_INHERITANCE
 // Database Source: get_parent_active_focus() + adopt_parent_focus()
 //
 // PRINCIPLE: Parent org PUBLISHES focus. Child org SEES it.
@@ -64,7 +64,7 @@ export function useParentSharedFocus(childOrgId: string | undefined): UseParentS
         .rpc('get_parent_active_focus', { p_child_org_id: childOrgId });
 
       if (rpcError) {
-        // Access denied or no parent — both are expected, not errors
+        // Access denied or no parent -- both are expected, not errors
         if (rpcError.message?.includes('Access denied') ||
             rpcError.message?.includes('not a member')) {
           setParentFocus(null);
@@ -91,7 +91,7 @@ export function useParentSharedFocus(childOrgId: string | undefined): UseParentS
   }, [fetchParentFocus]);
 
   /**
-   * Adopt the parent's focus — creates a copy in child's org_shared_focus.
+   * Adopt the parent's focus -- creates a copy in child's org_shared_focus.
    * Returns true on success, false on failure.
    * After adoption, refreshes to update the already_adopted flag.
    */

@@ -1,8 +1,8 @@
 /**
- * SSOT: Output Guardrails — Truth & Integrity Verification
+ * SSOT: Output Guardrails -- Truth & Integrity Verification
  * Source: src/constants/outputGuardrails.ts
  * 
- * Frontend drives backend — defined here, synced to supabase/functions/_shared/
+ * Frontend drives backend -- defined here, synced to supabase/functions/_shared/
  * 
  * PURPOSE: Catch AI fabrications AFTER generation, BEFORE saving to database.
  * When violations are found, the offending section is automatically rewritten.
@@ -55,7 +55,7 @@ export interface GuardrailCheckResult {
 }
 
 // =========================================================================
-// VIOLATION PATTERNS — Add new non-negotiable rules here
+// VIOLATION PATTERNS -- Add new non-negotiable rules here
 // =========================================================================
 // Each pattern is checked against sections 4-8 of every generated lesson.
 // When a match is found, the section is automatically rewritten before
@@ -113,7 +113,7 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
 ];
 
 // =========================================================================
-// SECTIONS TO CHECK — only sections that generate illustrations/hooks
+// SECTIONS TO CHECK -- only sections that generate illustrations/hooks
 // Sections 1-3 are factual/structural and don't produce illustrations
 // =========================================================================
 export const SECTIONS_TO_CHECK = [4, 5, 6, 7, 8];
@@ -128,7 +128,7 @@ export const REWRITE_CONFIG = {
 };
 
 // =========================================================================
-// SECTION PARSER — extracts individual sections from generated lesson
+// SECTION PARSER -- extracts individual sections from generated lesson
 // =========================================================================
 
 export interface ParsedSection {
@@ -156,7 +156,7 @@ export function parseLessonSections(lessonText: string): ParsedSection[] {
 }
 
 // =========================================================================
-// GUARDRAIL CHECKER — runs all patterns against lesson sections
+// GUARDRAIL CHECKER -- runs all patterns against lesson sections
 // Returns immediately if no violations (zero cost for clean lessons)
 // =========================================================================
 
@@ -214,7 +214,7 @@ export function checkOutputGuardrails(lessonText: string): GuardrailCheckResult 
 }
 
 // =========================================================================
-// REWRITE PROMPT BUILDER — creates targeted prompt for ONLY violated sections
+// REWRITE PROMPT BUILDER -- creates targeted prompt for ONLY violated sections
 // =========================================================================
 
 export function buildRewritePrompt(
@@ -246,7 +246,7 @@ REWRITE RULES (NON-NEGOTIABLE):
 4. OR use VERIFIABLE BIBLICAL EXAMPLES drawn directly from Scripture
 5. Maintain the EXACT SAME approximate word count, tone, and teaching flow
 6. Keep ALL theological content, scripture references, and teaching points intact
-7. ONLY change the parts that contain violations — preserve everything else verbatim
+7. ONLY change the parts that contain violations -- preserve everything else verbatim
 8. Return the rewritten section(s) in the EXACT SAME markdown format
 
 NEVER fabricate news stories, current events, statistics, surveys, studies, or quotes.
@@ -272,7 +272,7 @@ Fix ONLY the flagged violations. Preserve all teaching content, scripture refere
 }
 
 // =========================================================================
-// SECTION REPLACER — swaps rewritten sections back into the full lesson
+// SECTION REPLACER -- swaps rewritten sections back into the full lesson
 // =========================================================================
 
 export function replaceSections(

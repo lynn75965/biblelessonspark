@@ -220,7 +220,7 @@ export function useSeriesManager(): UseSeriesManagerReturn {
 
       toast({
         title: "Series created",
-        description: `"${name.trim()}" — ${totalLessons} lessons. Generate Lesson 1 to get started.`,
+        description: `"${name.trim()}" -- ${totalLessons} lessons. Generate Lesson 1 to get started.`,
       });
 
       return newSeries;
@@ -347,7 +347,7 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         if (shouldComplete) {
           setSelectedSeries(null);
           toast({
-            title: "Series complete! 🎉",
+            title: "Series complete! ",
             description: `All ${current.total_lessons} lessons in this series have been generated.`,
           });
         } else {

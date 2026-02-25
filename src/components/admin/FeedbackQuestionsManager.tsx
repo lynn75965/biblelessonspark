@@ -399,7 +399,7 @@ export function FeedbackQuestionsManager() {
                       <div className="font-medium">{question.label}</div>
                       <div className="text-sm text-muted-foreground">{question.description}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        Key: {question.questionKey} → Column: {question.columnName}
+                        Key: {question.questionKey} -> Column: {question.columnName}
                       </div>
                     </div>
                   </TableCell>

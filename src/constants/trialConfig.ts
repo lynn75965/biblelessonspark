@@ -293,7 +293,7 @@ export const getTrialStatus = (
 };
 
 // ----------------------------------------------------------------------------
-// COMPAT: isTrialAvailable — legacy callers only
+// COMPAT: isTrialAvailable -- legacy callers only
 // ----------------------------------------------------------------------------
 export const isTrialAvailable = (
   lastUsed:     Date | string | null,

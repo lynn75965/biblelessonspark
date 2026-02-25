@@ -75,7 +75,7 @@ export const TAB_ACCESS = {
   members: [ROLES.platformAdmin, ROLES.orgLeader],
   analytics: [ROLES.platformAdmin],
   orgAnalytics: [ROLES.platformAdmin, ROLES.orgLeader],
-  // Settings tab removed Feb 14, 2026 â€” profile moved to UserProfileModal in Header.tsx
+  // Settings tab removed Feb 14, 2026 -- profile moved to UserProfileModal in Header.tsx
 } as const;
 
 export type TabKey = keyof typeof TAB_ACCESS;
@@ -113,13 +113,13 @@ export const FEATURE_ACCESS = {
   viewOwnLessons: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   exportOwnLessons: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
 
-  // Teaching Teams (role access — tier gating handled by featureFlags.ts)
+  // Teaching Teams (role access -- tier gating handled by featureFlags.ts)
   createTeam: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   inviteTeamMember: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   removeTeamMember: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
   viewTeamLessons: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
 
-  // Lesson Shapes (role access — tier gating handled by featureFlags.ts)
+  // Lesson Shapes (role access -- tier gating handled by featureFlags.ts)
   reshapeLesson: [ROLES.platformAdmin, ROLES.orgLeader, ROLES.orgMember, ROLES.individual],
 } as const;
 

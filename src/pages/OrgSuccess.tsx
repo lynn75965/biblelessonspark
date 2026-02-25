@@ -37,7 +37,7 @@ import {
   Play
 } from 'lucide-react';
 
-// ─── Interactive Tour Configuration (Self-Service Entry item 8) ───
+// --- Interactive Tour Configuration (Self-Service Entry item 8) ---
 // Each step describes a key Org Manager feature the new Shepherd should know.
 const TOUR_STEPS = [
   {
@@ -46,7 +46,7 @@ const TOUR_STEPS = [
     description:
       "This is your central hub for shepherding your teaching ministry. " +
       "From here you can see your lesson pool usage, manage your team, " +
-      "and set the direction for your teachers — all in one place.",
+      "and set the direction for your teachers -- all in one place.",
     tip: "You can always reach it from the sidebar menu or by visiting /org-manager.",
   },
   {
@@ -55,14 +55,14 @@ const TOUR_STEPS = [
     description:
       "Add your teachers by email. They'll receive an invitation " +
       "to join your organization and can immediately begin drawing from your " +
-      "shared lesson pool — no extra per-seat cost.",
+      "shared lesson pool -- no extra per-seat cost.",
     tip: "Teachers keep their own personal workspace and lesson library too.",
   },
   {
     icon: BookOpen,
     title: "Set a Shared Focus",
     description:
-      "Guide your teaching team with a Shared Focus — a suggested Bible passage " +
+      "Guide your teaching team with a Shared Focus -- a suggested Bible passage " +
       "or theme for the week or month. Teachers will see your suggestion when " +
       "they open their lesson builder.",
     tip: "Your teachers can follow the focus or teach their own calling. It's a gentle shepherd's nudge, not a mandate.",
@@ -74,7 +74,7 @@ const TOUR_STEPS = [
       "See which teachers are actively preparing, view lessons funded by your " +
       "pool, and track your remaining lesson balance. Encourage your team " +
       "and celebrate their faithfulness in preparation.",
-    tip: "You'll see activity summaries right on your dashboard — no digging required.",
+    tip: "You'll see activity summaries right on your dashboard -- no digging required.",
   },
   {
     icon: PartyPopper,
@@ -300,7 +300,7 @@ const OrgSuccess = () => {
           </Card>
         )}
 
-        {/* Interactive Tour Prompt — Self-Service Entry item 8 */}
+        {/* Interactive Tour Prompt -- Self-Service Entry item 8 */}
         <Card className="mb-8 border-primary/30 bg-gradient-to-r from-primary/5 to-secondary/5">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -312,7 +312,7 @@ const OrgSuccess = () => {
                   Take a Quick Tour
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  See what your Org Manager Dashboard can do — takes about 60 seconds.
+                  See what your Org Manager Dashboard can do -- takes about 60 seconds.
                 </p>
               </div>
               <Button onClick={() => { setTourStep(0); setShowTour(true); }} size="sm">
@@ -397,7 +397,7 @@ const OrgSuccess = () => {
         </p>
       </div>
 
-      {/* ─── Interactive Tour Modal (Self-Service Entry item 8) ─── */}
+      {/* --- Interactive Tour Modal (Self-Service Entry item 8) --- */}
       <Dialog open={showTour} onOpenChange={handleTourClose}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -418,7 +418,7 @@ const OrgSuccess = () => {
             </p>
             {currentStep.tip && (
               <div className="bg-muted/50 rounded-lg p-3 text-sm text-muted-foreground italic">
-                💡 {currentStep.tip}
+                \u{1F4A1} {currentStep.tip}
               </div>
             )}
           </div>

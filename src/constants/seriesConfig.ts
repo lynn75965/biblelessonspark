@@ -45,7 +45,7 @@ export type SeriesStatus = typeof SERIES_STATUSES[keyof typeof SERIES_STATUSES];
  * Extracted after Lesson 1 via Claude prompt, stored in lesson_series.style_metadata.
  * Applied to Lessons 2+ to maintain unified teaching approach.
  *
- * MIGRATED from freshnessOptions.ts — this is now the single owner.
+ * MIGRATED from freshnessOptions.ts -- this is now the single owner.
  */
 export interface SeriesStyleMetadata {
   openingHookType: string;
@@ -63,7 +63,7 @@ export interface SeriesStyleMetadata {
 /**
  * Summary of a generated lesson within a series.
  * Stored in lesson_series.lesson_summaries (JSONB array).
- * Fed to Claude for content continuity — prevents redundancy,
+ * Fed to Claude for content continuity -- prevents redundancy,
  * enables callbacks to previous lessons.
  */
 export interface SeriesLessonSummary {
@@ -134,7 +134,7 @@ export function isSeriesComplete(series: LessonSeries): boolean {
 }
 
 // ============================================================================
-// PROMPT BUILDERS (Frontend drives backend — these define what Claude receives)
+// PROMPT BUILDERS (Frontend drives backend -- these define what Claude receives)
 // ============================================================================
 
 /**
@@ -151,14 +151,14 @@ CONSISTENT STYLE MODE: ACTIVE (Series Lesson)
 
 You MUST match the established series style from Lesson 1:
 
-• OPENING HOOK TYPE: Use a "${styleMetadata.openingHookType}" approach (same as Lesson 1)
-• ILLUSTRATION STYLE: Feature "${styleMetadata.illustrationType}" examples (same as Lesson 1)
-• TEACHING ANGLE: Maintain the "${styleMetadata.teachingAngle}" perspective
-• ACTIVITY FORMAT: Use "${styleMetadata.activityFormat}" style activities
-• APPLICATION CONTEXT: Focus on "${styleMetadata.applicationContext}" applications
-• CLOSING CHALLENGE: End with a "${styleMetadata.closingChallengeType}" challenge
-• TONE: Maintain a "${styleMetadata.toneDescriptor}" tone throughout
-${styleMetadata.transitionStyle ? `• TRANSITIONS: Use "${styleMetadata.transitionStyle}" transitions between sections` : ''}
+* OPENING HOOK TYPE: Use a "${styleMetadata.openingHookType}" approach (same as Lesson 1)
+* ILLUSTRATION STYLE: Feature "${styleMetadata.illustrationType}" examples (same as Lesson 1)
+* TEACHING ANGLE: Maintain the "${styleMetadata.teachingAngle}" perspective
+* ACTIVITY FORMAT: Use "${styleMetadata.activityFormat}" style activities
+* APPLICATION CONTEXT: Focus on "${styleMetadata.applicationContext}" applications
+* CLOSING CHALLENGE: End with a "${styleMetadata.closingChallengeType}" challenge
+* TONE: Maintain a "${styleMetadata.toneDescriptor}" tone throughout
+${styleMetadata.transitionStyle ? `* TRANSITIONS: Use "${styleMetadata.transitionStyle}" transitions between sections` : ''}
 
 This ensures continuity across all lessons in this series.
 Do NOT vary these elements - keep them consistent with the established style.
@@ -167,7 +167,7 @@ Do NOT vary these elements - keep them consistent with the established style.
 
 /**
  * Build lesson continuity context from previous lesson summaries.
- * Tells Claude what has been covered so far — prevents redundancy,
+ * Tells Claude what has been covered so far -- prevents redundancy,
  * enables callbacks ("Last week we discussed...").
  */
 export function buildSeriesContinuityContext(
@@ -179,31 +179,31 @@ export function buildSeriesContinuityContext(
   if (!summaries || summaries.length === 0) return '';
 
   const summaryLines = summaries.map(s =>
-    `  Lesson ${s.lessonNumber}: "${s.passage}" — ${s.mainPoint} (Key illustration: ${s.keyIllustration})`
+    `  Lesson ${s.lessonNumber}: "${s.passage}" -- ${s.mainPoint} (Key illustration: ${s.keyIllustration})`
   ).join('\n');
 
   const isFinal = currentLessonNumber === totalLessons;
 
   return `
 -------------------------------------------------------------------------------
-SERIES CONTINUITY: "${seriesName}" — Lesson ${currentLessonNumber} of ${totalLessons}
+SERIES CONTINUITY: "${seriesName}" -- Lesson ${currentLessonNumber} of ${totalLessons}
 -------------------------------------------------------------------------------
 
 PREVIOUS LESSONS IN THIS SERIES:
 ${summaryLines}
 
 CONTINUITY REQUIREMENTS:
-• Reference previous lessons naturally: "Last week we explored..." or "Building on our discussion of..."
-• Do NOT repeat key illustrations or main points already used
-• Build on previous applications — show progression in spiritual growth
-• Use the same vocabulary and terminology established in earlier lessons
+* Reference previous lessons naturally: "Last week we explored..." or "Building on our discussion of..."
+* Do NOT repeat key illustrations or main points already used
+* Build on previous applications -- show progression in spiritual growth
+* Use the same vocabulary and terminology established in earlier lessons
 ${isFinal ? `
 FINAL LESSON INSTRUCTIONS:
-• This is the LAST lesson in the "${seriesName}" series
-• Include a brief series recap in Section 1 (Opening Hook)
-• In Section 7 (Application), tie together themes from ALL lessons
-• Close with a cumulative challenge that synthesizes the entire series journey
-• Reference specific moments from previous lessons as callback anchors
+* This is the LAST lesson in the "${seriesName}" series
+* Include a brief series recap in Section 1 (Opening Hook)
+* In Section 7 (Application), tie together themes from ALL lessons
+* Close with a cumulative challenge that synthesizes the entire series journey
+* Reference specific moments from previous lessons as callback anchors
 ` : ''}`;
 }
 

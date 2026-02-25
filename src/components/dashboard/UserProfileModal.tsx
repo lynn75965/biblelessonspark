@@ -188,7 +188,7 @@ export function UserProfileModal({
               />
             </div>
 
-            {/* Member ID & Role — side by side */}
+            {/* Member ID & Role -- side by side */}
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1">
                 <Label className="text-xs text-muted-foreground">Member ID</Label>

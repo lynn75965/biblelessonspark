@@ -1,7 +1,7 @@
 // ============================================================
 // DisconnectNetworkDialog.tsx
 // Confirmation dialog for disconnecting from a parent network
-// SSOT Source: organizationConfig.ts → DISCONNECT_RULES
+// SSOT Source: organizationConfig.ts -> DISCONNECT_RULES
 //
 // Shows clearly:
 //   - What CHANGES: parent loses visibility, card removed
@@ -33,7 +33,7 @@ interface DisconnectNetworkDialogProps {
   orgName: string;
   /** Name of the parent org (network being left) */
   parentOrgName: string;
-  /** Who is initiating — affects the messaging */
+  /** Who is initiating -- affects the messaging */
   initiator: 'child' | 'parent';
   /** True while disconnect is in progress */
   loading?: boolean;
@@ -66,7 +66,7 @@ export function DisconnectNetworkDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
 
-        {/* Impact explanation — SSOT: DISCONNECT_RULES */}
+        {/* Impact explanation -- SSOT: DISCONNECT_RULES */}
         <div className="space-y-3 my-2">
           {/* What changes */}
           <div className="space-y-1.5">

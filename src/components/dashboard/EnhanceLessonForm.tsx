@@ -1950,7 +1950,7 @@ export function EnhanceLessonForm({
                   <span className="text-sm font-semibold text-foreground">Choose a Teaching Shape</span>
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  Reshape this lesson into a different pedagogical format. All content is preserved — only the structure changes.
+                  Reshape this lesson into a different pedagogical format. All content is preserved -- only the structure changes.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select value={selectedShapeForReshape} onValueChange={setSelectedShapeForReshape}>

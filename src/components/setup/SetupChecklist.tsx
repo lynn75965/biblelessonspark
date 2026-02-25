@@ -340,7 +340,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
                 <Sparkles className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-2">
-                Congratulations! 🎉
+                Congratulations! 
               </h3>
               <p className="text-muted-foreground mb-4">
                 You're all set to start creating amazing Baptist Bible study lessons!

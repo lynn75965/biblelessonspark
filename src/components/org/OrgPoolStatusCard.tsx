@@ -255,7 +255,7 @@ export function OrgPoolStatusCard({
               Lesson Pool
             </CardTitle>
             <CardDescription>
-              {tierName} • {organizationName}
+              {tierName} * {organizationName}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -415,7 +415,7 @@ function LessonPackDialog({
               <div>
                 <p className="font-medium">{pack.displayName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {pack.lessonsIncluded} lessons • {pack.description}
+                  {pack.lessonsIncluded} lessons * {pack.description}
                 </p>
               </div>
               <Button
@@ -520,7 +520,7 @@ function SubscriptionDialog({
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {tier.lessonsLimit} lessons/month • {tier.bestFor}
+                    {tier.lessonsLimit} lessons/month * {tier.bestFor}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
