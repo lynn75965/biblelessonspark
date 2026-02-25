@@ -129,7 +129,7 @@ export function UserProfileModal({
         .update({
           full_name: sanitizedName,
           preferred_language: preferredLanguage,
-          default_bible_version: defaultBibleVersion,
+          default_bible_version: defaultBibleVersion?.toLowerCase() ?? null,
           theology_profile_id: theologyProfileId,
         })
         .eq('id', user.id);
