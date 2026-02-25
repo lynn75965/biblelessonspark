@@ -516,7 +516,7 @@ export function EnhanceLessonForm({
       const version = getBibleVersion(bibleVersionId);
       parts.push(version?.abbreviation || "");
     }
-    return parts.filter(Boolean).join(" ? ");
+    return parts.filter(Boolean).join(" | ");
   };
 
   const getStep3Summary = (): string => {
@@ -524,7 +524,7 @@ export function EnhanceLessonForm({
     if (teachingStyle) parts.push(teachingStyle);
     if (learningStyle) parts.push(learningStyle);
     if (lessonLength) parts.push(lessonLength);
-    return parts.filter(Boolean).join(" ? ") || "Optional customizations";
+    return parts.filter(Boolean).join(" | ") || "Optional customizations";
   };
 
   // ============================================================================
@@ -1453,7 +1453,7 @@ export function EnhanceLessonForm({
             data-tour="workspace-step2"
             stepNumber={2}
             title={<>Set Your <GoldAccent>Teaching Context</GoldAccent></>}
-            description="Tell us about your class ? age group, theology profile, and Bible version. We'll tailor the lesson to fit."
+            description="Tell us about your class -- age group, theology profile, and Bible version. We'll tailor the lesson to fit."
             isExpanded={expandedStep === 2}
             isComplete={step2Complete}
             isLocked={!step1Complete}

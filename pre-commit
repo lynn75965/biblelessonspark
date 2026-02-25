@@ -1,0 +1,74 @@
+#!/bin/sh
+#
+# BibleLessonSpark -- Pre-commit Unicode Guard
+# =============================================
+# Prevents non-ASCII characters from entering .ts/.tsx source files.
+# Install: copy to .git/hooks/pre-commit and make executable.
+#
+# This permanently prevents the recurring Unicode corruption bug
+# where special characters (em-dashes, bullets, checkmarks, arrows)
+# get corrupted into ? or garbled text across editors and encodings.
+
+echo "Checking for non-ASCII characters in staged files..."
+
+# Get list of staged .ts and .tsx files
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx)$')
+
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+FOUND_ISSUES=0
+
+for FILE in $STAGED_FILES; do
+    # Skip node_modules and dist
+    case "$FILE" in
+        node_modules/*|dist/*|.netlify/*) continue ;;
+    esac
+
+    # Find non-ASCII characters
+    RESULTS=$(grep -Pn '[^\x00-\x7F]' "$FILE" 2>/dev/null)
+    
+    if [ -n "$RESULTS" ]; then
+        if [ "$FOUND_ISSUES" -eq 0 ]; then
+            echo ""
+            echo "=========================================="
+            echo "  BLOCKED: Non-ASCII characters detected!"
+            echo "=========================================="
+            echo ""
+            echo "BibleLessonSpark uses ASCII-only source files"
+            echo "to prevent recurring Unicode corruption."
+            echo ""
+        fi
+        
+        echo "--- $FILE ---"
+        echo "$RESULTS" | head -10
+        echo ""
+        FOUND_ISSUES=1
+    fi
+done
+
+if [ "$FOUND_ISSUES" -eq 1 ]; then
+    echo "=========================================="
+    echo "  HOW TO FIX:"
+    echo "=========================================="
+    echo ""
+    echo "  Replace:  --  instead of em-dash"
+    echo "  Replace:  ->  instead of arrow"
+    echo "  Replace:  *   instead of bullet"
+    echo "  Replace:  |   instead of separator"
+    echo "  Replace:  [x] instead of checkmark"
+    echo ""
+    echo "  For copyright/legal text, use Unicode"
+    echo "  escape sequences: \\u00A9 \\u00AE \\u2122"
+    echo ""
+    echo "  Or run: python3 fix_unicode_permanent.py ."
+    echo ""
+    echo "  To bypass (emergency only):"
+    echo "    git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+echo "All staged files are ASCII-clean."
+exit 0

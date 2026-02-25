@@ -38,5 +38,5 @@ Write-Host $commitResult -ForegroundColor Gray
 Write-Host "`nPushing to origin/$PRODUCTION_BRANCH..." -ForegroundColor Gray
 git push origin $PRODUCTION_BRANCH
 
-Write-Host "`n? Deployed to $PRODUCTION_BRANCH" -ForegroundColor Green
+Write-Host "`n[OK] Deployed to $PRODUCTION_BRANCH" -ForegroundColor Green
 Write-Host "Wait 1-2 minutes for Netlify build, then test at https://biblelessonspark.com" -ForegroundColor Cyan
