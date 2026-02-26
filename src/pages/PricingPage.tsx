@@ -3,6 +3,8 @@
 // Location: src/pages/PricingPage.tsx
 // Prices come FROM Supabase database (synced via Stripe webhook)
 // Colors: BibleLessonSpark palette (Forest Green, Antique Gold, Burgundy, Warm Cream)
+//
+// 2026-02-26: Added email confirmation reminder before checkout
 // ============================================================
 
 import React, { useState } from 'react';
@@ -12,13 +14,20 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X, Sparkles, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Check, X, Sparkles, Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
 import { STRIPE_INDIVIDUAL, UPGRADE_PROMPTS, formatPrice, SubscriptionTier, DEFAULT_BILLING_INTERVAL } from '@/constants/pricingConfig';
 import { ROUTES } from '@/constants/routes';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function PricingPage() {
   const navigate = useNavigate();
@@ -29,6 +38,7 @@ export default function PricingPage() {
   
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>(DEFAULT_BILLING_INTERVAL);
   const [loadingPlan, setLoadingPlan] = useState<SubscriptionTier | null>(null);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
 
   const paymentStatus = searchParams.get('payment');
 
@@ -52,7 +62,13 @@ export default function PricingPage() {
       return;
     }
 
-    setLoadingPlan(tier);
+    // Show email confirmation dialog before proceeding to checkout
+    setShowEmailConfirm(true);
+  };
+
+  const proceedToCheckout = async () => {
+    setShowEmailConfirm(false);
+    setLoadingPlan('personal');
     try {
       const priceId = billingInterval === 'year'
         ? STRIPE_INDIVIDUAL.personal.prices.annual
@@ -337,7 +353,50 @@ export default function PricingPage() {
         </div>
       </main>
       <Footer />
+
+      {/* Email Confirmation Dialog */}
+      <Dialog open={showEmailConfirm} onOpenChange={setShowEmailConfirm}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Mail className="h-5 w-5 text-primary" />
+              Confirm Your Account Email
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Please verify this is the correct email for your subscription.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <p className="text-sm text-muted-foreground mb-2">
+              Your subscription will be linked to:
+            </p>
+            <p className="text-lg font-semibold text-primary break-all">
+              {user?.email}
+            </p>
+            <p className="text-sm text-muted-foreground mt-3">
+              Make sure this is the email you use to log in to BibleLessonSpark.
+              If you need to use a different email, please log out and sign in 
+              with the correct email before upgrading.
+            </p>
+          </div>
+          <div className="flex gap-3 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowEmailConfirm(false)} 
+              className="flex-1"
+            >
+              Go Back
+            </Button>
+            <Button
+              onClick={proceedToCheckout}
+              className="flex-1 bg-primary hover:bg-primary-hover"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Yes, Continue to Checkout
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

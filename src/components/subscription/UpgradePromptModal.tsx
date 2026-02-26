@@ -1,6 +1,8 @@
 // ============================================================
 // BibleLessonSpark - UPGRADE PROMPT MODAL (SSOT-COMPLIANT)
 // Location: src/components/subscription/UpgradePromptModal.tsx
+//
+// 2026-02-26: Added email confirmation step before checkout
 // ============================================================
 
 import React, { useState } from 'react';
@@ -13,7 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Sparkles, Loader2 } from 'lucide-react';
+import { Check, X, Sparkles, Loader2, Mail } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
 import { UPGRADE_PROMPTS, formatPrice } from '@/constants/pricingConfig';
@@ -29,16 +32,24 @@ export function UpgradePromptModal({
   onClose, 
   trigger = 'limit_reached' 
 }: UpgradePromptModalProps) {
+  const { user } = useAuth();
   const { startCheckout, lessonsUsed, lessonsLimit, resetDate, tier } = useSubscription();
   const { freePlan, personalPlan, isLoading: plansLoading } = usePricingPlans();
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
   const [isLoading, setIsLoading] = useState(false);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
 
   const prompt = trigger === 'limit_reached' 
     ? UPGRADE_PROMPTS.limitReached 
     : UPGRADE_PROMPTS.featureTeaser;
 
-  const handleUpgrade = async () => {
+  const handleUpgradeClick = () => {
+    // Show email confirmation before proceeding to Stripe
+    setShowEmailConfirm(true);
+  };
+
+  const proceedToCheckout = async () => {
+    setShowEmailConfirm(false);
     setIsLoading(true);
     try {
       const priceId = billingInterval === 'year'
@@ -116,6 +127,64 @@ export function UpgradePromptModal({
   const annualMonthlyPrice = formatPlanPrice(personalPlan, 'year');
   const annualSavings = getAnnualSavings(personalPlan);
   const annualSavingsDisplay = formatPrice(annualSavings);
+
+  // Email confirmation step
+  if (showEmailConfirm) {
+    return (
+      <Dialog open={isOpen} onOpenChange={() => { setShowEmailConfirm(false); onClose(); }}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Mail className="h-5 w-5 text-primary" />
+              Confirm Your Account Email
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Please verify this is the correct email for your subscription.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <p className="text-sm text-muted-foreground mb-2">
+              Your subscription will be linked to:
+            </p>
+            <p className="text-lg font-semibold text-primary break-all">
+              {user?.email}
+            </p>
+            <p className="text-sm text-muted-foreground mt-3">
+              Make sure this is the email you use to log in to BibleLessonSpark.
+              If you need to use a different email, please log out and sign in 
+              with the correct email before upgrading.
+            </p>
+          </div>
+          <div className="flex gap-3 mt-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowEmailConfirm(false)} 
+              className="flex-1"
+            >
+              Go Back
+            </Button>
+            <Button
+              onClick={proceedToCheckout}
+              disabled={isLoading}
+              className="flex-1 bg-sky-600 hover:bg-sky-700"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Yes, Continue to Checkout
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -246,7 +315,7 @@ export function UpgradePromptModal({
             Maybe Later
           </Button>
           <Button
-            onClick={handleUpgrade}
+            onClick={handleUpgradeClick}
             disabled={isLoading}
             className="flex-1 bg-sky-600 hover:bg-sky-700"
           >
@@ -271,5 +340,3 @@ export function UpgradePromptModal({
     </Dialog>
   );
 }
-
-
