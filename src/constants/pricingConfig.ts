@@ -6,7 +6,7 @@
 // - Frontend drives backend: these constants are authoritative
 // - Backend (Supabase) validates against values defined here
 // - SSOT: all Stripe IDs, tier definitions, and section mappings
-//   live here and are imported everywhere -- never duplicated
+//   live here and are imported everywhere \u2014 never duplicated
 //
 // STRIPE CATALOG (complete as of 2026-02-21):
 // - 1 Individual subscription: Personal
@@ -14,11 +14,14 @@
 // - 3 Lesson Packs (one-time): Small, Medium, Large
 // - 2 Onboarding options (one-time): Guided Setup, White Glove
 //
-// Last Updated: 2026-02-21
+// Mirror: supabase/functions/_shared/pricingConfig.ts
+// DO NOT EDIT MIRROR DIRECTLY
+//
+// Last Updated: 2026-02-26
 // ============================================================
 
 // ============================================================
-// STRIPE IDS -- INDIVIDUAL SUBSCRIPTION
+// STRIPE IDS \u2014 INDIVIDUAL SUBSCRIPTION
 // ============================================================
 
 export const STRIPE_INDIVIDUAL = {
@@ -33,7 +36,7 @@ export const STRIPE_INDIVIDUAL = {
 } as const;
 
 // ============================================================
-// STRIPE IDS -- ORGANIZATION SUBSCRIPTIONS
+// STRIPE IDS \u2014 ORGANIZATION SUBSCRIPTIONS
 // ============================================================
 
 export const STRIPE_ORG = {
@@ -72,7 +75,7 @@ export const STRIPE_ORG = {
 } as const;
 
 // ============================================================
-// STRIPE IDS -- LESSON PACKS (ONE-TIME PURCHASES)
+// STRIPE IDS \u2014 LESSON PACKS (ONE-TIME PURCHASES)
 // ============================================================
 
 export const STRIPE_LESSON_PACKS = {
@@ -97,7 +100,7 @@ export const STRIPE_LESSON_PACKS = {
 } as const;
 
 // ============================================================
-// STRIPE IDS -- ONBOARDING OPTIONS (ONE-TIME PURCHASES)
+// STRIPE IDS \u2014 ONBOARDING OPTIONS (ONE-TIME PURCHASES)
 // ============================================================
 
 export const STRIPE_ONBOARDING = {
@@ -115,7 +118,7 @@ export const STRIPE_ONBOARDING = {
 
 // ============================================================
 // SUBSCRIPTION TIER TYPE
-// Matches database enum exactly -- frontend is authoritative
+// Matches database enum exactly \u2014 frontend is authoritative
 // NOTE: 'admin' is a ROLE (see accessControl.ts), not a tier
 // ============================================================
 
@@ -153,9 +156,9 @@ export const TIER_LESSON_LIMITS: Record<SubscriptionTier, number> = {
 } as const;
 
 // ============================================================
-// SECTION ARRAYS -- SINGLE SOURCE OF TRUTH
+// SECTION ARRAYS \u2014 SINGLE SOURCE OF TRUTH
 // These arrays define which lesson sections each tier receives.
-// Import these constants -- NEVER hardcode section numbers.
+// Import these constants \u2014 NEVER hardcode section numbers.
 //
 // FREE TIER SECTIONS: 1, 5, 8
 //   Section 1: Lens + Lesson Overview
@@ -204,7 +207,7 @@ export const PRICING_DISPLAY = {
     displayText: 'Free',
     sectionsIncluded: 3,
     lessonsPerMonth: TIER_LESSON_LIMITS.free,
-    complimentaryFullLessons: 3,
+    complimentaryFullLessons: 2,
   },
   personal: {
     monthly: {
@@ -258,7 +261,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
 
 export const UPGRADE_PROMPTS = {
   limitReached: {
-    title: "You've reached your 30-day lesson limit",
+    title: "You've reached your monthly limit",
     description: "Upgrade for more lessons and complete 8-section lessons.",
   },
   featureTeaser: {
@@ -311,7 +314,45 @@ export function isPaidTier(tier: SubscriptionTier): boolean {
 }
 
 // ============================================================
-// DATABASE TYPE -- matches Supabase pricing_plans table
+// PRICE-TO-TIER RESOLVER (SSOT)
+// Stripe webhook and Edge Functions use these to map Stripe
+// price IDs to subscription tiers and lesson limits.
+// NEVER query tier_config or pricing_plans tables for this.
+// Added: 2026-02-26
+// ============================================================
+
+export function resolveTierFromPriceId(priceId: string): SubscriptionTier | null {
+  // Individual subscriptions
+  const personal = STRIPE_INDIVIDUAL.personal;
+  if (priceId === personal.prices.monthly || priceId === personal.prices.annual) {
+    return 'personal';
+  }
+  // Organization subscriptions
+  for (const [tier, config] of Object.entries(STRIPE_ORG)) {
+    if (priceId === config.prices.monthly || priceId === config.prices.annual) {
+      return tier as SubscriptionTier;
+    }
+  }
+  return null;
+}
+
+export function getLessonLimitForPriceId(priceId: string): number {
+  // Individual
+  const personal = STRIPE_INDIVIDUAL.personal;
+  if (priceId === personal.prices.monthly || priceId === personal.prices.annual) {
+    return personal.lessonsPerPeriod;
+  }
+  // Organization
+  for (const config of Object.values(STRIPE_ORG)) {
+    if (priceId === config.prices.monthly || priceId === config.prices.annual) {
+      return config.lessonsPerPeriod;
+    }
+  }
+  return TIER_LESSON_LIMITS.free;
+}
+
+// ============================================================
+// DATABASE TYPE \u2014 matches Supabase pricing_plans table
 // ============================================================
 
 export interface PricingPlanFromDB {

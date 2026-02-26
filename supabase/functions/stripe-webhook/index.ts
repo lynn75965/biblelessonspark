@@ -3,14 +3,25 @@
 // Location: supabase/functions/stripe-webhook/index.ts
 // ============================================================
 // Handles:
-//   1. Personal subscription checkouts (existing)
+//   1. Personal subscription checkouts
 //   2. Org subscription checkouts for existing orgs
-//   3. Self-service org creation (NEW) - creates org after payment
+//   3. Self-service org creation - creates org after payment
+//
+// SSOT COMPLIANCE (Feb 26, 2026):
+//   - Tier resolution uses resolveTierFromPriceId from pricingConfig.ts
+//   - NEVER queries tier_config or pricing_plans for tier mapping
+//   - Fallback: resolves user by Stripe customer email when
+//     metadata.user_id is missing
 // ============================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import {
+  resolveTierFromPriceId,
+  TIER_LESSON_LIMITS,
+  type SubscriptionTier,
+} from '../_shared/pricingConfig.ts';
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -102,6 +113,52 @@ serve(async (req) => {
 });
 
 // ============================================================
+// HELPER: Find user ID from Stripe customer
+// Tries: 1) user_subscriptions by stripe_customer_id
+//        2) profiles by email (from Stripe customer object)
+// This ensures webhook works even without metadata.user_id
+// ============================================================
+async function resolveUserIdFromCustomer(
+  supabase: any,
+  customerId: string
+): Promise<string | null> {
+  // Try 1: Look up by stripe_customer_id in user_subscriptions
+  const { data: existingSub } = await supabase
+    .from("user_subscriptions")
+    .select("user_id")
+    .eq("stripe_customer_id", customerId)
+    .single();
+
+  if (existingSub?.user_id) {
+    console.log(`Resolved user by stripe_customer_id: ${existingSub.user_id}`);
+    return existingSub.user_id;
+  }
+
+  // Try 2: Get email from Stripe customer, look up in profiles
+  try {
+    const customer = await stripe.customers.retrieve(customerId);
+    if (customer && !customer.deleted && customer.email) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", customer.email)
+        .single();
+
+      if (profile?.id) {
+        console.log(`Resolved user by Stripe customer email (${customer.email}): ${profile.id}`);
+        return profile.id;
+      } else {
+        console.error(`No profile found for Stripe customer email: ${customer.email}`);
+      }
+    }
+  } catch (err) {
+    console.error("Error retrieving Stripe customer:", err);
+  }
+
+  return null;
+}
+
+// ============================================================
 // CHECKOUT COMPLETE HANDLER
 // ============================================================
 async function handleCheckoutComplete(supabase: any, session: Stripe.Checkout.Session) {
@@ -129,11 +186,18 @@ async function handleCheckoutComplete(supabase: any, session: Stripe.Checkout.Se
   }
 
   // ============================================================
-  // PERSONAL SUBSCRIPTION MODE (original behavior)
+  // PERSONAL SUBSCRIPTION MODE
+  // Resolve user from metadata OR by Stripe customer email
   // ============================================================
-  const userId = metadata.user_id;
+  let userId = metadata.user_id;
+  
+  if (!userId && session.customer) {
+    console.log("No user_id in metadata - resolving from Stripe customer");
+    userId = await resolveUserIdFromCustomer(supabase, session.customer as string);
+  }
+  
   if (!userId) {
-    console.error("No user_id in checkout session metadata");
+    console.error("Could not resolve user_id from metadata or Stripe customer");
     return;
   }
   
@@ -180,16 +244,10 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   
-  // Find org tier from price ID
+  // Resolve org tier from price ID using SSOT
   const priceId = subscription.items.data[0]?.price.id;
-  const { data: orgTierConfig } = await supabase
-    .from("org_tier_config")
-    .select("tier, lessons_limit")
-    .or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_annual.eq.${priceId}`)
-    .single();
-
-  const orgTier = orgTierConfig?.tier || "org_starter";
-  const lessonsLimit = orgTierConfig?.lessons_limit || 30;
+  const orgTier = resolveTierFromPriceId(priceId || '') || 'starter';
+  const lessonsLimit = TIER_LESSON_LIMITS[orgTier as SubscriptionTier] || 25;
 
   // 1. Create the organization
   const { data: newOrg, error: orgError } = await supabase
@@ -267,14 +325,8 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
     const personalPriceId = subscription.items.data[1]?.price.id;
     
     if (personalPriceId) {
-      // Find personal tier from price ID
-      const { data: personalTierConfig } = await supabase
-        .from("tier_config")
-        .select("tier")
-        .or(`stripe_price_id_monthly.eq.${personalPriceId},stripe_price_id_annual.eq.${personalPriceId}`)
-        .single();
-
-      const personalTier = personalTierConfig?.tier || "subscribed";
+      const personalTier = resolveTierFromPriceId(personalPriceId) || 'personal';
+      const personalLimit = TIER_LESSON_LIMITS[personalTier] || 20;
 
       await supabase.from("user_subscriptions").upsert({
         user_id: userId,
@@ -286,8 +338,8 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
         billing_interval: billingInterval === "annual" ? "year" : "month",
         current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        lessons_used_this_period: 0,
-        period_reset_at: new Date().toISOString(),
+        lessons_limit: personalLimit,
+        lessons_used: 0,
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
 
@@ -329,20 +381,15 @@ async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout
   const subscription = await stripe.subscriptions.retrieve(subscriptionId);
   const priceId = subscription.items.data[0]?.price.id;
 
-  // Get tier config for lessons limit
-  const { data: tierConfig } = await supabase
-    .from("org_tier_config")
-    .select("lessons_limit")
-    .eq("tier", tier)
-    .single();
-
-  const lessonsLimit = tierConfig?.lessons_limit || 30;
+  // Use SSOT for lesson limit
+  const resolvedTier = resolveTierFromPriceId(priceId || '') || tier || 'starter';
+  const lessonsLimit = TIER_LESSON_LIMITS[resolvedTier as SubscriptionTier] || 25;
 
   // Update organization
   await supabase
     .from("organizations")
     .update({
-      subscription_tier: tier,
+      subscription_tier: resolvedTier,
       subscription_status: "active",
       billing_interval: billingInterval,
       stripe_customer_id: session.customer as string,
@@ -358,7 +405,7 @@ async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout
     stripe_customer_id: session.customer as string,
     stripe_subscription_id: subscriptionId,
     stripe_price_id: priceId,
-    tier: tier,
+    tier: resolvedTier,
     status: "active",
     billing_interval: billingInterval === "annual" ? "year" : "month",
     current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -367,7 +414,7 @@ async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout
     lessons_used_this_period: 0,
   }, { onConflict: "organization_id" });
 
-  console.log(`Existing org subscription updated: org=${orgId}, tier=${tier}`);
+  console.log(`Existing org subscription updated: org=${orgId}, tier=${resolvedTier}`);
 }
 
 // ============================================================
@@ -383,15 +430,14 @@ async function handleSubscriptionUpdate(supabase: any, subscription: Stripe.Subs
     return;
   }
 
-  // Personal subscription update
-  const { data: existingSub } = await supabase
-    .from("user_subscriptions")
-    .select("user_id")
-    .eq("stripe_customer_id", subscription.customer)
-    .single();
+  // Personal subscription update - resolve user
+  const customerId = subscription.customer as string;
+  const userId = await resolveUserIdFromCustomer(supabase, customerId);
     
-  if (existingSub?.user_id) {
-    await updateUserSubscription(supabase, existingSub.user_id, subscription.customer as string, subscription);
+  if (userId) {
+    await updateUserSubscription(supabase, userId, customerId, subscription);
+  } else {
+    console.error("Could not resolve user for subscription update:", subscription.id);
   }
 }
 
@@ -430,12 +476,13 @@ async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Su
     return;
   }
 
-  // Personal subscription cancellation (original behavior)
+  // Personal subscription cancellation
   const { error } = await supabase
     .from("user_subscriptions")
     .update({
       tier: "free",
       status: "canceled",
+      lessons_limit: TIER_LESSON_LIMITS.free,
       canceled_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -490,13 +537,12 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
     return;
   }
 
-  // Personal subscription payment (original behavior)
+  // Personal subscription payment
   await supabase
     .from("user_subscriptions")
     .update({
       status: "active",
-      lessons_used_this_period: 0,
-      period_reset_at: new Date().toISOString(),
+      lessons_used: 0,
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", invoice.subscription);
@@ -531,7 +577,7 @@ async function handlePaymentFailed(supabase: any, invoice: Stripe.Invoice) {
     return;
   }
 
-  // Personal subscription (original behavior)
+  // Personal subscription
   await supabase
     .from("user_subscriptions")
     .update({ status: "past_due", updated_at: new Date().toISOString() })
@@ -540,33 +586,22 @@ async function handlePaymentFailed(supabase: any, invoice: Stripe.Invoice) {
 
 // ============================================================
 // UPDATE USER SUBSCRIPTION (personal subscriptions)
+// SSOT: Uses resolveTierFromPriceId from pricingConfig.ts
+// NEVER queries tier_config or pricing_plans for tier mapping
 // ============================================================
-async function updateUserSubscription(supabase: any, userId: string, customerId: string, subscription: Stripe.Subscription) {
+async function updateUserSubscription(
+  supabase: any,
+  userId: string,
+  customerId: string,
+  subscription: Stripe.Subscription
+) {
   const priceId = subscription.items.data[0]?.price.id;
   
-  // Try tier_config first (SSOT), then fall back to pricing_plans
-  let tier = "subscribed";
-  
-  const { data: tierConfig } = await supabase
-    .from("tier_config")
-    .select("tier")
-    .or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_annual.eq.${priceId}`)
-    .single();
+  // SSOT: Resolve tier from price ID using pricingConfig.ts
+  const tier: SubscriptionTier = resolveTierFromPriceId(priceId || '') || 'personal';
+  const lessonsLimit = TIER_LESSON_LIMITS[tier] || 20;
 
-  if (tierConfig?.tier) {
-    tier = tierConfig.tier;
-  } else {
-    // Fallback to pricing_plans for backward compatibility
-    const { data: plan } = await supabase
-      .from("pricing_plans")
-      .select("tier")
-      .or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_annual.eq.${priceId}`)
-      .single();
-    
-    if (plan?.tier) {
-      tier = plan.tier;
-    }
-  }
+  console.log(`SSOT tier resolution: priceId=${priceId} -> tier=${tier}, limit=${lessonsLimit}`);
 
   const status = subscription.status === "active" ? "active" : 
                  subscription.status === "trialing" ? "trialing" :
@@ -574,7 +609,7 @@ async function updateUserSubscription(supabase: any, userId: string, customerId:
   const interval = subscription.items.data[0]?.price.recurring?.interval;
   const billingInterval = interval === "year" ? "year" : "month";
 
-  await supabase.from("user_subscriptions").upsert({
+  const { error: upsertError } = await supabase.from("user_subscriptions").upsert({
     user_id: userId,
     stripe_customer_id: customerId,
     stripe_subscription_id: subscription.id,
@@ -584,11 +619,25 @@ async function updateUserSubscription(supabase: any, userId: string, customerId:
     billing_interval: billingInterval,
     current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
     current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-    lessons_used_this_period: 0,
-    period_reset_at: new Date().toISOString(),
+    lessons_limit: lessonsLimit,
+    lessons_used: 0,
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 
-  await supabase.from("profiles").update({ subscription_tier: tier }).eq("id", userId);
-  console.log(`Updated user ${userId} to tier: ${tier}`);
+  if (upsertError) {
+    console.error(`Error upserting user_subscriptions for ${userId}:`, upsertError);
+    return;
+  }
+
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .update({ subscription_tier: tier })
+    .eq("id", userId);
+
+  if (profileError) {
+    console.error(`Error updating profile tier for ${userId}:`, profileError);
+    return;
+  }
+
+  console.log(`Updated user ${userId}: tier=${tier}, limit=${lessonsLimit}, interval=${billingInterval}`);
 }
