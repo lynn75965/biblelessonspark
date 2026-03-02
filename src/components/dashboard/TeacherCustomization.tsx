@@ -891,6 +891,11 @@ export function TeacherCustomization({
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
                       {selectedSeries.lesson_summaries?.length || 0}/{selectedSeries.total_lessons} done
                     </span>
+
+                  {/* Series Export Button (Phase 28) */}
+                  <div className="mb-3">
+                    <SeriesExportButton series={selectedSeries} tier={tier} />
+                  </div>
                   </div>
 
                   {/* Use Series Style toggle - only for Lesson 2+ when style exists */}
