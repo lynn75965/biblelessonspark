@@ -284,6 +284,10 @@ export default function Dashboard() {
               <Sparkles className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Devotional Library</span>
             </TabsTrigger>
+            <TabsTrigger value="series-library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <BookOpen className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Series Library</span>
+            </TabsTrigger>
 </TabsList>
 
           <TabsContent value="enhance" className="mt-6 relative z-0">
@@ -358,6 +362,10 @@ export default function Dashboard() {
           <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
           </TabsContent>
+
+          <TabsContent value="series-library" className="mt-6 relative z-0">
+            <SeriesLibrary />
+          </TabsContent>
 </Tabs>
       </main>
 
@@ -409,7 +417,6 @@ export default function Dashboard() {
     </div>
   );
 }
-
 
 
 
