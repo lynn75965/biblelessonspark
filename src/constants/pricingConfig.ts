@@ -17,7 +17,10 @@
 // Mirror: supabase/functions/_shared/pricingConfig.ts
 // DO NOT EDIT MIRROR DIRECTLY
 //
-// Last Updated: 2026-02-26
+// CHANGELOG:
+//   2026-03-02: Added 'Series Curriculum Export' to PLAN_FEATURES
+//
+// Last Updated: 2026-03-02
 // ============================================================
 
 // ============================================================
@@ -231,6 +234,7 @@ export const PRICING_DISPLAY = {
 
 // ============================================================
 // FEATURE DEFINITIONS FOR PLAN COMPARISON DISPLAY
+// CHANGELOG 2026-03-02: Added 'Series Curriculum Export'
 // ============================================================
 
 export interface PlanFeature {
@@ -253,6 +257,7 @@ export const PLAN_FEATURES: PlanFeature[] = [
   { name: 'All Age Groups',                      includedInFree: true,  includedInPaid: true  },
   { name: 'All Theology Profiles',               includedInFree: true,  includedInPaid: true  },
   { name: 'All Bible Versions',                  includedInFree: true,  includedInPaid: true  },
+  { name: 'Series Curriculum Export',            includedInFree: false, includedInPaid: true  },
 ] as const;
 
 // ============================================================

@@ -13,6 +13,9 @@
 // To gate a feature:            set requiredTier to 'personal'
 // To open a feature to all:     set requiredTier to 'free'
 // To disable entirely:          set enabled to false
+//
+// CHANGELOG:
+//   2026-03-02: Added 'seriesExport' (Personal Plan, Phase A+B)
 // ============================================================================
 
 import { SubscriptionTier, isPaidTier } from '@/constants/pricingConfig';
@@ -77,6 +80,13 @@ export const FEATURE_FLAGS = {
     enabled:        true,
     label:          'Parable Generator',
     upgradePrompt:  '',
+  },
+
+  seriesExport: {
+    requiredTier:  'personal',
+    enabled:        true,
+    label:          'Series Curriculum Export',
+    upgradePrompt:  'Upgrade to Personal Plan to export your series as a complete curriculum document.',
   },
 
 } as const satisfies Record<string, FeatureFlag>;

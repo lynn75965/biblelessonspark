@@ -78,6 +78,8 @@ import {
   SERIES_LIMITS,
   getNextLessonNumber,
 } from "@/constants/seriesConfig";
+import { SeriesExportButton } from '@/components/SeriesExport/SeriesExportButton';
+import { useSubscription } from '@/hooks/useSubscription';
 
 // ============================================================================
 // STYLE ELEMENT DISPLAY LABELS
@@ -391,6 +393,7 @@ export function TeacherCustomization({
   const [showNewSeriesForm, setShowNewSeriesForm] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState("");
   const [newSeriesTotalLessons, setNewSeriesTotalLessons] = useState(4);
+  const { tier } = useSubscription();
 
   const handleCreateSeries = async () => {
     const result = await onCreateSeries(newSeriesName, newSeriesTotalLessons);
