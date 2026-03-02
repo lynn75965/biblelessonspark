@@ -92,6 +92,7 @@ export function SeriesExportButton({
       <button
         type="button"
         onClick={() => setIsModalOpen(true)}
+        title="Click to choose your export format (Word or PDF) and download your complete series as a printable curriculum document"
         aria-label={`${SERIES_EXPORT_UI.buttonLabel}: ${series.series_name}`}
         className={`
           inline-flex items-center gap-2

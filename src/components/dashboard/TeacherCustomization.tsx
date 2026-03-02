@@ -78,8 +78,6 @@ import {
   SERIES_LIMITS,
   getNextLessonNumber,
 } from "@/constants/seriesConfig";
-import { SeriesExportButton } from '@/components/SeriesExport/SeriesExportButton';
-import { useSubscription } from '@/hooks/useSubscription';
 
 // ============================================================================
 // STYLE ELEMENT DISPLAY LABELS
@@ -393,7 +391,6 @@ export function TeacherCustomization({
   const [showNewSeriesForm, setShowNewSeriesForm] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState("");
   const [newSeriesTotalLessons, setNewSeriesTotalLessons] = useState(4);
-  const { tier } = useSubscription();
 
   const handleCreateSeries = async () => {
     const result = await onCreateSeries(newSeriesName, newSeriesTotalLessons);
@@ -891,11 +888,6 @@ export function TeacherCustomization({
                     <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-medium">
                       {selectedSeries.lesson_summaries?.length || 0}/{selectedSeries.total_lessons} done
                     </span>
-
-                  {/* Series Export Button (Phase 28) */}
-                  <div className="mb-3">
-                    <SeriesExportButton series={selectedSeries} tier={tier} />
-                  </div>
                   </div>
 
                   {/* Use Series Style toggle - only for Lesson 2+ when style exists */}
