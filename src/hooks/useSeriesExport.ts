@@ -45,7 +45,7 @@ export interface UseSeriesExportReturn {
   exportSeries: (
     series: LessonSeries,
     options: SeriesExportOptions
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   state: SeriesExportState;
   reset: () => void;
 }
@@ -70,7 +70,7 @@ export function useSeriesExport(): UseSeriesExportReturn {
   }, []);
 
   const exportSeries = useCallback(
-    async (series: LessonSeries, options: SeriesExportOptions): Promise<void> => {
+    async (series: LessonSeries, options: SeriesExportOptions): Promise<boolean> => {
       setState({ isExporting: true, progressStepId: 'loading', error: null });
 
       try {
@@ -91,7 +91,7 @@ export function useSeriesExport(): UseSeriesExportReturn {
             progressStepId: null,
             error: SERIES_EXPORT_UI.emptySeriesWarning,
           });
-          return;
+          return false;
         }
 
         const { data: lessons, error: fetchError } = await supabase
@@ -135,10 +135,12 @@ export function useSeriesExport(): UseSeriesExportReturn {
         triggerDownload(buffer, filename, mimeType);
 
         setState({ isExporting: false, progressStepId: null, error: null });
+        return true;
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : SERIES_EXPORT_UI.errorMessage;
         setState({ isExporting: false, progressStepId: null, error: message });
+        return false;
       }
     },
     [setStep]

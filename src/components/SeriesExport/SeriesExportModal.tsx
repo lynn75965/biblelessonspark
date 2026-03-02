@@ -71,9 +71,8 @@ export function SeriesExportModal({
   }
 
   async function handleExport(): Promise<void> {
-    await exportSeries(series, options);
-
-    if (!state.error) {
+    const success = await exportSeries(series, options);
+    if (success) {
       toast.success(SERIES_EXPORT_UI.successMessage);
       onClose();
     }
