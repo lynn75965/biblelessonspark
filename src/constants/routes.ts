@@ -70,6 +70,7 @@ export const DASHBOARD_TAB_VALUES = {
   BUILD: 'enhance',
   LIBRARY: 'library',
   DEVOTIONAL_LIBRARY: 'devotional-library',
+  SERIES_LIBRARY: 'series-library',
 } as const;
 
 /**
