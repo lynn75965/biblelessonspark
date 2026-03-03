@@ -128,7 +128,7 @@ export async function buildSeriesPdf(
   const doc = new jsPDF({
     orientation: pdfOrientation,
     unit: 'pt',
-    format: [pageWidth, pageHeight],
+    format: 'letter',
   });
 
   doc.setDisplayMode('fullwidth', 'continuous', 'UseNone');
@@ -151,7 +151,7 @@ export async function buildSeriesPdf(
   // ---- Closure helpers -----------------------------------------------------
 
   function addPage(): void {
-    doc.addPage([pageWidth, pageHeight], pdfOrientation);
+    doc.addPage('letter', pdfOrientation);
     currentY = topMargin;
     currentPage++;
     drawBookletFrame();
@@ -468,7 +468,7 @@ export async function buildSeriesPdf(
     const remainder = totalBeforePad % 4;
     const paddingNeeded = remainder === 0 ? 0 : 4 - remainder;
     for (let p = 0; p < paddingNeeded; p++) {
-      doc.addPage([pageWidth, pageHeight], pdfOrientation);
+      doc.addPage('letter', pdfOrientation);
       drawBookletFrame();
     }
   }
