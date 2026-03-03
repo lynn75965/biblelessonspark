@@ -136,7 +136,7 @@ export function SeriesExportModal({
       aria-modal="true"
       aria-labelledby="series-export-modal-title"
       className="
-        fixed inset-0 z-50
+        fixed inset-0 z-[60]
         flex items-center justify-center
         bg-black/50 backdrop-blur-sm
         p-4
@@ -480,3 +480,4 @@ export function SeriesExportModal({
     </div>
   );
 }
+

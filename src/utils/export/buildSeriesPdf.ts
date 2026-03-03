@@ -62,6 +62,19 @@ import {
 // HELPERS
 // ============================================================================
 
+/** Strip Unicode characters that jsPDF built-in fonts cannot render. */
+function sanitizeForPdf(text: string): string {
+  return text
+    .replace(/[\u2610\u2611\u2612\u2713\u2714\u2717\u2718]/g, '')
+    .replace(/%\u00A1/g, '- ')
+    .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, '- ')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013]/g, '--')
+    .replace(/[\u2014]/g, '---')
+    .replace(/[\u2026]/g, '...')
+    .replace(/[^\x00-\x7F]/g, '');
+}
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -149,7 +162,7 @@ export async function buildSeriesPdf(
     doc.setFontSize(dims.bodyFontPt);
     doc.setTextColor(r, g, b);
 
-    const lines = doc.splitTextToSize(text, contentW) as string[];
+    const lines = doc.splitTextToSize(sanitizeForPdf(text), contentW) as string[];
     const lineH = dims.bodyFontPt * EXPORT_SPACING.body.lineHeight;
 
     for (const line of lines) {
@@ -178,7 +191,7 @@ export async function buildSeriesPdf(
     doc.setFontSize(dims.chapterTitleFontPt - 2);
     doc.setTextColor(r, g, b);
     ensureSpace(24);
-    const lines = doc.splitTextToSize(text, contentW) as string[];
+    const lines = doc.splitTextToSize(sanitizeForPdf(text), contentW) as string[];
     for (const line of lines) {
       doc.text(line, margin, currentY);
       currentY += dims.chapterTitleFontPt;
@@ -225,7 +238,7 @@ export async function buildSeriesPdf(
         continue;
       }
 
-      const plainText = line.replace(/\*\*([^*]+)\*\*/g, '$1');
+      const plainText = sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g, '$1'));
       renderBodyText(plainText);
     }
   }
@@ -745,3 +758,4 @@ function renderTrifoldBlock(
   y += lineH * 0.5; // spacing after block
   return y;
 }
+
