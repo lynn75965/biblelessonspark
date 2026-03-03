@@ -267,7 +267,7 @@ export default function Dashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2">
+          <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2 relative z-10">
             <TabsTrigger 
               value="enhance" 
               onClick={() => DASHBOARD_TABS.enhance?.clearViewingOnClick && setSelectedLesson(null)} 
@@ -290,7 +290,7 @@ export default function Dashboard() {
             </TabsTrigger>
 </TabsList>
 
-          <TabsContent value="enhance" className="mt-6">
+          <TabsContent value="enhance" className="mt-6 relative z-0">
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
             {showHelpBanner && (
               <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -352,18 +352,18 @@ export default function Dashboard() {
             />
           </TabsContent>
 
-          <TabsContent value="library" className="mt-6">
+          <TabsContent value="library" className="mt-6 relative z-0">
             <LessonLibrary
               onCreateNew={handleCreateLesson}
               onViewLesson={handleViewLesson}
             />
           </TabsContent>
 
-          <TabsContent value="devotional-library" className="mt-6">
+          <TabsContent value="devotional-library" className="mt-6 relative z-0">
             <DevotionalLibrary />
           </TabsContent>
 
-          <TabsContent value="series-library" className="mt-6">
+          <TabsContent value="series-library" className="mt-6 relative z-0">
             <SeriesLibrary />
           </TabsContent>
 </Tabs>

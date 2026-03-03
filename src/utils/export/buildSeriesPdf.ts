@@ -114,16 +114,11 @@ export async function buildSeriesPdf(
   const contentW   = dims.contentWidthPt;
   const pageBottom = pageHeight - margin;
 
-  // Determine jsPDF format argument
-  const pdfFormat: string | number[] =
-    options.layout === 'booklet'
-      ? [dims.widthPt, dims.heightPt]
-      : 'letter';
-
+  // Always use explicit SSOT dimensions -- never rely on named formats
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
-    format: pdfFormat,
+    format: [dims.widthPt, dims.heightPt],
   });
 
   let currentY = margin;
@@ -134,11 +129,7 @@ export async function buildSeriesPdf(
   // ---- Closure helpers -----------------------------------------------------
 
   function addPage(): void {
-    if (options.layout === 'booklet') {
-      doc.addPage([dims.widthPt, dims.heightPt], 'portrait');
-    } else {
-      doc.addPage('letter', 'portrait');
-    }
+    doc.addPage([dims.widthPt, dims.heightPt], 'portrait');
     currentY = margin;
     currentPage++;
   }
