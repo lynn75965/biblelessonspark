@@ -121,6 +121,15 @@ export async function buildSeriesPdf(
     format: [dims.widthPt, dims.heightPt],
   });
 
+  // Set PDF viewer preferences so the document opens at the intended size
+  // Booklet: 'original' (100% zoom) so 5.5x8.5 is unmistakable
+  // Fullpage: 'fullwidth' fits letter paper naturally in the viewer
+  doc.setDisplayMode(
+    options.layout === 'booklet' ? 'original' : 'fullwidth',
+    'continuous',
+    'UseNone'
+  );
+
   let currentY = margin;
   let currentPage = 1;
   const lessonRanges: PageRange[] = [];
@@ -504,6 +513,9 @@ async function buildTrifoldPdf(
     unit: 'pt',
     format: 'letter',
   });
+
+  // Tri-fold: open showing the full page so all three panels are visible
+  doc.setDisplayMode('fullpage', 'continuous', 'UseNone');
 
   // Landscape letter: 792 x 612 pt
   const pageW   = 792;
