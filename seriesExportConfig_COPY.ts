@@ -254,7 +254,7 @@ export interface FontConfig {
 /**
  * Ordered font option list for the export modal picker.
  *
- * PDF font names are limited to jsPDF built-ins: 'helvetica', 'times', 'courier'.
+ * PDF font names are limited to jsPDF built-ins: 'Helvetica', 'Times-Roman', 'Courier'.
  * Heading font rule: serif body -> sans-serif heading (Calibri/Helvetica);
  *                   sans-serif body -> same font for heading.
  */
@@ -264,8 +264,8 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
     label: 'Calibri',
     docxBody: 'Calibri',
     docxHeading: 'Calibri',
-    pdfBody: 'helvetica',
-    pdfHeading: 'helvetica',
+    pdfBody: 'Helvetica',
+    pdfHeading: 'Helvetica',
     category: 'sans-serif',
   },
   {
@@ -273,8 +273,8 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
     label: 'Georgia',
     docxBody: 'Georgia',
     docxHeading: 'Calibri',
-    pdfBody: 'times',
-    pdfHeading: 'helvetica',
+    pdfBody: 'Times-Roman',
+    pdfHeading: 'Helvetica',
     category: 'serif',
   },
   {
@@ -282,8 +282,8 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
     label: 'Cambria',
     docxBody: 'Cambria',
     docxHeading: 'Calibri',
-    pdfBody: 'times',
-    pdfHeading: 'helvetica',
+    pdfBody: 'Times-Roman',
+    pdfHeading: 'Helvetica',
     category: 'serif',
   },
   {
@@ -291,8 +291,8 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
     label: 'Arial',
     docxBody: 'Arial',
     docxHeading: 'Arial',
-    pdfBody: 'helvetica',
-    pdfHeading: 'helvetica',
+    pdfBody: 'Helvetica',
+    pdfHeading: 'Helvetica',
     category: 'sans-serif',
   },
   {
@@ -300,8 +300,8 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
     label: 'Times New Roman',
     docxBody: 'Times New Roman',
     docxHeading: 'Calibri',
-    pdfBody: 'times',
-    pdfHeading: 'helvetica',
+    pdfBody: 'Times-Roman',
+    pdfHeading: 'Helvetica',
     category: 'serif',
   },
   {
@@ -309,8 +309,8 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
     label: 'Garamond',
     docxBody: 'Garamond',
     docxHeading: 'Calibri',
-    pdfBody: 'times',
-    pdfHeading: 'helvetica',
+    pdfBody: 'Times-Roman',
+    pdfHeading: 'Helvetica',
     category: 'serif',
   },
 ];
