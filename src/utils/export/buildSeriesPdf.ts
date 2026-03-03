@@ -107,43 +107,26 @@ export async function buildSeriesPdf(
   }
 
   // ---- Standard portrait layout (fullpage or booklet) ----------------------
+  // Content is always rendered at the layout's native dimensions (e.g. 5.5x8.5
+  // for booklet). Booklet imposition onto landscape letter sheets happens as a
+  // post-processing step after all content and page numbers are rendered.
 
-  // Booklet inset: render 5.5x8.5 content centered on landscape letter pages
-  // so PDF viewers display the booklet within visible letter-page boundaries.
-  const isBookletInset = options.layout === 'booklet';
-  const xOff = isBookletInset ? Math.round((792 - dims.widthPt) / 2) : 0;
-  const yOff = 0; // booklet height matches landscape letter height exactly
-
-  const pageWidth  = isBookletInset ? 792 : dims.widthPt;
-  const pageHeight = isBookletInset ? 612 : dims.heightPt;
-  const pdfOrientation = isBookletInset ? 'landscape' : 'portrait';
-  const margin     = xOff + dims.marginPt;         // left/right from page edge
-  const topMargin  = yOff + dims.marginPt;          // top from page edge
-  const contentW   = dims.contentWidthPt;            // usable text width (unchanged)
-  const pageBottom = yOff + dims.heightPt - dims.marginPt; // max y before break
-  const footerY    = isBookletInset
-    ? yOff + dims.heightPt - 18
-    : pageHeight - 36;
+  const pageWidth  = dims.widthPt;
+  const pageHeight = dims.heightPt;
+  const margin     = dims.marginPt;
+  const contentW   = dims.contentWidthPt;
+  const pageBottom = pageHeight - margin;
+  const footerY    = pageHeight - 36;
 
   const doc = new jsPDF({
-    orientation: pdfOrientation,
+    orientation: 'portrait',
     unit: 'pt',
-    format: 'letter',
+    format: [pageWidth, pageHeight],
   });
 
   doc.setDisplayMode('fullwidth', 'continuous', 'UseNone');
 
-  /** Draw a thin gray frame around the booklet content area on letter pages */
-  function drawBookletFrame(): void {
-    if (!isBookletInset) return;
-    doc.setDrawColor(190, 190, 190);
-    doc.setLineWidth(0.5);
-    doc.rect(xOff, yOff, dims.widthPt, dims.heightPt);
-  }
-
-  drawBookletFrame(); // first page
-
-  let currentY = topMargin;
+  let currentY = margin;
   let currentPage = 1;
   const lessonRanges: PageRange[] = [];
   const frontMatterPages: number[] = [];
@@ -151,10 +134,9 @@ export async function buildSeriesPdf(
   // ---- Closure helpers -----------------------------------------------------
 
   function addPage(): void {
-    doc.addPage('letter', pdfOrientation);
-    currentY = topMargin;
+    doc.addPage([pageWidth, pageHeight], 'portrait');
+    currentY = margin;
     currentPage++;
-    drawBookletFrame();
   }
 
   function ensureSpace(minHeight: number): void {
@@ -262,7 +244,7 @@ export async function buildSeriesPdf(
   frontMatterPages.push(currentPage);
 
   const coverData = buildCoverPageData(series, lessons, null, null);
-  currentY = yOff + dims.heightPt / 3;
+  currentY = pageHeight / 3;
 
   const [tr, tg, tb] = hexToRgb(SERIES_COLORS.coverTitle);
   doc.setFont(fontConfig.pdfHeading, 'bold');
@@ -303,20 +285,6 @@ export async function buildSeriesPdf(
   for (const ml of metaLines) {
     doc.text(ml, pageWidth / 2, currentY, { align: 'center' });
     currentY += EXPORT_SPACING.metadata.fontPt + 6;
-  }
-
-  // Booklet: add print instruction at bottom of cover page
-  if (options.layout === 'booklet') {
-    const [fiR, fiG, fiB] = hexToRgb(EXPORT_SPACING.colors.metaText);
-    doc.setFont(fontConfig.pdfBody, 'italic');
-    doc.setFontSize(8);
-    doc.setTextColor(fiR, fiG, fiB);
-    doc.text(
-      'Booklet Format (5.5 x 8.5 in) - Print using your printer\'s Booklet setting',
-      pageWidth / 2,
-      footerY,
-      { align: 'center' }
-    );
   }
 
   // ---- Table of Contents ---------------------------------------------------
@@ -445,7 +413,7 @@ export async function buildSeriesPdf(
   addPage();
   const backCoverPage = currentPage;
 
-  currentY = yOff + dims.heightPt * 0.75;
+  currentY = pageHeight * 0.75;
   const [fr, fg, fb] = hexToRgb(EXPORT_SPACING.colors.footerText);
   doc.setFont(fontConfig.pdfBody, 'normal');
   doc.setFontSize(EXPORT_SPACING.footer.fontPt + 2);
@@ -468,8 +436,7 @@ export async function buildSeriesPdf(
     const remainder = totalBeforePad % 4;
     const paddingNeeded = remainder === 0 ? 0 : 4 - remainder;
     for (let p = 0; p < paddingNeeded; p++) {
-      doc.addPage('letter', pdfOrientation);
-      drawBookletFrame();
+      doc.addPage([pageWidth, pageHeight], 'portrait');
     }
   }
 
@@ -509,8 +476,101 @@ export async function buildSeriesPdf(
     }
   }
 
+  // ---- Booklet Imposition (post-processing) --------------------------------
+  // After all content pages and footers are rendered at 5.5x8.5, impose them
+  // two-up onto landscape letter sheets in signature order. When printed duplex
+  // and folded, pages read sequentially like a book.
+  if (options.layout === 'booklet') {
+    setStep('finalizing');
+    return imposeBookletSignature(doc);
+  }
+
   // ---- Return ArrayBuffer --------------------------------------------------
   setStep('finalizing');
+  return doc.output('arraybuffer');
+}
+
+// ============================================================================
+// BOOKLET IMPOSITION
+// ============================================================================
+
+/**
+ * Takes a jsPDF document whose pages are 5.5 x 8.5 in portrait (396 x 612 pt)
+ * and imposes them onto landscape letter sheets (792 x 612 pt) in signature
+ * order suitable for duplex printing and center-fold binding.
+ *
+ * Page count MUST already be padded to a multiple of 4 before calling.
+ *
+ * Signature layout for N content pages:
+ *   Sheet 1 front: [page N (left), page 1 (right)]
+ *   Sheet 1 back:  [page 2 (left), page N-1 (right)]
+ *   Sheet 2 front: [page N-2 (left), page 3 (right)]
+ *   Sheet 2 back:  [page 4 (left), page N-3 (right)]
+ *   ... and so on until all pages are placed.
+ *
+ * This uses jsPDF's internal page content streams. Each content page's stream
+ * is wrapped in a PDF save/restore (q/Q) block with a translation matrix for
+ * the right-side pages, then appended to the landscape sheet's content stream.
+ */
+function imposeBookletSignature(doc: jsPDF): ArrayBuffer {
+  const N = doc.getNumberOfPages();
+  const halfW = 396; // 5.5 inches in points -- width of one content page
+  const sheetH = 612; // 8.5 inches in points -- height of landscape letter
+
+  // 1. Capture every content page's raw PDF content stream
+  const streams: string[] = [];
+  for (let i = 1; i <= N; i++) {
+    const raw = (doc as any).internal.pages[i];
+    if (Array.isArray(raw)) {
+      streams.push(raw.join('\n'));
+    } else {
+      streams.push(String(raw || ''));
+    }
+  }
+
+  // 2. Create imposed landscape letter pages in signature order
+  const sheets = N / 4;
+  for (let s = 0; s < sheets; s++) {
+    // Front of sheet: left = last unplaced page, right = first unplaced page
+    const frontLeft  = N - 2 * s;
+    const frontRight = 2 * s + 1;
+    // Back of sheet: left = next first page, right = next last page
+    const backLeft   = 2 * s + 2;
+    const backRight  = N - 2 * s - 1;
+
+    // --- Front side of sheet ---
+    doc.addPage('letter', 'landscape');
+    const fIdx = doc.getNumberOfPages();
+    const fArr = (doc as any).internal.pages[fIdx];
+
+    // Left content page (no translation needed -- coordinates already 0-396)
+    fArr.push('q\n' + streams[frontLeft - 1] + '\nQ');
+    // Right content page (shift right by 396pt)
+    fArr.push('q\n1 0 0 1 ' + halfW + ' 0 cm\n' + streams[frontRight - 1] + '\nQ');
+    // Dashed fold line down the center
+    fArr.push(
+      'q\n0.78 0.78 0.78 RG\n0.4 w\n[4 4] 0 d\n' +
+      halfW + ' 0 m ' + halfW + ' ' + sheetH + ' l S\nQ'
+    );
+
+    // --- Back side of sheet ---
+    doc.addPage('letter', 'landscape');
+    const bIdx = doc.getNumberOfPages();
+    const bArr = (doc as any).internal.pages[bIdx];
+
+    bArr.push('q\n' + streams[backLeft - 1] + '\nQ');
+    bArr.push('q\n1 0 0 1 ' + halfW + ' 0 cm\n' + streams[backRight - 1] + '\nQ');
+    bArr.push(
+      'q\n0.78 0.78 0.78 RG\n0.4 w\n[4 4] 0 d\n' +
+      halfW + ' 0 m ' + halfW + ' ' + sheetH + ' l S\nQ'
+    );
+  }
+
+  // 3. Delete all original content pages (they were pages 1..N)
+  for (let i = N; i >= 1; i--) {
+    doc.deletePage(i);
+  }
+
   return doc.output('arraybuffer');
 }
 
