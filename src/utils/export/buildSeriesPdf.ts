@@ -108,29 +108,42 @@ export async function buildSeriesPdf(
 
   // ---- Standard portrait layout (fullpage or booklet) ----------------------
 
-  const pageWidth  = dims.widthPt;
-  const pageHeight = dims.heightPt;
-  const margin     = dims.marginPt;
-  const contentW   = dims.contentWidthPt;
-  const pageBottom = pageHeight - margin;
+  // Booklet inset: render 5.5x8.5 content centered on landscape letter pages
+  // so PDF viewers display the booklet within visible letter-page boundaries.
+  const isBookletInset = options.layout === 'booklet';
+  const xOff = isBookletInset ? Math.round((792 - dims.widthPt) / 2) : 0;
+  const yOff = 0; // booklet height matches landscape letter height exactly
 
-  // Always use explicit SSOT dimensions -- never rely on named formats
+  const pageWidth  = isBookletInset ? 792 : dims.widthPt;
+  const pageHeight = isBookletInset ? 612 : dims.heightPt;
+  const pdfOrientation = isBookletInset ? 'landscape' : 'portrait';
+  const margin     = xOff + dims.marginPt;         // left/right from page edge
+  const topMargin  = yOff + dims.marginPt;          // top from page edge
+  const contentW   = dims.contentWidthPt;            // usable text width (unchanged)
+  const pageBottom = yOff + dims.heightPt - dims.marginPt; // max y before break
+  const footerY    = isBookletInset
+    ? yOff + dims.heightPt - 18
+    : pageHeight - 36;
+
   const doc = new jsPDF({
-    orientation: 'portrait',
+    orientation: pdfOrientation,
     unit: 'pt',
-    format: [dims.widthPt, dims.heightPt],
+    format: [pageWidth, pageHeight],
   });
 
-  // Set PDF viewer preferences so the document opens at the intended size
-  // Booklet: 'original' (100% zoom) so 5.5x8.5 is unmistakable
-  // Fullpage: 'fullwidth' fits letter paper naturally in the viewer
-  doc.setDisplayMode(
-    options.layout === 'booklet' ? 'original' : 'fullwidth',
-    'continuous',
-    'UseNone'
-  );
+  doc.setDisplayMode('fullwidth', 'continuous', 'UseNone');
 
-  let currentY = margin;
+  /** Draw a thin gray frame around the booklet content area on letter pages */
+  function drawBookletFrame(): void {
+    if (!isBookletInset) return;
+    doc.setDrawColor(190, 190, 190);
+    doc.setLineWidth(0.5);
+    doc.rect(xOff, yOff, dims.widthPt, dims.heightPt);
+  }
+
+  drawBookletFrame(); // first page
+
+  let currentY = topMargin;
   let currentPage = 1;
   const lessonRanges: PageRange[] = [];
   const frontMatterPages: number[] = [];
@@ -138,9 +151,10 @@ export async function buildSeriesPdf(
   // ---- Closure helpers -----------------------------------------------------
 
   function addPage(): void {
-    doc.addPage([dims.widthPt, dims.heightPt], 'portrait');
-    currentY = margin;
+    doc.addPage([pageWidth, pageHeight], pdfOrientation);
+    currentY = topMargin;
     currentPage++;
+    drawBookletFrame();
   }
 
   function ensureSpace(minHeight: number): void {
@@ -248,7 +262,7 @@ export async function buildSeriesPdf(
   frontMatterPages.push(currentPage);
 
   const coverData = buildCoverPageData(series, lessons, null, null);
-  currentY = pageHeight / 3;
+  currentY = yOff + dims.heightPt / 3;
 
   const [tr, tg, tb] = hexToRgb(SERIES_COLORS.coverTitle);
   doc.setFont(fontConfig.pdfHeading, 'bold');
@@ -289,6 +303,20 @@ export async function buildSeriesPdf(
   for (const ml of metaLines) {
     doc.text(ml, pageWidth / 2, currentY, { align: 'center' });
     currentY += EXPORT_SPACING.metadata.fontPt + 6;
+  }
+
+  // Booklet: add print instruction at bottom of cover page
+  if (options.layout === 'booklet') {
+    const [fiR, fiG, fiB] = hexToRgb(EXPORT_SPACING.colors.metaText);
+    doc.setFont(fontConfig.pdfBody, 'italic');
+    doc.setFontSize(8);
+    doc.setTextColor(fiR, fiG, fiB);
+    doc.text(
+      'Booklet Format (5.5 x 8.5 in) - Print using your printer\'s Booklet setting',
+      pageWidth / 2,
+      footerY,
+      { align: 'center' }
+    );
   }
 
   // ---- Table of Contents ---------------------------------------------------
@@ -417,7 +445,7 @@ export async function buildSeriesPdf(
   addPage();
   const backCoverPage = currentPage;
 
-  currentY = pageHeight * 0.75;
+  currentY = yOff + dims.heightPt * 0.75;
   const [fr, fg, fb] = hexToRgb(EXPORT_SPACING.colors.footerText);
   doc.setFont(fontConfig.pdfBody, 'normal');
   doc.setFontSize(EXPORT_SPACING.footer.fontPt + 2);
@@ -440,7 +468,8 @@ export async function buildSeriesPdf(
     const remainder = totalBeforePad % 4;
     const paddingNeeded = remainder === 0 ? 0 : 4 - remainder;
     for (let p = 0; p < paddingNeeded; p++) {
-      doc.addPage([dims.widthPt, dims.heightPt], 'portrait');
+      doc.addPage([pageWidth, pageHeight], pdfOrientation);
+      drawBookletFrame();
     }
   }
 
@@ -476,7 +505,7 @@ export async function buildSeriesPdf(
     }
 
     if (footerText) {
-      doc.text(footerText, pageWidth / 2, pageHeight - 36, { align: 'center' });
+      doc.text(footerText, pageWidth / 2, footerY, { align: 'center' });
     }
   }
 
@@ -639,6 +668,17 @@ async function buildTrifoldPdf(
       doc, 'Prayer', parsed.prayer,
       colX[2], y3, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
       fontConfig, pageH, colMargin
+    );
+    // ---- Footer: Lesson X of Y centered at bottom of page ------------------
+    const [footR, footG, footB] = hexToRgb(EXPORT_SPACING.colors.footerText);
+    doc.setFont(fontConfig.pdfBody, 'normal');
+    doc.setFontSize(bodyFontPt - 1);
+    doc.setTextColor(footR, footG, footB);
+    doc.text(
+      'Lesson ' + lessonNumber + ' of ' + lessons.length,
+      pageW / 2,
+      pageH - colMargin,
+      { align: 'center' }
     );
   }
 
