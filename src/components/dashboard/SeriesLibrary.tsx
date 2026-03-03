@@ -5,11 +5,14 @@
  * SSOT Compliance:
  * - LessonSeries type from @/constants/seriesConfig
  * - isSeriesComplete() from @/constants/seriesConfig
+ * - SERIES_STATUSES from @/constants/seriesConfig
  * - SeriesExportButton from @/components/SeriesExport/SeriesExportButton
- * - useSeriesManager hook for data fetching
+ * - useSeriesManager hook for data fetching (allSeries -- includes completed)
  * - useSubscription hook for tier gating
  *
  * Phase 28: Series Library Tab (March 2026)
+ * FIX: March 2026 -- switched from fetchActiveSeries (in_progress only)
+ *   to fetchAllSeries (in_progress + completed) so completed series are visible.
  */
 
 import { useEffect } from "react";
@@ -22,11 +25,11 @@ import { isSeriesComplete, SERIES_STATUSES } from "@/constants/seriesConfig";
 import { SeriesExportButton } from "@/components/SeriesExport/SeriesExportButton";
 
 export function SeriesLibrary() {
-  const { activeSeries, isLoading, fetchActiveSeries } = useSeriesManager();
+  const { allSeries, isLoading, fetchAllSeries } = useSeriesManager();
   const { tier } = useSubscription();
 
   useEffect(() => {
-    fetchActiveSeries();
+    fetchAllSeries();
   }, []);
 
   const formatDate = (dateString: string): string => {
@@ -82,9 +85,9 @@ export function SeriesLibrary() {
         </CardHeader>
       </Card>
 
-      {activeSeries.length > 0 ? (
+      {allSeries.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {activeSeries.map((series) => {
+          {allSeries.map((series) => {
             const completedCount = series.lesson_summaries?.length || 0;
             const progressPercent = Math.round((completedCount / series.total_lessons) * 100);
 

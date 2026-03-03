@@ -5,7 +5,12 @@
  * Architecture: Frontend drives backend
  * SSOT: seriesConfig.ts owns all series interfaces and constants
  *
+ * Two fetch modes:
+ *   - fetchActiveSeries(): in_progress only (Build Lesson tab dropdown)
+ *   - fetchAllSeries(): in_progress + completed (Series Library tab)
+ *
  * CREATED: January 2026 (Phase 24)
+ * UPDATED: March 2026 -- added fetchAllSeries for Series Library visibility
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -28,12 +33,14 @@ import {
 interface UseSeriesManagerReturn {
   // State
   activeSeries: LessonSeries[];
+  allSeries: LessonSeries[];
   selectedSeries: LessonSeries | null;
   isLoading: boolean;
   isCreating: boolean;
 
   // Actions
   fetchActiveSeries: () => Promise<void>;
+  fetchAllSeries: () => Promise<void>;
   createSeries: (name: string, totalLessons: number, passage?: string, topic?: string, theologyProfileId?: string, ageGroup?: string) => Promise<LessonSeries | null>;
   selectSeries: (seriesId: string) => void;
   clearSelection: () => void;
@@ -55,13 +62,27 @@ interface UseSeriesManagerReturn {
 
 export function useSeriesManager(): UseSeriesManagerReturn {
   const [activeSeries, setActiveSeries] = useState<LessonSeries[]>([]);
+  const [allSeries, setAllSeries] = useState<LessonSeries[]>([]);
   const [selectedSeries, setSelectedSeries] = useState<LessonSeries | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
   // ============================================================================
-  // FETCH ACTIVE SERIES
+  // SHARED: Cast Supabase JSONB fields to typed arrays
+  // ============================================================================
+
+  const castSeriesRows = (data: any[]): LessonSeries[] => {
+    return (data || []).map(row => ({
+      ...row,
+      lesson_summaries: (row.lesson_summaries as SeriesLessonSummary[]) || [],
+      style_metadata: row.style_metadata as SeriesStyleMetadata | null,
+      status: row.status as LessonSeries['status'],
+    }));
+  };
+
+  // ============================================================================
+  // FETCH ACTIVE SERIES (in_progress only -- Build Lesson tab dropdown)
   // ============================================================================
 
   const fetchActiveSeries = useCallback(async () => {
@@ -88,14 +109,7 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         return;
       }
 
-      // Cast JSONB fields to typed arrays
-      const typedSeries: LessonSeries[] = (data || []).map(row => ({
-        ...row,
-        lesson_summaries: (row.lesson_summaries as SeriesLessonSummary[]) || [],
-        style_metadata: row.style_metadata as SeriesStyleMetadata | null,
-        status: row.status as LessonSeries['status'],
-      }));
-
+      const typedSeries = castSeriesRows(data);
       setActiveSeries(typedSeries);
 
       // If a series was selected, refresh it from the new data
@@ -114,6 +128,43 @@ export function useSeriesManager(): UseSeriesManagerReturn {
       setIsLoading(false);
     }
   }, [selectedSeries, toast]);
+
+  // ============================================================================
+  // FETCH ALL SERIES (in_progress + completed -- Series Library tab)
+  // Uses SERIES_STATUSES SSOT for filter values. Excludes abandoned.
+  // ============================================================================
+
+  const fetchAllSeries = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+
+      const { data, error } = await supabase
+        .from('lesson_series')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .in('status', [SERIES_STATUSES.IN_PROGRESS, SERIES_STATUSES.COMPLETED])
+        .order('updated_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching all series:', error);
+        toast({
+          title: "Error loading series",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const typedSeries = castSeriesRows(data);
+      setAllSeries(typedSeries);
+    } catch (err) {
+      console.error('Error in fetchAllSeries:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [toast]);
 
   // Fetch on mount
   useEffect(() => {
@@ -214,8 +265,10 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         status: data.status as LessonSeries['status'],
       };
 
-      // Add to list and select it
+      // Add to active list and select it
       setActiveSeries(prev => [newSeries, ...prev]);
+      // Also add to allSeries if it has been fetched (Series Library is open)
+      setAllSeries(prev => prev.length > 0 ? [newSeries, ...prev] : prev);
       setSelectedSeries(newSeries);
 
       toast({
@@ -267,10 +320,12 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         return false;
       }
 
-      // Update local state
-      setActiveSeries(prev => prev.map(s =>
-        s.id === seriesId ? { ...s, style_metadata: styleMetadata } : s
-      ));
+      // Update both lists
+      const updater = (s: LessonSeries) =>
+        s.id === seriesId ? { ...s, style_metadata: styleMetadata } : s;
+
+      setActiveSeries(prev => prev.map(updater));
+      setAllSeries(prev => prev.map(updater));
       if (selectedSeries?.id === seriesId) {
         setSelectedSeries(prev => prev ? { ...prev, style_metadata: styleMetadata } : null);
       }
@@ -338,16 +393,20 @@ export function useSeriesManager(): UseSeriesManagerReturn {
             }
           : s;
 
+      // Active series: remove if completed (Build Lesson only shows in-progress)
       setActiveSeries(prev => shouldComplete
-        ? prev.filter(s => s.id !== seriesId) // Remove from active if completed
+        ? prev.filter(s => s.id !== seriesId)
         : prev.map(updater)
       );
+
+      // All series: always update in place (Series Library shows completed too)
+      setAllSeries(prev => prev.map(updater));
 
       if (selectedSeries?.id === seriesId) {
         if (shouldComplete) {
           setSelectedSeries(null);
           toast({
-            title: "Series complete! ",
+            title: "Series complete!",
             description: `All ${current.total_lessons} lessons in this series have been generated.`,
           });
         } else {
@@ -411,7 +470,14 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         return false;
       }
 
+      // Remove from active (Build Lesson)
       setActiveSeries(prev => prev.filter(s => s.id !== seriesId));
+      // Update status in allSeries (Series Library keeps showing it)
+      setAllSeries(prev => prev.map(s =>
+        s.id === seriesId
+          ? { ...s, status: SERIES_STATUSES.COMPLETED as LessonSeries['status'] }
+          : s
+      ));
       if (selectedSeries?.id === seriesId) {
         setSelectedSeries(null);
       }
@@ -447,7 +513,9 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         return false;
       }
 
+      // Remove from both lists (abandoned is hidden everywhere)
       setActiveSeries(prev => prev.filter(s => s.id !== seriesId));
+      setAllSeries(prev => prev.filter(s => s.id !== seriesId));
       if (selectedSeries?.id === seriesId) {
         setSelectedSeries(null);
       }
@@ -474,10 +542,12 @@ export function useSeriesManager(): UseSeriesManagerReturn {
 
   return {
     activeSeries,
+    allSeries,
     selectedSeries,
     isLoading,
     isCreating,
     fetchActiveSeries,
+    fetchAllSeries,
     createSeries,
     selectSeries,
     clearSelection,
