@@ -179,7 +179,7 @@ export async function buildSeriesPdf(
       }
 
       if (/^\s*[*-]\s+/.test(line)) {
-        const bulletText = '- ' + line.replace(/^\s*[*-]\s+/, '');
+        const bulletText = '\u2022  ' + line.replace(/^\s*[*-]\s+/, '');
         renderBodyText(bulletText);
         continue;
       }
