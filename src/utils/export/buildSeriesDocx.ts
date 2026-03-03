@@ -2,26 +2,20 @@
 // buildSeriesDocx.ts
 // Location: src/utils/export/buildSeriesDocx.ts
 //
-// DOCX document builder for the Series eBook / Curriculum Quarterly Export.
-// Uses the `docx` npm library (already a project dependency).
+// DOCX document builder for the Series Curriculum Export.
 //
-// Document structure (in order):
-//   1. Cover Page
-//   2. Table of Contents
-//   3. Introduction (Phase A placeholder)
-//   4. Lesson Chapters (loop) -- each with divider page + all sections
-//   5. Student Handout Booklet (if options.includeHandoutBooklet)
-//   6. Back Cover
+// Document structure:
+//   Section 1: Cover Page + Table of Contents + Introduction (no page numbers)
+//   Section 2..N+1: One section per lesson (per-lesson page numbering)
+//   Section N+2: Student Handout Booklet (own page numbering)
+//   Section N+3: Back Cover (no page numbers)
 //
-// DOCX CONSTRAINTS (from task brief):
-//   - US Letter: 12240 x 15840 DXA, 1-inch margins (1440 DXA each side)
-//   - Never use \n for line breaks -- use separate Paragraph elements
-//   - Never use unicode bullet characters -- use LevelFormat.BULLET
-//   - Table width: WidthType.DXA only, never WidthType.PERCENTAGE
-//   - ShadingType.CLEAR for cell shading, never SOLID
-//   - Override heading styles with exact IDs: "Heading1", "Heading2", etc.
-//   - Include outlineLevel on heading styles (required for TOC)
-//   - PageBreak must be inside a Paragraph
+// LAYOUT CHANGES (March 2026):
+//   - Eliminated full-page chapter dividers to save paper
+//   - Compact inline lesson header at top of content page
+//   - Per-lesson page numbering in footer ("Lesson N -- Page X")
+//   - Creative title as primary heading (not passage reference)
+//   - Tighter spacing throughout to match quarterly-style density
 // ============================================================================
 
 import {
@@ -39,6 +33,9 @@ import {
   TableCell,
   WidthType,
   LevelFormat,
+  Footer,
+  Header,
+  PageNumber,
   convertInchesToTwip,
 } from 'docx';
 
@@ -63,59 +60,114 @@ import { buildTocEntries } from './buildToc';
 import {
   buildHandoutBookletData,
   extractSection8Content,
+  extractCreativeTitle,
   stripSection8FromContent,
 } from './buildHandoutBooklet';
+
+// ============================================================================
+// SHARED STYLES (defined once, used in all sections)
+// ============================================================================
+
+const SHARED_PARAGRAPH_STYLES = [
+  {
+    id: 'Heading1',
+    name: 'Heading 1',
+    basedOn: 'Normal',
+    next: 'Normal',
+    run: {
+      size: SERIES_COVER_TYPOGRAPHY.subtitleFontHalfPt,
+      bold: true,
+      color: SERIES_COLORS.tocHeading,
+      font: EXPORT_SPACING.fonts.docx,
+    },
+    paragraph: {
+      spacing: {
+        before: EXPORT_SPACING.sectionHeader.beforeTwips,
+        after: EXPORT_SPACING.sectionHeader.afterTwips,
+      },
+      outlineLevel: 0,
+    },
+  },
+  {
+    id: 'Heading2',
+    name: 'Heading 2',
+    basedOn: 'Normal',
+    next: 'Normal',
+    run: {
+      size: SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontHalfPt,
+      bold: true,
+      color: SERIES_COLORS.chapterHeading,
+      font: EXPORT_SPACING.fonts.docx,
+    },
+    paragraph: {
+      spacing: {
+        before: EXPORT_SPACING.sectionHeader.beforeTwips,
+        after: EXPORT_SPACING.sectionHeader.afterTwips,
+      },
+      outlineLevel: 1,
+    },
+  },
+];
+
+const SHARED_PAGE_PROPS = {
+  size: {
+    width: SERIES_PAGE.widthDxa,
+    height: SERIES_PAGE.heightDxa,
+  },
+  margin: {
+    top: SERIES_PAGE.marginDxa,
+    right: SERIES_PAGE.marginDxa,
+    bottom: SERIES_PAGE.marginDxa,
+    left: SERIES_PAGE.marginDxa,
+  },
+};
 
 // ============================================================================
 // MAIN BUILDER
 // ============================================================================
 
-/**
- * Build a DOCX ArrayBuffer for the complete series curriculum document.
- *
- * @param series - The LessonSeries record
- * @param lessons - Ordered array of full Lesson records
- * @param options - User-selected export options
- * @param setStep - Progress step callback from useSeriesExport
- */
 export async function buildSeriesDocx(
   series: LessonSeries,
   lessons: Lesson[],
   options: SeriesExportOptions,
   setStep: (stepId: SeriesExportProgressStepId) => void
 ): Promise<ArrayBuffer> {
-  const sections: Paragraph[] = [];
+  const docSections: any[] = [];
 
-  // ---- Cover Page ----------------------------------------------------------
+  // ---- Section 1: Front Matter (Cover + TOC + Intro, no page numbers) ------
   setStep('cover');
   const coverData = buildCoverPageData(series, lessons, null, null);
-  sections.push(...buildDocxCoverPage(coverData));
+  const frontMatterChildren: Paragraph[] = [];
 
-  // ---- Table of Contents ---------------------------------------------------
+  frontMatterChildren.push(...buildDocxCoverPage(coverData));
+
   setStep('toc');
   const tocEntries = buildTocEntries(series, lessons);
-  sections.push(...buildDocxToc(tocEntries));
+  frontMatterChildren.push(...buildDocxToc(tocEntries));
 
-  // ---- Introduction --------------------------------------------------------
-  sections.push(
+  frontMatterChildren.push(
     pageBreakParagraph(),
     headingParagraph('Introduction', 'Heading1', SERIES_COLORS.tocHeading),
     bodyParagraph(SERIES_INTRO_PLACEHOLDER)
   );
 
-  // ---- Lesson Chapters -----------------------------------------------------
+  docSections.push({
+    properties: { page: SHARED_PAGE_PROPS },
+    children: frontMatterChildren,
+  });
+
+  // ---- Sections 2..N+1: One per lesson (per-lesson page numbering) ---------
   setStep('lessons');
   for (let i = 0; i < lessons.length; i++) {
     const lesson = lessons[i];
     const lessonNumber = i + 1;
-    const title = lesson.title ?? `Lesson ${lessonNumber}`;
+    const creativeTitle = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNumber);
     const passage = lesson.filters?.passage ?? series.bible_passage ?? '';
 
-    // Chapter divider page
-    sections.push(
-      pageBreakParagraph(),
-      ...buildDocxChapterDivider(lessonNumber, title, passage)
-    );
+    const lessonChildren: Paragraph[] = [];
+
+    // Compact inline lesson header (no full-page divider)
+    lessonChildren.push(...buildCompactLessonHeader(lessonNumber, creativeTitle, passage));
 
     // Lesson content
     const rawContent = lesson.shaped_content ?? lesson.original_text ?? '';
@@ -123,31 +175,61 @@ export async function buildSeriesDocx(
       ? stripSection8FromContent(rawContent)
       : rawContent;
 
-    sections.push(...buildDocxLessonContent(content));
+    lessonChildren.push(...buildDocxLessonContent(content));
+
+    // Lesson footer: "Lesson N -- Page X"
+    const lessonFooter = new Footer({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({
+              text: 'Lesson ' + lessonNumber + ' -- Page ',
+              size: EXPORT_SPACING.footer.fontHalfPt,
+              font: EXPORT_SPACING.fonts.docx,
+              color: EXPORT_SPACING.colors.footerText,
+            }),
+            new TextRun({
+              children: [PageNumber.CURRENT],
+              size: EXPORT_SPACING.footer.fontHalfPt,
+              font: EXPORT_SPACING.fonts.docx,
+              color: EXPORT_SPACING.colors.footerText,
+            }),
+          ],
+        }),
+      ],
+    });
+
+    docSections.push({
+      properties: {
+        page: {
+          ...SHARED_PAGE_PROPS,
+          pageNumbers: { start: 1 },
+        },
+      },
+      footers: { default: lessonFooter },
+      children: lessonChildren,
+    });
   }
 
-  // ---- Student Handout Booklet ---------------------------------------------
+  // ---- Handout Booklet Section ---------------------------------------------
   if (options.includeHandoutBooklet) {
     setStep('handouts');
     const bookletData = buildHandoutBookletData(series, lessons);
+    const handoutChildren: Paragraph[] = [];
 
-    sections.push(
-      pageBreakParagraph(),
-      headingParagraph(
-        bookletData.appendixTitle,
-        'Heading1',
-        SERIES_COLORS.handoutHeader
-      ),
+    handoutChildren.push(
+      headingParagraph(bookletData.appendixTitle, 'Heading1', SERIES_COLORS.handoutHeader),
       bodyParagraph(bookletData.appendixSubtitle, true)
     );
 
     for (const entry of bookletData.entries) {
-      sections.push(
+      handoutChildren.push(
         pageBreakParagraph(),
         headingParagraph(entry.header, 'Heading2', SERIES_COLORS.handoutHeader)
       );
       if (entry.passage) {
-        sections.push(
+        handoutChildren.push(
           new Paragraph({
             children: [
               new TextRun({
@@ -161,81 +243,55 @@ export async function buildSeriesDocx(
           })
         );
       }
-      sections.push(...buildDocxLessonContent(entry.content));
+      handoutChildren.push(...buildDocxLessonContent(entry.content));
     }
+
+    const handoutFooter = new Footer({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({
+              text: 'Student Handouts -- Page ',
+              size: EXPORT_SPACING.footer.fontHalfPt,
+              font: EXPORT_SPACING.fonts.docx,
+              color: EXPORT_SPACING.colors.footerText,
+            }),
+            new TextRun({
+              children: [PageNumber.CURRENT],
+              size: EXPORT_SPACING.footer.fontHalfPt,
+              font: EXPORT_SPACING.fonts.docx,
+              color: EXPORT_SPACING.colors.footerText,
+            }),
+          ],
+        }),
+      ],
+    });
+
+    docSections.push({
+      properties: {
+        page: {
+          ...SHARED_PAGE_PROPS,
+          pageNumbers: { start: 1 },
+        },
+      },
+      footers: { default: handoutFooter },
+      children: handoutChildren,
+    });
   }
 
-  // ---- Back Cover ----------------------------------------------------------
-  sections.push(
-    pageBreakParagraph(),
-    ...buildDocxBackCover(series)
-  );
+  // ---- Back Cover Section (no page numbers) --------------------------------
+  docSections.push({
+    properties: { page: SHARED_PAGE_PROPS },
+    children: buildDocxBackCover(series),
+  });
 
   // ---- Assemble Document ---------------------------------------------------
   setStep('finalizing');
 
   const doc = new Document({
-    styles: {
-      paragraphStyles: [
-        {
-          id: 'Heading1',
-          name: 'Heading 1',
-          basedOn: 'Normal',
-          next: 'Normal',
-          run: {
-            size: SERIES_COVER_TYPOGRAPHY.subtitleFontHalfPt,
-            bold: true,
-            color: SERIES_COLORS.tocHeading,
-            font: EXPORT_SPACING.fonts.docx,
-          },
-          paragraph: {
-            spacing: {
-              before: EXPORT_SPACING.sectionHeader.beforeTwips,
-              after: EXPORT_SPACING.sectionHeader.afterTwips,
-            },
-            outlineLevel: 0,
-          },
-        },
-        {
-          id: 'Heading2',
-          name: 'Heading 2',
-          basedOn: 'Normal',
-          next: 'Normal',
-          run: {
-            size: SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontHalfPt,
-            bold: true,
-            color: SERIES_COLORS.chapterHeading,
-            font: EXPORT_SPACING.fonts.docx,
-          },
-          paragraph: {
-            spacing: {
-              before: EXPORT_SPACING.sectionHeader.beforeTwips,
-              after: EXPORT_SPACING.sectionHeader.afterTwips,
-            },
-            outlineLevel: 1,
-          },
-        },
-      ],
-    },
-    sections: [
-      {
-        properties: {
-          page: {
-            size: {
-              width: SERIES_PAGE.widthDxa,
-              height: SERIES_PAGE.heightDxa,
-            },
-            margin: {
-              top: SERIES_PAGE.marginDxa,
-              right: SERIES_PAGE.marginDxa,
-              bottom: SERIES_PAGE.marginDxa,
-              left: SERIES_PAGE.marginDxa,
-            },
-          },
-        },
-        children: sections,
-      },
-    ],
+    styles: { paragraphStyles: SHARED_PARAGRAPH_STYLES as any },
+    sections: docSections,
   });
 
   return await Packer.toArrayBuffer(doc);
@@ -250,7 +306,7 @@ function buildDocxCoverPage(
 ): Paragraph[] {
   const paragraphs: Paragraph[] = [];
 
-  // Vertical spacing before title (approx 1/3 page)
+  // Vertical spacing (approx 1/3 page)
   for (let i = 0; i < 8; i++) {
     paragraphs.push(new Paragraph({ text: '' }));
   }
@@ -288,170 +344,6 @@ function buildDocxCoverPage(
     })
   );
 
-  // Horizontal rule (empty paragraph with bottom border)
-  paragraphs.push(
-    new Paragraph({
-      text: '',
-      border: {
-        bottom: {
-          color: SERIES_COLORS.hr,
-          space: 1,
-          style: BorderStyle.SINGLE,
-          size: 6,
-        },
-      },
-      spacing: { after: 480 },
-    })
-  );
-
-  // Meta lines (teacher, church, date range, lesson count)
-  const metaLines: (string | null)[] = [
-    coverData.teacherLine,
-    coverData.churchLine,
-    coverData.dateRangeLine,
-    coverData.lessonCountLine,
-  ];
-
-  for (const line of metaLines) {
-    if (line) {
-      paragraphs.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          children: [
-            new TextRun({
-              text: line,
-              size: SERIES_COVER_TYPOGRAPHY.metaFontHalfPt,
-              color: EXPORT_SPACING.colors.metaText,
-              font: EXPORT_SPACING.fonts.docx,
-            }),
-          ],
-          spacing: { after: 160 },
-        })
-      );
-    }
-  }
-
-  return paragraphs;
-}
-
-// ============================================================================
-// TABLE OF CONTENTS PARAGRAPHS
-// ============================================================================
-
-function buildDocxToc(
-  entries: ReturnType<typeof buildTocEntries>
-): Paragraph[] {
-  const paragraphs: Paragraph[] = [
-    pageBreakParagraph(),
-    headingParagraph('Table of Contents', 'Heading1', SERIES_COLORS.tocHeading),
-  ];
-
-  for (const entry of entries) {
-    paragraphs.push(
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: entry.chapterHeading,
-            bold: true,
-            size: SERIES_TOC_TYPOGRAPHY.entryFontHalfPt,
-            font: EXPORT_SPACING.fonts.docx,
-            color: EXPORT_SPACING.colors.bodyText,
-          }),
-        ],
-        spacing: { after: SERIES_TOC_TYPOGRAPHY.entrySpacingAfterTwips },
-      })
-    );
-
-    if (entry.passage) {
-      paragraphs.push(
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `    ${entry.passage}`,
-              italics: true,
-              size: EXPORT_SPACING.metadata.fontHalfPt,
-              color: EXPORT_SPACING.colors.metaText,
-              font: EXPORT_SPACING.fonts.docx,
-            }),
-          ],
-          spacing: { after: EXPORT_SPACING.paragraph.afterTwips },
-        })
-      );
-    }
-  }
-
-  return paragraphs;
-}
-
-// ============================================================================
-// CHAPTER DIVIDER PARAGRAPHS
-// ============================================================================
-
-function buildDocxChapterDivider(
-  lessonNumber: number,
-  title: string,
-  passage: string
-): Paragraph[] {
-  const paragraphs: Paragraph[] = [];
-
-  // Vertical spacing
-  for (let i = 0; i < 6; i++) {
-    paragraphs.push(new Paragraph({ text: '' }));
-  }
-
-  // "Lesson N" label
-  paragraphs.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: `Lesson ${lessonNumber}`,
-          size: SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontHalfPt,
-          color: EXPORT_SPACING.colors.metaText,
-          font: EXPORT_SPACING.fonts.docx,
-          allCaps: true,
-        }),
-      ],
-      spacing: { after: 160 },
-    })
-  );
-
-  // Lesson title
-  paragraphs.push(
-    new Paragraph({
-      alignment: AlignmentType.CENTER,
-      children: [
-        new TextRun({
-          text: title,
-          bold: true,
-          size: SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontHalfPt,
-          color: SERIES_COLORS.chapterHeading,
-          font: EXPORT_SPACING.fonts.docx,
-        }),
-      ],
-      spacing: { after: 240 },
-    })
-  );
-
-  // Passage reference
-  if (passage) {
-    paragraphs.push(
-      new Paragraph({
-        alignment: AlignmentType.CENTER,
-        children: [
-          new TextRun({
-            text: passage,
-            italics: true,
-            size: SERIES_CHAPTER_TYPOGRAPHY.passageFontHalfPt,
-            color: EXPORT_SPACING.colors.metaText,
-            font: EXPORT_SPACING.fonts.docx,
-          }),
-        ],
-        spacing: { after: 480 },
-      })
-    );
-  }
-
   // Horizontal rule
   paragraphs.push(
     new Paragraph({
@@ -464,6 +356,166 @@ function buildDocxChapterDivider(
           size: 6,
         },
       },
+      spacing: { after: 360 },
+    })
+  );
+
+  // Meta lines
+  const metaLines = [
+    coverData.teacherLine,
+    coverData.churchLine,
+    coverData.dateRangeLine,
+    coverData.lessonCountLine,
+  ].filter((l): l is string => l !== null);
+
+  for (const line of metaLines) {
+    paragraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [
+          new TextRun({
+            text: line,
+            size: SERIES_COVER_TYPOGRAPHY.metaFontHalfPt,
+            color: EXPORT_SPACING.colors.metaText,
+            font: EXPORT_SPACING.fonts.docx,
+          }),
+        ],
+        spacing: { after: 160 },
+      })
+    );
+  }
+
+  return paragraphs;
+}
+
+// ============================================================================
+// TABLE OF CONTENTS PARAGRAPHS
+// ============================================================================
+
+function buildDocxToc(
+  entries: ReturnType<typeof buildTocEntries>
+): Paragraph[] {
+  const paragraphs: Paragraph[] = [];
+
+  paragraphs.push(
+    pageBreakParagraph(),
+    headingParagraph('Table of Contents', 'Heading1', SERIES_COLORS.tocHeading)
+  );
+
+  for (const entry of entries) {
+    // Lesson heading
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: entry.chapterHeading,
+            bold: true,
+            size: SERIES_TOC_TYPOGRAPHY.entryFontHalfPt,
+            font: EXPORT_SPACING.fonts.docx,
+            color: EXPORT_SPACING.colors.bodyText,
+          }),
+        ],
+        spacing: { after: 40 },
+      })
+    );
+
+    // Passage (indented, italic)
+    if (entry.passage) {
+      paragraphs.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: entry.passage,
+              italics: true,
+              size: EXPORT_SPACING.metadata.fontHalfPt,
+              font: EXPORT_SPACING.fonts.docx,
+              color: EXPORT_SPACING.colors.metaText,
+            }),
+          ],
+          indent: { left: 360 },
+          spacing: { after: EXPORT_SPACING.paragraph.afterTwips },
+        })
+      );
+    }
+  }
+
+  return paragraphs;
+}
+
+// ============================================================================
+// COMPACT LESSON HEADER (replaces full-page divider)
+// ============================================================================
+
+function buildCompactLessonHeader(
+  lessonNumber: number,
+  title: string,
+  passage: string
+): Paragraph[] {
+  const paragraphs: Paragraph[] = [];
+
+  // "LESSON N" label
+  paragraphs.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: 'LESSON ' + lessonNumber,
+          size: SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontHalfPt,
+          color: EXPORT_SPACING.colors.metaText,
+          font: EXPORT_SPACING.fonts.docx,
+          allCaps: true,
+        }),
+      ],
+      spacing: { after: 60 },
+    })
+  );
+
+  // Creative title (primary heading)
+  paragraphs.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: title,
+          bold: true,
+          size: SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontHalfPt,
+          color: SERIES_COLORS.chapterHeading,
+          font: EXPORT_SPACING.fonts.docx,
+        }),
+      ],
+      spacing: { after: 60 },
+    })
+  );
+
+  // Passage reference (italic, secondary)
+  if (passage) {
+    paragraphs.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: passage,
+            italics: true,
+            size: SERIES_CHAPTER_TYPOGRAPHY.passageFontHalfPt,
+            color: EXPORT_SPACING.colors.metaText,
+            font: EXPORT_SPACING.fonts.docx,
+          }),
+        ],
+        spacing: { after: 80 },
+      })
+    );
+  }
+
+  // Thin horizontal rule
+  paragraphs.push(
+    new Paragraph({
+      text: '',
+      border: {
+        bottom: {
+          color: SERIES_COLORS.hr,
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 4,
+        },
+      },
+      spacing: { after: 120 },
     })
   );
 
@@ -474,11 +526,6 @@ function buildDocxChapterDivider(
 // LESSON CONTENT PARAGRAPHS
 // ============================================================================
 
-/**
- * Convert raw lesson markdown text into DOCX Paragraph elements.
- * Handles bold labels (from EXPORT_FORMATTING.boldLabels), bullet lists,
- * and plain body paragraphs. Does not use \n -- each line becomes a Paragraph.
- */
 function buildDocxLessonContent(content: string): Paragraph[] {
   if (!content) return [];
 
@@ -488,10 +535,10 @@ function buildDocxLessonContent(content: string): Paragraph[] {
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
 
-    // Skip bare markdown heading markers (# ## ###)
+    // Skip bare markdown heading markers
     if (/^#{1,3}\s*$/.test(line)) continue;
 
-    // Section heading (e.g., "## Section 3: Theological Background")
+    // Section heading
     if (/^#{1,3}\s+/.test(line)) {
       const headingText = line.replace(/^#{1,3}\s+/, '');
       paragraphs.push(
@@ -500,7 +547,7 @@ function buildDocxLessonContent(content: string): Paragraph[] {
       continue;
     }
 
-    // Bullet list item (* or -)
+    // Bullet list item
     if (/^\s*[*-]\s+/.test(line)) {
       const bulletText = line.replace(/^\s*[*-]\s+/, '');
       paragraphs.push(
@@ -521,7 +568,7 @@ function buildDocxLessonContent(content: string): Paragraph[] {
       continue;
     }
 
-    // Empty line -- small spacer paragraph
+    // Empty line -- small spacer
     if (line.trim() === '') {
       paragraphs.push(
         new Paragraph({
@@ -532,7 +579,7 @@ function buildDocxLessonContent(content: string): Paragraph[] {
       continue;
     }
 
-    // Body paragraph -- parse inline bold (**text**)
+    // Body paragraph with inline bold
     paragraphs.push(
       new Paragraph({
         children: parseInlineBold(line),
@@ -584,7 +631,7 @@ function buildDocxBackCover(series: LessonSeries): Paragraph[] {
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: `\u00A9 ${new Date().getFullYear()} BibleLessonSpark. All rights reserved.`,
+          text: '\u00A9 ' + new Date().getFullYear() + ' BibleLessonSpark. All rights reserved.',
           size: EXPORT_SPACING.footer.fontHalfPt,
           color: EXPORT_SPACING.colors.footerText,
           font: EXPORT_SPACING.fonts.docx,
@@ -638,10 +685,6 @@ function bodyParagraph(text: string, italic = false): Paragraph {
   });
 }
 
-/**
- * Parse a line with inline **bold** markers into an array of TextRun elements.
- * Handles interleaved bold and normal segments.
- */
 function parseInlineBold(line: string): TextRun[] {
   const runs: TextRun[] = [];
   const parts = line.split(/(\*\*[^*]+\*\*)/g);

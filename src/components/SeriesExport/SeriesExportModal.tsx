@@ -3,9 +3,10 @@
 // Location: src/components/SeriesExport/SeriesExportModal.tsx
 //
 // Modal dialog for series export. Presents:
-//   - Format picker (DOCX / PDF radio buttons)
+//   - Format picker (DOCX / PDF radio buttons, NO pre-selection)
+//   - "Recommended for printing" label on PDF option
 //   - Option checkboxes (handout booklet)
-//   - Export and Cancel actions
+//   - Export button disabled until format is chosen
 //   - Inline progress indicator while exporting
 //
 // Opens from SeriesExportButton. Calls useSeriesExport hook.
@@ -20,7 +21,7 @@ import {
   SeriesExportFormat,
   SERIES_EXPORT_FORMATS,
   SERIES_EXPORT_FORMAT_LABELS,
-  SERIES_EXPORT_DEFAULT_OPTIONS,
+  SERIES_EXPORT_FORMAT_SUBTITLES,
   SERIES_EXPORT_UI,
 } from '@/constants/seriesExportConfig';
 import { useSeriesExport } from '@/hooks/useSeriesExport';
@@ -43,9 +44,9 @@ export function SeriesExportModal({
   series,
   onClose,
 }: SeriesExportModalProps): React.ReactElement {
-  const [options, setOptions] = useState<SeriesExportOptions>(
-    SERIES_EXPORT_DEFAULT_OPTIONS
-  );
+  // No pre-selected format -- user must choose
+  const [selectedFormat, setSelectedFormat] = useState<SeriesExportFormat | null>(null);
+  const [includeHandoutBooklet, setIncludeHandoutBooklet] = useState(true);
 
   const { exportSeries, state, reset } = useSeriesExport();
 
@@ -54,23 +55,27 @@ export function SeriesExportModal({
   // --------------------------------------------------------------------------
 
   function handleFormatChange(format: SeriesExportFormat): void {
-    setOptions((prev) => ({ ...prev, format }));
+    setSelectedFormat(format);
   }
 
   function handleHandoutBookletChange(
     e: React.ChangeEvent<HTMLInputElement>
   ): void {
     const checked = e.target.checked;
-    setOptions((prev) => ({
-      ...prev,
-      includeHandoutBooklet: checked,
-      // When booklet is enabled, automatically omit Section 8 from chapters.
-      // When disabled, restore Section 8 to each chapter.
-      omitSection8FromChapters: checked,
-    }));
+    setIncludeHandoutBooklet(checked);
   }
 
   async function handleExport(): Promise<void> {
+    if (!selectedFormat) return;
+
+    const options: SeriesExportOptions = {
+      format: selectedFormat,
+      includeHandoutBooklet,
+      // When booklet is enabled, automatically omit Section 8 from chapters.
+      // When disabled, restore Section 8 to each chapter.
+      omitSection8FromChapters: includeHandoutBooklet,
+    };
+
     const success = await exportSeries(series, options);
     if (success) {
       toast.success(SERIES_EXPORT_UI.successMessage);
@@ -84,6 +89,8 @@ export function SeriesExportModal({
       onClose();
     }
   }
+
+  const canExport = selectedFormat !== null;
 
   // --------------------------------------------------------------------------
   // Render
@@ -167,7 +174,7 @@ export function SeriesExportModal({
         {/* Form (hidden while exporting) */}
         {!state.isExporting && (
           <div className="space-y-5">
-            {/* Format picker */}
+            {/* Format picker -- no pre-selection */}
             <fieldset>
               <legend className="text-sm font-medium text-foreground mb-2">
                 {SERIES_EXPORT_UI.formatLabel}
@@ -175,30 +182,47 @@ export function SeriesExportModal({
               <div className="space-y-2">
                 {(
                   Object.values(SERIES_EXPORT_FORMATS) as SeriesExportFormat[]
-                ).map((fmt) => (
-                  <label
-                    key={fmt}
-                    className="
-                      flex items-center gap-3 cursor-pointer
-                      p-3 rounded-md border border-border
-                      hover:bg-muted/50 transition-colors
-                      has-[:checked]:border-primary has-[:checked]:bg-primary/5
-                    "
-                  >
-                    <input
-                      type="radio"
-                      name="series-export-format"
-                      value={fmt}
-                      checked={options.format === fmt}
-                      onChange={() => handleFormatChange(fmt)}
-                      className="accent-primary"
-                    />
-                    <span className="text-sm text-foreground">
-                      {SERIES_EXPORT_FORMAT_LABELS[fmt]}
-                    </span>
-                  </label>
-                ))}
+                ).map((fmt) => {
+                  const subtitle = SERIES_EXPORT_FORMAT_SUBTITLES[fmt];
+                  const isSelected = selectedFormat === fmt;
+                  return (
+                    <label
+                      key={fmt}
+                      className={
+                        'flex items-center gap-3 cursor-pointer ' +
+                        'p-3 rounded-md border transition-colors ' +
+                        (isSelected
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:bg-muted/50')
+                      }
+                    >
+                      <input
+                        type="radio"
+                        name="series-export-format"
+                        value={fmt}
+                        checked={isSelected}
+                        onChange={() => handleFormatChange(fmt)}
+                        className="accent-primary"
+                      />
+                      <div>
+                        <span className="text-sm text-foreground">
+                          {SERIES_EXPORT_FORMAT_LABELS[fmt]}
+                        </span>
+                        {subtitle && (
+                          <span className="text-xs text-emerald-600 ml-2 font-medium">
+                            {subtitle}
+                          </span>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
+              {!canExport && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {SERIES_EXPORT_UI.formatRequiredHint}
+                </p>
+              )}
             </fieldset>
 
             {/* Options */}
@@ -206,15 +230,16 @@ export function SeriesExportModal({
               <legend className="text-sm font-medium text-foreground mb-2">
                 {SERIES_EXPORT_UI.optionsLabel}
               </legend>
-              <label className="
-                flex items-start gap-3 cursor-pointer
-                p-3 rounded-md border border-border
-                hover:bg-muted/50 transition-colors
-                has-[:checked]:border-primary has-[:checked]:bg-primary/5
-              ">
+              <label className={
+                'flex items-start gap-3 cursor-pointer ' +
+                'p-3 rounded-md border transition-colors ' +
+                (includeHandoutBooklet
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:bg-muted/50')
+              }>
                 <input
                   type="checkbox"
-                  checked={options.includeHandoutBooklet}
+                  checked={includeHandoutBooklet}
                   onChange={handleHandoutBookletChange}
                   className="mt-0.5 accent-primary"
                 />
@@ -247,12 +272,15 @@ export function SeriesExportModal({
               <button
                 type="button"
                 onClick={handleExport}
-                className="
-                  flex-1 px-4 py-2 text-sm font-medium rounded-md
-                  bg-primary text-primary-foreground
-                  hover:bg-primary/90 transition-colors
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-                "
+                disabled={!canExport}
+                className={
+                  'flex-1 px-4 py-2 text-sm font-medium rounded-md ' +
+                  'transition-colors ' +
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ' +
+                  (canExport
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'bg-muted text-muted-foreground cursor-not-allowed')
+                }
               >
                 {SERIES_EXPORT_UI.exportButton}
               </button>

@@ -5,15 +5,14 @@
 // Phase B: Extracts Section 8 (Student Handout) content from each lesson
 // and returns structured handout data for the booklet appendix.
 //
-// Used by both buildSeriesDocx and buildSeriesPdf to:
-//   1. Compile all Section 8 content into an ordered array
-//   2. Each entry gets a page break before it (tear-out friendly)
+// Also exports shared extraction utilities used by buildSeriesDocx,
+// buildSeriesPdf, and buildToc:
+//   - extractSection8Content() -- pulls Section 8 text from lesson content
+//   - stripSection8FromContent() -- removes Section 8 from lesson content
+//   - extractCreativeTitle() -- pulls the creative title from lesson content
 //
-// SMART SECTION 8 OMISSION:
-//   When options.omitSection8FromChapters is true, the lesson chapter
-//   builders call extractSection8Content() to strip Section 8 from the
-//   per-lesson content before rendering. The booklet builder then
-//   assembles the stripped content here.
+// SSOT: Uses STUDENT_HANDOUT_HEADING_REGEX from lessonShapeProfiles.ts
+// for heading detection (handles all shaped + original formats).
 // ============================================================================
 
 import type { Lesson } from '@/constants/contracts';
@@ -22,7 +21,7 @@ import {
   SERIES_HANDOUT_COPY,
   STUDENT_HANDOUT_SECTION_NUMBER,
 } from '@/constants/seriesExportConfig';
-import { EXPORT_FORMATTING } from '@/constants/lessonStructure';
+import { STUDENT_HANDOUT_HEADING_REGEX } from '@/constants/lessonShapeProfiles';
 
 // ============================================================================
 // TYPES
@@ -31,7 +30,7 @@ import { EXPORT_FORMATTING } from '@/constants/lessonStructure';
 export interface HandoutEntry {
   /** 1-based lesson number */
   lessonNumber: number;
-  /** Header: "Lesson {n}: {Title}" */
+  /** Header: "Lesson {n}: {CreativeTitle}" */
   header: string;
   /** Passage reference */
   passage: string;
@@ -55,9 +54,6 @@ export interface HandoutBookletData {
 /**
  * Build the structured handout booklet data from all lessons in the series.
  * Lessons with no Section 8 content are included with a placeholder note.
- *
- * @param series - The LessonSeries record
- * @param lessons - Ordered array of full Lesson records
  */
 export function buildHandoutBookletData(
   series: LessonSeries,
@@ -65,9 +61,9 @@ export function buildHandoutBookletData(
 ): HandoutBookletData {
   const entries: HandoutEntry[] = lessons.map((lesson, index) => {
     const lessonNumber = index + 1;
-    const title = lesson.title ?? `Lesson ${lessonNumber}`;
+    const creativeTitle = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNumber);
     const passage = resolvePassage(lesson, series, lessonNumber);
-    const header = `${SERIES_HANDOUT_COPY.handoutHeaderPrefix} ${lessonNumber}: ${title}`;
+    const header = SERIES_HANDOUT_COPY.handoutHeaderPrefix + ' ' + lessonNumber + ': ' + creativeTitle;
 
     const section8Content = extractSection8Content(lesson);
 
@@ -87,55 +83,164 @@ export function buildHandoutBookletData(
 }
 
 // ============================================================================
+// CREATIVE TITLE EXTRACTION
+// ============================================================================
+
+/**
+ * Extract the creative lesson title from lesson content.
+ *
+ * The AI generates a creative title (e.g., "The King Above All Kings")
+ * that is distinct from lesson.title (which stores the passage reference).
+ *
+ * Search priority:
+ *   1. Lesson Title label pattern (original format, Section 1)
+ *   2. First bold line near the top of content
+ *   3. First markdown heading that is not a Section header
+ *   4. Returns null (caller falls back to lesson.title)
+ */
+export function extractCreativeTitle(lesson: Lesson): string | null {
+  const rawContent = lesson.shaped_content ?? lesson.original_text;
+  if (!rawContent) return null;
+
+  // Pattern 1: **Lesson Title:** The Creative Title Here
+  const titleLabelMatch = rawContent.match(
+    /\*\*Lesson\s+Title[:\s]*\*\*[:\s]*([^\n]+)/i
+  );
+  if (titleLabelMatch) {
+    return titleLabelMatch[1].trim().replace(/\*\*/g, '');
+  }
+
+  // Pattern 2: First bold-only line near the top (within first 500 chars)
+  const topContent = rawContent.slice(0, 500);
+  const boldLineMatch = topContent.match(
+    /(?:^|\n)\*\*([^*\n]{10,})\*\*\s*(?:\n|$)/
+  );
+  if (boldLineMatch) {
+    return boldLineMatch[1].trim();
+  }
+
+  // Pattern 3: First markdown heading that is NOT a "Section N" header
+  const headingMatch = rawContent.match(
+    /(?:^|\n)#{1,3}\s+(?!Section\s+\d)([^\n]+)/
+  );
+  if (headingMatch) {
+    return headingMatch[1].trim().replace(/\*\*/g, '');
+  }
+
+  return null;
+}
+
+// ============================================================================
 // SECTION 8 EXTRACTION
 // ============================================================================
 
 /**
  * Extract Section 8 (Student Handout) content from a lesson's text.
  *
- * The lesson content (original_text or shaped_content) is a single
- * markdown-formatted string. Section 8 is identified by its heading
- * pattern. Returns null if Section 8 is not found.
+ * SSOT: Uses STUDENT_HANDOUT_HEADING_REGEX from lessonShapeProfiles.ts
+ * to detect the heading in all formats:
+ *   - "## Section 8: Student Handout" (original)
+ *   - "STUDENT HANDOUT" (shaped)
+ *   - "Student Handout" (mixed)
  *
- * SSOT: Uses EXPORT_FORMATTING.section8Title for the heading match pattern.
- * This mirrors the pattern used in exportToDocx.ts and exportToPdf.ts.
+ * Returns null if Section 8 is not found.
  */
 export function extractSection8Content(lesson: Lesson): string | null {
   const rawContent = lesson.shaped_content ?? lesson.original_text;
   if (!rawContent) return null;
 
-  // Match "Section 8" heading (with or without colon, case-insensitive)
-  // and capture everything until the next "Section N" heading or end of string.
-  // This mirrors the heading detection logic in the existing export utilities.
-  const section8Pattern = /(?:^|\n)(#{1,3}\s*)?Section\s+8\b[^\n]*\n([\s\S]*?)(?=\n(?:#{1,3}\s*)?Section\s+\d+\b|\s*$)/i;
+  const lines = rawContent.split('\n');
+  let headingIndex = -1;
 
-  const match = rawContent.match(section8Pattern);
-  if (!match) return null;
+  // Primary: use SSOT regex from lessonShapeProfiles.ts
+  for (let i = 0; i < lines.length; i++) {
+    if (STUDENT_HANDOUT_HEADING_REGEX.test(lines[i].trim())) {
+      headingIndex = i;
+      break;
+    }
+  }
 
-  return match[2].trim();
+  // Fallback: broader "Section 8" match
+  if (headingIndex === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      if (/Section\s+8\b/i.test(lines[i])) {
+        headingIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (headingIndex === -1) return null;
+
+  // Capture everything after heading until next section or end
+  const contentLines: string[] = [];
+  for (let i = headingIndex + 1; i < lines.length; i++) {
+    const line = lines[i];
+    // Stop at next "Section N" heading
+    if (/^(?:#{1,3}\s*)?Section\s+\d+\b/i.test(line.trim())) break;
+    // Stop at STUDENT TEASER heading (Section 9)
+    if (/^(?:#{1,3}\s*)?(?:STUDENT\s+TEASER|Student\s+Teaser)\b/i.test(line.trim())) break;
+    contentLines.push(line);
+  }
+
+  const result = contentLines.join('\n').trim();
+  return result.length > 0 ? result : null;
 }
 
 /**
  * Return lesson content with Section 8 stripped out.
  * Used by chapter builders when omitSection8FromChapters is true.
+ *
+ * SSOT: Uses STUDENT_HANDOUT_HEADING_REGEX for heading detection.
  */
 export function stripSection8FromContent(content: string): string {
-  // Remove from "Section 8" heading to the next "Section N" heading or end
-  return content
-    .replace(
-      /\n(?:#{1,3}\s*)?Section\s+8\b[^\n]*\n[\s\S]*?(?=\n(?:#{1,3}\s*)?Section\s+\d+\b|\s*$)/i,
-      ''
-    )
-    .trim();
+  if (!content) return content;
+
+  const lines = content.split('\n');
+  let headingIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    if (STUDENT_HANDOUT_HEADING_REGEX.test(lines[i].trim())) {
+      headingIndex = i;
+      break;
+    }
+  }
+
+  // Fallback: broader "Section 8" match
+  if (headingIndex === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      if (/Section\s+8\b/i.test(lines[i])) {
+        headingIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (headingIndex === -1) return content;
+
+  // Find where Section 8 ends
+  let endIndex = lines.length;
+  for (let i = headingIndex + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (/^(?:#{1,3}\s*)?Section\s+\d+\b/i.test(line)) {
+      endIndex = i;
+      break;
+    }
+    if (/^(?:#{1,3}\s*)?(?:STUDENT\s+TEASER|Student\s+Teaser)\b/i.test(line)) {
+      endIndex = i;
+      break;
+    }
+  }
+
+  const before = lines.slice(0, headingIndex);
+  const after = lines.slice(endIndex);
+  return [...before, ...after].join('\n').trim();
 }
 
 // ============================================================================
 // HELPERS
 // ============================================================================
 
-/**
- * Resolve the passage reference for a lesson (same logic as buildToc.ts).
- */
 function resolvePassage(
   lesson: Lesson,
   series: LessonSeries,
@@ -153,7 +258,6 @@ function resolvePassage(
   return '';
 }
 
-/** Placeholder shown when a lesson has no Section 8 content */
 const HANDOUT_PLACEHOLDER =
   'Student handout content was not available for this lesson. ' +
   'Please generate the lesson again to include a student handout.';
