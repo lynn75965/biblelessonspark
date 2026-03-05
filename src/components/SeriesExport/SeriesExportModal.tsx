@@ -244,6 +244,37 @@ export function SeriesExportModal({
                   </div>
                 </label>
 
+                                {/* Booklet */}
+                <label
+                  className={
+                    'flex items-start gap-3 cursor-pointer ' +
+                    'p-3 rounded-md border transition-colors ' +
+                    (selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted/50')
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="series-export-layout"
+                    value={SERIES_EXPORT_LAYOUTS.BOOKLET}
+                    checked={selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET}
+                    onChange={() => handleLayoutChange(SERIES_EXPORT_LAYOUTS.BOOKLET)}
+                    className="mt-0.5 accent-primary"
+                  />
+                  <div>
+                    <span className="text-sm text-foreground block">
+                      {SERIES_EXPORT_UI.layoutBookletLabel}
+                    </span>
+                    <span className="text-xs text-muted-foreground block">
+                      {SERIES_EXPORT_UI.layoutBookletDescription}
+                    </span>
+                    <span className="text-xs text-emerald-600 block font-medium">
+                      {SERIES_EXPORT_UI.layoutBookletSubtitle}
+                    </span>
+                  </div>
+                </label>
+
                 {/* Tri-Fold */}
                 <label
                   className={
