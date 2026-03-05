@@ -7,26 +7,37 @@
  * - isSeriesComplete() from @/constants/seriesConfig
  * - SERIES_STATUSES from @/constants/seriesConfig
  * - SeriesExportButton from @/components/SeriesExport/SeriesExportButton
- * - useSeriesManager hook for data fetching (allSeries -- includes completed)
+ * - BookletPrintModal from @/components/SeriesExport/BookletPrintModal
+ * - BOOKLET_UI from @/constants/bookletConfig
  * - useSubscription hook for tier gating
  *
  * Phase 28: Series Library Tab (March 2026)
  * FIX: March 2026 -- switched from fetchActiveSeries (in_progress only)
- *   to fetchAllSeries (in_progress + completed) so completed series are visible.
+ *   to fetchAllSeries (in_progress + completed) so completed series
+ *   are visible.
+ * ADDED: March 2026 -- Print Class Booklet button (Personal Plan, gated)
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, CheckCircle, Clock, Archive } from "lucide-react";
+import { BookOpen, CheckCircle, Clock, Archive, BookMarked, Lock } from "lucide-react";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
 import { useSubscription } from "@/hooks/useSubscription";
 import { isSeriesComplete, SERIES_STATUSES } from "@/constants/seriesConfig";
 import { SeriesExportButton } from "@/components/SeriesExport/SeriesExportButton";
+import { BookletPrintModal } from "@/components/SeriesExport/BookletPrintModal";
+import { BOOKLET_UI } from "@/constants/bookletConfig";
+import { hasFeatureAccess } from "@/constants/featureFlags";
+import type { LessonSeries } from "@/constants/seriesConfig";
 
 export function SeriesLibrary() {
   const { allSeries, isLoading, fetchAllSeries } = useSeriesManager();
   const { tier } = useSubscription();
+
+  const [bookletSeries, setBookletSeries] = useState<LessonSeries | null>(null);
+
+  const canPrintBooklet = hasFeatureAccess(tier, 'bookletPrint');
 
   useEffect(() => {
     fetchAllSeries();
@@ -130,8 +141,44 @@ export function SeriesLibrary() {
                     </span>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
+                    {/* Existing curriculum export button */}
                     <SeriesExportButton series={series} tier={tier} />
+
+                    {/* Print Class Booklet button */}
+                    {canPrintBooklet ? (
+                      <button
+                        type="button"
+                        onClick={() => setBookletSeries(series as LessonSeries)}
+                        className="
+                          w-full flex items-center justify-center gap-2
+                          px-4 py-2 text-sm font-medium rounded-md
+                          border border-border
+                          text-foreground bg-background
+                          hover:bg-muted transition-colors
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+                        "
+                      >
+                        <BookMarked className="h-4 w-4 text-primary" aria-hidden="true" />
+                        {BOOKLET_UI.buttonLabel}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled
+                        title={BOOKLET_UI.upgradePrompt}
+                        className="
+                          w-full flex items-center justify-center gap-2
+                          px-4 py-2 text-sm font-medium rounded-md
+                          border border-border
+                          text-muted-foreground bg-muted/50
+                          cursor-not-allowed
+                        "
+                      >
+                        <Lock className="h-3.5 w-3.5" aria-hidden="true" />
+                        {BOOKLET_UI.buttonLabel}
+                      </button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -150,6 +197,14 @@ export function SeriesLibrary() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Booklet Print Modal -- rendered at root level to avoid card clipping */}
+      {bookletSeries && (
+        <BookletPrintModal
+          series={bookletSeries}
+          onClose={() => setBookletSeries(null)}
+        />
       )}
     </div>
   );
