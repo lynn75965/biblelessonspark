@@ -317,17 +317,38 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
 
 export const SERIES_EXPORT_DEFAULT_FONT: SeriesExportFont = SERIES_EXPORT_FONTS.CALIBRI;
 
+
+// ============================================================================
+// COLOR SCHEMES  (Phase C addition -- applies to all layouts)
+// ============================================================================
+
+export interface ColorScheme {
+  id: string;
+  label: string;
+  primary: string;
+  accent: string;
+}
+
+export const SERIES_COLOR_SCHEMES: ColorScheme[] = [
+  { id: 'forest-gold',     label: 'Forest & Gold',     primary: '3D5C3D', accent: 'B8860B' },
+  { id: 'navy-steel',      label: 'Navy & Steel',       primary: '1B3A5C', accent: '4A7C9E' },
+  { id: 'burgundy-copper', label: 'Burgundy & Copper',  primary: '6B2737', accent: 'A0522D' },
+  { id: 'teal-bronze',     label: 'Deep Teal & Bronze', primary: '1C5C5C', accent: '8B6914' },
+  { id: 'plum-sage',       label: 'Plum & Sage',        primary: '4A2B5C', accent: '5C7A4A' },
+] as const;
+
+export type SeriesColorSchemeId = typeof SERIES_COLOR_SCHEMES[number]['id'];
+
+export const SERIES_DEFAULT_COLOR_SCHEME: SeriesColorSchemeId = 'forest-gold';
 // ============================================================================
 // EXPORT OPTIONS  (updated for Phase C)
 // ============================================================================
 
 export interface SeriesExportOptions {
-  /** Export format: DOCX or PDF */
   format: SeriesExportFormat;
-  /** Page layout: fullpage, booklet, or trifold */
   layout: SeriesExportLayout;
-  /** Font selection */
   font: SeriesExportFont;
+  colorScheme: SeriesColorSchemeId;
   /** Include the Student Handout Booklet appendix (Phase B) */
   includeHandoutBooklet: boolean;
   /** When true, Section 8 is omitted from individual lesson chapters */
@@ -338,6 +359,7 @@ export const SERIES_EXPORT_DEFAULT_OPTIONS: SeriesExportOptions = {
   format: SERIES_EXPORT_FORMATS.PDF,
   layout: SERIES_EXPORT_DEFAULT_LAYOUT,
   font:   SERIES_EXPORT_DEFAULT_FONT,
+  colorScheme: SERIES_DEFAULT_COLOR_SCHEME,
   includeHandoutBooklet: true,
   omitSection8FromChapters: true,
 } as const;
@@ -503,7 +525,9 @@ export const SERIES_EXPORT_UI = {
   formatLabel: 'Choose Export Format',
 
   // Font picker (Phase C)
-  fontLabel: 'Choose Font',
+  styleLabel: 'Document Style',
+  colorSchemeLabel: 'Color Scheme',
+  fontLabel: 'Font',
 
   // Options (existing)
   optionsLabel: 'Document Options',

@@ -45,6 +45,7 @@ import {
   FontConfig,
   LayoutDimensions,
   SERIES_COLORS,
+  SERIES_COLOR_SCHEMES,
   SERIES_COVER_COPY,
   SERIES_INTRO_PLACEHOLDER,
   EXPORT_SPACING,
@@ -100,6 +101,11 @@ export async function buildSeriesPdf(
   const fontConfig: FontConfig =
     SERIES_EXPORT_FONT_OPTIONS.find((f) => f.id === options.font) ??
     SERIES_EXPORT_FONT_OPTIONS[0];
+  const activeScheme =
+    SERIES_COLOR_SCHEMES.find((s) => s.id === options.colorScheme) ??
+    SERIES_COLOR_SCHEMES[0];
+  const schemeHeading = activeScheme.primary;
+  const schemeAccent  = activeScheme.accent;
 
   // Route to the tri-fold renderer when that layout is selected
   if (options.layout === 'trifold') {
@@ -171,7 +177,7 @@ export async function buildSeriesPdf(
   }
 
   function renderSectionHeading(text: string): void {
-    const [r, g, b] = hexToRgb(SERIES_COLORS.tocHeading);
+    const [r, g, b] = hexToRgb(schemeHeading);
     doc.setFont(fontConfig.pdfHeading, 'bold');
     doc.setFontSize(dims.sectionHeaderFontPt);
     doc.setTextColor(r, g, b);
@@ -182,7 +188,7 @@ export async function buildSeriesPdf(
   }
 
   function renderSubheading(text: string): void {
-    const [r, g, b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    const [r, g, b] = hexToRgb(schemeHeading);
     doc.setFont(fontConfig.pdfHeading, 'bold');
     doc.setFontSize(dims.chapterTitleFontPt - 2);
     doc.setTextColor(r, g, b);
@@ -246,7 +252,7 @@ export async function buildSeriesPdf(
   const coverData = buildCoverPageData(series, lessons, null, null);
   currentY = pageHeight / 3;
 
-  const [tr, tg, tb] = hexToRgb(SERIES_COLORS.coverTitle);
+  const [tr, tg, tb] = hexToRgb(schemeHeading);
   doc.setFont(fontConfig.pdfHeading, 'bold');
   doc.setFontSize(dims.coverTitleFontPt);
   doc.setTextColor(tr, tg, tb);
@@ -257,7 +263,7 @@ export async function buildSeriesPdf(
   }
   currentY += 8;
 
-  const [sr, sg, sb] = hexToRgb(SERIES_COLORS.coverSubtitle);
+  const [sr, sg, sb] = hexToRgb(schemeAccent);
   doc.setFont(fontConfig.pdfHeading, 'normal');
   doc.setFontSize(dims.coverSubtitleFontPt);
   doc.setTextColor(sr, sg, sb);
@@ -343,7 +349,7 @@ export async function buildSeriesPdf(
     doc.text('LESSON ' + lessonNumber, margin, currentY);
     currentY += dims.bodyFontPt + 4;
 
-    const [ct_r, ct_g, ct_b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    const [ct_r, ct_g, ct_b] = hexToRgb(schemeHeading);
     doc.setFont(fontConfig.pdfHeading, 'bold');
     doc.setFontSize(dims.chapterTitleFontPt);
     doc.setTextColor(ct_r, ct_g, ct_b);
@@ -655,7 +661,7 @@ async function buildTrifoldPdf(
     // ---- Panel 1: Title, Passage, Key Idea, Memory Verse -------------------
     let y1 = colMargin + titleFontPt;
 
-    const [titleR, titleG, titleB] = hexToRgb(SERIES_COLORS.coverTitle);
+    const [titleR, titleG, titleB] = hexToRgb(schemeHeading);
     doc.setFont(fontConfig.pdfHeading, 'bold');
     doc.setFontSize(titleFontPt);
     doc.setTextColor(titleR, titleG, titleB);
@@ -822,7 +828,7 @@ function renderTrifoldBlock(
 
   // Label
   if (y + labelLineH > maxY) return y;
-  const [lr, lg, lb] = hexToRgb(SERIES_COLORS.chapterHeading);
+  const [lr, lg, lb] = hexToRgb(schemeHeading);
   doc.setFont(fontConfig.pdfHeading, 'bold');
   doc.setFontSize(labelFontPt);
   doc.setTextColor(lr, lg, lb);
