@@ -75,6 +75,13 @@ export const FEATURE_FLAGS = {
     upgradePrompt:  '',
   },
 
+  bookletPrint: {
+    requiredTier:  'personal',
+    enabled:        true,
+    label:          'Print Class Booklet',
+    upgradePrompt:  'Upgrade to Personal Plan to print a class booklet for your series.',
+  },
+
   parables: {
     requiredTier:  'free',
     enabled:        true,
@@ -115,3 +122,4 @@ export function getUpgradePrompt(tier: SubscriptionTier, feature: FeatureKey): s
 export function isFeatureEnabled(feature: FeatureKey): boolean {
   return FEATURE_FLAGS[feature].enabled;
 }
+
