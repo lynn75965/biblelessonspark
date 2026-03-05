@@ -1,5 +1,5 @@
 // ============================================================================
-// bookletConfig.ts -- SSOT for Print Class Booklet
+// bookletConfig.ts -- SSOT for Print Series Booklet
 // Location: src/constants/bookletConfig.ts
 //
 // Single Source of Truth for every value that controls booklet output.
@@ -375,8 +375,8 @@ export const BOOKLET_LABELS = {
 // ============================================================================
 
 export const BOOKLET_UI = {
-  buttonLabel:      'Print Class Booklet',
-  modalTitle:       'Print Class Booklet',
+  buttonLabel:      'Print Series Booklet',
+  modalTitle:       'Print Series Booklet',
   modalSubtitle:
     'Generate a print-ready booklet your class can fold, staple, and keep.',
   colorSchemeLabel: 'Booklet Color Scheme',
@@ -440,3 +440,4 @@ export function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
+
