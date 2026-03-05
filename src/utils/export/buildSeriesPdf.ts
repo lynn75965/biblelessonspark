@@ -2,84 +2,70 @@
 // buildSeriesPdf.ts
 // Location: src/utils/export/buildSeriesPdf.ts
 //
-// PDF document builder for the Series Curriculum Export.
+// PDF document builders for the Series Curriculum Export.
 //
-// Document structure (fullpage / booklet layouts):
-//   1. Cover Page (no page numbers)
-//   2. Table of Contents (no page numbers)
-//   3. Introduction (no page numbers)
-//   4. Lesson Chapters with per-lesson page numbering
-//   5. Student Handout Booklet (own page numbering)
-//   6. Back Cover (no page numbers)
-//   [Blank padding pages if booklet layout -- ensures count divisible by 4]
+// EXPORTS:
+//   buildSeriesPdf()    -- US Letter, full-page, 1" margins
+//   buildBookletPdf()   -- Saddle-stitch booklet:
+//                           1. Builds half-letter (5.5"x8.5") content pages
+//                              with 0.4" mirror margins via jsPDF
+//                           2. Imposes 2-up onto landscape letter sheets
+//                              via pdf-lib for print-and-fold delivery
 //
-// Tri-fold layout (PDF only):
-//   One landscape page per lesson, divided into 3 equal columns.
-//   Renders Section 8 (Student Handout) content only.
-//   No cover, no TOC, no lesson chapters.
+// Document structure (both formats):
+//   1. Cover Page
+//   2. Table of Contents
+//   3. Introduction
+//   4. Lesson Chapters
+//   5. Group Handout Section
+//   6. Back Cover
 //
-// LAYOUT CHANGES (March 2026):
-//   - Eliminated full-page chapter dividers to save paper
-//   - Compact inline lesson header at top of content page
-//   - Per-lesson page numbering in footer
-//   - Creative title as primary heading (not passage reference)
-//
-// PHASE C ADDITIONS (March 2026):
-//   - Layout-aware page dimensions (fullpage / booklet / trifold)
-//   - Font-aware text rendering (6 font options)
-//   - Booklet layout pads to multiple of 4 pages
-//   - Tri-fold rendering path: 3-column landscape handout per lesson
-//
-// ASCII-CLEAN: No literal Unicode characters. Use escape sequences.
-//   \u00A9 = copyright, \u2014 = em dash. Bullets use '- ' prefix.
 // ============================================================================
 
 import jsPDF from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
 import type { Lesson } from '@/constants/contracts';
 import type { LessonSeries } from '@/constants/seriesConfig';
 import {
   SeriesExportOptions,
   SeriesExportProgressStepId,
-  SERIES_LAYOUT_DIMENSIONS,
-  SERIES_EXPORT_FONT_OPTIONS,
-  FontConfig,
-  LayoutDimensions,
+  SERIES_COVER_TYPOGRAPHY,
+  SERIES_CHAPTER_TYPOGRAPHY,
+  SERIES_TOC_TYPOGRAPHY,
   SERIES_COLORS,
-  SERIES_COLOR_SCHEMES,
   SERIES_COVER_COPY,
   SERIES_INTRO_PLACEHOLDER,
   EXPORT_SPACING,
+  BOOKLET_PAGE,
+  BOOKLET_SHEET,
+  BOOKLET_TYPOGRAPHY,
 } from '@/constants/seriesExportConfig';
 import { buildCoverPageData } from './buildCoverPage';
 import { buildTocEntries } from './buildToc';
 import {
   buildHandoutBookletData,
   extractCreativeTitle,
-  extractSection8Content,
   stripSection8FromContent,
 } from './buildHandoutBooklet';
 
 // ============================================================================
-// HELPERS
+// SHARED CONSTANTS
 // ============================================================================
 
-/** Strip Unicode characters that jsPDF built-in fonts cannot render. */
-function sanitizeForPdf(text: string): string {
-  return text
-    .replace(/[\u2610\u2611\u2612\u2713\u2714\u2717\u2718]/g, '')
-    .replace(/%\u00A1/g, '- ')
-    .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, '- ')
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/[\u2013]/g, '--')
-    .replace(/[\u2014]/g, '---')
-    .replace(/[\u2026]/g, '...')
-    .replace(/[^\x00-\x7F]/g, '');
-}
+const FP_PAGE_WIDTH    = 612;
+const FP_PAGE_HEIGHT   = 792;
+const FP_PAGE_MARGIN   = 72;
+const FP_CONTENT_WIDTH = FP_PAGE_WIDTH - FP_PAGE_MARGIN * 2;
+const FP_PAGE_BOTTOM   = FP_PAGE_HEIGHT - FP_PAGE_MARGIN;
+
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
+
+// ============================================================================
+// PAGE TRACKER
+// ============================================================================
 
 interface PageRange {
   label: string;
@@ -88,7 +74,7 @@ interface PageRange {
 }
 
 // ============================================================================
-// MAIN BUILDER
+// FULL-PAGE PDF BUILDER  (US Letter, 1" margins)
 // ============================================================================
 
 export async function buildSeriesPdf(
@@ -97,79 +83,46 @@ export async function buildSeriesPdf(
   options: SeriesExportOptions,
   setStep: (stepId: SeriesExportProgressStepId) => void
 ): Promise<ArrayBuffer> {
-  const dims: LayoutDimensions = SERIES_LAYOUT_DIMENSIONS[options.layout];
-  const fontConfig: FontConfig =
-    SERIES_EXPORT_FONT_OPTIONS.find((f) => f.id === options.font) ??
-    SERIES_EXPORT_FONT_OPTIONS[0];
-  const activeScheme =
-    SERIES_COLOR_SCHEMES.find((s) => s.id === options.colorScheme) ??
-    SERIES_COLOR_SCHEMES[0];
-  const schemeHeading = activeScheme.primary;
-  const schemeAccent  = activeScheme.accent;
-
-  // Route to the tri-fold renderer when that layout is selected
-  if (options.layout === 'trifold') {
-    return buildTrifoldPdf(series, lessons, dims, fontConfig, setStep);
-  }
-
-  // ---- Standard portrait layout (fullpage or booklet) ----------------------
-  // Content is always rendered at the layout's native dimensions (e.g. 5.5x8.5
-  // for booklet). Booklet imposition onto landscape letter sheets happens as a
-  // post-processing step after all content and page numbers are rendered.
-
-  const pageWidth  = dims.widthPt;
-  const pageHeight = dims.heightPt;
-  const margin     = dims.marginPt;
-  const contentW   = dims.contentWidthPt;
-  const pageBottom = pageHeight - margin;
-  const footerY    = pageHeight - 36;
-
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
-    format: [pageWidth, pageHeight],
+    format: 'letter',
   });
 
-  doc.setDisplayMode('fullwidth', 'continuous', 'UseNone');
-
-  let currentY = margin;
+  let currentY   = FP_PAGE_MARGIN;
   let currentPage = 1;
-  const lessonRanges: PageRange[] = [];
+  const lessonRanges: PageRange[]  = [];
   const frontMatterPages: number[] = [];
 
-  // ---- Closure helpers -----------------------------------------------------
+  // -- helpers ----------------------------------------------------------------
 
   function addPage(): void {
-    doc.addPage([pageWidth, pageHeight], 'portrait');
-    currentY = margin;
+    doc.addPage('letter', 'portrait');
+    currentY = FP_PAGE_MARGIN;
     currentPage++;
   }
 
   function ensureSpace(minHeight: number): void {
-    if (currentY + minHeight > pageBottom) {
-      addPage();
-    }
+    if (currentY + minHeight > FP_PAGE_BOTTOM) addPage();
   }
 
   function resetStyle(): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(fontConfig.pdfBody, 'normal');
-    doc.setFontSize(dims.bodyFontPt);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
   }
 
   function renderBodyText(text: string, italic?: boolean): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(fontConfig.pdfBody, italic ? 'italic' : 'normal');
-    doc.setFontSize(dims.bodyFontPt);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, italic ? 'italic' : 'normal');
+    doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
-
-    const lines = doc.splitTextToSize(sanitizeForPdf(text), contentW) as string[];
-    const lineH = dims.bodyFontPt * EXPORT_SPACING.body.lineHeight;
-
+    const lines = doc.splitTextToSize(text, FP_CONTENT_WIDTH) as string[];
+    const lineH = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
     for (const line of lines) {
       ensureSpace(lineH);
-      doc.text(line, margin, currentY);
+      doc.text(line, FP_PAGE_MARGIN, currentY);
       currentY += lineH;
     }
     currentY += EXPORT_SPACING.paragraph.afterPt;
@@ -177,26 +130,26 @@ export async function buildSeriesPdf(
   }
 
   function renderSectionHeading(text: string): void {
-    const [r, g, b] = hexToRgb(schemeHeading);
-    doc.setFont(fontConfig.pdfHeading, 'bold');
-    doc.setFontSize(dims.sectionHeaderFontPt);
+    const [r, g, b] = hexToRgb(SERIES_COLORS.tocHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(SERIES_TOC_TYPOGRAPHY.headingFontPt);
     doc.setTextColor(r, g, b);
     ensureSpace(30);
-    doc.text(text, margin, currentY);
-    currentY += dims.sectionHeaderFontPt + 8;
+    doc.text(text, FP_PAGE_MARGIN, currentY);
+    currentY += SERIES_TOC_TYPOGRAPHY.headingFontPt + 8;
     resetStyle();
   }
 
   function renderSubheading(text: string): void {
-    const [r, g, b] = hexToRgb(schemeHeading);
-    doc.setFont(fontConfig.pdfHeading, 'bold');
-    doc.setFontSize(dims.chapterTitleFontPt - 2);
+    const [r, g, b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontPt + 2);
     doc.setTextColor(r, g, b);
     ensureSpace(24);
-    const lines = doc.splitTextToSize(sanitizeForPdf(text), contentW) as string[];
+    const lines = doc.splitTextToSize(text, FP_CONTENT_WIDTH) as string[];
     for (const line of lines) {
-      doc.text(line, margin, currentY);
-      currentY += dims.chapterTitleFontPt;
+      doc.text(line, FP_PAGE_MARGIN, currentY);
+      currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontPt + 6;
     }
     currentY += 4;
     resetStyle();
@@ -204,667 +157,716 @@ export async function buildSeriesPdf(
 
   function renderMetaText(text: string): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.metaText);
-    doc.setFont(fontConfig.pdfBody, 'italic');
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
     doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
     doc.setTextColor(r, g, b);
     ensureSpace(EXPORT_SPACING.metadata.fontPt + 4);
-    doc.text(text, margin, currentY);
+    doc.text(text, FP_PAGE_MARGIN, currentY);
     currentY += EXPORT_SPACING.metadata.fontPt + 6;
     resetStyle();
   }
 
   function renderLessonContent(content: string): void {
     if (!content) return;
-    const lines = content.split('\n');
-
-    for (const rawLine of lines) {
+    for (const rawLine of content.split('\n')) {
       const line = rawLine.trimEnd();
       if (/^#{1,3}\s*$/.test(line)) continue;
-
       if (/^#{1,3}\s+/.test(line)) {
-        const headingText = line.replace(/^#{1,3}\s+/, '');
-        ensureSpace(24);
-        renderSubheading(headingText);
+        renderSubheading(line.replace(/^#{1,3}\s+/, ''));
         continue;
       }
-
       if (/^\s*[*-]\s+/.test(line)) {
-        // ASCII-clean bullet: use '- ' prefix, never \u2022
-        const bulletText = '- ' + line.replace(/^\s*[*-]\s+/, '');
-        renderBodyText(bulletText);
+        renderBodyText('\u2022  ' + line.replace(/^\s*[*-]\s+/, ''));
         continue;
       }
-
       if (line.trim() === '') {
         currentY += EXPORT_SPACING.paragraph.afterPt;
         continue;
       }
-
-      const plainText = sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g, '$1'));
-      renderBodyText(plainText);
+      renderBodyText(line.replace(/\*\*([^*]+)\*\*/g, '$1'));
     }
   }
 
-  // ---- Cover Page ----------------------------------------------------------
+  // -- Cover ------------------------------------------------------------------
   setStep('cover');
   frontMatterPages.push(currentPage);
-
   const coverData = buildCoverPageData(series, lessons, null, null);
-  currentY = pageHeight / 3;
+  currentY = FP_PAGE_HEIGHT / 3;
 
-  const [tr, tg, tb] = hexToRgb(schemeHeading);
-  doc.setFont(fontConfig.pdfHeading, 'bold');
-  doc.setFontSize(dims.coverTitleFontPt);
+  const [tr, tg, tb] = hexToRgb(SERIES_COLORS.coverTitle);
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.titleFontPt);
   doc.setTextColor(tr, tg, tb);
-  const titleLines = doc.splitTextToSize(coverData.seriesTitle, contentW) as string[];
-  for (const tl of titleLines) {
-    doc.text(tl, pageWidth / 2, currentY, { align: 'center' });
-    currentY += dims.coverTitleFontPt + 4;
+  for (const tl of doc.splitTextToSize(coverData.seriesTitle, FP_CONTENT_WIDTH) as string[]) {
+    doc.text(tl, FP_PAGE_WIDTH / 2, currentY, { align: 'center' });
+    currentY += SERIES_COVER_TYPOGRAPHY.titleFontPt + 4;
   }
   currentY += 8;
 
-  const [sr, sg, sb] = hexToRgb(schemeAccent);
-  doc.setFont(fontConfig.pdfHeading, 'normal');
-  doc.setFontSize(dims.coverSubtitleFontPt);
+  const [sr, sg, sb] = hexToRgb(SERIES_COLORS.coverSubtitle);
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.subtitleFontPt);
   doc.setTextColor(sr, sg, sb);
-  doc.text(coverData.subtitle, pageWidth / 2, currentY, { align: 'center' });
-  currentY += dims.coverSubtitleFontPt + 24;
+  doc.text(coverData.subtitle, FP_PAGE_WIDTH / 2, currentY, { align: 'center' });
+  currentY += SERIES_COVER_TYPOGRAPHY.subtitleFontPt + 24;
 
-  const [hr1, hg1, hb1] = hexToRgb(SERIES_COLORS.hr);
-  doc.setDrawColor(hr1, hg1, hb1);
+  const [hr1r, hr1g, hr1b] = hexToRgb(SERIES_COLORS.hr);
+  doc.setDrawColor(hr1r, hr1g, hr1b);
   doc.setLineWidth(0.5);
-  doc.line(margin, currentY, pageWidth - margin, currentY);
+  doc.line(FP_PAGE_MARGIN, currentY, FP_PAGE_WIDTH - FP_PAGE_MARGIN, currentY);
   currentY += 24;
 
-  const [mr, mg, mb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-  doc.setFont(fontConfig.pdfBody, 'normal');
-  doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
-  doc.setTextColor(mr, mg, mb);
-
-  const metaLines = [
-    coverData.teacherLine,
-    coverData.churchLine,
-    coverData.dateRangeLine,
-    coverData.lessonCountLine,
-  ].filter((l): l is string => l !== null);
-
-  for (const ml of metaLines) {
-    doc.text(ml, pageWidth / 2, currentY, { align: 'center' });
-    currentY += EXPORT_SPACING.metadata.fontPt + 6;
+  const [mr, mg, mb_] = hexToRgb(EXPORT_SPACING.colors.metaText);
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.metaFontPt);
+  doc.setTextColor(mr, mg, mb_);
+  for (const ml of [coverData.teacherLine, coverData.churchLine,
+                    coverData.dateRangeLine, coverData.lessonCountLine]
+                    .filter((l): l is string => l !== null)) {
+    doc.text(ml, FP_PAGE_WIDTH / 2, currentY, { align: 'center' });
+    currentY += SERIES_COVER_TYPOGRAPHY.metaFontPt + 6;
   }
 
-  // ---- Table of Contents ---------------------------------------------------
+  // -- TOC --------------------------------------------------------------------
   setStep('toc');
   addPage();
   frontMatterPages.push(currentPage);
   const tocEntries = buildTocEntries(series, lessons);
-
   renderSectionHeading('Table of Contents');
-
   for (const entry of tocEntries) {
-    ensureSpace(dims.bodyFontPt * 2 + 12);
-
+    ensureSpace(EXPORT_SPACING.body.fontPt * 2 + 12);
     const [er, eg, eb] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(fontConfig.pdfBody, 'bold');
-    doc.setFontSize(dims.bodyFontPt);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(SERIES_TOC_TYPOGRAPHY.entryFontPt);
     doc.setTextColor(er, eg, eb);
-    doc.text(entry.chapterHeading, margin, currentY);
-    currentY += dims.bodyFontPt + 4;
-
+    doc.text(entry.chapterHeading, FP_PAGE_MARGIN, currentY);
+    currentY += SERIES_TOC_TYPOGRAPHY.entryFontPt + 4;
     if (entry.passage) {
-      const [pr, pg2, pb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-      doc.setFont(fontConfig.pdfBody, 'italic');
+      const [pr2, pg2, pb2] = hexToRgb(EXPORT_SPACING.colors.metaText);
+      doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
       doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
-      doc.setTextColor(pr, pg2, pb);
-      doc.text('    ' + entry.passage, margin, currentY);
+      doc.setTextColor(pr2, pg2, pb2);
+      doc.text('    ' + entry.passage, FP_PAGE_MARGIN, currentY);
       currentY += EXPORT_SPACING.metadata.fontPt + 4;
     }
-
     currentY += 4;
   }
 
-  // ---- Introduction --------------------------------------------------------
+  // -- Introduction -----------------------------------------------------------
   addPage();
   frontMatterPages.push(currentPage);
   renderSectionHeading('Introduction');
   renderBodyText(SERIES_INTRO_PLACEHOLDER);
 
-  // ---- Lesson Chapters -----------------------------------------------------
+  // -- Lesson Chapters --------------------------------------------------------
   setStep('lessons');
   for (let i = 0; i < lessons.length; i++) {
-    const lesson = lessons[i];
-    const lessonNumber = i + 1;
-    const creativeTitle =
-      extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNumber);
-    const passage = lesson.filters?.passage ?? series.bible_passage ?? '';
+    const lesson      = lessons[i];
+    const lessonNum   = i + 1;
+    const title       = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNum);
+    const passage     = lesson.filters?.passage ?? series.bible_passage ?? '';
 
     addPage();
     const startPage = currentPage;
 
-    // Compact inline header
     const [lr, lg, lb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-    doc.setFont(fontConfig.pdfBody, 'normal');
-    doc.setFontSize(dims.bodyFontPt);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontPt);
     doc.setTextColor(lr, lg, lb);
-    doc.text('LESSON ' + lessonNumber, margin, currentY);
-    currentY += dims.bodyFontPt + 4;
+    doc.text('LESSON ' + lessonNum, FP_PAGE_MARGIN, currentY);
+    currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontPt + 4;
 
-    const [ct_r, ct_g, ct_b] = hexToRgb(schemeHeading);
-    doc.setFont(fontConfig.pdfHeading, 'bold');
-    doc.setFontSize(dims.chapterTitleFontPt);
+    const [ct_r, ct_g, ct_b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontPt);
     doc.setTextColor(ct_r, ct_g, ct_b);
-    const ctLines = doc.splitTextToSize(creativeTitle, contentW) as string[];
-    for (const ctl of ctLines) {
-      doc.text(ctl, margin, currentY);
-      currentY += dims.chapterTitleFontPt + 4;
+    for (const ctl of doc.splitTextToSize(title, FP_CONTENT_WIDTH) as string[]) {
+      doc.text(ctl, FP_PAGE_MARGIN, currentY);
+      currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontPt + 4;
     }
 
     if (passage) {
       const [psr, psg, psb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-      doc.setFont(fontConfig.pdfBody, 'italic');
-      doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
+      doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+      doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.passageFontPt);
       doc.setTextColor(psr, psg, psb);
-      doc.text(passage, margin, currentY);
-      currentY += EXPORT_SPACING.metadata.fontPt + 6;
+      doc.text(passage, FP_PAGE_MARGIN, currentY);
+      currentY += SERIES_CHAPTER_TYPOGRAPHY.passageFontPt + 6;
     }
 
-    const [hr2, hg2, hb2] = hexToRgb(SERIES_COLORS.hr);
-    doc.setDrawColor(hr2, hg2, hb2);
+    const [hr2r, hr2g, hr2b] = hexToRgb(SERIES_COLORS.hr);
+    doc.setDrawColor(hr2r, hr2g, hr2b);
     doc.setLineWidth(0.4);
-    doc.line(margin, currentY, pageWidth - margin, currentY);
+    doc.line(FP_PAGE_MARGIN, currentY, FP_PAGE_WIDTH - FP_PAGE_MARGIN, currentY);
     currentY += 10;
     resetStyle();
 
     const rawContent = lesson.shaped_content ?? lesson.original_text ?? '';
-    const content = options.omitSection8FromChapters
+    const content    = options.omitSection8FromChapters
       ? stripSection8FromContent(rawContent)
       : rawContent;
     renderLessonContent(content);
 
-    lessonRanges.push({
-      label: 'Lesson ' + lessonNumber,
-      startPage,
-      endPage: currentPage,
-    });
+    lessonRanges.push({ label: 'Lesson ' + lessonNum, startPage, endPage: currentPage });
   }
 
-  // ---- Student Handout Booklet ---------------------------------------------
+  // -- Group Handout Section --------------------------------------------------
   let handoutRange: PageRange | null = null;
   if (options.includeHandoutBooklet) {
     setStep('handouts');
     const bookletData = buildHandoutBookletData(series, lessons);
-
     addPage();
     const handoutStart = currentPage;
     renderSectionHeading(bookletData.appendixTitle);
     renderBodyText(bookletData.appendixSubtitle, true);
-
     for (const entry of bookletData.entries) {
       addPage();
       renderSubheading(entry.header);
-      if (entry.passage) {
-        renderMetaText(entry.passage);
-      }
+      if (entry.passage) renderMetaText(entry.passage);
       renderLessonContent(entry.content);
     }
-
-    handoutRange = {
-      label: 'Student Handouts',
-      startPage: handoutStart,
-      endPage: currentPage,
-    };
+    handoutRange = { label: 'Group Handouts', startPage: handoutStart, endPage: currentPage };
   }
 
-  // ---- Back Cover ----------------------------------------------------------
+  // -- Back Cover -------------------------------------------------------------
   addPage();
   const backCoverPage = currentPage;
-
-  currentY = pageHeight * 0.75;
+  currentY = FP_PAGE_HEIGHT * 0.75;
   const [fr, fg, fb] = hexToRgb(EXPORT_SPACING.colors.footerText);
-  doc.setFont(fontConfig.pdfBody, 'normal');
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
   doc.setFontSize(EXPORT_SPACING.footer.fontPt + 2);
   doc.setTextColor(fr, fg, fb);
-
-  doc.text(SERIES_COVER_COPY.generatedBy, pageWidth / 2, currentY, { align: 'center' });
+  doc.text(SERIES_COVER_COPY.generatedBy, FP_PAGE_WIDTH / 2, currentY, { align: 'center' });
   currentY += EXPORT_SPACING.footer.fontPt + 8;
-  doc.text(SERIES_COVER_COPY.website, pageWidth / 2, currentY, { align: 'center' });
+  doc.text(SERIES_COVER_COPY.website, FP_PAGE_WIDTH / 2, currentY, { align: 'center' });
   currentY += EXPORT_SPACING.footer.fontPt + 8;
-  doc.text(
-    '\u00A9 ' + new Date().getFullYear() + ' BibleLessonSpark. All rights reserved.',
-    pageWidth / 2,
-    currentY,
-    { align: 'center' }
-  );
+  doc.text('\u00A9 ' + new Date().getFullYear() + ' BibleLessonSpark. All rights reserved.',
+           FP_PAGE_WIDTH / 2, currentY, { align: 'center' });
 
-  // ---- Booklet Padding: pad total page count to a multiple of 4 ------------
-  if (dims.padToMultipleOf4) {
-    const totalBeforePad = doc.getNumberOfPages();
-    const remainder = totalBeforePad % 4;
-    const paddingNeeded = remainder === 0 ? 0 : 4 - remainder;
-    for (let p = 0; p < paddingNeeded; p++) {
-      doc.addPage([pageWidth, pageHeight], 'portrait');
-    }
-  }
-
-  // ---- Per-Lesson Page Numbers (added AFTER all pages exist) ---------------
+  // -- Per-lesson page numbers ------------------------------------------------
   const totalPages = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {
     if (frontMatterPages.includes(p)) continue;
     if (p === backCoverPage) continue;
-
     doc.setPage(p);
     const [fnr, fng, fnb] = hexToRgb(EXPORT_SPACING.colors.footerText);
-    doc.setFont(fontConfig.pdfBody, 'normal');
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
     doc.setFontSize(EXPORT_SPACING.footer.fontPt);
     doc.setTextColor(fnr, fng, fnb);
-
     let footerText = '';
     for (const range of lessonRanges) {
       if (p >= range.startPage && p <= range.endPage) {
-        const localPage = p - range.startPage + 1;
-        footerText = range.label + ' -- Page ' + localPage;
+        footerText = range.label + ' -- Page ' + (p - range.startPage + 1);
         break;
       }
     }
-
-    if (
-      !footerText &&
-      handoutRange !== null &&
-      p >= handoutRange.startPage &&
-      p <= handoutRange.endPage
-    ) {
-      const localPage = p - handoutRange.startPage + 1;
-      footerText = handoutRange.label + ' -- Page ' + localPage;
+    if (!footerText && handoutRange && p >= handoutRange.startPage && p <= handoutRange.endPage) {
+      footerText = handoutRange.label + ' -- Page ' + (p - handoutRange.startPage + 1);
     }
-
     if (footerText) {
-      doc.text(footerText, pageWidth / 2, footerY, { align: 'center' });
+      doc.text(footerText, FP_PAGE_WIDTH / 2, FP_PAGE_HEIGHT - 36, { align: 'center' });
     }
   }
 
-  // ---- Booklet Imposition (post-processing) --------------------------------
-  // After all content pages and footers are rendered at 5.5x8.5, impose them
-  // two-up onto landscape letter sheets in signature order. When printed duplex
-  // and folded, pages read sequentially like a book.
-  if (options.layout === 'booklet') {
-    setStep('finalizing');
-    return imposeBookletSignature(doc);
-  }
-
-  // ---- Return ArrayBuffer --------------------------------------------------
   setStep('finalizing');
   return doc.output('arraybuffer');
 }
 
 // ============================================================================
-// BOOKLET IMPOSITION
+// BOOKLET PDF BUILDER -- half-letter content + saddle-stitch imposition
 // ============================================================================
 
-/**
- * Takes a jsPDF document whose pages are 5.5 x 8.5 in portrait (396 x 612 pt)
- * and imposes them onto landscape letter sheets (792 x 612 pt) in signature
- * order suitable for duplex printing and center-fold binding.
- *
- * Page count MUST already be padded to a multiple of 4 before calling.
- *
- * Signature layout for N content pages:
- *   Sheet 1 front: [page N (left), page 1 (right)]
- *   Sheet 1 back:  [page 2 (left), page N-1 (right)]
- *   Sheet 2 front: [page N-2 (left), page 3 (right)]
- *   Sheet 2 back:  [page 4 (left), page N-3 (right)]
- *   ... and so on until all pages are placed.
- *
- * This uses jsPDF's internal page content streams. Each content page's stream
- * is wrapped in a PDF save/restore (q/Q) block with a translation matrix for
- * the right-side pages, then appended to the landscape sheet's content stream.
- */
-function imposeBookletSignature(doc: jsPDF): ArrayBuffer {
-  const N = doc.getNumberOfPages();
-  const halfW = 396; // 5.5 inches in points -- width of one content page
-  const sheetH = 612; // 8.5 inches in points -- height of landscape letter
-
-  // 1. Capture every content page's raw PDF content stream
-  const streams: string[] = [];
-  for (let i = 1; i <= N; i++) {
-    const raw = (doc as any).internal.pages[i];
-    if (Array.isArray(raw)) {
-      streams.push(raw.join('\n'));
-    } else {
-      streams.push(String(raw || ''));
-    }
-  }
-
-  // 2. Create imposed landscape letter pages in signature order
-  const sheets = N / 4;
-  for (let s = 0; s < sheets; s++) {
-    // Front of sheet: left = last unplaced page, right = first unplaced page
-    const frontLeft  = N - 2 * s;
-    const frontRight = 2 * s + 1;
-    // Back of sheet: left = next first page, right = next last page
-    const backLeft   = 2 * s + 2;
-    const backRight  = N - 2 * s - 1;
-
-    // --- Front side of sheet ---
-    doc.addPage('letter', 'landscape');
-    const fIdx = doc.getNumberOfPages();
-    const fArr = (doc as any).internal.pages[fIdx];
-
-    // Left content page (no translation needed -- coordinates already 0-396)
-    fArr.push('q\n' + streams[frontLeft - 1] + '\nQ');
-    // Right content page (shift right by 396pt)
-    fArr.push('q\n1 0 0 1 ' + halfW + ' 0 cm\n' + streams[frontRight - 1] + '\nQ');
-    // Dashed fold line down the center
-    fArr.push(
-      'q\n0.78 0.78 0.78 RG\n0.4 w\n[4 4] 0 d\n' +
-      halfW + ' 0 m ' + halfW + ' ' + sheetH + ' l S\nQ'
-    );
-
-    // --- Back side of sheet ---
-    doc.addPage('letter', 'landscape');
-    const bIdx = doc.getNumberOfPages();
-    const bArr = (doc as any).internal.pages[bIdx];
-
-    bArr.push('q\n' + streams[backLeft - 1] + '\nQ');
-    bArr.push('q\n1 0 0 1 ' + halfW + ' 0 cm\n' + streams[backRight - 1] + '\nQ');
-    bArr.push(
-      'q\n0.78 0.78 0.78 RG\n0.4 w\n[4 4] 0 d\n' +
-      halfW + ' 0 m ' + halfW + ' ' + sheetH + ' l S\nQ'
-    );
-  }
-
-  // 3. Delete all original content pages (they were pages 1..N)
-  for (let i = N; i >= 1; i--) {
-    doc.deletePage(i);
-  }
-
-  return doc.output('arraybuffer');
-}
-
-// ============================================================================
-// TRI-FOLD RENDERER
-// ============================================================================
-
-/**
- * Renders one landscape page per lesson, divided into three equal columns.
- * Each page is a complete tri-fold student handout for that lesson.
- * Content is drawn from Section 8 (Student Handout) of each lesson.
- *
- * Column layout (left to right):
- *   Panel 1: Lesson Title, Passage, Key Idea, Memory Verse
- *   Panel 2: Big Points, Gospel Connection
- *   Panel 3: Reflection Questions, Weekly Challenge, Prayer
- */
-async function buildTrifoldPdf(
+export async function buildBookletPdf(
   series: LessonSeries,
   lessons: Lesson[],
-  dims: LayoutDimensions,
-  fontConfig: FontConfig,
+  options: SeriesExportOptions,
   setStep: (stepId: SeriesExportProgressStepId) => void
 ): Promise<ArrayBuffer> {
-  setStep('handouts');
+  // Step 1: Build content pages at half-letter size
+  const contentBuffer = await _buildBookletContent(series, lessons, options, setStep);
 
-  const doc = new jsPDF({
-    orientation: 'landscape',
-    unit: 'pt',
-    format: 'letter',
-  });
-
-  // Tri-fold: open showing the full page so all three panels are visible
-  doc.setDisplayMode('fullpage', 'continuous', 'UseNone');
-
-  // Landscape letter: 792 x 612 pt
-  const pageW   = 792;
-  const pageH   = 612;
-  const colW    = pageW / 3;          // 264 pt per column
-  const colMargin = dims.marginPt;    // 18 pt
-  const usableW = colW - colMargin * 2; // 228 pt usable per column
-
-  // X offsets for the left edge of each column's content area
-  const colX: [number, number, number] = [
-    colMargin,
-    colW + colMargin,
-    colW * 2 + colMargin,
-  ];
-
-  const bodyFontPt    = dims.bodyFontPt;
-  const labelFontPt   = dims.sectionHeaderFontPt;
-  const titleFontPt   = dims.chapterTitleFontPt;
-  const lineH         = bodyFontPt * EXPORT_SPACING.body.lineHeight;
-  const labelLineH    = labelFontPt * 1.3;
-
-  let isFirstLesson = true;
-
-  for (let i = 0; i < lessons.length; i++) {
-    const lesson = lessons[i];
-    const lessonNumber = i + 1;
-
-    if (!isFirstLesson) {
-      doc.addPage('letter', 'landscape');
-    }
-    isFirstLesson = false;
-
-    const creativeTitle =
-      extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNumber);
-    const passage = lesson.filters?.passage ?? series.bible_passage ?? '';
-
-    // Extract and parse Section 8 content
-    const section8 = extractSection8Content(lesson) ?? '';
-    const parsed   = parseTrifoldContent(section8);
-
-    // Draw column dividers (light gray vertical lines)
-    const [dvr, dvg, dvb] = hexToRgb(SERIES_COLORS.hr);
-    doc.setDrawColor(dvr, dvg, dvb);
-    doc.setLineWidth(0.5);
-    doc.line(colW,     0, colW,     pageH);
-    doc.line(colW * 2, 0, colW * 2, pageH);
-
-    // ---- Panel 1: Title, Passage, Key Idea, Memory Verse -------------------
-    let y1 = colMargin + titleFontPt;
-
-    const [titleR, titleG, titleB] = hexToRgb(schemeHeading);
-    doc.setFont(fontConfig.pdfHeading, 'bold');
-    doc.setFontSize(titleFontPt);
-    doc.setTextColor(titleR, titleG, titleB);
-    const titleWrapped = doc.splitTextToSize(creativeTitle, usableW) as string[];
-    for (const tl of titleWrapped) {
-      doc.text(tl, colX[0], y1);
-      y1 += titleFontPt + 2;
-    }
-    y1 += 4;
-
-    if (passage) {
-      const [mr, mg, mb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-      doc.setFont(fontConfig.pdfBody, 'italic');
-      doc.setFontSize(bodyFontPt);
-      doc.setTextColor(mr, mg, mb);
-      doc.text(passage, colX[0], y1);
-      y1 += bodyFontPt + 6;
-    }
-
-    // Thin rule under title block
-    const [hrR, hrG, hrB] = hexToRgb(SERIES_COLORS.hr);
-    doc.setDrawColor(hrR, hrG, hrB);
-    doc.setLineWidth(0.4);
-    doc.line(colX[0], y1, colX[0] + usableW, y1);
-    y1 += 8;
-
-    y1 = renderTrifoldBlock(
-      doc, 'Key Idea', parsed.keyIdea,
-      colX[0], y1, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-
-    renderTrifoldBlock(
-      doc, 'Memory Verse', parsed.memoryVerse,
-      colX[0], y1, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-
-    // ---- Panel 2: Big Points, Gospel Connection ----------------------------
-    let y2 = colMargin + labelLineH;
-
-    y2 = renderTrifoldBlock(
-      doc, 'Big Points', parsed.bigPoints,
-      colX[1], y2, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-
-    renderTrifoldBlock(
-      doc, 'Gospel Connection', parsed.gospelConnection,
-      colX[1], y2, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-
-    // ---- Panel 3: Reflection Questions, Weekly Challenge, Prayer -----------
-    let y3 = colMargin + labelLineH;
-
-    y3 = renderTrifoldBlock(
-      doc, 'Reflection Questions', parsed.reflectionQuestions,
-      colX[2], y3, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-
-    y3 = renderTrifoldBlock(
-      doc, 'Weekly Challenge', parsed.weeklyChallenge,
-      colX[2], y3, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-
-    renderTrifoldBlock(
-      doc, 'Prayer', parsed.prayer,
-      colX[2], y3, usableW, labelFontPt, bodyFontPt, labelLineH, lineH,
-      fontConfig, pageH, colMargin
-    );
-    // ---- Footer: Lesson X of Y centered at bottom of page ------------------
-    const [footR, footG, footB] = hexToRgb(EXPORT_SPACING.colors.footerText);
-    doc.setFont(fontConfig.pdfBody, 'normal');
-    doc.setFontSize(bodyFontPt - 1);
-    doc.setTextColor(footR, footG, footB);
-    doc.text(
-      'Lesson ' + lessonNumber + ' of ' + lessons.length,
-      pageW / 2,
-      pageH - colMargin,
-      { align: 'center' }
-    );
-  }
+  // Step 2: Impose 2-up onto landscape letter sheets
+  setStep('imposing');
+  const imposedBuffer = await _imposeBooklet(contentBuffer);
 
   setStep('finalizing');
+  return imposedBuffer;
+}
+
+// ----------------------------------------------------------------------------
+// _buildBookletContent -- generates half-letter jsPDF with mirror margins
+// ----------------------------------------------------------------------------
+
+async function _buildBookletContent(
+  series: LessonSeries,
+  lessons: Lesson[],
+  options: SeriesExportOptions,
+  setStep: (stepId: SeriesExportProgressStepId) => void
+): Promise<ArrayBuffer> {
+  const BK  = BOOKLET_PAGE;
+  const TYP = BOOKLET_TYPOGRAPHY;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: [BK.width, BK.height],
+  });
+
+  let currentY    = BK.margin;
+  let currentPage = 1;   // 1-indexed; page 1 = cover (recto)
+
+  const frontMatterPages: number[] = [];
+  const lessonRanges: PageRange[]  = [];
+
+  // -- helpers ----------------------------------------------------------------
+
+  const PAGE_BOTTOM_BK = BK.height - BK.margin;
+
+  function isRecto(): boolean { return currentPage % 2 === 1; }
+
+  /** Left margin: gutter on recto, outer on verso -- both = BK.margin (0.4") */
+  function leftX(): number { return BK.margin; }
+
+  function addPageBk(): void {
+    doc.addPage([BK.width, BK.height], 'portrait');
+    currentY = BK.margin;
+    currentPage++;
+  }
+
+  function ensureSpaceBk(minH: number): void {
+    if (currentY + minH > PAGE_BOTTOM_BK) addPageBk();
+  }
+
+  function resetStyleBk(): void {
+    const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFontSize(TYP.bodyFontPt);
+    doc.setTextColor(r, g, b);
+  }
+
+  function renderBodyBk(text: string, italic?: boolean): void {
+    const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, italic ? 'italic' : 'normal');
+    doc.setFontSize(TYP.bodyFontPt);
+    doc.setTextColor(r, g, b);
+    const lines = doc.splitTextToSize(text, BK.contentWidth) as string[];
+    const lineH = TYP.bodyFontPt * TYP.bodyLineHeight;
+    for (const line of lines) {
+      ensureSpaceBk(lineH);
+      doc.text(line, leftX(), currentY);
+      currentY += lineH;
+    }
+    currentY += 3;
+    resetStyleBk();
+  }
+
+  function renderSectionHeadingBk(text: string): void {
+    const [r, g, b] = hexToRgb(SERIES_COLORS.tocHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(TYP.tocHeadingFontPt);
+    doc.setTextColor(r, g, b);
+    ensureSpaceBk(24);
+    doc.text(text, leftX(), currentY);
+    currentY += TYP.tocHeadingFontPt + 6;
+    _drawRuleBk();
+    resetStyleBk();
+  }
+
+  function renderSubheadingBk(text: string): void {
+    const [r, g, b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(TYP.subheadFontPt);
+    doc.setTextColor(r, g, b);
+    ensureSpaceBk(20);
+    const lines = doc.splitTextToSize(text, BK.contentWidth) as string[];
+    for (const line of lines) {
+      doc.text(line, leftX(), currentY);
+      currentY += TYP.subheadFontPt + 4;
+    }
+    currentY += 2;
+    resetStyleBk();
+  }
+
+  function renderSectionLabelBk(text: string): void {
+    const [r, g, b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(TYP.sectionLabelFontPt);
+    doc.setTextColor(r, g, b);
+    ensureSpaceBk(20);
+    currentY += 8;
+    doc.text(text.toUpperCase(), leftX(), currentY);
+    currentY += TYP.sectionLabelFontPt + 3;
+    _drawRuleBk();
+    resetStyleBk();
+  }
+
+  function renderMetaBk(text: string): void {
+    const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.metaText);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+    doc.setFontSize(TYP.passageFontPt);
+    doc.setTextColor(r, g, b);
+    ensureSpaceBk(TYP.passageFontPt + 3);
+    doc.text(text, leftX(), currentY);
+    currentY += TYP.passageFontPt + 4;
+    resetStyleBk();
+  }
+
+  function _drawRuleBk(): void {
+    const [r, g, b] = hexToRgb(SERIES_COLORS.hr);
+    doc.setDrawColor(r, g, b);
+    doc.setLineWidth(0.4);
+    doc.line(leftX(), currentY, BK.width - BK.margin, currentY);
+    currentY += 5;
+  }
+
+  function renderLessonContentBk(content: string): void {
+    if (!content) return;
+    for (const rawLine of content.split('\n')) {
+      const line = rawLine.trimEnd();
+      if (/^#{1,3}\s*$/.test(line)) continue;
+      if (/^#{1,3}\s+/.test(line)) {
+        renderSectionLabelBk(line.replace(/^#{1,3}\s+/, ''));
+        continue;
+      }
+      if (/^\s*[*-]\s+/.test(line)) {
+        renderBodyBk('\u2022  ' + line.replace(/^\s*[*-]\s+/, ''));
+        continue;
+      }
+      if (line.trim() === '') {
+        currentY += 3;
+        continue;
+      }
+      renderBodyBk(line.replace(/\*\*([^*]+)\*\*/g, '$1'));
+    }
+  }
+
+  function drawFooterBk(): void {
+    const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.footerText);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFontSize(TYP.footerFontPt);
+    doc.setTextColor(r, g, b);
+    const fy = BK.height - BK.margin + 10;
+    const seriesShort = (series.series_name ?? SERIES_COVER_COPY.subtitle).slice(0, 36);
+    const pgNum = String(currentPage - 1); // offset cover
+    if (isRecto()) {
+      doc.text(seriesShort, leftX(), fy);
+      doc.text(pgNum, BK.width - BK.margin, fy, { align: 'right' });
+    } else {
+      doc.text(pgNum, leftX(), fy);
+      doc.text(seriesShort, BK.width - BK.margin, fy, { align: 'right' });
+    }
+  }
+
+  // -- Cover (recto, page 1) --------------------------------------------------
+  setStep('cover');
+  frontMatterPages.push(currentPage);
+
+  const coverData = buildCoverPageData(series, lessons, null, null);
+  const [tr, tg, tb] = hexToRgb(SERIES_COLORS.coverTitle);
+
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFontSize(TYP.bodyFontPt);
+  doc.setTextColor(
+    ...hexToRgb(EXPORT_SPACING.colors.metaText) as [number, number, number]
+  );
+  const coverY_label = BK.height * 0.30;
+  doc.text(SERIES_COVER_COPY.subtitle, BK.width / 2, coverY_label, { align: 'center' });
+
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+  doc.setFontSize(TYP.coverTitleFontPt);
+  doc.setTextColor(tr, tg, tb);
+  const titleLines = doc.splitTextToSize(coverData.seriesTitle, BK.contentWidth) as string[];
+  let coverY = BK.height * 0.42;
+  for (const tl of titleLines) {
+    doc.text(tl, BK.width / 2, coverY, { align: 'center' });
+    coverY += TYP.coverTitleFontPt + 4;
+  }
+  coverY += 6;
+
+  const [sr, sg, sb] = hexToRgb(SERIES_COLORS.coverSubtitle);
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFontSize(TYP.coverSubtitleFontPt);
+  doc.setTextColor(sr, sg, sb);
+  doc.text(coverData.subtitle, BK.width / 2, coverY, { align: 'center' });
+  coverY += TYP.coverSubtitleFontPt + 14;
+
+  const [hrCr, hrCg, hrCb] = hexToRgb(SERIES_COLORS.hr);
+  doc.setDrawColor(hrCr, hrCg, hrCb);
+  doc.setLineWidth(0.4);
+  doc.line(BK.margin + 20, coverY, BK.width - BK.margin - 20, coverY);
+
+  const [metaR, metaG, metaB] = hexToRgb(EXPORT_SPACING.colors.metaText);
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFontSize(TYP.coverMetaFontPt);
+  doc.setTextColor(metaR, metaG, metaB);
+  let mY = coverY + 14;
+  for (const ml of [coverData.teacherLine, coverData.churchLine,
+                    coverData.dateRangeLine, coverData.lessonCountLine]
+                    .filter((l): l is string => l !== null)) {
+    doc.text(ml, BK.width / 2, mY, { align: 'center' });
+    mY += TYP.coverMetaFontPt + 5;
+  }
+
+  // domain footer on cover
+  doc.setFontSize(TYP.footerFontPt);
+  doc.setTextColor(metaR, metaG, metaB);
+  doc.text(SERIES_COVER_COPY.website, BK.width / 2, BK.height - BK.margin + 10, { align: 'center' });
+
+  // -- TOC --------------------------------------------------------------------
+  setStep('toc');
+  addPageBk();
+  frontMatterPages.push(currentPage);
+  currentY = BK.margin;
+
+  const tocEntries = buildTocEntries(series, lessons);
+  renderSectionHeadingBk('Table of Contents');
+  for (const entry of tocEntries) {
+    ensureSpaceBk(TYP.bodyFontPt * 2 + 10);
+    const [er, eg, eb] = hexToRgb(EXPORT_SPACING.colors.bodyText);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(TYP.tocEntryFontPt);
+    doc.setTextColor(er, eg, eb);
+    const hLines = doc.splitTextToSize(entry.chapterHeading, BK.contentWidth) as string[];
+    for (const hl of hLines) {
+      doc.text(hl, leftX(), currentY);
+      currentY += TYP.tocEntryFontPt + 3;
+    }
+    if (entry.passage) {
+      const [pr2, pg2, pb2] = hexToRgb(EXPORT_SPACING.colors.metaText);
+      doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+      doc.setFontSize(TYP.passageFontPt);
+      doc.setTextColor(pr2, pg2, pb2);
+      doc.text('  ' + entry.passage, leftX(), currentY);
+      currentY += TYP.passageFontPt + 3;
+    }
+    currentY += 4;
+  }
+  drawFooterBk();
+
+  // -- Introduction -----------------------------------------------------------
+  addPageBk();
+  frontMatterPages.push(currentPage);
+  currentY = BK.margin;
+  renderSectionHeadingBk('Introduction');
+  renderBodyBk(SERIES_INTRO_PLACEHOLDER);
+  drawFooterBk();
+
+  // -- Lesson Chapters --------------------------------------------------------
+  setStep('lessons');
+  for (let i = 0; i < lessons.length; i++) {
+    const lesson    = lessons[i];
+    const lessonNum = i + 1;
+    const title     = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNum);
+    const passage   = lesson.filters?.passage ?? series.bible_passage ?? '';
+
+    addPageBk();
+    const startPage = currentPage;
+    currentY = BK.margin;
+
+    // Lesson label
+    const [lr, lg, lb] = hexToRgb(EXPORT_SPACING.colors.metaText);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFontSize(TYP.lessonNumFontPt);
+    doc.setTextColor(lr, lg, lb);
+    doc.text('LESSON ' + lessonNum, leftX(), currentY);
+    currentY += TYP.lessonNumFontPt + 3;
+
+    // Lesson title
+    const [ct_r, ct_g, ct_b] = hexToRgb(SERIES_COLORS.chapterHeading);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(TYP.lessonTitleFontPt);
+    doc.setTextColor(ct_r, ct_g, ct_b);
+    for (const ctl of doc.splitTextToSize(title, BK.contentWidth) as string[]) {
+      doc.text(ctl, leftX(), currentY);
+      currentY += TYP.lessonTitleFontPt + 3;
+    }
+
+    // Passage
+    if (passage) {
+      const [psr, psg, psb] = hexToRgb(EXPORT_SPACING.colors.metaText);
+      doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+      doc.setFontSize(TYP.passageFontPt);
+      doc.setTextColor(psr, psg, psb);
+      doc.text(passage, leftX(), currentY);
+      currentY += TYP.passageFontPt + 4;
+    }
+
+    _drawRuleBk();
+    resetStyleBk();
+
+    // Content
+    const rawContent = lesson.shaped_content ?? lesson.original_text ?? '';
+    const content    = options.omitSection8FromChapters
+      ? stripSection8FromContent(rawContent)
+      : rawContent;
+    renderLessonContentBk(content);
+
+    lessonRanges.push({ label: 'Lesson ' + lessonNum, startPage, endPage: currentPage });
+
+    // Draw footer on all pages in this lesson
+    const endPage = currentPage;
+    for (let p = startPage; p <= endPage; p++) {
+      doc.setPage(p);
+      drawFooterBk();
+    }
+    doc.setPage(endPage);
+  }
+
+  // -- Group Handout Section --------------------------------------------------
+  setStep('handouts');
+  const bookletData = buildHandoutBookletData(series, lessons);
+
+  // Handout divider page
+  addPageBk();
+  frontMatterPages.push(currentPage);
+  const divY = BK.height / 2;
+  const [dvR, dvG, dvB] = hexToRgb(SERIES_COLORS.hr);
+  doc.setDrawColor(dvR, dvG, dvB);
+  doc.setLineWidth(0.8);
+  doc.line(BK.margin, divY - 36, BK.width - BK.margin, divY - 36);
+  doc.setLineWidth(0.3);
+  doc.line(BK.margin, divY - 31, BK.width - BK.margin, divY - 31);
+
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+  doc.setFontSize(18);
+  doc.setTextColor(...hexToRgb(EXPORT_SPACING.colors.bodyText) as [number, number, number]);
+  doc.text('Group Handout Section', BK.width / 2, divY - 8, { align: 'center' });
+
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+  doc.setFontSize(9);
+  doc.setTextColor(...hexToRgb(EXPORT_SPACING.colors.metaText) as [number, number, number]);
+  doc.text('Reproducible handouts for each lesson', BK.width / 2, divY + 10, { align: 'center' });
+
+  doc.setDrawColor(dvR, dvG, dvB);
+  doc.setLineWidth(0.3);
+  doc.line(BK.margin + 40, divY + 22, BK.width - BK.margin - 40, divY + 22);
+
+  doc.setFontSize(7.5);
+  doc.text('These pages may be freely reproduced for use within your group.',
+           BK.width / 2, divY + 35, { align: 'center' });
+
+  doc.setLineWidth(0.3);
+  doc.line(BK.margin, divY + 50, BK.width - BK.margin, divY + 50);
+  doc.setLineWidth(0.8);
+  doc.line(BK.margin, divY + 55, BK.width - BK.margin, divY + 55);
+
+  // Individual handouts -- each starts on a new page
+  for (const entry of bookletData.entries) {
+    addPageBk();
+    currentY = BK.margin;
+
+    // Handout label
+    const [hlR, hlG, hlB] = hexToRgb(SERIES_COLORS.handoutHeader);
+    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    doc.setFontSize(TYP.handoutLabelFontPt);
+    doc.setTextColor(hlR, hlG, hlB);
+    doc.text(('LESSON ' + entry.lessonNumber + ' \u00B7 GROUP HANDOUT').toUpperCase(),
+             leftX(), currentY);
+    currentY += TYP.handoutLabelFontPt + 3;
+
+    // Handout title
+    doc.setFontSize(TYP.handoutTitleFontPt);
+    for (const htl of doc.splitTextToSize(entry.header.replace(/^Lesson \d+:\s*/, ''),
+                                           BK.contentWidth) as string[]) {
+      doc.text(htl, leftX(), currentY);
+      currentY += TYP.handoutTitleFontPt + 3;
+    }
+
+    // Passage
+    if (entry.passage) renderMetaBk(entry.passage);
+
+    _drawRuleBk();
+    resetStyleBk();
+
+    // Full Section 8 content -- exactly as generated
+    renderLessonContentBk(entry.content);
+
+    // Footer on all handout pages
+    const hoEnd = currentPage;
+    const hoStart = currentPage; // single-pass; multi-page handled by renderLessonContentBk
+    for (let p = hoStart; p <= hoEnd; p++) {
+      doc.setPage(p);
+      drawFooterBk();
+    }
+    doc.setPage(hoEnd);
+  }
+
+  // -- Back Cover (verso of last sheet) --------------------------------------
+  addPageBk();
+  const bcY = BK.height * 0.70;
+  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFontSize(TYP.coverMetaFontPt);
+  doc.setTextColor(...hexToRgb(EXPORT_SPACING.colors.metaText) as [number, number, number]);
+  doc.text(SERIES_COVER_COPY.generatedBy, BK.width / 2, bcY, { align: 'center' });
+  doc.text(SERIES_COVER_COPY.website, BK.width / 2, bcY + 14, { align: 'center' });
+  doc.text('\u00A9 ' + new Date().getFullYear() + ' BibleLessonSpark. All rights reserved.',
+           BK.width / 2, bcY + 28, { align: 'center' });
+
   return doc.output('arraybuffer');
 }
 
-// ============================================================================
-// TRI-FOLD CONTENT PARSER
-// ============================================================================
+// ----------------------------------------------------------------------------
+// _imposeBooklet -- saddle-stitch 2-up imposition via pdf-lib
+//
+// Imposition order (0-indexed, n = padded page count, multiple of 4):
+//   Sheet i front: left = pages[n-1-2i],  right = pages[2i]
+//   Sheet i back:  left = pages[2i+1],    right = pages[n-2-2i]
+//
+// Output: landscape letter (11" x 8.5") sheets, one per side.
+// Print double-sided, fold in half, staple at the spine.
+// ----------------------------------------------------------------------------
 
-interface TrifoldContent {
-  keyIdea:             string;
-  memoryVerse:         string;
-  bigPoints:           string;
-  gospelConnection:    string;
-  reflectionQuestions: string;
-  weeklyChallenge:     string;
-  prayer:              string;
-}
+async function _imposeBooklet(contentBuffer: ArrayBuffer): Promise<ArrayBuffer> {
+  const srcDoc  = await PDFDocument.load(contentBuffer);
+  const nContent = srcDoc.getPageCount();
 
-/**
- * Parse Section 8 markdown content into labeled blocks for tri-fold panels.
- * Looks for **Label:** patterns as defined in the Student Handout format spec
- * (see lessonStructure.ts LESSON_SECTIONS id 8 contentRules).
- */
-function parseTrifoldContent(content: string): TrifoldContent {
-  function extractBlock(label: string): string {
-    // Match **Label:** or **Label** followed by content until the next **Label
-    const pattern = new RegExp(
-      '\\*\\*' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') +
-      '[:\\s]*\\*\\*[:\\s]*([\\s\\S]*?)(?=\\*\\*[A-Z][a-zA-Z\\s]+[:\\s]*\\*\\*|$)',
-      'i'
-    );
-    const match = content.match(pattern);
-    if (!match) return '';
-    return match[1].trim();
-  }
+  // Pad to next multiple of 4
+  let n = nContent;
+  while (n % 4 !== 0) n++;
 
-  return {
-    keyIdea:             extractBlock('Key Idea'),
-    memoryVerse:         extractBlock('Memory Verse'),
-    bigPoints:           extractBlock('Big Points'),
-    gospelConnection:    extractBlock('Gospel Connection'),
-    reflectionQuestions: extractBlock('Reflection Questions'),
-    weeklyChallenge:     extractBlock('Weekly Challenge'),
-    prayer:              extractBlock('Prayer'),
-  };
-}
+  const outDoc = await PDFDocument.create();
 
-// ============================================================================
-// TRI-FOLD BLOCK RENDERER
-// ============================================================================
+  // Embed all source pages at once (most efficient)
+  const embedded = await outDoc.embedPdf(srcDoc);
 
-/**
- * Render a labeled content block into a tri-fold panel column.
- * Returns the new Y position after rendering.
- * Clips content at the bottom margin to prevent overflow onto the next column.
- */
-function renderTrifoldBlock(
-  doc: jsPDF,
-  label: string,
-  content: string,
-  x: number,
-  y: number,
-  usableW: number,
-  labelFontPt: number,
-  bodyFontPt: number,
-  labelLineH: number,
-  lineH: number,
-  fontConfig: FontConfig,
-  pageH: number,
-  colMargin: number
-): number {
-  if (!content && label !== 'Prayer') {
-    // Skip empty blocks (except Prayer which may be a short placeholder)
-    if (!content) return y;
-  }
+  const PAGE_W  = BOOKLET_PAGE.width;   // 396pt (5.5")
+  const PAGE_H  = BOOKLET_PAGE.height;  // 612pt (8.5")
+  const SHEET_W = BOOKLET_SHEET.width;  // 792pt (11")
+  const SHEET_H = BOOKLET_SHEET.height; // 612pt (8.5")
 
-  const maxY = pageH - colMargin;
+  const nSheets = n / 4;
 
-  // Label
-  if (y + labelLineH > maxY) return y;
-  const [lr, lg, lb] = hexToRgb(schemeHeading);
-  doc.setFont(fontConfig.pdfHeading, 'bold');
-  doc.setFontSize(labelFontPt);
-  doc.setTextColor(lr, lg, lb);
-  doc.text(label, x, y);
-  y += labelLineH;
+  for (let i = 0; i < nSheets; i++) {
+    const pairs: [number, number][] = [
+      [n - 1 - 2 * i, 2 * i],           // front: left, right
+      [2 * i + 1,     n - 2 - 2 * i],   // back:  left, right
+    ];
 
-  if (!content) return y;
+    for (const [leftIdx, rightIdx] of pairs) {
+      const sheet = outDoc.addPage([SHEET_W, SHEET_H]);
 
-  // Content lines
-  const [cr, cg, cb] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-  doc.setFont(fontConfig.pdfBody, 'normal');
-  doc.setFontSize(bodyFontPt);
-  doc.setTextColor(cr, cg, cb);
+      // Left slot (verso position)
+      if (leftIdx < nContent) {
+        sheet.drawPage(embedded[leftIdx], {
+          x: 0,
+          y: 0,
+          width:  PAGE_W,
+          height: PAGE_H,
+        });
+      }
 
-  const rawLines = content.split('\n');
-  for (const rawLine of rawLines) {
-    const line = rawLine.trimEnd();
-    if (line.trim() === '') {
-      y += lineH * 0.4;
-      continue;
-    }
-
-    // Strip markdown bold markers for clean rendering
-    const cleanLine = line
-      .replace(/\*\*([^*]+)\*\*/g, '$1')
-      .replace(/^\s*[*-]\s+/, '- ');
-
-    const wrapped = doc.splitTextToSize(cleanLine, usableW) as string[];
-    for (const wl of wrapped) {
-      if (y + lineH > maxY) return y;
-      doc.text(wl, x, y);
-      y += lineH;
+      // Right slot (recto position)
+      if (rightIdx < nContent) {
+        sheet.drawPage(embedded[rightIdx], {
+          x: PAGE_W,
+          y: 0,
+          width:  PAGE_W,
+          height: PAGE_H,
+        });
+      }
     }
   }
 
-  y += lineH * 0.5; // spacing after block
-  return y;
+  const bytes = await outDoc.save();
+  return bytes.buffer as ArrayBuffer;
 }
-
