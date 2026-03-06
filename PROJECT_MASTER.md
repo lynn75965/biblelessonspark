@@ -21,7 +21,7 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 ## CRITICAL WORKFLOW RULES (MUST FOLLOW)
 
 1. **SSOT MANDATE:** (1) Request file first, never assume (2) Backend mirrors frontend exactly (3) Minimal changes only (4) State what changed and SSOT source before presenting (5) When in doubt, ask
-2. **Non-programmer workflow:** Provide complete file replacements + PowerShell Copy-Item commands. No diffs.
+2. **Non-programmer workflow:** Provide complete file replacements + PowerShell Copy-Item commands. No diffs, no snippets to insert.
 3. **Frontend drives backend.** Access uploaded files during session -- never re-request what's already provided.
 4. **Claude Debugging Protocol:** Root-cause diagnosis BEFORE proposing solutions. No guessing.
 5. **Deployment:** Netlify (not Lovable, not Vercel). Single branch: `main`. Deploy script: `.\deploy.ps1 "message"`.
@@ -36,6 +36,7 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 14. **Always `npm run build` before deploying.** Never push code that hasn't compiled cleanly.
 15. **Bible version IDs must be lowercase.** Backend expects lowercase (`kjv`, `esv`). Frontend must normalize to lowercase before saving. Database was bulk-updated February 25, 2026.
 16. **Unicode special characters:** Use JavaScript escape sequences (\u00F3, \u2014, etc.) instead of literal Unicode in source files. PowerShell's Set-Content corrupts non-ASCII characters. Translation files (i18n.ts) and symbol definitions (uiSymbols.ts) are SSOT exceptions that retain literal characters.
+17. **Webhook tier resolution must use pricingConfig.ts (SSOT).** NEVER query tier_config or pricing_plans database tables for Stripe price-to-tier mapping. The webhook imports `resolveTierFromPriceId` from `_shared/pricingConfig.ts`. Added February 26, 2026.
 
 ---
 
@@ -43,8 +44,9 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 
 - **Beta launch date:** February 28, 2026 (2 days away)
 - **Active beta tester:** Ellis Hayden (elhayden52@yahoo.com) from Fellowship Baptist in Longview, TX
+- **First paid subscriber:** John Eckeberger (john.eckeberger@4bresponse.org) -- Personal Plan $90/year, subscribed Feb 24, 2026
 - **Lynn's test accounts:** pastorlynn2024@gmail.com (invitee for testing -- email notifications confirmed working)
-- **Current user count:** 1 admin + 38 teachers = 39 total users
+- **Current user count:** 1 admin + 40 teachers = 41 total users
 - **Teaching team tested end-to-end** with Ellis Hayden (Feb 22, 2026)
 - **All 5 lesson shapes tested** (Feb 22, 2026)
 - **Platform mode:** beta (in Supabase system_settings)
@@ -52,11 +54,81 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 
 ---
 
-## SESSION LOG: February 26, 2026
+## SESSION LOG: February 26, 2026 (Afternoon -- Subscription Sync Fix)
+
+### Critical Production Bug: Paid Subscriber Seeing Free-Tier Limits
+
+**Problem:** John Eckeberger paid $90/year for Personal Plan on Feb 24, but his dashboard showed 5/5 free-tier lesson usage with upgrade prompts 2 days later. He had also created two accounts with different emails (bayarea.church and 4bresponse.org).
+
+**Root Cause Chain:**
+1. Stripe payment processed successfully for 4bresponse.org account (customer ID: cus_TqrHfED8BIfXRd)
+2. `profiles.subscription_tier` was correctly set to `personal`
+3. BUT `user_subscriptions.tier` remained `free` -- this is what `check_lesson_limit` RPC actually reads
+4. The Stripe webhook's `updateUserSubscription()` function queried the `tier_config` database table to resolve the Stripe price ID to a tier name
+5. **`tier_config` table did not contain John's price ID** -- lookup returned nothing
+6. Webhook fell back to a hardcoded default tier of `"subscribed"` -- which is NOT a valid SubscriptionTier enum value
+7. The upsert silently failed, leaving `user_subscriptions.tier = 'free'` with no Stripe IDs written
+
+**This was an SSOT violation:** The webhook was querying database tables for tier mapping instead of using `pricingConfig.ts` where the authoritative Stripe price IDs live. Backend was driving itself instead of frontend driving backend.
+
+### Fix 1: Immediate -- Manual SQL for John
+
+```sql
+UPDATE user_subscriptions
+SET tier = 'personal', lessons_limit = 20, lessons_used = 0,
+    stripe_customer_id = 'cus_TqrHfED8BIfXRd',
+    stripe_subscription_id = 'sub_placeholder_needs_real_id',
+    billing_interval = 'year', status = 'active', updated_at = now()
+WHERE user_id = 'ce2cce5a-46c3-48bd-9c13-8d4ef3ff4039';
+```
+
+Note: First SQL attempt (from earlier in session) said "Success" but didn't actually change the data -- required a second execution with explicit column values. Verification query confirmed `personal`, `0`, `20` after second run. John confirmed working dashboard.
+
+### Fix 2: Dual Account Merge for John
+
+John had two accounts:
+- `john.eckeberger@4bresponse.org` (active, paid) -- user_id: ce2cce5a-...
+- `john.eckeberger@bayarea.church` (old free) -- user_id: f8b1c5ba-...
+
+Transferred lesson ownership and marked old account:
+```sql
+UPDATE lessons SET user_id = 'ce2cce5a-...' WHERE user_id = 'f8b1c5ba-...';
+UPDATE profiles SET full_name = 'John Eckeberger' WHERE id = 'ce2cce5a-...';
+UPDATE profiles SET full_name = '[MERGED] John Eckeberger - see 4bresponse.org' WHERE id = 'f8b1c5ba-...';
+```
+
+### Fix 3: Permanent -- Webhook SSOT Compliance
+
+**New functions added to `pricingConfig.ts` (frontend master + backend mirror):**
+- `resolveTierFromPriceId(priceId)` -- maps any Stripe price ID to its SubscriptionTier using SSOT constants
+- `getLessonLimitForPriceId(priceId)` -- returns lesson limit for any Stripe price ID
+
+**Webhook (`stripe-webhook/index.ts`) rewritten:**
+- `updateUserSubscription()` now imports `resolveTierFromPriceId` and `TIER_LESSON_LIMITS` from `_shared/pricingConfig.ts`
+- ZERO queries to `tier_config` or `pricing_plans` tables for tier mapping
+- New `resolveUserIdFromCustomer()` fallback: when `metadata.user_id` is missing from checkout session, retrieves customer email from Stripe and looks up matching profile in database
+- All org subscription handlers also use SSOT for tier/limit resolution
+
+**Deployed:** Commit 2192185, Edge Function redeployed via `npx supabase functions deploy stripe-webhook`
+
+### Fix 4: Email Confirmation Dialog Before Checkout
+
+To prevent future dual-account issues, added email confirmation step:
+- **PricingPage.tsx** -- When user clicks "Upgrade Now", a dialog shows their logged-in email in bold and asks them to confirm before proceeding to Stripe
+- **UpgradePromptModal.tsx** -- Same email confirmation dialog when clicking "Upgrade to Personal Plan"
+- Dialog shows: "Your subscription will be linked to: [email]. Make sure this is the email you use to log in."
+- User must click "Yes, Continue to Checkout" to proceed
+- Stripe already locks the email field when a customer object is provided (existing behavior in `create-checkout-session` Edge Function)
+
+**Deployed:** Commit 2dec484
+
+### Checkout Session Code Verified
+
+`create-checkout-session/index.ts` already correctly passes `metadata: { user_id: user.id }` on both the session and `subscription_data`. The metadata was present for John -- the failure was in the webhook's inability to resolve the price ID, not in missing metadata.
 
 ### SSOT Regex Violation Fixed
 
-`exportToDocx.ts` and `exportToPdf.ts` had inline copies of the student handout heading regex instead of importing `STUDENT_HANDOUT_HEADING_REGEX` from `lessonShapeProfiles.ts`. Both files now import from the SSOT source. This was the exact pattern that caused triple build failures on Feb 25 -- one bad regex duplicated in three places.
+`exportToDocx.ts` and `exportToPdf.ts` had inline copies of the student handout heading regex instead of importing `STUDENT_HANDOUT_HEADING_REGEX` from `lessonShapeProfiles.ts`. Both files now import from the SSOT source.
 
 ### programConfig.ts Unicode Fix
 
@@ -409,12 +481,30 @@ default_bible_version (TEXT)     <-- LOWERCASE e.g., 'esv', 'kjv', 'nasb'
 theology_profile_id (TEXT)       <-- e.g., 'southern-baptist-bfm-1963'
 organization_role (TEXT)
 organization_id (UUID)
+subscription_tier (TEXT)         <-- display only; user_subscriptions.tier is SSOT for enforcement
 trial_period_start (TIMESTAMPTZ)
 trial_full_lessons_used (INTEGER)
 trial_short_lessons_used (INTEGER)
 trial_full_lesson_granted_until (TIMESTAMPTZ)
 ```
-**Note:** The CHECK constraint `valid_theology_profile_id` was dropped February 14, 2026. Frontend SSOT (THEOLOGY_PROFILES) controls valid values. Bible version IDs must be stored lowercase (normalized February 25, 2026).
+**Note:** The CHECK constraint `valid_theology_profile_id` was dropped February 14, 2026. Frontend SSOT (THEOLOGY_PROFILES) controls valid values. Bible version IDs must be stored lowercase (normalized February 25, 2026). `profiles.subscription_tier` is for display purposes only -- the authoritative tier for lesson limit enforcement is `user_subscriptions.tier` (learned from John Eckeberger bug, Feb 26, 2026).
+
+### user_subscriptions (SSOT for subscription enforcement)
+```
+user_id (UUID, PK, references auth.users)
+stripe_customer_id (TEXT)
+stripe_subscription_id (TEXT)
+stripe_price_id (TEXT)
+tier (TEXT)                      <-- SSOT for lesson limit enforcement (NOT profiles.subscription_tier)
+status (TEXT)                    <-- active, canceled, past_due, trialing, incomplete
+billing_interval (TEXT)          <-- month, year
+current_period_start (TIMESTAMPTZ)
+current_period_end (TIMESTAMPTZ)
+lessons_limit (INTEGER)
+lessons_used (INTEGER)
+updated_at (TIMESTAMPTZ)
+```
+**Critical:** The `check_lesson_limit` RPC reads tier from THIS table, not from profiles. If this table says 'free' but profiles says 'personal', the user gets free-tier limits. The Stripe webhook must update THIS table on every checkout/subscription event.
 
 ### RLS Helper Functions (already exist)
 ```sql
@@ -475,6 +565,9 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | check-generation-status | Lesson generation polling |
 | list-user-lessons | Lesson listing |
 | get-lesson | Single lesson retrieval |
+| create-checkout-session | Stripe checkout with user_id metadata |
+| create-portal-session | Stripe customer portal |
+| stripe-webhook | Subscription lifecycle (SSOT-compliant as of Feb 26, 2026) |
 
 ---
 
@@ -491,7 +584,7 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | accessControl.ts | src/constants/ | Role-based feature visibility + team/shape permissions |
 | validation.ts | src/constants/ | Validation rules for orgs, passwords, teams, profiles, lessons |
 | featureFlags.ts | src/constants/ | Subscription tier-based feature gating |
-| pricingConfig.ts | src/constants/ | Sole pricing authority -- matches live Stripe catalog |
+| pricingConfig.ts | src/constants/ | Sole pricing authority -- matches live Stripe catalog. Includes resolveTierFromPriceId() and getLessonLimitForPriceId() for webhook use |
 | trialConfig.ts | src/constants/ | Rolling 30-day trial rules (3 full + 2 short lessons per period) |
 | lessonStructure.ts | src/constants/ | Export spacing, fonts, colors, section definitions |
 | lessonShapeProfiles.ts | src/constants/ | 5 shapes, prompts, age-group mappings, STUDENT_HANDOUT_HEADING_REGEX |
@@ -526,6 +619,8 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | bibleVersions.ts | supabase/functions/_shared/ | src/constants/bibleVersions.ts |
 | branding.ts | supabase/functions/_shared/ | Database-driven with fallback |
 
+---
+
 ### Deleted Files -- Do Not Recreate
 | File | Reason | Deleted |
 |------|--------|---------|
@@ -554,6 +649,15 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 - **accessControl.ts** -- defines which roles can access which features
 - Both must pass for a user to access a gated feature
 
+### Subscription Enforcement Flow (verified Feb 26, 2026)
+1. Frontend calls `check_lesson_limit` RPC with user_id
+2. RPC reads `user_subscriptions.tier` (NOT `profiles.subscription_tier`)
+3. Returns `can_generate`, `lessons_used`, `lessons_limit`, `sections_allowed`
+4. On Stripe checkout: `create-checkout-session` sets `metadata.user_id` on session + subscription_data
+5. On payment: `stripe-webhook` receives event, calls `resolveTierFromPriceId()` from SSOT pricingConfig.ts
+6. Webhook upserts `user_subscriptions` with correct tier, limit, Stripe IDs
+7. Fallback: if metadata.user_id missing, webhook resolves user by Stripe customer email via profiles table
+
 ---
 
 ## BUG HISTORY (so you don't repeat them)
@@ -579,6 +683,8 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 19. **Build-breaking syntax from Claude** -- Bare `->` in JSX, `\u{...}` unicode escapes in JSX, invalid regex character classes, unescaped `*` in regex. All introduced by Claude without running `npm run build` first. February 25, 2026.
 20. **SSOT regex duplication** -- `STUDENT_HANDOUT_HEADING_REGEX` exported from lessonShapeProfiles.ts but exportToDocx.ts and exportToPdf.ts had their own inline copies. One bad regex duplicated three places required three fixes. Now imports from SSOT source. February 26, 2026.
 21. **Unicode corruption recurring** -- PowerShell `Set-Content` corrupts non-ASCII characters (em dashes, bullets, checkmarks) to `?` marks. Permanent fix: use JavaScript escape sequences in source files. Translation files and symbol definitions are exceptions. February 25, 2026.
+22. **Stripe webhook SSOT violation -- paid subscriber locked to free tier** -- Webhook queried `tier_config` database table to resolve Stripe price ID to tier. Table didn't have the price ID, so tier defaulted to invalid value "subscribed". Upsert silently failed, leaving user_subscriptions.tier = 'free'. Fix: webhook now imports `resolveTierFromPriceId()` from pricingConfig.ts (SSOT). Also added email fallback for user resolution. February 26, 2026.
+23. **profiles.subscription_tier vs user_subscriptions.tier confusion** -- profiles.subscription_tier is display-only. The authoritative tier for lesson limit enforcement is user_subscriptions.tier, read by the check_lesson_limit RPC. If webhook fails to update user_subscriptions, user gets free-tier limits even though profiles shows "personal". February 26, 2026.
 
 ---
 
@@ -626,9 +732,11 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 
 1. **Feature Adoption view** -- Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
 2. **Free-tier experience polish** -- Add "X complimentary lessons remaining" indicator so the free-tier cliff isn't invisible
-3. **Verify uncertain tables** -- Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
-4. **Backup existing RLS policies** -- Run export query from Appendix B before any multi-tenant work begins
-5. **Multi-tenant migration** -- Phase 1 through 5 per MULTI_TENANT_MIGRATION_PLAN.md
+3. **Admin Panel improvements** -- Add Email column and Subscription Tier column to User Management tab; fix pagination showing only 3 of 41 users
+4. **Get John's real Stripe subscription ID** -- Replace placeholder 'sub_placeholder_needs_real_id' with actual ID from Stripe dashboard for proper webhook handling on renewal
+5. **Verify uncertain tables** -- Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
+6. **Backup existing RLS policies** -- Run export query from Appendix B before any multi-tenant work begins
+7. **Multi-tenant migration** -- Phase 1 through 5 per MULTI_TENANT_MIGRATION_PLAN.md
 
 ---
 
@@ -648,4 +756,4 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 
 Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\biblelessonspark\src\` as needed.
 
-**Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend -- always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`. Always `npm run build` before deploying. Never edit stale file copies. Bible version IDs must be lowercase. Use JavaScript escape sequences for non-ASCII characters in source files.
+**Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend -- always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`. Always `npm run build` before deploying. Never edit stale file copies. Bible version IDs must be lowercase. Use JavaScript escape sequences for non-ASCII characters in source files. Webhook tier resolution uses pricingConfig.ts SSOT -- never query tier_config or pricing_plans tables. Provide complete file replacements with PowerShell Copy-Item commands -- no diffs, no snippets to insert.
