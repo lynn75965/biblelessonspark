@@ -19,7 +19,7 @@ import type { Lesson } from '@/constants/contracts';
 import type { LessonSeries } from '@/constants/seriesConfig';
 import {
   SERIES_HANDOUT_COPY,
-  STUDENT_HANDOUT_SECTION_NUMBER,
+  GROUP_HANDOUT_SECTION_NUMBER,
 } from '@/constants/seriesExportConfig';
 import { STUDENT_HANDOUT_HEADING_REGEX } from '@/constants/lessonShapeProfiles';
 

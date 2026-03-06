@@ -33,7 +33,7 @@ export type SeriesExportFormat = typeof SERIES_EXPORT_FORMATS[keyof typeof SERIE
 export const SERIES_EXPORT_FORMAT_LABELS: Record<SeriesExportFormat, string> = {
   docx:        'Word Document (.docx)',
   pdf:         'PDF Document (.pdf)',
-  booklet_pdf: 'Booklet PDF — Print & Fold',
+  booklet_pdf: 'Booklet PDF -- Print & Fold',
 } as const;
 
 export const SERIES_EXPORT_FORMAT_MIME: Record<SeriesExportFormat, string> = {
@@ -52,7 +52,7 @@ export const SERIES_EXPORT_RECOMMENDED_FORMAT: SeriesExportFormat = SERIES_EXPOR
 
 export const SERIES_EXPORT_FORMAT_SUBTITLES: Partial<Record<SeriesExportFormat, string>> = {
   pdf:         'Recommended for printing',
-  booklet_pdf: 'Saddle-stitch — fold & staple',
+  booklet_pdf: 'Saddle-stitch -- fold & staple',
 } as const;
 
 export interface LayoutDimensions {
@@ -213,11 +213,11 @@ export const SERIES_INTRO_PLACEHOLDER =
 
 export const SERIES_HANDOUT_COPY = {
   appendixTitle:       'Group Handout Section',
-  appendixSubtitle:    'Reproducible handouts for each lesson — these pages may be freely reproduced for use within your group.',
+  appendixSubtitle: 'Reproducible handouts for each lesson -- these pages may be freely reproduced for use within your group.',
   handoutHeaderPrefix: 'Lesson',
 } as const;
 
-export const STUDENT_HANDOUT_SECTION_NUMBER = '8';
+export const GROUP_HANDOUT_SECTION_NUMBER = '8';
 
 export function buildSeriesExportFilename(
   seriesName: string,
