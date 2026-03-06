@@ -593,6 +593,8 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | navigationConfig.ts | src/constants/ | Dropdown menu items ("User Profile" opens modal) |
 | dashboardConfig.ts | src/constants/ | Dashboard tab config ("Build Lesson", not "Enhance Lesson") |
 | emailDeliveryConfig.ts | src/constants/ | Email limits, templates, tier gating |
+| audienceConfig.ts | src/constants/ | Role/Assembly/Participant triad SSOT -- all audience language resolves here |
+| seriesExportConfig.ts | src/constants/ | Series curriculum export -- labels, copy, layout, filename, progress steps |
 | outputGuardrails.ts | src/constants/ | Truth & integrity verification for AI output |
 | parableConfig.ts | src/constants/ | Modern Parable Generator configuration |
 | parableDirectives.ts | src/constants/ | Parable generation AI directives |
@@ -748,7 +750,8 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 | `MULTI_TENANT_MIGRATION_PLAN.md` | Repo root | Complete multi-tenant architecture: 34 table classifications, 4 RLS patterns, 3 theology tables, 5-phase execution plan, rollback procedures |
 | `BLS_vs_Traditional_Curriculum_Comparison.docx` | Repo root | Marketing comparison document |
 | `BLS_Marketing_Avatar_Strategy.docx` | Repo root | 7 customer personas with targeted marketing strategies |
-| `Teacher_Customization_Handout.docx` | Repo root | Teacher-facing handout for customization options (9 Bible versions) |
+| `Teacher_Customization_Handout.docx` | Repo root | Teacher-facing handout for customization options |
+| `BLS_BookletFormatSpec.md` | Repo root | Design authority for Python booklet format rules -- Group Handout layout, saddle-stitch spec, trim sizes |
 
 ---
 
