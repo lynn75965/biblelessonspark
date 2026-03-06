@@ -4,7 +4,8 @@
 // Frontend drives backend - change SSOT = changes PDF output
 
 import jsPDF from "jspdf";
-import { EXPORT_FORMATTING, EXPORT_SPACING, isBoldLabel, isSkipLabel } from "../constants/lessonStructure";
+import { EXPORT_FORMATTING, EXPORT_SPACING, isBoldLabel, isSkipLabel, getSection8StandaloneTitle } from "../constants/lessonStructure";
+import type { AudienceProfile } from "../constants/audienceConfig";
 import { STUDENT_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
 
 // ============================================================================
@@ -141,9 +142,10 @@ interface ExportToPdfOptions {
     copyrightNotice?: string;
   };
   teaserContent?: string;
+  audienceProfile?: AudienceProfile;
 }
 
-export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, teaserContent }: ExportToPdfOptions): Promise<void> => {
+export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, teaserContent, audienceProfile }: ExportToPdfOptions): Promise<void> => {
   
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -483,7 +485,7 @@ export const exportToPdf = async ({ title: inputTitle, content, metadata: meta, 
     doc.setFontSize(sectionHeaderFont.fontPt);
     doc.setFont(fonts.pdf, "bold");
     doc.setTextColor(...PDF_COLORS.bodyText);
-    doc.text(EXPORT_FORMATTING.section8StandaloneTitle, MARGIN_MM, yPosition);
+    doc.text(getSection8StandaloneTitle(audienceProfile?.participant), MARGIN_MM, yPosition);
     yPosition += ptToMm(sectionHeaderFont.fontPt * body.lineHeight);
     addSpacing(sectionHeader.afterPt);
     

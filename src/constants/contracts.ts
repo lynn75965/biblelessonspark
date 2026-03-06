@@ -1,10 +1,10 @@
 import type { TeacherPreferences, LanguageKey as TPLanguageKey } from './teacherPreferences';
 import type { BibleVersionId } from './bibleVersions';
-import type { ShapeId } from './lessonShapeProfiles';
+import type { ShapeId } from './lessonShapeProfiles';\nimport type { AudienceProfile } from './audienceConfig';
 import type { AudienceProfile } from './audienceConfig';
 
 /**
- * BibleLessonSpark — TypeScript Contracts (SSOT)
+ * BibleLessonSpark -- TypeScript Contracts (SSOT)
  * 
  * Single Source of Truth for all shared TypeScript interfaces and types.
  * Every consumer imports from this file. No duplicate definitions.
@@ -36,7 +36,7 @@ import type { AudienceProfile } from './audienceConfig';
  */
 
 // ============================================================================
-// TIER 1: Lesson Structure — SSOT is lessonStructure.ts (not here)
+// TIER 1: Lesson Structure -- SSOT is lessonStructure.ts (not here)
 // ============================================================================
 
 
@@ -160,9 +160,9 @@ export type { AudienceProfile };
  */
 export type LessonShapeId =
   | 'passage_walkthrough'      // Verse-by-verse guided study
-  | 'life_connection'           // Real-life situation → Scripture → response
-  | 'gospel_centered'           // Creation–Fall–Redemption–Restoration arc
-  | 'focus_discover_respond'    // Three-movement: focus → discover → respond
+  | 'life_connection'           // Real-life situation -> Scripture -> response
+  | 'gospel_centered'           // Creation-Fall-Redemption-Restoration arc
+  | 'focus_discover_respond'    // Three-movement: focus -> discover -> respond
   | 'story_driven';             // Narrative experience; truth from story
 
 // ============================================================================
@@ -300,15 +300,17 @@ export interface Lesson {
   theology_profile_id?: TheologyProfileId | null;
   /** Reshaped lesson content (null = not reshaped) */
   shaped_content?: string | null;
+  /** Audience profile stored at generation time (role/assembly/participant triad) */
+  audience_profile?: AudienceProfile | null;
   /** ID of the shape used for reshaping (e.g., 'passage_walkthrough') */
   shape_id?: LessonShapeId | null;
   /** Phase 6: Audience triad stored at lesson generation time. SSOT: audienceConfig.ts */
   audience_profile?: { role: string; assembly: string; participant: string } | null;
-  /** Phase 26: Lesson visibility � private or shared with org */
+  /** Phase 26: Lesson visibility -- private or shared with org */
   visibility?: 'private' | 'shared' | null;
   /**
    * Audience triad active at generation time.
-   * Stored in lessons.audience_profile (jsonb) — added in Phase 2 migration.
+   * Stored in lessons.audience_profile (jsonb) -- added in Phase 2 migration.
    * Optional here so the type is safe before the column is backfilled.
    */
   audience_profile?: AudienceProfile | null;
@@ -341,7 +343,7 @@ export interface ReshapeMetrics {
  * User profile entity from profiles table.
  * 
  * CRITICAL: The column is `full_name`, NOT `display_name`.
- * This has caused a bug before — see PROJECT_MASTER Bug #1.
+ * This has caused a bug before -- see PROJECT_MASTER Bug #1.
  */
 export interface UserProfile {
   id: string;
@@ -354,7 +356,7 @@ export interface UserProfile {
   organization_id: string | null;
   /**
    * Default audience triad for this user.
-   * Stored in user_profiles.audience_profile (jsonb) — added in Phase 2 migration.
+   * Stored in user_profiles.audience_profile (jsonb) -- added in Phase 2 migration.
    * Optional here so the type is safe before the column is backfilled.
    */
   audience_profile?: AudienceProfile | null;

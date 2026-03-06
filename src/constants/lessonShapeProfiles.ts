@@ -86,14 +86,14 @@ CRITICAL: The student-facing section of the reshaped lesson MUST use the exact h
  * ("STUDENT HANDOUT"). Used by all export utilities and the email Edge Function.
  * Safety-net also catches variants Claude might generate despite the guardrail.
  */
-export const STUDENT_HANDOUT_HEADING_REGEX = /^(?:#{1,3}\s*)?(?:Section\s*8[:\s]*)?(?:Student\s+(?:Handout|Experience|Material|Section)|STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION))(?:\s*[:\-\u2013\u2014].*)?$/im;
+export const STUDENT_HANDOUT_HEADING_REGEX = /^(?:#{1,3}\s*)?(?:Section\s*8[:\s]*)?(?:(?:Student|Member|Attendee)\s+(?:Handout|Experience|Material|Section)|(?:STUDENT|MEMBER|ATTENDEE)\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION))(?:\s*[:–—\-].*)?$/im;
 
 /**
  * SSOT: Title displayed on the standalone Student Handout page in exports.
  * Teachers distribute this page to students, so it omits "Section 8:" prefix.
  */
-export const STUDENT_HANDOUT_STANDALONE_TITLE = "Student Handout";
-
+/** @deprecated Use getSection8StandaloneTitle() from lessonStructure.ts instead */
+export const STUDENT_HANDOUT_STANDALONE_TITLE = 'Student Handout';
 // ============================================================================
 // LESSON SHAPES DATA
 // ============================================================================

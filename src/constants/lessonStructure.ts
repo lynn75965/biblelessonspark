@@ -136,6 +136,17 @@ export const EXPORT_FORMATTING = {
   section8StandaloneTitle: "Student Handout",
 };
 
+/**
+ * SSOT: Resolve Section 8 standalone title from AudienceProfile participant.
+ * Falls back to "Student Handout" for legacy lessons with no stored profile.
+ * Called by exportToPdf, exportToDocx at render time.
+ */
+export function getSection8StandaloneTitle(participant?: string): string {
+  if (participant === 'Member')   return 'Member Handout';
+  if (participant === 'Attendee') return 'Attendee Handout';
+  return 'Student Handout';
+}
+
 export interface LessonSection {
   id: number; key: string; name: string; enabled: boolean; required: boolean; minWords: number; maxWords: number;
   purpose: string; contentRules: string[]; prohibitions: string[]; redundancyLock: string[];

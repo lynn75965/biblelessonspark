@@ -198,7 +198,7 @@ export const SECTION_NAMES: Record<string, string> = {
   '5': 'Main Teaching Content (Teacher Transcript)',
   '6': 'Interactive Activities',
   '7': 'Discussion & Assessment',
-  '8': 'Student Handout (Standalone)',
+  '8': 'Group Handout (Standalone)',
 } as const;
 
 // ============================================================
@@ -246,7 +246,7 @@ export interface PlanFeature {
 export const PLAN_FEATURES: PlanFeature[] = [
   { name: 'Lens + Lesson Overview',              includedInFree: true,  includedInPaid: true  },
   { name: 'Main Teaching Content',               includedInFree: true,  includedInPaid: true  },
-  { name: 'Student Handout',                     includedInFree: true,  includedInPaid: true  },
+  { name: 'Group Handout',                     includedInFree: true,  includedInPaid: true  },
   { name: 'Learning Objectives + Key Scriptures',includedInFree: false, includedInPaid: true  },
   { name: 'Theological Background (Deep-Dive)',  includedInFree: false, includedInPaid: true  },
   { name: 'Opening Activities',                  includedInFree: false, includedInPaid: true  },

@@ -14,7 +14,8 @@ import {
   PageNumber
 } from "docx";
 import { saveAs } from "file-saver";
-import { EXPORT_FORMATTING, EXPORT_SPACING } from "../constants/lessonStructure";
+import { EXPORT_FORMATTING, EXPORT_SPACING, getSection8StandaloneTitle } from "../constants/lessonStructure";
+import type { AudienceProfile } from "../constants/audienceConfig";
 import { STUDENT_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
 
 // SSOT destructure - includes fonts
@@ -224,10 +225,11 @@ interface DocxExportOptions {
     copyrightNotice?: string;
   };
   teaserContent?: string;
+  audienceProfile?: AudienceProfile;
 }
 
 export const exportToDocx = async (options: DocxExportOptions): Promise<void> => {
-  const { title: inputTitle, content, metadata: meta, teaserContent } = options;
+  const { title: inputTitle, content, metadata: meta, teaserContent, audienceProfile } = options;
   
   
   const lessonTitle = extractDocTitle(content);
@@ -413,7 +415,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     // Standalone title: "Student Handout" (no "Section 8:" prefix)
     paragraphs.push(new Paragraph({
       children: [new TextRun({ 
-        text: EXPORT_FORMATTING.section8StandaloneTitle, 
+        text: getSection8StandaloneTitle(audienceProfile?.participant), 
         bold: true, 
         size: sectionHeaderFont.fontHalfPt,
         font: fonts.docx
