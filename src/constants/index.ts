@@ -1,9 +1,15 @@
 /**
  * BibleLessonSpark Constants - Barrel Export
- * @version 2.0.0
- * @lastUpdated 2026-02-19
+ * @version 2.1.0
+ * @lastUpdated 2026-03-06
  * 
- * SSOT Update v2.0.0:
+ * SSOT Update v2.1.0 (March 6, 2026):
+ * - Added audienceConfig exports: AudienceProfile type, AudienceRole,
+ *   AudienceAssembly, AudienceParticipant, AUDIENCE_ROLES, AUDIENCE_ASSEMBLIES,
+ *   AUDIENCE_PARTICIPANTS, DEFAULT_AUDIENCE_PROFILE, and validation helpers.
+ *   (Phase 1 — AudienceConfig SSOT Foundation)
+ *
+ * SSOT Update v2.0.0 (February 19, 2026):
  * - Added new types from contracts.ts v2.0.0: TeachingTeam, TeachingTeamMember,
  *   TeachingTeamMemberStatus, ReshapeMetrics, UserProfile, Lesson,
  *   Organization, OrganizationMember
@@ -12,6 +18,7 @@
  *   their respective SSOT files -- not here)
  *   still exported with @deprecated tags for backward compatibility
  */
+
 // ============================================================================
 // TypeScript Contracts (Interfaces & Types)
 // ============================================================================
@@ -24,6 +31,8 @@ export type {
   LanguageConfig,
   // Teacher preferences
   TeacherPreferences,
+  // Audience profile (Phase 1)
+  AudienceProfile,
   // Teaching teams (Phase 27A)
   TeachingTeam,
   TeachingTeamMember,
@@ -41,6 +50,7 @@ export type {
   OrganizationMember,
   // Legacy (deprecated -- migrate to theologyProfiles.ts types)
 } from './contracts';
+
 // ============================================================================
 // Lesson Structure (Tier 1)
 // ============================================================================
@@ -53,6 +63,7 @@ export {
   getRequiredSections,
   getOptionalSections,
 } from './lessonStructure';
+
 // ============================================================================
 // Age Groups (Tier 2)
 // ============================================================================
@@ -67,6 +78,7 @@ export {
   getTeachingProfile,
   getDefaultAgeGroup,
 } from './ageGroups';
+
 // ============================================================================
 // Theology Profiles (Tier 2) - SSOT for all Baptist theology profiles
 // ============================================================================
@@ -83,6 +95,28 @@ export {
   getTheologyProfileOptions,
   generateTheologicalGuardrails,
 } from './theologyProfiles';
+
+// ============================================================================
+// Audience Configuration (Tier 2) - SSOT for role/assembly/participant language
+// ============================================================================
+export type {
+  AudienceRole,
+  AudienceAssembly,
+  AudienceParticipant,
+} from './audienceConfig';
+
+export {
+  AUDIENCE_ROLES,
+  AUDIENCE_ASSEMBLIES,
+  AUDIENCE_PARTICIPANTS,
+  DEFAULT_AUDIENCE_PROFILE,
+  isValidAudienceRole,
+  isValidAudienceAssembly,
+  isValidAudienceParticipant,
+  isValidAudienceProfile,
+  resolveAudienceProfile,
+} from './audienceConfig';
+
 // ============================================================================
 // Teacher Preferences (Tier 3)
 // ============================================================================

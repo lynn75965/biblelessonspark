@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { format, isPast, addDays, differenceInDays } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
 import { TRIAL_CONFIG, getDefaultGrantDays, getDefaultGrantMode, getDefaultPresetDate, TrialGrantMode } from "@/constants/trialConfig";
+import { type SubscriptionTier } from "@/constants/pricingConfig";
 
 interface UserProfile {
   id: string;
@@ -30,6 +31,9 @@ interface UserProfile {
   shaped_lessons_count?: number;
   team_role?: string | null;
   team_name?: string | null;
+  // Email + Subscription Tier (#3)
+  email?: string | null;
+  subscription_tier?: SubscriptionTier | null;
 }
 
 type AdoptionFilter = 'all' | 'no_lessons' | 'has_lessons_no_shapes' | 'has_shapes' | 'no_team' | 'has_team';
@@ -390,9 +394,11 @@ export function UserManagement() {
 
   // CSV Export
   const handleExportCSV = () => {
-    const headers = ['Name', 'Role', 'Lessons', 'Shaped', 'Team Status', 'Team Name', 'Trial Status', 'Created'];
+    const headers = ['Name', 'Email', 'Tier', 'Role', 'Lessons', 'Shaped', 'Team Status', 'Team Name', 'Trial Status', 'Created'];
     const rows = filteredUsers.map(user => [
       user.full_name || 'Unnamed',
+      user.email || '',
+      getTierLabel(user.subscription_tier),
       user.role,
       (user.lessons_count || 0).toString(),
       (user.shaped_lessons_count || 0).toString(),
@@ -432,6 +438,22 @@ export function UserManagement() {
 
   const getRoleIcon = (role: string) => {
     return role === 'admin' ? Shield : User;
+  };
+
+  const getTierBadgeClass = (tier: SubscriptionTier | null | undefined): string => {
+    switch (tier) {
+      case 'personal':   return 'text-primary border-primary';
+      case 'starter':
+      case 'growth':
+      case 'full':
+      case 'enterprise': return 'text-success border-success';
+      default:           return 'text-muted-foreground border-muted-foreground'; // free / null
+    }
+  };
+
+  const getTierLabel = (tier: SubscriptionTier | null | undefined): string => {
+    if (!tier) return 'Free';
+    return tier.charAt(0).toUpperCase() + tier.slice(1);
   };
 
   const getInviteStatus = (expiresAt: string) => {
@@ -698,6 +720,8 @@ export function UserManagement() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead className="hidden lg:table-cell">Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Tier</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead className="hidden md:table-cell text-center">Lessons</TableHead>
                   <TableHead className="hidden md:table-cell text-center">Shapes</TableHead>
@@ -710,7 +734,7 @@ export function UserManagement() {
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No users found matching your search.
                     </TableCell>
                   </TableRow>
@@ -728,6 +752,20 @@ export function UserManagement() {
                               {user.id}
                             </span>
                           </div>
+                        </TableCell>
+                        {/* Email */}
+                        <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                          {user.email ? (
+                            <span className="truncate max-w-[180px] block">{user.email}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">--</span>
+                          )}
+                        </TableCell>
+                        {/* Subscription Tier */}
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant="outline" className={getTierBadgeClass(user.subscription_tier)}>
+                            {getTierLabel(user.subscription_tier)}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant={getRoleBadgeVariant(user.role)}>
@@ -1106,3 +1144,4 @@ export function UserManagement() {
     </div>
   );
 }
+

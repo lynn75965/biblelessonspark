@@ -259,5 +259,5 @@ function resolvePassage(
 }
 
 const HANDOUT_PLACEHOLDER =
-  'Student handout content was not available for this lesson. ' +
-  'Please generate the lesson again to include a student handout.';
+  'Group handout content was not available for this lesson. ' +
+  'Please generate the lesson again to include a group handout.';

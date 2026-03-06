@@ -51,6 +51,7 @@ import {
   SERIES_INTRO_PLACEHOLDER,
   SERIES_HANDOUT_COPY,
   EXPORT_SPACING,
+  resolveExportTerminology,
 } from '@/constants/seriesExportConfig';
 import { buildCoverPageData } from './buildCoverPage';
 import { buildTocEntries } from './buildToc';
@@ -80,6 +81,9 @@ export async function buildSeriesDocx(
   const fontConfig: FontConfig =
     SERIES_EXPORT_FONT_OPTIONS.find((f) => f.id === options.font) ??
     SERIES_EXPORT_FONT_OPTIONS[0];
+
+  // Audience terminology resolved from options (Phase 6)
+  const terminology = resolveExportTerminology(options.audience_profile);
 
   // Page properties derived from layout dimensions
   const pageProps = {
@@ -186,7 +190,7 @@ export async function buildSeriesDocx(
 
     handoutChildren.push(
       headingParagraph(
-        bookletData.appendixTitle,
+        terminology.assemblyLabel + ' Handout Section',
         'Heading1',
         SERIES_COLORS.handoutHeader,
         fontConfig
@@ -224,7 +228,7 @@ export async function buildSeriesDocx(
           alignment: AlignmentType.CENTER,
           children: [
             new TextRun({
-              text: 'Student Handouts -- Page ',
+              text: terminology.participantLabel + ' Handouts -- Page ',
               size: EXPORT_SPACING.footer.fontHalfPt,
               font: fontConfig.docxBody,
               color: EXPORT_SPACING.colors.footerText,

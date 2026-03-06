@@ -1,12 +1,18 @@
 import type { TeacherPreferences, LanguageKey as TPLanguageKey } from './teacherPreferences';
 import type { BibleVersionId } from './bibleVersions';
 import type { ShapeId } from './lessonShapeProfiles';
+import type { AudienceProfile } from './audienceConfig';
 
 /**
- * BibleLessonSpark -- TypeScript Contracts (SSOT)
+ * BibleLessonSpark — TypeScript Contracts (SSOT)
  * 
  * Single Source of Truth for all shared TypeScript interfaces and types.
  * Every consumer imports from this file. No duplicate definitions.
+ * 
+ * CHANGELOG v2.1.0 (March 6, 2026):
+ * - Added AudienceProfile re-export from audienceConfig.ts (Phase 1)
+ * - Added audience_profile?: AudienceProfile to UserProfile (Phase 1/2)
+ * - Added audience_profile?: AudienceProfile to Lesson (Phase 1/2)
  * 
  * CHANGELOG v2.0.0 (February 19, 2026):
  * - Replaced legacy 3-key TheologicalPreferenceKey with 10-profile TheologyProfileId
@@ -22,14 +28,16 @@ import type { ShapeId } from './lessonShapeProfiles';
  * - ageGroups.ts imports: AgeGroup, TeachingProfile
  * - theologyProfiles.ts defines: TheologyProfile (owns that interface)
  * - accessControl.ts defines: Role, OrgRole (owns those types)
+ * - audienceConfig.ts defines: AudienceProfile (owns that interface)
  * - validation.ts: no imports from this file
  * 
- * @version 2.0.0
- * @lastUpdated 2026-02-19
+ * @version 2.1.0
+ * @lastUpdated 2026-03-06
  */
 
 // ============================================================================
-// TIER 1: Lesson Structure -- SSOT is lessonStructure.ts (not here)
+// TIER 1: Lesson Structure — SSOT is lessonStructure.ts (not here)
+// ============================================================================
 
 
 
@@ -104,7 +112,8 @@ export type TulipStance = 'anti' | 'pro';
  * KJV is public domain (direct quotes allowed).
  * All others require paraphrase for copyright compliance.
  */
-/** Re-exported from bibleVersions.ts SSOT */\nexport type BibleVersionKey = BibleVersionId;
+/** Re-exported from bibleVersions.ts SSOT */
+export type BibleVersionKey = BibleVersionId;
 
 /** The default Bible version */
 export const DEFAULT_BIBLE_VERSION: BibleVersionKey = 'nasb';
@@ -126,6 +135,19 @@ export interface LanguageConfig {
 export const DEFAULT_LANGUAGE: LanguageKey = 'en';
 
 // ============================================================================
+// TIER 2: Audience Profile Contracts (Phase 1)
+// ============================================================================
+
+/**
+ * Re-exported from audienceConfig.ts SSOT.
+ * audienceConfig.ts owns the interface, arrays, default, and helpers.
+ * Import from there when you need AUDIENCE_ROLES, AUDIENCE_ASSEMBLIES,
+ * AUDIENCE_PARTICIPANTS, or the helper functions.
+ * Import from here (contracts.ts) when you only need the AudienceProfile type.
+ */
+export type { AudienceProfile };
+
+// ============================================================================
 // TIER 2: Lesson Shape Contracts (Phase 27B)
 // ============================================================================
 
@@ -138,9 +160,9 @@ export const DEFAULT_LANGUAGE: LanguageKey = 'en';
  */
 export type LessonShapeId =
   | 'passage_walkthrough'      // Verse-by-verse guided study
-  | 'life_connection'           // Real-life situation -> Scripture -> response
-  | 'gospel_centered'           // Creation-Fall-Redemption-Restoration arc
-  | 'focus_discover_respond'    // Three-movement: focus -> discover -> respond
+  | 'life_connection'           // Real-life situation → Scripture → response
+  | 'gospel_centered'           // Creation–Fall–Redemption–Restoration arc
+  | 'focus_discover_respond'    // Three-movement: focus → discover → respond
   | 'story_driven';             // Narrative experience; truth from story
 
 // ============================================================================
@@ -200,6 +222,8 @@ export interface LessonGenerationRequest {
   uploadId?: string;
   fileHash?: string;
   sourceFile?: string;
+  /** Active audience triad at generation time (Phase 4) */
+  audienceProfile?: AudienceProfile;
 }
 
 export interface LessonContent {
@@ -261,7 +285,7 @@ export interface LessonFilters {
 
 /**
  * Lesson entity from lessons table.
- * Includes Phase 27B shaped content fields.
+ * Includes Phase 27B shaped content fields and Phase 1 audience_profile.
  */
 export interface Lesson {
   id: string;
@@ -278,6 +302,16 @@ export interface Lesson {
   shaped_content?: string | null;
   /** ID of the shape used for reshaping (e.g., 'passage_walkthrough') */
   shape_id?: LessonShapeId | null;
+  /** Phase 6: Audience triad stored at lesson generation time. SSOT: audienceConfig.ts */
+  audience_profile?: { role: string; assembly: string; participant: string } | null;
+  /** Phase 26: Lesson visibility � private or shared with org */
+  visibility?: 'private' | 'shared' | null;
+  /**
+   * Audience triad active at generation time.
+   * Stored in lessons.audience_profile (jsonb) — added in Phase 2 migration.
+   * Optional here so the type is safe before the column is backfilled.
+   */
+  audience_profile?: AudienceProfile | null;
   metadata?: {
     teaser?: string | null;
     ageGroup?: string;
@@ -307,7 +341,7 @@ export interface ReshapeMetrics {
  * User profile entity from profiles table.
  * 
  * CRITICAL: The column is `full_name`, NOT `display_name`.
- * This has caused a bug before -- see PROJECT_MASTER Bug #1.
+ * This has caused a bug before — see PROJECT_MASTER Bug #1.
  */
 export interface UserProfile {
   id: string;
@@ -318,6 +352,12 @@ export interface UserProfile {
   theology_profile_id: TheologyProfileId | null;
   organization_role: string | null;
   organization_id: string | null;
+  /**
+   * Default audience triad for this user.
+   * Stored in user_profiles.audience_profile (jsonb) — added in Phase 2 migration.
+   * Optional here so the type is safe before the column is backfilled.
+   */
+  audience_profile?: AudienceProfile | null;
 }
 
 /**
@@ -358,4 +398,3 @@ export interface OrganizationMember {
   role: string;
   joined_at: string;
 }
-

@@ -39,6 +39,7 @@ import {
   BOOKLET_PAGE,
   BOOKLET_SHEET,
   BOOKLET_TYPOGRAPHY,
+  resolveExportTerminology,
 } from '@/constants/seriesExportConfig';
 import { buildCoverPageData } from './buildCoverPage';
 import { buildTocEntries } from './buildToc';
@@ -93,6 +94,7 @@ export async function buildSeriesPdf(
   let currentPage = 1;
   const lessonRanges: PageRange[]  = [];
   const frontMatterPages: number[] = [];
+  const terminology = resolveExportTerminology(options.audience_profile);
 
   // -- helpers ----------------------------------------------------------------
 
@@ -317,7 +319,7 @@ export async function buildSeriesPdf(
     const bookletData = buildHandoutBookletData(series, lessons);
     addPage();
     const handoutStart = currentPage;
-    renderSectionHeading(bookletData.appendixTitle);
+    renderSectionHeading(terminology.assemblyLabel + ' Handout Section');
     renderBodyText(bookletData.appendixSubtitle, true);
     for (const entry of bookletData.entries) {
       addPage();
@@ -405,6 +407,7 @@ async function _buildBookletContent(
 ): Promise<ArrayBuffer> {
   const BK  = BOOKLET_PAGE;
   const TYP = BOOKLET_TYPOGRAPHY;
+  const terminology = resolveExportTerminology(options.audience_profile);
 
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -730,7 +733,7 @@ async function _buildBookletContent(
   doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
   doc.setFontSize(18);
   doc.setTextColor(...hexToRgb(EXPORT_SPACING.colors.bodyText) as [number, number, number]);
-  doc.text('Group Handout Section', BK.width / 2, divY - 8, { align: 'center' });
+  doc.text(terminology.assemblyLabel + ' Handout Section', BK.width / 2, divY - 8, { align: 'center' });
 
   doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
   doc.setFontSize(9);
@@ -760,7 +763,7 @@ async function _buildBookletContent(
     doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
     doc.setFontSize(TYP.handoutLabelFontPt);
     doc.setTextColor(hlR, hlG, hlB);
-    doc.text(('LESSON ' + entry.lessonNumber + ' \u00B7 GROUP HANDOUT').toUpperCase(),
+    doc.text(('LESSON ' + entry.lessonNumber + ' \u00B7 ' + terminology.assemblyLabel + ' HANDOUT').toUpperCase(),
              leftX(), currentY);
     currentY += TYP.handoutLabelFontPt + 3;
 

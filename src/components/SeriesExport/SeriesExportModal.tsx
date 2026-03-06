@@ -5,7 +5,7 @@
 // Modal dialog for series export. Presents:
 //   - Format picker (DOCX / PDF / Booklet PDF radio buttons)
 //   - "Recommended for printing" / "Saddle-stitch" labels on PDF options
-//   - Option checkboxes (handout booklet - hidden when Booklet PDF selected,
+//   - Option checkboxes (handout booklet — hidden when Booklet PDF selected,
 //     because the Booklet PDF format IS the handout booklet)
 //   - Export button disabled until format is chosen
 //   - Inline progress indicator while exporting
@@ -233,7 +233,7 @@ export function SeriesExportModal({
               )}
             </fieldset>
 
-            {/* Options - hidden when Booklet PDF is selected (always includes handouts) */}
+            {/* Options — hidden when Booklet PDF is selected (always includes handouts) */}
             {!isBookletFormat && (
               <fieldset>
                 <legend className="text-sm font-medium text-foreground mb-2">
@@ -264,7 +264,7 @@ export function SeriesExportModal({
               </fieldset>
             )}
 
-            {/* Booklet note - shown when Booklet PDF is selected */}
+            {/* Booklet note — shown when Booklet PDF is selected */}
             {isBookletFormat && (
               <p className="text-xs text-muted-foreground px-1">
                 The Booklet PDF includes the Group Handout Section. Print double-sided,

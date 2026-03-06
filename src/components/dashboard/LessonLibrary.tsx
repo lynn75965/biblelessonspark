@@ -47,6 +47,7 @@ import { ROUTES } from "@/constants/routes";
 import { Lesson } from "@/constants/contracts";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
+import { AUDIENCE_ROLES } from "@/constants/audienceConfig";
 
 // ============================================================================
 // INTERFACES
@@ -367,7 +368,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               <Input

@@ -1,4 +1,7 @@
-// ============================================================================
+const fs = require('fs');
+const path = require('path');
+
+const content = `// ============================================================================
 // SERIES EXPORT CONFIGURATION - SSOT
 // Location: src/constants/seriesExportConfig.ts
 // Last Updated: 2026-03-06
@@ -33,7 +36,7 @@ export type SeriesExportFormat = typeof SERIES_EXPORT_FORMATS[keyof typeof SERIE
 export const SERIES_EXPORT_FORMAT_LABELS: Record<SeriesExportFormat, string> = {
   docx:        'Word Document (.docx)',
   pdf:         'PDF Document (.pdf)',
-  booklet_pdf: 'Booklet PDF — Print & Fold',
+  booklet_pdf: 'Booklet PDF \\u2014 Print & Fold',
 } as const;
 
 export const SERIES_EXPORT_FORMAT_MIME: Record<SeriesExportFormat, string> = {
@@ -52,7 +55,7 @@ export const SERIES_EXPORT_RECOMMENDED_FORMAT: SeriesExportFormat = SERIES_EXPOR
 
 export const SERIES_EXPORT_FORMAT_SUBTITLES: Partial<Record<SeriesExportFormat, string>> = {
   pdf:         'Recommended for printing',
-  booklet_pdf: 'Saddle-stitch — fold & staple',
+  booklet_pdf: 'Saddle-stitch \\u2014 fold & staple',
 } as const;
 
 export interface LayoutDimensions {
@@ -213,7 +216,7 @@ export const SERIES_INTRO_PLACEHOLDER =
 
 export const SERIES_HANDOUT_COPY = {
   appendixTitle:       'Group Handout Section',
-  appendixSubtitle:    'Reproducible handouts for each lesson — these pages may be freely reproduced for use within your group.',
+  appendixSubtitle:    'Reproducible handouts for each lesson \\u2014 these pages may be freely reproduced for use within your group.',
   handoutHeaderPrefix: 'Lesson',
 } as const;
 
@@ -224,8 +227,8 @@ export function buildSeriesExportFilename(
   format: SeriesExportFormat
 ): string {
   const safeName = seriesName
-    .replace(/[^a-zA-Z0-9\s-]/g, '')
-    .replace(/\s+/g, '_')
+    .replace(/[^a-zA-Z0-9\\s-]/g, '')
+    .replace(/\\s+/g, '_')
     .replace(/-+/g, '-')
     .slice(0, 60);
   const date   = new Date().toISOString().slice(0, 10);
@@ -267,6 +270,9 @@ export const SERIES_EXPORT_UI = {
 
 // ============================================================================
 // AUDIENCE TERMINOLOGY RESOLVER
+// Maps the active AudienceProfile triad into export-facing label strings.
+// Used by buildSeriesDocx and buildSeriesPdf to label handout sections
+// with the correct assembly/participant language for each ministry context.
 // ============================================================================
 
 export function resolveExportTerminology(
@@ -278,3 +284,9 @@ export function resolveExportTerminology(
     participantLabel: profile.participant,
   };
 }
+`;
+
+const target = path.join(__dirname, 'src', 'constants', 'seriesExportConfig.ts');
+fs.writeFileSync(target, content, { encoding: 'utf8' });
+const lines = content.split('\n').length;
+console.log('Written: ' + lines + ' lines to ' + target);

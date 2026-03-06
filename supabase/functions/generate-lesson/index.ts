@@ -538,7 +538,8 @@ serve(async (req) => {
       include_cultural = false,
       freshness_suggestions = null,
       extract_style_metadata = false,
-      series_style_context = null
+      series_style_context = null,
+      audience_profile = null
     } = validatedData;
 
     if (!bible_passage && !focused_topic && !extracted_content) {
@@ -673,6 +674,18 @@ ${generateTheologicalGuardrails(theologyProfile.id)}
 AGE GROUP: ${ageGroupData.label}
 -------------------------------------------------------------------------------
 ${ageGroupData.promptGuidance}
+
+-------------------------------------------------------------------------------
+MINISTRY CONTEXT
+-------------------------------------------------------------------------------
+Role: ${audience_profile?.role || 'Teacher'}
+Gathering: ${audience_profile?.assembly || 'Class'}
+Participants: ${audience_profile?.participant || 'Students'}
+
+Use these terms consistently throughout all sections of this lesson when referring
+to the leader, the group, and the people in it. Do NOT use alternate terms like
+"class" when the gathering is "Congregation", or "teacher" when the role is "Pastor".
+Never mention Sunday School unless the content specifically requires it.
 
 ${buildCompressionRules(generate_teaser)}
 
@@ -945,6 +958,7 @@ ${styleExtractionPromptAddition}
         title: lessonInput,
         original_text: generatedLesson,
         organization_id: orgPoolResult?.organization_id || null,
+        audience_profile: audience_profile || { role: 'Teacher', assembly: 'Class', participant: 'Student' },
         org_pool_consumed: useOrgPool,
         series_style_metadata: extractedStyleMetadata,
         filters: {
