@@ -351,6 +351,8 @@ export const SERIES_EXPORT_UI = {
   exportButtonDocx:        'Download Word Document',
   cancelButton:            'Cancel',
   successMessage:          'Series exported successfully.',
+  buttonLabel:             'Export Series',
+  upgradePrompt:           'Upgrade to Personal Plan to export your series as a complete curriculum document.',
 } as const;
 
 // ============================================================================
