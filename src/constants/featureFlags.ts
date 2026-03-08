@@ -13,9 +13,6 @@
 // To gate a feature:            set requiredTier to 'personal'
 // To open a feature to all:     set requiredTier to 'free'
 // To disable entirely:          set enabled to false
-//
-// CHANGELOG:
-//   2026-03-02: Added 'seriesExport' (Personal Plan, Phase A+B)
 // ============================================================================
 
 import { SubscriptionTier, isPaidTier } from '@/constants/pricingConfig';
@@ -75,13 +72,6 @@ export const FEATURE_FLAGS = {
     upgradePrompt:  '',
   },
 
-  bookletPrint: {
-    requiredTier:  'personal',
-    enabled:        true,
-    label:          'Print Class Booklet',
-    upgradePrompt:  'Upgrade to Personal Plan to print a class booklet for your series.',
-  },
-
   parables: {
     requiredTier:  'free',
     enabled:        true,
@@ -92,7 +82,7 @@ export const FEATURE_FLAGS = {
   seriesExport: {
     requiredTier:  'personal',
     enabled:        true,
-    label:          'Series Curriculum Export',
+    label:          'Series eBook Export',
     upgradePrompt:  'Upgrade to Personal Plan to export your series as a complete curriculum document.',
   },
 
@@ -122,4 +112,3 @@ export function getUpgradePrompt(tier: SubscriptionTier, feature: FeatureKey): s
 export function isFeatureEnabled(feature: FeatureKey): boolean {
   return FEATURE_FLAGS[feature].enabled;
 }
-

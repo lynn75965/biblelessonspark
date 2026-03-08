@@ -1,280 +1,397 @@
 // ============================================================================
 // SERIES EXPORT CONFIGURATION - SSOT
 // Location: src/constants/seriesExportConfig.ts
-// Last Updated: 2026-03-06
+//
+// All series export constants, types, color schemes, fonts, layouts, and
+// UI copy live here. All consumers import from this file only.
+//
+// Consumers:
+//   - SeriesExportModal.tsx
+//   - buildSeriesDocx.ts
+//   - buildSeriesPdf.ts
+//   - buildHandoutBooklet.ts
 // ============================================================================
 
-import { EXPORT_SPACING, EXPORT_FORMATTING } from '@/constants/lessonStructure';
-import { BRANDING } from '@/config/branding';
-import type { AudienceProfile } from '@/constants/audienceConfig';
-import { resolveAudienceProfile } from '@/constants/audienceConfig';
-
-export { EXPORT_SPACING, EXPORT_FORMATTING };
-
-export const SERIES_EXPORT_SECTIONS = {
-  COVER:           'cover',
-  TOC:             'toc',
-  INTRO:           'intro',
-  LESSONS:         'lessons',
-  HANDOUT_BOOKLET: 'handout_booklet',
-  BACK_COVER:      'back_cover',
-} as const;
-
-export type SeriesExportSection = typeof SERIES_EXPORT_SECTIONS[keyof typeof SERIES_EXPORT_SECTIONS];
+// ============================================================================
+// EXPORT FORMAT
+// ============================================================================
 
 export const SERIES_EXPORT_FORMATS = {
-  DOCX:        'docx',
-  PDF:         'pdf',
-  BOOKLET_PDF: 'booklet_pdf',
+  PDF:     'pdf',
+  DOCX:    'docx',
+  BOOKLET: 'booklet_pdf',
 } as const;
 
-export type SeriesExportFormat = typeof SERIES_EXPORT_FORMATS[keyof typeof SERIES_EXPORT_FORMATS];
+export type SeriesExportFormat =
+  (typeof SERIES_EXPORT_FORMATS)[keyof typeof SERIES_EXPORT_FORMATS];
 
 export const SERIES_EXPORT_FORMAT_LABELS: Record<SeriesExportFormat, string> = {
-  docx:        'Word Document (.docx)',
-  pdf:         'PDF Document (.pdf)',
-  booklet_pdf: 'Booklet PDF -- Print & Fold',
+  [SERIES_EXPORT_FORMATS.PDF]:     'PDF Document',
+  [SERIES_EXPORT_FORMATS.DOCX]:    'Word Document (.docx)',
+  [SERIES_EXPORT_FORMATS.BOOKLET]: 'Booklet PDF (saddle-stitch)',
+};
+
+export const SERIES_EXPORT_FORMAT_SUBTITLES: Record<SeriesExportFormat, string> = {
+  [SERIES_EXPORT_FORMATS.PDF]:     'Recommended for printing',
+  [SERIES_EXPORT_FORMATS.DOCX]:    '',
+  [SERIES_EXPORT_FORMATS.BOOKLET]: 'Saddle-stitch / fold-and-staple',
+};
+
+// ============================================================================
+// LAYOUT
+// ============================================================================
+
+export const SERIES_EXPORT_LAYOUTS = {
+  FULL_PAGE: 'fullpage',
+  BOOKLET:   'booklet',
+  TRIFOLD:   'trifold',
 } as const;
 
-export const SERIES_EXPORT_FORMAT_MIME: Record<SeriesExportFormat, string> = {
-  docx:        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  pdf:         'application/pdf',
-  booklet_pdf: 'application/pdf',
+export type SeriesExportLayout =
+  (typeof SERIES_EXPORT_LAYOUTS)[keyof typeof SERIES_EXPORT_LAYOUTS];
+
+export const SERIES_EXPORT_LAYOUT_LABELS: Record<SeriesExportLayout, string> = {
+  [SERIES_EXPORT_LAYOUTS.FULL_PAGE]: 'Full Page (8.5 x 11")',
+  [SERIES_EXPORT_LAYOUTS.BOOKLET]:   'Booklet (5.5 x 8.5")',
+  [SERIES_EXPORT_LAYOUTS.TRIFOLD]:   'Tri-Fold Group Handout',
+};
+
+export const SERIES_EXPORT_LAYOUT_DESCRIPTIONS: Record<SeriesExportLayout, string> = {
+  [SERIES_EXPORT_LAYOUTS.FULL_PAGE]: 'Standard printing on letter paper',
+  [SERIES_EXPORT_LAYOUTS.BOOKLET]:   'Fold-in-half quarterly style',
+  [SERIES_EXPORT_LAYOUTS.TRIFOLD]:   'PDF only -- one page per lesson',
+};
+
+export const SERIES_LAYOUT_DIMENSIONS = {
+  fullpage: { widthIn: 8.5,  heightIn: 11.0 },
+  booklet:  { widthIn: 5.5,  heightIn:  8.5 },
 } as const;
 
-export const SERIES_EXPORT_FORMAT_EXT: Record<SeriesExportFormat, string> = {
-  docx:        '.docx',
-  pdf:         '.pdf',
-  booklet_pdf: '.pdf',
-} as const;
+// ============================================================================
+// COLOR SCHEMES
+// ============================================================================
 
-export const SERIES_EXPORT_RECOMMENDED_FORMAT: SeriesExportFormat = SERIES_EXPORT_FORMATS.PDF;
-
-export const SERIES_EXPORT_FORMAT_SUBTITLES: Partial<Record<SeriesExportFormat, string>> = {
-  pdf:         'Recommended for printing',
-  booklet_pdf: 'Saddle-stitch -- fold & staple',
-} as const;
-
-export interface LayoutDimensions {
-  widthDxa:                number;
-  heightDxa:               number;
-  marginDxa:               number;
-  contentWidthDxa:         number;
-  bodyFontHalfPt:          number;
-  sectionHeaderFontHalfPt: number;
-  chapterTitleFontHalfPt:  number;
-  padToMultipleOf4?:       boolean;
+export interface ColorScheme {
+  id:      string;
+  label:   string;
+  primary: string;   // hex without #  -- controls headings
+  accent:  string;   // hex without #  -- controls subtitle/labels/rules
+  hr:      string;   // hex without #  -- horizontal rule lines
 }
 
-export const SERIES_LAYOUT_DIMENSIONS: Record<string, LayoutDimensions> = {
-  fullpage: {
-    widthDxa:                12240,
-    heightDxa:               15840,
-    marginDxa:               1440,
-    contentWidthDxa:         9360,
-    bodyFontHalfPt:          EXPORT_SPACING.body.fontHalfPt,
-    sectionHeaderFontHalfPt: 28,
-    chapterTitleFontHalfPt:  32,
-  },
-} as const;
-
-export interface FontConfig {
-  id:          string;
-  label:       string;
-  docxBody:    string;
-  docxHeading: string;
-}
-
-export const SERIES_EXPORT_FONT_OPTIONS: FontConfig[] = [
-  { id: 'calibri',  label: 'Calibri (Modern)',      docxBody: 'Calibri',           docxHeading: 'Calibri' },
-  { id: 'georgia',  label: 'Georgia (Traditional)', docxBody: 'Georgia',           docxHeading: 'Georgia' },
-  { id: 'times',    label: 'Times New Roman',       docxBody: 'Times New Roman',   docxHeading: 'Times New Roman' },
-  { id: 'arial',    label: 'Arial (Clean)',         docxBody: 'Arial',             docxHeading: 'Arial' },
-  { id: 'garamond', label: 'Garamond (Elegant)',    docxBody: 'Garamond',          docxHeading: 'Garamond' },
-  { id: 'palatino', label: 'Palatino (Readable)',   docxBody: 'Palatino Linotype', docxHeading: 'Palatino Linotype' },
+export const BOOKLET_COLOR_SCHEMES: ColorScheme[] = [
+  { id: 'forest_gold',     label: 'Forest & Gold',     primary: '3D5C3D', accent: 'B8860B', hr: 'B8860B' },
+  { id: 'navy_steel',      label: 'Navy & Steel',       primary: '1B3A5C', accent: '607D8B', hr: '607D8B' },
+  { id: 'burgundy_copper', label: 'Burgundy & Copper',  primary: '6B2737', accent: 'B5651D', hr: 'B5651D' },
+  { id: 'deep_teal_bronze',label: 'Deep Teal & Bronze', primary: '1A5F5A', accent: 'A0522D', hr: 'A0522D' },
+  { id: 'plum_sage',       label: 'Plum & Sage',        primary: '5B2C6F', accent: '5F8575', hr: '5F8575' },
 ];
 
-export interface SeriesExportOptions {
-  includeHandoutBooklet:    boolean;
-  omitSection8FromChapters: boolean;
-  format:                   SeriesExportFormat;
-  layout:                   string;
-  font:                     string;
-  audience_profile?:        AudienceProfile;
+export type ColorSchemeId = typeof BOOKLET_COLOR_SCHEMES[number]['id'];
+
+export const SERIES_EXPORT_DEFAULT_COLOR_SCHEME: ColorSchemeId = 'forest_gold';
+
+export function getColorScheme(id?: ColorSchemeId | null): ColorScheme {
+  return (
+    BOOKLET_COLOR_SCHEMES.find((s) => s.id === id) ??
+    BOOKLET_COLOR_SCHEMES[0]
+  );
 }
 
-export const SERIES_EXPORT_DEFAULT_OPTIONS: SeriesExportOptions = {
+// ============================================================================
+// FONTS
+// ============================================================================
+
+export interface FontOption {
+  id:        string;
+  label:     string;
+  cssFamily: string;   // CSS font-family stack for preview
+  docxName:  string;   // Exact name for DOCX TextRun font
+  pdfFamily: string;   // jsPDF built-in family: 'times' | 'helvetica' | 'courier'
+}
+
+export const SERIES_EXPORT_FONT_OPTIONS: FontOption[] = [
+  {
+    id:        'pagella',
+    label:     'TeX Gyre Pagella (Palatino)',
+    cssFamily: '"TeX Gyre Pagella", "Palatino Linotype", "Book Antiqua", Palatino, serif',
+    docxName:  'Palatino Linotype',
+    pdfFamily: 'times',
+  },
+  {
+    id:        'garamond',
+    label:     'EB Garamond',
+    cssFamily: '"EB Garamond", Garamond, "Times New Roman", serif',
+    docxName:  'Garamond',
+    pdfFamily: 'times',
+  },
+  {
+    id:        'crimson',
+    label:     'Crimson Text',
+    cssFamily: '"Crimson Text", "Crimson Pro", Georgia, serif',
+    docxName:  'Georgia',
+    pdfFamily: 'times',
+  },
+  {
+    id:        'times',
+    label:     'Times New Roman',
+    cssFamily: '"Times New Roman", Times, serif',
+    docxName:  'Times New Roman',
+    pdfFamily: 'times',
+  },
+  {
+    id:        'calibri',
+    label:     'Calibri',
+    cssFamily: 'Calibri, "Gill Sans", "Trebuchet MS", sans-serif',
+    docxName:  'Calibri',
+    pdfFamily: 'helvetica',
+  },
+];
+
+export type FontId = typeof SERIES_EXPORT_FONT_OPTIONS[number]['id'];
+
+export const SERIES_EXPORT_DEFAULT_FONT: FontId = 'pagella';
+
+export function getFontOption(id?: FontId | null): FontOption {
+  return (
+    SERIES_EXPORT_FONT_OPTIONS.find((f) => f.id === id) ??
+    SERIES_EXPORT_FONT_OPTIONS[0]
+  );
+}
+
+// ============================================================================
+// EXPORT OPTIONS INTERFACE
+// ============================================================================
+
+export interface SeriesExportOptions {
+  format:                   SeriesExportFormat;
+  layout?:                  SeriesExportLayout;
+  colorSchemeId?:           ColorSchemeId;
+  font?:                    FontId;
+  includeHandoutBooklet?:   boolean;
+  omitSection8FromChapters?:boolean;
+  audience_profile?: {
+    role:        string;
+    assembly:    string;
+    participant: string;
+  };
+}
+
+export const SERIES_EXPORT_DEFAULT_OPTIONS: Partial<SeriesExportOptions> = {
+  format:        SERIES_EXPORT_FORMATS.PDF,
+  layout:        SERIES_EXPORT_LAYOUTS.FULL_PAGE,
+  colorSchemeId: SERIES_EXPORT_DEFAULT_COLOR_SCHEME,
+  font:          SERIES_EXPORT_DEFAULT_FONT,
   includeHandoutBooklet:    true,
   omitSection8FromChapters: true,
-  format:                   SERIES_EXPORT_FORMATS.PDF,
-  layout:                   'fullpage',
-  font:                     'calibri',
+};
+
+// ============================================================================
+// PROGRESS STEPS
+// ============================================================================
+
+export const SERIES_EXPORT_PROGRESS_STEPS = {
+  PREPARING:  'preparing',
+  COVER:      'cover',
+  TOC:        'toc',
+  LESSONS:    'lessons',
+  HANDOUT:    'handout',
+  FINALIZING: 'finalizing',
 } as const;
 
-export const SERIES_PAGE = {
-  widthDxa:        12240,
-  heightDxa:       15840,
-  marginDxa:       1440,
-  contentWidthDxa: 9360,
-} as const;
+export type SeriesExportProgressStepId =
+  (typeof SERIES_EXPORT_PROGRESS_STEPS)[keyof typeof SERIES_EXPORT_PROGRESS_STEPS];
+
+export const SERIES_EXPORT_PROGRESS_STEP_LABELS: Record<SeriesExportProgressStepId, string> = {
+  [SERIES_EXPORT_PROGRESS_STEPS.PREPARING]:  'Preparing document...',
+  [SERIES_EXPORT_PROGRESS_STEPS.COVER]:      'Building cover page...',
+  [SERIES_EXPORT_PROGRESS_STEPS.TOC]:        'Building table of contents...',
+  [SERIES_EXPORT_PROGRESS_STEPS.LESSONS]:    'Formatting lessons...',
+  [SERIES_EXPORT_PROGRESS_STEPS.HANDOUT]:    'Preparing group handout...',
+  [SERIES_EXPORT_PROGRESS_STEPS.FINALIZING]: 'Finalizing document...',
+};
+
+// ============================================================================
+// PAGE DIMENSIONS (points -- 72pt per inch)
+// ============================================================================
 
 export const FULLPAGE_PDF = {
   width:        612,
   height:       792,
-  margin:       72,
-  get contentWidth()  { return this.width  - this.margin * 2; },
-  get contentHeight() { return this.height - this.margin * 2; },
-  get pageBottom()    { return this.height - this.margin; },
+  marginTop:    72,
+  marginBottom: 72,
+  marginLeft:   72,
+  marginRight:  57.6,
 } as const;
 
 export const BOOKLET_PAGE = {
   width:        396,
   height:       612,
-  margin:       28.8,
-  get contentWidth()  { return this.width  - this.margin * 2; },
-  get contentHeight() { return this.height - this.margin * 2; },
+  marginTop:    54,
+  marginBottom: 54,
+  marginLeft:   54,
+  marginRight:  43.2,
 } as const;
 
-export const BOOKLET_SHEET = {
-  width:  792,
-  height: 612,
-} as const;
+// ============================================================================
+// TYPOGRAPHY (legacy -- builders migrate to getColorScheme + getFontOption)
+// ============================================================================
 
-export const BOOKLET_TYPOGRAPHY = {
-  bodyFontPt:          9.5,
-  bodyLineHeight:      1.42,
-  subheadFontPt:       10.5,
-  sectionLabelFontPt:  7.5,
-  lessonNumFontPt:     7.5,
-  lessonTitleFontPt:   14,
-  passageFontPt:       8.5,
-  coverTitleFontPt:    30,
-  coverSubtitleFontPt: 13,
-  coverMetaFontPt:     8,
-  tocHeadingFontPt:    13,
-  tocEntryFontPt:      9.5,
-  footerFontPt:        6.5,
-  handoutTitleFontPt:  12,
-  handoutLabelFontPt:  7.5,
+export const SERIES_PAGE = {
+  width:        612,
+  height:       792,
+  marginTop:    72,
+  marginBottom: 72,
+  marginLeft:   72,
+  marginRight:  57.6,
+  textWidth:    482.4,
 } as const;
 
 export const SERIES_COVER_TYPOGRAPHY = {
-  titleFontPt:        24,
-  titleFontHalfPt:    48,
-  subtitleFontPt:     14,
-  subtitleFontHalfPt: 28,
-  metaFontPt:         12,
-  metaFontHalfPt:     24,
-  footerFontPt:       EXPORT_SPACING.footer.fontPt,
-  footerFontHalfPt:   EXPORT_SPACING.footer.fontHalfPt,
+  titleSize:    28,
+  subtitleSize: 14,
+  bodySize:     11,
+  lineHeight:   1.35,
 } as const;
 
 export const SERIES_CHAPTER_TYPOGRAPHY = {
-  chapterLabelFontPt:     11,
-  chapterLabelFontHalfPt: 22,
-  chapterTitleFontPt:     16,
-  chapterTitleFontHalfPt: 32,
-  passageFontPt:          10,
-  passageFontHalfPt:      20,
+  chapterLabelSize: 9,
+  titleSize:        18,
+  subtitleSize:     12,
+  bodySize:         11,
+  lineHeight:       1.35,
 } as const;
 
 export const SERIES_TOC_TYPOGRAPHY = {
-  headingFontPt:          16,
-  headingFontHalfPt:      32,
-  entryFontPt:            EXPORT_SPACING.body.fontPt,
-  entryFontHalfPt:        EXPORT_SPACING.body.fontHalfPt,
-  entrySpacingAfterTwips: EXPORT_SPACING.paragraph.afterTwips,
+  headingSize:  14,
+  entrySize:    11,
+  lineHeight:   1.4,
 } as const;
+
+// ============================================================================
+// COLORS (legacy fallback -- Forest & Gold)
+// Builders should prefer: getColorScheme(options.colorSchemeId)
+// ============================================================================
 
 export const SERIES_COLORS = {
-  coverTitle:     '3D5C3D',
-  coverSubtitle:  'B8860B',
-  chapterHeading: '3D5C3D',
-  tocHeading:     '3D5C3D',
-  tocEntry:       EXPORT_SPACING.colors.bodyText,
-  handoutHeader:  '3D5C3D',
-  backCoverText:  EXPORT_SPACING.colors.metaText,
-  hr:             EXPORT_SPACING.colors.hrLine,
+  primary:       '3D5C3D',
+  accent:        'B8860B',
+  bodyText:      '1A1A1A',
+  mutedText:     '666666',
+  border:        'D1D5DB',
+  handoutHeader: '3D5C3D',
+  coverBg:       'FFFFFF',
 } as const;
 
+// ============================================================================
+// SPACING AND FORMATTING
+// ============================================================================
+
+export const EXPORT_SPACING = {
+  afterTitle:       200,
+  afterHeading:     120,
+  afterParagraph:   80,
+  afterSection:     160,
+  beforeSection:    120,
+  lineSpacing:      276,
+  fonts: {
+    pdf:  'helvetica',
+    docx: 'Palatino Linotype',
+  },
+} as const;
+
+export const EXPORT_FORMATTING = {
+  maxLineLength:   90,
+  indentSize:      360,
+  bulletIndent:    720,
+} as const;
+
+// ============================================================================
+// COPY CONSTANTS
+// ============================================================================
+
 export const SERIES_COVER_COPY = {
-  subtitle:     'A BibleLessonSpark Curriculum Series',
-  teacherLabel: 'Prepared by',
-  churchLabel:  'For',
-  generatedBy:  'Generated by ' + BRANDING.appName,
-  website:      BRANDING.urls.baseUrl,
+  preparedBy:    'Prepared by',
+  seriesLabel:   'Teaching Series',
+  lessonCount:   (n: number) => n === 1 ? '1 Lesson' : n + ' Lessons',
 } as const;
 
 export const SERIES_INTRO_PLACEHOLDER =
-  'This curriculum series was prepared using BibleLessonSpark.com. ' +
-  'Each lesson has been crafted to align with your theology profile, age group, and Bible version, ' +
-  'providing a consistent and faithful teaching resource for your class. ' +
-  'May the Lord use these lessons to encourage growth in His Word.';
+  'This curriculum was prepared to equip teachers for faithful, engaging Bible instruction. ' +
+  'Each lesson is designed to be taught in a single session and includes teaching content, ' +
+  'discussion questions, and a reproducible group handout.';
 
 export const SERIES_HANDOUT_COPY = {
   appendixTitle:       'Group Handout Section',
-  appendixSubtitle: 'Reproducible handouts for each lesson -- these pages may be freely reproduced for use within your group.',
+  appendixSubtitle:    'Reproducible handouts for each lesson -- these pages may be freely reproduced for use within your group.',
   handoutHeaderPrefix: 'Lesson',
 } as const;
 
-export const GROUP_HANDOUT_SECTION_NUMBER = '8';
+export const STUDENT_HANDOUT_SECTION_NUMBER = 8;
 
-export function buildSeriesExportFilename(
-  seriesName: string,
-  format: SeriesExportFormat
-): string {
-  const safeName = seriesName
-    .replace(/[^a-zA-Z0-9\s-]/g, '')
-    .replace(/\s+/g, '_')
-    .replace(/-+/g, '-')
-    .slice(0, 60);
-  const date   = new Date().toISOString().slice(0, 10);
-  const ext    = SERIES_EXPORT_FORMAT_EXT[format];
-  const suffix = format === SERIES_EXPORT_FORMATS.BOOKLET_PDF ? '_Booklet' : '';
-  return safeName + suffix + '_' + date + ext;
-}
-
-export const SERIES_EXPORT_PROGRESS_STEPS = [
-  { id: 'loading',    label: 'Loading lesson content...' },
-  { id: 'cover',      label: 'Building cover page...' },
-  { id: 'toc',        label: 'Generating table of contents...' },
-  { id: 'lessons',    label: 'Compiling lesson chapters...' },
-  { id: 'handouts',   label: 'Assembling handout section...' },
-  { id: 'imposing',   label: 'Imposing booklet layout...' },
-  { id: 'finalizing', label: 'Finalizing document...' },
-] as const;
-
-export type SeriesExportProgressStepId =
-  typeof SERIES_EXPORT_PROGRESS_STEPS[number]['id'];
+// ============================================================================
+// UI COPY
+// ============================================================================
 
 export const SERIES_EXPORT_UI = {
-  buttonLabel:               'Export Series',
-  modalTitle:                'Export Curriculum Series',
-  modalSubtitle:             'Compile your series into a printable curriculum document.',
-  formatLabel:               'Choose Export Format',
-  optionsLabel:              'Document Options',
-  handoutBookletLabel:       'Include Group Handout Section',
-  handoutBookletDescription: 'Compiles all group handouts into a tear-out appendix. When enabled, individual lesson chapters will not repeat the handout.',
-  exportButton:              'Export Series',
-  cancelButton:              'Cancel',
-  upgradePrompt:             'Upgrade to Personal Plan to export your series as a complete curriculum document.',
-  successMessage:            'Your curriculum series has been exported successfully.',
-  errorMessage:              'We were unable to export your series. Please try again. If the problem continues, contact support at ' + BRANDING.contact.supportEmail + '.',
-  emptySeriesWarning:        'This series does not have any completed lessons yet. Generate at least one lesson before exporting.',
-  formatRequiredHint:        'Please select a format to continue.',
-  bookletPrintNote:          'The Booklet PDF includes the Group Handout Section. Print double-sided, fold in half, and staple at the spine.',
+  modalTitle:              'Export Series',
+  modalSubtitle:           'Download your teaching series as a print-ready document.',
+  step1Title:              'Configure Your Export',
+  layoutLabel:             'Layout',
+  colorSchemeLabel:        'Color Scheme',
+  colorSchemeSubNote:      'Applies to headings and decorative elements.',
+  fontLabel:               'Body Font',
+  formatLabel:             'File Format',
+  formatRequiredHint:      'Please select a format to continue.',
+  optionsLabel:            'Options',
+  handoutBookletLabel:     'Include Group Handout',
+  handoutBookletDescription: 'Appends reproducible handout pages for each lesson.',
+  printInstructions:       'Open in your PDF viewer, select duplex (two-sided) printing, and staple along the left edge.',
+  exportButtonPdf:         'Download Print-Ready PDF',
+  exportButtonDocx:        'Download Word Document',
+  cancelButton:            'Cancel',
+  successMessage:          'Series exported successfully.',
 } as const;
 
 // ============================================================================
 // AUDIENCE TERMINOLOGY RESOLVER
 // ============================================================================
 
-export function resolveExportTerminology(
-  audienceProfile?: AudienceProfile
-): { assemblyLabel: string; participantLabel: string } {
-  const profile = resolveAudienceProfile(audienceProfile);
+export function resolveExportTerminology(audience?: {
+  role?:        string;
+  assembly?:    string;
+  participant?: string;
+}): { role: string; assembly: string; participant: string } {
   return {
-    assemblyLabel:    profile.assembly,
-    participantLabel: profile.participant,
+    role:        audience?.role        ?? 'Teacher',
+    assembly:    audience?.assembly    ?? 'Class',
+    participant: audience?.participant ?? 'Student',
   };
 }
+
+// ============================================================================
+// FILENAME BUILDER
+// ============================================================================
+
+export function buildSeriesExportFilename(
+  seriesName: string,
+  format: SeriesExportFormat
+): string {
+  const slug = seriesName
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+  const ext = format === SERIES_EXPORT_FORMATS.DOCX ? 'docx' : 'pdf';
+  return slug + '.' + ext;
+}
+
+// ============================================================================
+// MIME TYPES
+// ============================================================================
+
+export const SERIES_EXPORT_FORMAT_MIME: Record<SeriesExportFormat, string> = {
+  [SERIES_EXPORT_FORMATS.PDF]:     'application/pdf',
+  [SERIES_EXPORT_FORMATS.DOCX]:    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  [SERIES_EXPORT_FORMATS.BOOKLET]: 'application/pdf',
+};
