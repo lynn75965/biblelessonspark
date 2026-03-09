@@ -10,13 +10,10 @@
 //   Section N+2: Student Handout Booklet (own page numbering)
 //   Section N+3: Back Cover (no page numbers)
 //
-// LAYOUT CHANGES (March 2026):
-//   - Eliminated full-page chapter dividers to save paper
-//   - Compact inline lesson header at top of content page
-//   - Per-lesson page numbering in footer ("Lesson N -- Page X")
-//   - Creative title as primary heading (not passage reference)
-//   - Tighter spacing throughout to match quarterly-style density
-//   - Color scheme resolved dynamically from options.colorSchemeId
+// SSOT IMPORTS:
+//   - EXPORT_SPACING (colors, spacing, typography) <- lessonStructure.ts
+//   - Color scheme, font, export options          <- seriesExportConfig.ts
+//   - App name, website URL                       <- branding.ts
 // ============================================================================
 
 import {
@@ -52,10 +49,11 @@ import {
   SERIES_COVER_COPY,
   SERIES_INTRO_PLACEHOLDER,
   SERIES_HANDOUT_COPY,
-  EXPORT_SPACING,
-  EXPORT_FORMATTING,
   getColorScheme,
+  getFontOption,
 } from '@/constants/seriesExportConfig';
+import { EXPORT_SPACING } from '@/constants/lessonStructure';
+import { BRANDING } from '@/config/branding';
 import { buildCoverPageData } from './buildCoverPage';
 import { buildTocEntries } from './buildToc';
 import {
@@ -70,50 +68,67 @@ import {
 // ============================================================================
 
 interface ActiveScheme {
-  heading: string;
-  accent: string;
+  primary: string;
+  accent:  string;
 }
 
 // ============================================================================
-// PARAGRAPH STYLES (built at runtime with active scheme colors)
+// PAGE DIMENSIONS (DXA -- computed from SERIES_PAGE points, 1pt = 20 DXA)
 // ============================================================================
 
-function buildParagraphStyles(scheme: ActiveScheme) {
+const SHARED_PAGE_PROPS = {
+  size: {
+    width:  SERIES_PAGE.width  * 20,
+    height: SERIES_PAGE.height * 20,
+  },
+  margin: {
+    top:    SERIES_PAGE.marginTop    * 20,
+    right:  SERIES_PAGE.marginRight  * 20,
+    bottom: SERIES_PAGE.marginBottom * 20,
+    left:   SERIES_PAGE.marginLeft   * 20,
+  },
+};
+
+// ============================================================================
+// PARAGRAPH STYLES (built at runtime with active scheme + font)
+// ============================================================================
+
+function buildParagraphStyles(scheme: ActiveScheme, fontName: string) {
   return [
     {
-      id: 'Heading1',
-      name: 'Heading 1',
+      id:      'Heading1',
+      name:    'Heading 1',
       basedOn: 'Normal',
-      next: 'Normal',
+      next:    'Normal',
       run: {
-        size: SERIES_COVER_TYPOGRAPHY.subtitleFontHalfPt,
-        bold: true,
-        color: scheme.heading,
-        font: EXPORT_SPACING.fonts.docx,
+        size:  SERIES_COVER_TYPOGRAPHY.subtitleSize * 2,
+        bold:  true,
+        color: scheme.primary,
+        font:  fontName,
       },
       paragraph: {
         spacing: {
           before: EXPORT_SPACING.sectionHeader.beforeTwips,
-          after: EXPORT_SPACING.sectionHeader.afterTwips,
+          after:  EXPORT_SPACING.sectionHeader.afterTwips,
         },
         outlineLevel: 0,
       },
     },
     {
-      id: 'Heading2',
-      name: 'Heading 2',
+      id:      'Heading2',
+      name:    'Heading 2',
       basedOn: 'Normal',
-      next: 'Normal',
+      next:    'Normal',
       run: {
-        size: SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontHalfPt,
-        bold: true,
-        color: scheme.heading,
-        font: EXPORT_SPACING.fonts.docx,
+        size:  SERIES_CHAPTER_TYPOGRAPHY.titleSize * 2,
+        bold:  true,
+        color: scheme.primary,
+        font:  fontName,
       },
       paragraph: {
         spacing: {
           before: EXPORT_SPACING.sectionHeader.beforeTwips,
-          after: EXPORT_SPACING.sectionHeader.afterTwips,
+          after:  EXPORT_SPACING.sectionHeader.afterTwips,
         },
         outlineLevel: 1,
       },
@@ -122,97 +137,85 @@ function buildParagraphStyles(scheme: ActiveScheme) {
 }
 
 // ============================================================================
-// SHARED PAGE PROPERTIES
-// ============================================================================
-
-const SHARED_PAGE_PROPS = {
-  size: {
-    width: SERIES_PAGE.widthDxa,
-    height: SERIES_PAGE.heightDxa,
-  },
-  margin: {
-    top: SERIES_PAGE.marginDxa,
-    right: SERIES_PAGE.marginDxa,
-    bottom: SERIES_PAGE.marginDxa,
-    left: SERIES_PAGE.marginDxa,
-  },
-};
-
-// ============================================================================
 // MAIN BUILDER
 // ============================================================================
 
 export async function buildSeriesDocx(
-  series: LessonSeries,
-  lessons: Lesson[],
-  options: SeriesExportOptions,
-  setStep: (stepId: SeriesExportProgressStepId) => void
+  series:   LessonSeries,
+  lessons:  Lesson[],
+  options:  SeriesExportOptions,
+  setStep:  (stepId: SeriesExportProgressStepId) => void
 ): Promise<ArrayBuffer> {
-  // Resolve color scheme from options (falls back to Forest & Gold)
-  const scheme = getColorScheme(options.colorSchemeId);
+  const scheme  = getColorScheme(options.colorSchemeId);
+  const fontOpt = getFontOption(options.font);
+  const fontName = fontOpt.docxName;
+
+  const activeScheme: ActiveScheme = {
+    primary: scheme.primary,
+    accent:  scheme.accent,
+  };
 
   const docSections: any[] = [];
 
-  // ---- Section 1: Front Matter (Cover + TOC + Intro, no page numbers) ------
+  // ---- Section 1: Front Matter (Cover + TOC + Intro) -----------------------
   setStep('cover');
   const coverData = buildCoverPageData(series, lessons, null, null);
   const frontMatterChildren: Paragraph[] = [];
 
-  frontMatterChildren.push(...buildDocxCoverPage(coverData, scheme));
+  frontMatterChildren.push(...buildDocxCoverPage(coverData, activeScheme, fontName));
 
   setStep('toc');
   const tocEntries = buildTocEntries(series, lessons);
-  frontMatterChildren.push(...buildDocxToc(tocEntries, scheme));
+  frontMatterChildren.push(...buildDocxToc(tocEntries, activeScheme, fontName));
 
   frontMatterChildren.push(
     pageBreakParagraph(),
-    headingParagraph('Introduction', 'Heading1', scheme.heading),
-    bodyParagraph(SERIES_INTRO_PLACEHOLDER)
+    headingParagraph('Introduction', 'Heading1', activeScheme.primary, fontName),
+    bodyParagraph(SERIES_INTRO_PLACEHOLDER, false, fontName)
   );
 
   docSections.push({
     properties: { page: SHARED_PAGE_PROPS },
-    children: frontMatterChildren,
+    children:   frontMatterChildren,
   });
 
-  // ---- Sections 2..N+1: One per lesson (per-lesson page numbering) ---------
+  // ---- Sections 2..N+1: One per lesson ------------------------------------
   setStep('lessons');
   for (let i = 0; i < lessons.length; i++) {
-    const lesson = lessons[i];
-    const lessonNumber = i + 1;
+    const lesson        = lessons[i];
+    const lessonNumber  = i + 1;
     const creativeTitle = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNumber);
-    const passage = lesson.filters?.passage ?? series.bible_passage ?? '';
+    const passage       = lesson.filters?.passage ?? series.bible_passage ?? '';
 
     const lessonChildren: Paragraph[] = [];
 
-    // Compact inline lesson header (no full-page divider)
-    lessonChildren.push(...buildCompactLessonHeader(lessonNumber, creativeTitle, passage, scheme));
+    lessonChildren.push(
+      ...buildCompactLessonHeader(lessonNumber, creativeTitle, passage, activeScheme, fontName)
+    );
 
-    // Lesson content
     const rawContent = lesson.shaped_content ?? lesson.original_text ?? '';
-    const content = options.omitSection8FromChapters
+    const content    = options.omitSection8FromChapters
       ? stripSection8FromContent(rawContent)
       : rawContent;
 
-    lessonChildren.push(...buildDocxLessonContent(content, scheme));
+    lessonChildren.push(...buildDocxLessonContent(content, activeScheme, fontName));
 
-    // Lesson footer: "Lesson N -- Page X"
     const lessonFooter = new Footer({
       children: [
         new Paragraph({
           alignment: AlignmentType.CENTER,
           children: [
             new TextRun({
-              text: 'Lesson ' + lessonNumber + ' -- Page ',
-              size: EXPORT_SPACING.footer.fontHalfPt,
-              font: EXPORT_SPACING.fonts.docx,
+              text:  'Lesson ' + lessonNumber + ' -- Page ',
+              size:  EXPORT_SPACING.footer.fontHalfPt,
+              font:  fontName,
               color: EXPORT_SPACING.colors.footerText,
             }),
             new TextRun({
               children: [PageNumber.CURRENT],
-              size: EXPORT_SPACING.footer.fontHalfPt,
-              font: EXPORT_SPACING.fonts.docx,
-              color: EXPORT_SPACING.colors.footerText,
+              size:     EXPORT_SPACING.footer.fontHalfPt,
+              font:     fontName,
+              color:    EXPORT_SPACING.colors.footerText,
             }),
           ],
         }),
@@ -226,43 +229,44 @@ export async function buildSeriesDocx(
           pageNumbers: { start: 1 },
         },
       },
-      footers: { default: lessonFooter },
+      footers:  { default: lessonFooter },
       children: lessonChildren,
     });
   }
 
   // ---- Handout Booklet Section ---------------------------------------------
   if (options.includeHandoutBooklet) {
-    setStep('handouts');
-    const bookletData = buildHandoutBookletData(series, lessons);
+    setStep('handout');
+    const bookletData    = buildHandoutBookletData(series, lessons);
     const handoutChildren: Paragraph[] = [];
 
     handoutChildren.push(
-      headingParagraph(bookletData.appendixTitle, 'Heading1', scheme.heading),
-      bodyParagraph(bookletData.appendixSubtitle, true)
+      headingParagraph(bookletData.appendixTitle, 'Heading1', activeScheme.primary, fontName),
+      bodyParagraph(bookletData.appendixSubtitle, true, fontName)
     );
 
     for (const entry of bookletData.entries) {
       handoutChildren.push(
         pageBreakParagraph(),
-        headingParagraph(entry.header, 'Heading2', scheme.heading)
+        headingParagraph(entry.header, 'Heading2', activeScheme.primary, fontName)
       );
       if (entry.passage) {
         handoutChildren.push(
           new Paragraph({
             children: [
               new TextRun({
-                text: entry.passage,
+                text:    entry.passage,
                 italics: true,
-                size: EXPORT_SPACING.metadata.fontHalfPt,
-                color: EXPORT_SPACING.colors.metaText,
+                size:    EXPORT_SPACING.metadata.fontHalfPt,
+                color:   EXPORT_SPACING.colors.metaText,
+                font:    fontName,
               }),
             ],
             spacing: { after: EXPORT_SPACING.sectionHeader.afterTwips },
           })
         );
       }
-      handoutChildren.push(...buildDocxLessonContent(entry.content, scheme));
+      handoutChildren.push(...buildDocxLessonContent(entry.content, activeScheme, fontName));
     }
 
     const handoutFooter = new Footer({
@@ -271,16 +275,16 @@ export async function buildSeriesDocx(
           alignment: AlignmentType.CENTER,
           children: [
             new TextRun({
-              text: 'Student Handouts -- Page ',
-              size: EXPORT_SPACING.footer.fontHalfPt,
-              font: EXPORT_SPACING.fonts.docx,
+              text:  'Group Handouts -- Page ',
+              size:  EXPORT_SPACING.footer.fontHalfPt,
+              font:  fontName,
               color: EXPORT_SPACING.colors.footerText,
             }),
             new TextRun({
               children: [PageNumber.CURRENT],
-              size: EXPORT_SPACING.footer.fontHalfPt,
-              font: EXPORT_SPACING.fonts.docx,
-              color: EXPORT_SPACING.colors.footerText,
+              size:     EXPORT_SPACING.footer.fontHalfPt,
+              font:     fontName,
+              color:    EXPORT_SPACING.colors.footerText,
             }),
           ],
         }),
@@ -294,22 +298,22 @@ export async function buildSeriesDocx(
           pageNumbers: { start: 1 },
         },
       },
-      footers: { default: handoutFooter },
+      footers:  { default: handoutFooter },
       children: handoutChildren,
     });
   }
 
-  // ---- Back Cover Section (no page numbers) --------------------------------
+  // ---- Back Cover Section --------------------------------------------------
   docSections.push({
     properties: { page: SHARED_PAGE_PROPS },
-    children: buildDocxBackCover(),
+    children:   buildDocxBackCover(fontName),
   });
 
   // ---- Assemble Document ---------------------------------------------------
   setStep('finalizing');
 
   const doc = new Document({
-    styles: { paragraphStyles: buildParagraphStyles(scheme) as any },
+    styles:   { paragraphStyles: buildParagraphStyles(activeScheme, fontName) as any },
     sections: docSections,
   });
 
@@ -322,49 +326,46 @@ export async function buildSeriesDocx(
 
 function buildDocxCoverPage(
   coverData: ReturnType<typeof buildCoverPageData>,
-  scheme: ActiveScheme
+  scheme:    ActiveScheme,
+  fontName:  string
 ): Paragraph[] {
   const paragraphs: Paragraph[] = [];
 
-  // Vertical spacing (approx 1/3 page)
   for (let i = 0; i < 8; i++) {
     paragraphs.push(new Paragraph({ text: '' }));
   }
 
-  // Series title -- scheme heading color
   paragraphs.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: coverData.seriesTitle,
-          bold: true,
-          size: SERIES_COVER_TYPOGRAPHY.titleFontHalfPt,
-          color: scheme.heading,
-          font: EXPORT_SPACING.fonts.docx,
+          text:  coverData.seriesTitle,
+          bold:  true,
+          size:  SERIES_COVER_TYPOGRAPHY.titleSize * 2,
+          color: scheme.primary,
+          font:  fontName,
         }),
       ],
       spacing: { after: 240 },
     })
   );
 
-  // Subtitle -- scheme accent color
   paragraphs.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: coverData.subtitle,
-          size: SERIES_COVER_TYPOGRAPHY.subtitleFontHalfPt,
+          text:  coverData.subtitle,
+          size:  SERIES_COVER_TYPOGRAPHY.subtitleSize * 2,
           color: scheme.accent,
-          font: EXPORT_SPACING.fonts.docx,
+          font:  fontName,
         }),
       ],
       spacing: { after: 480 },
     })
   );
 
-  // Horizontal rule -- scheme accent color
   paragraphs.push(
     new Paragraph({
       text: '',
@@ -373,14 +374,13 @@ function buildDocxCoverPage(
           color: scheme.accent,
           space: 1,
           style: BorderStyle.SINGLE,
-          size: 6,
+          size:  6,
         },
       },
       spacing: { after: 360 },
     })
   );
 
-  // Meta lines -- neutral muted color
   const metaLines = [
     coverData.teacherLine,
     coverData.churchLine,
@@ -394,10 +394,10 @@ function buildDocxCoverPage(
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: line,
-            size: SERIES_COVER_TYPOGRAPHY.metaFontHalfPt,
+            text:  line,
+            size:  SERIES_COVER_TYPOGRAPHY.bodySize * 2,
             color: EXPORT_SPACING.colors.metaText,
-            font: EXPORT_SPACING.fonts.docx,
+            font:  fontName,
           }),
         ],
         spacing: { after: 160 },
@@ -413,26 +413,26 @@ function buildDocxCoverPage(
 // ============================================================================
 
 function buildDocxToc(
-  entries: ReturnType<typeof buildTocEntries>,
-  scheme: ActiveScheme
+  entries:  ReturnType<typeof buildTocEntries>,
+  scheme:   ActiveScheme,
+  fontName: string
 ): Paragraph[] {
   const paragraphs: Paragraph[] = [];
 
   paragraphs.push(
     pageBreakParagraph(),
-    headingParagraph('Table of Contents', 'Heading1', scheme.heading)
+    headingParagraph('Table of Contents', 'Heading1', scheme.primary, fontName)
   );
 
   for (const entry of entries) {
-    // Lesson heading
     paragraphs.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: entry.chapterHeading,
-            bold: true,
-            size: SERIES_TOC_TYPOGRAPHY.entryFontHalfPt,
-            font: EXPORT_SPACING.fonts.docx,
+            text:  entry.chapterHeading,
+            bold:  true,
+            size:  SERIES_TOC_TYPOGRAPHY.entrySize * 2,
+            font:  fontName,
             color: EXPORT_SPACING.colors.bodyText,
           }),
         ],
@@ -440,20 +440,19 @@ function buildDocxToc(
       })
     );
 
-    // Passage (indented, italic)
     if (entry.passage) {
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: entry.passage,
+              text:    entry.passage,
               italics: true,
-              size: EXPORT_SPACING.metadata.fontHalfPt,
-              font: EXPORT_SPACING.fonts.docx,
-              color: EXPORT_SPACING.colors.metaText,
+              size:    EXPORT_SPACING.metadata.fontHalfPt,
+              font:    fontName,
+              color:   EXPORT_SPACING.colors.metaText,
             }),
           ],
-          indent: { left: 360 },
+          indent:  { left: 360 },
           spacing: { after: EXPORT_SPACING.paragraph.afterTwips },
         })
       );
@@ -464,26 +463,26 @@ function buildDocxToc(
 }
 
 // ============================================================================
-// COMPACT LESSON HEADER (replaces full-page divider)
+// COMPACT LESSON HEADER
 // ============================================================================
 
 function buildCompactLessonHeader(
   lessonNumber: number,
-  title: string,
-  passage: string,
-  scheme: ActiveScheme
+  title:        string,
+  passage:      string,
+  scheme:       ActiveScheme,
+  fontName:     string
 ): Paragraph[] {
   const paragraphs: Paragraph[] = [];
 
-  // "LESSON N" label -- neutral meta color
   paragraphs.push(
     new Paragraph({
       children: [
         new TextRun({
-          text: 'LESSON ' + lessonNumber,
-          size: SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontHalfPt,
-          color: EXPORT_SPACING.colors.metaText,
-          font: EXPORT_SPACING.fonts.docx,
+          text:    'LESSON ' + lessonNumber,
+          size:    SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize * 2,
+          color:   EXPORT_SPACING.colors.metaText,
+          font:    fontName,
           allCaps: true,
         }),
       ],
@@ -491,33 +490,31 @@ function buildCompactLessonHeader(
     })
   );
 
-  // Creative title -- scheme heading color
   paragraphs.push(
     new Paragraph({
       children: [
         new TextRun({
-          text: title,
-          bold: true,
-          size: SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontHalfPt,
-          color: scheme.heading,
-          font: EXPORT_SPACING.fonts.docx,
+          text:  title,
+          bold:  true,
+          size:  SERIES_CHAPTER_TYPOGRAPHY.titleSize * 2,
+          color: scheme.primary,
+          font:  fontName,
         }),
       ],
       spacing: { after: 60 },
     })
   );
 
-  // Passage reference -- neutral meta color
   if (passage) {
     paragraphs.push(
       new Paragraph({
         children: [
           new TextRun({
-            text: passage,
+            text:    passage,
             italics: true,
-            size: SERIES_CHAPTER_TYPOGRAPHY.passageFontHalfPt,
-            color: EXPORT_SPACING.colors.metaText,
-            font: EXPORT_SPACING.fonts.docx,
+            size:    SERIES_CHAPTER_TYPOGRAPHY.subtitleSize * 2,
+            color:   EXPORT_SPACING.colors.metaText,
+            font:    fontName,
           }),
         ],
         spacing: { after: 80 },
@@ -525,7 +522,6 @@ function buildCompactLessonHeader(
     );
   }
 
-  // Thin horizontal rule -- scheme accent color
   paragraphs.push(
     new Paragraph({
       text: '',
@@ -534,7 +530,7 @@ function buildCompactLessonHeader(
           color: scheme.accent,
           space: 1,
           style: BorderStyle.SINGLE,
-          size: 4,
+          size:  4,
         },
       },
       spacing: { after: 120 },
@@ -548,64 +544,63 @@ function buildCompactLessonHeader(
 // LESSON CONTENT PARAGRAPHS
 // ============================================================================
 
-function buildDocxLessonContent(content: string, scheme: ActiveScheme): Paragraph[] {
+function buildDocxLessonContent(
+  content:  string,
+  scheme:   ActiveScheme,
+  fontName: string
+): Paragraph[] {
   if (!content) return [];
 
-  const lines = content.split('\n');
+  const lines      = content.split('\n');
   const paragraphs: Paragraph[] = [];
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
 
-    // Skip bare markdown heading markers
     if (/^#{1,3}\s*$/.test(line)) continue;
 
-    // Section heading -- scheme heading color
     if (/^#{1,3}\s+/.test(line)) {
       const headingText = line.replace(/^#{1,3}\s+/, '');
       paragraphs.push(
-        headingParagraph(headingText, 'Heading2', scheme.heading)
+        headingParagraph(headingText, 'Heading2', scheme.primary, fontName)
       );
       continue;
     }
 
-    // Bullet list item
     if (/^\s*[*-]\s+/.test(line)) {
       const bulletText = line.replace(/^\s*[*-]\s+/, '');
       paragraphs.push(
         new Paragraph({
           children: [
             new TextRun({
-              text: bulletText,
-              size: EXPORT_SPACING.body.fontHalfPt,
-              font: EXPORT_SPACING.fonts.docx,
+              text:  bulletText,
+              size:  EXPORT_SPACING.body.fontHalfPt,
+              font:  fontName,
               color: EXPORT_SPACING.colors.bodyText,
             }),
           ],
-          bullet: { level: 0 },
+          bullet:  { level: 0 },
           spacing: { after: EXPORT_SPACING.listItem.afterTwips },
-          indent: { left: EXPORT_SPACING.listItem.indentTwips },
+          indent:  { left:  EXPORT_SPACING.listItem.indentTwips },
         })
       );
       continue;
     }
 
-    // Empty line -- small spacer
     if (line.trim() === '') {
       paragraphs.push(
         new Paragraph({
-          text: '',
+          text:    '',
           spacing: { after: EXPORT_SPACING.paragraph.afterTwips },
         })
       );
       continue;
     }
 
-    // Body paragraph with inline bold
     paragraphs.push(
       new Paragraph({
-        children: parseInlineBold(line),
-        spacing: { after: EXPORT_SPACING.paragraph.afterTwips },
+        children: parseInlineBold(line, fontName),
+        spacing:  { after: EXPORT_SPACING.paragraph.afterTwips },
       })
     );
   }
@@ -617,7 +612,7 @@ function buildDocxLessonContent(content: string, scheme: ActiveScheme): Paragrap
 // BACK COVER PARAGRAPHS
 // ============================================================================
 
-function buildDocxBackCover(): Paragraph[] {
+function buildDocxBackCover(fontName: string): Paragraph[] {
   const paragraphs: Paragraph[] = [];
 
   for (let i = 0; i < 10; i++) {
@@ -629,10 +624,10 @@ function buildDocxBackCover(): Paragraph[] {
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: SERIES_COVER_COPY.generatedBy,
-          size: EXPORT_SPACING.footer.fontHalfPt,
+          text:  'Generated by ' + BRANDING.appName,
+          size:  EXPORT_SPACING.footer.fontHalfPt,
           color: EXPORT_SPACING.colors.footerText,
-          font: EXPORT_SPACING.fonts.docx,
+          font:  fontName,
         }),
       ],
       spacing: { after: 160 },
@@ -641,10 +636,10 @@ function buildDocxBackCover(): Paragraph[] {
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: SERIES_COVER_COPY.website,
-          size: EXPORT_SPACING.footer.fontHalfPt,
+          text:  BRANDING.urls.baseUrl,
+          size:  EXPORT_SPACING.footer.fontHalfPt,
           color: EXPORT_SPACING.colors.footerText,
-          font: EXPORT_SPACING.fonts.docx,
+          font:  fontName,
         }),
       ],
       spacing: { after: 160 },
@@ -653,10 +648,10 @@ function buildDocxBackCover(): Paragraph[] {
       alignment: AlignmentType.CENTER,
       children: [
         new TextRun({
-          text: '\u00A9 ' + new Date().getFullYear() + ' BibleLessonSpark. All rights reserved.',
-          size: EXPORT_SPACING.footer.fontHalfPt,
+          text:  '\u00A9 ' + new Date().getFullYear() + ' ' + BRANDING.appName + '. All rights reserved.',
+          size:  EXPORT_SPACING.footer.fontHalfPt,
           color: EXPORT_SPACING.colors.footerText,
-          font: EXPORT_SPACING.fonts.docx,
+          font:  fontName,
         }),
       ],
     })
@@ -676,9 +671,10 @@ function pageBreakParagraph(): Paragraph {
 }
 
 function headingParagraph(
-  text: string,
-  headingId: 'Heading1' | 'Heading2',
-  color: string
+  text:     string,
+  headingId:'Heading1' | 'Heading2',
+  color:    string,
+  fontName: string
 ): Paragraph {
   return new Paragraph({
     style: headingId,
@@ -686,48 +682,48 @@ function headingParagraph(
       new TextRun({
         text,
         color,
-        font: EXPORT_SPACING.fonts.docx,
+        font: fontName,
       }),
     ],
   });
 }
 
-function bodyParagraph(text: string, italic = false): Paragraph {
+function bodyParagraph(text: string, italic = false, fontName: string): Paragraph {
   return new Paragraph({
     children: [
       new TextRun({
         text,
         italics: italic,
-        size: EXPORT_SPACING.body.fontHalfPt,
-        font: EXPORT_SPACING.fonts.docx,
-        color: EXPORT_SPACING.colors.bodyText,
+        size:    EXPORT_SPACING.body.fontHalfPt,
+        font:    fontName,
+        color:   EXPORT_SPACING.colors.bodyText,
       }),
     ],
     spacing: { after: EXPORT_SPACING.paragraph.afterTwips },
   });
 }
 
-function parseInlineBold(line: string): TextRun[] {
-  const runs: TextRun[] = [];
+function parseInlineBold(line: string, fontName: string): TextRun[] {
+  const runs:  TextRun[] = [];
   const parts = line.split(/(\*\*[^*]+\*\*)/g);
 
   for (const part of parts) {
     if (part.startsWith('**') && part.endsWith('**')) {
       runs.push(
         new TextRun({
-          text: part.slice(2, -2),
-          bold: true,
-          size: EXPORT_SPACING.body.fontHalfPt,
-          font: EXPORT_SPACING.fonts.docx,
+          text:  part.slice(2, -2),
+          bold:  true,
+          size:  EXPORT_SPACING.body.fontHalfPt,
+          font:  fontName,
           color: EXPORT_SPACING.colors.bodyText,
         })
       );
     } else if (part) {
       runs.push(
         new TextRun({
-          text: part,
-          size: EXPORT_SPACING.body.fontHalfPt,
-          font: EXPORT_SPACING.fonts.docx,
+          text:  part,
+          size:  EXPORT_SPACING.body.fontHalfPt,
+          font:  fontName,
           color: EXPORT_SPACING.colors.bodyText,
         })
       );
@@ -738,9 +734,9 @@ function parseInlineBold(line: string): TextRun[] {
     ? runs
     : [
         new TextRun({
-          text: line,
-          size: EXPORT_SPACING.body.fontHalfPt,
-          font: EXPORT_SPACING.fonts.docx,
+          text:  line,
+          size:  EXPORT_SPACING.body.fontHalfPt,
+          font:  fontName,
           color: EXPORT_SPACING.colors.bodyText,
         }),
       ];
