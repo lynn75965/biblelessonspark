@@ -97,6 +97,7 @@ export type FeatureKey = keyof typeof FEATURE_FLAGS;
 /** Returns true if the given tier can use the given feature */
 export function hasFeatureAccess(tier: SubscriptionTier, feature: FeatureKey): boolean {
   const flag = FEATURE_FLAGS[feature];
+  if (!flag) return false;
   if (!flag.enabled) return false;
   if (flag.requiredTier === 'free') return true;
   return isPaidTier(tier);
