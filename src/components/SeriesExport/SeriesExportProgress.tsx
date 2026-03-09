@@ -2,42 +2,38 @@
 // SeriesExportProgress.tsx
 // Location: src/components/SeriesExport/SeriesExportProgress.tsx
 //
-// Inline progress indicator shown inside SeriesExportModal while the
-// document is being compiled. Displays the current step label and a
-// simple animated spinner. No external dependencies.
+// SSOT: SERIES_EXPORT_PROGRESS_STEPS is a const object -- not an array.
+// This component derives an ordered array from it at module level.
 // ============================================================================
 
 import React from 'react';
 import { Loader2 } from 'lucide-react';
 import {
   SERIES_EXPORT_PROGRESS_STEPS,
+  SERIES_EXPORT_PROGRESS_STEP_LABELS,
   SeriesExportProgressStepId,
 } from '@/constants/seriesExportConfig';
 
-// ============================================================================
-// PROPS
-// ============================================================================
+const ORDERED_STEP_IDS: SeriesExportProgressStepId[] = [
+  SERIES_EXPORT_PROGRESS_STEPS.PREPARING,
+  SERIES_EXPORT_PROGRESS_STEPS.COVER,
+  SERIES_EXPORT_PROGRESS_STEPS.TOC,
+  SERIES_EXPORT_PROGRESS_STEPS.LESSONS,
+  SERIES_EXPORT_PROGRESS_STEPS.HANDOUT,
+  SERIES_EXPORT_PROGRESS_STEPS.FINALIZING,
+];
 
 interface SeriesExportProgressProps {
   currentStepId: SeriesExportProgressStepId;
 }
 
-// ============================================================================
-// COMPONENT
-// ============================================================================
-
 export function SeriesExportProgress({
   currentStepId,
 }: SeriesExportProgressProps): React.ReactElement {
-  const currentStep = SERIES_EXPORT_PROGRESS_STEPS.find(
-    (s) => s.id === currentStepId
-  );
-
-  const currentIndex = SERIES_EXPORT_PROGRESS_STEPS.findIndex(
-    (s) => s.id === currentStepId
-  );
-
-  const totalSteps = SERIES_EXPORT_PROGRESS_STEPS.length;
+  const currentIndex = ORDERED_STEP_IDS.indexOf(currentStepId);
+  const totalSteps   = ORDERED_STEP_IDS.length;
+  const label        = SERIES_EXPORT_PROGRESS_STEP_LABELS[currentStepId]
+    ?? 'Preparing your document...';
 
   return (
     <div
@@ -46,18 +42,15 @@ export function SeriesExportProgress({
       aria-label="Export progress"
       className="py-4 space-y-4"
     >
-      {/* Spinner and current step label */}
       <div className="flex items-center gap-3">
         <Loader2
           className="h-5 w-5 text-primary animate-spin flex-shrink-0"
           aria-hidden="true"
         />
         <span className="text-sm text-foreground font-medium">
-          {currentStep?.label ?? 'Preparing your document\u2026'}
+          {label}
         </span>
       </div>
-
-      {/* Progress bar */}
       <div className="space-y-1">
         <div
           className="h-1.5 w-full bg-muted rounded-full overflow-hidden"

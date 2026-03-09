@@ -1,17 +1,6 @@
 // ============================================================================
 // useSeriesExport.ts
 // Location: src/hooks/useSeriesExport.ts
-//
-// Orchestration hook for the Series eBook / Curriculum Quarterly Export.
-// Responsibilities:
-//   1. Accept a LessonSeries and export options from the UI
-//   2. Fetch all full Lesson records for the series from Supabase
-//   3. Delegate to buildSeriesDocx or buildSeriesPdf based on format
-//   4. Trigger browser download via Blob URL
-//   5. Expose loading state and progress step to SeriesExportProgress
-//
-// ARCHITECTURE: Frontend drives backend -- all state managed here.
-// No Edge Function call in Phase A/B. Phase C will add AI intro generation.
 // ============================================================================
 
 import { useState, useCallback } from 'react';
@@ -31,10 +20,6 @@ import {
 import { buildSeriesDocx } from '@/utils/export/buildSeriesDocx';
 import { buildSeriesPdf } from '@/utils/export/buildSeriesPdf';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
 export interface SeriesExportState {
   isExporting: boolean;
   progressStepId: SeriesExportProgressStepId | null;
@@ -49,10 +34,6 @@ export interface UseSeriesExportReturn {
   state: SeriesExportState;
   reset: () => void;
 }
-
-// ============================================================================
-// HOOK
-// ============================================================================
 
 export function useSeriesExport(): UseSeriesExportReturn {
   const [state, setState] = useState<SeriesExportState>({
@@ -71,15 +52,10 @@ export function useSeriesExport(): UseSeriesExportReturn {
 
   const exportSeries = useCallback(
     async (series: LessonSeries, options: SeriesExportOptions): Promise<boolean> => {
-      setState({ isExporting: true, progressStepId: 'loading', error: null });
+      setState({ isExporting: true, progressStepId: SERIES_EXPORT_PROGRESS_STEPS.PREPARING, error: null });
 
       try {
-        // ------------------------------------------------------------------
-        // Step 1: Fetch all lesson records for this series
-        // The lesson_summaries array on LessonSeries contains lessonId values.
-        // We fetch the full Lesson rows from Supabase using those IDs.
-        // ------------------------------------------------------------------
-        setStep('loading');
+        setStep(SERIES_EXPORT_PROGRESS_STEPS.PREPARING);
 
         const lessonIds: string[] = (series.lesson_summaries ?? [])
           .sort((a, b) => a.lessonNumber - b.lessonNumber)
@@ -89,7 +65,7 @@ export function useSeriesExport(): UseSeriesExportReturn {
           setState({
             isExporting: false,
             progressStepId: null,
-            error: SERIES_EXPORT_UI.emptySeriesWarning,
+            error: 'This series has no lessons to export. Add lessons before exporting.',
           });
           return false;
         }
@@ -103,31 +79,21 @@ export function useSeriesExport(): UseSeriesExportReturn {
           throw new Error(fetchError?.message ?? 'Failed to load lessons.');
         }
 
-        // Re-sort lessons by their position in lesson_summaries (Supabase
-        // does not guarantee order from .in() queries).
         const orderedLessons: Lesson[] = lessonIds
           .map((id) => lessons.find((l) => l.id === id))
           .filter((l): l is Lesson => l !== undefined);
 
-        // ------------------------------------------------------------------
-        // Step 2: Build the document
-        // ------------------------------------------------------------------
-        setStep('cover');
+        setStep(SERIES_EXPORT_PROGRESS_STEPS.COVER);
 
         let buffer: ArrayBuffer;
 
         if (options.format === SERIES_EXPORT_FORMATS.DOCX) {
-          setStep('cover');
           buffer = await buildSeriesDocx(series, orderedLessons, options, setStep);
         } else {
-          setStep('cover');
           buffer = await buildSeriesPdf(series, orderedLessons, options, setStep);
         }
 
-        // ------------------------------------------------------------------
-        // Step 3: Trigger browser download
-        // ------------------------------------------------------------------
-        setStep('finalizing');
+        setStep(SERIES_EXPORT_PROGRESS_STEPS.FINALIZING);
 
         const filename = buildSeriesExportFilename(series.series_name, options.format);
         const mimeType = SERIES_EXPORT_FORMAT_MIME[options.format];
@@ -149,14 +115,6 @@ export function useSeriesExport(): UseSeriesExportReturn {
   return { exportSeries, state, reset };
 }
 
-// ============================================================================
-// HELPERS
-// ============================================================================
-
-/**
- * Trigger a browser file download from an ArrayBuffer.
- * Uses the standard Blob URL pattern -- no server round-trip.
- */
 function triggerDownload(
   buffer: ArrayBuffer,
   filename: string,
