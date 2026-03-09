@@ -60,7 +60,7 @@ export function buildCoverPageData(
   churchName: string | null
 ): CoverPageData {
   const seriesTitle = series.series_name;
-  const subtitle = SERIES_COVER_COPY.seriesLabel;
+  const subtitle = SERIES_COVER_COPY.subtitle;
 
   const teacherLine = teacherName
     ? `${SERIES_COVER_COPY.teacherLabel} ${teacherName}`
