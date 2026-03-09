@@ -28,10 +28,11 @@ import {
   SERIES_COVER_TYPOGRAPHY,
   SERIES_CHAPTER_TYPOGRAPHY,
   SERIES_TOC_TYPOGRAPHY,
-  SERIES_COLORS,
   SERIES_COVER_COPY,
   SERIES_INTRO_PLACEHOLDER,
   EXPORT_SPACING,
+  getColorScheme,
+  getFontOption,
 } from '@/constants/seriesExportConfig';
 import { buildCoverPageData } from './buildCoverPage';
 import { buildTocEntries } from './buildToc';
@@ -45,11 +46,11 @@ import {
 // CONSTANTS
 // ============================================================================
 
-const PAGE_WIDTH = 612;
+const PAGE_WIDTH  = 612;
 const PAGE_HEIGHT = 792;
 const PAGE_MARGIN = 72;
 const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
-const PAGE_BOTTOM = PAGE_HEIGHT - PAGE_MARGIN;
+const PAGE_BOTTOM   = PAGE_HEIGHT - PAGE_MARGIN;
 
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16);
@@ -61,9 +62,9 @@ function hexToRgb(hex: string): [number, number, number] {
 // ============================================================================
 
 interface PageRange {
-  label: string;
+  label:     string;
   startPage: number;
-  endPage: number;
+  endPage:   number;
 }
 
 // ============================================================================
@@ -71,21 +72,25 @@ interface PageRange {
 // ============================================================================
 
 export async function buildSeriesPdf(
-  series: LessonSeries,
-  lessons: Lesson[],
-  options: SeriesExportOptions,
-  setStep: (stepId: SeriesExportProgressStepId) => void
+  series:   LessonSeries,
+  lessons:  Lesson[],
+  options:  SeriesExportOptions,
+  setStep:  (stepId: SeriesExportProgressStepId) => void
 ): Promise<ArrayBuffer> {
   const doc = new jsPDF({
     orientation: 'portrait',
-    unit: 'pt',
-    format: 'letter',
+    unit:        'pt',
+    format:      'letter',
   });
 
-  let currentY = PAGE_MARGIN;
+  // Resolve color scheme and font from user options (SSOT-driven)
+  const scheme  = getColorScheme(options.colorSchemeId);
+  const pdfFont = getFontOption(options.font).pdfFamily;
+
+  let currentY   = PAGE_MARGIN;
   let currentPage = 1;
-  const lessonRanges: PageRange[] = [];
-  const frontMatterPages: number[] = [];
+  const lessonRanges:     PageRange[] = [];
+  const frontMatterPages: number[]    = [];
 
   // --- Helper functions (closures over doc, currentY, currentPage) ----------
 
@@ -103,14 +108,14 @@ export async function buildSeriesPdf(
 
   function resetStyle(): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFont(pdfFont, 'normal');
     doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
   }
 
   function renderBodyText(text: string, italic?: boolean): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, italic ? 'italic' : 'normal');
+    doc.setFont(pdfFont, italic ? 'italic' : 'normal');
     doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
 
@@ -127,26 +132,26 @@ export async function buildSeriesPdf(
   }
 
   function renderSectionHeading(text: string): void {
-    const [r, g, b] = hexToRgb(SERIES_COLORS.tocHeading);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
-    doc.setFontSize(SERIES_TOC_TYPOGRAPHY.headingFontPt);
+    const [r, g, b] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont, 'bold');
+    doc.setFontSize(SERIES_TOC_TYPOGRAPHY.headingSize);
     doc.setTextColor(r, g, b);
     ensureSpace(30);
     doc.text(text, PAGE_MARGIN, currentY);
-    currentY += SERIES_TOC_TYPOGRAPHY.headingFontPt + 8;
+    currentY += SERIES_TOC_TYPOGRAPHY.headingSize + 8;
     resetStyle();
   }
 
   function renderSubheading(text: string): void {
-    const [r, g, b] = hexToRgb(SERIES_COLORS.chapterHeading);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
-    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontPt + 2);
+    const [r, g, b] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont, 'bold');
+    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize + 2);
     doc.setTextColor(r, g, b);
     ensureSpace(24);
     const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
     for (const line of lines) {
       doc.text(line, PAGE_MARGIN, currentY);
-      currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterLabelFontPt + 6;
+      currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize + 6;
     }
     currentY += 4;
     resetStyle();
@@ -154,7 +159,7 @@ export async function buildSeriesPdf(
 
   function renderMetaText(text: string): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.metaText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+    doc.setFont(pdfFont, 'italic');
     doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
     doc.setTextColor(r, g, b);
     ensureSpace(EXPORT_SPACING.metadata.fontPt + 4);
@@ -209,33 +214,33 @@ export async function buildSeriesPdf(
   const coverData = buildCoverPageData(series, lessons, null, null);
   currentY = PAGE_HEIGHT / 3;
 
-  const [tr, tg, tb] = hexToRgb(SERIES_COLORS.coverTitle);
-  doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
-  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.titleFontPt);
+  const [tr, tg, tb] = hexToRgb(scheme.primary);
+  doc.setFont(pdfFont, 'bold');
+  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.titleSize);
   doc.setTextColor(tr, tg, tb);
   const titleLines = doc.splitTextToSize(coverData.seriesTitle, CONTENT_WIDTH) as string[];
   for (const tl of titleLines) {
     doc.text(tl, PAGE_WIDTH / 2, currentY, { align: 'center' });
-    currentY += SERIES_COVER_TYPOGRAPHY.titleFontPt + 4;
+    currentY += SERIES_COVER_TYPOGRAPHY.titleSize + 4;
   }
   currentY += 8;
 
-  const [sr, sg, sb] = hexToRgb(SERIES_COLORS.coverSubtitle);
-  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
-  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.subtitleFontPt);
+  const [sr, sg, sb] = hexToRgb(scheme.accent);
+  doc.setFont(pdfFont, 'normal');
+  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.subtitleSize);
   doc.setTextColor(sr, sg, sb);
   doc.text(coverData.subtitle, PAGE_WIDTH / 2, currentY, { align: 'center' });
-  currentY += SERIES_COVER_TYPOGRAPHY.subtitleFontPt + 24;
+  currentY += SERIES_COVER_TYPOGRAPHY.subtitleSize + 24;
 
-  const [hr1, hg1, hb1] = hexToRgb(SERIES_COLORS.hr);
+  const [hr1, hg1, hb1] = hexToRgb(scheme.hr);
   doc.setDrawColor(hr1, hg1, hb1);
   doc.setLineWidth(0.5);
   doc.line(PAGE_MARGIN, currentY, PAGE_WIDTH - PAGE_MARGIN, currentY);
   currentY += 24;
 
   const [mr, mg, mb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
-  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.metaFontPt);
+  doc.setFont(pdfFont, 'normal');
+  doc.setFontSize(SERIES_COVER_TYPOGRAPHY.bodySize);
   doc.setTextColor(mr, mg, mb);
 
   const metaLines = [
@@ -247,7 +252,7 @@ export async function buildSeriesPdf(
 
   for (const ml of metaLines) {
     doc.text(ml, PAGE_WIDTH / 2, currentY, { align: 'center' });
-    currentY += SERIES_COVER_TYPOGRAPHY.metaFontPt + 6;
+    currentY += SERIES_COVER_TYPOGRAPHY.bodySize + 6;
   }
 
   // ---- Table of Contents ---------------------------------------------------
@@ -262,15 +267,15 @@ export async function buildSeriesPdf(
     ensureSpace(EXPORT_SPACING.body.fontPt * 2 + 12);
 
     const [er, eg, eb] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
-    doc.setFontSize(SERIES_TOC_TYPOGRAPHY.entryFontPt);
+    doc.setFont(pdfFont, 'bold');
+    doc.setFontSize(SERIES_TOC_TYPOGRAPHY.entrySize);
     doc.setTextColor(er, eg, eb);
     doc.text(entry.chapterHeading, PAGE_MARGIN, currentY);
-    currentY += SERIES_TOC_TYPOGRAPHY.entryFontPt + 4;
+    currentY += SERIES_TOC_TYPOGRAPHY.entrySize + 4;
 
     if (entry.passage) {
       const [pr, pg2, pb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-      doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+      doc.setFont(pdfFont, 'italic');
       doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
       doc.setTextColor(pr, pg2, pb);
       doc.text('    ' + entry.passage, PAGE_MARGIN, currentY);
@@ -289,7 +294,7 @@ export async function buildSeriesPdf(
   // ---- Lesson Chapters -----------------------------------------------------
   setStep('lessons');
   for (let i = 0; i < lessons.length; i++) {
-    const lesson = lessons[i];
+    const lesson       = lessons[i];
     const lessonNumber = i + 1;
     const creativeTitle = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + lessonNumber);
     const passage = lesson.filters?.passage ?? series.bible_passage ?? '';
@@ -299,32 +304,32 @@ export async function buildSeriesPdf(
 
     // FIX 4: More readable label font size with modest spacing
     const [lr, lg, lb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFont(pdfFont, 'normal');
     doc.setFontSize(11);
     doc.setTextColor(lr, lg, lb);
     doc.text('LESSON ' + lessonNumber, PAGE_MARGIN, currentY);
     currentY += 11 + 8;
 
-    const [ct_r, ct_g, ct_b] = hexToRgb(SERIES_COLORS.chapterHeading);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
-    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontPt);
+    const [ct_r, ct_g, ct_b] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont, 'bold');
+    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.titleSize);
     doc.setTextColor(ct_r, ct_g, ct_b);
     const ctLines = doc.splitTextToSize(creativeTitle, CONTENT_WIDTH) as string[];
     for (const ctl of ctLines) {
       doc.text(ctl, PAGE_MARGIN, currentY);
-      currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterTitleFontPt + 4;
+      currentY += SERIES_CHAPTER_TYPOGRAPHY.titleSize + 4;
     }
 
     if (passage) {
       const [psr, psg, psb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-      doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
-      doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.passageFontPt);
+      doc.setFont(pdfFont, 'italic');
+      doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.subtitleSize);
       doc.setTextColor(psr, psg, psb);
       doc.text(passage, PAGE_MARGIN, currentY);
-      currentY += SERIES_CHAPTER_TYPOGRAPHY.passageFontPt + 6;
+      currentY += SERIES_CHAPTER_TYPOGRAPHY.subtitleSize + 6;
     }
 
-    const [hr2, hg2, hb2] = hexToRgb(SERIES_COLORS.hr);
+    const [hr2, hg2, hb2] = hexToRgb(scheme.hr);
     doc.setDrawColor(hr2, hg2, hb2);
     doc.setLineWidth(0.4);
     doc.line(PAGE_MARGIN, currentY, PAGE_WIDTH - PAGE_MARGIN, currentY);
@@ -341,16 +346,16 @@ export async function buildSeriesPdf(
 
     // FIX 6: Include creative title in footer label
     lessonRanges.push({
-      label: 'Lesson ' + lessonNumber + ': ' + creativeTitle,
+      label:     'Lesson ' + lessonNumber + ': ' + creativeTitle,
       startPage,
-      endPage: currentPage,
+      endPage:   currentPage,
     });
   }
 
   // ---- Group Handout Section -----------------------------------------------
   let handoutRange: PageRange | null = null;
   if (options.includeHandoutBooklet) {
-    setStep('handouts');
+    setStep('handout');
     const bookletData = buildHandoutBookletData(series, lessons);
 
     addPage();
@@ -359,14 +364,14 @@ export async function buildSeriesPdf(
     // FIX 7: Styled section divider -- clear, distinct, appendix-weight
     currentY = PAGE_HEIGHT * 0.38;
 
-    const [sdhr, sdhg, sdhb] = hexToRgb(SERIES_COLORS.hr);
+    const [sdhr, sdhg, sdhb] = hexToRgb(scheme.hr);
     doc.setDrawColor(sdhr, sdhg, sdhb);
     doc.setLineWidth(1.5);
     doc.line(PAGE_MARGIN + 40, currentY, PAGE_WIDTH - PAGE_MARGIN - 40, currentY);
     currentY += 28;
 
-    const [sdtr, sdtg, sdtb] = hexToRgb(SERIES_COLORS.chapterHeading);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'bold');
+    const [sdtr, sdtg, sdtb] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont, 'bold');
     doc.setFontSize(20);
     doc.setTextColor(sdtr, sdtg, sdtb);
     doc.text(bookletData.appendixTitle, PAGE_WIDTH / 2, currentY, { align: 'center' });
@@ -378,7 +383,7 @@ export async function buildSeriesPdf(
     currentY += 22;
 
     const [sdsr, sdsg, sdsb] = hexToRgb(EXPORT_SPACING.colors.metaText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'italic');
+    doc.setFont(pdfFont, 'italic');
     doc.setFontSize(11);
     doc.setTextColor(sdsr, sdsg, sdsb);
     doc.text(bookletData.appendixSubtitle, PAGE_WIDTH / 2, currentY, { align: 'center' });
@@ -394,9 +399,9 @@ export async function buildSeriesPdf(
     }
 
     handoutRange = {
-      label: 'Group Handout',
+      label:     'Group Handout',
       startPage: handoutStart,
-      endPage: currentPage,
+      endPage:   currentPage,
     };
   }
 
@@ -406,7 +411,7 @@ export async function buildSeriesPdf(
 
   currentY = PAGE_HEIGHT * 0.75;
   const [fr, fg, fb] = hexToRgb(EXPORT_SPACING.colors.footerText);
-  doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+  doc.setFont(pdfFont, 'normal');
   doc.setFontSize(EXPORT_SPACING.footer.fontPt + 2);
   doc.setTextColor(fr, fg, fb);
 
@@ -429,7 +434,7 @@ export async function buildSeriesPdf(
 
     doc.setPage(p);
     const [fnr, fng, fnb] = hexToRgb(EXPORT_SPACING.colors.footerText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, 'normal');
+    doc.setFont(pdfFont, 'normal');
     doc.setFontSize(EXPORT_SPACING.footer.fontPt);
     doc.setTextColor(fnr, fng, fnb);
 
