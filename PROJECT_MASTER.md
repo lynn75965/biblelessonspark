@@ -757,3 +757,46 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 Paste this document, then describe what you want to work on. If the assistant needs to see any current files, upload them from `C:\Users\Lynn\biblelessonspark\src\` as needed.
 
 **Reminder to assistant:** Read the CRITICAL WORKFLOW RULES section before doing anything. Every route change requires verifying BOTH routes.ts AND App.tsx. Frontend drives backend -- always. Never guess at Supabase dashboard locations. Never propose database triggers. Test regex patterns against real data before shipping. Verify all dependency chains before presenting deployment instructions. Single branch: `main`. Deploy: `.\deploy.ps1 "message"`. Always `npm run build` before deploying. Never edit stale file copies. Bible version IDs must be lowercase. Use JavaScript escape sequences for non-ASCII characters in source files. Webhook tier resolution uses pricingConfig.ts SSOT -- never query tier_config or pricing_plans tables. Provide complete file replacements with PowerShell Copy-Item commands -- no diffs, no snippets to insert.
+
+---
+
+## SESSION LOG: March 9, 2026 -- Series Export Modal Rebuild
+
+### Features Delivered
+- Color scheme picker (5 palettes, two swatches per row) in Export Series modal
+- Font picker (5 options rendered in their own typeface) in Export Series modal
+- Layout picker (Full Page, Booklet, Tri-Fold Group Handout) in Export Series modal
+- Live HTML/CSS preview thumbnail -- updates instantly on color/font change
+- "Download Print-Ready PDF" / "Download Word Document" contextual button label
+- "Include Group Handout" checkbox (hidden for Tri-Fold)
+- Print instructions shown for PDF format selection
+- "Print Series Booklet" button removed from all series cards
+- Google Fonts loaded once via injected link tag for EB Garamond and Crimson Text preview
+
+### Files Changed
+- `src/constants/seriesExportConfig.ts` -- added BOOKLET_COLOR_SCHEMES, getColorScheme, SERIES_EXPORT_FONT_OPTIONS, getFontOption, SERIES_EXPORT_LAYOUTS, SeriesExportLayout, ColorSchemeId, FontId, buildSeriesExportFilename, SERIES_EXPORT_FORMAT_MIME, SERIES_EXPORT_UI.buttonLabel, SERIES_EXPORT_UI.upgradePrompt, restored SERIES_HANDOUT_COPY.appendixTitle as 'Group Handout Section'
+- `src/components/dashboard/SeriesLibrary.tsx` -- removed Print Series Booklet button, Export Series only
+- `src/components/SeriesExport/SeriesExportModal.tsx` -- full rebuild: two-column layout, live preview, all pickers
+- `src/constants/featureFlags.ts` -- BOM stripped, defensive null guard added to hasFeatureAccess
+- `src/utils/export/buildSeriesDocx.ts` -- BOM stripped
+- `src/utils/export/buildSeriesPdf.ts` -- BOM stripped
+
+### Critical Bugs Found and Fixed This Session
+1. `src/components/SeriesLibrary.tsx` and `src/components/dashboard/SeriesLibrary.tsx` are two different files. The dashboard renders from `dashboard/SeriesLibrary.tsx`. Writing to the wrong path left the old `bookletPrint` feature key call in place, crashing the page.
+2. `hasFeatureAccess` had no null guard -- unknown feature key returned `undefined.enabled` and crashed the entire dashboard. Fixed with `if (!flag) return false` guard.
+3. `buildSeriesExportFilename` and `SERIES_EXPORT_FORMAT_MIME` were missing from SSOT -- `useSeriesExport.ts` imported them but they did not exist. Added.
+4. `SERIES_EXPORT_UI.buttonLabel` and `SERIES_EXPORT_UI.upgradePrompt` were missing from SSOT -- `SeriesExportButton.tsx` referenced them. Added.
+
+### Critical Workflow Rule Added (Rule #19)
+Before writing ANY file, run a path verification command first:
+`Get-ChildItem "C:\Users\Lynn\biblelessonspark\src" -Recurse | Where-Object { $_.Name -eq "TargetFile.tsx" }`
+This confirms the exact path before any write. Never assume path from component name alone.
+
+### Deployment Commits (March 9, 2026)
+- `17cb816` -- FEATURE: Export modal -- color schemes, font picker, layout picker, live preview, Group Handout -- remove Print Series Booklet
+- `9c2e4c8` -- FIX: Add missing SERIES_EXPORT_UI.buttonLabel and upgradePrompt
+- `60bd69e` -- FIX: Defensive guard in hasFeatureAccess for unknown feature keys
+- `58910fd` -- FIX: Remove bookletPrint call from dashboard/SeriesLibrary -- wrong path corrected
+
+### Final State
+Export Series modal is live and working at biblelessonspark.com. Screenshot confirmed March 9, 2026 at 11:01 AM.
