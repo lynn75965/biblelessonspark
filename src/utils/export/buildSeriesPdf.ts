@@ -42,6 +42,7 @@ import {
   extractCreativeTitle,
   stripSection8FromContent,
 } from './buildHandoutBooklet';
+import { loadPdfFonts } from './loadPdfFonts';
 
 // ============================================================================
 // CONSTANTS
@@ -111,6 +112,9 @@ export async function buildSeriesPdf(
     format:      'letter',
   });
 
+  // Load open-source TTF fonts for this export (no-op for built-in times/helvetica)
+  await loadPdfFonts(doc, getFontOption(options.font));
+
   // Resolve color scheme and font from user options (SSOT-driven)
   const scheme  = getColorScheme(options.colorSchemeId);
   const pdfFont = getFontOption(options.font).pdfFamily;
@@ -143,7 +147,7 @@ export async function buildSeriesPdf(
 
   function renderBodyText(text: string, italic?: boolean): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(EXPORT_SPACING.fonts.pdf, italic ? 'italic' : 'normal');
+    doc.setFont(pdfFont, italic ? 'italic' : 'normal');
     doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
 
@@ -537,6 +541,9 @@ export async function buildBookletPdf(
   const pdfFont  = getFontOption(options.font).pdfFamily;
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [BK_W, BK_H] });
+
+  // Load open-source TTF fonts for this export (no-op for built-in times/helvetica)
+  await loadPdfFonts(doc, getFontOption(options.font));
 
   let cy = BOOKLET_PAGE.marginTop;
   let cp = 1;

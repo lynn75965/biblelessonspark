@@ -102,12 +102,20 @@ export function getColorScheme(id?: ColorSchemeId | null): ColorScheme {
 // FONTS
 // ============================================================================
 
+export interface PdfFontFiles {
+  regular:    string;   // URL path under /fonts/ served from public/fonts/
+  bold:       string;
+  italic:     string;
+  boldItalic: string;
+}
+
 export interface FontOption {
-  id:        string;
-  label:     string;
-  cssFamily: string;   // CSS font-family stack for preview
-  docxName:  string;   // Exact name for DOCX TextRun font
-  pdfFamily: string;   // jsPDF built-in family: 'times' | 'helvetica' | 'courier'
+  id:           string;
+  label:        string;
+  cssFamily:    string;      // CSS font-family stack for modal preview
+  docxName:     string;      // Exact name for DOCX TextRun font
+  pdfFamily:    string;      // Registered name in jsPDF (or built-in: 'times' | 'helvetica')
+  pdfFontFiles?: PdfFontFiles; // Omit for built-in fonts (times, helvetica)
 }
 
 export const SERIES_EXPORT_FONT_OPTIONS: FontOption[] = [
@@ -116,21 +124,39 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontOption[] = [
     label:     'TeX Gyre Pagella (Palatino)',
     cssFamily: '"TeX Gyre Pagella", "Palatino Linotype", "Book Antiqua", Palatino, serif',
     docxName:  'Palatino Linotype',
-    pdfFamily: 'times',
+    pdfFamily: 'Pagella',
+    pdfFontFiles: {
+      regular:    '/fonts/Pagella-Regular.ttf',
+      bold:       '/fonts/Pagella-Bold.ttf',
+      italic:     '/fonts/Pagella-Italic.ttf',
+      boldItalic: '/fonts/Pagella-BoldItalic.ttf',
+    },
   },
   {
     id:        'garamond',
     label:     'EB Garamond',
     cssFamily: '"EB Garamond", Garamond, "Times New Roman", serif',
     docxName:  'Garamond',
-    pdfFamily: 'times',
+    pdfFamily: 'EBGaramond',
+    pdfFontFiles: {
+      regular:    '/fonts/EBGaramond-Regular.ttf',
+      bold:       '/fonts/EBGaramond-Bold.ttf',
+      italic:     '/fonts/EBGaramond-Italic.ttf',
+      boldItalic: '/fonts/EBGaramond-BoldItalic.ttf',
+    },
   },
   {
     id:        'crimson',
-    label:     'Crimson Text',
-    cssFamily: '"Crimson Text", "Crimson Pro", Georgia, serif',
-    docxName:  'Georgia',
-    pdfFamily: 'times',
+    label:     'Century Schoolbook',
+    cssFamily: '"Century Schoolbook", "Century", Georgia, serif',
+    docxName:  'Century Schoolbook',
+    pdfFamily: 'CrimsonPro',
+    pdfFontFiles: {
+      regular:    '/fonts/CrimsonPro-Regular.ttf',
+      bold:       '/fonts/CrimsonPro-Bold.ttf',
+      italic:     '/fonts/CrimsonPro-Italic.ttf',
+      boldItalic: '/fonts/CrimsonPro-BoldItalic.ttf',
+    },
   },
   {
     id:        'times',
@@ -138,13 +164,20 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontOption[] = [
     cssFamily: '"Times New Roman", Times, serif',
     docxName:  'Times New Roman',
     pdfFamily: 'times',
+    // No pdfFontFiles -- uses jsPDF built-in Times-Roman
   },
   {
     id:        'calibri',
-    label:     'Calibri',
+    label:     'Calibri (Carlito)',
     cssFamily: 'Calibri, "Gill Sans", "Trebuchet MS", sans-serif',
     docxName:  'Calibri',
-    pdfFamily: 'helvetica',
+    pdfFamily: 'Carlito',
+    pdfFontFiles: {
+      regular:    '/fonts/Carlito-Regular.ttf',
+      bold:       '/fonts/Carlito-Bold.ttf',
+      italic:     '/fonts/Carlito-Italic.ttf',
+      boldItalic: '/fonts/Carlito-BoldItalic.ttf',
+    },
   },
 ];
 

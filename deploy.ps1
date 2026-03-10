@@ -40,3 +40,15 @@ git push origin $PRODUCTION_BRANCH
 
 Write-Host "`n[OK] Deployed to $PRODUCTION_BRANCH" -ForegroundColor Green
 Write-Host "Wait 1-2 minutes for Netlify build, then test at https://biblelessonspark.com" -ForegroundColor Cyan
+
+# ============================================================================
+# AUTO-CLEANUP: Remove stale Downloads copies before every deploy
+# Prevents stale files from being re-uploaded to Claude
+# ============================================================================
+$downloadsPath = "$env:USERPROFILE\Downloads"
+$stalePatterns = @("*_live.*", "*_original.*", "*.cjs", "fix_*.ps1")
+foreach ($pattern in $stalePatterns) {
+    Get-ChildItem -Path $downloadsPath -Filter $pattern -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+}
+Write-Host "[CLEANUP] Stale Downloads files removed." -ForegroundColor Cyan
