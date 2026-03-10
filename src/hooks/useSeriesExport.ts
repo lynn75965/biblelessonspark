@@ -18,7 +18,7 @@ import {
   SERIES_EXPORT_UI,
 } from '@/constants/seriesExportConfig';
 import { buildSeriesDocx } from '@/utils/export/buildSeriesDocx';
-import { buildSeriesPdf } from '@/utils/export/buildSeriesPdf';
+import { buildSeriesPdf, buildBookletPdf } from '@/utils/export/buildSeriesPdf';
 
 export interface SeriesExportState {
   isExporting: boolean;
@@ -89,6 +89,8 @@ export function useSeriesExport(): UseSeriesExportReturn {
 
         if (options.format === SERIES_EXPORT_FORMATS.DOCX) {
           buffer = await buildSeriesDocx(series, orderedLessons, options, setStep);
+        } else if (options.format === SERIES_EXPORT_FORMATS.BOOKLET) {
+          buffer = await buildBookletPdf(series, orderedLessons, options, setStep);
         } else {
           buffer = await buildSeriesPdf(series, orderedLessons, options, setStep);
         }

@@ -31,6 +31,7 @@ import {
   SERIES_COVER_COPY,
   SERIES_INTRO_PLACEHOLDER,
   EXPORT_SPACING,
+  BOOKLET_PAGE,
   getColorScheme,
   getFontOption,
 } from '@/constants/seriesExportConfig';
@@ -488,4 +489,249 @@ export async function buildSeriesPdf(
   // ---- Return ArrayBuffer --------------------------------------------------
   setStep('finalizing');
   return doc.output('arraybuffer');
+}
+
+// ============================================================================
+// BOOKLET PDF BUILDER
+// Produces 5.5 x 8.5" content pages then imposes them 2-up onto landscape
+// letter sheets (11 x 8.5") for saddle-stitch (fold-and-staple) printing.
+// ============================================================================
+
+export async function buildBookletPdf(
+  series:  LessonSeries,
+  lessons: Lesson[],
+  options: SeriesExportOptions,
+  setStep: (stepId: SeriesExportProgressStepId) => void
+): Promise<ArrayBuffer> {
+  const BK_W     = BOOKLET_PAGE.width;        // 396pt = 5.5"
+  const BK_H     = BOOKLET_PAGE.height;       // 612pt = 8.5"
+  const BK_M     = BOOKLET_PAGE.marginLeft;   // 54pt inner margin
+  const BK_CW    = BK_W - BK_M * 2;          // content width
+  const BK_BOT   = BK_H - BOOKLET_PAGE.marginBottom;
+
+  const scheme   = getColorScheme(options.colorSchemeId);
+  const pdfFont  = getFontOption(options.font).pdfFamily;
+
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [BK_W, BK_H] });
+
+  let cy = BK_M;
+  let cp = 1;
+  const lessonRanges: { label: string; startPage: number; endPage: number }[] = [];
+  const fmPages: number[] = [];
+
+  function bkPage(): void { doc.addPage([BK_W, BK_H], 'portrait'); cy = BK_M; cp++; }
+  function bkEnsure(h: number): void { if (cy + h > BK_BOT) bkPage(); }
+  function bkReset(): void {
+    const [r,g,b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
+    doc.setFont(pdfFont,'normal'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(r,g,b);
+  }
+
+  function bkBody(text: string, italic?: boolean): void {
+    const [r,g,b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
+    doc.setFont(pdfFont, italic ? 'italic' : 'normal');
+    doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(r,g,b);
+    const lines = doc.splitTextToSize(sanitizeForPdf(text), BK_CW) as string[];
+    const lh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    for (const line of lines) { bkEnsure(lh); doc.text(line, BK_M, cy); cy += lh; }
+    cy += EXPORT_SPACING.paragraph.afterPt;
+    bkReset();
+  }
+
+  function bkSubhead(text: string): void {
+    const [r,g,b] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont,'bold'); doc.setFontSize(11); doc.setTextColor(r,g,b);
+    const lines = doc.splitTextToSize(sanitizeForPdf(text), BK_CW) as string[];
+    for (const line of lines) { doc.text(line, BK_M, cy); cy += 16; }
+    cy += 3; bkReset();
+  }
+
+  function bkMeta(text: string): void {
+    const [r,g,b] = hexToRgb(EXPORT_SPACING.colors.metaText);
+    doc.setFont(pdfFont,'italic'); doc.setFontSize(EXPORT_SPACING.metadata.fontPt); doc.setTextColor(r,g,b);
+    bkEnsure(EXPORT_SPACING.metadata.fontPt + 4);
+    doc.text(text, BK_M, cy); cy += EXPORT_SPACING.metadata.fontPt + 6; bkReset();
+  }
+
+  function bkContent(content: string): void {
+    if (!content) return;
+    for (const rawLine of content.split('\n')) {
+      const line = rawLine.trimEnd();
+      if (line.trim() === '---') continue;
+      if (/^#{1,3}\s*$/.test(line)) continue;
+      if (/^#{1,3}\s+/.test(line)) { bkEnsure(50); bkSubhead(line.replace(/^#{1,3}\s+/,'')); continue; }
+      if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'')); continue; }
+      if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
+      if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'')); continue; }
+      if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkEnsure(50); bkSubhead(line.trim()); continue; }
+      bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')));
+    }
+  }
+
+  // -- Cover ------------------------------------------------------------------
+  setStep('cover');
+  fmPages.push(cp);
+  const coverData = buildCoverPageData(series, lessons, null, null);
+  cy = BK_H / 3;
+  const [tr,tg,tb] = hexToRgb(scheme.primary);
+  doc.setFont(pdfFont,'bold'); doc.setFontSize(20); doc.setTextColor(tr,tg,tb);
+  for (const tl of (doc.splitTextToSize(sanitizeForPdf(coverData.seriesTitle), BK_CW) as string[])) {
+    doc.text(tl, BK_W/2, cy, { align:'center' }); cy += 24;
+  }
+  cy += 6;
+  const [sr,sg,sb] = hexToRgb(scheme.accent);
+  doc.setFont(pdfFont,'normal'); doc.setFontSize(11); doc.setTextColor(sr,sg,sb);
+  doc.text(coverData.subtitle, BK_W/2, cy, { align:'center' }); cy += 20;
+  const [hr1,hg1,hb1] = hexToRgb(scheme.hr);
+  doc.setDrawColor(hr1,hg1,hb1); doc.setLineWidth(0.5);
+  doc.line(BK_M, cy, BK_W - BK_M, cy); cy += 14;
+  const [mr,mg,mb] = hexToRgb(EXPORT_SPACING.colors.metaText);
+  doc.setFont(pdfFont,'normal'); doc.setFontSize(9); doc.setTextColor(mr,mg,mb);
+  for (const ml of ([coverData.teacherLine, coverData.churchLine, coverData.lessonCountLine].filter((l): l is string => l !== null))) {
+    doc.text(ml, BK_W/2, cy, { align:'center' }); cy += 14;
+  }
+
+  // -- TOC --------------------------------------------------------------------
+  setStep('toc');
+  bkPage(); fmPages.push(cp);
+  const tocEntries = buildTocEntries(series, lessons);
+  const [th,tgh,tbh] = hexToRgb(scheme.primary);
+  doc.setFont(pdfFont,'bold'); doc.setFontSize(14); doc.setTextColor(th,tgh,tbh);
+  doc.text('Table of Contents', BK_M, cy); cy += 20; bkReset();
+  for (const entry of tocEntries) {
+    bkEnsure(24);
+    const [er,eg,eb] = hexToRgb(EXPORT_SPACING.colors.bodyText);
+    doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(er,eg,eb);
+    doc.text(entry.chapterHeading, BK_M, cy); cy += EXPORT_SPACING.body.fontPt + 4;
+    if (entry.passage) {
+      const [pr,pg2,pb] = hexToRgb(EXPORT_SPACING.colors.metaText);
+      doc.setFont(pdfFont,'italic'); doc.setFontSize(9); doc.setTextColor(pr,pg2,pb);
+      doc.text('  ' + entry.passage, BK_M, cy); cy += 13;
+    }
+    cy += 3;
+  }
+
+  // -- Intro ------------------------------------------------------------------
+  bkPage(); fmPages.push(cp);
+  bkSubhead('Introduction'); bkBody(SERIES_INTRO_PLACEHOLDER);
+
+  // -- Lessons ----------------------------------------------------------------
+  setStep('lessons');
+  for (let i = 0; i < lessons.length; i++) {
+    const lesson = lessons[i];
+    const n = i + 1;
+    const creativeTitle = extractCreativeTitle(lesson) ?? lesson.title ?? ('Lesson ' + n);
+    const passage = lesson.filters?.passage ?? series.bible_passage ?? '';
+    bkPage();
+    const startPage = cp;
+    const [lr,lg,lb] = hexToRgb(EXPORT_SPACING.colors.metaText);
+    doc.setFont(pdfFont,'normal'); doc.setFontSize(9); doc.setTextColor(lr,lg,lb);
+    doc.text('LESSON ' + n, BK_M, cy); cy += 13;
+    const [ctr,ctg,ctb] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont,'bold'); doc.setFontSize(15); doc.setTextColor(ctr,ctg,ctb);
+    for (const ctl of (doc.splitTextToSize(sanitizeForPdf(creativeTitle), BK_CW) as string[])) {
+      doc.text(ctl, BK_M, cy); cy += 18;
+    }
+    if (passage) {
+      const [psr,psg,psb] = hexToRgb(EXPORT_SPACING.colors.metaText);
+      doc.setFont(pdfFont,'italic'); doc.setFontSize(10); doc.setTextColor(psr,psg,psb);
+      doc.text(passage, BK_M, cy); cy += 14;
+    }
+    const [hr2,hg2,hb2] = hexToRgb(scheme.hr);
+    doc.setDrawColor(hr2,hg2,hb2); doc.setLineWidth(0.4);
+    doc.line(BK_M, cy, BK_W - BK_M, cy); cy += 8; bkReset();
+    const raw = lesson.shaped_content ?? lesson.original_text ?? '';
+    bkContent((options.omitSection8FromChapters ? stripSection8FromContent(raw) : raw).replace(/^\s*#{1,3}\s+[^\n]*\n?/,''));
+    lessonRanges.push({ label: 'Lesson ' + n + ': ' + creativeTitle, startPage, endPage: cp });
+  }
+
+  // -- Group Handout ----------------------------------------------------------
+  let handoutStart = -1;
+  if (options.includeHandoutBooklet) {
+    setStep('handout');
+    const bookletData = buildHandoutBookletData(series, lessons);
+    bkPage(); handoutStart = cp;
+    cy = BK_H * 0.38;
+    const [sdhr,sdhg,sdhb] = hexToRgb(scheme.hr);
+    doc.setDrawColor(sdhr,sdhg,sdhb); doc.setLineWidth(1);
+    doc.line(BK_M + 20, cy, BK_W - BK_M - 20, cy); cy += 18;
+    const [sdtr,sdtg,sdtb] = hexToRgb(scheme.primary);
+    doc.setFont(pdfFont,'bold'); doc.setFontSize(16); doc.setTextColor(sdtr,sdtg,sdtb);
+    doc.text(bookletData.appendixTitle, BK_W/2, cy, { align:'center' }); cy += 20;
+    doc.setDrawColor(sdhr,sdhg,sdhb);
+    doc.line(BK_M + 20, cy, BK_W - BK_M - 20, cy); bkReset();
+    for (const entry of bookletData.entries) {
+      bkPage(); bkSubhead(entry.header);
+      if (entry.passage) bkMeta(entry.passage);
+      bkContent(entry.content);
+    }
+  }
+
+  // -- Back Cover -------------------------------------------------------------
+  bkPage();
+  const backCoverPage = cp;
+  cy = BK_H * 0.75;
+  const [fr,fg,fb] = hexToRgb(EXPORT_SPACING.colors.footerText);
+  doc.setFont(pdfFont,'normal'); doc.setFontSize(8); doc.setTextColor(fr,fg,fb);
+  doc.text(SERIES_COVER_COPY.generatedBy, BK_W/2, cy, { align:'center' }); cy += 12;
+  doc.text(SERIES_COVER_COPY.website,     BK_W/2, cy, { align:'center' }); cy += 12;
+  doc.text('\u00A9 ' + new Date().getFullYear() + ' BibleLessonSpark. All rights reserved.', BK_W/2, cy, { align:'center' });
+
+  // -- Footers ----------------------------------------------------------------
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    if (fmPages.includes(p) || p === backCoverPage) continue;
+    doc.setPage(p);
+    const [fnr,fng,fnb] = hexToRgb(EXPORT_SPACING.colors.footerText);
+    doc.setFont(pdfFont,'normal'); doc.setFontSize(8); doc.setTextColor(fnr,fng,fnb);
+    let ft = '';
+    for (const range of lessonRanges) {
+      if (p >= range.startPage && p <= range.endPage) {
+        ft = range.label + ' -- Page ' + (p - range.startPage + 1); break;
+      }
+    }
+    if (!ft && handoutStart > 0 && p >= handoutStart)
+      ft = 'Group Handout -- Page ' + (p - handoutStart + 1);
+    if (ft) doc.text(ft, BK_W/2, BK_H - 28, { align:'center' });
+  }
+
+  // -- Impose 2-up ------------------------------------------------------------
+  setStep('finalizing');
+  return await _imposeBooklet(doc.output('arraybuffer'));
+}
+
+// ============================================================================
+// SADDLE-STITCH IMPOSITION
+// Takes half-letter content pages, pairs them onto landscape letter sheets.
+// Print double-sided, fold, staple at spine.
+//
+// Imposition order (n = page count padded to multiple of 4):
+//   Sheet i front: left=pages[n-1-2i],  right=pages[2i]
+//   Sheet i back:  left=pages[2i+1],    right=pages[n-2-2i]
+// ============================================================================
+
+async function _imposeBooklet(contentBuffer: ArrayBuffer): Promise<ArrayBuffer> {
+  const { PDFDocument } = await import('pdf-lib');
+  const srcDoc   = await PDFDocument.load(contentBuffer);
+  const nContent = srcDoc.getPageCount();
+  let n = nContent;
+  while (n % 4 !== 0) n++;
+  const outDoc   = await PDFDocument.create();
+  const embedded = await outDoc.embedPdf(srcDoc);
+  const PW = BOOKLET_PAGE.width;   // 396pt (5.5")
+  const PH = BOOKLET_PAGE.height;  // 612pt (8.5")
+  const SW = PW * 2;               // 792pt (11") landscape sheet width
+  const nSheets = n / 4;
+  for (let i = 0; i < nSheets; i++) {
+    const pairs: [number, number][] = [
+      [n - 1 - 2 * i, 2 * i],
+      [2 * i + 1,     n - 2 - 2 * i],
+    ];
+    for (const [leftIdx, rightIdx] of pairs) {
+      const sheet = outDoc.addPage([SW, PH]);
+      if (leftIdx < nContent)  sheet.drawPage(embedded[leftIdx],  { x: 0,  y: 0, width: PW, height: PH });
+      if (rightIdx < nContent) sheet.drawPage(embedded[rightIdx], { x: PW, y: 0, width: PW, height: PH });
+    }
+  }
+  const bytes = await outDoc.save();
+  return bytes.buffer as ArrayBuffer;
 }
