@@ -45,8 +45,7 @@ import { SeriesExportProgress } from './SeriesExportProgress';
 // ============================================================================
 
 const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400' +
-  '&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap';
+  'https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,700;1,400&display=swap';
 
 function ensureGoogleFonts(): void {
   if (document.getElementById('bls-gfonts')) return;
@@ -228,7 +227,9 @@ export function SeriesExportModal({
           <p className="mt-1 text-sm font-medium text-foreground truncate">{series.series_name}</p>
         </div>
 
-        {state.isExporting && <p className="text-sm text-muted-foreground py-4">Exporting your series...</p>}
+        {state.isExporting && state.progressStepId && (
+          <SeriesExportProgress currentStepId={state.progressStepId} />
+        )}
 
         {state.error && !state.isExporting && (
           <div role="alert" className="mb-4 px-4 py-3 rounded-md bg-destructive/10 border border-destructive/30 text-sm text-destructive">
