@@ -7,6 +7,8 @@ import {
   TeachingTeamMember,
   TeachingTeamMemberWithProfile,
   PendingTeamInvitation,
+  MAX_TEAM_MEMBERS,
+  INVITATION_EXPIRY_DAYS,
 } from '@/constants/contracts';
 
 /**
@@ -24,9 +26,31 @@ import {
  * SSOT: profiles table uses `full_name` column (not display_name).
  * Frontend interface uses `display_name` for UI display; this hook
  * maps full_name -> display_name at the query boundary.
+ *
+ * INVITATION EXPIRY (March 2026):
+ * Pending invitations expire after INVITATION_EXPIRY_DAYS days.
+ * Expired invites are excluded from slot counts, member lists,
+ * and the invitee's pending banner. isInviteExpired() is the
+ * single helper for all expiry checks in this hook.
  */
 
-const MAX_TEAM_MEMBERS = 3;
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+/**
+ * Returns true if a pending invitation has passed its expiry date.
+ * Null expires_at = legacy row created before expiry was implemented;
+ * treated as NOT expired for backward compatibility.
+ */
+function isInviteExpired(expiresAt: string | null): boolean {
+  if (!expiresAt) return false;
+  return new Date(expiresAt) < new Date();
+}
+
+// ============================================================================
+// HOOK
+// ============================================================================
 
 export function useTeachingTeam() {
   const [team, setTeam] = useState<TeachingTeam | null>(null);
@@ -59,7 +83,7 @@ export function useTeachingTeam() {
 
   /**
    * Master fetch: determines if user is a lead teacher, accepted member,
-   * or has a pending invitation.
+   * or has a pending (non-expired) invitation.
    */
   const fetchTeamData = useCallback(async () => {
     if (!user) return;
@@ -96,7 +120,6 @@ export function useTeachingTeam() {
       if (memberError) throw memberError;
 
       if (membership) {
-        // Fetch the team they belong to
         const { data: memberTeam, error: teamError } = await supabase
           .from('teaching_teams')
           .select('*')
@@ -114,7 +137,7 @@ export function useTeachingTeam() {
         return;
       }
 
-      // 3. Check for pending invitations
+      // 3. Check for a pending invitation that has not expired
       const { data: pendingMembership, error: pendingError } = await supabase
         .from('teaching_team_members')
         .select('*')
@@ -124,8 +147,8 @@ export function useTeachingTeam() {
 
       if (pendingError) throw pendingError;
 
-      if (pendingMembership) {
-        // Fetch team info for the invitation banner
+      // Ignore if expired -- treat as if no invitation exists
+      if (pendingMembership && !isInviteExpired(pendingMembership.expires_at)) {
         const { data: inviteTeam, error: inviteTeamError } = await supabase
           .from('teaching_teams')
           .select('*')
@@ -134,7 +157,6 @@ export function useTeachingTeam() {
 
         if (inviteTeamError) throw inviteTeamError;
 
-        // Fetch lead teacher name (SSOT: profiles.full_name)
         const { data: leadProfile } = await supabase
           .from('profiles')
           .select('full_name')
@@ -152,7 +174,7 @@ export function useTeachingTeam() {
         setIsLeadTeacher(false);
         setIsMember(false);
       } else {
-        // No team involvement at all
+        // No team involvement, or only an expired invite
         resetState();
       }
     } catch (error) {
@@ -168,8 +190,10 @@ export function useTeachingTeam() {
   }, [user]);
 
   /**
-   * Fetch all members for a given team (with profile names)
-   * SSOT: profiles table uses full_name; mapped to display_name for UI
+   * Fetch all members for a given team (with profile names).
+   * Excludes expired pending invitations -- they no longer occupy slots
+   * or appear in the lead teacher's member list.
+   * SSOT: profiles table uses full_name; mapped to display_name for UI.
    */
   const fetchMembers = async (teamId: string) => {
     try {
@@ -182,8 +206,12 @@ export function useTeachingTeam() {
 
       if (error) throw error;
 
-      // Fetch profile info for each member (SSOT: full_name, email)
-      const memberIds = (memberRows || []).map(m => m.user_id);
+      // Exclude expired pending invites -- accepted members always included
+      const activeRows = (memberRows || []).filter(m =>
+        m.status === 'accepted' || !isInviteExpired(m.expires_at)
+      );
+
+      const memberIds = activeRows.map(m => m.user_id);
       let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
 
       if (memberIds.length > 0) {
@@ -200,7 +228,7 @@ export function useTeachingTeam() {
       }
 
       // Map full_name -> display_name for frontend interface
-      const enrichedMembers: TeachingTeamMemberWithProfile[] = (memberRows || []).map(m => ({
+      const enrichedMembers: TeachingTeamMemberWithProfile[] = activeRows.map(m => ({
         ...m,
         display_name: profileMap[m.user_id]?.full_name || null,
         email: profileMap[m.user_id]?.email || null,
@@ -229,7 +257,6 @@ export function useTeachingTeam() {
 
       if (error) {
         if (error.code === '23505') {
-          // Unique constraint violation -- already leads a team
           toast({
             title: 'Already leading a team',
             description: 'You already have a Teaching Team. Disband it first to create a new one.',
@@ -245,7 +272,7 @@ export function useTeachingTeam() {
       setMembers([]);
       toast({
         title: 'Teaching Team created',
-        description: `"${data.name}" is ready. Invite up to 3 fellow teachers!`,
+        description: `"${data.name}" is ready. Invite up to ${MAX_TEAM_MEMBERS - 1} fellow teachers!`,
       });
       return { error: null };
     } catch (error) {
@@ -290,19 +317,23 @@ export function useTeachingTeam() {
   };
 
   /**
-   * Invite a teacher by email address (Lead Teacher only)
-   * Returns an object with { error, message } for the UI to display.
-   * SSOT: profiles table uses full_name (not display_name)
+   * Invite a teacher by email address (Lead Teacher only).
+   * Sets expires_at = now + INVITATION_EXPIRY_DAYS on insert.
+   * Slot count excludes expired pending invitations.
+   * SSOT: profiles table uses full_name (not display_name).
    */
   const inviteMember = async (email: string): Promise<{ error: boolean; message: string }> => {
     if (!user || !team || !isLeadTeacher) {
       return { error: true, message: 'Not authorized' };
     }
 
-    // Check team capacity
-    const acceptedOrPending = members.filter(m => m.status === 'accepted' || m.status === 'pending');
-    if (acceptedOrPending.length >= MAX_TEAM_MEMBERS) {
-      return { error: true, message: 'Team is full (3 members maximum).' };
+    // Slot count: accepted always count; pending only if not expired
+    const activeSlots = members.filter(m =>
+      m.status === 'accepted' ||
+      (m.status === 'pending' && !isInviteExpired(m.expires_at))
+    );
+    if (activeSlots.length >= MAX_TEAM_MEMBERS) {
+      return { error: true, message: `Team is full (${MAX_TEAM_MEMBERS} members maximum).` };
     }
 
     try {
@@ -322,7 +353,6 @@ export function useTeachingTeam() {
         };
       }
 
-      // Cannot invite yourself
       if (inviteeProfile.id === user.id) {
         return { error: true, message: 'You cannot invite yourself to your own team.' };
       }
@@ -341,39 +371,48 @@ export function useTeachingTeam() {
         };
       }
 
-      // Check if invitee is already an accepted or pending member of any team
+      // Check if invitee is already an accepted member of any team,
+      // or has a non-expired pending invite on any team
       const { data: existingMembership } = await supabase
         .from('teaching_team_members')
-        .select('id, status')
+        .select('id, status, expires_at')
         .eq('user_id', inviteeProfile.id)
         .in('status', ['accepted', 'pending'])
         .maybeSingle();
 
       if (existingMembership) {
-        return {
-          error: true,
-          message: `${inviteeProfile.full_name || 'That teacher'} is already on a teaching team.`,
-        };
+        // A pending invite that has expired does not block re-inviting
+        const isBlocker =
+          existingMembership.status === 'accepted' ||
+          (existingMembership.status === 'pending' && !isInviteExpired(existingMembership.expires_at));
+
+        if (isBlocker) {
+          return {
+            error: true,
+            message: `${inviteeProfile.full_name || 'That teacher'} is already on a teaching team.`,
+          };
+        }
       }
 
-      // All checks passed -- create invitation
+      // Compute expiry date (SSOT: INVITATION_EXPIRY_DAYS from contracts.ts)
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + INVITATION_EXPIRY_DAYS);
+
+      // All checks passed -- create invitation with expiry
       const { data: newMember, error: insertError } = await supabase
         .from('teaching_team_members')
         .insert([{
           team_id: team.id,
           user_id: inviteeProfile.id,
           status: 'pending',
+          expires_at: expiresAt.toISOString(),
         }])
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      // -- Fire-and-forget: Send email notification via Edge Function -----
-      // Frontend drives backend: we explicitly call the function after
-      // the successful INSERT. If email fails, the invitation still stands.
-      // Uses supabase.functions.invoke() -- the client already has the
-      // correct URL and auth token configured.
+      // Fire-and-forget: email notification via Edge Function
       supabase.functions
         .invoke('notify-team-invitation', {
           body: { team_member_id: newMember.id },
@@ -442,8 +481,8 @@ export function useTeachingTeam() {
   };
 
   /**
-   * Disband the entire team (Lead Teacher only)
-   * Deletes all members first (CASCADE handles this), then the team.
+   * Disband the entire team (Lead Teacher only).
+   * CASCADE on teaching_teams deletes all member rows automatically.
    */
   const disbandTeam = async () => {
     if (!user || !team || !isLeadTeacher) return;
@@ -494,10 +533,9 @@ export function useTeachingTeam() {
 
       toast({
         title: `You joined ${pendingInvitation.team_name}`,
-        description: "You can now see shared lessons from your team members.",
+        description: 'You can now see shared lessons from your team members.',
       });
 
-      // Reload all team data
       await fetchTeamData();
     } catch (error) {
       console.error('Error accepting invitation:', error);
@@ -583,15 +621,12 @@ export function useTeachingTeam() {
     if (!user || !team) return { data: [], error: null };
 
     try {
-      // Collect all team participant user IDs (lead + accepted members), excluding self
       const teamUserIds: string[] = [];
 
-      // Add lead teacher if it's not the current user
       if (team.lead_teacher_id !== user.id) {
         teamUserIds.push(team.lead_teacher_id);
       }
 
-      // Add accepted members who are not the current user
       members
         .filter(m => m.status === 'accepted' && m.user_id !== user.id)
         .forEach(m => teamUserIds.push(m.user_id));

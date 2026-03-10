@@ -1,18 +1,12 @@
 import type { TeacherPreferences, LanguageKey as TPLanguageKey } from './teacherPreferences';
 import type { BibleVersionId } from './bibleVersions';
-import type { ShapeId } from './lessonShapeProfiles';\nimport type { AudienceProfile } from './audienceConfig';
-import type { AudienceProfile } from './audienceConfig';
+import type { ShapeId } from './lessonShapeProfiles';
 
 /**
  * BibleLessonSpark -- TypeScript Contracts (SSOT)
  * 
  * Single Source of Truth for all shared TypeScript interfaces and types.
  * Every consumer imports from this file. No duplicate definitions.
- * 
- * CHANGELOG v2.1.0 (March 6, 2026):
- * - Added AudienceProfile re-export from audienceConfig.ts (Phase 1)
- * - Added audience_profile?: AudienceProfile to UserProfile (Phase 1/2)
- * - Added audience_profile?: AudienceProfile to Lesson (Phase 1/2)
  * 
  * CHANGELOG v2.0.0 (February 19, 2026):
  * - Replaced legacy 3-key TheologicalPreferenceKey with 10-profile TheologyProfileId
@@ -28,16 +22,14 @@ import type { AudienceProfile } from './audienceConfig';
  * - ageGroups.ts imports: AgeGroup, TeachingProfile
  * - theologyProfiles.ts defines: TheologyProfile (owns that interface)
  * - accessControl.ts defines: Role, OrgRole (owns those types)
- * - audienceConfig.ts defines: AudienceProfile (owns that interface)
  * - validation.ts: no imports from this file
  * 
- * @version 2.1.0
- * @lastUpdated 2026-03-06
+ * @version 2.0.0
+ * @lastUpdated 2026-02-19
  */
 
 // ============================================================================
-// TIER 1: Lesson Structure -- SSOT is lessonStructure.ts (not here)
-// ============================================================================
+// TIER 1: Lesson Structure  SSOT is lessonStructure.ts (not here)
 
 
 
@@ -135,19 +127,6 @@ export interface LanguageConfig {
 export const DEFAULT_LANGUAGE: LanguageKey = 'en';
 
 // ============================================================================
-// TIER 2: Audience Profile Contracts (Phase 1)
-// ============================================================================
-
-/**
- * Re-exported from audienceConfig.ts SSOT.
- * audienceConfig.ts owns the interface, arrays, default, and helpers.
- * Import from there when you need AUDIENCE_ROLES, AUDIENCE_ASSEMBLIES,
- * AUDIENCE_PARTICIPANTS, or the helper functions.
- * Import from here (contracts.ts) when you only need the AudienceProfile type.
- */
-export type { AudienceProfile };
-
-// ============================================================================
 // TIER 2: Lesson Shape Contracts (Phase 27B)
 // ============================================================================
 
@@ -161,7 +140,7 @@ export type { AudienceProfile };
 export type LessonShapeId =
   | 'passage_walkthrough'      // Verse-by-verse guided study
   | 'life_connection'           // Real-life situation -> Scripture -> response
-  | 'gospel_centered'           // Creation-Fall-Redemption-Restoration arc
+  | 'gospel_centered'           // Creation--Fall--Redemption--Restoration arc
   | 'focus_discover_respond'    // Three-movement: focus -> discover -> respond
   | 'story_driven';             // Narrative experience; truth from story
 
@@ -179,9 +158,15 @@ export type LessonShapeId =
 /** Status of a teaching team member's invitation */
 export type TeachingTeamMemberStatus = 'pending' | 'accepted' | 'declined';
 
+/** Maximum number of members per teaching team (lead + 2 others). SSOT. */
+export const MAX_TEAM_MEMBERS = 3;
+
+/** Days before a pending team invitation expires. SSOT. */
+export const INVITATION_EXPIRY_DAYS = 30;
+
 /**
  * Teaching team entity from teaching_teams table.
- * A lead teacher creates one team and invites up to 2 others (3 total).
+ * A lead teacher creates one team and invites up to MAX_TEAM_MEMBERS - 1 others.
  */
 export interface TeachingTeam {
   id: string;
@@ -201,6 +186,8 @@ export interface TeachingTeamMember {
   status: TeachingTeamMemberStatus;
   invited_at: string;
   responded_at: string | null;
+  /** Null for legacy rows created before expiry was implemented */
+  expires_at: string | null;
 }
 
 // ============================================================================
@@ -222,8 +209,6 @@ export interface LessonGenerationRequest {
   uploadId?: string;
   fileHash?: string;
   sourceFile?: string;
-  /** Active audience triad at generation time (Phase 4) */
-  audienceProfile?: AudienceProfile;
 }
 
 export interface LessonContent {
@@ -285,7 +270,7 @@ export interface LessonFilters {
 
 /**
  * Lesson entity from lessons table.
- * Includes Phase 27B shaped content fields and Phase 1 audience_profile.
+ * Includes Phase 27B shaped content fields.
  */
 export interface Lesson {
   id: string;
@@ -300,20 +285,8 @@ export interface Lesson {
   theology_profile_id?: TheologyProfileId | null;
   /** Reshaped lesson content (null = not reshaped) */
   shaped_content?: string | null;
-  /** Audience profile stored at generation time (role/assembly/participant triad) */
-  audience_profile?: AudienceProfile | null;
   /** ID of the shape used for reshaping (e.g., 'passage_walkthrough') */
   shape_id?: LessonShapeId | null;
-  /** Phase 6: Audience triad stored at lesson generation time. SSOT: audienceConfig.ts */
-  audience_profile?: { role: string; assembly: string; participant: string } | null;
-  /** Phase 26: Lesson visibility -- private or shared with org */
-  visibility?: 'private' | 'shared' | null;
-  /**
-   * Audience triad active at generation time.
-   * Stored in lessons.audience_profile (jsonb) -- added in Phase 2 migration.
-   * Optional here so the type is safe before the column is backfilled.
-   */
-  audience_profile?: AudienceProfile | null;
   metadata?: {
     teaser?: string | null;
     ageGroup?: string;
@@ -354,12 +327,6 @@ export interface UserProfile {
   theology_profile_id: TheologyProfileId | null;
   organization_role: string | null;
   organization_id: string | null;
-  /**
-   * Default audience triad for this user.
-   * Stored in user_profiles.audience_profile (jsonb) -- added in Phase 2 migration.
-   * Optional here so the type is safe before the column is backfilled.
-   */
-  audience_profile?: AudienceProfile | null;
 }
 
 /**
@@ -400,3 +367,4 @@ export interface OrganizationMember {
   role: string;
   joined_at: string;
 }
+
