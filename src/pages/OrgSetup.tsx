@@ -136,7 +136,7 @@ const OrgSetup = () => {
           .eq('user_id', user.id)
           .single();
 
-        const hasActiveSub = subscription?.tier === 'subscribed';
+        const hasActiveSub = subscription?.tier === 'personal';
         
         setPersonalSub({
           hasSubscription: hasActiveSub,

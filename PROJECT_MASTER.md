@@ -952,3 +952,23 @@ Edge Function redeployed: npx supabase functions deploy stripe-webhook.
 Bug #26: Cancellation handler did not reset lessons_used. Canceled
 subscribers were blocked from free-tier lesson generation immediately
 after cancellation. Fixed March 10, 2026 (commit 16e331d).
+
+### Priority 3, Item 1 -- Teaching Team Invitation Expiry (commit 288f61b)
+
+Root cause: teaching_team_members had no expires_at column. Pending
+invitations with wrong addresses occupied member slots permanently.
+
+DB fix: ALTER TABLE teaching_team_members ADD COLUMN expires_at TIMESTAMPTZ;
+Backfilled existing pending rows to invited_at + 30 days.
+
+contracts.ts: Added MAX_TEAM_MEMBERS = 3 and INVITATION_EXPIRY_DAYS = 30
+as SSOT exports. Added expires_at: string | null to TeachingTeamMember.
+Removed pre-existing local const MAX_TEAM_MEMBERS = 3 from hook (SSOT
+violation fixed as part of this work).
+
+useTeachingTeam.tsx: Added isInviteExpired() helper. Fixed 4 locations:
+(1) fetchTeamData() -- expired pending invite no longer shows banner
+(2) fetchMembers() -- expired pending invites excluded from member list
+(3) inviteMember() capacity check -- expired pending invites free the slot
+(4) inviteMember() existing membership check -- expired invite allows re-invite
+(5) inviteMember() insert -- sets expires_at = now + INVITATION_EXPIRY_DAYS
