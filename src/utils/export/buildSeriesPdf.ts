@@ -584,7 +584,7 @@ export async function buildBookletPdf(
   doc.text(coverData.subtitle, BK_W/2, cy, { align:'center' }); cy += 20;
   const [hr1,hg1,hb1] = hexToRgb(scheme.hr);
   doc.setDrawColor(hr1,hg1,hb1); doc.setLineWidth(0.5);
-  doc.line(BK_M, cy, BK_W - BK_M, cy); cy += 14;
+  doc.line(BK_M, cy, BK_W - BK_OUTER, cy); cy += 14;
   const [mr,mg,mb] = hexToRgb(EXPORT_SPACING.colors.metaText);
   doc.setFont(pdfFont,'normal'); doc.setFontSize(9); doc.setTextColor(mr,mg,mb);
   for (const ml of ([coverData.teacherLine, coverData.churchLine, coverData.lessonCountLine].filter((l): l is string => l !== null))) {
@@ -639,7 +639,7 @@ export async function buildBookletPdf(
     }
     const [hr2,hg2,hb2] = hexToRgb(scheme.hr);
     doc.setDrawColor(hr2,hg2,hb2); doc.setLineWidth(0.4);
-    doc.line(BK_M, cy, BK_W - BK_M, cy); cy += 8; bkReset();
+    doc.line(BK_M, cy, BK_W - BK_OUTER, cy); cy += 8; bkReset();
     const raw = lesson.shaped_content ?? lesson.original_text ?? '';
     bkContent((options.omitSection8FromChapters ? stripSection8FromContent(raw) : raw).replace(/^\s*#{1,3}\s+[^\n]*\n?/,''));
     lessonRanges.push({ label: 'Lesson ' + n + ': ' + creativeTitle, startPage, endPage: cp });
@@ -654,12 +654,12 @@ export async function buildBookletPdf(
     cy = BK_H * 0.38;
     const [sdhr,sdhg,sdhb] = hexToRgb(scheme.hr);
     doc.setDrawColor(sdhr,sdhg,sdhb); doc.setLineWidth(1);
-    doc.line(BK_M + 20, cy, BK_W - BK_M - 20, cy); cy += 18;
+    doc.line(BK_M + 20, cy, BK_W - BK_OUTER - 20, cy); cy += 18;
     const [sdtr,sdtg,sdtb] = hexToRgb(scheme.primary);
     doc.setFont(pdfFont,'bold'); doc.setFontSize(16); doc.setTextColor(sdtr,sdtg,sdtb);
     doc.text(bookletData.appendixTitle, BK_W/2, cy, { align:'center' }); cy += 20;
     doc.setDrawColor(sdhr,sdhg,sdhb);
-    doc.line(BK_M + 20, cy, BK_W - BK_M - 20, cy); bkReset();
+    doc.line(BK_M + 20, cy, BK_W - BK_OUTER - 20, cy); bkReset();
     for (const entry of bookletData.entries) {
       bkPage(); bkSubhead(entry.header);
       if (entry.passage) bkMeta(entry.passage);

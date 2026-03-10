@@ -108,7 +108,9 @@ export function SeriesExportModal({
   async function handleExport(): Promise<void> {
     if (!selectedFormat) return;
     const options: SeriesExportOptions = {
-      format:                   selectedFormat,
+      format:                   selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET
+                                  ? SERIES_EXPORT_FORMATS.BOOKLET
+                                  : selectedFormat,
       layout:                   selectedLayout,
       colorSchemeId:            selectedColorScheme,
       font:                     selectedFont,
