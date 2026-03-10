@@ -483,6 +483,7 @@ async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Su
       tier: "free",
       status: "canceled",
       lessons_limit: TIER_LESSON_LIMITS.free,
+      lessons_used: 0,
       canceled_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
