@@ -716,7 +716,9 @@ function bodyParagraph(text: string, italic = false, fontName: string): Paragrap
 
 function parseInlineBold(line: string, fontName: string): TextRun[] {
   const runs:  TextRun[] = [];
-  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  // Strip lone single asterisks (italic markers) before processing
+  const sanitized = line.replace(/(?<!\*)\*(?!\*)/g, '');
+  const parts = sanitized.split(/(\*\*[^*]+\*\*)/g);
 
   for (const part of parts) {
     if (part.startsWith('**') && part.endsWith('**')) {
@@ -732,7 +734,8 @@ function parseInlineBold(line: string, fontName: string): TextRun[] {
     } else if (part) {
       runs.push(
         new TextRun({
-          text:  part,
+          // Strip any residual unclosed ** markers
+          text:  part.replace(/\*\*/g, ''),
           size:  EXPORT_SPACING.body.fontHalfPt,
           font:  fontName,
           color: EXPORT_SPACING.colors.bodyText,
@@ -745,7 +748,7 @@ function parseInlineBold(line: string, fontName: string): TextRun[] {
     ? runs
     : [
         new TextRun({
-          text:  line,
+          text:  line.replace(/\*+/g, ''),
           size:  EXPORT_SPACING.body.fontHalfPt,
           font:  fontName,
           color: EXPORT_SPACING.colors.bodyText,
