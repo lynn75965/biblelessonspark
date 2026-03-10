@@ -371,7 +371,7 @@ export const SERIES_EXPORT_UI = {
   handoutBookletDescription: 'Appends reproducible handout pages for each lesson.',
   printInstructions:         'Open in your PDF viewer, select duplex (two-sided) printing, and staple along the left edge.',
   exportButtonPdf:           'Download Print-Ready PDF',
-  exportButtonDocx:          'Download Word Document',
+  exportButtonDocx:          'Download Document',
   cancelButton:              'Cancel',
   successMessage:            'Series exported successfully.',
   buttonLabel:               'Export Series',
