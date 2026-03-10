@@ -147,7 +147,7 @@ export async function buildSeriesPdf(
     doc.setFont(pdfFont, 'bold');
     doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize + 2);
     doc.setTextColor(r, g, b);
-    ensureSpace(80);
+    ensureSpace(160);
     const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
     for (const line of lines) {
       doc.text(line, PAGE_MARGIN, currentY);
@@ -183,7 +183,7 @@ export async function buildSeriesPdf(
       if (/^#{1,3}\s+/.test(line)) {
         const headingText = line.replace(/^#{1,3}\s+/, '');
         // FIX 3: Increased ensureSpace to keep headings with their content
-        ensureSpace(80);
+        ensureSpace(160);
         renderSubheading(headingText);
         continue;
       }
@@ -202,7 +202,7 @@ export async function buildSeriesPdf(
       // Detect plain-text section labels: e.g. "Literary Context:"
       // Short line, starts with capital, ends with colon, no markdown prefix
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) {
-        ensureSpace(80);
+        ensureSpace(160);
         renderSubheading(line.trim());
         continue;
       }
