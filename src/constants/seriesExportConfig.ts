@@ -33,7 +33,7 @@ export const SERIES_EXPORT_FORMAT_LABELS: Record<SeriesExportFormat, string> = {
 
 export const SERIES_EXPORT_FORMAT_SUBTITLES: Record<SeriesExportFormat, string> = {
   [SERIES_EXPORT_FORMATS.PDF]:     'Recommended for printing',
-  [SERIES_EXPORT_FORMATS.DOCX]:    '',
+  [SERIES_EXPORT_FORMATS.DOCX]:    'Opens in Google Docs, LibreOffice, Word, and more',
   [SERIES_EXPORT_FORMATS.BOOKLET]: 'Saddle-stitch / fold-and-staple',
 };
 
