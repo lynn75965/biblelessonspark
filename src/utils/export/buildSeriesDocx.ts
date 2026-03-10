@@ -384,7 +384,6 @@ function buildDocxCoverPage(
   const metaLines = [
     coverData.teacherLine,
     coverData.churchLine,
-    coverData.dateRangeLine,
     coverData.lessonCountLine,
   ].filter((l): l is string => l !== null);
 
@@ -557,12 +556,23 @@ function buildDocxLessonContent(
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
 
+    // Strip markdown horizontal rules
+    if (line.trim() === '---') continue;
+
     if (/^#{1,3}\s*$/.test(line)) continue;
 
     if (/^#{1,3}\s+/.test(line)) {
       const headingText = line.replace(/^#{1,3}\s+/, '');
       paragraphs.push(
         headingParagraph(headingText, 'Heading2', scheme.primary, fontName)
+      );
+      continue;
+    }
+
+    // Plain-text section labels: e.g. "Literary Context:"
+    if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) {
+      paragraphs.push(
+        headingParagraph(line.trim(), 'Heading2', scheme.primary, fontName)
       );
       continue;
     }
@@ -678,6 +688,7 @@ function headingParagraph(
 ): Paragraph {
   return new Paragraph({
     style: headingId,
+    keepNext: true,
     children: [
       new TextRun({
         text,
