@@ -716,7 +716,9 @@ async function _imposeBooklet(contentBuffer: ArrayBuffer): Promise<ArrayBuffer> 
   let n = nContent;
   while (n % 4 !== 0) n++;
   const outDoc   = await PDFDocument.create();
-  const embedded = await outDoc.embedPdf(srcDoc);
+  const srcBytes = await srcDoc.save();
+  const allIndices = Array.from({ length: nContent }, (_, i) => i);
+  const embedded = await outDoc.embedPdf(srcBytes, allIndices);
   const PW = BOOKLET_PAGE.width;   // 396pt (5.5")
   const PH = BOOKLET_PAGE.height;  // 612pt (8.5")
   const SW = PW * 2;               // 792pt (11") landscape sheet width
