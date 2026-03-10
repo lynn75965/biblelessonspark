@@ -145,13 +145,13 @@ export async function buildSeriesPdf(
   function renderSubheading(text: string): void {
     const [r, g, b] = hexToRgb(scheme.primary);
     doc.setFont(pdfFont, 'bold');
-    doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize + 2);
+    doc.setFontSize(13);
     doc.setTextColor(r, g, b);
     ensureSpace(160);
     const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
     for (const line of lines) {
       doc.text(line, PAGE_MARGIN, currentY);
-      currentY += SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize + 6;
+      currentY += 19;
     }
     currentY += 4;
     resetStyle();
@@ -196,6 +196,13 @@ export async function buildSeriesPdf(
 
       if (line.trim() === '') {
         currentY += EXPORT_SPACING.paragraph.afterPt;
+        continue;
+      }
+
+      // Detect AI-generated checklist bullets: lines beginning with % (e.g. %- or %u00A1)
+      if (/^%/.test(line.trim())) {
+        const bulletText = '- ' + line.replace(/^%[^\s]*\s*/, '');
+        renderBodyText(bulletText);
         continue;
       }
 
