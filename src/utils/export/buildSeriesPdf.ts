@@ -147,7 +147,7 @@ export async function buildSeriesPdf(
     doc.setFont(pdfFont, 'bold');
     doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.chapterLabelSize + 2);
     doc.setTextColor(r, g, b);
-    ensureSpace(24);
+    ensureSpace(80);
     const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
     for (const line of lines) {
       doc.text(line, PAGE_MARGIN, currentY);
@@ -199,10 +199,19 @@ export async function buildSeriesPdf(
         continue;
       }
 
-      // FIX 2: Strip both **bold** and *italic* markdown markers
+      // Detect plain-text section labels: e.g. "Literary Context:"
+      // Short line, starts with capital, ends with colon, no markdown prefix
+      if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) {
+        ensureSpace(80);
+        renderSubheading(line.trim());
+        continue;
+      }
+
+      // FIX 2: Strip **bold** and *italic* markers; normalize Unicode bullets
       const plainText = line
         .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/\*([^*]+)\*/g, '$1');
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/[\u2022\u2023\u25E6\u2043\u2219\u00B7]/g, '-');
       renderBodyText(plainText);
     }
   }
