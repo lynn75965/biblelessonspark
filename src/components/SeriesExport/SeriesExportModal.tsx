@@ -320,7 +320,7 @@ export function SeriesExportModal({
               <fieldset>
                 <legend className="text-sm font-medium text-foreground mb-2">{SERIES_EXPORT_UI.formatLabel}</legend>
                 <div className="space-y-2">
-                  {(Object.values(SERIES_EXPORT_FORMATS) as SeriesExportFormat[]).map((fmt) => {
+                  {([SERIES_EXPORT_FORMATS.PDF, SERIES_EXPORT_FORMATS.DOCX] as SeriesExportFormat[]).map((fmt) => {
                     const isDisabled = isTrifold && fmt === SERIES_EXPORT_FORMATS.DOCX;
                     return (
                       <label
