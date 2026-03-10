@@ -143,18 +143,20 @@ export async function buildSeriesPdf(
 
   function renderBodyText(text: string, italic?: boolean): void {
     const [r, g, b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(pdfFont, italic ? 'italic' : 'normal');
+    doc.setFont(EXPORT_SPACING.fonts.pdf, italic ? 'italic' : 'normal');
     doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
 
-    const lines = doc.splitTextToSize(sanitizeForPdf(text), CONTENT_WIDTH) as string[];
+    const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
     const lineH = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
 
-    // Orphan prevention: if paragraph wraps to 2+ lines and fewer than 2 fit on
-    // this page, push the whole paragraph to the next page rather than leaving
-    // a single orphaned line at the bottom.
-    if (lines.length >= 2 && currentY + lineH * 2 > PAGE_BOTTOM) {
-      addPage();
+    // Widow prevention: if multiple lines and only 1 fits, advance page first
+    if (lines.length > 1) {
+      const spaceLeft = PAGE_BOTTOM - currentY;
+      const linesFit = Math.floor(spaceLeft / lineH);
+      if (linesFit < 2) {
+        addPage();
+      }
     }
 
     for (const line of lines) {
