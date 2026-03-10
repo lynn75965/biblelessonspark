@@ -1044,3 +1044,61 @@ Full platform vulnerability sweep covering financial integrity, subscription lif
 2. `doc.line()` calls in buildBookletPdf still use `BK_W - BK_M` for right end of horizontal rules instead of `BK_W - BK_OUTER`. Lines extend 10.8pt too far right.
 3. `buildSeriesExportFilename()` is bypassed for booklet exports -- downloaded file has no `_Booklet` suffix. Resolves automatically when violation 1 is fixed.
 
+---
+
+## SESSION LOG: March 10, 2026 (Evening) -- Open-Source Fonts + Modal Fixes
+
+### Commits
+- `442da51` -- FEATURE: Embed open-source fonts in PDF export -- Pagella, EBGaramond, Century Schoolbook, Carlito all render distinctly
+- `6a53654` -- FIX: SeriesExportModal -- wire SeriesExportProgress component, remove dead Crimson Text Google Fonts load
+
+### Open-Source Font Embedding (Series Export PDF)
+
+All five Series Export font choices now render distinctly in PDF output. Previously, four of five fonts mapped to jsPDF built-in Times-Roman, making font selection meaningful only in DOCX.
+
+**Root causes fixed:**
+1. `pdfFamily` values for pagella, garamond, crimson, calibri all mapped to 'times' or 'helvetica' -- no distinct rendering
+2. Line 150 bug in `buildSeriesPdf.ts`: `renderBodyText` used `EXPORT_SPACING.fonts.pdf` (hardcoded 'helvetica') instead of user-selected `pdfFont`
+
+**Files changed:**
+- `src/constants/seriesExportConfig.ts` -- Added `PdfFontFiles` interface and `pdfFontFiles` property to `FontOption`; updated `pdfFamily` for 4 fonts to registered names; renamed crimson slot label to Century Schoolbook
+- `src/utils/export/loadPdfFonts.ts` -- NEW: fetches TTF files from /fonts/, registers all 4 variants with jsPDF; no-op for built-in fonts
+- `src/utils/export/buildSeriesPdf.ts` -- Line 150 bug fixed; `loadPdfFonts` called in both `buildSeriesPdf()` and `buildBookletPdf()`
+- `public/fonts/` -- NEW: 16 TTF files (4 variants x 4 fonts): Pagella, EBGaramond, CrimsonPro (Century Schoolbook), Carlito
+
+**Font sources (all open-source, license-safe):**
+- TeX Gyre Pagella -- GUST Font License (Palatino substitute)
+- EB Garamond -- OFL (converted from OTF; no BoldItalic in package -- Bold used as substitute)
+- CrimsonPro slot -- URW C059 Century Schoolbook -- AFPL/GPL (all 4 variants clean)
+- Carlito -- Apache 2.0 (Calibri-compatible)
+- Times New Roman slot -- jsPDF built-in, no TTF needed
+
+**SSOT compliance:** `seriesExportConfig.ts` is sole authority for all font metadata. `buildSeriesDocx.ts` untouched -- already correct.
+
+**Deployment note:** 16 TTF files committed to git and served from `public/fonts/`. No CDN dependency. `loadPdfFonts.ts` fetches at export time -- parallel fetch, no impact on page load.
+
+### SeriesExportModal Fixes
+
+1. **SeriesExportProgress not rendering** -- Line 231 used bare `<p>` tag instead of `<SeriesExportProgress currentStepId={state.progressStepId} />`. Fixed.
+2. **Dead Google Fonts load** -- Crimson Text still loading from Google Fonts after font slot was renamed to Century Schoolbook (system font). Removed. EB Garamond still loads from Google Fonts for preview panel only.
+3. **audience_profile on LessonSeries** -- Investigated; `LessonSeries` type has no `audience_profile` field. Export pipeline correctly falls back to `resolveExportTerminology()` defaults. No change needed.
+
+### Workflow Notes
+
+- **Stale file in Downloads pattern:** `Copy-Item` and `[System.IO.File]::WriteAllText` both silently write the wrong version when a stale file with the same name exists in Downloads. Reliable fix: generate a Node `.cjs` script with the correct file content embedded via `JSON.stringify`, write via `fs.writeFileSync`. This is the proven method for ASCII-sensitive file writes.
+- **ASCII guard and em-dashes in existing repo files:** The deploy guard correctly blocks pre-existing non-ASCII in a file being staged. The em-dashes in the previous `SeriesExportModal.tsx` (commit `a990e65`) were never remediated. They are now gone -- the new file is ASCII-clean.
+
+### What Is NOT Yet Done
+
+- Font and color palette choices for Build Lesson (single-lesson export) -- next session task
+- `exportToPdf.ts` and `exportToDocx.ts` not yet wired to `loadPdfFonts` or color scheme picker
+- Single-lesson export modal has no font/color picker UI
+- PROJECT_MASTER.md WHAT'S NEXT update needed
+
+### WHAT'S NEXT
+
+1. **Build Lesson font and color palette** -- Extend font picker and color scheme picker to single-lesson export. Files needed: `exportToPdf.ts`, `exportToDocx.ts`, single-lesson export modal component. All font TTFs already deployed. `loadPdfFonts.ts` already exists. SSOT already has all definitions. Wiring only.
+2. **Admin UI feature flag toggles** -- Deferred post-launch
+3. **Frontend org creation / upgrade paths** -- Deferred
+4. **Multi-tenant migration** -- Phases 1-5, not started
+
