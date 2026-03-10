@@ -211,7 +211,9 @@ export async function buildSeriesPdf(
       const plainText = line
         .replace(/\*\*([^*]+)\*\*/g, '$1')
         .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/[\u2022\u2023\u25E6\u2043\u2219\u00B7]/g, '-');
+        .replace(/[\u2022\u2023\u25E6\u2043\u2219\u00B7\u00A1]/g, '-')
+        .replace(/%[-]/g, '- ')
+        .replace(/^%\s*/g, '- ');
       renderBodyText(plainText);
     }
   }
