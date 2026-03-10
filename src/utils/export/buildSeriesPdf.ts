@@ -63,6 +63,20 @@ function sanitizeForPdf(text: string): string {
     .replace(/[\u2013]/g, '--')
     .replace(/[\u2014]/g, '---')
     .replace(/[\u2026]/g, '...')
+    .replace(/[\u2192\u21D2]/g, '->')
+    .replace(/[\u2190\u21D0]/g, '<-')
+    .replace(/[\u2191]/g, '^')
+    .replace(/[\u2193]/g, 'v')
+    .replace(/[\u00D7]/g, 'x')
+    .replace(/[\u00F7]/g, '/')
+    .replace(/[\u00B1]/g, '+/-')
+    .replace(/[\u2248]/g, '~')
+    .replace(/[\u2260]/g, '!=')
+    .replace(/[\u2264]/g, '<=')
+    .replace(/[\u2265]/g, '>=')
+    .replace(/[\u00BD]/g, '1/2')
+    .replace(/[\u00BC]/g, '1/4')
+    .replace(/[\u00BE]/g, '3/4')
     .replace(/[^\x00-\x7F]/g, '');
 }
 
@@ -135,6 +149,13 @@ export async function buildSeriesPdf(
 
     const lines = doc.splitTextToSize(sanitizeForPdf(text), CONTENT_WIDTH) as string[];
     const lineH = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+
+    // Orphan prevention: if paragraph wraps to 2+ lines and fewer than 2 fit on
+    // this page, push the whole paragraph to the next page rather than leaving
+    // a single orphaned line at the bottom.
+    if (lines.length >= 2 && currentY + lineH * 2 > PAGE_BOTTOM) {
+      addPage();
+    }
 
     for (const line of lines) {
       ensureSpace(lineH);
@@ -564,7 +585,8 @@ export async function buildBookletPdf(
       if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
       if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'')); continue; }
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkEnsure(50); bkSubhead(line.trim()); continue; }
-      bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')));
+      if (/^>\s*/.test(line.trim())) { bkBody(sanitizeForPdf(line.replace(/^>\s*/,''))); continue; }
+      bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/_([^_]+)_/g,'$1')));
     }
   }
 

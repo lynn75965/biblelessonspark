@@ -236,6 +236,13 @@ export function SeriesExportModal({
           </div>
         )}
 
+        {!state.isExporting && (series.lesson_summaries?.length ?? 0) >= 10 && (
+          <div role="note" className="mb-4 px-4 py-3 rounded-md bg-amber-50 border border-amber-200 text-sm text-amber-800">
+            <span className="font-medium">Large series detected ({series.lesson_summaries?.length} lessons).</span>
+            {' '}Building this export may take 30\u201360 seconds. Please keep this tab active until the download begins. You can proceed normally.
+          </div>
+        )}
+
         {!state.isExporting && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
