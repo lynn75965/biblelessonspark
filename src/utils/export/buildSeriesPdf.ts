@@ -52,6 +52,19 @@ const PAGE_MARGIN = 72;
 const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
 const PAGE_BOTTOM   = PAGE_HEIGHT - PAGE_MARGIN;
 
+/** Strip characters jsPDF built-in fonts cannot render. */
+function sanitizeForPdf(text: string): string {
+  return text
+    .replace(/[\u2610\u2611\u2612\u2713\u2714\u2717\u2718]/g, '')
+    .replace(/[\u2022\u2023\u25E6\u2043\u2219\u00B7\u00A1]/g, '-')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"' )
+    .replace(/[\u2013]/g, '--')
+    .replace(/[\u2014]/g, '---')
+    .replace(/[\u2026]/g, '...')
+    .replace(/[^\x00-\x7F]/g, '');
+}
+
 function hexToRgb(hex: string): [number, number, number] {
   const n = parseInt(hex.replace('#', ''), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -119,7 +132,7 @@ export async function buildSeriesPdf(
     doc.setFontSize(EXPORT_SPACING.body.fontPt);
     doc.setTextColor(r, g, b);
 
-    const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
+    const lines = doc.splitTextToSize(sanitizeForPdf(text), CONTENT_WIDTH) as string[];
     const lineH = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
 
     for (const line of lines) {
@@ -148,7 +161,7 @@ export async function buildSeriesPdf(
     doc.setFontSize(13);
     doc.setTextColor(r, g, b);
     ensureSpace(160);
-    const lines = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
+    const lines = doc.splitTextToSize(sanitizeForPdf(text), CONTENT_WIDTH) as string[];
     for (const line of lines) {
       doc.text(line, PAGE_MARGIN, currentY);
       currentY += 19;
@@ -236,7 +249,7 @@ export async function buildSeriesPdf(
   doc.setFont(pdfFont, 'bold');
   doc.setFontSize(SERIES_COVER_TYPOGRAPHY.titleSize);
   doc.setTextColor(tr, tg, tb);
-  const titleLines = doc.splitTextToSize(coverData.seriesTitle, CONTENT_WIDTH) as string[];
+  const titleLines = doc.splitTextToSize(sanitizeForPdf(coverData.seriesTitle), CONTENT_WIDTH) as string[];
   for (const tl of titleLines) {
     doc.text(tl, PAGE_WIDTH / 2, currentY, { align: 'center' });
     currentY += SERIES_COVER_TYPOGRAPHY.titleSize + 4;
@@ -264,7 +277,6 @@ export async function buildSeriesPdf(
   const metaLines = [
     coverData.teacherLine,
     coverData.churchLine,
-    coverData.dateRangeLine,
     coverData.lessonCountLine,
   ].filter((l): l is string => l !== null);
 
@@ -332,7 +344,7 @@ export async function buildSeriesPdf(
     doc.setFont(pdfFont, 'bold');
     doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.titleSize);
     doc.setTextColor(ct_r, ct_g, ct_b);
-    const ctLines = doc.splitTextToSize(creativeTitle, CONTENT_WIDTH) as string[];
+    const ctLines = doc.splitTextToSize(sanitizeForPdf(creativeTitle), CONTENT_WIDTH) as string[];
     for (const ctl of ctLines) {
       doc.text(ctl, PAGE_MARGIN, currentY);
       currentY += SERIES_CHAPTER_TYPOGRAPHY.titleSize + 4;
