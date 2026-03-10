@@ -505,8 +505,9 @@ export async function buildBookletPdf(
 ): Promise<ArrayBuffer> {
   const BK_W     = BOOKLET_PAGE.width;        // 396pt = 5.5"
   const BK_H     = BOOKLET_PAGE.height;       // 612pt = 8.5"
-  const BK_M     = BOOKLET_PAGE.marginLeft;   // 54pt inner margin
-  const BK_CW    = BK_W - BK_M * 2;          // content width
+  const BK_M     = BOOKLET_PAGE.marginLeft;   // 18pt spine/inner margin (0.25")
+  const BK_OUTER = BOOKLET_PAGE.marginRight;  // 28.8pt outer margin (0.40")
+  const BK_CW    = BK_W - BK_M - BK_OUTER;   // content width 349.2pt
   const BK_BOT   = BK_H - BOOKLET_PAGE.marginBottom;
 
   const scheme   = getColorScheme(options.colorSchemeId);
@@ -514,12 +515,12 @@ export async function buildBookletPdf(
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [BK_W, BK_H] });
 
-  let cy = BK_M;
+  let cy = BOOKLET_PAGE.marginTop;
   let cp = 1;
   const lessonRanges: { label: string; startPage: number; endPage: number }[] = [];
   const fmPages: number[] = [];
 
-  function bkPage(): void { doc.addPage([BK_W, BK_H], 'portrait'); cy = BK_M; cp++; }
+  function bkPage(): void { doc.addPage([BK_W, BK_H], 'portrait'); cy = BOOKLET_PAGE.marginTop; cp++; }
   function bkEnsure(h: number): void { if (cy + h > BK_BOT) bkPage(); }
   function bkReset(): void {
     const [r,g,b] = hexToRgb(EXPORT_SPACING.colors.bodyText);

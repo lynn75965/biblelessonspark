@@ -227,10 +227,10 @@ export const FULLPAGE_PDF = {
 export const BOOKLET_PAGE = {
   width:        396,
   height:       612,
-  marginTop:    54,
-  marginBottom: 54,
-  marginLeft:   54,
-  marginRight:  43.2,
+  marginTop:    28.8,
+  marginBottom: 28.8,
+  marginLeft:   18,
+  marginRight:  28.8,
 } as const;
 
 // ============================================================================
