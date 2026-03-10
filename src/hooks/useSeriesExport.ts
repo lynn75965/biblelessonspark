@@ -11,6 +11,7 @@ import {
   SeriesExportOptions,
   SeriesExportFormat,
   SERIES_EXPORT_FORMATS,
+  SERIES_EXPORT_LAYOUTS,
   SERIES_EXPORT_PROGRESS_STEPS,
   SeriesExportProgressStepId,
   buildSeriesExportFilename,
@@ -89,7 +90,7 @@ export function useSeriesExport(): UseSeriesExportReturn {
 
         if (options.format === SERIES_EXPORT_FORMATS.DOCX) {
           buffer = await buildSeriesDocx(series, orderedLessons, options, setStep);
-        } else if (options.format === SERIES_EXPORT_FORMATS.BOOKLET) {
+        } else if (options.format === SERIES_EXPORT_FORMATS.BOOKLET || options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET) {
           buffer = await buildBookletPdf(series, orderedLessons, options, setStep);
         } else {
           buffer = await buildSeriesPdf(series, orderedLessons, options, setStep);
