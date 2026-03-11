@@ -1216,7 +1216,7 @@ export function EnhanceLessonForm({
                 <div className="flex items-start gap-3">
                   <Sparkles className="h-6 w-6 text-primary shrink-0" />
                   <div>
-                    <h3 className="font-semibold text-foreground">Welcome! Create your first lesson in 3 simple steps.</h3>
+                    <h3 className="font-semibold text-foreground">Welcome! Create your lesson in 3 simple steps.</h3>
                     <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
                   </div>
                 </div>
