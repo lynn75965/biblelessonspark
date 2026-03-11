@@ -3,36 +3,22 @@
  * SSOT COMPLIANT: All values imported from lessonStructure.ts + emailDeliveryConfig.ts
  * NO hardcoded spacing/font values - frontend drives backend
  *
- * Updated: 2026-02-01
- * - Removed Share dropdown (replaced by dedicated Email button)
- * - Added Email button with tier gating (paid subscribers only)
- * - Simplified to 4 buttons: Copy | Print | Download | Email
- * - EmailLessonDialog handles recipient input and sending
+ * Updated: 2026-03-11
+ * - Download button now opens LessonExportModal (font + color scheme + format picker)
+ * - Removed inline PDF/DOCX export handlers; modal owns all download logic
+ * - Copy, Print, and Email buttons unchanged
  */
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Copy,
   Printer,
   Download,
-  FileText,
-  FileType,
-  ChevronDown,
   Check,
-  Loader2,
   Mail,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { exportToPdf } from "@/utils/exportToPdf";
-import { exportToDocx } from "@/utils/exportToDocx";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "@/constants/lessonStructure";
 import {
   formatLessonContentForPrint,
@@ -41,8 +27,9 @@ import {
 } from "@/utils/formatLessonContent";
 import { EMAIL_DELIVERY_CONFIG } from "@/constants/emailDeliveryConfig";
 import { EmailLessonDialog } from "@/components/EmailLessonDialog";
+import { LessonExportModal } from "@/components/dashboard/LessonExportModal";
 
-// Destructure SSOT values
+// Destructure SSOT values (used by Copy and Print)
 const {
   fonts,
   margins,
@@ -90,28 +77,27 @@ export function LessonExportButtons({
   isPaidUser = false,
   senderName = "",
 }: LessonExportButtonsProps) {
-  const [copied, setCopied] = useState(false);
-  const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [copied,           setCopied]           = useState(false);
+  const [emailDialogOpen,  setEmailDialogOpen]  = useState(false);
+  const [exportModalOpen,  setExportModalOpen]  = useState(false);
   const { toast } = useToast();
-
-  const getCopyrightLine = (): string => {
-    if (lesson.metadata?.copyrightNotice) return lesson.metadata.copyrightNotice;
-    if (lesson.metadata?.bibleVersion) {
-      if (lesson.metadata.copyrightStatus === "public_domain") {
-        return `Scripture quotations are from the ${lesson.metadata.bibleVersion} (${lesson.metadata.bibleVersionAbbreviation || ""}).`;
-      }
-      return `Scripture quotations are from the ${lesson.metadata.bibleVersion}.`;
-    }
-    return "";
-  };
 
   // ================================================================
   // COPY -- rich HTML + plain text to clipboard
   // ================================================================
   const handleCopy = async () => {
     try {
-      const copyrightLine = getCopyrightLine();
+      const copyrightLine = (() => {
+        if (lesson.metadata?.copyrightNotice) return lesson.metadata.copyrightNotice;
+        if (lesson.metadata?.bibleVersion) {
+          if (lesson.metadata.copyrightStatus === "public_domain") {
+            return `Scripture quotations are from the ${lesson.metadata.bibleVersion} (${lesson.metadata.bibleVersionAbbreviation || ""}).`;
+          }
+          return `Scripture quotations are from the ${lesson.metadata.bibleVersion}.`;
+        }
+        return "";
+      })();
+
       let plainText = `${lesson.title}\n${"=".repeat(50)}\n\n`;
       if (lesson.metadata?.teaser) {
         plainText += `${EXPORT_FORMATTING.teaserLabel}:\n${lesson.metadata.teaser}\n\n${"-".repeat(50)}\n\n`;
@@ -136,8 +122,8 @@ export function LessonExportButtons({
       if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
         await navigator.clipboard.write([
           new ClipboardItem({
-            "text/html": new Blob([richHtml], { type: "text/html" }),
-            "text/plain": new Blob([plainText], { type: "text/plain" }),
+            "text/html":  new Blob([richHtml],    { type: "text/html" }),
+            "text/plain": new Blob([plainText],   { type: "text/plain" }),
           }),
         ]);
       } else {
@@ -145,10 +131,7 @@ export function LessonExportButtons({
       }
       setCopied(true);
       if (onExport) onExport();
-      toast({
-        title: "Copied to clipboard",
-        description: "Paste into Word, Docs, or email.",
-      });
+      toast({ title: "Copied to clipboard", description: "Paste into Word, Docs, or email." });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       try {
@@ -156,17 +139,10 @@ export function LessonExportButtons({
           `${lesson.title}\n\n${stripMarkdown(lesson.original_text)}`
         );
         setCopied(true);
-        toast({
-          title: "Copied to clipboard",
-          description: "Lesson content copied.",
-        });
+        toast({ title: "Copied to clipboard", description: "Lesson content copied." });
         setTimeout(() => setCopied(false), 2000);
       } catch (e) {
-        toast({
-          title: "Copy failed",
-          description: "Unable to copy.",
-          variant: "destructive",
-        });
+        toast({ title: "Copy failed", description: "Unable to copy.", variant: "destructive" });
       }
     }
   };
@@ -177,18 +153,13 @@ export function LessonExportButtons({
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      toast({
-        title: "Print blocked",
-        description: "Please allow pop-ups.",
-        variant: "destructive",
-      });
+      toast({ title: "Print blocked", description: "Please allow pop-ups.", variant: "destructive" });
       return;
     }
 
     const metaItems: string[] = [];
-    if (lesson.metadata?.ageGroup) metaItems.push(lesson.metadata.ageGroup);
-    if (lesson.metadata?.theologyProfile)
-      metaItems.push(lesson.metadata.theologyProfile);
+    if (lesson.metadata?.ageGroup)        metaItems.push(lesson.metadata.ageGroup);
+    if (lesson.metadata?.theologyProfile) metaItems.push(lesson.metadata.theologyProfile);
 
     const formattedContent = formatLessonContentForPrint(lesson.original_text);
 
@@ -205,30 +176,38 @@ export function LessonExportButtons({
       : "";
 
     // Split at Section 8 / Student Handout for standalone page
-    // Matches original ("Section 8: Student Handout") and shaped variants ("STUDENT HANDOUT", "Student Experience: Title", etc.)
     const section8Regex =
       /<strong[^>]*>Section\s*8[:\s\-\u2013\u2014]*(?:Student\s*(?:Handout|Experience|Material|Section))?[^<]*<\/strong>/i;
     const handoutHeadingRegex =
-      /<(?:h[1-3]|strong)[^>]*>\s*(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))[^<]*<\/(?:h[1-3]|strong)>/i;
-    const section8Match = formattedContent.match(section8Regex) || formattedContent.match(handoutHeadingRegex);
+      /<strong[^>]*>(?:STUDENT\s+HANDOUT|Student\s+(?:Handout|Experience|Material|Section|Work|Guide|Page|Worksheet))[^<]*<\/strong>/i;
 
-    let mainContent = formattedContent;
-    let section8Content = "";
+    const section8Index = (() => {
+      const s8 = formattedContent.search(section8Regex);
+      const hh = formattedContent.search(handoutHeadingRegex);
+      if (s8 === -1 && hh === -1) return -1;
+      if (s8 === -1) return hh;
+      if (hh === -1) return s8;
+      return Math.min(s8, hh);
+    })();
 
-    if (section8Match) {
-      const idx = formattedContent.indexOf(section8Match[0]);
-      mainContent = formattedContent.substring(0, idx);
-      section8Content = formattedContent
-        .substring(idx)
-        .replace(section8Match[0], "");
-    }
+    const mainContent    = section8Index > -1 ? formattedContent.slice(0, section8Index) : formattedContent;
+    const section8Content = section8Index > -1 ? formattedContent.slice(section8Index)   : '';
 
-    const copyrightLine = getCopyrightLine();
+    const copyrightLine = (() => {
+      if (lesson.metadata?.copyrightNotice) return lesson.metadata.copyrightNotice;
+      if (lesson.metadata?.bibleVersion) {
+        if (lesson.metadata.copyrightStatus === "public_domain") {
+          return `Scripture quotations are from the ${lesson.metadata.bibleVersion} (${lesson.metadata.bibleVersionAbbreviation || ""}).`;
+        }
+        return `Scripture quotations are from the ${lesson.metadata.bibleVersion}.`;
+      }
+      return "";
+    })();
+
     const copyrightHtml = copyrightLine
       ? `<div class="copyright">${copyrightLine}</div>`
       : "";
 
-    // CSS uses ALL SSOT values - no hardcoding
     const printContent = `<!DOCTYPE html><html><head>
 <title>${documentTitle} - ${EXPORT_FORMATTING.footerText}</title>
 <style>
@@ -271,76 +250,12 @@ ${copyrightHtml}
   };
 
   // ================================================================
-  // PDF EXPORT
-  // ================================================================
-  const handleExportPdf = async () => {
-    setExporting("pdf");
-    try {
-      await exportToPdf({
-        title: lesson.title,
-        content: lesson.original_text,
-        teaserContent: lesson.metadata?.teaser || undefined,
-        metadata: {
-          passage: lesson.title,
-          ageGroup: lesson.metadata?.ageGroup,
-          theology: lesson.metadata?.theologyProfile,
-          bibleVersion: lesson.metadata?.bibleVersion,
-          bibleVersionAbbreviation: lesson.metadata?.bibleVersionAbbreviation,
-          copyrightNotice: lesson.metadata?.copyrightNotice || undefined,
-        },
-      });
-      if (onExport) onExport();
-      toast({ title: "PDF exported", description: "Downloaded." });
-    } catch (error) {
-      toast({
-        title: "Export failed",
-        description: "Unable to export PDF.",
-        variant: "destructive",
-      });
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  // ================================================================
-  // DOCX EXPORT
-  // ================================================================
-  const handleExportDocx = async () => {
-    setExporting("docx");
-    try {
-      await exportToDocx({
-        title: lesson.title,
-        content: lesson.original_text,
-        teaserContent: lesson.metadata?.teaser || undefined,
-        metadata: {
-          passage: lesson.title,
-          ageGroup: lesson.metadata?.ageGroup,
-          theology: lesson.metadata?.theologyProfile,
-          bibleVersion: lesson.metadata?.bibleVersion,
-          bibleVersionAbbreviation: lesson.metadata?.bibleVersionAbbreviation,
-          copyrightNotice: lesson.metadata?.copyrightNotice || undefined,
-        },
-      });
-      if (onExport) onExport();
-      toast({ title: "Document exported", description: "Downloaded." });
-    } catch (error) {
-      toast({
-        title: "Export failed",
-        description: "Unable to export document.",
-        variant: "destructive",
-      });
-    } finally {
-      setExporting(null);
-    }
-  };
-
-  // ================================================================
   // EMAIL -- tier-gated, opens dialog for paid users
   // ================================================================
   const handleEmailClick = () => {
     if (!isPaidUser) {
       toast({
-        title: EMAIL_DELIVERY_CONFIG.labels.upgradeTitle,
+        title:       EMAIL_DELIVERY_CONFIG.labels.upgradeTitle,
         description: EMAIL_DELIVERY_CONFIG.labels.upgradeMessage,
       });
       return;
@@ -355,12 +270,7 @@ ${copyrightHtml}
     <>
       <div className="flex flex-wrap gap-2">
         {/* COPY */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCopy}
-          disabled={disabled}
-        >
+        <Button variant="outline" size="sm" onClick={handleCopy} disabled={disabled}>
           {copied ? (
             <Check className="h-4 w-4 mr-1.5" />
           ) : (
@@ -381,41 +291,16 @@ ${copyrightHtml}
           Print
         </Button>
 
-        {/* DOWNLOAD (PDF / DOCX) */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={disabled || exporting !== null}
-            >
-              {exporting ? (
-                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-1.5" />
-              )}
-              Download
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              onClick={handleExportPdf}
-              disabled={exporting !== null}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              PDF
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={handleExportDocx}
-              disabled={exporting !== null}
-            >
-              <FileType className="h-4 w-4 mr-2" />
-              Document (DOCX)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* DOWNLOAD -- opens font/color/format picker modal */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setExportModalOpen(true)}
+          disabled={disabled}
+        >
+          <Download className="h-4 w-4 mr-1.5" />
+          Download
+        </Button>
 
         {/* EMAIL */}
         <Button
@@ -430,7 +315,15 @@ ${copyrightHtml}
         </Button>
       </div>
 
-      {/* Email Dialog (portal - renders outside button row) */}
+      {/* Download modal -- font, color scheme, and format picker */}
+      <LessonExportModal
+        lesson={lesson}
+        open={exportModalOpen}
+        onOpenChange={setExportModalOpen}
+        onExport={onExport}
+      />
+
+      {/* Email dialog (portal - renders outside button row) */}
       <EmailLessonDialog
         open={emailDialogOpen}
         onOpenChange={setEmailDialogOpen}

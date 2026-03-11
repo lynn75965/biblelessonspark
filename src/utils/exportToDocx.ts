@@ -1,14 +1,15 @@
 // src/utils/exportToDocx.ts
-// SSOT COMPLIANT: All values imported from lessonStructure.ts
-// Version: 2.6.0 - Standalone Student Handout title, broadened detection, skip bare # markers
+// Version: 3.0.0 - Font and color scheme picker support
+// SSOT COMPLIANT: All spacing values from lessonStructure.ts
+//                 All fonts/color schemes from seriesExportConfig.ts
 
-import { 
-  Document, 
-  Packer, 
-  Paragraph, 
-  TextRun, 
-  AlignmentType, 
-  BorderStyle, 
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  AlignmentType,
+  BorderStyle,
   PageBreak,
   Footer,
   PageNumber
@@ -17,9 +18,24 @@ import { saveAs } from "file-saver";
 import { EXPORT_FORMATTING, EXPORT_SPACING, getSection8StandaloneTitle } from "../constants/lessonStructure";
 import type { AudienceProfile } from "../constants/audienceConfig";
 import { STUDENT_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
+import type { FontId, ColorSchemeId, ColorScheme } from "../constants/seriesExportConfig";
+import { getFontOption, getColorScheme } from "../constants/seriesExportConfig";
 
-// SSOT destructure - includes fonts
-const { fonts, margins, sectionHeader, body, title, sectionHeaderFont, metadata, teaser, paragraph, listItem, footer, colors } = EXPORT_SPACING;
+// SSOT destructure
+const {
+  fonts,
+  margins,
+  sectionHeader,
+  body,
+  title,
+  sectionHeaderFont,
+  metadata,
+  teaser,
+  paragraph,
+  listItem,
+  footer,
+  colors,
+} = EXPORT_SPACING;
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -31,7 +47,7 @@ const { fonts, margins, sectionHeader, body, title, sectionHeaderFont, metadata,
 function cleanAllMarkdown(text: string): string {
   if (!text) return '';
   let result = text.trim();
-  
+
   while (result.startsWith('**') || result.startsWith('__')) {
     if (result.startsWith('**')) result = result.slice(2);
     if (result.startsWith('__')) result = result.slice(2);
@@ -40,7 +56,7 @@ function cleanAllMarkdown(text: string): string {
     if (result.endsWith('**')) result = result.slice(0, -2);
     if (result.endsWith('__')) result = result.slice(0, -2);
   }
-  
+
   result = result.replace(/^#{1,6}\s*/, '');
   return result.trim();
 }
@@ -50,31 +66,27 @@ function cleanAllMarkdown(text: string): string {
  */
 function detectSectionHeader(line: string): { isSection: boolean; num: number; cleanTitle: string } {
   const cleaned = cleanAllMarkdown(line);
-  const match = cleaned.match(/^Section\s+(\d+)\s*[:\----]?\s*(.*)$/i);
-  
+  const match   = cleaned.match(/^Section\s+(\d+)\s*[:\----]?\s*(.*)$/i);
+
   if (match) {
-    const num = parseInt(match[1], 10);
+    const num      = parseInt(match[1], 10);
     const subtitle = match[2] ? match[2].trim() : '';
     return {
-      isSection: true,
-      num: num,
+      isSection:  true,
+      num:        num,
       cleanTitle: subtitle ? `Section ${num}: ${subtitle}` : `Section ${num}`
     };
   }
-  
+
   return { isSection: false, num: 0, cleanTitle: '' };
 }
 
 /**
  * Detect Section 8 / Student Handout heading
- * Matches original format ("Section 8: Student Handout") and shaped variants
- * ("STUDENT HANDOUT", "Student Experience", "Student Material", etc.)
  */
 function isSection8Line(line: string): boolean {
   const cleaned = cleanAllMarkdown(line);
-  // Original format: "Section 8: Student Handout"
   if (/^Section\s+8/i.test(cleaned)) return true;
-  // Shaped formats: "STUDENT HANDOUT", "Student Experience: Title", etc.
   if (STUDENT_HANDOUT_HEADING_REGEX.test(cleaned)) return true;
   return false;
 }
@@ -86,7 +98,7 @@ function extractDocTitle(content: string): string | null {
   const lines = content.split('\n');
   for (const line of lines) {
     const cleaned = cleanAllMarkdown(line);
-    const match = cleaned.match(/^Lesson\s+Title[:\s]*[""]?(.+?)[""]?\s*$/i);
+    const match   = cleaned.match(/^Lesson\s+Title[:\s]*[""]?(.+?)[""]?\s*$/i);
     if (match) {
       return match[1].replace(/[""\*#]/g, '').trim();
     }
@@ -95,113 +107,117 @@ function extractDocTitle(content: string): string | null {
 }
 
 /**
- * Create styled teaser box - SSOT fonts/colors/spacing
+ * Create styled teaser box -- scheme accent for borders/text
  */
-function buildTeaserBox(teaserText: string): Paragraph[] {
+function buildTeaserBox(teaserText: string, docxFont: string, accentColor: string): Paragraph[] {
   return [
     new Paragraph({
-      children: [new TextRun({ 
-        text: EXPORT_FORMATTING.teaserLabel, 
-        bold: true, 
-        color: colors.teaserText, 
-        size: teaser.fontHalfPt,
-        font: fonts.docx
+      children: [new TextRun({
+        text:  EXPORT_FORMATTING.teaserLabel,
+        bold:  true,
+        color: accentColor,
+        size:  teaser.fontHalfPt,
+        font:  docxFont,
       })],
-      shading: { fill: colors.teaserBg },
-      spacing: { before: teaser.marginBeforeTwips, after: paragraph.afterTwips },
+      shading:  { fill: colors.teaserBg },
+      spacing:  { before: teaser.marginBeforeTwips, after: paragraph.afterTwips },
       border: {
-        top: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
-        left: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
-        right: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE }
-      }
+        top:   { color: accentColor, size: 6, style: BorderStyle.SINGLE },
+        left:  { color: accentColor, size: 6, style: BorderStyle.SINGLE },
+        right: { color: accentColor, size: 6, style: BorderStyle.SINGLE },
+      },
     }),
     new Paragraph({
-      children: [new TextRun({ 
-        text: teaserText, 
-        italics: true, 
-        size: body.fontHalfPt,
-        font: fonts.docx
+      children: [new TextRun({
+        text:    teaserText,
+        italics: true,
+        size:    body.fontHalfPt,
+        font:    docxFont,
       })],
       spacing: { after: teaser.marginAfterTwips },
       shading: { fill: colors.teaserBg },
       border: {
-        bottom: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
-        left: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE },
-        right: { color: colors.teaserBorder, size: 6, style: BorderStyle.SINGLE }
-      }
-    })
+        bottom: { color: accentColor, size: 6, style: BorderStyle.SINGLE },
+        left:   { color: accentColor, size: 6, style: BorderStyle.SINGLE },
+        right:  { color: accentColor, size: 6, style: BorderStyle.SINGLE },
+      },
+    }),
   ];
 }
 
 /**
- * Parse text with **bold** markers - SSOT font
+ * Parse text with **bold** markers
  */
-function buildTextRuns(text: string, fontSize: number = body.fontHalfPt): TextRun[] {
+function buildTextRuns(
+  text:     string,
+  fontSize: number = body.fontHalfPt,
+  docxFont: string = fonts.docx
+): TextRun[] {
   if (!text) return [];
-  
+
   const runs: TextRun[] = [];
-  let processedText = text.replace(/^#{1,6}\s*/, '');
-  const segments = processedText.split(/(\*\*[^*]+\*\*)/g);
-  
+  let processedText     = text.replace(/^#{1,6}\s*/, '');
+  const segments        = processedText.split(/(\*\*[^*]+\*\*)/g);
+
   for (const seg of segments) {
     if (!seg) continue;
-    
+
     if (seg.startsWith('**') && seg.endsWith('**')) {
       let boldText = seg.slice(2, -2);
-      boldText = boldText.replace(/^#{1,6}\s*/, '').trim();
+      boldText     = boldText.replace(/^#{1,6}\s*/, '').trim();
       if (boldText) {
-        runs.push(new TextRun({ 
-          text: boldText, 
-          bold: true, 
+        runs.push(new TextRun({
+          text: boldText,
+          bold: true,
           size: fontSize,
-          font: fonts.docx
+          font: docxFont,
         }));
       }
     } else {
-      runs.push(new TextRun({ 
-        text: seg, 
+      runs.push(new TextRun({
+        text: seg,
         size: fontSize,
-        font: fonts.docx
+        font: docxFont,
       }));
     }
   }
-  
+
   return runs;
 }
 
 /**
- * Create SINGLE-LINE page footer with page numbers and branding
+ * Create SINGLE-LINE page footer
  * Format: BibleLessonSpark.com  *  Page 1 of 7
  */
-function createPageFooter(): Footer {
+function createPageFooter(docxFont: string): Footer {
   return new Footer({
     children: [
       new Paragraph({
         alignment: AlignmentType.CENTER,
         children: [
           new TextRun({
-            text: EXPORT_FORMATTING.footerText + '  *  Page ',
-            size: footer.fontHalfPt,
+            text:  EXPORT_FORMATTING.footerText + '  *  Page ',
+            size:  footer.fontHalfPt,
             color: colors.footerText,
-            font: fonts.docx
+            font:  docxFont,
           }),
           new TextRun({
             children: [PageNumber.CURRENT],
-            size: footer.fontHalfPt,
-            color: colors.footerText,
-            font: fonts.docx
+            size:     footer.fontHalfPt,
+            color:    colors.footerText,
+            font:     docxFont,
           }),
           new TextRun({
-            text: ' of ',
-            size: footer.fontHalfPt,
+            text:  ' of ',
+            size:  footer.fontHalfPt,
             color: colors.footerText,
-            font: fonts.docx
+            font:  docxFont,
           }),
           new TextRun({
             children: [PageNumber.TOTAL_PAGES],
-            size: footer.fontHalfPt,
-            color: colors.footerText,
-            font: fonts.docx
+            size:     footer.fontHalfPt,
+            color:    colors.footerText,
+            font:     docxFont,
           }),
         ],
       }),
@@ -226,57 +242,73 @@ interface DocxExportOptions {
   };
   teaserContent?: string;
   audienceProfile?: AudienceProfile;
+  /** Font selection from seriesExportConfig SSOT (default: pagella) */
+  fontId?: FontId;
+  /** Color scheme from seriesExportConfig SSOT (default: forest_gold) */
+  colorSchemeId?: ColorSchemeId;
 }
 
 export const exportToDocx = async (options: DocxExportOptions): Promise<void> => {
-  const { title: inputTitle, content, metadata: meta, teaserContent, audienceProfile } = options;
-  
-  
+  const {
+    title: inputTitle,
+    content,
+    metadata: meta,
+    teaserContent,
+    audienceProfile,
+    fontId,
+    colorSchemeId,
+  } = options;
+
+  // Resolve font and color scheme from SSOT (defaults: Pagella + Forest & Gold)
+  const fontOpt  = getFontOption(fontId ?? null);
+  const scheme   = getColorScheme(colorSchemeId ?? null);
+  const docxFont = fontOpt.docxName;
+
   const lessonTitle = extractDocTitle(content);
-  const docTitle = lessonTitle || inputTitle;
-  
+  const docTitle    = lessonTitle || inputTitle;
+
   const paragraphs: Paragraph[] = [];
-  
-  // 1. DOCUMENT TITLE - SSOT font
+
+  // 1. DOCUMENT TITLE
   paragraphs.push(new Paragraph({
-    children: [new TextRun({ 
-      text: docTitle, 
-      bold: true, 
+    children: [new TextRun({
+      text: docTitle,
+      bold: true,
       size: title.fontHalfPt,
-      font: fonts.docx
+      font: docxFont,
     })],
-    spacing: { after: title.afterTwips }
+    spacing: { after: title.afterTwips },
   }));
-  
-  // 2. METADATA LINE - SSOT font
+
+  // 2. METADATA LINE
   if (meta) {
     const parts: string[] = [];
     if (meta.ageGroup) parts.push(meta.ageGroup);
     if (meta.theology) parts.push(meta.theology);
     if (parts.length > 0) {
       paragraphs.push(new Paragraph({
-        children: [new TextRun({ 
-          text: parts.join('  |  '), 
-          size: metadata.fontHalfPt, 
+        children: [new TextRun({
+          text:  parts.join('  |  '),
+          size:  metadata.fontHalfPt,
           color: colors.metaText,
-          font: fonts.docx
+          font:  docxFont,
         })],
-        spacing: { after: metadata.afterTwips }
+        spacing: { after: metadata.afterTwips },
       }));
     }
   }
-  
+
   // 3. STUDENT TEASER AT TOP
   if (teaserContent && teaserContent.trim()) {
-    paragraphs.push(...buildTeaserBox(teaserContent));
+    paragraphs.push(...buildTeaserBox(teaserContent, docxFont, scheme.accent));
   }
-  
+
   // 4. SPLIT CONTENT AT SECTION 8
-  const allLines = content.split('\n');
-  const mainLines: string[] = [];
+  const allLines:      string[] = content.split('\n');
+  const mainLines:     string[] = [];
   const section8Lines: string[] = [];
   let foundSection8 = false;
-  
+
   for (const line of allLines) {
     if (isSection8Line(line)) {
       foundSection8 = true;
@@ -287,100 +319,106 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       mainLines.push(line);
     }
   }
-  
-  // 5. PROCESS MAIN CONTENT (Sections 1-7)
-  for (const line of mainLines) {
-    const trimmed = line.trim();
-    
-    if (!trimmed || trimmed === '---') continue;
-    if (/^#{1,3}$/.test(trimmed)) continue; // Skip bare heading markers from shaped content
-    if (/Lesson\s+Title/i.test(cleanAllMarkdown(trimmed))) continue;
-    
+
+  // ---- Shared line renderer ----
+  const renderLine = (trimmed: string): void => {
+    if (!trimmed || trimmed === '---') return;
+    if (/^#{1,3}$/.test(trimmed)) return;  // skip bare heading markers
+    if (/Lesson\s+Title/i.test(cleanAllMarkdown(trimmed))) return;
+
     const sectionInfo = detectSectionHeader(trimmed);
     if (sectionInfo.isSection) {
       paragraphs.push(new Paragraph({
-        children: [new TextRun({ 
-          text: sectionInfo.cleanTitle, 
-          bold: true, 
-          size: sectionHeaderFont.fontHalfPt,
-          font: fonts.docx
+        children: [new TextRun({
+          text:  sectionInfo.cleanTitle,
+          bold:  true,
+          size:  sectionHeaderFont.fontHalfPt,
+          color: scheme.primary,
+          font:  docxFont,
         })],
-        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips },
       }));
-      continue;
+      return;
     }
-    
+
     const withoutBold = trimmed.replace(/^\*\*/, '').replace(/\*\*$/, '');
     if (withoutBold.startsWith('#')) {
       const headerText = cleanAllMarkdown(trimmed);
       paragraphs.push(new Paragraph({
-        children: [new TextRun({ 
-          text: headerText, 
-          bold: true, 
-          size: body.fontHalfPt,
-          font: fonts.docx
+        children: [new TextRun({
+          text:  headerText,
+          bold:  true,
+          size:  body.fontHalfPt,
+          color: scheme.primary,
+          font:  docxFont,
         })],
-        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips },
       }));
-      continue;
+      return;
     }
-    
-    // Detect standalone ## / # headings from shaped content (e.g., "## Focus", "# Title")
+
+    // Standalone ## / # headings from shaped content
     if (/^#{1,3}\s+/.test(trimmed)) {
       const headerText = trimmed.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').trim();
       paragraphs.push(new Paragraph({
-        children: [new TextRun({ 
-          text: headerText, 
-          bold: true, 
-          size: body.fontHalfPt,
-          font: fonts.docx
+        children: [new TextRun({
+          text:  headerText,
+          bold:  true,
+          size:  body.fontHalfPt,
+          color: scheme.primary,
+          font:  docxFont,
         })],
-        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips },
       }));
-      continue;
+      return;
     }
-    
-    // Detect standalone bold headings from shaped content (e.g., "**Focus**", "**Key Passages:**")
-    // These are short lines wrapped entirely in ** markers (or unclosed **)
+
+    // Standalone bold headings from shaped content
     if (/^\*\*[^*]+\*?\*?:?\s*$/.test(trimmed) && trimmed.length < 80) {
       const headerText = trimmed.replace(/\*\*/g, '').trim();
       paragraphs.push(new Paragraph({
-        children: [new TextRun({ 
-          text: headerText, 
-          bold: true, 
-          size: body.fontHalfPt,
-          font: fonts.docx
+        children: [new TextRun({
+          text:  headerText,
+          bold:  true,
+          size:  body.fontHalfPt,
+          color: scheme.primary,
+          font:  docxFont,
         })],
-        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
+        spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips },
       }));
-      continue;
+      return;
     }
-    
+
     if (/^[-**]\s/.test(trimmed)) {
       const bulletText = trimmed.replace(/^[-**]\s*/, '');
       paragraphs.push(new Paragraph({
-        children: buildTextRuns(bulletText),
-        bullet: { level: 0 },
-        spacing: { after: listItem.afterTwips }
+        children: buildTextRuns(bulletText, body.fontHalfPt, docxFont),
+        bullet:   { level: 0 },
+        spacing:  { after: listItem.afterTwips },
       }));
-      continue;
+      return;
     }
-    
+
     if (/^\d+[.)]\s/.test(trimmed)) {
       const itemText = trimmed.replace(/^\d+[.)]\s*/, '');
       paragraphs.push(new Paragraph({
-        children: buildTextRuns(itemText),
-        spacing: { after: listItem.afterTwips }
+        children: buildTextRuns(itemText, body.fontHalfPt, docxFont),
+        spacing:  { after: listItem.afterTwips },
       }));
-      continue;
+      return;
     }
-    
+
     paragraphs.push(new Paragraph({
-      children: buildTextRuns(trimmed),
-      spacing: { after: paragraph.afterTwips }
+      children: buildTextRuns(trimmed, body.fontHalfPt, docxFont),
+      spacing:  { after: paragraph.afterTwips },
     }));
+  };
+
+  // 5. PROCESS MAIN CONTENT (Sections 1-7)
+  for (const line of mainLines) {
+    renderLine(line.trim());
   }
-  
+
   // 6. COPYRIGHT NOTICE (end of main content, before Section 8)
   let copyright = '';
   if (meta?.copyrightNotice) {
@@ -388,155 +426,84 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
   } else if (meta?.bibleVersion) {
     copyright = `Scripture quotations are from the ${meta.bibleVersion}${meta.bibleVersionAbbreviation ? ` (${meta.bibleVersionAbbreviation})` : ''}.`;
   }
-  
+
   if (copyright) {
     paragraphs.push(new Paragraph({
       spacing: { before: footer.marginTopTwips },
-      border: { top: { color: colors.hrLine, size: 6, style: BorderStyle.SINGLE } }
+      border:  { top: { color: scheme.hr, size: 6, style: BorderStyle.SINGLE } },
     }));
-    
+
     paragraphs.push(new Paragraph({
-      children: [new TextRun({ 
-        text: copyright, 
-        size: footer.fontHalfPt, 
-        color: colors.footerText, 
+      children: [new TextRun({
+        text:    copyright,
+        size:    footer.fontHalfPt,
+        color:   colors.footerText,
         italics: true,
-        font: fonts.docx
+        font:    docxFont,
       })],
       alignment: AlignmentType.CENTER,
-      spacing: { before: paragraph.afterTwips, after: paragraph.afterTwips }
+      spacing:   { before: paragraph.afterTwips, after: paragraph.afterTwips },
     }));
   }
-  
+
   // 7. SECTION 8 STANDALONE (new page, standalone title)
   if (section8Lines.length > 0) {
     paragraphs.push(new Paragraph({ children: [new PageBreak()] }));
-    
-    // Standalone title: "Student Handout" (no "Section 8:" prefix)
+
+    // Standalone title -- scheme primary color
     paragraphs.push(new Paragraph({
-      children: [new TextRun({ 
-        text: getSection8StandaloneTitle(audienceProfile?.participant), 
-        bold: true, 
-        size: sectionHeaderFont.fontHalfPt,
-        font: fonts.docx
+      children: [new TextRun({
+        text:  getSection8StandaloneTitle(audienceProfile?.participant),
+        bold:  true,
+        size:  sectionHeaderFont.fontHalfPt,
+        color: scheme.primary,
+        font:  docxFont,
       })],
-      spacing: { after: sectionHeader.afterTwips }
+      spacing: { after: sectionHeader.afterTwips },
     }));
-    
+
     if (teaserContent && teaserContent.trim()) {
-      paragraphs.push(...buildTeaserBox(teaserContent));
+      paragraphs.push(...buildTeaserBox(teaserContent, docxFont, scheme.accent));
     }
-    
+
+    // Process Section 8 content (skip header line -- added above)
     for (let i = 1; i < section8Lines.length; i++) {
-      const line = section8Lines[i];
-      const trimmed = line.trim();
-      
-      if (!trimmed || trimmed === '---') continue;
-      if (/^#{1,3}$/.test(trimmed)) continue; // Skip bare heading markers from shaped content
-      
-      const withoutBold = trimmed.replace(/^\*\*/, '').replace(/\*\*$/, '');
-      if (withoutBold.startsWith('#')) {
-        const headerText = cleanAllMarkdown(trimmed);
-        paragraphs.push(new Paragraph({
-          children: [new TextRun({ 
-            text: headerText, 
-            bold: true, 
-            size: body.fontHalfPt,
-            font: fonts.docx
-          })],
-          spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
-        }));
-        continue;
-      }
-      
-      // Detect standalone ## / # headings from shaped content
-      if (/^#{1,3}\s+/.test(trimmed)) {
-        const headerText = trimmed.replace(/^#{1,3}\s+/, '').replace(/\*\*/g, '').trim();
-        paragraphs.push(new Paragraph({
-          children: [new TextRun({ 
-            text: headerText, 
-            bold: true, 
-            size: body.fontHalfPt,
-            font: fonts.docx
-          })],
-          spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
-        }));
-        continue;
-      }
-      
-      // Detect standalone bold headings from shaped content
-      if (/^\*\*[^*]+\*?\*?:?\s*$/.test(trimmed) && trimmed.length < 80) {
-        const headerText = trimmed.replace(/\*\*/g, '').trim();
-        paragraphs.push(new Paragraph({
-          children: [new TextRun({ 
-            text: headerText, 
-            bold: true, 
-            size: body.fontHalfPt,
-            font: fonts.docx
-          })],
-          spacing: { before: sectionHeader.beforeTwips, after: sectionHeader.afterTwips }
-        }));
-        continue;
-      }
-      
-      if (/^[-**]\s/.test(trimmed)) {
-        const bulletText = trimmed.replace(/^[-**]\s*/, '');
-        paragraphs.push(new Paragraph({
-          children: buildTextRuns(bulletText),
-          bullet: { level: 0 },
-          spacing: { after: listItem.afterTwips }
-        }));
-        continue;
-      }
-      
-      if (/^\d+[.)]\s/.test(trimmed)) {
-        const itemText = trimmed.replace(/^\d+[.)]\s*/, '');
-        paragraphs.push(new Paragraph({
-          children: buildTextRuns(itemText),
-          spacing: { after: listItem.afterTwips }
-        }));
-        continue;
-      }
-      
-      paragraphs.push(new Paragraph({
-        children: buildTextRuns(trimmed),
-        spacing: { after: paragraph.afterTwips }
-      }));
+      renderLine(section8Lines[i].trim());
     }
   }
-  
-  // 8. CREATE DOCUMENT WITH SSOT MARGINS, DEFAULT FONT, AND SINGLE-LINE FOOTER
+
+  // 8. CREATE DOCUMENT WITH SSOT MARGINS, SELECTED FONT, AND FOOTER
   const doc = new Document({
     styles: {
       default: {
         document: {
           run: {
-            font: fonts.docx,
-            size: body.fontHalfPt
-          }
-        }
-      }
+            font: docxFont,
+            size: body.fontHalfPt,
+          },
+        },
+      },
     },
     sections: [{
       properties: {
         page: {
           margin: {
-            top: margins.twips,
-            right: margins.twips,
+            top:    margins.twips,
+            right:  margins.twips,
             bottom: margins.twips,
-            left: margins.twips
-          }
-        }
+            left:   margins.twips,
+          },
+        },
       },
       footers: {
-        default: createPageFooter(),
+        default: createPageFooter(docxFont),
       },
-      children: paragraphs
-    }]
+      children: paragraphs,
+    }],
   });
-  
-  const blob = await Packer.toBlob(doc);
+
+  const blob      = await Packer.toBlob(doc);
   const safeTitle = docTitle.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 50);
   saveAs(blob, `${safeTitle}_Lesson.docx`);
-  
+
 };
