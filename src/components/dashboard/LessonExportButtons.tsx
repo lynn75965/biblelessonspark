@@ -6,14 +6,14 @@
  * Updated: 2026-03-11
  * - Download button now opens LessonExportModal (font + color scheme + format picker)
  * - Removed inline PDF/DOCX export handlers; modal owns all download logic
- * - Copy, Print, and Email buttons unchanged
+ * - Copy and Email buttons unchanged
+ * - Print button removed
  */
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Copy,
-  Printer,
   Download,
   Check,
   Mail,
@@ -21,7 +21,6 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "@/constants/lessonStructure";
 import {
-  formatLessonContentForPrint,
   stripMarkdown,
   convertToRichHtml,
 } from "@/utils/formatLessonContent";
@@ -29,15 +28,11 @@ import { EMAIL_DELIVERY_CONFIG } from "@/constants/emailDeliveryConfig";
 import { EmailLessonDialog } from "@/components/EmailLessonDialog";
 import { LessonExportModal } from "@/components/dashboard/LessonExportModal";
 
-// Destructure SSOT values (used by Copy and Print)
+// Destructure SSOT values (used by Copy)
 const {
   fonts,
-  margins,
-  sectionHeader,
-  sectionHeaderFont,
   body,
   title,
-  metadata,
   teaser,
   paragraph,
   footer,
@@ -148,108 +143,6 @@ export function LessonExportButtons({
   };
 
   // ================================================================
-  // PRINT -- opens formatted lesson in new tab for browser print
-  // ================================================================
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      toast({ title: "Print blocked", description: "Please allow pop-ups.", variant: "destructive" });
-      return;
-    }
-
-    const metaItems: string[] = [];
-    if (lesson.metadata?.ageGroup)        metaItems.push(lesson.metadata.ageGroup);
-    if (lesson.metadata?.theologyProfile) metaItems.push(lesson.metadata.theologyProfile);
-
-    const formattedContent = formatLessonContentForPrint(lesson.original_text);
-
-    const lessonTitleMatch = lesson.original_text.match(
-      /Lesson Title:?\s*["\u201C]?(.+?)["\u201D]?\s*(?:\n|$)/i
-    );
-    const documentTitle = lessonTitleMatch
-      ? lessonTitleMatch[1].replace(/["\u201C\u201D\*]/g, "").trim()
-      : lesson.title;
-
-    // Teaser HTML - used in TWO places (SSOT values)
-    const teaserHtml = lesson.metadata?.teaser
-      ? `<div class="teaser"><b>${EXPORT_FORMATTING.teaserLabel}:</b> <i>${lesson.metadata.teaser}</i></div>`
-      : "";
-
-    // Split at Section 8 / Student Handout for standalone page
-    const section8Regex =
-      /<strong[^>]*>Section\s*8[:\s\-\u2013\u2014]*(?:Student\s*(?:Handout|Experience|Material|Section))?[^<]*<\/strong>/i;
-    const handoutHeadingRegex =
-      /<strong[^>]*>(?:STUDENT\s+HANDOUT|Student\s+(?:Handout|Experience|Material|Section|Work|Guide|Page|Worksheet))[^<]*<\/strong>/i;
-
-    const section8Index = (() => {
-      const s8 = formattedContent.search(section8Regex);
-      const hh = formattedContent.search(handoutHeadingRegex);
-      if (s8 === -1 && hh === -1) return -1;
-      if (s8 === -1) return hh;
-      if (hh === -1) return s8;
-      return Math.min(s8, hh);
-    })();
-
-    const mainContent    = section8Index > -1 ? formattedContent.slice(0, section8Index) : formattedContent;
-    const section8Content = section8Index > -1 ? formattedContent.slice(section8Index)   : '';
-
-    const copyrightLine = (() => {
-      if (lesson.metadata?.copyrightNotice) return lesson.metadata.copyrightNotice;
-      if (lesson.metadata?.bibleVersion) {
-        if (lesson.metadata.copyrightStatus === "public_domain") {
-          return `Scripture quotations are from the ${lesson.metadata.bibleVersion} (${lesson.metadata.bibleVersionAbbreviation || ""}).`;
-        }
-        return `Scripture quotations are from the ${lesson.metadata.bibleVersion}.`;
-      }
-      return "";
-    })();
-
-    const copyrightHtml = copyrightLine
-      ? `<div class="copyright">${copyrightLine}</div>`
-      : "";
-
-    const printContent = `<!DOCTYPE html><html><head>
-<title>${documentTitle} - ${EXPORT_FORMATTING.footerText}</title>
-<style>
-@page { margin: ${margins.css}; margin-bottom: 0.85in; size: letter; }
-@media print {
-  .print-footer { position: fixed; bottom: 0; left: 0; right: 0; text-align: center; font-family: ${fonts.css}; font-size: ${footer.fontPt}pt; color: #${colors.footerText}; padding: 8pt 0; }
-}
-@media screen { .print-footer { display: none; } }
-@media print { .section8-page { page-break-before: always !important; } }
-body { font-family: ${fonts.css}; font-size: ${body.fontPt}pt; line-height: ${body.lineHeight}; margin: 0; padding: 0; color: #${colors.bodyText}; }
-h1 { font-size: ${title.fontPt}pt; font-weight: bold; margin: 0 0 ${title.afterPt}pt 0; }
-.meta { color: #${colors.metaText}; font-size: ${metadata.fontPt}pt; margin-bottom: ${metadata.afterPt}pt; }
-.teaser { background: #${colors.teaserBg}; border: 1px solid #${colors.teaserBorder}; border-radius: ${teaser.borderRadiusPx}px; padding: ${teaser.paddingPt}pt; margin: ${teaser.marginBeforePt}pt 0 ${teaser.marginAfterPt}pt 0; font-size: ${teaser.fontPt}pt; }
-.teaser b { color: #${colors.teaserText}; }
-.content { font-size: ${body.fontPt}pt; line-height: ${body.lineHeight}; }
-.content strong { font-weight: bold; }
-.content strong[style*="display:block"] { margin: ${sectionHeader.beforePt}pt 0 ${sectionHeader.afterPt}pt 0 !important; }
-.copyright { margin-top: ${footer.marginTopPt}pt; padding-top: ${teaser.paddingPt}pt; border-top: 1px solid #${colors.hrLine}; font-size: ${footer.fontPt}pt; color: #${colors.footerText}; font-style: italic; text-align: center; }
-.section8-header { font-size: ${sectionHeaderFont.fontPt}pt; font-weight: bold; margin: 0 0 ${sectionHeader.afterPt}pt 0; }
-</style>
-</head>
-<body>
-<div class="print-footer">${EXPORT_FORMATTING.footerText}</div>
-<h1>${documentTitle}</h1>
-<div class="meta">${metaItems.join(" | ")}</div>
-${teaserHtml}
-<div class="content">${mainContent}</div>
-${
-  section8Content
-    ? `<div class="section8-page"><div class="section8-header">${EXPORT_FORMATTING.section8StandaloneTitle}</div>${teaserHtml}<div class="content">${section8Content}</div></div>`
-    : ""
-}
-${copyrightHtml}
-</body></html>`;
-
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.onload = () => printWindow.print();
-    if (onExport) onExport();
-  };
-
-  // ================================================================
   // EMAIL -- tier-gated, opens dialog for paid users
   // ================================================================
   const handleEmailClick = () => {
@@ -264,7 +157,7 @@ ${copyrightHtml}
   };
 
   // ================================================================
-  // RENDER: Copy | Print | Download | Email
+  // RENDER: Copy | Download | Email
   // ================================================================
   return (
     <>
@@ -277,18 +170,6 @@ ${copyrightHtml}
             <Copy className="h-4 w-4 mr-1.5" />
           )}
           {copied ? "Copied!" : "Copy"}
-        </Button>
-
-        {/* PRINT */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handlePrint}
-          disabled={disabled}
-          title={EXPORT_FORMATTING.printTooltip}
-        >
-          <Printer className="h-4 w-4 mr-1.5" />
-          Print
         </Button>
 
         {/* DOWNLOAD -- opens font/color/format picker modal */}

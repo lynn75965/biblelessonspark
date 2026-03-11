@@ -333,7 +333,7 @@ export default function Dashboard() {
                 setFocusDataToApply(null);
                 toast({
                   title: "Lesson Generated!",
-                  description: "Review your lesson, then use Copy, Print, or Download when ready.",
+                  description: "Review your lesson, then use Copy or Download when ready.",
                   duration: 6000,
                 });
               }}

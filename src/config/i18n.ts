@@ -34,7 +34,6 @@ const resources = {
       "downloadPDF": "Download PDF",
       "downloadDOCX": "Download DOCX",
       "emailLesson": "Email Lesson",
-      "print": "Print",
       "share": "Share",
       "save": "Save",
       "cancel": "Cancel",

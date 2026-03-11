@@ -82,8 +82,7 @@ const Setup = () => {
       details: [
         "Read through all 8 sections of your generated lesson",
         "Make note of any personal illustrations to add",
-        "Export as PDF for printing or DOCX for editing",
-        "Print the Student Handout for your class members"
+        "Export as PDF for printing or DOCX for editing"
       ],
       icon: Download,
       time: "5 minutes"

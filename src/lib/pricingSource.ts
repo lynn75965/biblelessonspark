@@ -92,7 +92,7 @@ export function getPlanFeatures(planName: string): {
       features: [
         "All age groups (Kids, Youth, Adults, Seniors)",
         "SBC, RB, IND doctrinal profiles",
-        "Print & PDF export",
+        "PDF & DOCX export",
         "Email support",
         "Basic lesson library"
       ],

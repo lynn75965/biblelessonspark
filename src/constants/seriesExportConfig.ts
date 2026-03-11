@@ -147,9 +147,9 @@ export const SERIES_EXPORT_FONT_OPTIONS: FontOption[] = [
   },
   {
     id:        'crimson',
-    label:     'Century Schoolbook',
-    cssFamily: '"Century Schoolbook", "Century", Georgia, serif',
-    docxName:  'Century Schoolbook',
+    label:     'Crimson Pro',
+    cssFamily: '"Crimson Pro", "Crimson Text", Georgia, serif',
+    docxName:  'Crimson Pro',
     pdfFamily: 'CrimsonPro',
     pdfFontFiles: {
       regular:    '/fonts/CrimsonPro-Regular.ttf',

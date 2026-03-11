@@ -2256,7 +2256,7 @@ export function EnhanceLessonForm({
               {/* Helper text for library features */}
               {!isFreeOutputOnly && onNavigateToLibrary && (
                 <p className="text-xs text-muted-foreground text-center">
-                  Save, Print, Share, and File your lessons in the Lesson Library
+                  Save, Share, and File your lessons in the Lesson Library
                 </p>
               )}
 
