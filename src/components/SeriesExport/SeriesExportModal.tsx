@@ -87,9 +87,10 @@ export function SeriesExportModal({
   }, []);
 
   const isTrifold = selectedLayout === SERIES_EXPORT_LAYOUTS.TRIFOLD;
+  const isBooklet = selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET;
   useEffect(() => {
-    if (isTrifold) setSelectedFormat(SERIES_EXPORT_FORMATS.PDF);
-  }, [isTrifold]);
+    if (isTrifold || isBooklet) setSelectedFormat(SERIES_EXPORT_FORMATS.PDF);
+  }, [isTrifold, isBooklet]);
 
   const scheme    = getColorScheme(selectedColorScheme);
   const fontOpt   = getFontOption(selectedFont);
@@ -107,7 +108,7 @@ export function SeriesExportModal({
   async function handleExport(): Promise<void> {
     if (!selectedFormat) return;
     const options: SeriesExportOptions = {
-      format:                   selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET
+      format:                   (selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET && selectedFormat === SERIES_EXPORT_FORMATS.PDF)
                                   ? SERIES_EXPORT_FORMATS.BOOKLET
                                   : selectedFormat,
       layout:                   selectedLayout,
@@ -331,7 +332,7 @@ export function SeriesExportModal({
                 <legend className="text-sm font-medium text-foreground mb-2">{SERIES_EXPORT_UI.formatLabel}</legend>
                 <div className="space-y-2">
                   {([SERIES_EXPORT_FORMATS.PDF, SERIES_EXPORT_FORMATS.DOCX] as SeriesExportFormat[]).map((fmt) => {
-                    const isDisabled = isTrifold && fmt === SERIES_EXPORT_FORMATS.DOCX;
+                    const isDisabled = (isTrifold || isBooklet) && fmt === SERIES_EXPORT_FORMATS.DOCX;
                     return (
                       <label
                         key={fmt}
@@ -348,8 +349,11 @@ export function SeriesExportModal({
                         />
                         <div>
                           <span className="text-sm text-foreground">{SERIES_EXPORT_FORMAT_LABELS[fmt]}</span>
-                          {SERIES_EXPORT_FORMAT_SUBTITLES[fmt] && (
+                          {SERIES_EXPORT_FORMAT_SUBTITLES[fmt] && !isDisabled && (
                             <span className="text-xs text-emerald-600 ml-2 font-medium">{SERIES_EXPORT_FORMAT_SUBTITLES[fmt]}</span>
+                          )}
+                          {isDisabled && (
+                            <span className="text-xs text-muted-foreground ml-2">PDF only for this layout</span>
                           )}
                         </div>
                       </label>
