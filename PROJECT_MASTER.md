@@ -1042,6 +1042,7 @@ Full platform vulnerability sweep covering financial integrity, subscription lif
 27. **OrgSetup personal subscription check used wrong tier value** -- checked `tier === 'subscribed'` which is not a valid SubscriptionTier. Every org customer with an active Personal Plan was incorrectly billed for a second personal subscription. Fix: changed to `=== 'personal'`. Commit cd77c19. March 10, 2026.
 28. **platform_mode defaulted to private_beta post-launch** -- system_settings row value was never updated from private_beta to production after February 28 launch. Beta UI showing to all users; doesTrialApply() returning false. Fix: SQL UPDATE. No deploy required. March 10, 2026.
 29. **Print button diagnosed in wrong file** -- EnhanceLessonForm.tsx toolbar shows Print button. Claude incorrectly targeted LessonExportButtons.tsx first, wasting a session. Print still present in EnhanceLessonForm.tsx, DevotionalLibrary.tsx, DevotionalGenerator.tsx, and BookletPrintModal.tsx as of March 11, 2026. Fix approved but not yet deployed.
+30. **Booklet layout silently ignored user DOCX selection** -- handleExport() at SeriesExportModal.tsx line 110 unconditionally forced format to 'booklet_pdf' regardless of user's file format choice. Fixed by disabling DOCX option in UI when Booklet is selected. March 12, 2026.
 
 ### SSOT Violations Identified This Afternoon -- Carry Forward to Next Session
 1. `SERIES_EXPORT_FORMATS.BOOKLET = 'booklet_pdf'` is dead code. Modal sends `format: 'pdf'` with `layout: 'booklet'`. useSeriesExport.ts works around with `|| options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET`. Fix: modal must set `format: SERIES_EXPORT_FORMATS.BOOKLET`; dispatch should check format only.
@@ -1201,3 +1202,13 @@ Block appended to deploy.ps1 that automatically removes stale Downloads files on
 ### PROJECT_MASTER.md Update
 
 Header date corrected to March 11, 2026. Rules 18-19 added. Bug 29 added. CLAUDE.md added to companion documents. WHAT'S NEXT updated. March 6 and March 11 session logs appended.
+
+---
+
+## SESSION LOG: March 12, 2026 -- Print Button Removal + Booklet PDF-Only Enforcement
+
+1. Print buttons removed from DevotionalGenerator.tsx and DevotionalLibrary.tsx -- handlePrint function and Printer icon import removed from both files. Build clean. Deployed.
+
+2. EnhanceLessonForm.tsx Print button -- still present in lesson toolbar. Separate task, not yet addressed.
+
+3. Booklet layout now enforces PDF-only in SeriesExportModal.tsx -- Word Document radio is disabled with "PDF only for this layout" label when Booklet is selected. Matches Tri-Fold behavior. Unconditional format override at line 110-112 replaced with selectedFormat. Build clean. Deployed. Verified live.
