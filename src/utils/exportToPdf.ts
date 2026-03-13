@@ -251,7 +251,7 @@ export const exportToPdf = async ({
     for (const ln of secondPart) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
   };
 
-  // ---- Helper: Add labeled text ----
+  // ---- Helper: Add labeled text (bold label, normal value) ----
   const addLabeledText = (label: string, value: string, fontSize: number = body.fontPt): void => {
     const sanitizedLabel = sanitizeText(label);
     const sanitizedValue = sanitizeText(value);
@@ -283,6 +283,32 @@ export const exportToPdf = async ({
         yPosition += lineH;
       }
     }
+  };
+
+  // ---- Helper: Render body paragraph with inline bold label detection ----
+  // If text starts with "Label:" (short, capitalized), renders label bold, rest normal.
+  // Otherwise renders entire text in normal weight.
+  const addBodyParagraph = (text: string): void => {
+    const cleaned = text.replace(/\*\*/g, "").trim();
+    if (!cleaned) return;
+
+    // Detect inline label: "Label:" at start, label < 60 chars, starts with capital
+    const inlineMatch = cleaned.match(/^([A-Z][^:]{0,58}):\s*(.*)$/);
+    if (inlineMatch) {
+      const labelPart = inlineMatch[1].trim();
+      const valuePart = inlineMatch[2].trim();
+      // Keep-with-next: label + 2 body lines must fit
+      const keepH = ptToMm(body.fontPt * body.lineHeight * 3);
+      if (yPosition + keepH > contentBottomY) {
+        doc.addPage();
+        yPosition = MARGIN_TOP_MM;
+      }
+      addLabeledText(labelPart + ":", valuePart, body.fontPt);
+      return;
+    }
+
+    // No label detected -- render as plain body text
+    addText(cleaned, body.fontPt, false);
   };
 
   // ---- Helper: Add horizontal rule with scheme hr color ----
@@ -498,41 +524,17 @@ export const exportToPdf = async ({
         continue;
       }
 
-      // Bold label: value pattern
-      // Correction 1: Bold ALL inline title labels (short label starting with capital)
-      // Correction 2/4: Keep-with-next ensures label + 2 body lines fit on same page
-      const labelMatch = trimmedLine.match(/^(?:\*\*)?([^:]+):(?:\*\*)?\s*(.*)$/);
-      if (labelMatch) {
-        const label = labelMatch[1].trim();
-        const value = labelMatch[2].trim();
-        if (isSkipLabel(label)) {
-          i++;
-          continue;
-        }
-        // Bold any label under 60 chars starting with a capital letter
-        // This covers boldLabels list AND unlisted inline titles (Activity N:, etc.)
-        const isInlineTitle = label.length < 60 && /^[A-Z]/.test(label);
-        if (isBoldLabel(label) || isInlineTitle) {
-          // Keep-with-next: label + at least 2 body lines must fit
-          const keepH = ptToMm(body.fontPt * body.lineHeight * 3);
-          if (yPosition + keepH > contentBottomY) {
-            doc.addPage();
-            yPosition = MARGIN_TOP_MM;
-          }
-          addLabeledText(label + ":", value, body.fontPt);
-          addSpacing(paragraph.afterPt);
-          i++;
-          continue;
-        }
-        addText(trimmedLine.replace(/\*\*/g, ""), body.fontPt, false);
-        addSpacing(paragraph.afterPt);
+      // Skip labels (e.g. "Lesson Title:")
+      const skipMatch = trimmedLine.match(/^(?:\*\*)?([^:]+):(?:\*\*)?\s*(.*)$/);
+      if (skipMatch && isSkipLabel(skipMatch[1].trim())) {
         i++;
         continue;
       }
 
-      // Regular paragraph
-      const cleanedLine = trimmedLine.replace(/\*\*/g, "");
-      addText(cleanedLine, body.fontPt, false);
+      // Body paragraph -- addBodyParagraph handles inline bold label detection
+      // (renders "Label:" portion bold, remainder normal weight)
+      // Also includes keep-with-next protection for labeled paragraphs
+      addBodyParagraph(trimmedLine);
       addSpacing(paragraph.afterPt);
       i++;
     }
