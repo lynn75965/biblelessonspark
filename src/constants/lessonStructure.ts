@@ -146,7 +146,7 @@ export const EXPORT_SPACING = {
  * SSOT: Export Formatting Labels and Text
  */
 export const EXPORT_FORMATTING = {
-  boldLabels: ["Theological Profile","Lesson Summary","Main Theme","Key Takeaway","Audience Insight","Learning Objectives","Primary Scripture","Supporting Passages","Teacher Preparation Checklist","Memory Verse","Gospel Connection","Weekly Challenge","Doctrinal Framework","Theological Significance","Interpretive Framework","Literary Context","Historical Context","Transition Statement","Key Idea","Big Points","Reflection Questions","Prayer Prompt","Prayer","Personal Reflection","Comprehension Check","Spiritual Indicators","Closing Reflection","Discussion Questions","Recall","Understanding","Application","Analysis","This Week's Challenge"],
+  boldLabels: ["Theological Profile","Lesson Summary","Main Theme","Key Takeaway","Audience Insight","Learning Objectives","Primary Scripture","Primary Scripture Passage","Supporting Passages","Teacher Preparation Checklist","Memory Verse","Gospel Connection","Weekly Challenge","Doctrinal Framework","Theological Significance","Interpretive Framework","Literary Context","Historical Context","Transition Statement","Key Idea","Big Points","Reflection Questions","Prayer Prompt","Prayer","Personal Reflection","Comprehension Check","Spiritual Indicators","Closing Reflection","Discussion Questions","Recall","Understanding","Application","Analysis","This Week's Challenge","Key Hebrew Insights","Key Greek Insights","Key Hebrew/Greek Word Insights","Materials Needed","Preparation Notes","Time Estimate","Adaptation Notes","Age-Appropriate Depth Notes","Cross-References"],
   skipLabels: ["Lesson Title"],
   documentTitleSource: "Lesson Title",
   footerText: "BibleLessonSpark.com",

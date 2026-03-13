@@ -62,25 +62,39 @@ const ptToMm = (pt: number): number => pt / 2.83;
 const sanitizeText = (text: string): string => {
   if (!text) return "";
   return text
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/\u2013/g, "-")
+    // Smart quotes and primes
+    .replace(/[\u2018\u2019\u2032]/g, "'")
+    .replace(/[\u201C\u201D\u2033]/g, '"')
+    .replace(/[\u00AB\u00BB]/g, '"')
+    // Dashes
+    .replace(/[\u2013\u2012]/g, "-")
     .replace(/\u2014/g, "--")
     .replace(/\u2026/g, "...")
-    .replace(/\u2728/g, "*")
-    .replace(/\u2713/g, "[x]")
-    .replace(/\u2714/g, "[x]")
-    .replace(/\u2717/g, "[ ]")
-    .replace(/\u2718/g, "[ ]")
-    .replace(/\u2022/g, "-")
+    // Checkboxes
+    .replace(/[\u2713\u2714\u2611]/g, "[x]")
+    .replace(/[\u2717\u2718\u2610\u2612]/g, "[ ]")
+    // Bullets and list markers
+    .replace(/[\u2022\u2023\u25E6\u2043\u2219\u00B7\u00A1]/g, "-")
     .replace(/\u25CF/g, "-")
     .replace(/\u25CB/g, "o")
-    .replace(/\u2192/g, "->")
-    .replace(/\u2190/g, "<-")
+    // Arrows
+    .replace(/[\u2192\u21D2]/g, "->")
+    .replace(/[\u2190\u21D0]/g, "<-")
     .replace(/\u2191/g, "^")
     .replace(/\u2193/g, "v")
+    // Math symbols
+    .replace(/\u00D7/g, "x")
+    .replace(/\u00F7/g, "/")
+    .replace(/\u00B1/g, "+/-")
+    .replace(/\u00BD/g, "1/2")
+    .replace(/\u00BC/g, "1/4")
+    .replace(/\u00BE/g, "3/4")
+    // Whitespace normalization
     .replace(/\u00A0/g, " ")
-    .replace(/[^\x00-\xFF]/g, "");
+    .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, "")
+    // Strip decorative symbols, emoji, and all non-ASCII
+    // (jsPDF built-in fonts only render ASCII reliably)
+    .replace(/[^\x00-\x7F]/g, "");
 };
 
 const extractLessonTitle = (content: string): string | null => {
@@ -485,6 +499,8 @@ export const exportToPdf = async ({
       }
 
       // Bold label: value pattern
+      // Correction 1: Bold ALL inline title labels (short label starting with capital)
+      // Correction 2/4: Keep-with-next ensures label + 2 body lines fit on same page
       const labelMatch = trimmedLine.match(/^(?:\*\*)?([^:]+):(?:\*\*)?\s*(.*)$/);
       if (labelMatch) {
         const label = labelMatch[1].trim();
@@ -493,7 +509,16 @@ export const exportToPdf = async ({
           i++;
           continue;
         }
-        if (isBoldLabel(label)) {
+        // Bold any label under 60 chars starting with a capital letter
+        // This covers boldLabels list AND unlisted inline titles (Activity N:, etc.)
+        const isInlineTitle = label.length < 60 && /^[A-Z]/.test(label);
+        if (isBoldLabel(label) || isInlineTitle) {
+          // Keep-with-next: label + at least 2 body lines must fit
+          const keepH = ptToMm(body.fontPt * body.lineHeight * 3);
+          if (yPosition + keepH > contentBottomY) {
+            doc.addPage();
+            yPosition = MARGIN_TOP_MM;
+          }
           addLabeledText(label + ":", value, body.fontPt);
           addSpacing(paragraph.afterPt);
           i++;
