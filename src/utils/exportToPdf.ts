@@ -234,60 +234,7 @@ export const exportToPdf = async ({
     const sanitizedText = sanitizeText(text);
     if (!sanitizedText) return;
 
-    // -------------------------------------------------------------------
-    // Inline label bold: for body text (not headings), split on the first
-    // colon. If the portion before the colon is 4 words or fewer and starts
-    // with a capital letter, render that portion + colon in bold, remainder
-    // in normal weight. This runs at the lowest rendering level so no
-    // label can bypass it regardless of which code path called addText.
-    // -------------------------------------------------------------------
-    if (!isBold) {
-      const colonIdx = sanitizedText.indexOf(':');
-      if (colonIdx > 0) {
-        const beforeColon = sanitizedText.substring(0, colonIdx).trim();
-        const wordCount = beforeColon.split(/\s+/).length;
-        if (wordCount <= 4 && /^[A-Z]/.test(beforeColon)) {
-          const labelStr  = beforeColon + ':';
-          const valueStr  = sanitizedText.substring(colonIdx + 1).trimStart();
-          doc.setFontSize(fontSize);
-          doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
-          // Measure label width in bold
-          setPdfFont("bold", textColor ?? PDF_COLORS.bodyText, fontSize);
-          const labelW = doc.getTextWidth(labelStr + ' ');
-          const valueWidth = contentWidth - labelW;
-          const lineH = ptToMm(fontSize * body.lineHeight);
-          // Keep-with-next: label + 2 body lines must fit
-          if (yPosition + lineH * 3 > contentBottomY) {
-            doc.addPage(); yPosition = MARGIN_TOP_MM;
-          }
-          // Draw bold label
-          doc.text(labelStr, MARGIN_LEFT_MM, yPosition);
-          // Switch to normal and draw value
-          setPdfFont("normal");
-          const valueLines = doc.splitTextToSize(valueStr, valueWidth);
-          if (valueLines.length > 0 && valueLines[0]) {
-            doc.text(valueLines[0], MARGIN_LEFT_MM + labelW, yPosition);
-          }
-          yPosition += lineH;
-          // Remaining value lines at full width
-          if (valueLines.length > 1) {
-            const fullLines = doc.splitTextToSize(
-              valueLines.slice(1).join(' '), contentWidth
-            );
-            for (const ln of fullLines) {
-              if (yPosition + lineH > contentBottomY) {
-                doc.addPage(); yPosition = MARGIN_TOP_MM;
-              }
-              doc.text(ln, MARGIN_LEFT_MM, yPosition);
-              yPosition += lineH;
-            }
-          }
-          return;
-        }
-      }
-    }
-
-    // --- Standard rendering (no inline label) ---
+    // --- Standard rendering ---
     doc.setFontSize(fontSize);
     if (isBold) {
       setPdfFont("bold", textColor ?? PDF_COLORS.bodyText, fontSize);
@@ -323,36 +270,41 @@ export const exportToPdf = async ({
   };
 
   // ---- Helper: Add labeled text (bold label, normal value) ----
+  // Bold mechanism: identical to section headings (doc.setFont + doc.text)
+  // plus double-draw at 0.15mm offset for guaranteed visible bold weight.
   const addLabeledText = (label: string, value: string, fontSize: number = body.fontPt): void => {
     const sanitizedLabel = sanitizeText(label);
     const sanitizedValue = sanitizeText(value);
+    const lineH = ptToMm(fontSize * body.lineHeight);
+
+    // --- Bold label: same sequence as section headings ---
     doc.setFontSize(fontSize);
-    setPdfFont("bold", PDF_COLORS.bodyText, fontSize);
+    doc.setFont(pdfFont, "bold");
     doc.setTextColor(...PDF_COLORS.bodyText);
     const labelWidth     = doc.getTextWidth(sanitizedLabel + " ");
     const remainingWidth = contentWidth - labelWidth;
-    const lineH = ptToMm(fontSize * body.lineHeight);
     if (yPosition + lineH > contentBottomY) {
       doc.addPage();
       yPosition = MARGIN_TOP_MM;
     }
+    // Draw label bold (double-draw for guaranteed visible weight)
     doc.text(sanitizedLabel, MARGIN_LEFT_MM, yPosition);
-    setPdfFont("normal");
+    doc.text(sanitizedLabel, MARGIN_LEFT_MM + 0.15, yPosition);
+
+    // --- Normal value: switch to normal, draw after label ---
+    doc.setFont(pdfFont, "normal");
     const valueLines = doc.splitTextToSize(sanitizedValue, remainingWidth);
-    if (valueLines.length === 1) {
+    if (valueLines.length >= 1 && valueLines[0]) {
       doc.text(valueLines[0], MARGIN_LEFT_MM + labelWidth, yPosition);
-      yPosition += lineH;
-    } else {
-      doc.text(valueLines[0], MARGIN_LEFT_MM + labelWidth, yPosition);
-      yPosition += lineH;
-      for (let i = 1; i < valueLines.length; i++) {
-        if (yPosition + lineH > contentBottomY) {
-          doc.addPage();
-          yPosition = MARGIN_TOP_MM;
-        }
-        doc.text(valueLines[i], MARGIN_LEFT_MM, yPosition);
-        yPosition += lineH;
+    }
+    yPosition += lineH;
+    for (let vi = 1; vi < valueLines.length; vi++) {
+      if (yPosition + lineH > contentBottomY) {
+        doc.addPage();
+        yPosition = MARGIN_TOP_MM;
       }
+      doc.text(valueLines[vi], MARGIN_LEFT_MM, yPosition);
+      yPosition += lineH;
     }
   };
 
