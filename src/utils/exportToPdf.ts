@@ -206,6 +206,20 @@ export const exportToPdf = async ({
 
   let yPosition = MARGIN_TOP_MM;
 
+  // Synthetic bold: PDF fill-then-stroke rendering mode adds a thin stroke
+  // around each glyph, guaranteeing visible bold weight even when the TTF
+  // bold variant is subtle or jsPDF does not render it distinctly.
+  const setPdfFont = (style: 'bold' | 'normal' | 'italic', color?: [number, number, number], fontSize?: number): void => {
+    doc.setFont(pdfFont, style);
+    if (style === 'bold' && color && fontSize) {
+      doc.setDrawColor(...color);
+      doc.setLineWidth(ptToMm(fontSize * 0.02));
+      (doc as any).internal.write('2 Tr'); // fill-then-stroke
+    } else {
+      (doc as any).internal.write('0 Tr'); // fill only (normal)
+    }
+  };
+
   const lessonTitle   = extractLessonTitle(content);
   const documentTitle = lessonTitle || inputTitle;
 
@@ -238,7 +252,7 @@ export const exportToPdf = async ({
           doc.setFontSize(fontSize);
           doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
           // Measure label width in bold
-          doc.setFont(pdfFont, "bold");
+          setPdfFont("bold", textColor ?? PDF_COLORS.bodyText, fontSize);
           const labelW = doc.getTextWidth(labelStr + ' ');
           const valueWidth = contentWidth - labelW;
           const lineH = ptToMm(fontSize * body.lineHeight);
@@ -249,7 +263,7 @@ export const exportToPdf = async ({
           // Draw bold label
           doc.text(labelStr, MARGIN_LEFT_MM, yPosition);
           // Switch to normal and draw value
-          doc.setFont(pdfFont, "normal");
+          setPdfFont("normal");
           const valueLines = doc.splitTextToSize(valueStr, valueWidth);
           if (valueLines.length > 0 && valueLines[0]) {
             doc.text(valueLines[0], MARGIN_LEFT_MM + labelW, yPosition);
@@ -275,7 +289,11 @@ export const exportToPdf = async ({
 
     // --- Standard rendering (no inline label) ---
     doc.setFontSize(fontSize);
-    doc.setFont(pdfFont, isBold ? "bold" : "normal");
+    if (isBold) {
+      setPdfFont("bold", textColor ?? PDF_COLORS.bodyText, fontSize);
+    } else {
+      setPdfFont("normal");
+    }
     doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
     const lines = doc.splitTextToSize(sanitizedText, contentWidth);
     if (lines.length === 0) return;
@@ -309,7 +327,7 @@ export const exportToPdf = async ({
     const sanitizedLabel = sanitizeText(label);
     const sanitizedValue = sanitizeText(value);
     doc.setFontSize(fontSize);
-    doc.setFont(pdfFont, "bold");
+    setPdfFont("bold", PDF_COLORS.bodyText, fontSize);
     doc.setTextColor(...PDF_COLORS.bodyText);
     const labelWidth     = doc.getTextWidth(sanitizedLabel + " ");
     const remainingWidth = contentWidth - labelWidth;
@@ -319,7 +337,7 @@ export const exportToPdf = async ({
       yPosition = MARGIN_TOP_MM;
     }
     doc.text(sanitizedLabel, MARGIN_LEFT_MM, yPosition);
-    doc.setFont(pdfFont, "normal");
+    setPdfFont("normal");
     const valueLines = doc.splitTextToSize(sanitizedValue, remainingWidth);
     if (valueLines.length === 1) {
       doc.text(valueLines[0], MARGIN_LEFT_MM + labelWidth, yPosition);
@@ -405,20 +423,20 @@ export const exportToPdf = async ({
 
     // Teaser label
     doc.setFontSize(9);
-    doc.setFont(pdfFont, "bold");
+    setPdfFont("bold", PDF_COLORS.teaserText, 9);
     doc.setTextColor(...PDF_COLORS.teaserText);
     doc.text(EXPORT_FORMATTING.teaserLabel, MARGIN_LEFT_MM + 5, yPosition);
     yPosition += 4;
 
     // Teaser content
     doc.setFontSize(teaser.fontPt);
-    doc.setFont(pdfFont, "italic");
+    setPdfFont("italic");
     doc.setTextColor(...PDF_COLORS.teaserText);
     doc.text(teaserLines, MARGIN_LEFT_MM + 5, yPosition);
     yPosition += ptToMm(teaser.fontPt * body.lineHeight * teaserLines.length) + 4;
 
     doc.setTextColor(...PDF_COLORS.bodyText);
-    doc.setFont(pdfFont, "normal");
+    setPdfFont("normal");
     addLine();
     addSpacing(paragraph.afterPt);
   };
@@ -545,7 +563,7 @@ export const exportToPdf = async ({
           addLabeledText("- " + boldMatch[1] + ":", boldMatch[2], body.fontPt);
         } else {
           doc.setFontSize(body.fontPt);
-          doc.setFont(pdfFont, "normal");
+          setPdfFont("normal");
           doc.setTextColor(...PDF_COLORS.bodyText);
           // Draw bullet glyph at indent, text at text indent
           const bulletTextWidth = contentWidth - textIndentMm;
@@ -599,7 +617,7 @@ export const exportToPdf = async ({
 
   // 1. DOCUMENT TITLE
   doc.setFontSize(title.fontPt);
-  doc.setFont(pdfFont, "bold");
+  setPdfFont("bold", PDF_COLORS.bodyText, title.fontPt);
   doc.setTextColor(...PDF_COLORS.bodyText);
   const titleLines = doc.splitTextToSize(sanitizeText(documentTitle), contentWidth);
   doc.text(titleLines, MARGIN_LEFT_MM, yPosition);
@@ -609,7 +627,7 @@ export const exportToPdf = async ({
   // 2. METADATA LINE
   if (meta) {
     doc.setFontSize(metadata.fontPt);
-    doc.setFont(pdfFont, "normal");
+    setPdfFont("normal");
     doc.setTextColor(...PDF_COLORS.metaText);
     const metadataParts: string[] = [];
     if (meta.ageGroup)  metadataParts.push(sanitizeText(meta.ageGroup));
@@ -659,14 +677,14 @@ export const exportToPdf = async ({
     addSpacing(footer.marginTopPt);
     addLine();
     doc.setFontSize(footer.fontPt);
-    doc.setFont(pdfFont, "italic");
+    setPdfFont("italic");
     doc.setTextColor(...PDF_COLORS.footerText);
     const copyrightLines = doc.splitTextToSize(copyrightText, contentWidth);
     const copyrightWidth = doc.getTextWidth(copyrightLines[0]);
     doc.text(copyrightLines, (pageWidth - copyrightWidth) / 2, yPosition + 3);
     yPosition += ptToMm(footer.fontPt * body.lineHeight * copyrightLines.length) + 3;
     doc.setTextColor(...PDF_COLORS.bodyText);
-    doc.setFont(pdfFont, "normal");
+    setPdfFont("normal");
   }
 
   // 7. SECTION 8 STANDALONE (new page, no pagination)
@@ -678,7 +696,7 @@ export const exportToPdf = async ({
 
     // Standalone title -- scheme primary color
     doc.setFontSize(sectionHeaderFont.fontPt);
-    doc.setFont(pdfFont, "bold");
+    setPdfFont("bold", PDF_COLORS.sectionHeader, sectionHeaderFont.fontPt);
     doc.setTextColor(...PDF_COLORS.sectionHeader);
     doc.text(getSection8StandaloneTitle(audienceProfile?.participant), MARGIN_LEFT_MM, yPosition);
     yPosition += ptToMm(sectionHeaderFont.fontPt * body.lineHeight);
@@ -699,7 +717,7 @@ export const exportToPdf = async ({
 
     doc.setPage(p);
     doc.setFontSize(footer.fontPt);
-    doc.setFont(pdfFont, "normal");
+    setPdfFont("normal");
     doc.setTextColor(...PDF_COLORS.footerText);
 
     const footerText  = `${sanitizeText(documentTitle)} | Page ${p}`;
