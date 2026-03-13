@@ -273,6 +273,7 @@ export const exportToPdf = async ({
   // Bold mechanism: identical to section headings (doc.setFont + doc.text)
   // plus double-draw at 0.15mm offset for guaranteed visible bold weight.
   const addLabeledText = (label: string, value: string, fontSize: number = body.fontPt): void => {
+    console.log("BOLD FUNCTION CALLED: label=" + label);
     const sanitizedLabel = sanitizeText(label);
     const sanitizedValue = sanitizeText(value);
     const lineH = ptToMm(fontSize * body.lineHeight);
@@ -317,6 +318,7 @@ export const exportToPdf = async ({
 
     // Detect inline label: "Label:" at start, label < 60 chars, starts with capital
     const inlineMatch = cleaned.match(/^([A-Z][^:]{0,58}):\s*(.*)$/);
+    console.log("addBodyParagraph: cleaned=" + JSON.stringify(cleaned.substring(0, 80)) + " inlineMatch=" + (inlineMatch ? "YES label=" + JSON.stringify(inlineMatch[1]) : "NO"));
     if (inlineMatch) {
       const labelPart = inlineMatch[1].trim();
       const valuePart = inlineMatch[2].trim();
@@ -557,6 +559,7 @@ export const exportToPdf = async ({
       // Body paragraph -- addBodyParagraph handles inline bold label detection
       // (renders "Label:" portion bold, remainder normal weight)
       // Also includes keep-with-next protection for labeled paragraphs
+      console.log("processContentLines -> addBodyParagraph: " + JSON.stringify(trimmedLine.substring(0, 80)));
       addBodyParagraph(trimmedLine);
       addSpacing(paragraph.afterPt);
       i++;
