@@ -251,10 +251,10 @@ export const SERIES_EXPORT_PROGRESS_STEP_LABELS: Record<SeriesExportProgressStep
 export const FULLPAGE_PDF = {
   width:        612,
   height:       792,
-  marginTop:    72,
-  marginBottom: 72,
-  marginLeft:   72,
-  marginRight:  57.6,
+  marginTop:    43.2,    // 0.60"
+  marginBottom: 43.2,    // 0.60"
+  marginLeft:   46.8,    // 0.65"
+  marginRight:  46.8,    // 0.65"
 } as const;
 
 export const BOOKLET_PAGE = {
@@ -284,7 +284,7 @@ export const SERIES_COVER_TYPOGRAPHY = {
   titleSize:    28,
   subtitleSize: 14,
   bodySize:     11,
-  lineHeight:   1.35,
+  lineHeight:   1.12,
 } as const;
 
 export const SERIES_CHAPTER_TYPOGRAPHY = {
@@ -292,13 +292,13 @@ export const SERIES_CHAPTER_TYPOGRAPHY = {
   titleSize:        18,
   subtitleSize:     12,
   bodySize:         11,
-  lineHeight:       1.35,
+  lineHeight:       1.12,
 } as const;
 
 export const SERIES_TOC_TYPOGRAPHY = {
-  headingSize:  14,
+  headingSize:  13,
   entrySize:    11,
-  lineHeight:   1.4,
+  lineHeight:   1.12,
 } as const;
 
 // ============================================================================
@@ -338,10 +338,10 @@ export const EXPORT_SPACING = {
   },
   body: {
     fontPt:     11,
-    lineHeight: 1.4,
+    lineHeight: 1.12,
   },
   paragraph: {
-    afterPt: 8,
+    afterPt: 4,
   },
   metadata: {
     fontPt: 10,

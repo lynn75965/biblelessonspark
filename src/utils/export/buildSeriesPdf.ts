@@ -32,6 +32,7 @@ import {
   SERIES_INTRO_PLACEHOLDER,
   EXPORT_SPACING,
   BOOKLET_PAGE,
+  FULLPAGE_PDF,
   getColorScheme,
   getFontOption,
 } from '@/constants/seriesExportConfig';
@@ -48,11 +49,14 @@ import { loadPdfFonts } from './loadPdfFonts';
 // CONSTANTS
 // ============================================================================
 
-const PAGE_WIDTH  = 612;
-const PAGE_HEIGHT = 792;
-const PAGE_MARGIN = 72;
-const CONTENT_WIDTH = PAGE_WIDTH - PAGE_MARGIN * 2;
-const PAGE_BOTTOM   = PAGE_HEIGHT - PAGE_MARGIN;
+const PAGE_WIDTH    = FULLPAGE_PDF.width;
+const PAGE_HEIGHT   = FULLPAGE_PDF.height;
+const MARGIN_TOP    = FULLPAGE_PDF.marginTop;
+const MARGIN_BOTTOM = FULLPAGE_PDF.marginBottom;
+const MARGIN_LEFT   = FULLPAGE_PDF.marginLeft;
+const MARGIN_RIGHT  = FULLPAGE_PDF.marginRight;
+const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT;
+const PAGE_BOTTOM   = PAGE_HEIGHT - MARGIN_BOTTOM;
 
 /** Strip characters jsPDF built-in fonts cannot render. */
 function sanitizeForPdf(text: string): string {
@@ -119,7 +123,7 @@ export async function buildSeriesPdf(
   const scheme  = getColorScheme(options.colorSchemeId);
   const pdfFont = getFontOption(options.font).pdfFamily;
 
-  let currentY   = PAGE_MARGIN;
+  let currentY   = MARGIN_TOP;
   let currentPage = 1;
   const lessonRanges:     PageRange[] = [];
   const frontMatterPages: number[]    = [];
@@ -128,7 +132,7 @@ export async function buildSeriesPdf(
 
   function addPage(): void {
     doc.addPage('letter', 'portrait');
-    currentY = PAGE_MARGIN;
+    currentY = MARGIN_TOP;
     currentPage++;
   }
 
@@ -165,7 +169,7 @@ export async function buildSeriesPdf(
 
     for (const line of lines) {
       ensureSpace(lineH);
-      doc.text(line, PAGE_MARGIN, currentY);
+      doc.text(line, MARGIN_LEFT, currentY);
       currentY += lineH;
     }
     currentY += EXPORT_SPACING.paragraph.afterPt;
@@ -177,8 +181,10 @@ export async function buildSeriesPdf(
     doc.setFont(pdfFont, 'bold');
     doc.setFontSize(SERIES_TOC_TYPOGRAPHY.headingSize);
     doc.setTextColor(r, g, b);
-    ensureSpace(30);
-    doc.text(text, PAGE_MARGIN, currentY);
+    // Keep-with-next: heading + 3 body lines must fit on same page
+    const bodyLineH = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    ensureSpace(SERIES_TOC_TYPOGRAPHY.headingSize + 8 + bodyLineH * 3);
+    doc.text(text, MARGIN_LEFT, currentY);
     currentY += SERIES_TOC_TYPOGRAPHY.headingSize + 8;
     resetStyle();
   }
@@ -186,14 +192,19 @@ export async function buildSeriesPdf(
   function renderSubheading(text: string): void {
     const [r, g, b] = hexToRgb(scheme.primary);
     doc.setFont(pdfFont, 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setTextColor(r, g, b);
+    const subLineH = 12 * EXPORT_SPACING.body.lineHeight;
     const lines = doc.splitTextToSize(sanitizeForPdf(text), CONTENT_WIDTH) as string[];
+    // Keep-with-next: subheading + 1 body line must fit on same page
+    const bodyLineH = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    ensureSpace(subLineH * lines.length + 2 + bodyLineH);
+    currentY += 6; // 6pt before subheading
     for (const line of lines) {
-      doc.text(line, PAGE_MARGIN, currentY);
-      currentY += 19;
+      doc.text(line, MARGIN_LEFT, currentY);
+      currentY += subLineH;
     }
-    currentY += 4;
+    currentY += 2; // 2pt after subheading
     resetStyle();
   }
 
@@ -203,7 +214,7 @@ export async function buildSeriesPdf(
     doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
     doc.setTextColor(r, g, b);
     ensureSpace(EXPORT_SPACING.metadata.fontPt + 4);
-    doc.text(text, PAGE_MARGIN, currentY);
+    doc.text(text, MARGIN_LEFT, currentY);
     currentY += EXPORT_SPACING.metadata.fontPt + 6;
     resetStyle();
   }
@@ -222,7 +233,6 @@ export async function buildSeriesPdf(
 
       if (/^#{1,3}\s+/.test(line)) {
         const headingText = line.replace(/^#{1,3}\s+/, '');
-        ensureSpace(60);
         renderSubheading(headingText);
         continue;
       }
@@ -248,7 +258,6 @@ export async function buildSeriesPdf(
       // Detect plain-text section labels: e.g. "Literary Context:"
       // Short line, starts with capital, ends with colon, no markdown prefix
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) {
-        ensureSpace(60);
         renderSubheading(line.trim());
         continue;
       }
@@ -292,7 +301,7 @@ export async function buildSeriesPdf(
   const [hr1, hg1, hb1] = hexToRgb(scheme.hr);
   doc.setDrawColor(hr1, hg1, hb1);
   doc.setLineWidth(0.5);
-  doc.line(PAGE_MARGIN, currentY, PAGE_WIDTH - PAGE_MARGIN, currentY);
+  doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
   currentY += 24;
 
   const [mr, mg, mb] = hexToRgb(EXPORT_SPACING.colors.metaText);
@@ -326,7 +335,7 @@ export async function buildSeriesPdf(
     doc.setFont(pdfFont, 'bold');
     doc.setFontSize(SERIES_TOC_TYPOGRAPHY.entrySize);
     doc.setTextColor(er, eg, eb);
-    doc.text(entry.chapterHeading, PAGE_MARGIN, currentY);
+    doc.text(entry.chapterHeading, MARGIN_LEFT, currentY);
     currentY += SERIES_TOC_TYPOGRAPHY.entrySize + 4;
 
     if (entry.passage) {
@@ -334,7 +343,7 @@ export async function buildSeriesPdf(
       doc.setFont(pdfFont, 'italic');
       doc.setFontSize(EXPORT_SPACING.metadata.fontPt);
       doc.setTextColor(pr, pg2, pb);
-      doc.text('    ' + entry.passage, PAGE_MARGIN, currentY);
+      doc.text('    ' + entry.passage, MARGIN_LEFT, currentY);
       currentY += EXPORT_SPACING.metadata.fontPt + 4;
     }
 
@@ -363,7 +372,7 @@ export async function buildSeriesPdf(
     doc.setFont(pdfFont, 'normal');
     doc.setFontSize(11);
     doc.setTextColor(lr, lg, lb);
-    doc.text('LESSON ' + lessonNumber, PAGE_MARGIN, currentY);
+    doc.text('LESSON ' + lessonNumber, MARGIN_LEFT, currentY);
     currentY += 11 + 8;
 
     const [ct_r, ct_g, ct_b] = hexToRgb(scheme.primary);
@@ -372,7 +381,7 @@ export async function buildSeriesPdf(
     doc.setTextColor(ct_r, ct_g, ct_b);
     const ctLines = doc.splitTextToSize(sanitizeForPdf(creativeTitle), CONTENT_WIDTH) as string[];
     for (const ctl of ctLines) {
-      doc.text(ctl, PAGE_MARGIN, currentY);
+      doc.text(ctl, MARGIN_LEFT, currentY);
       currentY += SERIES_CHAPTER_TYPOGRAPHY.titleSize + 4;
     }
 
@@ -381,14 +390,14 @@ export async function buildSeriesPdf(
       doc.setFont(pdfFont, 'italic');
       doc.setFontSize(SERIES_CHAPTER_TYPOGRAPHY.subtitleSize);
       doc.setTextColor(psr, psg, psb);
-      doc.text(passage, PAGE_MARGIN, currentY);
+      doc.text(passage, MARGIN_LEFT, currentY);
       currentY += SERIES_CHAPTER_TYPOGRAPHY.subtitleSize + 6;
     }
 
     const [hr2, hg2, hb2] = hexToRgb(scheme.hr);
     doc.setDrawColor(hr2, hg2, hb2);
     doc.setLineWidth(0.4);
-    doc.line(PAGE_MARGIN, currentY, PAGE_WIDTH - PAGE_MARGIN, currentY);
+    doc.line(MARGIN_LEFT, currentY, PAGE_WIDTH - MARGIN_RIGHT, currentY);
     currentY += 10;
     resetStyle();
 
@@ -423,7 +432,7 @@ export async function buildSeriesPdf(
     const [sdhr, sdhg, sdhb] = hexToRgb(scheme.hr);
     doc.setDrawColor(sdhr, sdhg, sdhb);
     doc.setLineWidth(1.5);
-    doc.line(PAGE_MARGIN + 40, currentY, PAGE_WIDTH - PAGE_MARGIN - 40, currentY);
+    doc.line(MARGIN_LEFT + 40, currentY, PAGE_WIDTH - MARGIN_RIGHT - 40, currentY);
     currentY += 28;
 
     const [sdtr, sdtg, sdtb] = hexToRgb(scheme.primary);
@@ -435,7 +444,7 @@ export async function buildSeriesPdf(
 
     doc.setDrawColor(sdhr, sdhg, sdhb);
     doc.setLineWidth(1.5);
-    doc.line(PAGE_MARGIN + 40, currentY, PAGE_WIDTH - PAGE_MARGIN - 40, currentY);
+    doc.line(MARGIN_LEFT + 40, currentY, PAGE_WIDTH - MARGIN_RIGHT - 40, currentY);
     currentY += 22;
 
     const [sdsr, sdsg, sdsb] = hexToRgb(EXPORT_SPACING.colors.metaText);
@@ -563,6 +572,11 @@ export async function buildBookletPdf(
     doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(r,g,b);
     const lines = doc.splitTextToSize(sanitizeForPdf(text), BK_CW) as string[];
     const lh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    // Widow prevention: if multiple lines and only 1 fits, advance page first
+    if (lines.length > 1) {
+      const spaceLeft = BK_BOT - cy;
+      if (Math.floor(spaceLeft / lh) < 2) bkPage();
+    }
     for (const line of lines) { bkEnsure(lh); doc.text(line, BK_M, cy); cy += lh; }
     cy += EXPORT_SPACING.paragraph.afterPt;
     bkReset();
@@ -572,6 +586,9 @@ export async function buildBookletPdf(
     const [r,g,b] = hexToRgb(scheme.primary);
     doc.setFont(pdfFont,'bold'); doc.setFontSize(11); doc.setTextColor(r,g,b);
     const lines = doc.splitTextToSize(sanitizeForPdf(text), BK_CW) as string[];
+    // Keep-with-next: subheading + 3 body lines must fit on same page
+    const bodyLh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    bkEnsure(16 * lines.length + 3 + bodyLh * 3);
     for (const line of lines) { doc.text(line, BK_M, cy); cy += 16; }
     cy += 3; bkReset();
   }
@@ -589,11 +606,11 @@ export async function buildBookletPdf(
       const line = rawLine.trimEnd();
       if (line.trim() === '---') continue;
       if (/^#{1,3}\s*$/.test(line)) continue;
-      if (/^#{1,3}\s+/.test(line)) { bkEnsure(50); bkSubhead(line.replace(/^#{1,3}\s+/,'')); continue; }
+      if (/^#{1,3}\s+/.test(line)) { bkSubhead(line.replace(/^#{1,3}\s+/,'')); continue; }
       if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'')); continue; }
       if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
       if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'')); continue; }
-      if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkEnsure(50); bkSubhead(line.trim()); continue; }
+      if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkSubhead(line.trim()); continue; }
       if (/^>\s*/.test(line.trim())) { bkBody(sanitizeForPdf(line.replace(/^>\s*/,''))); continue; }
       bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/_([^_]+)_/g,'$1')));
     }

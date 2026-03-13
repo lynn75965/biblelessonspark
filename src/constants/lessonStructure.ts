@@ -25,18 +25,24 @@ export const EXPORT_SPACING = {
     pdf: 'Helvetica',                        // PDF fallback (Calibri not native to PDF libs)
   },
 
-  // Page margins - 0.5" all sides
+  // Page margins
   margins: {
     inches: 0.5,
     twips: 720,        // 0.5 * 1440 twips per inch
     css: '0.5in',
+    // PDF-specific (Compact Curriculum Layout)
+    pdfTopIn: 0.60,
+    pdfBottomIn: 0.60,
+    pdfLeftIn: 0.65,
+    pdfRightIn: 0.65,
+    pdfFooterIn: 0.40,
   },
   
-  // Section headers - 8pt BEFORE, 4pt AFTER
+  // Section headers - 10pt BEFORE, 4pt AFTER
   sectionHeader: {
-    beforePt: 8,
+    beforePt: 10,
     afterPt: 4,
-    beforeTwips: 160,  // 8 * 20 twips per point
+    beforeTwips: 200,  // 10 * 20 twips per point
     afterTwips: 80,    // 4 * 20 twips per point
   },
   
@@ -44,7 +50,7 @@ export const EXPORT_SPACING = {
   body: {
     fontPt: 11,
     fontHalfPt: 22,    // docx uses half-points
-    lineHeight: 1.4,
+    lineHeight: 1.12,
   },
   
   // Title
@@ -55,10 +61,20 @@ export const EXPORT_SPACING = {
     afterTwips: 80,
   },
   
-  // Section header font
+  // Section header font - 13pt bold
   sectionHeaderFont: {
-    fontPt: 14,
-    fontHalfPt: 28,
+    fontPt: 13,
+    fontHalfPt: 26,
+  },
+
+  // Subheading font - slightly larger than body, bold
+  subheading: {
+    fontPt: 12,
+    fontHalfPt: 24,
+    beforePt: 6,
+    afterPt: 2,
+    beforeTwips: 120,
+    afterTwips: 40,
   },
   
   // Teaser box
@@ -81,10 +97,10 @@ export const EXPORT_SPACING = {
     afterTwips: 120,
   },
   
-  // Copyright/footer
+  // Copyright/footer - 9pt per Compact Curriculum Layout spec
   footer: {
-    fontPt: 8,
-    fontHalfPt: 16,
+    fontPt: 9,
+    fontHalfPt: 18,
     marginTopPt: 10,
     marginTopTwips: 200,
   },
@@ -95,18 +111,23 @@ export const EXPORT_SPACING = {
     afterTwips: 80,
   },
   
-  // List item spacing
+  // List item spacing - 2pt after (tight for print economy)
   listItem: {
-    afterPt: 4,
-    afterTwips: 80,
-    indentPt: 18,      // Left indent for bullet lists
-    indentTwips: 360,  // 18 * 20
+    afterPt: 2,
+    afterTwips: 40,
+    indentPt: 13,        // Bullet indent 0.18" = 12.96pt
+    indentTwips: 259,    // 0.18" * 1440
+    textIndentPt: 25,    // Text indent 0.35" = 25.2pt
+    textIndentTwips: 504, // 0.35" * 1440
   },
   
-  // Horizontal rule
+  // Horizontal rule / section divider
   hr: {
-    marginPt: 6,
-    marginTwips: 120,
+    beforePt: 6,
+    afterPt: 4,
+    thickness: 0.5,       // 0.5pt line weight
+    beforeTwips: 120,
+    afterTwips: 80,
   },
   
   // Colors (hex without #)

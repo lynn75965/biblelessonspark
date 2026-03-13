@@ -21,11 +21,13 @@ const {
   body,
   title,
   sectionHeaderFont,
+  subheading,
   metadata,
   teaser,
   footer,
   paragraph,
   listItem,
+  hr,
   colors,
 } = EXPORT_SPACING;
 
@@ -33,8 +35,14 @@ const {
 // SSOT-DERIVED CONVERSIONS (computed from SSOT values, not hardcoded)
 // ============================================================================
 
-// Convert SSOT margin (inches) to mm for jsPDF
-const MARGIN_MM = margins.inches * 25.4;
+// Compact Curriculum Layout margins (asymmetric)
+const MARGIN_TOP_MM    = (margins.pdfTopIn    ?? margins.inches) * 25.4;
+const MARGIN_BOTTOM_MM = (margins.pdfBottomIn ?? margins.inches) * 25.4;
+const MARGIN_LEFT_MM   = (margins.pdfLeftIn   ?? margins.inches) * 25.4;
+const MARGIN_RIGHT_MM  = (margins.pdfRightIn  ?? margins.inches) * 25.4;
+const FOOTER_FROM_BOTTOM_MM = (margins.pdfFooterIn ?? 0.40) * 25.4;
+// Legacy alias for callers that still reference MARGIN_MM
+const MARGIN_MM = MARGIN_LEFT_MM;
 
 // Convert SSOT hex color (without #) to RGB array for jsPDF
 const hexToRgb = (hex: string): [number, number, number] => {
@@ -172,18 +180,23 @@ export const exportToPdf = async ({
 
   const pageWidth  = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const contentWidth = pageWidth - MARGIN_MM * 2;
+  const contentWidth = pageWidth - MARGIN_LEFT_MM - MARGIN_RIGHT_MM;
 
-  // Single-line footer space
-  const footerHeightMm = ptToMm(footer.fontPt) + 6;
+  // Footer reservation: footer sits at pdfFooterIn from bottom edge
+  const footerY = pageHeight - FOOTER_FROM_BOTTOM_MM;
+  // Content must stop above footer with a small gap
+  const contentBottomY = footerY - ptToMm(footer.fontPt) - 2;
 
-  let yPosition = MARGIN_MM;
+  // Character tracking: -0.5% at body size (micro-typography)
+  doc.setCharSpace(body.fontPt * -0.005);
+
+  let yPosition = MARGIN_TOP_MM;
 
   const lessonTitle   = extractLessonTitle(content);
   const documentTitle = lessonTitle || inputTitle;
 
-  // ---- Helper: Add text with SSOT line height ----
-  // textColor param allows callers to override (e.g. scheme primary for section headers)
+  // ---- Helper: Add text with widow/orphan protection ----
+  // Spec: min 2 lines at bottom of page, min 2 lines at top of next page
   const addText = (
     text: string,
     fontSize: number,
@@ -195,13 +208,33 @@ export const exportToPdf = async ({
     doc.setFont(pdfFont, isBold ? "bold" : "normal");
     doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
     const lines = doc.splitTextToSize(sanitizedText, contentWidth);
-    const textHeight = ptToMm(fontSize * body.lineHeight * lines.length);
-    if (yPosition + textHeight > pageHeight - MARGIN_MM - footerHeightMm) {
-      doc.addPage();
-      yPosition = MARGIN_MM;
+    if (lines.length === 0) return;
+    const lineH = ptToMm(fontSize * body.lineHeight);
+    const spaceLeft = contentBottomY - yPosition;
+    const linesFit = Math.max(0, Math.floor(spaceLeft / lineH));
+
+    if (linesFit >= lines.length) {
+      // All lines fit on current page
+      for (const ln of lines) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
+      return;
     }
-    doc.text(lines, MARGIN_MM, yPosition);
-    yPosition += textHeight;
+    if (linesFit < 2) {
+      // Fewer than 2 lines fit -- move entire paragraph to next page
+      doc.addPage(); yPosition = MARGIN_TOP_MM;
+      for (const ln of lines) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
+      return;
+    }
+    // Partial fit: ensure at least 2 lines remain for next page
+    let linesOnThisPage = linesFit;
+    const linesOnNextPage = lines.length - linesOnThisPage;
+    if (linesOnNextPage < 2) {
+      linesOnThisPage = lines.length - 2;
+    }
+    const firstPart = lines.slice(0, linesOnThisPage);
+    for (const ln of firstPart) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
+    doc.addPage(); yPosition = MARGIN_TOP_MM;
+    const secondPart = lines.slice(linesOnThisPage);
+    for (const ln of secondPart) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
   };
 
   // ---- Helper: Add labeled text ----
@@ -213,39 +246,43 @@ export const exportToPdf = async ({
     doc.setTextColor(...PDF_COLORS.bodyText);
     const labelWidth     = doc.getTextWidth(sanitizedLabel + " ");
     const remainingWidth = contentWidth - labelWidth;
-    if (yPosition + 5 > pageHeight - MARGIN_MM - footerHeightMm) {
+    const lineH = ptToMm(fontSize * body.lineHeight);
+    if (yPosition + lineH > contentBottomY) {
       doc.addPage();
-      yPosition = MARGIN_MM;
+      yPosition = MARGIN_TOP_MM;
     }
-    doc.text(sanitizedLabel, MARGIN_MM, yPosition);
+    doc.text(sanitizedLabel, MARGIN_LEFT_MM, yPosition);
     doc.setFont(pdfFont, "normal");
     const valueLines = doc.splitTextToSize(sanitizedValue, remainingWidth);
     if (valueLines.length === 1) {
-      doc.text(valueLines[0], MARGIN_MM + labelWidth, yPosition);
-      yPosition += ptToMm(fontSize * body.lineHeight);
+      doc.text(valueLines[0], MARGIN_LEFT_MM + labelWidth, yPosition);
+      yPosition += lineH;
     } else {
-      doc.text(valueLines[0], MARGIN_MM + labelWidth, yPosition);
-      yPosition += ptToMm(fontSize * body.lineHeight);
+      doc.text(valueLines[0], MARGIN_LEFT_MM + labelWidth, yPosition);
+      yPosition += lineH;
       for (let i = 1; i < valueLines.length; i++) {
-        if (yPosition + 5 > pageHeight - MARGIN_MM - footerHeightMm) {
+        if (yPosition + lineH > contentBottomY) {
           doc.addPage();
-          yPosition = MARGIN_MM;
+          yPosition = MARGIN_TOP_MM;
         }
-        doc.text(valueLines[i], MARGIN_MM, yPosition);
-        yPosition += ptToMm(fontSize * body.lineHeight);
+        doc.text(valueLines[i], MARGIN_LEFT_MM, yPosition);
+        yPosition += lineH;
       }
     }
   };
 
   // ---- Helper: Add horizontal rule with scheme hr color ----
+  // Spec: 0.5pt thick, 6pt above, 4pt below
   const addLine = (): void => {
-    if (yPosition + 3 > pageHeight - MARGIN_MM - footerHeightMm) {
+    yPosition += ptToMm(hr.beforePt);
+    if (yPosition + 2 > contentBottomY) {
       doc.addPage();
-      yPosition = MARGIN_MM;
+      yPosition = MARGIN_TOP_MM;
     }
     doc.setDrawColor(...PDF_COLORS.hrLine);
-    doc.line(MARGIN_MM, yPosition, pageWidth - MARGIN_MM, yPosition);
-    yPosition += 3;
+    doc.setLineWidth(ptToMm(hr.thickness));
+    doc.line(MARGIN_LEFT_MM, yPosition, pageWidth - MARGIN_RIGHT_MM, yPosition);
+    yPosition += ptToMm(hr.afterPt);
   };
 
   // ---- Helper: Add spacing from SSOT points ----
@@ -262,29 +299,29 @@ export const exportToPdf = async ({
     const teaserLines  = doc.splitTextToSize(teaserText, contentWidth - 10);
     const teaserHeight = ptToMm(teaser.fontPt * body.lineHeight * teaserLines.length) + 10;
 
-    if (yPosition + teaserHeight > pageHeight - MARGIN_MM - footerHeightMm) {
+    if (yPosition + teaserHeight > contentBottomY) {
       doc.addPage();
-      yPosition = MARGIN_MM;
+      yPosition = MARGIN_TOP_MM;
     }
 
     // Teaser box -- scheme accent for border/text, SSOT teaserBg fill
     doc.setFillColor(...PDF_COLORS.teaserBg);
     doc.setDrawColor(...PDF_COLORS.teaserBorder);
-    doc.roundedRect(MARGIN_MM, yPosition - 2, contentWidth, teaserHeight, 2, 2, "FD");
+    doc.roundedRect(MARGIN_LEFT_MM, yPosition - 2, contentWidth, teaserHeight, 2, 2, "FD");
     yPosition += 3;
 
     // Teaser label
     doc.setFontSize(9);
     doc.setFont(pdfFont, "bold");
     doc.setTextColor(...PDF_COLORS.teaserText);
-    doc.text(EXPORT_FORMATTING.teaserLabel, MARGIN_MM + 5, yPosition);
+    doc.text(EXPORT_FORMATTING.teaserLabel, MARGIN_LEFT_MM + 5, yPosition);
     yPosition += 4;
 
     // Teaser content
     doc.setFontSize(teaser.fontPt);
     doc.setFont(pdfFont, "italic");
     doc.setTextColor(...PDF_COLORS.teaserText);
-    doc.text(teaserLines, MARGIN_MM + 5, yPosition);
+    doc.text(teaserLines, MARGIN_LEFT_MM + 5, yPosition);
     yPosition += ptToMm(teaser.fontPt * body.lineHeight * teaserLines.length) + 4;
 
     doc.setTextColor(...PDF_COLORS.bodyText);
@@ -324,13 +361,18 @@ export const exportToPdf = async ({
         continue;
       }
 
-      // Section N headers -- scheme primary color
+      // Section N headers -- 13pt bold, scheme primary, 10pt before, 4pt after
+      // Keep-with-next: heading must fit with at least 3 following paragraphs (2 body lines min)
       const sectionInfo = isSectionHeader(trimmedLine);
       if (sectionInfo.isSection) {
-        // Skip Section 8 header if processing Section 8 content (added separately)
         if (skipSection8Header && sectionInfo.num === 8) {
           i++;
           continue;
+        }
+        const headingKeep = ptToMm(sectionHeader.beforePt + sectionHeaderFont.fontPt * body.lineHeight + sectionHeader.afterPt + body.fontPt * body.lineHeight * 3);
+        if (yPosition + headingKeep > contentBottomY) {
+          doc.addPage();
+          yPosition = MARGIN_TOP_MM;
         }
         addSpacing(sectionHeader.beforePt);
         addText(sectionInfo.cleanTitle, sectionHeaderFont.fontPt, true, PDF_COLORS.sectionHeader);
@@ -339,8 +381,13 @@ export const exportToPdf = async ({
         continue;
       }
 
-      // Markdown ## headers -- scheme primary color
+      // Markdown ## headers -- section heading level
       if (trimmedLine.startsWith("## ")) {
+        const headingKeep = ptToMm(sectionHeader.beforePt + sectionHeaderFont.fontPt * body.lineHeight + sectionHeader.afterPt + body.fontPt * body.lineHeight * 3);
+        if (yPosition + headingKeep > contentBottomY) {
+          doc.addPage();
+          yPosition = MARGIN_TOP_MM;
+        }
         addSpacing(sectionHeader.beforePt);
         addText(trimmedLine.replace("## ", ""), sectionHeaderFont.fontPt, true, PDF_COLORS.sectionHeader);
         addSpacing(sectionHeader.afterPt);
@@ -348,17 +395,28 @@ export const exportToPdf = async ({
         continue;
       }
 
-      // Markdown ### headers
+      // Markdown ### headers -- subheading level (12pt bold, 6pt before, 2pt after)
+      // Must stay attached to next paragraph (at least 2 body lines)
       if (trimmedLine.startsWith("### ")) {
-        addSpacing(sectionHeader.beforePt);
-        addText(trimmedLine.replace("### ", ""), body.fontPt, true);
-        addSpacing(sectionHeader.afterPt);
+        const subKeep = ptToMm(subheading.beforePt + subheading.fontPt * body.lineHeight + subheading.afterPt + body.fontPt * body.lineHeight * 2);
+        if (yPosition + subKeep > contentBottomY) {
+          doc.addPage();
+          yPosition = MARGIN_TOP_MM;
+        }
+        addSpacing(subheading.beforePt);
+        addText(trimmedLine.replace("### ", ""), subheading.fontPt, true);
+        addSpacing(subheading.afterPt);
         i++;
         continue;
       }
 
-      // Markdown # headers
+      // Markdown # headers -- title level
       if (trimmedLine.startsWith("# ")) {
+        const headingKeep = ptToMm(sectionHeader.beforePt + title.fontPt * body.lineHeight + sectionHeader.afterPt + body.fontPt * body.lineHeight * 3);
+        if (yPosition + headingKeep > contentBottomY) {
+          doc.addPage();
+          yPosition = MARGIN_TOP_MM;
+        }
         addSpacing(sectionHeader.beforePt);
         addText(trimmedLine.replace("# ", ""), title.fontPt, true);
         addSpacing(sectionHeader.afterPt);
@@ -366,23 +424,52 @@ export const exportToPdf = async ({
         continue;
       }
 
-      // Bullet points
+      // Bullet points -- with list protection
+      // Spec: bullet indent 0.18", text indent 0.35", 2pt after, no break after first bullet
       if (trimmedLine.startsWith("- ") || trimmedLine.startsWith("* ") || trimmedLine.startsWith("* ")) {
+        // Look ahead to count consecutive bullets for protection
+        let bulletCount = 0;
+        for (let j = i; j < lines.length; j++) {
+          const t = lines[j].trim();
+          if (t.startsWith("- ") || t.startsWith("* ")) bulletCount++;
+          else break;
+        }
+        // If this is the first bullet and we can't fit at least 2, move to next page
+        const bulletLineH = ptToMm(body.fontPt * body.lineHeight);
+        if (bulletCount >= 2) {
+          const twoBulletH = bulletLineH * 2 + ptToMm(listItem.afterPt);
+          if (yPosition + twoBulletH > contentBottomY) {
+            doc.addPage();
+            yPosition = MARGIN_TOP_MM;
+          }
+        }
+
         const bulletText = trimmedLine.replace(/^[-**]\s*/, '');
         const boldMatch  = bulletText.match(/^\*\*(.+?):\*\*\s*(.*)$/);
+        const bulletIndentMm = ptToMm(listItem.indentPt);
+        const textIndentMm = ptToMm(listItem.textIndentPt);
         if (boldMatch) {
-          addLabeledText("* " + boldMatch[1] + ":", boldMatch[2], body.fontPt);
+          addLabeledText("- " + boldMatch[1] + ":", boldMatch[2], body.fontPt);
         } else {
           doc.setFontSize(body.fontPt);
           doc.setFont(pdfFont, "normal");
           doc.setTextColor(...PDF_COLORS.bodyText);
-          const bulletLines = doc.splitTextToSize("* " + sanitizeText(bulletText), contentWidth - 5);
-          if (yPosition + 5 > pageHeight - MARGIN_MM - footerHeightMm) {
+          // Draw bullet glyph at indent, text at text indent
+          const bulletTextWidth = contentWidth - textIndentMm;
+          const bulletLines = doc.splitTextToSize(sanitizeText(bulletText), bulletTextWidth);
+          if (yPosition + bulletLineH > contentBottomY) {
             doc.addPage();
-            yPosition = MARGIN_MM;
+            yPosition = MARGIN_TOP_MM;
           }
-          doc.text(bulletLines, MARGIN_MM + 3, yPosition);
-          yPosition += ptToMm(body.fontPt * body.lineHeight * bulletLines.length);
+          doc.text("-", MARGIN_LEFT_MM + bulletIndentMm, yPosition);
+          for (let bi = 0; bi < bulletLines.length; bi++) {
+            if (bi > 0 && yPosition + bulletLineH > contentBottomY) {
+              doc.addPage();
+              yPosition = MARGIN_TOP_MM;
+            }
+            doc.text(bulletLines[bi], MARGIN_LEFT_MM + textIndentMm, yPosition);
+            yPosition += bulletLineH;
+          }
         }
         addSpacing(listItem.afterPt);
         i++;
@@ -435,7 +522,7 @@ export const exportToPdf = async ({
   doc.setFont(pdfFont, "bold");
   doc.setTextColor(...PDF_COLORS.bodyText);
   const titleLines = doc.splitTextToSize(sanitizeText(documentTitle), contentWidth);
-  doc.text(titleLines, MARGIN_MM, yPosition);
+  doc.text(titleLines, MARGIN_LEFT_MM, yPosition);
   yPosition += ptToMm(title.fontPt * body.lineHeight * titleLines.length);
   addSpacing(title.afterPt);
 
@@ -448,7 +535,7 @@ export const exportToPdf = async ({
     if (meta.ageGroup)  metadataParts.push(sanitizeText(meta.ageGroup));
     if (meta.theology)  metadataParts.push(sanitizeText(meta.theology));
     if (metadataParts.length > 0) {
-      doc.text(metadataParts.join("  |  "), MARGIN_MM, yPosition);
+      doc.text(metadataParts.join("  |  "), MARGIN_LEFT_MM, yPosition);
       addSpacing(metadata.afterPt);
     }
     doc.setTextColor(...PDF_COLORS.bodyText);
@@ -506,14 +593,14 @@ export const exportToPdf = async ({
   let section8StartPage = -1;
   if (section8Lines.length > 0) {
     doc.addPage();
-    yPosition         = MARGIN_MM;
+    yPosition         = MARGIN_TOP_MM;
     section8StartPage = doc.getNumberOfPages();
 
     // Standalone title -- scheme primary color
     doc.setFontSize(sectionHeaderFont.fontPt);
     doc.setFont(pdfFont, "bold");
     doc.setTextColor(...PDF_COLORS.sectionHeader);
-    doc.text(getSection8StandaloneTitle(audienceProfile?.participant), MARGIN_MM, yPosition);
+    doc.text(getSection8StandaloneTitle(audienceProfile?.participant), MARGIN_LEFT_MM, yPosition);
     yPosition += ptToMm(sectionHeaderFont.fontPt * body.lineHeight);
     addSpacing(sectionHeader.afterPt);
 
@@ -525,9 +612,8 @@ export const exportToPdf = async ({
   }
 
   // 8. ADD SINGLE-LINE FOOTER TO MAIN PAGES ONLY (skip Student Handout pages)
-  // Format: BibleLessonSpark.com  *  Page 1 of 7
+  // Format: Lesson Title | Page X  (centered, 9pt, at footerY)
   const totalPages    = doc.getNumberOfPages();
-  const mainPageCount = section8StartPage > 0 ? section8StartPage - 1 : totalPages;
   for (let p = 1; p <= totalPages; p++) {
     if (section8StartPage > 0 && p >= section8StartPage) continue;
 
@@ -536,9 +622,9 @@ export const exportToPdf = async ({
     doc.setFont(pdfFont, "normal");
     doc.setTextColor(...PDF_COLORS.footerText);
 
-    const footerText  = `${EXPORT_FORMATTING.footerText}  *  Page ${p} of ${mainPageCount}`;
+    const footerText  = `${sanitizeText(documentTitle)} | Page ${p}`;
     const footerWidth = doc.getTextWidth(footerText);
-    doc.text(footerText, (pageWidth - footerWidth) / 2, pageHeight - 10);
+    doc.text(footerText, (pageWidth - footerWidth) / 2, footerY);
   }
 
   // 9. SAVE FILE

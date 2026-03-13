@@ -488,10 +488,10 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       properties: {
         page: {
           margin: {
-            top:    margins.twips,
-            right:  margins.twips,
-            bottom: margins.twips,
-            left:   margins.twips,
+            top:    margins.topTwips ?? margins.twips,
+            right:  margins.rightTwips ?? margins.twips,
+            bottom: margins.bottomTwips ?? margins.twips,
+            left:   margins.leftTwips ?? margins.twips,
           },
         },
       },

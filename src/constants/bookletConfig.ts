@@ -168,8 +168,8 @@ export const BOOKLET_FONT_SIZES = {
  * Line leading -- vertical advance per line, in points.
  */
 export const BOOKLET_LEADING = {
-  bodyLd:       16,   // 12pt body
-  scriptureLd:  15,   // 11pt scripture verse
+  bodyLd:       15,   // 12pt body (tightened for print economy)
+  scriptureLd:  14,   // 11pt scripture verse (tightened)
   metaLd:       13,   // 9pt meta
   copyrightLd:  11,   // 7.5pt copyright
 } as const;

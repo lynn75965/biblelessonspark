@@ -86,8 +86,21 @@ export async function getActiveExportSpacing(): Promise<typeof EXPORT_SPACING> {
 
       margins: {
         inches: marginsInches,
+        topIn: EXPORT_SPACING.margins.topIn ?? marginsInches,
+        bottomIn: EXPORT_SPACING.margins.bottomIn ?? marginsInches,
+        leftIn: EXPORT_SPACING.margins.leftIn ?? marginsInches,
+        rightIn: EXPORT_SPACING.margins.rightIn ?? marginsInches,
         twips: Math.round(marginsInches * 1440),
-        css: `${marginsInches}in`,
+        topTwips: Math.round((EXPORT_SPACING.margins.topIn ?? marginsInches) * 1440),
+        bottomTwips: Math.round((EXPORT_SPACING.margins.bottomIn ?? marginsInches) * 1440),
+        leftTwips: Math.round((EXPORT_SPACING.margins.leftIn ?? marginsInches) * 1440),
+        rightTwips: Math.round((EXPORT_SPACING.margins.rightIn ?? marginsInches) * 1440),
+        pdfTopIn: EXPORT_SPACING.margins.pdfTopIn ?? 0.60,
+        pdfBottomIn: EXPORT_SPACING.margins.pdfBottomIn ?? 0.60,
+        pdfLeftIn: EXPORT_SPACING.margins.pdfLeftIn ?? 0.65,
+        pdfRightIn: EXPORT_SPACING.margins.pdfRightIn ?? 0.65,
+        pdfFooterIn: EXPORT_SPACING.margins.pdfFooterIn ?? 0.40,
+        css: `${EXPORT_SPACING.margins.topIn ?? marginsInches}in ${EXPORT_SPACING.margins.leftIn ?? marginsInches}in`,
       },
 
       sectionHeader: {
@@ -150,11 +163,25 @@ export async function getActiveExportSpacing(): Promise<typeof EXPORT_SPACING> {
         afterTwips: paragraphAfterPt * 20,
         indentPt: EXPORT_SPACING.listItem.indentPt,
         indentTwips: EXPORT_SPACING.listItem.indentTwips,
+        textIndentPt: EXPORT_SPACING.listItem.textIndentPt,
+        textIndentTwips: EXPORT_SPACING.listItem.textIndentTwips,
+      },
+
+      subheading: {
+        fontPt: EXPORT_SPACING.subheading.fontPt,
+        fontHalfPt: EXPORT_SPACING.subheading.fontHalfPt,
+        beforePt: EXPORT_SPACING.subheading.beforePt,
+        afterPt: EXPORT_SPACING.subheading.afterPt,
+        beforeTwips: EXPORT_SPACING.subheading.beforeTwips,
+        afterTwips: EXPORT_SPACING.subheading.afterTwips,
       },
 
       hr: {
-        marginPt: EXPORT_SPACING.hr.marginPt,
-        marginTwips: EXPORT_SPACING.hr.marginTwips,
+        beforePt: EXPORT_SPACING.hr.beforePt,
+        afterPt: EXPORT_SPACING.hr.afterPt,
+        thickness: EXPORT_SPACING.hr.thickness,
+        beforeTwips: EXPORT_SPACING.hr.beforeTwips,
+        afterTwips: EXPORT_SPACING.hr.afterTwips,
       },
 
       colors: {

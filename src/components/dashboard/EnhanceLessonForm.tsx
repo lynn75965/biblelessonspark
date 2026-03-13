@@ -914,6 +914,17 @@ export function EnhanceLessonForm({
       return;
     }
 
+    // Series validation: block generation if user chose "Part of Series"
+    // but hasn't created or selected a series yet (race-condition guard)
+    if (lessonSequence === 'part_of_series' && !selectedSeries) {
+      toast({
+        title: "No series selected",
+        description: "Please create or select a teaching series before generating.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -1777,7 +1788,7 @@ export function EnhanceLessonForm({
               type="submit"
               className="w-full bg-primary hover:bg-primary-hover"
               size="lg"
-              disabled={isSubmitting || isEnhancing || subLessonsUsed >= subLessonsLimit || isExtracting || !step1Complete || !step2Complete}
+              disabled={isSubmitting || isEnhancing || subLessonsUsed >= subLessonsLimit || isExtracting || !step1Complete || !step2Complete || isCreatingSeries || (lessonSequence === 'part_of_series' && !selectedSeries)}
             >
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
