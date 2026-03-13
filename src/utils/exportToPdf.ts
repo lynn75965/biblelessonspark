@@ -218,6 +218,62 @@ export const exportToPdf = async ({
     textColor?: [number, number, number]
   ): void => {
     const sanitizedText = sanitizeText(text);
+    if (!sanitizedText) return;
+
+    // -------------------------------------------------------------------
+    // Inline label bold: for body text (not headings), split on the first
+    // colon. If the portion before the colon is 4 words or fewer and starts
+    // with a capital letter, render that portion + colon in bold, remainder
+    // in normal weight. This runs at the lowest rendering level so no
+    // label can bypass it regardless of which code path called addText.
+    // -------------------------------------------------------------------
+    if (!isBold) {
+      const colonIdx = sanitizedText.indexOf(':');
+      if (colonIdx > 0) {
+        const beforeColon = sanitizedText.substring(0, colonIdx).trim();
+        const wordCount = beforeColon.split(/\s+/).length;
+        if (wordCount <= 4 && /^[A-Z]/.test(beforeColon)) {
+          const labelStr  = beforeColon + ':';
+          const valueStr  = sanitizedText.substring(colonIdx + 1).trimStart();
+          doc.setFontSize(fontSize);
+          doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
+          // Measure label width in bold
+          doc.setFont(pdfFont, "bold");
+          const labelW = doc.getTextWidth(labelStr + ' ');
+          const valueWidth = contentWidth - labelW;
+          const lineH = ptToMm(fontSize * body.lineHeight);
+          // Keep-with-next: label + 2 body lines must fit
+          if (yPosition + lineH * 3 > contentBottomY) {
+            doc.addPage(); yPosition = MARGIN_TOP_MM;
+          }
+          // Draw bold label
+          doc.text(labelStr, MARGIN_LEFT_MM, yPosition);
+          // Switch to normal and draw value
+          doc.setFont(pdfFont, "normal");
+          const valueLines = doc.splitTextToSize(valueStr, valueWidth);
+          if (valueLines.length > 0 && valueLines[0]) {
+            doc.text(valueLines[0], MARGIN_LEFT_MM + labelW, yPosition);
+          }
+          yPosition += lineH;
+          // Remaining value lines at full width
+          if (valueLines.length > 1) {
+            const fullLines = doc.splitTextToSize(
+              valueLines.slice(1).join(' '), contentWidth
+            );
+            for (const ln of fullLines) {
+              if (yPosition + lineH > contentBottomY) {
+                doc.addPage(); yPosition = MARGIN_TOP_MM;
+              }
+              doc.text(ln, MARGIN_LEFT_MM, yPosition);
+              yPosition += lineH;
+            }
+          }
+          return;
+        }
+      }
+    }
+
+    // --- Standard rendering (no inline label) ---
     doc.setFontSize(fontSize);
     doc.setFont(pdfFont, isBold ? "bold" : "normal");
     doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
@@ -228,17 +284,14 @@ export const exportToPdf = async ({
     const linesFit = Math.max(0, Math.floor(spaceLeft / lineH));
 
     if (linesFit >= lines.length) {
-      // All lines fit on current page
       for (const ln of lines) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
       return;
     }
     if (linesFit < 2) {
-      // Fewer than 2 lines fit -- move entire paragraph to next page
       doc.addPage(); yPosition = MARGIN_TOP_MM;
       for (const ln of lines) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
       return;
     }
-    // Partial fit: ensure at least 2 lines remain for next page
     let linesOnThisPage = linesFit;
     const linesOnNextPage = lines.length - linesOnThisPage;
     if (linesOnNextPage < 2) {
