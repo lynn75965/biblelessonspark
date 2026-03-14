@@ -273,7 +273,6 @@ export const exportToPdf = async ({
   // Bold mechanism: identical to section headings (doc.setFont + doc.text)
   // plus double-draw at 0.15mm offset for guaranteed visible bold weight.
   const addLabeledText = (label: string, value: string, fontSize: number = body.fontPt): void => {
-    console.log("BOLD FUNCTION CALLED: label=" + label);
     const sanitizedLabel = sanitizeText(label);
     const sanitizedValue = sanitizeText(value);
     const lineH = ptToMm(fontSize * body.lineHeight);
@@ -318,7 +317,6 @@ export const exportToPdf = async ({
 
     // Detect inline label: "Label:" at start, label < 60 chars, starts with capital
     const inlineMatch = cleaned.match(/^([A-Z][^:]{0,58}):\s*(.*)$/);
-    console.log("addBodyParagraph: cleaned=" + JSON.stringify(cleaned.substring(0, 80)) + " inlineMatch=" + (inlineMatch ? "YES label=" + JSON.stringify(inlineMatch[1]) : "NO"));
     if (inlineMatch) {
       const labelPart = inlineMatch[1].trim();
       const valuePart = inlineMatch[2].trim();
@@ -454,7 +452,7 @@ export const exportToPdf = async ({
           yPosition = MARGIN_TOP_MM;
         }
         addSpacing(sectionHeader.beforePt);
-        addText(trimmedLine.replace("## ", ""), sectionHeaderFont.fontPt, true, PDF_COLORS.sectionHeader);
+        addText(trimmedLine.replace("## ", "").replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'), sectionHeaderFont.fontPt, true, PDF_COLORS.sectionHeader);
         addSpacing(sectionHeader.afterPt);
         i++;
         continue;
@@ -469,7 +467,7 @@ export const exportToPdf = async ({
           yPosition = MARGIN_TOP_MM;
         }
         addSpacing(subheading.beforePt);
-        addText(trimmedLine.replace("### ", ""), subheading.fontPt, true);
+        addText(trimmedLine.replace("### ", "").replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'), subheading.fontPt, true);
         addSpacing(subheading.afterPt);
         i++;
         continue;
@@ -483,7 +481,7 @@ export const exportToPdf = async ({
           yPosition = MARGIN_TOP_MM;
         }
         addSpacing(sectionHeader.beforePt);
-        addText(trimmedLine.replace("# ", ""), title.fontPt, true);
+        addText(trimmedLine.replace("# ", "").replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'), title.fontPt, true);
         addSpacing(sectionHeader.afterPt);
         i++;
         continue;
@@ -521,7 +519,7 @@ export const exportToPdf = async ({
           doc.setTextColor(...PDF_COLORS.bodyText);
           // Draw bullet glyph at indent, text at text indent
           const bulletTextWidth = contentWidth - textIndentMm;
-          const bulletLines = doc.splitTextToSize(sanitizeText(bulletText), bulletTextWidth);
+          const bulletLines = doc.splitTextToSize(sanitizeText(bulletText.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1')), bulletTextWidth);
           if (yPosition + bulletLineH > contentBottomY) {
             doc.addPage();
             yPosition = MARGIN_TOP_MM;
@@ -549,6 +547,27 @@ export const exportToPdf = async ({
         continue;
       }
 
+      // Detect ** bold label lines: e.g. **Key Takeaway:** content
+      if (/^\*\*[A-Z]/.test(trimmedLine)) {
+        const stripped = trimmedLine.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+        const colonIdx = stripped.indexOf(':');
+        const labelLineH = ptToMm(body.fontPt * body.lineHeight);
+        if (yPosition + labelLineH * 3 > contentBottomY) {
+          doc.addPage();
+          yPosition = MARGIN_TOP_MM;
+        }
+        if (colonIdx !== -1 && colonIdx < stripped.length - 1) {
+          const label = stripped.slice(0, colonIdx + 1);
+          const contentAfter = stripped.slice(colonIdx + 1).trim();
+          addLabeledText(label, contentAfter, body.fontPt);
+        } else {
+          addText(stripped, body.fontPt, true);
+        }
+        addSpacing(paragraph.afterPt);
+        i++;
+        continue;
+      }
+
       // Skip labels (e.g. "Lesson Title:")
       const skipMatch = trimmedLine.match(/^(?:\*\*)?([^:]+):(?:\*\*)?\s*(.*)$/);
       if (skipMatch && isSkipLabel(skipMatch[1].trim())) {
@@ -559,7 +578,6 @@ export const exportToPdf = async ({
       // Body paragraph -- addBodyParagraph handles inline bold label detection
       // (renders "Label:" portion bold, remainder normal weight)
       // Also includes keep-with-next protection for labeled paragraphs
-      console.log("processContentLines -> addBodyParagraph: " + JSON.stringify(trimmedLine.substring(0, 80)));
       addBodyParagraph(trimmedLine);
       addSpacing(paragraph.afterPt);
       i++;
