@@ -309,7 +309,7 @@ export const SERIES_TOC_TYPOGRAPHY = {
 export const SERIES_COLORS = {
   primary:       '3D5C3D',
   accent:        'B8860B',
-  bodyText:      '1A1A1A',
+  bodyText:      '000000',
   mutedText:     '666666',
   border:        'D1D5DB',
   handoutHeader: '3D5C3D',
@@ -332,7 +332,7 @@ export const EXPORT_SPACING = {
     docx: 'Palatino Linotype',
   },
   colors: {
-    bodyText:   '1A1A1A',
+    bodyText:   '000000',
     metaText:   '666666',
     footerText: '999999',
   },

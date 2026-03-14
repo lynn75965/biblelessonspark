@@ -135,7 +135,7 @@ export const EXPORT_SPACING = {
     teaserBg: 'F0F7FF',
     teaserBorder: '3B82F6',
     teaserText: '2563EB',
-    bodyText: '333333',
+    bodyText: '000000',
     metaText: '666666',
     footerText: '999999',
     hrLine: 'CCCCCC',
