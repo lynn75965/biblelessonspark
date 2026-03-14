@@ -13,7 +13,8 @@
       "Bash(ls -la C:/Users/lynn/biblelessonspark/public/fonts/Pagella-*.ttf)",
       "Bash(node -e \"\nconst fs = require\\('fs'\\);\nconst reg = fs.readFileSync\\('C:/Users/lynn/biblelessonspark/public/fonts/Pagella-Regular.ttf'\\);\nconst bold = fs.readFileSync\\('C:/Users/lynn/biblelessonspark/public/fonts/Pagella-Bold.ttf'\\);\nlet diffCount = 0;\nconst minLen = Math.min\\(reg.length, bold.length\\);\nfor \\(let i = 0; i < minLen; i++\\) {\n  if \\(reg[i] !== bold[i]\\) diffCount++;\n}\nconsole.log\\('Regular size:', reg.length\\);\nconsole.log\\('Bold size:', bold.length\\);\nconsole.log\\('Bytes that differ:', diffCount, 'out of', minLen\\);\nconsole.log\\('Percentage different:', \\(diffCount / minLen * 100\\).toFixed\\(1\\) + '%'\\);\n\")",
       "WebFetch(domain:biblelessonspark.com)",
-      "Bash(npx netlify-cli:*)"
+      "Bash(npx netlify-cli:*)",
+      "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: render inline labeled lines \\(Key Takeaway, Audience Insight, etc.\\) with bold label and normal body text in PDF export\" 2>&1)"
     ]
   }
 }
