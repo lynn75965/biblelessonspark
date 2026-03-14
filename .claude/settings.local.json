@@ -16,7 +16,9 @@
       "Bash(npx netlify-cli:*)",
       "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: render inline labeled lines \\(Key Takeaway, Audience Insight, etc.\\) with bold label and normal body text in PDF export\" 2>&1)",
       "Bash(cd C:/Users/lynn/biblelessonspark && node fetch_lesson.cjs 2>&1)",
-      "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: body text color set to pure black #000000 in both lessonStructure.ts and seriesExportConfig.ts\" 2>&1)"
+      "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: body text color set to pure black #000000 in both lessonStructure.ts and seriesExportConfig.ts\" 2>&1)",
+      "Bash(cd C:/Users/lynn/biblelessonspark && grep -r \"bold label\" dist/assets/*.js)",
+      "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: bold label lines split at colon -- label bold, content normal body text\" 2>&1)"
     ]
   }
 }

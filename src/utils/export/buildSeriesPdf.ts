@@ -258,14 +258,32 @@ export async function buildSeriesPdf(
       // Detect ** bold label lines: e.g. **Key Takeaway:** content
       if (/^\*\*[A-Z]/.test(line.trim())) {
         const stripped = line.trim().replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
-        doc.setFont(pdfFont, 'bold');
-        doc.setFontSize(EXPORT_SPACING.body.fontPt);
-        doc.setTextColor(0, 0, 0);
-        const blines = doc.splitTextToSize(sanitizeForPdf(stripped), CONTENT_WIDTH) as string[];
-        const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
-        for (const bl of blines) { ensureSpace(blh); doc.text(bl, MARGIN_LEFT, currentY); currentY += blh; }
-        currentY += EXPORT_SPACING.paragraph.afterPt;
-        resetStyle();
+        const colonIdx = stripped.indexOf(':');
+        if (colonIdx !== -1 && colonIdx < stripped.length - 1) {
+          const label = stripped.slice(0, colonIdx + 1);
+          const content = stripped.slice(colonIdx + 1).trim();
+          doc.setFont(pdfFont, 'bold');
+          doc.setFontSize(EXPORT_SPACING.body.fontPt);
+          doc.setTextColor(0, 0, 0);
+          const lblines = doc.splitTextToSize(sanitizeForPdf(label), CONTENT_WIDTH) as string[];
+          const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+          for (const bl of lblines) { ensureSpace(blh); doc.text(bl, MARGIN_LEFT, currentY); currentY += blh; }
+          resetStyle();
+          if (content) {
+            const clines = doc.splitTextToSize(sanitizeForPdf(content), CONTENT_WIDTH) as string[];
+            for (const cl of clines) { ensureSpace(blh); doc.text(cl, MARGIN_LEFT, currentY); currentY += blh; }
+            currentY += EXPORT_SPACING.paragraph.afterPt;
+          }
+        } else {
+          doc.setFont(pdfFont, 'bold');
+          doc.setFontSize(EXPORT_SPACING.body.fontPt);
+          doc.setTextColor(0, 0, 0);
+          const blines = doc.splitTextToSize(sanitizeForPdf(stripped), CONTENT_WIDTH) as string[];
+          const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+          for (const bl of blines) { ensureSpace(blh); doc.text(bl, MARGIN_LEFT, currentY); currentY += blh; }
+          currentY += EXPORT_SPACING.paragraph.afterPt;
+          resetStyle();
+        }
         continue;
       }
 
@@ -624,7 +642,7 @@ export async function buildBookletPdf(
       if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
       if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
-      if (/^\*\*[A-Z]/.test(line.trim())) { const s = line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1'); doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(0,0,0); const bls = doc.splitTextToSize(sanitizeForPdf(s), BK_CW) as string[]; const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight; for (const bl of bls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; bkReset(); continue; }
+      if (/^\*\*[A-Z]/.test(line.trim())) { const s = line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1'); const ci = s.indexOf(':'); if (ci !== -1 && ci < s.length - 1) { const lb = s.slice(0, ci + 1); const ct = s.slice(ci + 1).trim(); doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(0,0,0); const lls = doc.splitTextToSize(sanitizeForPdf(lb), BK_CW) as string[]; const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight; for (const bl of lls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } bkReset(); if (ct) { const cls = doc.splitTextToSize(sanitizeForPdf(ct), BK_CW) as string[]; for (const cl of cls) { bkEnsure(blh); doc.text(cl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; } } else { doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(0,0,0); const bls = doc.splitTextToSize(sanitizeForPdf(s), BK_CW) as string[]; const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight; for (const bl of bls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; bkReset(); } continue; }
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkSubhead(line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (/^>\s*/.test(line.trim())) { bkBody(sanitizeForPdf(line.replace(/^>\s*/,''))); continue; }
       bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/_([^_]+)_/g,'$1')));
