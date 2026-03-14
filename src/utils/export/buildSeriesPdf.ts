@@ -255,14 +255,10 @@ export async function buildSeriesPdf(
         continue;
       }
 
-      // Detect inline labeled lines: e.g. "Key Takeaway: Students will understand..."
-      // Capital phrase with colon before position 60, with content after the colon
-      const inlineLabelMatch = line.trim().replace(/^\*\*/,'').match(/^([A-Z][^:\n]{2,56}:)\*?\*?\s*(.+)$/);
-      if (inlineLabelMatch) {
-        const labelPart = inlineLabelMatch[1].replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
-        const contentPart = inlineLabelMatch[2].replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
-        renderSubheading(labelPart);
-        renderBodyText(contentPart);
+      // Detect ** bold label lines: e.g. **Key Takeaway:** content
+      if (/^\*\*[A-Z]/.test(line.trim())) {
+        const stripped = line.trim().replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+        renderSubheading(stripped);
         continue;
       }
 
@@ -621,8 +617,7 @@ export async function buildBookletPdf(
       if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
       if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
-      const bkInlineMatch = line.trim().replace(/^\*\*/,'').match(/^([A-Z][^:\n]{2,56}:)\*?\*?\s*(.+)$/);
-      if (bkInlineMatch) { bkSubhead(bkInlineMatch[1].replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); bkBody(bkInlineMatch[2].replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
+      if (/^\*\*[A-Z]/.test(line.trim())) { const s = line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1'); bkSubhead(s); continue; }
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkSubhead(line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (/^>\s*/.test(line.trim())) { bkBody(sanitizeForPdf(line.replace(/^>\s*/,''))); continue; }
       bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/_([^_]+)_/g,'$1')));
