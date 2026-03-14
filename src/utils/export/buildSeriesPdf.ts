@@ -232,13 +232,13 @@ export async function buildSeriesPdf(
       if (/^#{1,3}\s*$/.test(line)) continue;
 
       if (/^#{1,3}\s+/.test(line)) {
-        const headingText = line.replace(/^#{1,3}\s+/, '');
+        const headingText = line.replace(/^#{1,3}\s+/, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
         renderSubheading(headingText);
         continue;
       }
 
       if (/^\s*[*-]\s+/.test(line)) {
-        const bulletText = '- ' + line.replace(/^\s*[*-]\s+/, '');
+        const bulletText = '- ' + line.replace(/^\s*[*-]\s+/, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
         renderBodyText(bulletText);
         continue;
       }
@@ -250,7 +250,7 @@ export async function buildSeriesPdf(
 
       // Detect AI-generated checklist bullets: lines beginning with % (e.g. %- or %u00A1)
       if (/^%/.test(line.trim())) {
-        const bulletText = '- ' + line.replace(/^%[^\s]*\s*/, '');
+        const bulletText = '- ' + line.replace(/^%[^\s]*\s*/, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
         renderBodyText(bulletText);
         continue;
       }
@@ -258,7 +258,7 @@ export async function buildSeriesPdf(
       // Detect plain-text section labels: e.g. "Literary Context:"
       // Short line, starts with capital, ends with colon, no markdown prefix
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) {
-        renderSubheading(line.trim());
+        renderSubheading(line.trim().replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'));
         continue;
       }
 
@@ -606,11 +606,11 @@ export async function buildBookletPdf(
       const line = rawLine.trimEnd();
       if (line.trim() === '---') continue;
       if (/^#{1,3}\s*$/.test(line)) continue;
-      if (/^#{1,3}\s+/.test(line)) { bkSubhead(line.replace(/^#{1,3}\s+/,'')); continue; }
-      if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'')); continue; }
+      if (/^#{1,3}\s+/.test(line)) { bkSubhead(line.replace(/^#{1,3}\s+/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
+      if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
-      if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'')); continue; }
-      if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkSubhead(line.trim()); continue; }
+      if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
+      if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkSubhead(line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (/^>\s*/.test(line.trim())) { bkBody(sanitizeForPdf(line.replace(/^>\s*/,''))); continue; }
       bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/_([^_]+)_/g,'$1')));
     }
