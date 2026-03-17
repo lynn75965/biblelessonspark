@@ -3,7 +3,7 @@
 // This file is the MASTER - database is synced via: npm run sync-org-pricing
 //
 // STACK 2 -- SHEPHERD TIERS (Organization)
-// Single Staff | Starter | Growth | Develop | Expansion
+// Foundation | Strengthening | Multiplication | Expansion | Network
 //
 // Updated: February 3, 2026
 
@@ -29,7 +29,7 @@ export interface OrgTier {
 export const ORG_TIERS: OrgTier[] = [
   {
     tier: 'org_single_staff',
-    displayName: 'Single Staff',
+    displayName: 'Foundation',
     lessonsLimit: 20,
     priceMonthly: 19.00,
     priceAnnual: 190.00,
@@ -37,13 +37,13 @@ export const ORG_TIERS: OrgTier[] = [
     stripePriceIdMonthly: 'price_1Swo8cI4GLksxBfVmjDOAPsy',
     stripePriceIdAnnual: 'price_1Swo8cI4GLksxBfVKrgbURbQ',
     description: '20 lessons per month shared across unlimited teachers',
-    bestFor: 'Pastor + 3-5 teachers',
+    bestFor: 'For a small team beginning to align their teaching.',
     displayOrder: 1,
     isActive: true,
   },
   {
     tier: 'org_starter',
-    displayName: 'Starter',
+    displayName: 'Strengthening',
     lessonsLimit: 30,
     priceMonthly: 29.00,
     priceAnnual: 290.00,
@@ -51,13 +51,13 @@ export const ORG_TIERS: OrgTier[] = [
     stripePriceIdMonthly: 'price_1SvMaWI4GLksxBfVn6FVKKiG',
     stripePriceIdAnnual: 'price_1SvMcVI4GLksxBfVLG7k1F12',
     description: '30 lessons per month shared across unlimited teachers',
-    bestFor: '5-7 teachers',
+    bestFor: 'For ministries growing in consistency and clarity.',
     displayOrder: 2,
     isActive: true,
   },
   {
     tier: 'org_growth',
-    displayName: 'Growth',
+    displayName: 'Multiplication',
     lessonsLimit: 60,
     priceMonthly: 49.00,
     priceAnnual: 490.00,
@@ -65,13 +65,13 @@ export const ORG_TIERS: OrgTier[] = [
     stripePriceIdMonthly: 'price_1SvMt9I4GLksxBfV5hc6Rsox',
     stripePriceIdAnnual: 'price_1SvMsCI4GLksxBfVDy8YjZYu',
     description: '60 lessons per month shared across unlimited teachers',
-    bestFor: '10-14 teachers',
+    bestFor: 'For ministries actively strengthening and multiplying discipleship.',
     displayOrder: 3,
     isActive: true,
   },
   {
     tier: 'org_develop',
-    displayName: 'Develop',
+    displayName: 'Expansion',
     lessonsLimit: 100,
     priceMonthly: 79.00,
     priceAnnual: 790.00,
@@ -79,13 +79,13 @@ export const ORG_TIERS: OrgTier[] = [
     stripePriceIdMonthly: 'price_1SvN1lI4GLksxBfVEpU7eKq5',
     stripePriceIdAnnual: 'price_1SvMxmI4GLksxBfVVOY3cOpb',
     description: '100 lessons per month shared across unlimited teachers',
-    bestFor: '18-25 teachers',
+    bestFor: 'For larger ministries coordinating multiple classes and leaders.',
     displayOrder: 4,
     isActive: true,
   },
   {
     tier: 'org_expansion',
-    displayName: 'Expansion',
+    displayName: 'Network',
     lessonsLimit: 200,
     priceMonthly: 149.00,
     priceAnnual: 1490.00,
@@ -93,7 +93,7 @@ export const ORG_TIERS: OrgTier[] = [
     stripePriceIdMonthly: 'price_1SvN5RI4GLksxBfVrtZ2aDN9',
     stripePriceIdAnnual: 'price_1SvN4CI4GLksxBfVgdN7qjsr',
     description: '200 lessons per month shared across unlimited teachers',
-    bestFor: '35-50 teachers',
+    bestFor: 'For churches and organizations serving broad teaching networks.',
     displayOrder: 5,
     isActive: true,
   },

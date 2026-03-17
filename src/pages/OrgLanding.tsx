@@ -7,6 +7,7 @@
 //   B. Post-signup prompt on dashboard
 //   C. Direct link sent by Platform Admin
 //
+// Repositioned March 2026: Ministry leadership entry point
 // Banner for existing org owners added (February 2026)
 
 import { useState, useEffect } from 'react';
@@ -18,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Church, Users, BookOpen, Shield, ArrowRight, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Check, Church, Users, BookOpen, Shield, ArrowRight, Sparkles, LayoutDashboard, Target, Eye } from 'lucide-react';
 import { ROUTES } from "@/constants/routes";
 
 const OrgLanding = () => {
@@ -85,6 +86,14 @@ const OrgLanding = () => {
     }
   };
 
+  // Scroll to pricing section
+  const scrollToHowItWorks = () => {
+    const el = document.getElementById('how-it-works');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   // Format price display
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -109,9 +118,9 @@ const OrgLanding = () => {
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <a href="/" className="flex items-center gap-2">
-            <img 
-              src={BRANDING.logo.primary} 
-              alt={BRANDING.logo.altText} 
+            <img
+              src={BRANDING.logo.primary}
+              alt={BRANDING.logo.altText}
               className="h-8 w-auto"
             />
             <span className="font-semibold text-lg text-primary hidden sm:inline">
@@ -150,8 +159,8 @@ const OrgLanding = () => {
                   You already manage <strong>{existingOrgName}</strong>.
                 </p>
               </div>
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 onClick={() => navigate('/org-manager')}
               >
                 <LayoutDashboard className="h-4 w-4 mr-2" />
@@ -162,7 +171,9 @@ const OrgLanding = () => {
         </div>
       )}
 
-      {/* Hero Section */}
+      {/* ============================================================ */}
+      {/* 1. HERO SECTION */}
+      {/* ============================================================ */}
       <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
         <div className="max-w-4xl mx-auto text-center">
           <Badge variant="secondary" className="mb-4">
@@ -170,31 +181,47 @@ const OrgLanding = () => {
             For Ministry Leaders
           </Badge>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary mb-4">
-            Shepherd Your Teaching Ministry
+            Shepherd Your Teaching Ministry with Clarity and Confidence
           </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Equip your teachers with BibleLessonSpark-powered lesson preparation. 
-            Share a lesson pool across your teaching team and see how God is working 
-            through your teaching ministry in every way at any time.
+          <p className="text-lg sm:text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
+            Align every teacher. Strengthen every class. Support faithful teaching
+            across your entire ministry -- without adding complexity.
+          </p>
+          <p className="text-base text-muted-foreground mb-8 max-w-2xl mx-auto">
+            {BRANDING.appName} equips your teachers with personalized lesson preparation
+            while giving you a clear view of how your ministry is growing in truth and unity.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" onClick={() => handleGetStarted()} className="text-lg px-8">
-              Set Up Your Organization
+              Start Shepherding Your Teaching Ministry
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/')}>
-              Learn More About {BRANDING.appName}
+            <Button size="lg" variant="outline" onClick={scrollToHowItWorks}>
+              See How It Works
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Benefits Section */}
+      {/* ============================================================ */}
+      {/* 2. BRIDGE STATEMENT */}
+      {/* ============================================================ */}
+      <section className="py-8 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-xl sm:text-2xl font-semibold text-foreground">
+            Faithful teaching doesn't happen by accident.
+          </p>
+          <p className="text-lg text-muted-foreground mt-2">
+            It happens when teachers are supported, aligned, and encouraged.
+          </p>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 3. VALUE CARDS */}
+      {/* ============================================================ */}
       <section className="py-12 px-4 sm:px-6 bg-background/50">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
-            What You Get as a Shepherd
-          </h2>
           <div className="grid md:grid-cols-3 gap-6">
             <Card className="border-primary/20">
               <CardHeader>
@@ -205,8 +232,9 @@ const OrgLanding = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Your teachers draw from a shared monthly pool of lessons. 
-                  No per-seat pricing -- invite as many teachers as you need.
+                  Give your entire team access to a shared pool of lessons each month.
+                  You're not managing seats -- you're supplying what your teachers need
+                  to prepare well.
                 </p>
               </CardContent>
             </Card>
@@ -214,14 +242,14 @@ const OrgLanding = () => {
             <Card className="border-primary/20">
               <CardHeader>
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                  <BookOpen className="h-6 w-6 text-primary" />
+                  <Target className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Shared Focus</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  Set an organization-wide passage or theme. Your teachers see your suggestion 
-                  and can align their lessons -- or teach their own calling.
+                  Set a passage or direction for your ministry. Each teacher prepares
+                  uniquely for their class while staying anchored in the same truth.
                 </p>
               </CardContent>
             </Card>
@@ -229,14 +257,14 @@ const OrgLanding = () => {
             <Card className="border-primary/20">
               <CardHeader>
                 <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
-                  <Shield className="h-6 w-6 text-primary" />
+                  <Eye className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle className="text-lg">Shepherd Oversight</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  See which teachers are preparing, view lessons funded by your pool, 
-                  and encourage your team -- all from one dashboard.
+                  See which teachers are preparing, how lessons are being used, and where
+                  encouragement is needed -- without micromanaging.
                 </p>
               </CardContent>
             </Card>
@@ -244,17 +272,94 @@ const OrgLanding = () => {
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section className="py-12 sm:py-16 px-4 sm:px-6">
+      {/* ============================================================ */}
+      {/* 4. POSITIONING STATEMENT */}
+      {/* ============================================================ */}
+      <section className="py-10 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-lg sm:text-xl text-foreground font-medium italic">
+            {BRANDING.appName} does not replace your teachers. It strengthens them -- so
+            every class is taught with clarity, confidence, and faithfulness to God's Word.
+          </p>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 7. HOW IT WORKS */}
+      {/* ============================================================ */}
+      <section id="how-it-works" className="py-12 sm:py-16 px-4 sm:px-6 bg-background/50">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
+            How {BRANDING.appName} Supports Your Teaching Ministry
+          </h2>
+          <div className="space-y-6">
+            {[
+              {
+                step: 1,
+                title: 'Set the Direction',
+                body: 'Choose a passage or teaching focus for your ministry.',
+              },
+              {
+                step: 2,
+                title: 'Teachers Prepare Personally',
+                body: 'Each teacher generates a lesson shaped to their class, age group, and teaching style.',
+              },
+              {
+                step: 3,
+                title: 'Teach with Confidence',
+                body: 'Lessons are clear, structured, and ready to use -- without hours of preparation.',
+              },
+              {
+                step: 4,
+                title: 'Shepherd with Clarity',
+                body: 'You can see how your teachers are preparing and where support or encouragement is needed.',
+              },
+              {
+                step: 5,
+                title: 'Strengthen Over Time',
+                body: 'Your entire ministry grows in unity, confidence, and faithfulness week by week.',
+              },
+            ].map((item) => (
+              <div key={item.step} className="flex items-start gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg shrink-0">
+                  {item.step}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">{item.title}</h3>
+                  <p className="text-muted-foreground mt-1">{item.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 8. DIFFERENTIATOR LINE */}
+      {/* ============================================================ */}
+      <section className="py-10 px-4 sm:px-6">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="text-lg text-muted-foreground">
+            Traditional curriculum is written for a general audience months in advance.
+            {' '}{BRANDING.appName} prepares each lesson for your class -- right now.
+          </p>
+        </div>
+      </section>
+
+      {/* ============================================================ */}
+      {/* 5 & 6. TIER SECTION -- heading + tier cards from SSOT */}
+      {/* ============================================================ */}
+      <section className="py-12 sm:py-16 px-4 sm:px-6 bg-background/50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-              Choose Your Shepherd Tier
+              Choose the Level of Support for Your Teaching Ministry
             </h2>
             <p className="text-muted-foreground mb-6">
-              Every tier includes unlimited teachers. You're paying for lesson capacity, not seats.
+              Every level includes unlimited teachers. You're simply increasing your
+              capacity to serve them well.
             </p>
-            
+
             {/* Billing Toggle */}
             <div className="inline-flex items-center gap-2 bg-muted rounded-lg p-1">
               <button
@@ -281,16 +386,17 @@ const OrgLanding = () => {
             </div>
           </div>
 
-          {/* Tier Cards */}
+          {/* Tier Cards -- displayName and bestFor read from orgPricingConfig.ts SSOT */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {activeTiers.map((tier) => {
               const price = billingInterval === 'year' ? tier.priceAnnual : tier.priceMonthly;
               const { savings } = calculateSavings(tier.priceMonthly, tier.priceAnnual);
-              const isPopular = tier.tier === 'org_growth'; // Middle tier
+              // Most Popular stays on the tier formerly called Growth (org_growth)
+              const isPopular = tier.tier === 'org_growth';
 
               return (
-                <Card 
-                  key={tier.tier} 
+                <Card
+                  key={tier.tier}
                   className={`relative flex flex-col ${
                     isPopular ? 'border-primary shadow-lg ring-2 ring-primary/20' : ''
                   }`}
@@ -337,16 +443,16 @@ const OrgLanding = () => {
                       </li>
                       <li className="flex items-start gap-2 text-sm">
                         <Check className="h-4 w-4 text-green-600 mt-0.5 shrink-0" />
-                        <span>Org Manager dashboard</span>
+                        <span>Shepherd dashboard</span>
                       </li>
                     </ul>
 
-                    <Button 
+                    <Button
                       onClick={() => handleGetStarted(tier.tier)}
                       variant={isPopular ? 'default' : 'outline'}
                       className="w-full"
                     >
-                      {user ? 'Select This Tier' : 'Get Started'}
+                      {user ? 'Shepherd My Teaching Ministry' : 'Shepherd My Teaching Ministry'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -369,16 +475,18 @@ const OrgLanding = () => {
             A Note About Personal Subscriptions
           </h3>
           <p className="text-muted-foreground">
-            The Shepherd tier gives your organization a shared lesson pool and management tools. 
-            For your <em>own</em> lessons (personal preparation, devotionals), you'll also need 
-            a Personal subscription ($9/month OR $90/year -- $7.50 monthly). Be sure to match 
-            your choice with your organization's billing choice. If you don't have a Personal subscription yet, 
+            The Shepherd tier gives your organization a shared lesson pool and management tools.
+            For your <em>own</em> lessons (personal preparation, devotionals), you'll also need
+            a Personal subscription ($9/month OR $90/year -- $7.50 monthly). Be sure to match
+            your choice with your organization's billing choice. If you don't have a Personal subscription yet,
             we'll add it automatically at checkout.
           </p>
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* ============================================================ */}
+      {/* 9. BOTTOM TRUST LINE + CTA */}
+      {/* ============================================================ */}
       <section className="py-12 sm:py-16 px-4 sm:px-6">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">
@@ -388,9 +496,12 @@ const OrgLanding = () => {
             Set up your organization in minutes. Invite your teachers. Start preparing together.
           </p>
           <Button size="lg" onClick={() => handleGetStarted()} className="text-lg px-8">
-            Set Up Your Organization
+            Start Shepherding Your Teaching Ministry
             <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
+          <p className="text-sm text-muted-foreground mt-8">
+            Designed for churches who want to teach faithfully -- without unnecessary complexity.
+          </p>
         </div>
       </section>
 
@@ -398,7 +509,7 @@ const OrgLanding = () => {
       <footer className="border-t py-8 px-4 sm:px-6 bg-background">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            -- {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
+            {new Date().getFullYear()} {BRANDING.appName}. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm">
             <a href={ROUTES.PRIVACY} className="text-muted-foreground hover:text-foreground">
@@ -418,4 +529,3 @@ const OrgLanding = () => {
 };
 
 export default OrgLanding;
-
