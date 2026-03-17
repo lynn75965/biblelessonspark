@@ -11,7 +11,7 @@
 // Banner for existing org owners added (February 2026)
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { BRANDING } from '@/config/branding';
 import { ORG_TIERS, getActiveOrgTiers } from '@/constants/orgPricingConfig';
@@ -19,12 +19,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Church, Users, BookOpen, Shield, ArrowRight, Sparkles, LayoutDashboard, Target, Eye } from 'lucide-react';
+import { Check, Church, Users, ArrowRight, Sparkles, LayoutDashboard, Target, Eye } from 'lucide-react';
 import { ROUTES } from "@/constants/routes";
 
 const OrgLanding = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { user, loading } = useAuth();
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
 
@@ -164,7 +163,7 @@ const OrgLanding = () => {
                 onClick={() => navigate('/org-manager')}
               >
                 <LayoutDashboard className="h-4 w-4 mr-2" />
-                Go to Org Manager
+                Go to Your Ministry Dashboard
               </Button>
             </div>
           </div>
@@ -206,12 +205,12 @@ const OrgLanding = () => {
       {/* ============================================================ */}
       {/* 2. BRIDGE STATEMENT */}
       {/* ============================================================ */}
-      <section className="py-8 px-4 sm:px-6">
+      <section className="py-10 sm:py-12 px-4 sm:px-6">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-xl sm:text-2xl font-semibold text-foreground">
             Faithful teaching doesn't happen by accident.
           </p>
-          <p className="text-lg text-muted-foreground mt-2">
+          <p className="text-lg text-muted-foreground mt-3">
             It happens when teachers are supported, aligned, and encouraged.
           </p>
         </div>
@@ -452,7 +451,7 @@ const OrgLanding = () => {
                       variant={isPopular ? 'default' : 'outline'}
                       className="w-full"
                     >
-                      {user ? 'Shepherd My Teaching Ministry' : 'Shepherd My Teaching Ministry'}
+                      Shepherd My Teaching Ministry
                     </Button>
                   </CardContent>
                 </Card>
@@ -472,14 +471,13 @@ const OrgLanding = () => {
       <section className="py-12 px-4 sm:px-6 bg-secondary/5">
         <div className="max-w-3xl mx-auto text-center">
           <h3 className="text-xl font-semibold mb-3">
-            A Note About Personal Subscriptions
+            Your Own Preparation Matters Too
           </h3>
           <p className="text-muted-foreground">
-            The Shepherd tier gives your organization a shared lesson pool and management tools.
-            For your <em>own</em> lessons (personal preparation, devotionals), you'll also need
-            a Personal subscription ($9/month OR $90/year -- $7.50 monthly). Be sure to match
-            your choice with your organization's billing choice. If you don't have a Personal subscription yet,
-            we'll add it automatically at checkout.
+            A Shepherd plan covers your organization's shared lesson pool.
+            For your <em>own</em> personal lesson preparation, you'll also want a
+            Personal plan ($9/month or $7.50/month billed annually). If you don't
+            have one yet, we'll include it at checkout.
           </p>
         </div>
       </section>
@@ -493,7 +491,7 @@ const OrgLanding = () => {
             Ready to Shepherd Your Teaching Ministry?
           </h2>
           <p className="text-muted-foreground mb-6">
-            Set up your organization in minutes. Invite your teachers. Start preparing together.
+            Gather your teachers. Set the direction. Begin preparing together.
           </p>
           <Button size="lg" onClick={() => handleGetStarted()} className="text-lg px-8">
             Start Shepherding Your Teaching Ministry
