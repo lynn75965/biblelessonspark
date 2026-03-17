@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Project Master Document
-## Date: March 11, 2026
+## Date: March 17, 2026
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -732,13 +732,15 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 
 ## WHAT'S NEXT (Post-Launch Priorities)
 
-1. **Feature Adoption view** -- Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
-2. **Free-tier experience polish** -- Add "X complimentary lessons remaining" indicator so the free-tier cliff isn't invisible
-3. **Admin Panel improvements** -- Add Email column and Subscription Tier column to User Management tab; fix pagination showing only 3 of 41 users
-4. **Get John's real Stripe subscription ID** -- Replace placeholder 'sub_placeholder_needs_real_id' with actual ID from Stripe dashboard for proper webhook handling on renewal
-5. **Verify uncertain tables** -- Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
-6. **Backup existing RLS policies** -- Run export query from Appendix B before any multi-tenant work begins
-7. **Multi-tenant migration** -- Phase 1 through 5 per MULTI_TENANT_MIGRATION_PLAN.md
+1. **OrgSetup.tsx audit** -- Check for any stale hardcoded references to old tier names (Single Staff, Starter, Growth, Develop, Expansion). Display names pull from orgPricingConfig.ts SSOT but inline copy may still reference old names.
+2. **pricingConfig.ts / orgPricingConfig.ts unification** -- STRIPE_ORG block in pricingConfig.ts has 4 org tiers with different keys than orgPricingConfig.ts's 5 tiers. Pre-existing tension that should be resolved.
+3. **Feature Adoption view** -- Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
+4. **Free-tier experience polish** -- Add "X complimentary lessons remaining" indicator so the free-tier cliff isn't invisible
+5. **Admin Panel improvements** -- Add Email column and Subscription Tier column to User Management tab; fix pagination showing only 3 of 41 users
+6. **Get John's real Stripe subscription ID** -- Replace placeholder 'sub_placeholder_needs_real_id' with actual ID from Stripe dashboard for proper webhook handling on renewal
+7. **Verify uncertain tables** -- Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
+8. **Backup existing RLS policies** -- Run export query from Appendix B before any multi-tenant work begins
+9. **Multi-tenant migration** -- Phase 1 through 5 per MULTI_TENANT_MIGRATION_PLAN.md
 
 ---
 
@@ -1212,3 +1214,76 @@ Header date corrected to March 11, 2026. Rules 18-19 added. Bug 29 added. CLAUDE
 2. EnhanceLessonForm.tsx Print button -- still present in lesson toolbar. Separate task, not yet addressed.
 
 3. Booklet layout now enforces PDF-only in SeriesExportModal.tsx -- Word Document radio is disabled with "PDF only for this layout" label when Booklet is selected. Matches Tri-Fold behavior. Unconditional format override at line 110-112 replaced with selectedFormat. Build clean. Deployed. Verified live.
+
+---
+
+## SESSION LOG: March 17, 2026 -- Org Page Repositioning + Help Page Updates
+
+### Org Landing Page Repositioned as Ministry Leadership Entry Point
+
+Complete rewrite of `src/pages/OrgLanding.tsx` to reposition the organization page from a SaaS product page to a ministry leadership entry point. Three commits deployed:
+
+**Commit 22e6a06 -- FEATURE: Reposition org page as ministry leadership entry point**
+
+All 10 requested changes implemented:
+1. Hero section rewritten -- headline: "Shepherd Your Teaching Ministry with Clarity and Confidence"
+2. Bridge statement added below hero -- "Faithful teaching doesn't happen by accident."
+3. Value cards rewritten with ministry-focused body copy (Shared Lesson Pool, Shared Focus, Shepherd Oversight)
+4. Positioning statement added -- "BibleLessonSpark does not replace your teachers. It strengthens them."
+5. Tier section heading updated -- "Choose the Level of Support for Your Teaching Ministry"
+6. Tier names updated in orgPricingConfig.ts SSOT (see below)
+7. How It Works section added -- 5 numbered steps with scroll anchor
+8. Differentiator line added -- "Traditional curriculum is written for a general audience months in advance."
+9. Bottom trust line added -- "Designed for churches who want to teach faithfully."
+10. All CTAs updated to ministry language -- "Start Shepherding Your Teaching Ministry"
+
+**Commit c552d80 -- FIX: Second-pass refinement**
+
+- Existing-org banner CTA changed from "Go to Org Manager" to "Go to Your Ministry Dashboard"
+- Bridge statement spacing increased from py-8 to py-10 sm:py-12 for breathing room
+- Personal subscription heading changed from "A Note About Personal Subscriptions" to "Your Own Preparation Matters Too"
+- Personal subscription body tightened -- removed billing logistics language
+- Bottom CTA supporting text changed from "Set up your organization in minutes" to "Gather your teachers. Set the direction. Begin preparing together."
+- Removed unused imports (useSearchParams, Shield, BookOpen)
+- Fixed redundant ternary on tier card CTA
+
+### Shepherd Tier Names Updated (orgPricingConfig.ts SSOT)
+
+Tier display names and blurbs updated in `src/constants/orgPricingConfig.ts`:
+
+| Old displayName | New displayName | New bestFor |
+|---|---|---|
+| Single Staff | Foundation | For a small team beginning to align their teaching. |
+| Starter | Strengthening | For ministries growing in consistency and clarity. |
+| Growth | Multiplication | For ministries actively strengthening and multiplying discipleship. |
+| Develop | Expansion | For larger ministries coordinating multiple classes and leaders. |
+| Expansion | Network | For churches and organizations serving broad teaching networks. |
+
+Tier keys (org_single_staff, org_starter, etc.), Stripe IDs, prices, and lesson limits are untouched. Most Popular badge remains on org_growth (now Multiplication). OrgLanding.tsx and OrgSetup.tsx both import display names from this SSOT file.
+
+**NOTE:** Pre-existing SSOT tension: `pricingConfig.ts` has a STRIPE_ORG block with 4 org tiers (starter/growth/full/enterprise) while `orgPricingConfig.ts` has 5 tiers with different tier keys. The Stripe IDs partially overlap. This does not affect UI display names but should be unified in a future cleanup.
+
+### Help Page Updated (commit 15addb2)
+
+**Commit 15addb2 -- FIX: Update Help page Bible translations list and Shepherd tier names**
+
+Two corrections in `src/pages/Help.tsx`:
+
+1. Bible translations FAQ updated from "KJV, NIV, ESV, NASB, NLT, and CSB" to all 9 supported versions: "KJV, WEB, NKJV, NASB, ESV, NIV, CSB, NLT, and AMP"
+
+2. Shepherd tier names FAQ updated from "Single Staff, Starter, Growth, Develop, and Expansion" to "Foundation, Strengthening, Multiplication, Expansion, and Network"
+
+### Files Modified This Session
+
+| File | Change |
+|---|---|
+| src/constants/orgPricingConfig.ts | Tier displayName and bestFor updates (SSOT) |
+| src/pages/OrgLanding.tsx | Complete rewrite -- ministry leadership positioning |
+| src/pages/Help.tsx | Bible translations list + tier names corrected |
+
+### What Is NOT Yet Done
+
+- OrgSetup.tsx has not been audited for stale hardcoded references to old tier names (it imports from orgPricingConfig.ts so display names are correct, but any inline copy referencing "Single Staff" or "Growth" by name should be checked)
+- pricingConfig.ts STRIPE_ORG block and orgPricingConfig.ts tier key unification -- pre-existing tension, not introduced this session
+- No hero image or visual element on the org landing page above the fold
+- Mobile tier card experience -- 5 cards in single column creates long scroll on small screens
