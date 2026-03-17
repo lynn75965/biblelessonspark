@@ -118,7 +118,7 @@ const Help = () => {
         },
         {
           q: "What Bible translations are supported?",
-          a: "BibleLessonSpark supports all major Bible translations including KJV, NIV, ESV, NASB, NLT, and CSB. Select your preferred translation in your account settings."
+          a: "BibleLessonSpark supports all major Bible translations including KJV, WEB, NKJV, NASB, ESV, NIV, CSB, NLT, and AMP. Select your preferred translation in your account settings."
         }
       ]
     },
@@ -161,7 +161,7 @@ const Help = () => {
         },
         {
           q: "What are the Shepherd tiers?",
-          a: "There are five tiers based on your ministry's lesson needs: Single Staff, Starter, Growth, Develop, and Expansion. Every tier includes unlimited teachers -- you're paying for lesson pool capacity, not per-seat fees. Visit biblelessonspark.com/org to compare tiers and pricing."
+          a: "There are five tiers based on your ministry's lesson needs: Foundation, Strengthening, Multiplication, Expansion, and Network. Every tier includes unlimited teachers -- you're paying for lesson pool capacity, not per-seat fees. Visit biblelessonspark.com/org to compare tiers and pricing."
         },
         {
           q: "How does the shared lesson pool work?",
