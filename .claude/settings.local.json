@@ -22,7 +22,11 @@
       "Bash(cd:*)",
       "Bash(xargs grep:*)",
       "Bash(grep -r \"on.*auth\\\\.users\\\\|INSERT INTO profiles\\\\|CREATE TABLE profiles\" C:Userslynnbiblelessonspark --include=*.sql --include=*.ts --include=*.tsx)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Feedback form frequency cap \\(every 5th lesson\\) + branding correction\")"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Feedback form frequency cap \\(every 5th lesson\\) + branding correction\")",
+      "Bash(xxd)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"SSOT: Rename Student Handout to Group Handout project-wide \\(frontend + docs\\)\")",
+      "Bash(git reset:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Replace hardcoded route paths in App.tsx with ROUTES constants \\(SSOT High #11\\)\")"
     ]
   }
 }

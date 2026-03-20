@@ -52,102 +52,102 @@ const App = () => (
         <SecurityAlerts />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route 
-              path={ROUTES.DASHBOARD} 
+            <Route path={ROUTES.HOME} element={<Index />} />
+            <Route path={ROUTES.AUTH} element={<Auth />} />
+            <Route path={ROUTES.PRICING} element={<PricingPage />} />
+            <Route
+              path={ROUTES.DASHBOARD}
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin" 
+            <Route
+              path={ROUTES.ADMIN}
               element={
                 <ProtectedRoute>
                   <Admin />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/toolbelt" 
+            <Route
+              path={ROUTES.ADMIN_TOOLBELT}
               element={
                 <ProtectedRoute>
                   <ToolbeltAdmin />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/admin/beta-metrics" 
+            <Route
+              path={ROUTES.ADMIN_BETA_METRICS}
               element={
                 <ProtectedRoute>
                   <AdminBetaMetrics />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/account" 
+            <Route
+              path={ROUTES.ACCOUNT}
               element={
                 <ProtectedRoute>
                   <Account />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route path="/setup" element={<Setup />} />
-            <Route path="/setup/checklist" element={<SetupChecklist />} />
-            <Route path="/setup/guide" element={<Setup />} />
-            <Route path="/preferences/lens" element={
+            <Route path={ROUTES.SETUP} element={<Setup />} />
+            <Route path={ROUTES.SETUP_CHECKLIST} element={<SetupChecklist />} />
+            <Route path={ROUTES.SETUP_GUIDE} element={<Setup />} />
+            <Route path={ROUTES.PREFERENCES_LENS} element={
               <ProtectedRoute>
                 <PreferencesLens />
               </ProtectedRoute>
             } />
-            <Route path="/beta-signup" element={
+            <Route path={ROUTES.BETA_SIGNUP} element={
               <ProtectedRoute>
                 <BetaSignup />
               </ProtectedRoute>
             } />
-            <Route path="/docs" element={<Docs />} />
-            <Route path="/help" element={<Help />} />
-            <Route path="/training" element={<Training />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/legal/privacy" element={<PrivacyPolicy />} />
-            <Route path="/legal/terms" element={<TermsOfService />} />
-            <Route path="/legal/cookie" element={<Cookie />} />
-            
+            <Route path={ROUTES.DOCS} element={<Docs />} />
+            <Route path={ROUTES.HELP} element={<Help />} />
+            <Route path={ROUTES.TRAINING} element={<Training />} />
+            <Route path={ROUTES.COMMUNITY} element={<Community />} />
+            <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
+            <Route path={ROUTES.TERMS} element={<TermsOfService />} />
+            <Route path={ROUTES.COOKIE} element={<Cookie />} />
+
             {/* Self-Service Shepherd Entry Point (Stack 2 - Org Manager) */}
-            <Route path="/org" element={<OrgLanding />} />
-            <Route path="/org/setup" element={
+            <Route path={ROUTES.ORG} element={<OrgLanding />} />
+            <Route path={ROUTES.ORG_SETUP} element={
               <ProtectedRoute>
                 <OrgSetup />
               </ProtectedRoute>
             } />
-            <Route path="/org/success" element={
+            <Route path={ROUTES.ORG_SUCCESS} element={
               <ProtectedRoute>
                 <OrgSuccess />
               </ProtectedRoute>
             } />
-            <Route path="/org-manager" element={
+            <Route path={ROUTES.ORG_MANAGER} element={
               <ProtectedRoute>
                 <OrgManager />
               </ProtectedRoute>
             } />
 
             {/* Phase 27: Teaching Team */}
-            <Route path="/teaching-team" element={
+            <Route path={ROUTES.TEACHING_TEAM} element={
               <ProtectedRoute>
                 <TeachingTeam />
               </ProtectedRoute>
             } />
 
             {/* Devotionals */}
-            <Route path="/devotionals" element={
+            <Route path={ROUTES.DEVOTIONALS} element={
               <ProtectedRoute>
                 <Devotionals />
               </ProtectedRoute>
             } />
-            
+
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
