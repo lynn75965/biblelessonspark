@@ -550,11 +550,11 @@ export function EnhanceLessonForm({
 
   // ============================================================================
   // PAID USER DETECTION (PHASE 21)
-  // Paid users (Personal/Admin) should never see the Free/Full toggle
+  // Paid users should never see the Free/Full toggle
   // They always get full lessons - clean, premium UX
   // ============================================================================
-  
-  const isPaidUser = tier === 'personal' || tier === 'admin';
+
+  const isPaidUser = tier !== 'free';
 
   // Copy lesson to clipboard utility
   const copyLessonToClipboard = useCallback(async (content: string, title: string) => {
