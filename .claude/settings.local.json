@@ -19,7 +19,9 @@
       "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: body text color set to pure black #000000 in both lessonStructure.ts and seriesExportConfig.ts\" 2>&1)",
       "Bash(cd C:/Users/lynn/biblelessonspark && grep -r \"bold label\" dist/assets/*.js)",
       "Bash(cd C:/Users/lynn/biblelessonspark && powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: bold label lines split at colon -- label bold, content normal body text\" 2>&1)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"on.*auth\\\\.users\\\\|INSERT INTO profiles\\\\|CREATE TABLE profiles\" C:Userslynnbiblelessonspark --include=*.sql --include=*.ts --include=*.tsx)"
     ]
   }
 }
