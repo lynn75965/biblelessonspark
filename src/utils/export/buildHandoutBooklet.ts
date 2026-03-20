@@ -2,7 +2,7 @@
 // buildHandoutBooklet.ts
 // Location: src/utils/export/buildHandoutBooklet.ts
 //
-// Phase B: Extracts Section 8 (Student Handout) content from each lesson
+// Phase B: Extracts Section 8 (Group Handout) content from each lesson
 // and returns structured handout data for the booklet appendix.
 //
 // Also exports shared extraction utilities used by buildSeriesDocx,
@@ -11,7 +11,7 @@
 //   - stripSection8FromContent() -- removes Section 8 from lesson content
 //   - extractCreativeTitle() -- pulls the creative title from lesson content
 //
-// SSOT: Uses STUDENT_HANDOUT_HEADING_REGEX from lessonShapeProfiles.ts
+// SSOT: Uses GROUP_HANDOUT_HEADING_REGEX from lessonShapeProfiles.ts
 // for heading detection (handles all shaped + original formats).
 // ============================================================================
 
@@ -21,7 +21,7 @@ import {
   SERIES_HANDOUT_COPY,
   GROUP_HANDOUT_SECTION_NUMBER,
 } from '@/constants/seriesExportConfig';
-import { STUDENT_HANDOUT_HEADING_REGEX } from '@/constants/lessonShapeProfiles';
+import { GROUP_HANDOUT_HEADING_REGEX } from '@/constants/lessonShapeProfiles';
 
 // ============================================================================
 // TYPES
@@ -135,13 +135,13 @@ export function extractCreativeTitle(lesson: Lesson): string | null {
 // ============================================================================
 
 /**
- * Extract Section 8 (Student Handout) content from a lesson's text.
+ * Extract Section 8 (Group Handout) content from a lesson's text.
  *
- * SSOT: Uses STUDENT_HANDOUT_HEADING_REGEX from lessonShapeProfiles.ts
+ * SSOT: Uses GROUP_HANDOUT_HEADING_REGEX from lessonShapeProfiles.ts
  * to detect the heading in all formats:
- *   - "## Section 8: Student Handout" (original)
- *   - "STUDENT HANDOUT" (shaped)
- *   - "Student Handout" (mixed)
+ *   - "## Section 8: Group Handout" (original)
+ *   - "GROUP HANDOUT" (shaped)
+ *   - "Group Handout" (mixed)
  *
  * Returns null if Section 8 is not found.
  */
@@ -154,7 +154,7 @@ export function extractSection8Content(lesson: Lesson): string | null {
 
   // Primary: use SSOT regex from lessonShapeProfiles.ts
   for (let i = 0; i < lines.length; i++) {
-    if (STUDENT_HANDOUT_HEADING_REGEX.test(lines[i].trim())) {
+    if (GROUP_HANDOUT_HEADING_REGEX.test(lines[i].trim())) {
       headingIndex = i;
       break;
     }
@@ -191,7 +191,7 @@ export function extractSection8Content(lesson: Lesson): string | null {
  * Return lesson content with Section 8 stripped out.
  * Used by chapter builders when omitSection8FromChapters is true.
  *
- * SSOT: Uses STUDENT_HANDOUT_HEADING_REGEX for heading detection.
+ * SSOT: Uses GROUP_HANDOUT_HEADING_REGEX for heading detection.
  */
 export function stripSection8FromContent(content: string): string {
   if (!content) return content;
@@ -200,7 +200,7 @@ export function stripSection8FromContent(content: string): string {
   let headingIndex = -1;
 
   for (let i = 0; i < lines.length; i++) {
-    if (STUDENT_HANDOUT_HEADING_REGEX.test(lines[i].trim())) {
+    if (GROUP_HANDOUT_HEADING_REGEX.test(lines[i].trim())) {
       headingIndex = i;
       break;
     }

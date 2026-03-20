@@ -129,7 +129,7 @@ const Help = () => {
       questions: [
         {
           q: "What is included in each lesson?",
-          a: "Every lesson includes 8 sections: Theological Lens & Overview, Objectives & Key Scriptures, Theological Background, Opening Activities, Teaching Transcript, Interactive Activities, Discussion & Assessment, and a Student Handout."
+          a: "Every lesson includes 8 sections: Theological Lens & Overview, Objectives & Key Scriptures, Theological Background, Opening Activities, Teaching Transcript, Interactive Activities, Discussion & Assessment, and a Group Handout."
         },
         {
           q: "Can I edit the generated lessons?",

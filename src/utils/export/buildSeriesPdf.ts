@@ -9,7 +9,7 @@
 //   2. Table of Contents (no page numbers)
 //   3. Introduction (no page numbers)
 //   4. Lesson Chapters with per-lesson page numbering
-//   5. Student Handout Booklet (own page numbering)
+//   5. Group Handout Booklet (own page numbering)
 //   6. Back Cover (no page numbers)
 //
 // LAYOUT CHANGES (March 2026):

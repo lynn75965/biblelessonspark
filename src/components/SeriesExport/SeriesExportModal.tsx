@@ -8,7 +8,7 @@
 //   Step 2: Progress indicator while building the document.
 //
 // SSOT: All labels, options, and defaults from seriesExportConfig.ts
-// AudienceConfig: "Group Handout" -- never "Student Handout"
+// AudienceConfig: "Group Handout" -- SSOT terminology
 // ============================================================================
 
 import React, { useState, useEffect } from 'react';

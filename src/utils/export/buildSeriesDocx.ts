@@ -7,7 +7,7 @@
 // Document structure:
 //   Section 1: Cover Page + Table of Contents + Introduction (no page numbers)
 //   Section 2..N+1: One section per lesson (per-lesson page numbering)
-//   Section N+2: Student Handout Booklet (own page numbering)
+//   Section N+2: Group Handout Booklet (own page numbering)
 //   Section N+3: Back Cover (no page numbers)
 //
 // SSOT IMPORTS:

@@ -76,7 +76,7 @@ const Docs = () => {
     },
     {
       number: 8,
-      name: "Student Handout",
+      name: "Group Handout",
       words: "250-400",
       purpose: "Printable takeaway for students - distinct from teacher materials"
     }

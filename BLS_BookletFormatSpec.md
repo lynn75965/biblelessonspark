@@ -263,7 +263,7 @@ Date of My Bible Study: ___________________________
    - Memory verse prompt
    - Prayer Needs lines
 
-5. **Student Handout** (separate section at back of booklet)
+5. **Group Handout** (separate section at back of booklet)
    - One handout per lesson
    - Key Idea, Big Points, Reflection Questions, Weekly Challenge
 

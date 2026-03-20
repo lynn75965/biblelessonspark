@@ -328,14 +328,14 @@ export const BOOKLET_LABELS = {
   discussionAssess:    'Discussion & Assessment',
   memoryVerse:         'Memory Verse',
   weeklyChallenge:     'Weekly Challenge',
-  studentHandout:      'Student Handout',
+  groupHandout:        'Group Handout',
   // Cover
   coverSeriesLabel:    'A Sunday School Curriculum Series',
   coverIdentLabel:     'B I B L E  L E S S O N  S P A R K',
   // TOC
   tocHeading:          'Table of Contents',
   tocIntroEntry:       'Introduction',
-  tocHandoutEntry:     'Student Handout Booklet',
+  tocHandoutEntry:     'Group Handout Booklet',
   // Introduction page
   introHeading:        'Introduction',
   introHowToUse:       'How to Use This Booklet',
@@ -353,8 +353,8 @@ export const BOOKLET_LABELS = {
   howToDuringClass:  'During Class',
   howToDuringBody:
     'Follow Opening Activities, Main Teaching, and Discussion Questions ' +
-    'in order. The Student Handout is distributed at the end of class.',
-  howToHandouts:     'Student Handouts',
+    'in order. The Group Handout is distributed at the end of class.',
+  howToHandouts:     'Group Handouts',
   howToHandoutsBody:
     'The handout section at the back may be reproduced freely for your ' +
     'class members each week.',
@@ -381,7 +381,7 @@ export const BOOKLET_UI = {
     'Generate a print-ready booklet your class can fold, staple, and keep.',
   colorSchemeLabel: 'Booklet Color Scheme',
   colorSchemeHint:  'All schemes print clearly on black-only printers.',
-  handoutLabel:     'Include Student Handout Section',
+  handoutLabel:     'Include Group Handout Section',
   handoutDesc:
     'Adds a reproducible handout for each lesson at the back of the booklet.',
   printButton:      'Download Print-Ready PDF',
@@ -408,7 +408,7 @@ export const BOOKLET_PROGRESS_STEPS = [
   { id: 'cover',      label: 'Building cover page\u2026'           },
   { id: 'toc',        label: 'Generating table of contents\u2026'  },
   { id: 'lessons',    label: 'Laying out lesson pages\u2026'       },
-  { id: 'handouts',   label: 'Adding student handouts\u2026'       },
+  { id: 'handouts',   label: 'Adding group handouts\u2026'       },
   { id: 'finalizing', label: 'Finalising booklet\u2026'            },
 ] as const;
 

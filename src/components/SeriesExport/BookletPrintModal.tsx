@@ -5,7 +5,7 @@
 // Modal for the Print Class Booklet feature.
 // Presents:
 //   - Color scheme picker (5 named swatches)
-//   - Student Handout toggle
+//   - Group Handout toggle
 //   - Print instructions hint
 //   - Inline progress while building
 //

@@ -17,7 +17,7 @@ import {
 import { saveAs } from "file-saver";
 import { EXPORT_FORMATTING, EXPORT_SPACING, getSection8StandaloneTitle } from "../constants/lessonStructure";
 import type { AudienceProfile } from "../constants/audienceConfig";
-import { STUDENT_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
+import { GROUP_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
 import type { FontId, ColorSchemeId, ColorScheme } from "../constants/seriesExportConfig";
 import { getFontOption, getColorScheme } from "../constants/seriesExportConfig";
 
@@ -82,12 +82,12 @@ function detectSectionHeader(line: string): { isSection: boolean; num: number; c
 }
 
 /**
- * Detect Section 8 / Student Handout heading
+ * Detect Section 8 / Group Handout heading
  */
 function isSection8Line(line: string): boolean {
   const cleaned = cleanAllMarkdown(line);
   if (/^Section\s+8/i.test(cleaned)) return true;
-  if (STUDENT_HANDOUT_HEADING_REGEX.test(cleaned)) return true;
+  if (GROUP_HANDOUT_HEADING_REGEX.test(cleaned)) return true;
   return false;
 }
 

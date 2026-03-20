@@ -6,7 +6,7 @@
 import jsPDF from "jspdf";
 import { EXPORT_FORMATTING, EXPORT_SPACING, isBoldLabel, isSkipLabel, getSection8StandaloneTitle } from "../constants/lessonStructure";
 import type { AudienceProfile } from "../constants/audienceConfig";
-import { STUDENT_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
+import { GROUP_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
 import type { FontId, ColorSchemeId } from "../constants/seriesExportConfig";
 import { getFontOption, getColorScheme } from "../constants/seriesExportConfig";
 import { loadPdfFonts } from "./export/loadPdfFonts";
@@ -127,13 +127,13 @@ const isSectionHeader = (line: string): { isSection: boolean; num: number; clean
 };
 
 /**
- * Detect Section 8 / Student Handout heading
- * Matches original format ("Section 8: Student Handout") and shaped variants
+ * Detect Section 8 / Group Handout heading
+ * Matches original format ("Section 8: Group Handout") and shaped variants
  */
 const isSection8Line = (line: string): boolean => {
   let cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
   if (/^Section\s+8/i.test(cleaned)) return true;
-  if (STUDENT_HANDOUT_HEADING_REGEX.test(cleaned)) return true;
+  if (GROUP_HANDOUT_HEADING_REGEX.test(cleaned)) return true;
   return false;
 };
 
@@ -682,7 +682,7 @@ export const exportToPdf = async ({
     processContentLines(section8Lines, true);
   }
 
-  // 8. ADD SINGLE-LINE FOOTER TO MAIN PAGES ONLY (skip Student Handout pages)
+  // 8. ADD SINGLE-LINE FOOTER TO MAIN PAGES ONLY (skip Group Handout pages)
   // Format: Lesson Title | Page X  (centered, 9pt, at footerY)
   const totalPages    = doc.getNumberOfPages();
   for (let p = 1; p <= totalPages; p++) {

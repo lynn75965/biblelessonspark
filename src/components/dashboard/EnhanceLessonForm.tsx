@@ -2221,7 +2221,7 @@ export function EnhanceLessonForm({
                     This is what free accounts receive after your {PRICING_DISPLAY.free.complimentaryFullLessons} complimentary lessons.
                   </h4>
                   <p className="text-sm text-muted-foreground mb-4">
-                    You'll still get the overview, teaching script, and student handout?but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
+                    You'll still get the overview, teaching script, and group handout?but you'll miss the theological deep-dive, activities, and discussion questions that make lessons complete.
                   </p>
                   <Button 
                     type="button"

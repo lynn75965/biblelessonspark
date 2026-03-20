@@ -166,7 +166,7 @@ export const TIER_LESSON_LIMITS: Record<SubscriptionTier, number> = {
 // FREE TIER SECTIONS: 1, 5, 8
 //   Section 1: Lens + Lesson Overview
 //   Section 5: Main Teaching Content (Teacher Transcript)
-//   Section 8: Student Handout (Standalone)
+//   Section 8: Group Handout (Standalone)
 //
 // ALL PAID TIERS: all 8 sections
 // ============================================================
@@ -278,7 +278,7 @@ export const UPGRADE_PROMPTS = {
     freeIncluded: [
       'Lens + Lesson Overview',
       'Main Teaching Content',
-      'Student Handout',
+      'Group Handout',
     ],
     paidAdds: [
       'Learning Objectives + Key Scriptures',

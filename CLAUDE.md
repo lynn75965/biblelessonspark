@@ -296,7 +296,7 @@ Section names are SSOT in pricingConfig.ts SECTION_NAMES -- never hardcode them.
 5. Main Teaching Content (Teacher Transcript) (630-840 words)
 6. Interactive Activities (150-250 words)
 7. Discussion & Assessment (200-300 words)
-8. Student Handout (Standalone) (250-400 words)
+8. Group Handout (Standalone) (250-400 words)
 Total target: 2100-3090 words
 
 ---

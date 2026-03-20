@@ -113,7 +113,7 @@ const Training = () => {
       description: "Always read through the entire lesson beforehand. Add personal illustrations and adjust activities to fit your space and time."
     },
     {
-      title: "Use the Student Handout",
+      title: "Use the Group Handout",
       description: "The printable handout reinforces learning. Print copies for your class or email it ahead for preparation."
     },
     {

@@ -383,7 +383,7 @@ export const SERIES_HANDOUT_COPY = {
   handoutHeaderPrefix: 'Lesson',
 } as const;
 
-export const STUDENT_HANDOUT_SECTION_NUMBER = 8;
+export const GROUP_HANDOUT_SECTION_NUMBER = 8;
 
 // ============================================================================
 // UI COPY

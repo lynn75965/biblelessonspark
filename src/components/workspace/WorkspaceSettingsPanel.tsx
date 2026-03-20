@@ -417,10 +417,10 @@ export function WorkspaceSettingsPanel() {
             </Select>
           </div>
 
-          {/* Student Handouts Toggle */}
+          {/* Group Handouts Toggle */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Include Student Handouts</Label>
+              <Label>Include Group Handouts</Label>
               <p className="text-xs text-muted-foreground">
                 Automatically include printable student materials
               </p>

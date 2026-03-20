@@ -108,7 +108,7 @@ export default function LanguageSelector() {
           Content Language
         </label>
         <p className="text-sm text-muted-foreground">
-          Choose the language for your lesson plans, teacher transcripts, and student handouts.
+          Choose the language for your lesson plans, teacher transcripts, and group handouts.
         </p>
         <Select value={language} onValueChange={(value) => setLanguage(value as Language)}>
           <SelectTrigger id="language-selector" className="w-full">

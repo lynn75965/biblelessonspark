@@ -22,7 +22,7 @@
 //   p4  Session 1 -- Overview + Theology + Scriptures
 //   p5  Session 1 -- Teacher Prep + Activities + Gospel Connection
 //   p6  Session 1 -- Discussion + Memory Verse + Weekly Challenge
-//   p7  Student Handout (Session 1)
+//   p7  Group Handout (Session 1)
 //   p8  Back Cover
 //
 //   For series with more lessons, the page count grows by multiples of 4.
@@ -459,7 +459,7 @@ export async function buildBookletPdf(
       y += BOOKLET_SPACING.afterBulletItem;
     });
 
-    // Student Handout entry
+    // Group Handout entry
     doc.setFont(BOOKLET_FONTS.sans, 'bold');
     doc.setFontSize(BOOKLET_FONT_SIZES.tocSessionPt);
     doc.setTextColor(r, g, b);
@@ -620,7 +620,7 @@ export async function buildBookletPdf(
   // -- STUDENT HANDOUT PAGE -------------------------------------------------
   function drawHandout(lesson: Lesson, sessionNum: number, pageNum: number, x: number): void {
     let y = sectionLabel(
-      `${BOOKLET_LABELS.studentHandout} \u00B7 Session ${sessionNum}`,
+      `${BOOKLET_LABELS.groupHandout} \u00B7 Session ${sessionNum}`,
       x, BOOKLET_TEXT.topY
     );
 
@@ -629,7 +629,7 @@ export async function buildBookletPdf(
       stripSection8FromContent(rawContent);
 
     if (handoutContent) {
-      // Render student handout content -- bold labels, bullets, italic questions
+      // Render group handout content -- bold labels, bullets, italic questions
       y = renderHandoutContent(handoutContent, x, y);
     }
 

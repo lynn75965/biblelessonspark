@@ -16,7 +16,7 @@ const resources = {
       // Lesson Generation
       "generateLesson": "Generate Lesson",
       "teacherTranscript": "Teacher Transcript",
-      "studentHandout": "Student Handout",
+      "groupHandout": "Group Handout",
       "lessonPlan": "Lesson Plan",
       "createNewLesson": "Create New Lesson",
       
@@ -83,7 +83,7 @@ const resources = {
       // Lesson Generation
       "generateLesson": "Generar Lecci\u00F3n",
       "teacherTranscript": "Transcripci\u00F3n del Maestro",
-      "studentHandout": "Material del Estudiante",
+      "groupHandout": "Material del Grupo",
       "lessonPlan": "Plan de Lecci\u00F3n",
       "createNewLesson": "Crear Nueva Lecci\u00F3n",
       
@@ -151,7 +151,7 @@ const resources = {
       // Lesson Generation
       "generateLesson": "G\u00E9n\u00E9rer la Le\u00E7on",
       "teacherTranscript": "Transcription de l'Enseignant",
-      "studentHandout": "Document pour l'\u00C9l\u00E8ve",
+      "groupHandout": "Document de Groupe",
       "lessonPlan": "Plan de Le\u00E7on",
       "createNewLesson": "Cr\u00E9er une Nouvelle Le\u00E7on",
       
