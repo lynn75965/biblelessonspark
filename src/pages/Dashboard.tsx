@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -34,6 +34,26 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
+
+// ---------------------------------------------------------------------------
+// Feedback frequency cap (localStorage)
+// ---------------------------------------------------------------------------
+const LS_LESSONS_SINCE_FEEDBACK = 'bls_lessonsSinceLastFeedback';
+const LS_HAS_SUBMITTED_FEEDBACK = 'bls_hasSubmittedFeedback';
+const FEEDBACK_INTERVAL = 5; // show every Nth lesson
+
+function getLessonsSinceFeedback(): number {
+  return parseInt(localStorage.getItem(LS_LESSONS_SINCE_FEEDBACK) || '0', 10);
+}
+function setLessonsSinceFeedback(n: number): void {
+  localStorage.setItem(LS_LESSONS_SINCE_FEEDBACK, String(n));
+}
+function getHasSubmittedFeedback(): boolean {
+  return localStorage.getItem(LS_HAS_SUBMITTED_FEEDBACK) === 'true';
+}
+function setHasSubmittedFeedback(): void {
+  localStorage.setItem(LS_HAS_SUBMITTED_FEEDBACK, 'true');
+}
 import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 
@@ -48,6 +68,7 @@ import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/help
 export default function Dashboard() {
   // STATE DECLARATIONS
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
+  const feedbackSubmittedRef = useRef(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
@@ -336,9 +357,17 @@ export default function Dashboard() {
                   description: "Review your lesson, then use Copy or Download when ready.",
                   duration: 6000,
                 });
+                // Frequency-capped feedback prompt
+                const count = getLessonsSinceFeedback() + 1;
+                if (count >= FEEDBACK_INTERVAL) {
+                  setLessonsSinceFeedback(0);
+                  setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
+                } else {
+                  setLessonsSinceFeedback(count);
+                }
               }}
               onExport={() => {
-                setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
+                // Feedback prompt moved to onLessonGenerated with frequency cap
               }}
               organizationId={userProfile?.organization_id}
               userPreferredAgeGroup={userProfile?.preferred_age_group || "youngadult"}
@@ -402,7 +431,24 @@ export default function Dashboard() {
 
       <BetaFeedbackModal
         open={showBetaFeedbackModal}
-        onOpenChange={setShowBetaFeedbackModal}
+        onOpenChange={(open) => {
+          if (!open && !feedbackSubmittedRef.current) {
+            // Dismissed without submitting -- try again sooner (after 2 more lessons)
+            setLessonsSinceFeedback(FEEDBACK_INTERVAL - 2);
+          }
+          feedbackSubmittedRef.current = false;
+          setShowBetaFeedbackModal(open);
+        }}
+        onSubmitted={() => {
+          feedbackSubmittedRef.current = true;
+          // Returning submitters wait longer (10 lessons); first-timers reset to 0
+          if (getHasSubmittedFeedback()) {
+            setLessonsSinceFeedback(FEEDBACK_INTERVAL - 10);
+          } else {
+            setLessonsSinceFeedback(0);
+          }
+          setHasSubmittedFeedback();
+        }}
         lessonId={lastGeneratedLessonId}
       />
 

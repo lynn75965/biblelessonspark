@@ -12,14 +12,16 @@ import { isBetaMode } from "@/constants/systemSettings";
 interface BetaFeedbackModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmitted?: () => void;
   lessonId?: string;
 }
 
-export const BetaFeedbackModal = ({ open, onOpenChange, lessonId }: BetaFeedbackModalProps) => {
+export const BetaFeedbackModal = ({ open, onOpenChange, onSubmitted, lessonId }: BetaFeedbackModalProps) => {
   const { settings } = useSystemSettings();
   const isInBetaMode = isBetaMode(settings.current_phase as string);
 
   const handleSuccess = () => {
+    if (onSubmitted) onSubmitted();
     onOpenChange(false);
   };
 
