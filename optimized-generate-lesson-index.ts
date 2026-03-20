@@ -161,7 +161,7 @@ ${sectionsPrompt}
 
 OUTPUT FORMAT: Use Markdown formatting. Use ## for section headers, bullet points for lists, **bold** for key terms, and --- for section dividers.
 
-OUTPUT: Generate all ${LESSON_SECTIONS.length} sections. Include both Teacher Lesson Plan and Student Handout. Maintain ${theologyProfile.name} theological standards throughout. FOLLOW ALL CUSTOMIZATION DIRECTIVES above.`;
+OUTPUT: Generate all ${LESSON_SECTIONS.length} sections. Include both Teacher Lesson Plan and Group Handout. Maintain ${theologyProfile.name} theological standards throughout. FOLLOW ALL CUSTOMIZATION DIRECTIVES above.`;
 
     const lessonInput = bible_passage || focused_topic || 'General Bible Study';
 

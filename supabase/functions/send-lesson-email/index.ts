@@ -9,7 +9,7 @@
  *
  * Email content:
  * - Always: teaser preview
- * - Optional: Student Handout (teacher toggles "Include Student Handout")
+ * - Optional: Group Handout (teacher toggles "Include Group Handout")
  * - Supports both original format (Section 8) and shaped formats (STUDENT HANDOUT, Student Experience: Title, etc.)
  *
  * Security:
@@ -19,7 +19,7 @@
  * - Each recipient receives an individual email (privacy)
  *
  * Created: 2026-02-01
- * Updated: 2026-02-10 — Broadened Student Handout detection (Student Experience: Title, etc.)
+ * Updated: 2026-02-10 — Broadened Group Handout detection (Student Experience: Title, etc.)
  * Version: 1.2.0
  */
 
@@ -153,11 +153,11 @@ function formatLessonForEmail(text: string): string {
  * Test whether a line is a section header in ANY of the formats
  * that the lesson generator may produce:
  *
- *   Format A:  ## Section 8: Student Handout
- *   Format B:  ## Section 8 – Student Handout
- *   Format C:  **Section 8: Student Handout**
- *   Format D:  **Section 8 – Student Handout**
- *   Format E:  Section 8: Student Handout  (plain)
+ *   Format A:  ## Section 8: Group Handout
+ *   Format B:  ## Section 8 – Group Handout
+ *   Format C:  **Section 8: Group Handout**
+ *   Format D:  **Section 8 – Group Handout**
+ *   Format E:  Section 8: Group Handout  (plain)
  *
  * Returns the section number if matched, or -1 if not a header.
  */
@@ -180,7 +180,7 @@ function parseSectionHeaderNumber(line: string): number {
 }
 
 /**
- * Detect standalone Student Handout heading from shaped content.
+ * Detect standalone Group Handout heading from shaped content.
  * Catches "STUDENT HANDOUT", "Student Experience: Title", "Student Material", etc.
  * Allows optional ": subtitle" after the keyword.
  */
@@ -192,11 +192,11 @@ function isStudentHandoutHeading(line: string): boolean {
 }
 
 /**
- * Extract Student Handout content (body only, no header line).
+ * Extract Group Handout content (body only, no header line).
  *
  * Strategy:
  * 1. First try: Find "Section 8" header (original format)
- * 2. Fallback: Find student handout heading (shaped format: "STUDENT HANDOUT", "Student Experience: Title", etc.)
+ * 2. Fallback: Find group handout heading (shaped format: "GROUP HANDOUT", "Student Experience: Title", etc.)
  * Return everything after the header line until end of text.
  */
 function extractSection8Content(lessonText: string): string {
@@ -220,19 +220,19 @@ function extractSection8Content(lessonText: string): string {
     console.log(`[extractSection8] Found Section 8 header at line ${handoutLineIndex}`);
   }
 
-  // Strategy 2: Find standalone student heading (shaped content: "STUDENT HANDOUT", "Student Experience: Title", etc.)
+  // Strategy 2: Find standalone group handout heading (shaped content: "STUDENT HANDOUT", "Student Experience: Title", etc.)
   if (handoutLineIndex === -1) {
     for (let i = 0; i < lines.length; i++) {
       if (isStudentHandoutHeading(lines[i])) {
         handoutLineIndex = i;
-        console.log(`[extractSection8] Found student handout heading at line ${handoutLineIndex}: "${lines[i].trim()}"`);
+        console.log(`[extractSection8] Found group handout heading at line ${handoutLineIndex}: "${lines[i].trim()}"`);
         break;
       }
     }
   }
 
   if (handoutLineIndex === -1) {
-    console.log("[extractSection8] No Student Handout section found in any format.");
+    console.log("[extractSection8] No Group Handout section found in any format.");
     console.log("[extractSection8] First 300 chars:", lessonText.substring(0, 300));
     return "";
   }
@@ -285,7 +285,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
   } = params;
 
   // ---------------------------------------------------------------
-  // Extract Student Handout — only if teacher toggled it on
+  // Extract Group Handout — only if teacher toggled it on
   // ---------------------------------------------------------------
   let formattedSection8: string;
 

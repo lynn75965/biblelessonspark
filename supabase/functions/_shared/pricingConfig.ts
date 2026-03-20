@@ -166,7 +166,7 @@ export const TIER_LESSON_LIMITS: Record<SubscriptionTier, number> = {
 // FREE TIER SECTIONS: 1, 5, 8
 //   Section 1: Lens + Lesson Overview
 //   Section 5: Main Teaching Content (Teacher Transcript)
-//   Section 8: Student Handout (Standalone)
+//   Section 8: Group Handout (Standalone)
 //
 // ALL PAID TIERS: all 8 sections
 // ============================================================
@@ -198,7 +198,7 @@ export const SECTION_NAMES: Record<string, string> = {
   '5': 'Main Teaching Content (Teacher Transcript)',
   '6': 'Interactive Activities',
   '7': 'Discussion & Assessment',
-  '8': 'Student Handout (Standalone)',
+  '8': 'Group Handout (Standalone)',
 } as const;
 
 // ============================================================
@@ -246,7 +246,7 @@ export interface PlanFeature {
 export const PLAN_FEATURES: PlanFeature[] = [
   { name: 'Lens + Lesson Overview',              includedInFree: true,  includedInPaid: true  },
   { name: 'Main Teaching Content',               includedInFree: true,  includedInPaid: true  },
-  { name: 'Student Handout',                     includedInFree: true,  includedInPaid: true  },
+  { name: 'Group Handout',                     includedInFree: true,  includedInPaid: true  },
   { name: 'Learning Objectives + Key Scriptures',includedInFree: false, includedInPaid: true  },
   { name: 'Theological Background (Deep-Dive)',  includedInFree: false, includedInPaid: true  },
   { name: 'Opening Activities',                  includedInFree: false, includedInPaid: true  },
@@ -278,7 +278,7 @@ export const UPGRADE_PROMPTS = {
     freeIncluded: [
       'Lens + Lesson Overview',
       'Main Teaching Content',
-      'Student Handout',
+      'Group Handout',
     ],
     paidAdds: [
       'Learning Objectives + Key Scriptures',

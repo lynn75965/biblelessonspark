@@ -158,7 +158,7 @@ serve(async (req) => {
     const systemPrompt = reshape_prompt;
 
     // User prompt: The original lesson content to reshape
-    const userPrompt = `Here is the original lesson to reshape:\n\n---BEGIN ORIGINAL LESSON---\n${original_content}\n---END ORIGINAL LESSON---\n\nReshape this lesson according to the format instructions provided. Produce both the teacher's preparation content and the student handout in the new format.`;
+    const userPrompt = `Here is the original lesson to reshape:\n\n---BEGIN ORIGINAL LESSON---\n${original_content}\n---END ORIGINAL LESSON---\n\nReshape this lesson according to the format instructions provided. Produce both the teacher's preparation content and the group handout in the new format.`;
 
     console.log(`System prompt: ${systemPrompt.length} chars (~${Math.round(systemPrompt.length / 4)} tokens)`);
     console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);

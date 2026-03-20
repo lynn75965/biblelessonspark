@@ -59,9 +59,9 @@ export const EMAIL_DELIVERY_CONFIG = {
     upgradeTitle: 'Email Delivery — Premium Feature',
     upgradeMessage: 'Email delivery is available for paid subscribers. Upgrade to send lessons directly to your students and fellow teachers.',
 
-    // Student Handout toggle
-    includeHandoutLabel: 'Include Student Handout',
-    includeHandoutHelp: 'Send the teaser plus the full Student Handout — ideal for paperless classrooms.',
+    // Group Handout toggle
+    includeHandoutLabel: 'Include Group Handout',
+    includeHandoutHelp: 'Send the teaser plus the full Group Handout — ideal for paperless classrooms.',
     teaserOnlyHelp: 'Send the pre-class teaser only. Students receive the handout in class.',
   },
 } as const;
