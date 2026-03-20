@@ -451,7 +451,7 @@ const OrgLanding = () => {
                       variant={isPopular ? 'default' : 'outline'}
                       className="w-full"
                     >
-                      Shepherd My Teaching Ministry
+                      Shepherd My Teachers
                     </Button>
                   </CardContent>
                 </Card>
