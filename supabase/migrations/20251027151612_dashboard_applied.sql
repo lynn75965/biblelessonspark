@@ -1,0 +1,1 @@
+-- Placeholder: migration applied via Supabase Dashboard (no local SQL recorded)

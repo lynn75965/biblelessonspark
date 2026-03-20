@@ -29,7 +29,8 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Replace hardcoded route paths in App.tsx with ROUTES constants \\(SSOT High #11\\)\")",
       "Bash(where supabase:*)",
       "Bash(npx supabase:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"CLEANUP: Remove dead WorkspaceSettingsPanel and wrong migration file\")"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"CLEANUP: Remove dead WorkspaceSettingsPanel and wrong migration file\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Repair Supabase migration history drift \\(tracking only, no schema changes\\)\")"
     ]
   }
 }
