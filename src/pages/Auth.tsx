@@ -287,7 +287,8 @@ export default function Auth() {
         // Both route to the same friendly, actionable toast.
         // ---------------------------------------------------------------
         if (
-          error.message.includes('User already registered')
+          error.message.includes('User already registered') ||
+          error.message.includes('Database error saving new user')
         ) {
           toast({
             title: "Email already registered",
