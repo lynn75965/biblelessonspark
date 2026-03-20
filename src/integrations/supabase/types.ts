@@ -1808,7 +1808,6 @@ export type Database = {
           founder_status: string | null
           full_name: string | null
           id: string
-          include_student_handouts: boolean | null
           joined_during_beta: boolean | null
           lessons_used_this_period: number | null
           organization_id: string | null
@@ -1845,7 +1844,6 @@ export type Database = {
           founder_status?: string | null
           full_name?: string | null
           id: string
-          include_student_handouts?: boolean | null
           joined_during_beta?: boolean | null
           lessons_used_this_period?: number | null
           organization_id?: string | null
@@ -1882,7 +1880,6 @@ export type Database = {
           founder_status?: string | null
           full_name?: string | null
           id?: string
-          include_student_handouts?: boolean | null
           joined_during_beta?: boolean | null
           lessons_used_this_period?: number | null
           organization_id?: string | null

@@ -26,7 +26,10 @@
       "Bash(xxd)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"SSOT: Rename Student Handout to Group Handout project-wide \\(frontend + docs\\)\")",
       "Bash(git reset:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Replace hardcoded route paths in App.tsx with ROUTES constants \\(SSOT High #11\\)\")"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Replace hardcoded route paths in App.tsx with ROUTES constants \\(SSOT High #11\\)\")",
+      "Bash(where supabase:*)",
+      "Bash(npx supabase:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"CLEANUP: Remove dead WorkspaceSettingsPanel and wrong migration file\")"
     ]
   }
 }
