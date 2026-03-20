@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { STRIPE_INDIVIDUAL, SubscriptionTier, getTierSections, isPaidTier } from '@/constants/pricingConfig';
+import { STRIPE_INDIVIDUAL, SubscriptionTier, getTierSections, isPaidTier, TIER_LESSON_LIMITS } from '@/constants/pricingConfig';
 
 interface SubscriptionState {
   tier: SubscriptionTier;
@@ -36,7 +36,7 @@ export function useSubscription() {
     tier: 'free',
     status: 'active',
     lessonsUsed: 0,
-    lessonsLimit: 5,
+    lessonsLimit: TIER_LESSON_LIMITS.free,
     canGenerate: true,
     sectionsAllowed: getTierSections('free'),
     includesTeaser: false,
@@ -69,7 +69,7 @@ export function useSubscription() {
           tier: result.tier || 'free',
           status: 'active',
           lessonsUsed: result.lessons_used || 0,
-          lessonsLimit: result.lessons_limit || 5,
+          lessonsLimit: result.lessons_limit || TIER_LESSON_LIMITS.free,
           canGenerate: result.can_generate ?? true,
           sectionsAllowed: result.sections_allowed || getTierSections('free'),
           includesTeaser: result.includes_teaser ?? false,

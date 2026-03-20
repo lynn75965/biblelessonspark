@@ -38,6 +38,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ROUTES } from "@/constants/routes";
 
 // Filter org types for self-service (exclude beta_program)
 const SELF_SERVICE_ORG_TYPES = ORG_TYPE_IDS.filter(
@@ -196,7 +197,7 @@ const OrgSetup = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     } else {
-      navigate('/org');
+      navigate(ROUTES.ORG);
     }
   };
 
@@ -307,7 +308,7 @@ const OrgSetup = () => {
               {BRANDING.appName}
             </span>
           </a>
-          <Button variant="ghost" onClick={() => navigate('/org')}>
+          <Button variant="ghost" onClick={() => navigate(ROUTES.ORG)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Plans
           </Button>

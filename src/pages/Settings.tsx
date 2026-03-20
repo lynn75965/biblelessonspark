@@ -48,7 +48,7 @@ export default function Settings() {
           description: "Your lessons have been deleted. Please contact support to complete account deletion.",
         });
         
-        navigate("/auth");
+        navigate(ROUTES.AUTH);
         return;
       }
 
@@ -57,7 +57,7 @@ export default function Settings() {
         description: "Your account and all data have been permanently deleted.",
       });
 
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     } catch (error: any) {
       console.error("Delete account error:", error);
       toast({

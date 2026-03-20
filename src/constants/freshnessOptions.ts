@@ -325,7 +325,7 @@ export const FRESHNESS_ELEMENTS: FreshnessElement[] = [
 
 // ============================================================================
 // TEASER FRESHNESS ELEMENTS
-// Ensure Student Teasers vary in style while maintaining felt-need focus
+// Ensure Group Teasers vary in style while maintaining felt-need focus
 // CRITICAL: Teasers must NOT reveal lesson content
 // ============================================================================
 

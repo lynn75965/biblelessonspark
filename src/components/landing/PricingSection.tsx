@@ -13,6 +13,7 @@ import { Check, X, Sparkles, Loader2 } from "lucide-react";
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from "@/hooks/usePricingPlans";
 import { UPGRADE_PROMPTS, formatPrice } from "@/constants/pricingConfig";
 import { formatLoading } from "@/constants/uiSymbols";
+import { ROUTES } from "@/constants/routes";
 
 export function PricingSection() {
   const navigate = useNavigate();
@@ -34,9 +35,9 @@ export function PricingSection() {
 
   const handleGetStarted = (tier: 'free' | 'personal') => {
     if (tier === 'free') {
-      navigate('/auth');
+      navigate(ROUTES.AUTH);
     } else {
-      navigate('/auth?redirect=/pricing&plan=personal');
+      navigate(`${ROUTES.AUTH}?redirect=${ROUTES.PRICING}&plan=personal`);
     }
   };
 

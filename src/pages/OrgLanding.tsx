@@ -133,7 +133,7 @@ const OrgLanding = () => {
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate('/auth')}>
+                <Button variant="ghost" onClick={() => navigate(ROUTES.AUTH)}>
                   Sign In
                 </Button>
                 <Button onClick={() => handleGetStarted()}>
@@ -160,7 +160,7 @@ const OrgLanding = () => {
               </div>
               <Button
                 size="sm"
-                onClick={() => navigate('/org-manager')}
+                onClick={() => navigate(ROUTES.ORG_MANAGER)}
               >
                 <LayoutDashboard className="h-4 w-4 mr-2" />
                 Go to Your Ministry Dashboard

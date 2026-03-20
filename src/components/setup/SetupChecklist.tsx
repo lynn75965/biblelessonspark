@@ -59,7 +59,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       description: 'Sign up and create your teacher profile',
       icon: <User className="h-6 w-6" />,
       action: () => {
-        if (!user) navigate('/auth');
+        if (!user) navigate(ROUTES.AUTH);
       },
       actionLabel: 'Go to Sign In',
       showAction: !user,
@@ -93,7 +93,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       title: 'Choose your Theological Lens',
       description: 'Select your preferred Baptist theological perspective',
       icon: <Church className="h-6 w-6" />,
-      action: () => navigate('/preferences/lens'),
+      action: () => navigate(ROUTES.PREFERENCES_LENS),
       actionLabel: 'Choose Lens',
       showAction: progress['choose_lens'] !== 'complete',
     },
@@ -104,7 +104,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       icon: <CreditCard className="h-6 w-6" />,
       action: () => {
         // Check if pricing page exists, otherwise navigate to account
-        navigate('/account');
+        navigate(ROUTES.ACCOUNT);
       },
       actionLabel: 'Select Plan',
       showAction: progress['select_plan'] !== 'complete',
@@ -161,7 +161,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
       title: 'Invite another teacher (optional)',
       description: 'Share BibleLessonSpark with your ministry team',
       icon: <UserPlus className="h-6 w-6" />,
-      action: () => navigate('/account'),
+      action: () => navigate(ROUTES.ACCOUNT),
       actionLabel: 'Invite Teachers',
       showAction: progress['invite_teacher'] !== 'complete',
     },
@@ -189,7 +189,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
           </div>
           <h2 className="text-2xl font-bold text-foreground mb-2">Welcome to BibleLessonSpark!</h2>
           <p className="text-muted-foreground mb-6">Please sign in to access your setup checklist and start creating amazing Bible study lessons.</p>
-          <Button onClick={() => navigate('/auth')} className="bg-gradient-primary">
+          <Button onClick={() => navigate(ROUTES.AUTH)} className="bg-gradient-primary">
             Sign In to Continue
           </Button>
         </Card>

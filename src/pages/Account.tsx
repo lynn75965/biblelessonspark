@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { SubscriptionManagement } from "@/components/subscription/SubscriptionManagement";
 import { MyOrganizationSection } from "@/components/account/MyOrganizationSection";
 import { BRANDING } from "@/config/branding";
+import { ROUTES } from "@/constants/routes";
 
 export default function Account() {
   const { user, loading: authLoading } = useAuth();
@@ -14,7 +15,7 @@ export default function Account() {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate("/auth");
+      navigate(ROUTES.AUTH);
     }
   }, [user, authLoading, navigate]);
 

@@ -12,6 +12,7 @@ import { Loader2, Zap, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { TRIAL_CONFIG } from "@/constants/trialConfig";
+import { ROUTES } from "@/constants/routes";
 
 export function UsageDisplay() {
   const navigate = useNavigate();
@@ -131,7 +132,7 @@ export function UsageDisplay() {
             variant="outline"
             size="sm"
             className="w-full text-xs"
-            onClick={() => navigate("/pricing")}
+            onClick={() => navigate(ROUTES.PRICING)}
           >
             <ArrowUpRight className="mr-1 h-3 w-3" />
             Upgrade for 20 lessons/month

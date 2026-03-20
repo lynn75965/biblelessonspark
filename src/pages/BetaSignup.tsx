@@ -60,7 +60,7 @@ const BetaSignup = () => {
           description: "Please sign in to join the beta program.",
           variant: "destructive",
         });
-        navigate("/");
+        navigate(ROUTES.HOME);
         return;
       }
 

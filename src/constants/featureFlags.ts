@@ -40,8 +40,8 @@ export const FEATURE_FLAGS = {
   studentTeaser: {
     requiredTier:  'personal',
     enabled:        true,
-    label:          'Student Teaser',
-    upgradePrompt:  'Upgrade to Personal Plan to include a Student Teaser with your lessons.',
+    label:          'Group Teaser',
+    upgradePrompt:  'Upgrade to Personal Plan to include a Group Teaser with your lessons.',
   },
 
   devotional: {

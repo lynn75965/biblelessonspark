@@ -47,13 +47,13 @@ export default function PricingPage() {
       if (user) {
         navigate(ROUTES.DASHBOARD);
       } else {
-        navigate('/auth');
+        navigate(ROUTES.AUTH);
       }
       return;
     }
 
     if (!user) {
-      navigate('/auth?redirect=/pricing&plan=personal');
+      navigate(`${ROUTES.AUTH}?redirect=${ROUTES.PRICING}&plan=personal`);
       return;
     }
 

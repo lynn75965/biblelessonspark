@@ -41,7 +41,7 @@ const Index = () => {
   };
 
   const handleSignIn = () => {
-    navigate("/auth");
+    navigate(ROUTES.AUTH);
   };
 
   const handleSubmitRequest = (e: React.FormEvent) => {

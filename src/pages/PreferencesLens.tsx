@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { BookOpen, CheckCircle2 } from 'lucide-react';
 import { getTheologyProfilesSorted } from '@/constants/theologyProfiles';
+import { ROUTES } from "@/constants/routes";
 
 export default function PreferencesLens() {
   const { user } = useAuth();
@@ -57,7 +58,7 @@ export default function PreferencesLens() {
       if (error) throw error;
 
       toast.success('Theological lens saved successfully');
-      navigate('/setup');
+      navigate(ROUTES.SETUP);
     } catch (error) {
       console.error('Error saving preference:', error);
       toast.error('Failed to save preference');
@@ -125,7 +126,7 @@ export default function PreferencesLens() {
             <div className="flex gap-3 pt-6">
               <Button
                 variant="outline"
-                onClick={() => navigate('/setup')}
+                onClick={() => navigate(ROUTES.SETUP)}
                 className="flex-1"
               >
                 Back to Setup

@@ -61,7 +61,7 @@ export default function Admin() {
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (!user) {
-        navigate('/auth');
+        navigate(ROUTES.AUTH);
         return;
       }
 
@@ -73,7 +73,7 @@ export default function Admin() {
           description: "Please verify your email to access admin tools.",
           variant: "destructive",
         });
-        navigate('/setup');
+        navigate(ROUTES.SETUP);
         return;
       }
 

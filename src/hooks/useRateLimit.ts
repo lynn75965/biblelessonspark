@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { TIER_LESSON_LIMITS } from "@/constants/pricingConfig";
 
 interface RateLimitStatus {
   isLoading: boolean;
@@ -15,7 +16,7 @@ export function useRateLimit() {
     isLoading: true,
     isLimitReached: false,
     lessonsUsed: 0,
-    lessonsAllowed: 5,
+    lessonsAllowed: TIER_LESSON_LIMITS.free,
     hoursUntilReset: null,
     errorMessage: null,
   });
@@ -54,7 +55,7 @@ export function useRateLimit() {
       const limitSetting = settings?.find(s => s.setting_key === "beta_lesson_limit");
       const hoursSetting = settings?.find(s => s.setting_key === "beta_limit_hours");
       
-      const lessonLimit = parseInt(limitSetting?.setting_value || "5", 10);
+      const lessonLimit = parseInt(limitSetting?.setting_value || String(TIER_LESSON_LIMITS.free), 10);
       const limitHours = parseInt(hoursSetting?.setting_value || "24", 10);
 
       // Calculate cutoff time

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { ROUTES } from '@/constants/routes';
 import { Card, CardContent } from '@/components/ui/card';
 import { BookOpen } from 'lucide-react';
 
@@ -14,7 +15,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate('/auth');
+      navigate(ROUTES.AUTH);
     }
   }, [user, loading, navigate]);
 

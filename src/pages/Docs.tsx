@@ -185,8 +185,8 @@ const Docs = () => {
       answer: "Yes! BibleLessonSpark supports English, Spanish, and French. Set your preferred language in your account settings."
     },
     {
-      question: "What is the Student Teaser feature?",
-      answer: "When enabled, the Student Teaser generates a 50-100 word preview you can send to students before class. It builds anticipation without revealing lesson content - perfect for group texts or emails."
+      question: "What is the Group Teaser feature?",
+      answer: "When enabled, the Group Teaser generates a 50-100 word preview you can share with your class before the lesson. It builds anticipation without revealing lesson content - perfect for group texts or emails."
     },
     {
       question: "How do the theological lenses work?",
@@ -303,7 +303,7 @@ const Docs = () => {
                   <div>
                     <h3 className="font-semibold">Add Optional Customizations</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Add teacher notes for specific class needs, enable the Student Teaser for pre-class engagement, or expand the Lesson Customization section for more options.
+                      Add teacher notes for specific class needs, enable the Group Teaser for pre-class engagement, or expand the Lesson Customization section for more options.
                     </p>
                   </div>
                 </div>

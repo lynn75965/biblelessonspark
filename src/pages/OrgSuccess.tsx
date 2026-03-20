@@ -174,7 +174,7 @@ const OrgSuccess = () => {
   // Redirect to auth if not logged in
   useEffect(() => {
     if (!authLoading && !user) {
-      navigate('/auth?returnTo=/org/success');
+      navigate(`${ROUTES.AUTH}?returnTo=${ROUTES.ORG_SUCCESS}`);
     }
   }, [user, authLoading, navigate]);
 
@@ -206,7 +206,7 @@ const OrgSuccess = () => {
   const handleTourFinish = () => {
     setShowTour(false);
     setTourStep(0);
-    navigate('/org-manager');
+    navigate(ROUTES.ORG_MANAGER);
   };
 
   const handleTourClose = () => {
@@ -374,7 +374,7 @@ const OrgSuccess = () => {
           <Button 
             size="lg" 
             className="flex-1"
-            onClick={() => navigate('/org-manager')}
+            onClick={() => navigate(ROUTES.ORG_MANAGER)}
           >
             Go to Org Manager Dashboard
             <ArrowRight className="ml-2 h-4 w-4" />

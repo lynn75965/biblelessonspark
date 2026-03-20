@@ -2060,12 +2060,12 @@ export function EnhanceLessonForm({
                 <div className="flex items-center gap-2 mb-1">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-primary text-sm">
-                    Student Teaser (Pre-Lesson)
+                    Group Teaser (Pre-Lesson)
                   </h3>
                 </div>
                 <p className="text-sm italic leading-tight">{currentLesson.metadata.teaser}</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Share with students via text, email, or social media before class.
+                  Share with your class via text, email, or social media before the lesson.
                 </p>
               </div>
             )}
@@ -2076,7 +2076,7 @@ export function EnhanceLessonForm({
                 <div className="flex items-center gap-2">
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium text-muted-foreground">
-                    Student Teaser ? Premium Feature
+                    Group Teaser ? Premium Feature
                   </span>
                 </div>
               </div>

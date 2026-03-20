@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Coins, Loader2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
 
 interface CreditsDisplayProps {
   balance: number;
@@ -43,7 +44,7 @@ export function CreditsDisplay({ balance, loading }: CreditsDisplayProps) {
             <p className="text-sm text-muted-foreground mb-2">
               You're out of credits. Upgrade your plan to continue.
             </p>
-            <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+            <Button variant="outline" size="sm" onClick={() => navigate(ROUTES.HOME)}>
               <Plus className="mr-2 h-4 w-4" />
               View Plans
             </Button>
