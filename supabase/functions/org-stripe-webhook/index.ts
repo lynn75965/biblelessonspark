@@ -1,5 +1,7 @@
 ﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveTierFromPriceId, TIER_LESSON_LIMITS } from "../_shared/pricingConfig.ts";
+import type { SubscriptionTier } from "../_shared/pricingConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -42,18 +44,17 @@ serve(async (req) => {
       const session = event.data.object;
       const metadata = session.metadata || {};
       if (metadata.organization_id && metadata.tier) {
-        const { data: tierConfig } = await supabase.from("org_tier_config").select("lessons_limit").eq("tier", metadata.tier).single();
-        if (tierConfig) {
-          const now = new Date();
-          const periodEnd = new Date(now);
-          if (metadata.billing_interval === "annual") { periodEnd.setFullYear(periodEnd.getFullYear() + 1); } else { periodEnd.setMonth(periodEnd.getMonth() + 1); }
-          await supabase.from("organizations").update({
-            subscription_tier: metadata.tier, stripe_subscription_id: session.subscription, subscription_status: "active",
-            lessons_limit: tierConfig.lessons_limit, lessons_used_this_period: 0,
-            current_period_start: now.toISOString(), current_period_end: periodEnd.toISOString(), billing_interval: metadata.billing_interval,
-          }).eq("id", metadata.organization_id);
-          console.log(`Org ${metadata.organization_id} subscribed to ${metadata.tier}`);
-        }
+        // SSOT: Resolve lesson limit from pricingConfig.ts -- never query org_tier_config
+        const lessonsLimit = TIER_LESSON_LIMITS[metadata.tier as SubscriptionTier] ?? TIER_LESSON_LIMITS.starter;
+        const now = new Date();
+        const periodEnd = new Date(now);
+        if (metadata.billing_interval === "annual") { periodEnd.setFullYear(periodEnd.getFullYear() + 1); } else { periodEnd.setMonth(periodEnd.getMonth() + 1); }
+        await supabase.from("organizations").update({
+          subscription_tier: metadata.tier, stripe_subscription_id: session.subscription, subscription_status: "active",
+          lessons_limit: lessonsLimit, lessons_used_this_period: 0,
+          current_period_start: now.toISOString(), current_period_end: periodEnd.toISOString(), billing_interval: metadata.billing_interval,
+        }).eq("id", metadata.organization_id);
+        console.log(`Org ${metadata.organization_id} subscribed to ${metadata.tier} (limit: ${lessonsLimit})`);
       } else if (metadata.purchase_type === "lesson_pack") {
         const lessonsToAdd = parseInt(metadata.lessons_included, 10);
         const { data: org } = await supabase.from("organizations").select("bonus_lessons").eq("id", metadata.organization_id).single();
@@ -75,9 +76,10 @@ serve(async (req) => {
       const metadata = subscription.metadata || {};
       if (metadata.organization_id) {
         const priceId = subscription.items.data[0]?.price?.id;
-        const { data: tierConfig } = await supabase.from("org_tier_config").select("tier, lessons_limit").or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_annual.eq.${priceId}`).single();
+        // SSOT: Resolve tier from price ID using pricingConfig.ts -- never query org_tier_config
+        const resolvedTier = resolveTierFromPriceId(priceId || '');
         const updateData: any = { subscription_status: subscription.status };
-        if (tierConfig) { updateData.subscription_tier = tierConfig.tier; updateData.lessons_limit = tierConfig.lessons_limit; }
+        if (resolvedTier) { updateData.subscription_tier = resolvedTier; updateData.lessons_limit = TIER_LESSON_LIMITS[resolvedTier]; }
         if (subscription.current_period_start) { updateData.current_period_start = new Date(subscription.current_period_start * 1000).toISOString(); }
         if (subscription.current_period_end) { updateData.current_period_end = new Date(subscription.current_period_end * 1000).toISOString(); }
         await supabase.from("organizations").update(updateData).eq("id", metadata.organization_id);

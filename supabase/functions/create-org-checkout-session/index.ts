@@ -4,7 +4,7 @@
 // ============================================================
 // SSOT: Frontend drives backend
 //   - priceId comes from frontend (orgPricingConfig.ts is SSOT)
-//   - Personal subscription priceId from tier_config table (synced from pricingConfig.ts)
+//   - Personal subscription priceId from STRIPE_INDIVIDUAL in _shared/pricingConfig.ts
 //   - Org types validated by frontend (organizationConfig.ts is SSOT)
 // ============================================================
 // Supports TWO modes:
@@ -14,6 +14,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { STRIPE_ORG, STRIPE_INDIVIDUAL } from "../_shared/pricingConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,18 +80,13 @@ serve(async (req) => {
       const isOrgOwnerOrManager = membership?.role === "owner" || membership?.role === "manager";
       if (!isOrgCreator && !isOrgOwnerOrManager) throw new Error("Only organization managers can subscribe");
 
-      // Get tier config from database (synced from orgPricingConfig.ts SSOT)
-      const { data: tierConfig, error: tierError } = await supabase
-        .from("org_tier_config")
-        .select("*")
-        .eq("tier", tier)
-        .eq("is_active", true)
-        .single();
-      if (tierError || !tierConfig) throw new Error(`Invalid tier: ${tier}`);
+      // SSOT: Resolve Stripe price ID from pricingConfig.ts -- never query org_tier_config
+      const orgTierConfig = STRIPE_ORG[tier as keyof typeof STRIPE_ORG];
+      if (!orgTierConfig) throw new Error(`Invalid tier: ${tier}`);
 
-      const stripePriceId = billing_interval === "annual" 
-        ? tierConfig.stripe_price_id_annual 
-        : tierConfig.stripe_price_id_monthly;
+      const stripePriceId = billing_interval === "annual"
+        ? orgTierConfig.prices.annual
+        : orgTierConfig.prices.monthly;
       if (!stripePriceId) throw new Error(`No Stripe price for ${tier} ${billing_interval}`);
 
       let stripeCustomerId = org.stripe_customer_id;
@@ -246,41 +242,11 @@ serve(async (req) => {
 
     // Line item 1 (optional): Personal subscription
     if (includePersonalSubscription) {
-      console.log("Looking up personal subscription price for billing interval:", billingInterval);
-      
-      // SSOT price IDs from pricingConfig.ts - used as fallback
-      const PERSONAL_PRICE_MONTHLY = "price_1Sj3bRI4GLksxBfVfGVrgZXP";
-      const PERSONAL_PRICE_ANNUAL = "price_1SMpypI4GLksxBfV6tytRIAO";
-      
-      // Try to get from database first (pricing_plans table)
-      const { data: personalPlan, error: planError } = await supabase
-        .from("pricing_plans")
-        .select("stripe_price_id_monthly, stripe_price_id_annual")
-        .eq("tier", "personal")
-        .eq("is_active", true)
-        .single();
-
-      console.log("pricing_plans lookup result:", JSON.stringify(personalPlan));
-      if (planError) {
-        console.log("pricing_plans lookup error:", planError.message);
-      }
-
-      let personalPriceId: string | null = null;
-      
-      if (personalPlan) {
-        personalPriceId = billingInterval === "annual"
-          ? personalPlan.stripe_price_id_annual
-          : personalPlan.stripe_price_id_monthly;
-        console.log("Personal price ID from database:", personalPriceId);
-      }
-      
-      // Fallback to hardcoded SSOT if database lookup failed
-      if (!personalPriceId) {
-        console.log("Using hardcoded SSOT fallback for personal price");
-        personalPriceId = billingInterval === "annual" 
-          ? PERSONAL_PRICE_ANNUAL 
-          : PERSONAL_PRICE_MONTHLY;
-      }
+      // SSOT: Personal price IDs from pricingConfig.ts -- never query pricing_plans
+      const personalPriceId = billingInterval === "annual"
+        ? STRIPE_INDIVIDUAL.personal.prices.annual
+        : STRIPE_INDIVIDUAL.personal.prices.monthly;
+      console.log("Personal price ID from SSOT:", personalPriceId);
 
       // Add personal subscription as second line item
       lineItemParams["line_items[1][price]"] = personalPriceId;
