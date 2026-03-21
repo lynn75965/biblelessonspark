@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Claude Code Instructions
-# Last updated: March 2026
+# Last updated: March 20, 2026
 # READ THIS ENTIRE FILE BEFORE TOUCHING ANY CODE
 
 ## AUTO-READ ON SESSION START
@@ -115,11 +115,12 @@ Changes to a domain require updating only ONE file.
 
 ### Deleted Files -- DO NOT RECREATE
 
-| File                       | Reason                                     |
-|----------------------------|--------------------------------------------|
-| src/config/pricingPlans.ts | Conflicted with pricingConfig.ts (deleted Feb 22) |
-| src/constants/branding.ts  | Orphaned duplicate of src/config/branding.ts (deleted Feb 21) |
-| src/config/site.ts         | Duplicated branding.ts (deleted Feb 21)    |
+| File                                              | Reason                                                          |
+|---------------------------------------------------|-----------------------------------------------------------------|
+| src/config/pricingPlans.ts                        | Conflicted with pricingConfig.ts (deleted Feb 22)               |
+| src/constants/branding.ts                         | Orphaned duplicate of src/config/branding.ts (deleted Feb 21)  |
+| src/config/site.ts                                | Duplicated branding.ts (deleted Feb 21)                         |
+| src/components/workspace/WorkspaceSettingsPanel.tsx | Dead code -- never imported or rendered; targeted nonexistent table (deleted March 20, 2026) |
 
 ### Before touching any SSOT file:
 Audit ALL consumers of that file. Every import must be verified.
@@ -135,6 +136,12 @@ Database enum values must match frontend constants exactly.
 The Stripe webhook resolves tiers from pricingConfig.ts and trialConfig.ts.
 NEVER query tier_config or pricing_plans database tables.
 NEVER propose database triggers or autonomous backend actions.
+
+This applies to ALL edge functions including:
+- stripe-webhook/index.ts (individual subscriptions)
+- org-stripe-webhook/index.ts (org subscriptions -- fixed March 20, 2026)
+- create-org-checkout-session/index.ts (org checkout -- fixed March 20, 2026)
+All three now import exclusively from _shared/pricingConfig.ts. Zero banned DB queries.
 
 ---
 
@@ -163,8 +170,9 @@ Claude Code: Edit files in place using complete rewrites.
 Every route added to routes.ts MUST also be added to App.tsx.
 Bugs caused: /org-manager, /workspace, /admin/toolbelt, /workspace again.
 VERIFY BOTH FILES on every route change.
-KNOWN SSOT VIOLATION: App.tsx manually re-declares routes instead of importing
-from routes.ts. Future refactor needed. Until then, manual verification is mandatory.
+RESOLVED March 20, 2026: All 25 hardcoded route paths in App.tsx replaced with
+ROUTES.* constants imported from routes.ts. The known SSOT violation is closed.
+Manual verification of BOTH files remains mandatory on every route change.
 
 ### Rule #4: Dependency chain before deploy
 Verify all files referencing new properties or exports are included in the same deploy.
@@ -221,6 +229,20 @@ Assembly (Class/Study Group/Congregation), Participant (Student/Member/Attendee)
 
 ### Rule #19: Corrupted files -- restore from git before patching
 (Same as Rule #13 -- reinforced.) git checkout HEAD -- path/to/file.ts FIRST.
+
+### Rule #20: Supabase migration CLI is operational -- use it
+All future database schema changes MUST use a migration file in supabase/migrations/
+and be applied via: npx supabase db push --linked
+NEVER apply schema changes manually via the Supabase Dashboard SQL editor.
+Migration history was fully reconciled March 20, 2026 (45 migrations, zero drift).
+Before running db push: verify the SQL is correct AND the change is not already
+applied to the live database. The two-step check prevents duplicate migrations.
+
+### Rule #21: Run /audit-ssot before touching constants, configs, or backend
+At the start of any session that touches constants, pricing, tier names, routes,
+or backend functions -- run the /audit-ssot slash command first.
+It is read-only and diagnostic. It saves findings to SSOT_AUDIT_REPORT.md.
+Never modify SSOT files without first knowing the current violation state.
 
 ---
 
@@ -316,7 +338,36 @@ Shared utilities: supabase/functions/_shared/
 
 ---
 
-## SESSION START PROTOCOL (AUTOMATED)
+## SLASH COMMANDS
+
+### /prime
+Read CLAUDE.md and PROJECT_MASTER.md in full. Confirm architecture understanding before proceeding.
+
+### /create-plan
+Create a step-by-step implementation plan for the requested task. Present for approval before writing any code.
+
+### /implement
+Implement the approved plan. Follow deploy sequence. No partial fixes.
+
+### /audit-ssot
+Runs a read-only SSOT and Frontend-Drives-Backend audit of the entire project.
+- Scans all src/ files for duplicated constants, hardcoded values, and backend-defined values that should be frontend-sourced
+- Checks for any database-stored strings that conflict with or duplicate frontend SSOT definitions
+- Produces a findings report saved as SSOT_AUDIT_REPORT.md in the project root
+- NO code changes are made during this command -- diagnostic only
+- Report format: violation, file, line number, rule broken, recommended fix
+Run this command at the start of any session touching constants, configs, pricing, tier names, routes, or backend functions.
+
+---
+
+## PROJECT ROOT AUDIT FILES
+
+SSOT_AUDIT_REPORT.md -- Generated by /audit-ssot. Contains all SSOT and
+Frontend-Drives-Backend violations found in the last audit run. Read this
+before touching any SSOT files. Last full audit: March 20, 2026 (19 violations,
+all resolved).
+
+---
 
 Claude Code reads this file automatically at session start.
 No manual priming required.

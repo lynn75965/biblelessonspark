@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Project Master Document
-## Date: March 17, 2026
+## Date: March 20, 2026
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -39,6 +39,8 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 17. **Webhook tier resolution must use pricingConfig.ts (SSOT).** NEVER query tier_config or pricing_plans database tables for Stripe price-to-tier mapping. The webhook imports `resolveTierFromPriceId` from `_shared/pricingConfig.ts`. Added February 26, 2026.
 18. **AudienceConfig -- never hardcode participant strings.** NEVER hardcode "Student", "Member", or "Attendee" anywhere in the export stack. All participant-facing labels must resolve through `resolveExportTerminology()` in `seriesExportConfig.ts`. AudienceConfig triad: Role (Teacher/Pastor/Leader), Assembly (Class/Study Group/Congregation), Participant (Student/Member/Attendee). Series-level exports always use "Group Handout" -- never a participant term -- because a series can span multiple audience profiles. Added March 6, 2026.
 19. **Corrupted files -- restore from git before patching.** If a file is corrupted by a bad write, run `git checkout HEAD -- src/path/to/file.ts` FIRST to restore it, then apply the fix to the clean restored file. Never patch a corrupted file. Added March 6, 2026.
+20. **Supabase migration CLI is operational.** Use `npx supabase db push --linked` for future database migrations -- do NOT apply migrations manually via the Dashboard SQL editor. The migration history was fully reconciled on March 20, 2026 (45 migrations in sync, zero drift). All future schema changes must go through a migration file in `supabase/migrations/` so CLI tracking stays clean. Never run `supabase db push` without first verifying the migration SQL is correct and the schema change is not already applied to the live database. Added March 20, 2026.
+21. **Run /audit-ssot at the start of any session touching constants, configs, pricing, tier names, routes, or backend functions.** This slash command is defined in CLAUDE.md and runs a read-only SSOT and Frontend-Drives-Backend audit, saving findings to `SSOT_AUDIT_REPORT.md`. It is diagnostic only -- no code changes. Added March 20, 2026.
 
 ---
 
@@ -1045,6 +1047,8 @@ Full platform vulnerability sweep covering financial integrity, subscription lif
 28. **platform_mode defaulted to private_beta post-launch** -- system_settings row value was never updated from private_beta to production after February 28 launch. Beta UI showing to all users; doesTrialApply() returning false. Fix: SQL UPDATE. No deploy required. March 10, 2026.
 29. **Print button diagnosed in wrong file** -- EnhanceLessonForm.tsx toolbar shows Print button. Claude incorrectly targeted LessonExportButtons.tsx first, wasting a session. Print still present in EnhanceLessonForm.tsx, DevotionalLibrary.tsx, DevotionalGenerator.tsx, and BookletPrintModal.tsx as of March 11, 2026. Fix approved but not yet deployed.
 30. **Booklet layout silently ignored user DOCX selection** -- handleExport() at SeriesExportModal.tsx line 110 unconditionally forced format to 'booklet_pdf' regardless of user's file format choice. Fixed by disabling DOCX option in UI when Booklet is selected. March 12, 2026.
+31. **WorkspaceSettingsPanel.tsx was dead code targeting nonexistent table** -- Component was never imported or rendered anywhere. Its migration file incorrectly targeted `workspace_settings` (which does not exist); the actual column `include_student_handouts` is on the `profiles` table. Both the component (497 lines) and the incorrect migration file were deleted March 20, 2026. No users affected.
+32. **Feedback form appeared after every lesson generation** -- No frequency cap existed; the form triggered on every lesson. Fixed March 20, 2026: form now shows every 5th lesson generated (tracked via localStorage). After submission, counter resets to 0 for first-timers, requires 10 more lessons for returning submitters. After dismiss without submitting, asks again after 2 more lessons. Manual Feedback button unaffected.
 
 ### SSOT Violations Identified This Afternoon -- Carry Forward to Next Session
 1. `SERIES_EXPORT_FORMATS.BOOKLET = 'booklet_pdf'` is dead code. Modal sends `format: 'pdf'` with `layout: 'booklet'`. useSeriesExport.ts works around with `|| options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET`. Fix: modal must set `format: SERIES_EXPORT_FORMATS.BOOKLET`; dispatch should check format only.
@@ -1104,11 +1108,9 @@ All five Series Export font choices now render distinctly in PDF output. Previou
 
 ### WHAT'S NEXT
 
-1. **Print button removal** -- Remove Print from all UI locations. Approved plan, NOT YET DEPLOYED:
-   - DevotionalLibrary.tsx: Remove both Print buttons and handlePrint function
-   - DevotionalGenerator.tsx: Remove Print button and handlePrint function
-   - BookletPrintModal.tsx: Delete entire file (confirm what calls it before deleting)
+1. **Print button removal (partially complete)** -- DevotionalLibrary.tsx and DevotionalGenerator.tsx done (March 12). Still pending:
    - EnhanceLessonForm.tsx: Remove Print button and handlePrint from toolbar
+   - BookletPrintModal.tsx: Delete entire file (confirm what calls it before deleting)
    LessonExportButtons.tsx already clean -- no action needed.
 
 2. **Single-lesson export font and color picker** -- Extend font picker and color scheme picker to single-lesson export pipeline. What already exists: 16 TTF files in public/fonts/, loadPdfFonts.ts, seriesExportConfig.ts as SSOT for all 5 fonts and 5 color palettes. Files needed: exportToPdf.ts, exportToDocx.ts, single-lesson export modal. Not yet started.
@@ -1118,9 +1120,19 @@ All five Series Export font choices now render distinctly in PDF output. Previou
    - doc.line() calls in buildBookletPdf use BK_W - BK_M instead of BK_W - BK_OUTER (lines 10.8pt too far right)
    - buildSeriesExportFilename() bypassed for booklet exports (resolves when violation 1 is fixed)
 
-4. **Admin UI feature flag toggles** -- Deferred post-launch
-5. **Frontend org creation / upgrade paths** -- Deferred
-6. **Multi-tenant migration** -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
+4. **OrgSetup.tsx stale tier name audit** -- May contain inline copy referencing old tier names ("Single Staff", "Growth") by string. Display names are pulled from orgPricingConfig.ts SSOT (correct), but any hardcoded prose should be checked.
+
+5. **pricingConfig.ts STRIPE_ORG vs orgPricingConfig.ts unification** -- pricingConfig.ts has 4 org tiers (starter/growth/full/enterprise); orgPricingConfig.ts has 5 tiers with different keys. Pre-existing tension. No functionality broken -- future cleanup when org billing is actively developed.
+
+6. **Org landing page visual polish** -- No hero image or visual element above the fold. Mobile tier card experience creates long scroll on small screens (5 cards in single column).
+
+7. **Booklet economical printing** -- Recommended adjustments not yet implemented: body font 10.5pt -> 10pt, line spacing adjustment, tighter margins. Do NOT adopt 5.5x8.5 landscape fold.
+
+8. **include_student_handouts column in profiles table** -- Cosmetic legacy naming. Column exists in live database but is only referenced by dead code (WorkspaceSettingsPanel.tsx removed March 20, 2026). Low priority rename via Supabase migration when convenient.
+
+9. **Admin UI feature flag toggles** -- Deferred post-launch
+10. **Frontend org creation / upgrade paths** -- Deferred
+11. **Multi-tenant migration** -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
 
 ---
 
@@ -1287,3 +1299,161 @@ Two corrections in `src/pages/Help.tsx`:
 - pricingConfig.ts STRIPE_ORG block and orgPricingConfig.ts tier key unification -- pre-existing tension, not introduced this session
 - No hero image or visual element on the org landing page above the fold
 - Mobile tier card experience -- 5 cards in single column creates long scroll on small screens
+---
+
+## SESSION LOG: March 20, 2026 -- Full SSOT Audit + Migration History Reconciliation
+
+### Overview
+
+Started with a button label overflow. Ended with a full architectural restoration of SSOT compliance, terminology consistency, dead code removal, and Supabase migration history reconciliation. 19 SSOT violations found and resolved. 45 Supabase migrations reconciled to zero drift.
+
+---
+
+### Fix 1: Org Pricing Button Label Overflow
+
+**Problem:** Button label "Shepherd My Teaching Ministry" overflowed its boundary on all 5 pricing tier cards on `/org` page. Most visible on the "Multiplication" (Most Popular) highlighted card.
+
+**Fix:** Changed to "Shepherd My Teachers" -- shorter, imperative, theologically apt (shepherding people, not a concept).
+
+**File:** `src/pages/OrgLanding.tsx` -- single `.map()` loop drives all 5 cards; one edit updated all 5.
+
+**Deploy:** `FIX: Shorten org pricing button label to prevent overflow`
+
+---
+
+### Fix 2: Feedback Form Frequency Cap + Branding Correction
+
+**Problem 1:** Feedback form appeared after every lesson generation -- disruptive to teacher workflow.
+
+**Fix:** Frequency cap via localStorage counter. Shows every 5th lesson generated. After submit: resets to 0 (first-timers) or requires 10 more (returning submitters). After dismiss: asks again after 2 more lessons. Manual Feedback button always works without cap.
+
+**Problem 2:** Feedback form Ease of Use question said "LessonSparkUSA" instead of "BibleLessonSpark."
+
+**Fix:** The question text lives in the `feedback_questions` database table (loaded dynamically at runtime). Updated via Admin Panel → Beta Feedback Questions manager. No code deploy needed -- live immediately.
+
+**Deploy:** `FIX: Feedback form frequency cap (every 5th lesson) + branding correction`
+
+---
+
+### Fix 3: Full SSOT & Frontend-Drives-Backend Audit (19 Violations)
+
+**Audit method:** Custom Claude Code task launched 4 parallel agents across all source areas. Findings saved to `SSOT_AUDIT_REPORT.md` in project root. No code changes during audit phase.
+
+**Slash command added to CLAUDE.md:** `/audit-ssot` -- run at start of any session touching constants, configs, pricing, tier names, routes, or backend functions. Read-only diagnostic, saves report to `SSOT_AUDIT_REPORT.md`.
+
+**All 19 violations resolved across 4 deploys:**
+
+| # | Severity | Issue | Resolution |
+|---|----------|-------|------------|
+| 1 | Critical | Backend SECTION_NAMES out of sync | Synced backend mirror to frontend SSOT |
+| 2 | Critical | Backend PLAN_FEATURES out of sync | Synced backend mirror to frontend SSOT |
+| 3 | Critical | org-stripe-webhook queries org_tier_config | Replaced with TIER_LESSON_LIMITS from pricingConfig.ts SSOT |
+| 4 | Critical | create-org-checkout-session queries pricing_plans | Replaced with STRIPE_INDIVIDUAL.personal.prices from SSOT |
+| 5 | Critical | create-org-checkout-session queries org_tier_config | Replaced with STRIPE_ORG[tier].prices from SSOT |
+| 6 | Critical | EnhanceLessonForm dead tier === 'admin' check | Changed to tier !== 'free' -- now covers all paid tiers |
+| 7 | High | UPGRADE_PROMPTS "Student Handout" inconsistency | Resolved in project-wide rename (see Fix 4) |
+| 8 | High | pricingConfig.ts stale comment | Resolved in project-wide rename |
+| 9 | High | lessonStructure.ts hardcoded "Student Handout" | Resolved in project-wide rename |
+| 10 | High | Hardcoded Stripe price IDs in checkout | Resolved in Critical #4 fix |
+| 11 | High | App.tsx routes not using ROUTES constants | All 25 hardcoded paths replaced with ROUTES.* constants |
+| 12 | Medium | Hardcoded route paths in 15+ components | All replaced with ROUTES constants |
+| 13 | Medium | Hardcoded fallback lesson limits (useSubscription) | Replaced with TIER_LESSON_LIMITS.free from SSOT |
+| 14 | Medium | Hardcoded fallback lesson limits (useRateLimit) | Replaced with TIER_LESSON_LIMITS.free from SSOT |
+| 15 | Medium | "Student Handout" in multiple config files | Resolved in project-wide rename |
+| 16 | Low | Help.tsx "Student Handout" | Resolved in project-wide rename |
+| 17 | Low | Docs.tsx "Student Handout" | Resolved in project-wide rename |
+| 18 | Low | Training.tsx "Student Handout" | Resolved in project-wide rename |
+| 19 | Low | "Student Teaser" hardcoded label in EnhanceLessonForm | Renamed to "Group Teaser" |
+
+**Deploy sequence:**
+- `FIX: Replace Student Handout with Group Handout project-wide (safe instances only)`
+- `FIX: Remove banned DB table queries in org webhook and checkout; fix dead admin tier check`
+- `FIX: Replace hardcoded route paths in App.tsx with ROUTES constants (SSOT High #11)`
+- `FIX: Replace hardcoded fallback limits and route paths; fix Student Teaser label (SSOT Medium/Low #12-14, #19)`
+
+---
+
+### Fix 4: Project-Wide "Student Handout" → "Group Handout" Rename
+
+**Reason:** "Group Handout" is more accurate for a variety of ministry group settings (not just student/classroom contexts).
+
+**Scope:** 87 replacements across 31 files.
+
+**Safe renames (executed):**
+- All display strings, section names, config labels, comments, documentation (~45 active file instances)
+- Variable renames: STUDENT_HANDOUT_HEADING_REGEX → GROUP_HANDOUT_HEADING_REGEX, STUDENT_HANDOUT_STANDALONE_TITLE → GROUP_HANDOUT_STANDALONE_TITLE, STUDENT_HANDOUT_SECTION_NUMBER → GROUP_HANDOUT_SECTION_NUMBER
+- BOOKLET_LABELS.studentHandout → BOOKLET_LABELS.groupHandout
+- i18n keys updated in English, Spanish, and French
+
+**Preserved untouched (functional identifiers):**
+- `key: "student_handout"` in LESSON_SECTIONS -- drives content extraction; all existing lessons in database contain this text
+- `featureFlag: "student_handout"` -- internal flag name
+- `include_student_handouts` database column and all code references -- no migration created (column is on profiles table; referenced only by dead WorkspaceSettingsPanel which was subsequently deleted)
+- `extractSection(lesson, 'student_handout')` call
+- All backup/historical files
+
+**Regex updated:** GROUP_HANDOUT_HEADING_REGEX now matches both "Student Handout" AND "Group Handout" so all previously generated lessons continue to export correctly.
+
+**SSOT verified:** `src/constants/pricingConfig.ts` and `supabase/functions/_shared/pricingConfig.ts` match exactly on all 4 Group Handout references.
+
+---
+
+### Fix 5: Dead Code Removal -- WorkspaceSettingsPanel.tsx
+
+**Finding:** WorkspaceSettingsPanel.tsx was never imported or rendered by any page or route. It referenced a `workspace_settings` table that does not exist in the live database. The column it managed (`include_student_handouts`) is actually on the `profiles` table. A migration file had been created targeting the wrong table.
+
+**Action:**
+- Deleted `src/components/workspace/WorkspaceSettingsPanel.tsx` (497 lines)
+- Deleted `supabase/migrations/20260320_rename_include_student_handouts.sql` (incorrect migration)
+- Removed 3 `include_group_handouts` type definitions from `src/integrations/supabase/types.ts`
+
+**Note:** The `include_student_handouts` column may still exist on the live `profiles` table (cosmetic legacy). It is unreferenced by any active code. Low-priority rename via proper Supabase migration when convenient.
+
+**Deploy:** `CLEANUP: Remove dead WorkspaceSettingsPanel and wrong migration file`
+
+---
+
+### Fix 6: Supabase Migration History Reconciliation
+
+**Problem:** `npx supabase db push --linked` was failing because 7 migrations existed on the remote database with no matching local files (applied via Dashboard SQL editor), and 8 local migration files were not registered in the remote migration history. Total drift: 15 mismatched entries.
+
+**Verification:** Confirmed all 8 local-only migrations were already fully applied to the live database schema via `information_schema` queries. The drift was purely in the `supabase_migrations.schema_migrations` tracking table, not in the actual schema.
+
+**Repair:**
+- Created 7 placeholder `.sql` files for remote-only migrations (Dashboard-applied, named `{timestamp}_dashboard_applied.sql`)
+- Ran `npx supabase migration repair --status applied` for all 8 local-only migrations
+
+**Result:** 45 total migrations now in perfect sync. Zero drift. `npx supabase db push --linked` is fully operational for future use.
+
+**Deploy:** `FIX: Repair Supabase migration history drift (tracking only, no schema changes)`
+
+---
+
+### Files Modified This Session
+
+| File | Change |
+|---|---|
+| src/pages/OrgLanding.tsx | Button label: "Shepherd My Teaching Ministry" → "Shepherd My Teachers" |
+| src/pages/OrgLanding.tsx (via FeedbackModal) | Feedback frequency cap logic |
+| 31 active source files | "Student Handout" → "Group Handout" (87 replacements) |
+| src/components/workspace/WorkspaceSettingsPanel.tsx | DELETED (497 lines dead code) |
+| supabase/migrations/20260320_rename_*.sql | DELETED (wrong table target) |
+| src/integrations/supabase/types.ts | Removed 3 include_group_handouts type definitions |
+| supabase/functions/org-stripe-webhook/index.ts | Replaced banned DB table queries with SSOT constants |
+| supabase/functions/create-org-checkout-session/index.ts | Replaced banned DB table queries with SSOT constants |
+| src/pages/EnhanceLessonForm.tsx | Fixed dead tier === 'admin' check; renamed "Student Teaser" → "Group Teaser" |
+| src/App.tsx | All 25 hardcoded route paths replaced with ROUTES.* constants |
+| src/constants/pricingConfig.ts + _shared mirror | Section names and plan features synced |
+| src/hooks/useSubscription.tsx | Fallback lesson limit → TIER_LESSON_LIMITS.free |
+| src/hooks/useRateLimit.ts | Fallback lesson limit → TIER_LESSON_LIMITS.free |
+| 15+ component files | Hardcoded route paths → ROUTES constants |
+| supabase/migrations/ | 7 placeholder files added for dashboard-applied migrations |
+| CLAUDE.md | /audit-ssot slash command added; Rules 20-21 added |
+| SSOT_AUDIT_REPORT.md | NEW -- full audit findings saved to project root |
+
+### Architecture Notes Added This Session
+
+- **Rule #20:** Supabase migration CLI is now operational. Use `npx supabase db push --linked` for all future migrations. Never apply migrations manually via Dashboard SQL editor.
+- **Rule #21:** Run `/audit-ssot` at the start of any session touching constants, configs, pricing, tier names, routes, or backend functions.
+- **App.tsx route SSOT violation (Rule #3) -- RESOLVED.** All 25 hardcoded route paths now use ROUTES.* constants. The known bug pattern (missing routes in App.tsx) is now protected at the source.
+
