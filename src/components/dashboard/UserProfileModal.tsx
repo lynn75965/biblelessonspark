@@ -43,7 +43,7 @@ export function UserProfileModal({
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
 
   useEffect(() => {
     if (open && user) {
@@ -136,6 +136,13 @@ export function UserProfileModal({
 
       if (error) {
         throw error;
+      }
+
+      // Sync auth metadata and immediately update local user state
+      // so Header and Dashboard re-render with the new name
+      const { data: authData } = await supabase.auth.updateUser({ data: { full_name: sanitizedName } });
+      if (authData.user) {
+        setUser(authData.user);
       }
 
       onProfileUpdated?.();
