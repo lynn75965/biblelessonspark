@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Project Master Document
-## Date: March 20, 2026
+## Date: March 22, 2026
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -1049,6 +1049,7 @@ Full platform vulnerability sweep covering financial integrity, subscription lif
 30. **Booklet layout silently ignored user DOCX selection** -- handleExport() at SeriesExportModal.tsx line 110 unconditionally forced format to 'booklet_pdf' regardless of user's file format choice. Fixed by disabling DOCX option in UI when Booklet is selected. March 12, 2026.
 31. **WorkspaceSettingsPanel.tsx was dead code targeting nonexistent table** -- Component was never imported or rendered anywhere. Its migration file incorrectly targeted `workspace_settings` (which does not exist); the actual column `include_student_handouts` is on the `profiles` table. Both the component (497 lines) and the incorrect migration file were deleted March 20, 2026. No users affected.
 32. **Feedback form appeared after every lesson generation** -- No frequency cap existed; the form triggered on every lesson. Fixed March 20, 2026: form now shows every 5th lesson generated (tracked via localStorage). After submission, counter resets to 0 for first-timers, requires 10 more lessons for returning submitters. After dismiss without submitting, asks again after 2 more lessons. Manual Feedback button unaffected.
+33. **EnhanceLessonForm Print button silently removed during SSOT audit** -- The Print button (handlePrint + Printer icon) was removed from EnhanceLessonForm.tsx during the March 20, 2026 SSOT audit session but was not separately tracked as a print removal. Discovered clean on March 22 during planned print removal task. BookletPrintModal.tsx (305 lines) confirmed orphaned -- never imported by any file -- and deleted March 22, 2026.
 
 ### SSOT Violations Identified This Afternoon -- Carry Forward to Next Session
 1. `SERIES_EXPORT_FORMATS.BOOKLET = 'booklet_pdf'` is dead code. Modal sends `format: 'pdf'` with `layout: 'booklet'`. useSeriesExport.ts works around with `|| options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET`. Fix: modal must set `format: SERIES_EXPORT_FORMATS.BOOKLET`; dispatch should check format only.
@@ -1108,31 +1109,24 @@ All five Series Export font choices now render distinctly in PDF output. Previou
 
 ### WHAT'S NEXT
 
-1. **Print button removal (partially complete)** -- DevotionalLibrary.tsx and DevotionalGenerator.tsx done (March 12). Still pending:
-   - EnhanceLessonForm.tsx: Remove Print button and handlePrint from toolbar
-   - BookletPrintModal.tsx: Delete entire file (confirm what calls it before deleting)
-   LessonExportButtons.tsx already clean -- no action needed.
-
-2. **Single-lesson export font and color picker** -- Extend font picker and color scheme picker to single-lesson export pipeline. What already exists: 16 TTF files in public/fonts/, loadPdfFonts.ts, seriesExportConfig.ts as SSOT for all 5 fonts and 5 color palettes. Files needed: exportToPdf.ts, exportToDocx.ts, single-lesson export modal. Not yet started.
-
-3. **3 SSOT violations carry-forward (from March 10 afternoon):**
+1. **3 SSOT violations carry-forward (from March 10 afternoon):**
    - SERIES_EXPORT_FORMATS.BOOKLET = 'booklet_pdf' is dead code -- modal sends format: 'pdf' with layout: 'booklet'
    - doc.line() calls in buildBookletPdf use BK_W - BK_M instead of BK_W - BK_OUTER (lines 10.8pt too far right)
    - buildSeriesExportFilename() bypassed for booklet exports (resolves when violation 1 is fixed)
 
-4. **OrgSetup.tsx stale tier name audit** -- May contain inline copy referencing old tier names ("Single Staff", "Growth") by string. Display names are pulled from orgPricingConfig.ts SSOT (correct), but any hardcoded prose should be checked.
+2. **OrgSetup.tsx stale tier name audit** -- May contain inline copy referencing old tier names ("Single Staff", "Growth") by string. Display names are pulled from orgPricingConfig.ts SSOT (correct), but any hardcoded prose should be checked.
 
-5. **pricingConfig.ts STRIPE_ORG vs orgPricingConfig.ts unification** -- pricingConfig.ts has 4 org tiers (starter/growth/full/enterprise); orgPricingConfig.ts has 5 tiers with different keys. Pre-existing tension. No functionality broken -- future cleanup when org billing is actively developed.
+3. **pricingConfig.ts STRIPE_ORG vs orgPricingConfig.ts unification** -- pricingConfig.ts has 4 org tiers (starter/growth/full/enterprise); orgPricingConfig.ts has 5 tiers with different keys. Pre-existing tension. No functionality broken -- future cleanup when org billing is actively developed.
 
-6. **Org landing page visual polish** -- No hero image or visual element above the fold. Mobile tier card experience creates long scroll on small screens (5 cards in single column).
+4. **Org landing page visual polish** -- No hero image or visual element above the fold. Mobile tier card experience creates long scroll on small screens (5 cards in single column).
 
-7. **Booklet economical printing** -- Recommended adjustments not yet implemented: body font 10.5pt -> 10pt, line spacing adjustment, tighter margins. Do NOT adopt 5.5x8.5 landscape fold.
+5. **Booklet economical printing** -- Recommended adjustments not yet implemented: body font 10.5pt -> 10pt, line spacing adjustment, tighter margins. Do NOT adopt 5.5x8.5 landscape fold.
 
-8. **include_student_handouts column in profiles table** -- Cosmetic legacy naming. Column exists in live database but is only referenced by dead code (WorkspaceSettingsPanel.tsx removed March 20, 2026). Low priority rename via Supabase migration when convenient.
+6. **include_student_handouts column in profiles table** -- Cosmetic legacy naming. Column exists in live database but is only referenced by dead code (WorkspaceSettingsPanel.tsx removed March 20, 2026). Low priority rename via Supabase migration when convenient.
 
-9. **Admin UI feature flag toggles** -- Deferred post-launch
-10. **Frontend org creation / upgrade paths** -- Deferred
-11. **Multi-tenant migration** -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
+7. **Admin UI feature flag toggles** -- Deferred post-launch
+8. **Frontend org creation / upgrade paths** -- Deferred
+9. **Multi-tenant migration** -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
 
 ---
 
@@ -1456,4 +1450,73 @@ Started with a button label overflow. Ended with a full architectural restoratio
 - **Rule #20:** Supabase migration CLI is now operational. Use `npx supabase db push --linked` for all future migrations. Never apply migrations manually via Dashboard SQL editor.
 - **Rule #21:** Run `/audit-ssot` at the start of any session touching constants, configs, pricing, tier names, routes, or backend functions.
 - **App.tsx route SSOT violation (Rule #3) -- RESOLVED.** All 25 hardcoded route paths now use ROUTES.* constants. The known bug pattern (missing routes in App.tsx) is now protected at the source.
+
+---
+
+## SESSION LOG: March 22, 2026 -- Export Polish + Print Removal Complete
+
+### Commit 719783c -- Three Targeted Fixes
+
+**Fix 1: Century Schoolbook font label correction (seriesExportConfig.ts)**
+
+The crimson font slot in `SERIES_EXPORT_FONT_OPTIONS` still displayed "Crimson Pro" as its label, cssFamily, and docxName despite the underlying TTF files being URW C059 Century Schoolbook (swapped March 10). The March 10 session log noted the rename but it had reverted or never landed in the SSOT.
+
+- `label`: 'Crimson Pro' -> 'Century Schoolbook'
+- `cssFamily`: '"Crimson Pro", "Crimson Text", Georgia, serif' -> '"Century Schoolbook", "C059", Georgia, serif'
+- `docxName`: 'Crimson Pro' -> 'Century Schoolbook'
+- `id` ('crimson') and `pdfFamily` ('CrimsonPro') unchanged -- internal identifiers tied to TTF filenames
+- Stale comment in SeriesExportModal.tsx ("EB Garamond and Crimson Text are on Google Fonts") updated to reflect only EB Garamond is loaded
+
+Both SeriesExportModal.tsx and LessonExportModal.tsx render `f.label` from the SSOT array, so the single SSOT edit fixed both modals.
+
+**Fix 2: Stale beta program copy (Index.tsx line 89)**
+
+"Request Early Access" dialog description said "Join our private beta program for Baptist teachers and church leaders." Platform launched February 28 and has been in production mode since March 10.
+
+Changed to: "Join BibleLessonSpark and start creating lessons for your church."
+
+BetaHubModal.tsx "Private Beta Hub" title is conditional on `isBetaMode()` and architecturally correct -- not touched.
+
+**Fix 3: Live preview thumbnail added to LessonExportModal.tsx**
+
+LessonExportModal.tsx had font picker, color picker, and format picker but no visual feedback. Added a live preview thumbnail matching the SeriesExportModal.tsx pattern:
+
+- Added `getColorScheme`, `getFontOption` imports from seriesExportConfig.ts
+- Added `pw` styles object and `PreviewPanel` function with inline HTML/CSS preview
+- Preview shows: scheme tag, lesson title (primary color), scripture reference, horizontal rule (accent color), section label, body text, scripture blockquote, footer row
+- Updates instantly when font or color selection changes
+- Converted from single-column to two-column grid layout (`grid-cols-1 md:grid-cols-2`)
+- Modal widened from `max-w-md` to `max-w-2xl`
+- Cancel and Download buttons moved to right column below preview (matches SeriesExportModal)
+- No new SSOT constants -- all data from seriesExportConfig.ts
+
+### Commit (this session) -- BookletPrintModal Deletion
+
+**EnhanceLessonForm.tsx Print button -- already clean.** Search for `handlePrint` and `Printer` returned zero matches. The Print button was silently removed during the March 20 SSOT audit session but was not tracked as a print removal task.
+
+**BookletPrintModal.tsx (305 lines) -- orphaned dead code, deleted.** Never imported by any other file. Only references to `BookletPrintModal` were inside its own file definition.
+
+### Print Button Removal -- COMPLETE
+
+All print-to-browser UI elements now removed from the platform:
+- DevotionalLibrary.tsx -- done March 12
+- DevotionalGenerator.tsx -- done March 12
+- EnhanceLessonForm.tsx -- done March 20 (during SSOT audit, not separately tracked)
+- BookletPrintModal.tsx -- deleted March 22 (orphaned, zero consumers)
+- LessonExportButtons.tsx -- already clean (prior session)
+
+### Single-Lesson Export Font/Color/Preview -- COMPLETE
+
+LessonExportModal.tsx now has full parity with SeriesExportModal.tsx for font picker, color scheme picker, and live preview. Both modals pull all options from seriesExportConfig.ts SSOT. No new constants introduced.
+
+### Files Modified This Session
+
+| File | Change |
+|---|---|
+| src/constants/seriesExportConfig.ts | Century Schoolbook label/cssFamily/docxName correction |
+| src/components/SeriesExport/SeriesExportModal.tsx | Stale Crimson Text comment updated |
+| src/pages/Index.tsx | "private beta program" -> production copy |
+| src/components/dashboard/LessonExportModal.tsx | Live preview thumbnail, two-column layout, max-w-2xl |
+| src/components/SeriesExport/BookletPrintModal.tsx | DELETED (305 lines, orphaned dead code) |
+| PROJECT_MASTER.md | Session log, WHAT'S NEXT updated, Bug #33 added |
 
