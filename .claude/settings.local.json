@@ -33,7 +33,8 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Repair Supabase migration history drift \\(tracking only, no schema changes\\)\")",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Display name not updating after profile save\" 2>&1)",
       "Bash(powershell.exe -ExecutionPolicy Bypass -File deploy.ps1 \"DEBUG: Add console.log to profile fetch in EnhanceLessonForm\" 2>&1)",
-      "Bash(powershell.exe -ExecutionPolicy Bypass -File deploy.ps1 \"DEBUG: Add mount log to EnhanceLessonForm\" 2>&1)"
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File deploy.ps1 \"DEBUG: Add mount log to EnhanceLessonForm\" 2>&1)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Add forceMount to EnhanceLessonForm tab to prevent remount wiping profile defaults\" 2>&1)"
     ]
   }
 }

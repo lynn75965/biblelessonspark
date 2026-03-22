@@ -311,7 +311,7 @@ export default function Dashboard() {
             </TabsTrigger>
 </TabsList>
 
-          <TabsContent value="enhance" className="mt-6">
+          <TabsContent value="enhance" className="mt-6 data-[state=inactive]:hidden" forceMount>
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
             {showHelpBanner && (
               <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">

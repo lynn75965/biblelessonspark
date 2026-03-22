@@ -351,7 +351,6 @@ export function EnhanceLessonForm({
   lessonCount = 0,
   lessonsLoading = false,
 }: EnhanceLessonFormProps) {
-  console.log('[DEBUG] EnhanceLessonForm MOUNTED');
   // ============================================================================
   // ACCORDION STATE
   // ============================================================================
@@ -685,13 +684,10 @@ export function EnhanceLessonForm({
           .eq("id", user.id)
           .single();
 
-        console.log('[DEBUG] Raw profile from DB:', profile);
         if (profile?.theology_profile_id) {
-          console.log('[DEBUG] Setting theologyProfileId to:', profile.theology_profile_id);
           setTheologyProfileId(profile.theology_profile_id);
         }
         if (profile?.default_bible_version) {
-          console.log('[DEBUG] Setting bibleVersionId to:', profile.default_bible_version);
           setBibleVersionId(profile.default_bible_version);
         }
         if (profile?.preferred_language) {
