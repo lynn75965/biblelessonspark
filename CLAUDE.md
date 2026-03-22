@@ -258,6 +258,21 @@ Never modify SSOT files without first knowing the current violation state.
 5. WAIT -- Get approval before implementing
 6. IMPLEMENT -- Provide complete, tested solution
 
+### KNOWN RECURRING BUG -- DUPLICATE BRANDING IMPORT
+
+Any file with two `import { BRANDING }` lines causes
+`Uncaught SyntaxError: Identifier 'BRANDING' has already been declared` at runtime.
+The build compiles clean but the browser crashes to a blank white page.
+This has occurred in Footer.tsx, Help.tsx, and other files across multiple sessions.
+
+When a blank white page appears -- always run this search first before any other diagnosis:
+
+```powershell
+Get-ChildItem "C:\Users\Lynn\biblelessonspark\src" -Recurse -Include "*.tsx","*.ts" | Select-String "import.*BRANDING" | Group-Object Filename | Where-Object { $_.Count -gt 1 }
+```
+
+This finds every file with more than one BRANDING import in under 10 seconds.
+
 ---
 
 ## SERIES EXPORT FEATURE (Active Development -- March 2026)

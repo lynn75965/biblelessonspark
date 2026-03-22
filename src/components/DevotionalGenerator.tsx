@@ -50,7 +50,6 @@ import { DEFAULT_THEOLOGY_PROFILE_ID } from "@/constants/theologyProfiles";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
 import { useNavigate as useNavigateUpgrade } from "react-router-dom";
-import { ROUTES } from "@/constants/routes";
 import { Lock } from "lucide-react";
 
 // ============================================================================

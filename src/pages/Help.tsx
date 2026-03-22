@@ -23,7 +23,6 @@ import {
   MessageSquare,
   Church
 } from "lucide-react";
-import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 
 const Help = () => {
