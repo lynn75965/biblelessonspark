@@ -32,6 +32,12 @@ import { useLessons } from "@/hooks/useLessons";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
+import { useTeachingTeam } from "@/hooks/useTeachingTeam";
+import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
+import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
+import { useHelpVideo } from "@/hooks/useHelpVideo";
+import { VideoModal } from "@/components/help/VideoModal";
+import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
 
 // ---------------------------------------------------------------------------
 // Feedback frequency cap (localStorage)
@@ -52,15 +58,6 @@ function getHasSubmittedFeedback(): boolean {
 function setHasSubmittedFeedback(): void {
   localStorage.setItem(LS_HAS_SUBMITTED_FEEDBACK, 'true');
 }
-import { useTeachingTeam } from "@/hooks/useTeachingTeam";
-import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
-import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
-
-// Help Video System (January 6, 2026)
-// Configuration in BRANDING.helpVideos controls visibility
-import { useHelpVideo } from "@/hooks/useHelpVideo";
-import { VideoModal } from "@/components/help/VideoModal";
-import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
 
 // Public Beta Prompt Banner added (January 1, 2026)
 
