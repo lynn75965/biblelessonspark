@@ -351,6 +351,7 @@ export function EnhanceLessonForm({
   lessonCount = 0,
   lessonsLoading = false,
 }: EnhanceLessonFormProps) {
+  console.log('[DEBUG] EnhanceLessonForm MOUNTED');
   // ============================================================================
   // ACCORDION STATE
   // ============================================================================
