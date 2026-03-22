@@ -40,7 +40,7 @@ import { SeriesExportProgress } from './SeriesExportProgress';
 
 // ============================================================================
 // GOOGLE FONTS -- loaded once for the preview panel
-// EB Garamond and Crimson Text are on Google Fonts.
+// EB Garamond is on Google Fonts (used for preview panel).
 // Pagella/Times/Calibri use system font stacks -- no load needed.
 // ============================================================================
 

@@ -86,7 +86,7 @@ const Index = () => {
           <DialogHeader className="space-y-2">
             <DialogTitle className="text-lg sm:text-xl">Request Early Access</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              Join our private beta program for Baptist teachers and church leaders.
+              Join BibleLessonSpark and start creating lessons for your church.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitRequest} className="space-y-3 sm:space-y-4">
