@@ -192,6 +192,9 @@ Column is full_name -- NOT display_name. Never assume column names.
 
 ### Rule #9: Single branch only
 Branch is main. No secondary branches. Deploy script enforces main.
+**TEMPORARY OVERRIDE (March 22, 2026):** Rule #9 suspended for `ui-sidebar` branch.
+This branch is used for sidebar navigation feature development.
+Restore this rule (remove this override note) when `ui-sidebar` merges to `main`.
 
 ### Rule #10: Test regex against real data
 Never assume a regex works. Run it against actual application content.

@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { AppShell } from "@/components/layout/AppShell";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { BRANDING } from "@/config/branding";
 import { DASHBOARD_TABS, DASHBOARD_TEXT } from "@/constants/dashboardConfig";
 import { DASHBOARD_QUERY_PARAMS, DASHBOARD_TAB_VALUES } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
@@ -16,7 +14,7 @@ import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptB
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   BookOpen,
   Sparkles,
@@ -54,6 +52,7 @@ function getHasSubmittedFeedback(): boolean {
 function setHasSubmittedFeedback(): void {
   localStorage.setItem(LS_HAS_SUBMITTED_FEEDBACK, 'true');
 }
+import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 
@@ -85,6 +84,7 @@ export default function Dashboard() {
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
+  const { hasTeam } = useTeachingTeam();
 
   // Help Video Hook - respects BRANDING.helpVideos.enabled
   const { 
@@ -218,9 +218,12 @@ export default function Dashboard() {
     !selectedLesson;
 
   return (
-    <div className={BRANDING.layout.pageWrapper}>
-      <Header isAuthenticated hideOrgContext />
-      <main className={`container ${BRANDING.layout.containerPadding} ${BRANDING.layout.mainContent}`}>
+    <AppShell
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+      onOpenProfile={() => setShowProfileModal(true)}
+      conditions={{ hasTeam }}
+    >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-2">
@@ -288,28 +291,6 @@ export default function Dashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="flex w-full overflow-x-auto bg-muted p-1 rounded-lg mb-2">
-            <TabsTrigger 
-              value="enhance" 
-              onClick={() => DASHBOARD_TABS.enhance?.clearViewingOnClick && setSelectedLesson(null)} 
-              className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap"
-            >
-              <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Build Lesson</span>
-            </TabsTrigger>
-            <TabsTrigger value="library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <BookOpen className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Lesson Library</span>
-            </TabsTrigger>
-            <TabsTrigger value="devotional-library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Sparkles className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Devotional Library</span>
-            </TabsTrigger>
-            <TabsTrigger value="series-library" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <BookOpen className="h-4 w-4 flex-shrink-0" />
-              <span className="hidden sm:inline">Series Library</span>
-            </TabsTrigger>
-</TabsList>
 
           <TabsContent value="enhance" className="mt-6 data-[state=inactive]:hidden" forceMount>
             {/* Help Banner - Only shows when BRANDING.helpVideos.enabled = true */}
@@ -396,9 +377,6 @@ export default function Dashboard() {
             <SeriesLibrary />
           </TabsContent>
 </Tabs>
-      </main>
-
-      <Footer />
 
       {/* Floating Help Button - Only shows when BRANDING.helpVideos.enabled = true */}
       {showFloatingHelp && (
@@ -460,7 +438,7 @@ export default function Dashboard() {
           video={currentVideo}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 
