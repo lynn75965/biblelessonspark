@@ -1520,3 +1520,95 @@ LessonExportModal.tsx now has full parity with SeriesExportModal.tsx for font pi
 | src/components/SeriesExport/BookletPrintModal.tsx | DELETED (305 lines, orphaned dead code) |
 | PROJECT_MASTER.md | Session log, WHAT'S NEXT updated, Bug #33 added |
 
+---
+
+## SESSION LOG: March 22, 2026 (Afternoon -- UI Sidebar Navigation)
+
+### Branch: ui-sidebar (Rule #9 temporarily suspended)
+
+This session introduced sidebar navigation to the Dashboard, replacing the horizontal tab bar with a role-based sidebar shell. Work is on the `ui-sidebar` branch per Lynn's instruction. CLAUDE.md Rule #9 (single branch only) has a temporary override note that must be removed when `ui-sidebar` merges to `main`.
+
+### Commits
+
+| Hash | Description |
+|---|---|
+| f363e79 | FEATURE: Add sidebar navigation shell -- sidebarConfig.ts, AppShell.tsx, wire Dashboard.tsx |
+| 65c920d | FIX: Move stray imports to top of Dashboard.tsx |
+| 04c4f47 | FIX: Remove duplicate imports -- Footer.tsx (BRANDING), Help.tsx (BRANDING), DevotionalGenerator.tsx (ROUTES) |
+| 36ff243 | FEATURE: Add hideUserMenu prop to Header -- sidebar replaces dropdown for AppShell pages |
+
+### New Files Created
+
+| File | Lines | Purpose |
+|---|---|---|
+| src/constants/sidebarConfig.ts | 230 | SSOT: sidebar items, sections, role-based arrays (mirrors navigationConfig.ts pattern) |
+| src/components/layout/AppShell.tsx | 222 | Sidebar + content layout wrapper with role resolution and conditional sections |
+
+### Architecture Decisions
+
+**Governing Principle:** Every role lands on the lesson builder. The sidebar adds role-appropriate tools alongside it. Nobody's preparation work is ever displaced. Build Lesson is always the first item for every role.
+
+**Sidebar Sections by Role:**
+
+| Section | platformAdmin | orgLeader | orgMember | individual |
+|---|---|---|---|---|
+| Build & Prepare | always | always | always | always |
+| My Teaching Team | always | always | always | only if hasTeam |
+| Ministry Oversight | always | always | no | no |
+| Platform Admin | always | no | no | no |
+| Account | always | always | always | always |
+
+**Three item types in sidebar:**
+- Tab items (tabValue) -- switch dashboard tabs without navigation (Build Lesson, Lesson Library, Devotional Library, Series Library)
+- Route items (route) -- navigate to separate pages via `<Link>` (Teaching Team, Org Manager, Admin Panel, Toolbelt)
+- Action items (action) -- trigger callbacks (User Profile opens modal, Sign Out)
+
+**Conditional sections:** Individual role's Teaching Team section uses `condition: 'hasTeam'` evaluated at runtime via `useTeachingTeam` hook's `hasTeam` return value. Solo teachers without a team do not see the section.
+
+**hideUserMenu prop:** Header.tsx gained a `hideUserMenu` boolean prop (default false). When true, the avatar, name tag, dropdown menu, and "Lead a Team" link are all hidden. AppShell passes `hideUserMenu` so the sidebar replaces the dropdown. All 17 other pages that render Header directly are unaffected -- they pass no prop and get the default (false).
+
+**forceMount preserved:** Dashboard.tsx line 297 still has `forceMount` on the Build Lesson TabsContent, preventing remount that would wipe profile defaults.
+
+### Bugs Found and Fixed
+
+1. **Stray imports after function declarations (Dashboard.tsx):** Three import statements (`useTeachingTeam`, `useOrgSharedFocus`, `useHelpVideo`) were placed after localStorage helper function declarations at module level. While ESM hoists imports, this was poor form. Moved all imports to top of file.
+
+2. **Duplicate BRANDING import (Footer.tsx):** Lines 3 and 5 both imported `{ BRANDING } from "@/config/branding"`. Build compiled clean but browser threw `SyntaxError: Identifier 'BRANDING' has already been declared` causing blank white page. Removed duplicate.
+
+3. **Duplicate BRANDING import (Help.tsx):** Lines 4 and 26 -- same pattern as Footer.tsx. Same blank white page symptom. Removed duplicate.
+
+4. **Duplicate ROUTES import (DevotionalGenerator.tsx):** Lines 48 and 53 both imported `{ ROUTES } from "@/constants/routes"`. Removed duplicate.
+
+5. **Known recurring bug documented:** Added CLAUDE.md debugging section documenting the duplicate BRANDING import pattern with a PowerShell sweep command to detect all instances in under 10 seconds.
+
+### Current State of ui-sidebar Branch
+
+- Sidebar renders correctly on /dashboard for platformAdmin role (Lynn's account)
+- Role-based sections working -- Build & Prepare, My Teaching Team, Ministry Oversight, Platform Admin, Account all visible
+- Header dropdown hidden when inside AppShell
+- All 17 other pages (Admin, Account, OrgManager, TeachingTeam, etc.) unaffected -- Header renders with full dropdown as before
+- Build clean at 3822 modules, zero errors
+- Dev server confirmed running at localhost:8081
+
+### Remaining Work on ui-sidebar Branch
+
+1. Wrap remaining authenticated pages (Admin, Account, OrgManager, TeachingTeam, ToolbeltAdmin, toolbelt sub-pages) in AppShell
+2. Fix Organization Manager sidebar item route (currently points to ROUTES.ORG, may need ROUTES.ORG_MANAGER)
+3. Standardize Dashboard vs Workspace terminology across sidebar labels
+4. Test all five role configurations (platformAdmin, orgLeader, orgMember, individual with team, individual without team)
+5. Merge to main only after Lynn approves -- restore CLAUDE.md Rule #9 override note at merge time
+
+### Files Modified This Session
+
+| File | Change |
+|---|---|
+| CLAUDE.md | Rule #9 temporary override for ui-sidebar branch; duplicate BRANDING import bug documentation |
+| src/constants/sidebarConfig.ts | NEW: SSOT sidebar config (230 lines) |
+| src/components/layout/AppShell.tsx | NEW: Sidebar + content layout wrapper (222 lines) |
+| src/pages/Dashboard.tsx | Wired to AppShell, TabsList/TabsTrigger removed, imports reordered |
+| src/components/layout/Header.tsx | Added hideUserMenu prop, wrapped dropdown in conditional |
+| src/components/layout/Footer.tsx | Removed duplicate BRANDING import |
+| src/pages/Help.tsx | Removed duplicate BRANDING import |
+| src/components/DevotionalGenerator.tsx | Removed duplicate ROUTES import |
+| PROJECT_MASTER.md | This session log |
+
