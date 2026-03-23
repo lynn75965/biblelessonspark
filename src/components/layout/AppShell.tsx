@@ -206,7 +206,7 @@ export function AppShell({
 
   return (
     <div className={BRANDING.layout.pageWrapper}>
-      <Header isAuthenticated hideOrgContext />
+      <Header isAuthenticated hideOrgContext hideUserMenu />
 
       <div className="flex flex-1">
         {/* Desktop sidebar -- always visible on md+ */}
