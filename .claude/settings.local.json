@@ -39,19 +39,10 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Rename Crimson Pro to Century Schoolbook, remove stale private beta copy, add live preview to LessonExportModal\")",
       "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src' -Recurse -Include '*.tsx' | Select-String 'handlePrint|Printer|window.open' | Select-Object Filename, LineNumber, Line | Format-Table -AutoSize -Wrap\")",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"CLEANUP: Delete orphaned BookletPrintModal -- print removal complete\")",
-      "Bash(while read:*)",
-      "Bash(do sort:*)",
-      "Bash(do echo:*)",
-      "Bash(done)",
-      "Bash(node -e \":*)",
-      "Bash(pkill -f \"vite --host --port\")",
-      "Bash(echo \"EXIT_CODE: $?\")",
-      "Bash(netstat -ano)",
-      "Bash(curl -s http://localhost:8080)",
-      "Bash(taskkill //F //IM node.exe)",
-      "Bash(node:*)",
-      "Bash(then echo:*)",
-      "Bash(fi)"
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(git stash:*)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase A complete -- role-guided sidebar navigation, dark/light mode, icon system, AppShell migration, font and color pickers, booklet adjustments, DB migration, pricing unification\" 2>&1)"
     ]
   }
 }
