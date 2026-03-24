@@ -192,6 +192,9 @@ Column is full_name -- NOT display_name. Never assume column names.
 
 ### Rule #9: Single branch only
 Branch is main. No secondary branches. Deploy script enforces main.
+**TEMPORARY OVERRIDE (March 22, 2026):** Rule #9 suspended for `ui-sidebar` branch.
+This branch is used for sidebar navigation feature development.
+Restore this rule (remove this override note) when `ui-sidebar` merges to `main`.
 
 ### Rule #10: Test regex against real data
 Never assume a regex works. Run it against actual application content.
@@ -254,6 +257,21 @@ Never modify SSOT files without first knowing the current violation state.
 4. PROPOSE -- Present complete solution with substantiation
 5. WAIT -- Get approval before implementing
 6. IMPLEMENT -- Provide complete, tested solution
+
+### KNOWN RECURRING BUG -- DUPLICATE BRANDING IMPORT
+
+Any file with two `import { BRANDING }` lines causes
+`Uncaught SyntaxError: Identifier 'BRANDING' has already been declared` at runtime.
+The build compiles clean but the browser crashes to a blank white page.
+This has occurred in Footer.tsx, Help.tsx, and other files across multiple sessions.
+
+When a blank white page appears -- always run this search first before any other diagnosis:
+
+```powershell
+Get-ChildItem "C:\Users\Lynn\biblelessonspark\src" -Recurse -Include "*.tsx","*.ts" | Select-String "import.*BRANDING" | Group-Object Filename | Where-Object { $_.Count -gt 1 }
+```
+
+This finds every file with more than one BRANDING import in under 10 seconds.
 
 ---
 

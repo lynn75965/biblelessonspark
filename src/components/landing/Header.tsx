@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { User, Settings, LogOut, Shield } from "lucide-react";
+import { User, Settings2, LogOut, ShieldCheck } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,7 +117,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
                     <>
                       <DropdownMenuItem asChild>
                         <Link to="/admin" className="flex items-center">
-                          <Shield className="mr-2 h-4 w-4" />
+                          <ShieldCheck className="mr-2 h-4 w-4" />
                           <span>Admin Panel</span>
                         </Link>
                       </DropdownMenuItem>
@@ -125,7 +125,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName }: Heade
                     </>
                   )}
                   <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
+                    <Settings2 className="mr-2 h-4 w-4" />
                     <span>Settings</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

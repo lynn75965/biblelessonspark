@@ -419,7 +419,7 @@ export function EmailSequenceManager() {
                       {template.is_html ? (
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">Rich Text</span>
                       ) : (
-                        <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded">Plain Text</span>
+                        <span className="text-xs bg-gray-100 text-gray-700 dark:bg-[#2d4a2d] dark:text-[#c8d8c8] px-2 py-0.5 rounded">Plain Text</span>
                       )}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">

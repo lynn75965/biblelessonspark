@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, X, Sparkles, Loader2, Mail } from 'lucide-react';
+import { Check, X, Star, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
@@ -95,7 +95,7 @@ export function UpgradePromptModal({
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-xl">
-              <Sparkles className="h-5 w-5 text-amber-500" />
+              <Star className="h-5 w-5 text-amber-500" />
               Monthly Limit Reached
             </DialogTitle>
             <DialogDescription className="text-base">
@@ -175,7 +175,7 @@ export function UpgradePromptModal({
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Star className="h-4 w-4 mr-2" />
                   Yes, Continue to Checkout
                 </>
               )}
@@ -191,7 +191,7 @@ export function UpgradePromptModal({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Star className="h-5 w-5 text-amber-500" />
             {prompt.title}
           </DialogTitle>
           <DialogDescription className="text-base">
@@ -274,7 +274,7 @@ export function UpgradePromptModal({
               ))}
               {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
                 <li key={section} className="flex items-center gap-2 text-accent font-medium">
-                  <Sparkles className="h-4 w-4 text-amber-500" />
+                  <Star className="h-4 w-4 text-amber-500" />
                   {section}
                 </li>
               ))}
@@ -326,7 +326,7 @@ export function UpgradePromptModal({
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Star className="h-4 w-4 mr-2" />
                 Upgrade to {personalPlan.planName}
               </>
             )}

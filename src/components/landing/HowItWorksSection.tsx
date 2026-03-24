@@ -1,4 +1,4 @@
-import { Upload, Sparkles, FileText } from "lucide-react";
+import { Upload, Star, FileText } from "lucide-react";
 
 export function HowItWorksSection() {
   const steps = [
@@ -14,7 +14,7 @@ export function HowItWorksSection() {
     },
     {
       number: "STEP 2", 
-      icon: <Sparkles className="h-6 w-6 sm:h-7 sm:w-7 text-white" />,
+      icon: <Star className="h-6 w-6 sm:h-7 sm:w-7 text-white" />,
       title: "Customize for Your Class",
       description: (
         <>

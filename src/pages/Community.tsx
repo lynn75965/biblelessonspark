@@ -6,13 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Users, 
   Mail, 
-  Heart,
+  HandHeart,
   MessageSquare,
   Share2,
   BookOpen,
   Church,
   Handshake,
-  Sparkles,
+  Star,
   Globe,
   Calendar,
   ArrowRight
@@ -28,7 +28,7 @@ const Community = () => {
 
   const communityValues = [
     {
-      icon: Heart,
+      icon: HandHeart,
       title: "Faith-Centered",
       description: "United by our commitment to teaching God's Word faithfully and effectively to every generation."
     },
@@ -43,7 +43,7 @@ const Community = () => {
       description: "Everything we do is rooted in Scripture and aligned with historic Baptist convictions."
     },
     {
-      icon: Sparkles,
+      icon: Star,
       title: "Innovation-Embracing",
       description: "We leverage modern tools to enhance - never replace - the timeless truths of God's Word."
     }
@@ -103,7 +103,7 @@ const Community = () => {
     { number: "5,400+", label: "Baptist Churches in Texas", icon: Church },
     { number: "47,000+", label: "SBC Churches Nationwide", icon: Globe },
     { number: "Millions", label: "Students Learning Weekly", icon: Users },
-    { number: "1", label: "Shared Mission", icon: Heart }
+    { number: "1", label: "Shared Mission", icon: HandHeart }
   ];
 
   return (
@@ -253,7 +253,7 @@ const Community = () => {
         {/* Get Started Call - Mode-aware */}
         <section className="bg-muted rounded-lg p-8 text-center">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary mb-4">
-            <Sparkles className="h-6 w-6 text-white" />
+            <Star className="h-6 w-6 text-white" />
           </div>
           {isInBetaMode ? (
             <>
@@ -299,7 +299,7 @@ const Community = () => {
         {/* Contact */}
         <section className="text-center pt-8 border-t">
           <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-muted mb-4">
-            <Heart className="h-6 w-6 text-muted-foreground" />
+            <HandHeart className="h-6 w-6 text-muted-foreground" />
           </div>
           <h2 className="text-xl font-bold mb-2">We'd Love to Hear From You</h2>
           <p className="text-muted-foreground mb-6">

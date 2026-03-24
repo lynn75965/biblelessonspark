@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Settings, RefreshCw } from 'lucide-react';
+import { Loader2, Settings2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 import { 
@@ -130,7 +130,7 @@ export function SystemSettingsPanel() {
             <Card key={categoryKey} className="bg-gradient-card">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
+                  <Settings2 className="h-5 w-5" />
                   {category.label}
                 </CardTitle>
                 <CardDescription>{category.description}</CardDescription>

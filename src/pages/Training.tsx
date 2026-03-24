@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Footer } from "@/components/layout/Footer";
+import { AppShell } from "@/components/layout/AppShell";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import {
   BookOpen,
   Clock,
   CheckCircle,
-  Sparkles,
+  Star,
   Users,
   FileText,
   Lightbulb,
@@ -60,7 +60,7 @@ const Training = () => {
       description: "A complete walkthrough of generating a lesson from scratch, including tips for best results.",
       duration: "5 min read",
       level: "Beginner",
-      icon: Sparkles
+      icon: Star
     },
     {
       title: "Understanding Age Group Profiles",
@@ -145,7 +145,7 @@ const Training = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <AppShell>
       {/* Header */}
       <div className="bg-gradient-to-b from-primary/5 to-background border-b">
         <div className="container max-w-5xl py-12">
@@ -325,9 +325,7 @@ const Training = () => {
         </section>
       </div>
 
-      {/* Footer - SSOT Component */}
-      <Footer />
-    </div>
+    </AppShell>
   );
 };
 

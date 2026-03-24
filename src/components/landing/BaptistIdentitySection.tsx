@@ -1,5 +1,5 @@
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Shield, Users } from "lucide-react";
+import { HandHeart, Shield, Users } from "lucide-react";
 
 export function BaptistIdentitySection() {
   return (
@@ -19,7 +19,7 @@ export function BaptistIdentitySection() {
           <Card className="text-center bg-gradient-card border-border/50">
             <CardHeader className="p-4 sm:p-6">
               <div className="mx-auto h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-primary flex items-center justify-center mb-3 sm:mb-4">
-                <Heart className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                <HandHeart className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
               </div>
               <CardTitle className="text-base sm:text-lg mb-2">Baptist Heritage</CardTitle>
               <CardDescription className="text-xs sm:text-sm">

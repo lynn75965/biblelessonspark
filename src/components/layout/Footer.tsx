@@ -2,7 +2,6 @@ import { Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { BRANDING } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
-import { BRANDING } from "@/config/branding";
 
 export function Footer() {
   const { settings } = useSystemSettings();

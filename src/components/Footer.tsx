@@ -1,4 +1,4 @@
-import { Sparkles, Mail } from "lucide-react";
+import { Star, Mail } from "lucide-react";
 import { FOOTER_LINKS } from "@/config/footerLinks";
 import { BRANDING, getCopyrightNotice } from "@/config/branding";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
@@ -25,7 +25,7 @@ export function Footer() {
               title="Return to Home"
             >
               <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-gradient-primary">
-                <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
+                <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
               </div>
               <span className="font-semibold text-base sm:text-lg">
                 Lesson<span className="text-secondary">Spark</span> USA

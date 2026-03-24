@@ -732,17 +732,123 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 
 ---
 
-## WHAT'S NEXT (Post-Launch Priorities)
+## BLS DEVELOPMENT ROADMAP
+### Approved March 23, 2026
+### This is the authoritative development plan. Update at completion of each phase. Claude Code sessions must reference the relevant phase specification before beginning any implementation work.
 
-1. **OrgSetup.tsx audit** -- Check for any stale hardcoded references to old tier names (Single Staff, Starter, Growth, Develop, Expansion). Display names pull from orgPricingConfig.ts SSOT but inline copy may still reference old names.
-2. **pricingConfig.ts / orgPricingConfig.ts unification** -- STRIPE_ORG block in pricingConfig.ts has 4 org tiers with different keys than orgPricingConfig.ts's 5 tiers. Pre-existing tension that should be resolved.
-3. **Feature Adoption view** -- Build expandable user rows in Admin Panel User Management showing feature usage per user (lessons, shapes, teams, email)
-4. **Free-tier experience polish** -- Add "X complimentary lessons remaining" indicator so the free-tier cliff isn't invisible
-5. **Admin Panel improvements** -- Add Email column and Subscription Tier column to User Management tab; fix pagination showing only 3 of 41 users
-6. **Get John's real Stripe subscription ID** -- Replace placeholder 'sub_placeholder_needs_real_id' with actual ID from Stripe dashboard for proper webhook handling on renewal
-7. **Verify uncertain tables** -- Run verification queries from MULTI_TENANT_MIGRATION_PLAN.md Appendix A
-8. **Backup existing RLS policies** -- Run export query from Appendix B before any multi-tenant work begins
-9. **Multi-tenant migration** -- Phase 1 through 5 per MULTI_TENANT_MIGRATION_PLAN.md
+---
+
+### PHASE A -- Complete ui-sidebar Branch and Clear Technical Debt
+
+**Sidebar completion:**
+1. Migrate all remaining pages to AppShell -- Teaching Team, Org Manager, Admin Panel, Manage Toolbelt, Pricing
+2. Dark mode color refinements across all pages and components
+3. Light mode color and contrast refinements across all pages and components
+4. Complete icon consistency audit across all remaining pages not yet reviewed
+
+**Technical debt cleared in this phase:**
+5. Remove Print button from EnhanceLessonForm.tsx -- handlePrint function, Printer import, window.open call, formatLessonContentForPrint import if solely used by handlePrint
+6. Confirm caller of BookletPrintModal.tsx then delete entire file
+7. Extend single-lesson export to include font picker and color scheme picker -- series export has both, individual lesson export does not. Wire loadPdfFonts into exportToPdf.ts, wire color scheme into exportToPdf.ts and exportToDocx.ts, add picker UI to LessonExportModal.tsx
+8. Audit OrgSetup.tsx for stale hardcoded references to old tier names (Single Staff, Growth, Develop, Expansion) -- all display names must import from orgPricingConfig.ts SSOT
+9. Booklet economical printing -- body font 10.5pt to 10pt, line spacing refinement to 1.10x-1.15x, values from seriesExportConfig.ts SSOT
+10. Rename legacy include_student_handouts column in profiles table via proper Supabase migration
+11. Unify pricingConfig.ts STRIPE_ORG block with orgPricingConfig.ts -- 4 tiers vs 5 tiers with different keys must be resolved before org billing is developed further. orgPricingConfig.ts becomes sole authority.
+
+---
+
+### PHASE B -- Merge ui-sidebar to Main Branch
+
+1. Full regression test across all six user roles on localhost before merge -- Free Teacher, Paid Teacher, Teaching Team Lead, Teaching Team Member, Organization Manager, Platform Admin -- both light and dark mode
+2. Verify all AppShell-migrated pages render correctly for every role
+3. Merge ui-sidebar to main -- single clean merge commit
+4. Update PROJECT_MASTER.md and CLAUDE.md to reflect new architecture as live platform standard
+5. Deploy and verify at biblelessonspark.com
+
+---
+
+### PHASE C -- Library and Content Management Improvements
+
+1. Retroactive series assignment -- add any existing lesson to any existing series after generation via "Add to Series" button on lesson cards
+2. Series lesson reordering -- position lessons within a series before publishing via up/down controls or drag-to-reorder. Requires adding position column to lesson-series relationship table via Supabase migration.
+3. Reshape history in Lesson Library -- every reshape recorded, searchable, viewable, exportable as distinct library entry. Shows shape type, date, credit cost. Uses reshape_metrics table already in database.
+4. Consistent toolbar everywhere -- Copy, Download, Email on lessons, devotionals, and series using same quality experience. Reshape on lessons only. Download for devotionals and series requires extending export pipeline to accept those content types.
+
+---
+
+### PHASE D -- Publishing Hub (Print Wing)
+
+1. New route /publish added to routes.ts and App.tsx. New page PublishingHub.tsx. New sidebar item added to sidebarConfig.ts for all roles.
+2. Content selector -- three tabs: Lessons, Devotionals, Series. Deep linking supported from library Download buttons.
+3. Format choices -- Full Page (8.5x11), Tri-Fold Group Handout, Study Guide Booklet
+4. Font picker and color scheme picker -- unified across all content types using seriesExportConfig.ts SSOT
+5. Output choices -- Download PDF, Download Word, Email, Copy. Word disabled for Tri-Fold and Booklet with clear label.
+6. Intelligent defaults -- format Full Page, font TeX Gyre Pagella, color Forest and Gold, output Download PDF. Last-used settings remembered in localStorage.
+7. Libraries become pure storage and browsing after this phase -- no export controls remain in libraries.
+
+---
+
+### PHASE E -- Publishing Hub (Digital Wing)
+
+1. Published Series Reader -- shareable URL at biblelessonspark.com/read/[slug]. Screen-adaptive, no login required. New published_series table via Supabase migration.
+2. QR code generation -- downloadable PNG, links to reader URL, generated client-side
+3. ePub output -- compatible with Kindle, Apple Books, all standard e-readers, generated client-side
+4. Digital Wing gated to Personal Plan and above. Free tier gets Full Page PDF only.
+5. Published series links expire after 90 days, renewable in one click. Personal Plan: 20 active published series. Organization Plan: 100 active published series.
+
+---
+
+### PHASE F -- Tier Structure and Pricing Refinement
+
+1. Free tier -- 3 full + 2 core lessons per rolling 30-day period, core sections only, Full Page PDF with watermark, no digital distribution. Genuinely useful. Never crippled. Serves the smallest church.
+2. Personal Plan -- $9/month or $90/year. All 8 sections, devotionals, reshaping, teaching teams, full export, Publishing Hub Print Wing, Publishing Hub Digital Wing, up to 20 published series. Complete equipping. No feature gates after payment.
+3. Organization Plan -- all Personal Plan features for every teacher in the org. Shared Focus, org-wide lesson visibility, up to 100 published series, Org Manager dashboard. Tiers: Foundation, Strengthening, Multiplication, Expansion, Network (defined in orgPricingConfig.ts SSOT).
+4. Network and white-label onboarding -- one-time setup investment for conventions, associations, and custom deployments. Not a recurring fee. Amount set by Lynn based on scope.
+5. No OTOs, no bundles, no feature gates after payment at any tier.
+
+---
+
+### PHASE G -- Admin and Self-Service Infrastructure
+
+1. Admin UI feature flag toggles -- Feature Flags tab in Admin Panel. Lynn toggles flags without code deploy. Flag names in featureFlags.ts SSOT, live values in system_settings table.
+2. Self-service organization creation -- paid teacher creates org from dashboard via wizard (name, denomination, size), selects tier, completes Stripe checkout via existing create-org-checkout-session edge function.
+3. Frontend org upgrade paths -- Org Manager shows current tier and available upgrades with Stripe checkout. No admin intervention required.
+4. Org landing page polish -- hero visual above the fold, mobile tier card carousel or accordion replacing five-card single-column scroll.
+
+---
+
+### PHASE H -- Multi-Tenant and White-Label Architecture
+
+Per existing MULTI_TENANT_MIGRATION_PLAN.md. All Phase A through G work must be complete and stable before Phase H begins.
+
+1. Phase H1 -- Foundation: tenant_id on 34 tables, helper functions, three-tier role system (platform_admin, tenant_admin, teacher)
+2. Phase H2 -- Theology system: platform_theology_profiles, tenant_theology_profiles, org_theology_assignments tables. Seed with existing 10 Baptist profiles.
+3. Phase H3 -- RLS policies: drop existing, implement tenant-scoped using four established patterns
+4. Phase H4 -- System settings: platform_mode migrated from system_settings to tenant_config
+5. Phase H5 -- Frontend: Admin Panel tenant management, theology UI, generate-lesson edge function updated for tenant theology context
+6. White-label Model A -- subdomain (firstbaptist.biblelessonspark.com), shared Supabase, tenant branding via tenant_config, usage-based billing
+7. White-label Model B -- self-managed (lessons.firstbaptist.org), church owns Supabase instance, annual license fee, updates as versioned releases
+
+---
+
+### PHASE I -- Tutorial Content and Teacher Equipping
+
+1. Three tutorials scripted and ready to record -- Build Your First Lesson (3-4 min), Using the Lesson Library (3 min), Setting Up a Teaching Team (3 min). Record with Camtasia 2019 after Phase B merge against live sidebar UI.
+2. Additional tutorials after sidebar goes live -- Publishing Hub, Building a Lesson Series, Setting Up Your Ministry Organization, Digital Distribution
+3. All tutorials hosted at /training page, accessible from sidebar Tutorials item
+4. Resources page (/resources) -- built out progressively with teacher preparation guides, theology profile explanations, age group teaching tips, recommended Baptist commentaries
+
+---
+
+### ROADMAP GOVERNING PHILOSOPHY
+
+- Every improvement serves the volunteer teacher and the church discipleship ministry first
+- Quality of equipping, not quantity of features
+- No OTOs, no bundles, no nickeling-and-diming at any tier
+- Free tier is genuine ministry outreach -- costs something intentionally -- serves the smallest church
+- Paid tier is complete equipping -- no surprises after payment
+- Digital distribution positions BLS ahead of where church curriculum is going
+- Trust built through quality and integrity is the growth engine
 
 ---
 
@@ -1519,4 +1625,96 @@ LessonExportModal.tsx now has full parity with SeriesExportModal.tsx for font pi
 | src/components/dashboard/LessonExportModal.tsx | Live preview thumbnail, two-column layout, max-w-2xl |
 | src/components/SeriesExport/BookletPrintModal.tsx | DELETED (305 lines, orphaned dead code) |
 | PROJECT_MASTER.md | Session log, WHAT'S NEXT updated, Bug #33 added |
+
+---
+
+## SESSION LOG: March 22, 2026 (Afternoon -- UI Sidebar Navigation)
+
+### Branch: ui-sidebar (Rule #9 temporarily suspended)
+
+This session introduced sidebar navigation to the Dashboard, replacing the horizontal tab bar with a role-based sidebar shell. Work is on the `ui-sidebar` branch per Lynn's instruction. CLAUDE.md Rule #9 (single branch only) has a temporary override note that must be removed when `ui-sidebar` merges to `main`.
+
+### Commits
+
+| Hash | Description |
+|---|---|
+| f363e79 | FEATURE: Add sidebar navigation shell -- sidebarConfig.ts, AppShell.tsx, wire Dashboard.tsx |
+| 65c920d | FIX: Move stray imports to top of Dashboard.tsx |
+| 04c4f47 | FIX: Remove duplicate imports -- Footer.tsx (BRANDING), Help.tsx (BRANDING), DevotionalGenerator.tsx (ROUTES) |
+| 36ff243 | FEATURE: Add hideUserMenu prop to Header -- sidebar replaces dropdown for AppShell pages |
+
+### New Files Created
+
+| File | Lines | Purpose |
+|---|---|---|
+| src/constants/sidebarConfig.ts | 230 | SSOT: sidebar items, sections, role-based arrays (mirrors navigationConfig.ts pattern) |
+| src/components/layout/AppShell.tsx | 222 | Sidebar + content layout wrapper with role resolution and conditional sections |
+
+### Architecture Decisions
+
+**Governing Principle:** Every role lands on the lesson builder. The sidebar adds role-appropriate tools alongside it. Nobody's preparation work is ever displaced. Build Lesson is always the first item for every role.
+
+**Sidebar Sections by Role:**
+
+| Section | platformAdmin | orgLeader | orgMember | individual |
+|---|---|---|---|---|
+| Build & Prepare | always | always | always | always |
+| My Teaching Team | always | always | always | only if hasTeam |
+| Ministry Oversight | always | always | no | no |
+| Platform Admin | always | no | no | no |
+| Account | always | always | always | always |
+
+**Three item types in sidebar:**
+- Tab items (tabValue) -- switch dashboard tabs without navigation (Build Lesson, Lesson Library, Devotional Library, Series Library)
+- Route items (route) -- navigate to separate pages via `<Link>` (Teaching Team, Org Manager, Admin Panel, Toolbelt)
+- Action items (action) -- trigger callbacks (User Profile opens modal, Sign Out)
+
+**Conditional sections:** Individual role's Teaching Team section uses `condition: 'hasTeam'` evaluated at runtime via `useTeachingTeam` hook's `hasTeam` return value. Solo teachers without a team do not see the section.
+
+**hideUserMenu prop:** Header.tsx gained a `hideUserMenu` boolean prop (default false). When true, the avatar, name tag, dropdown menu, and "Lead a Team" link are all hidden. AppShell passes `hideUserMenu` so the sidebar replaces the dropdown. All 17 other pages that render Header directly are unaffected -- they pass no prop and get the default (false).
+
+**forceMount preserved:** Dashboard.tsx line 297 still has `forceMount` on the Build Lesson TabsContent, preventing remount that would wipe profile defaults.
+
+### Bugs Found and Fixed
+
+1. **Stray imports after function declarations (Dashboard.tsx):** Three import statements (`useTeachingTeam`, `useOrgSharedFocus`, `useHelpVideo`) were placed after localStorage helper function declarations at module level. While ESM hoists imports, this was poor form. Moved all imports to top of file.
+
+2. **Duplicate BRANDING import (Footer.tsx):** Lines 3 and 5 both imported `{ BRANDING } from "@/config/branding"`. Build compiled clean but browser threw `SyntaxError: Identifier 'BRANDING' has already been declared` causing blank white page. Removed duplicate.
+
+3. **Duplicate BRANDING import (Help.tsx):** Lines 4 and 26 -- same pattern as Footer.tsx. Same blank white page symptom. Removed duplicate.
+
+4. **Duplicate ROUTES import (DevotionalGenerator.tsx):** Lines 48 and 53 both imported `{ ROUTES } from "@/constants/routes"`. Removed duplicate.
+
+5. **Known recurring bug documented:** Added CLAUDE.md debugging section documenting the duplicate BRANDING import pattern with a PowerShell sweep command to detect all instances in under 10 seconds.
+
+### Current State of ui-sidebar Branch
+
+- Sidebar renders correctly on /dashboard for platformAdmin role (Lynn's account)
+- Role-based sections working -- Build & Prepare, My Teaching Team, Ministry Oversight, Platform Admin, Account all visible
+- Header dropdown hidden when inside AppShell
+- All 17 other pages (Admin, Account, OrgManager, TeachingTeam, etc.) unaffected -- Header renders with full dropdown as before
+- Build clean at 3822 modules, zero errors
+- Dev server confirmed running at localhost:8081
+
+### Remaining Work on ui-sidebar Branch
+
+1. Wrap remaining authenticated pages (Admin, Account, OrgManager, TeachingTeam, ToolbeltAdmin, toolbelt sub-pages) in AppShell
+2. Fix Organization Manager sidebar item route (currently points to ROUTES.ORG, may need ROUTES.ORG_MANAGER)
+3. Standardize Dashboard vs Workspace terminology across sidebar labels
+4. Test all five role configurations (platformAdmin, orgLeader, orgMember, individual with team, individual without team)
+5. Merge to main only after Lynn approves -- restore CLAUDE.md Rule #9 override note at merge time
+
+### Files Modified This Session
+
+| File | Change |
+|---|---|
+| CLAUDE.md | Rule #9 temporary override for ui-sidebar branch; duplicate BRANDING import bug documentation |
+| src/constants/sidebarConfig.ts | NEW: SSOT sidebar config (230 lines) |
+| src/components/layout/AppShell.tsx | NEW: Sidebar + content layout wrapper (222 lines) |
+| src/pages/Dashboard.tsx | Wired to AppShell, TabsList/TabsTrigger removed, imports reordered |
+| src/components/layout/Header.tsx | Added hideUserMenu prop, wrapped dropdown in conditional |
+| src/components/layout/Footer.tsx | Removed duplicate BRANDING import |
+| src/pages/Help.tsx | Removed duplicate BRANDING import |
+| src/components/DevotionalGenerator.tsx | Removed duplicate ROUTES import |
+| PROJECT_MASTER.md | This session log |
 

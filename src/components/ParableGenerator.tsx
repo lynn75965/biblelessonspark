@@ -34,7 +34,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, BookOpen, Sparkles, Newspaper, Copy, Check, Settings2 } from 'lucide-react';
+import { Loader2, BookOpen, Star, Newspaper, Copy, Check, Settings2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -570,7 +570,7 @@ export function ParableGenerator({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
+            <Star className="h-5 w-5" />
             {isTeachingContext ? 'Generate Teaching Parable' : 'Create Your Parable'}
           </CardTitle>
           <CardDescription>
@@ -835,7 +835,7 @@ export function ParableGenerator({
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Star className="mr-2 h-4 w-4" />
                 Generate {isTeachingContext ? 'Teaching' : 'Modern'} Parable
               </>
             )}

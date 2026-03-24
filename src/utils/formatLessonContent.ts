@@ -10,7 +10,7 @@ import React from "react";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "../constants/lessonStructure";
 
 // Destructure SSOT values
-const { sectionHeader, body, hr, listItem, colors } = EXPORT_SPACING;
+const { body, hr, listItem, colors } = EXPORT_SPACING;
 
 function normalizeLineEndings(text: string): string {
   return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -131,38 +131,6 @@ export function formatLessonContentToHtml(content: string | null | undefined): s
     .replace(/^(.*)$/, "<p>$1</p>")
     .replace(/<p><\/p>/g, "")
     .replace(/<p class='mt-2'><\/p>/g, "");
-}
-
-/**
- * Format for print - uses SSOT values from EXPORT_SPACING
- * Handles all markdown heading levels (#, ##, ###, ####) for shaped content
- */
-export function formatLessonContentForPrint(content: string | null | undefined): string {
-  if (!content) return "";
-  let text = normalizeLineEndings(content);
-  text = stripBareHeadingMarkers(text);
-  text = ensureLineBreaks(text);
-  text = normalizeLegacyContent(text);
-  
-  // SSOT spacing values
-  const sectionMargin = `${sectionHeader.beforePt}pt 0 ${sectionHeader.afterPt}pt 0`;
-  
-  let html = text
-    // Handle all heading levels: ####, ###, ##, # (order matters - most specific first)
-    .replace(/^#### (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};font-size:${body.fontPt}pt;">$1</strong>`)
-    .replace(/^### (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};font-size:${body.fontPt}pt;">$1</strong>`)
-    .replace(/^## (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};">$1</strong>`)
-    .replace(/^# (.*?)$/gm, `<strong style="display:block;margin:${sectionMargin};font-size:${EXPORT_SPACING.sectionHeaderFont.fontPt}pt;">$1</strong>`)
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\n?---\n?/g, `<hr style="margin:${hr.marginPt}pt 0;border:none;border-top:1px solid #${colors.hrLine};">`)
-    .replace(/\x95/g, "*")
-    .replace(/\n\n/g, "<br>")
-    .replace(/\n/g, "<br>");
-  
-  html = html.replace(/(<br>){3,}/g, '<br><br>');
-  html = html.replace(/<strong>(Section\s+\d+[:\s])/gi, `<strong style="display:block;margin:${sectionMargin};">$1`);
-  
-  return html;
 }
 
 export const LESSON_CONTENT_CONTAINER_CLASSES = `

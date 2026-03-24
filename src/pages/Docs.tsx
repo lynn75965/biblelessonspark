@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   BookOpen,
   Mail,
-  Sparkles,
+  Star,
   Users,
   Clock,
   FileText,
@@ -18,7 +18,7 @@ import {
   MessageSquare,
   Lightbulb,
   GraduationCap,
-  Heart,
+  BookHeart,
   Shield
 } from "lucide-react";
 import { BRANDING } from "@/config/branding";
@@ -222,7 +222,7 @@ const Docs = () => {
         <section id="getting-started">
           <div className="flex items-center gap-3 mb-6">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Star className="h-5 w-5 text-primary" />
             </div>
             <h2 className="text-2xl font-bold">Getting Started</h2>
           </div>
@@ -404,7 +404,7 @@ const Docs = () => {
               <Card key={index}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg flex items-center gap-2">
-                    <Heart className="h-4 w-4 text-primary" />
+                    <BookHeart className="h-4 w-4 text-primary" />
                     {profile.name}
                   </CardTitle>
                 </CardHeader>

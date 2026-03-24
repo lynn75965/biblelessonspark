@@ -142,7 +142,7 @@ export const BOOKLET_FONTS = {
  * No literal font size may appear in buildBookletPdf.ts.
  */
 export const BOOKLET_FONT_SIZES = {
-  bodyPt:         12,   // Body text -- 12pt floor per AOA recommendation
+  bodyPt:         10,   // Body text -- economical printing per roadmap A9
   titlePt:        16,   // Lesson title / page header
   labelPt:        10,   // Section labels (ALL CAPS, sans bold)
   scriptureRefPt: 10,   // Scripture reference (sans bold)
@@ -168,7 +168,7 @@ export const BOOKLET_FONT_SIZES = {
  * Line leading -- vertical advance per line, in points.
  */
 export const BOOKLET_LEADING = {
-  bodyLd:       15,   // 12pt body (tightened for print economy)
+  bodyLd:       11.2, // 1.12x body font -- economical printing per roadmap A9
   scriptureLd:  14,   // 11pt scripture verse (tightened)
   metaLd:       13,   // 9pt meta
   copyrightLd:  11,   // 7.5pt copyright

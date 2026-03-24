@@ -17,7 +17,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
-import { Sparkles, Users, BookOpen, Settings2 } from "lucide-react";
+import { Star, Users, BookOpen, Settings2 } from "lucide-react";
 import { getTheologyProfileOptions } from "@/constants/theologyProfiles";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { BIBLE_VERSIONS } from "@/constants/bibleVersions";
@@ -42,7 +42,7 @@ export function FeaturesSection() {
 
   const features = [
     {
-      icon: <Sparkles className="h-6 w-6" />,
+      icon: <Star className="h-6 w-6" />,
       title: "Smart Enhancement",
       description: "Generate age-appropriate activities, discussion questions, and modern applications with Baptist-aligned content.",
       benefits: ["Custom activities", "Discussion prompts", "Modern applications"],

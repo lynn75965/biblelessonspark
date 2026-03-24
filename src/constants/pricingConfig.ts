@@ -8,9 +8,9 @@
 // - SSOT: all Stripe IDs, tier definitions, and section mappings
 //   live here and are imported everywhere \u2014 never duplicated
 //
-// STRIPE CATALOG (complete as of 2026-02-21):
-// - 1 Individual subscription: Personal
-// - 4 Organization subscriptions: Starter, Growth, Full, Enterprise
+// STRIPE CATALOG (complete as of 2026-03-24):
+// - 1 Individual subscription: Personal (defined here)
+// - 5 Organization subscriptions: see orgPricingConfig.ts (sole authority)
 // - 3 Lesson Packs (one-time): Small, Medium, Large
 // - 2 Onboarding options (one-time): Guided Setup, White Glove
 //
@@ -20,8 +20,10 @@
 // CHANGELOG:
 //   2026-03-02: Added 'Series Curriculum Export' to PLAN_FEATURES
 //
-// Last Updated: 2026-03-02
+// Last Updated: 2026-03-24
 // ============================================================
+
+import { getOrgTierByStripePriceId } from './orgPricingConfig';
 
 // ============================================================
 // STRIPE IDS \u2014 INDIVIDUAL SUBSCRIPTION
@@ -39,43 +41,11 @@ export const STRIPE_INDIVIDUAL = {
 } as const;
 
 // ============================================================
-// STRIPE IDS \u2014 ORGANIZATION SUBSCRIPTIONS
+// ORGANIZATION SUBSCRIPTIONS -- SOLE AUTHORITY: orgPricingConfig.ts
+// STRIPE_ORG block removed 2026-03-24 (Phase A11).
+// All org tier data (Stripe IDs, lesson limits, display names)
+// now lives exclusively in orgPricingConfig.ts.
 // ============================================================
-
-export const STRIPE_ORG = {
-  starter: {
-    productId: 'prod_Tt8suAq0Ba5Kyy',
-    prices: {
-      monthly: 'price_1SvMaWI4GLksxBfVn6FVKKiG',
-      annual:  'price_1SvMcVI4GLksxBfVLG7k1F12',
-    },
-    lessonsPerPeriod: 25,
-  },
-  growth: {
-    productId: 'prod_Tt9AA0Mr8ggFm8',
-    prices: {
-      monthly: 'price_1SvMt9I4GLksxBfV5hc6Rsox',
-      annual:  'price_1SvMsCI4GLksxBfVDy8YjZYu',
-    },
-    lessonsPerPeriod: 60,
-  },
-  full: {
-    productId: 'prod_Tt9GvWKjoPutRs',
-    prices: {
-      monthly: 'price_1SvN1lI4GLksxBfVEpU7eKq5',
-      annual:  'price_1SvMxmI4GLksxBfVVOY3cOpb',
-    },
-    lessonsPerPeriod: 120,
-  },
-  enterprise: {
-    productId: 'prod_Tt9MztPmhtJnZ2',
-    prices: {
-      monthly: 'price_1SvN5RI4GLksxBfVrtZ2aDN9',
-      annual:  'price_1SvN4CI4GLksxBfVgdN7qjsr',
-    },
-    lessonsPerPeriod: 250,
-  },
-} as const;
 
 // ============================================================
 // STRIPE IDS \u2014 LESSON PACKS (ONE-TIME PURCHASES)
@@ -332,11 +302,12 @@ export function resolveTierFromPriceId(priceId: string): SubscriptionTier | null
   if (priceId === personal.prices.monthly || priceId === personal.prices.annual) {
     return 'personal';
   }
-  // Organization subscriptions
-  for (const [tier, config] of Object.entries(STRIPE_ORG)) {
-    if (priceId === config.prices.monthly || priceId === config.prices.annual) {
-      return tier as SubscriptionTier;
-    }
+  // Organization subscriptions -- delegate to orgPricingConfig.ts (sole authority)
+  const orgTier = getOrgTierByStripePriceId(priceId);
+  if (orgTier) {
+    // Map org tier key to SubscriptionTier enum (strip org_ prefix)
+    const tierName = orgTier.tier.replace(/^org_/, '') as SubscriptionTier;
+    return tierName;
   }
   return null;
 }
@@ -347,11 +318,10 @@ export function getLessonLimitForPriceId(priceId: string): number {
   if (priceId === personal.prices.monthly || priceId === personal.prices.annual) {
     return personal.lessonsPerPeriod;
   }
-  // Organization
-  for (const config of Object.values(STRIPE_ORG)) {
-    if (priceId === config.prices.monthly || priceId === config.prices.annual) {
-      return config.lessonsPerPeriod;
-    }
+  // Organization -- delegate to orgPricingConfig.ts (sole authority)
+  const orgTier = getOrgTierByStripePriceId(priceId);
+  if (orgTier) {
+    return orgTier.lessonsLimit;
   }
   return TIER_LESSON_LIMITS.free;
 }

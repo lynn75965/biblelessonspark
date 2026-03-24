@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,9 +32,11 @@ interface HeaderProps {
   isAuthenticated?: boolean;
   organizationName?: string;
   hideOrgContext?: boolean; // NEW: Hide org badge for Personal Workspace
+  hideUserMenu?: boolean;  // Hide avatar/dropdown when sidebar provides navigation
+  className?: string;      // Allow parent to override header visibility
 }
 
-export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrgContext = false }: HeaderProps) {
+export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrgContext = false, hideUserMenu = false, className }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { organization, userRole, hasOrganization } = useOrganization();
@@ -100,11 +103,11 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = '/';
+    window.location.href = '/auth';
   };
 
   return (<>
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={cn("sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", className)}>
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
           {/* Logo + Wordmark - SSOT from BRANDING, matches Footer styling */}
@@ -135,83 +138,87 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
           {authenticated ? (
             <>
-              <NotificationBell />
+              {!hideUserMenu && <NotificationBell />}
 
-              {/* "Lead a Team" / Org Name nav item (February 2026)
-                  - Solo teacher: "Lead a Team" -> /org landing page
-                  - Org owner/leader: "{Org Name}" -> /org-manager
-                  - Org member: "{Org Name}" -> /dashboard */}
-              {orgNavItem && (
-                <Link
-                  to={orgNavItem.route}
-                  className="hidden sm:flex items-center gap-1.5 h-9 sm:h-10 px-2 sm:px-3 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/10"
-                  title={hasOrganization ? `Go to ${orgNavItem.label}` : 'Start a ministry organization'}
-                >
-                  <Users className="h-4 w-4 shrink-0" />
-                  <span className="max-w-[120px] lg:max-w-[180px] truncate">
-                    {orgNavItem.label}
-                  </span>
-                </Link>
+              {!hideUserMenu && (
+                <>
+                  {/* "Lead a Team" / Org Name nav item (February 2026)
+                      - Solo teacher: "Lead a Team" -> /org landing page
+                      - Org owner/leader: "{Org Name}" -> /org-manager
+                      - Org member: "{Org Name}" -> /dashboard */}
+                  {orgNavItem && (
+                    <Link
+                      to={orgNavItem.route}
+                      className="hidden sm:flex items-center gap-1.5 h-9 sm:h-10 px-2 sm:px-3 text-sm text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/10"
+                      title={hasOrganization ? `Go to ${orgNavItem.label}` : 'Start a ministry organization'}
+                    >
+                      <Users className="h-4 w-4 shrink-0" />
+                      <span className="max-w-[120px] lg:max-w-[180px] truncate">
+                        {orgNavItem.label}
+                      </span>
+                    </Link>
+                  )}
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
+                        <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary shrink-0">
+                          <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
+                        </div>
+                        <span className="hidden sm:block text-sm lg:text-base max-w-[100px] lg:max-w-none truncate">{displayName}</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 sm:w-56">
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">{displayName}</p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {userEmail}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+
+                      {navigationItems.map((item, index) => {
+                        const IconComponent = item.icon;
+
+                        // Handle User Profile specially (open modal, not navigate)
+                        if (item.id === 'settings') {
+                          return (
+                            <DropdownMenuItem key={item.id} onClick={() => setShowProfileModal(true)}>
+                              <IconComponent className="mr-2 h-4 w-4" />
+                              <span>{item.label}</span>
+                            </DropdownMenuItem>
+                          );
+                        }
+
+                        // Handle Sign Out specially (onClick, not Link)
+                        if (item.id === 'signOut') {
+                          return (
+                            <DropdownMenuItem key={item.id} onClick={handleSignOut}>
+                              <IconComponent className="mr-2 h-4 w-4" />
+                              <span>{item.label}</span>
+                            </DropdownMenuItem>
+                          );
+                        }
+
+                        // Render navigation link
+                        return (
+                          <div key={item.id}>
+                            <DropdownMenuItem asChild>
+                              <Link to={item.route} className="flex items-center">
+                                <IconComponent className="mr-2 h-4 w-4" />
+                                <span>{item.label}</span>
+                              </Link>
+                            </DropdownMenuItem>
+                            {item.dividerAfter && <DropdownMenuSeparator />}
+                          </div>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
               )}
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-1.5 sm:gap-2 h-9 sm:h-10 px-2 sm:px-3">
-                    <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-primary shrink-0">
-                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
-                    </div>
-                    <span className="hidden sm:block text-sm lg:text-base max-w-[100px] lg:max-w-none truncate">{displayName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48 sm:w-56">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{displayName}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {userEmail}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  {navigationItems.map((item, index) => {
-                    const IconComponent = item.icon;
-
-                    // Handle User Profile specially (open modal, not navigate)
-                    if (item.id === 'settings') {
-                      return (
-                        <DropdownMenuItem key={item.id} onClick={() => setShowProfileModal(true)}>
-                          <IconComponent className="mr-2 h-4 w-4" />
-                          <span>{item.label}</span>
-                        </DropdownMenuItem>
-                      );
-                    }
-
-                    // Handle Sign Out specially (onClick, not Link)
-                    if (item.id === 'signOut') {
-                      return (
-                        <DropdownMenuItem key={item.id} onClick={handleSignOut}>
-                          <IconComponent className="mr-2 h-4 w-4" />
-                          <span>{item.label}</span>
-                        </DropdownMenuItem>
-                      );
-                    }
-
-                    // Render navigation link
-                    return (
-                      <div key={item.id}>
-                        <DropdownMenuItem asChild>
-                          <Link to={item.route} className="flex items-center">
-                            <IconComponent className="mr-2 h-4 w-4" />
-                            <span>{item.label}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                        {item.dividerAfter && <DropdownMenuSeparator />}
-                      </div>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </>
           ) : (
             <>
@@ -229,7 +236,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
       </div>
     </header>
 
-      {showProfileModal && (
+      {!hideUserMenu && showProfileModal && (
         <UserProfileModal
           open={showProfileModal}
           onOpenChange={setShowProfileModal}

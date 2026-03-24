@@ -14,7 +14,7 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, X, Sparkles, Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
+import { Check, X, Star, Loader2, AlertCircle, CheckCircle, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
@@ -283,11 +283,11 @@ export default function PricingPage() {
                 )}
                 <ul className="space-y-3 text-left">
                   <li className="flex items-center gap-3 font-medium text-primary">
-                    <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
+                    <Star className="h-5 w-5 text-secondary flex-shrink-0" />
                     <span><strong>{personalPlan.lessonsPerMonth}</strong> lessons per month</span>
                   </li>
                   <li className="flex items-center gap-3 font-medium text-primary">
-                    <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
+                    <Star className="h-5 w-5 text-secondary flex-shrink-0" />
                     <span><strong>All 8</strong> lesson sections</span>
                   </li>
                   {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
@@ -298,7 +298,7 @@ export default function PricingPage() {
                   ))}
                   {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
                     <li key={section} className="flex items-center gap-3 font-medium text-primary">
-                      <Sparkles className="h-5 w-5 text-secondary flex-shrink-0" />
+                      <Star className="h-5 w-5 text-secondary flex-shrink-0" />
                       <span>{section}</span>
                     </li>
                   ))}
@@ -317,7 +317,7 @@ export default function PricingPage() {
                     </>
                   ) : (
                     <>
-                      {currentTier !== 'personal' && <Sparkles className="h-4 w-4 mr-2" />}
+                      {currentTier !== 'personal' && <Star className="h-4 w-4 mr-2" />}
                       {getButtonText('personal')}
                     </>
                   )}
@@ -391,7 +391,7 @@ export default function PricingPage() {
               onClick={proceedToCheckout}
               className="flex-1 bg-primary hover:bg-primary-hover"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Star className="h-4 w-4 mr-2" />
               Yes, Continue to Checkout
             </Button>
           </div>

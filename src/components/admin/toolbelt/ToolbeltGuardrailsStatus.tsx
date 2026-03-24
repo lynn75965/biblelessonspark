@@ -77,14 +77,14 @@ export function ToolbeltGuardrailsStatus() {
   ];
 
   return (
-    <Card className="border-green-200 bg-green-50/50">
+    <Card className="border-green-200 bg-green-50/50 dark:bg-[#1a2e1a] dark:border-[#2d4a2d]">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-green-600" />
             <CardTitle className="text-lg">Guardrails Status</CardTitle>
           </div>
-          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+          <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300 dark:bg-[#2d4a2d] dark:text-[#c8d8c8] dark:border-[#3d5a3d]">
             All Active
           </Badge>
         </div>
@@ -97,13 +97,13 @@ export function ToolbeltGuardrailsStatus() {
           {statusItems.map((item, index) => (
             <div 
               key={index}
-              className="flex items-center justify-between p-3 bg-white rounded-lg border"
+              className="flex items-center justify-between p-3 bg-white rounded-lg border dark:bg-[#1e3a1e] dark:border-[#2d4a2d]"
             >
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="text-sm font-medium text-muted-foreground dark:text-[#a8c0a8]">
                 {item.label}
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{item.value}</span>
+                <span className="text-sm font-semibold dark:text-[#e8f0e8]">{item.value}</span>
                 {getStatusIcon(item.status)}
               </div>
             </div>
@@ -111,11 +111,11 @@ export function ToolbeltGuardrailsStatus() {
         </div>
 
         {/* Voice Prohibitions Summary */}
-        <div className="mt-4 p-3 bg-white rounded-lg border">
-          <p className="text-sm font-medium text-muted-foreground mb-2">Voice Prohibitions</p>
+        <div className="mt-4 p-3 bg-white rounded-lg border dark:bg-[#1e3a1e] dark:border-[#2d4a2d]">
+          <p className="text-sm font-medium text-muted-foreground dark:text-[#a8c0a8] mb-2">Voice Prohibitions</p>
           <div className="flex flex-wrap gap-2">
             {voiceProhibitions.map((prohibition) => (
-              <Badge key={prohibition} variant="secondary" className="text-xs">
+              <Badge key={prohibition} variant="secondary" className="text-xs dark:bg-[#2d4a2d] dark:text-[#e8f0e8] dark:border-[#3d5a3d]">
                 {prohibition.replace(/_/g, ' ')}
               </Badge>
             ))}
@@ -123,11 +123,11 @@ export function ToolbeltGuardrailsStatus() {
         </div>
 
         {/* Topics to Avoid */}
-        <div className="mt-3 p-3 bg-white rounded-lg border">
-          <p className="text-sm font-medium text-muted-foreground mb-2">Theological Topics Avoided</p>
+        <div className="mt-3 p-3 bg-white rounded-lg border dark:bg-[#1e3a1e] dark:border-[#2d4a2d]">
+          <p className="text-sm font-medium text-muted-foreground dark:text-[#a8c0a8] mb-2">Theological Topics Avoided</p>
           <div className="flex flex-wrap gap-2">
             {TOOLBELT_THEOLOGICAL_GUARDRAILS.topicsToAvoid.map((topic, index) => (
-              <Badge key={index} variant="outline" className="text-xs">
+              <Badge key={index} variant="outline" className="text-xs dark:bg-[#2d4a2d] dark:text-[#e8f0e8] dark:border-[#3d5a3d]">
                 {topic.length > 30 ? topic.substring(0, 30) + '...' : topic}
               </Badge>
             ))}
