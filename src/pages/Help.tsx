@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Footer } from "@/components/layout/Footer";
+import { AppShell } from "@/components/layout/AppShell";
 import { BRANDING } from "@/config/branding";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -252,7 +252,7 @@ const Help = () => {
   ];
 
   return (
-    <div className={BRANDING.layout.pageWrapper}>
+    <AppShell>
       {/* Header */}
       <div className="bg-gradient-to-b from-primary/5 to-background border-b">
         <div className="container max-w-5xl py-12">
@@ -298,7 +298,7 @@ const Help = () => {
 
         {/* FAQs by Category */}
         <section>
-          <h2 className="text-2xl font-bold mb-6">Frequently Asked Questions</h2>
+          <h2 id="faqs" className="text-2xl font-bold mb-6 scroll-mt-6">Frequently Asked Questions</h2>
           <div className="space-y-8">
             {faqs.map((category, catIndex) => {
               const CategoryIcon = category.icon;
@@ -369,9 +369,7 @@ const Help = () => {
         </section>
       </div>
 
-      {/* Footer - SSOT Component */}
-      <Footer />
-    </div>
+    </AppShell>
   );
 };
 

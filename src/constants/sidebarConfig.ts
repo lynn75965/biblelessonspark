@@ -122,7 +122,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     label: 'Organization Manager',
     icon: Building2,
     description: 'Manage your organization',
-    route: ROUTES.ORG,
+    route: ROUTES.ORG_MANAGER,
   },
   adminPanel: {
     id: 'adminPanel',
@@ -178,7 +178,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     label: 'FAQs',
     icon: CircleHelp,
     description: 'Frequently asked questions',
-    route: ROUTES.HELP,
+    route: ROUTES.FAQS,
   },
   bonuses: {
     id: 'bonuses',

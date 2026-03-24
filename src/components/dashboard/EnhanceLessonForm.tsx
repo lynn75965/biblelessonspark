@@ -1955,12 +1955,12 @@ export function EnhanceLessonForm({
             {/* Shows when teacher clicks "Reshape" button */}
             {/* ============================================================ */}
             {showReshapeSection && viewingLesson && (
-              <div className="mb-4 p-4 bg-gradient-to-r from-primary/5 to-blue-50 border border-primary/20 rounded-lg">
+              <div className="mb-4 p-4 bg-gradient-to-r from-primary/5 to-blue-50 dark:from-primary/10 dark:to-[#1e3a1e] border border-primary/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <Layers className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-semibold text-foreground">Choose a Teaching Shape</span>
+                  <span className="text-sm font-semibold text-foreground dark:text-[#e8f0e8]">Choose a Teaching Shape</span>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
+                <p className="text-xs text-muted-foreground dark:text-[#c8d8c8] mb-3">
                   Reshape this lesson into a different pedagogical format. All content is preserved -- only the structure changes.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">

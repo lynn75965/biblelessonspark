@@ -16,6 +16,7 @@ export const ROUTES = {
   SETUP_GUIDE: '/setup/guide',
   DOCS: '/docs',
   HELP: '/help',
+  FAQS: '/help#faqs',
   TRAINING: '/training',
   COMMUNITY: '/community',
   

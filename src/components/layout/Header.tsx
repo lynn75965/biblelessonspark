@@ -103,7 +103,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = '/';
+    window.location.href = '/auth';
   };
 
   return (<>

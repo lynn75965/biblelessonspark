@@ -110,7 +110,13 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick, theme, 
             const isActive = isSidebarTabItem(item)
               ? item.tabValue === activeTab
               : isSidebarRouteItem(item)
-                ? currentPath === item.route
+                ? (() => {
+                    const itemPath = (item.route || '').split('#')[0];
+                    const itemHash = (item.route || '').includes('#') ? '#' + (item.route || '').split('#')[1] : '';
+                    if (currentPath !== itemPath) return false;
+                    if (!itemHash) return !window.location.hash;
+                    return window.location.hash === itemHash;
+                  })()
                 : false;
 
             const itemClasses = cn(
@@ -186,7 +192,7 @@ export function AppShell({
   });
 
   // Handle sidebar item clicks
-  const handleItemClick = (item: SidebarItem) => {
+  const handleItemClick = async (item: SidebarItem) => {
     if (isSidebarTabItem(item) && onTabChange && item.tabValue) {
       onTabChange(item.tabValue);
       setMobileOpen(false);
@@ -194,8 +200,8 @@ export function AppShell({
       if (item.action === 'openProfile' && onOpenProfile) {
         onOpenProfile();
       } else if (item.action === 'signOut') {
-        signOut();
-        window.location.href = '/';
+        await signOut();
+        window.location.href = '/auth';
       }
       setMobileOpen(false);
     } else if (isSidebarRouteItem(item)) {

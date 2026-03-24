@@ -998,8 +998,7 @@ export default function Auth() {
                   <Button
                     data-tour="signup-create-button"
                     type="submit"
-                    className="w-full text-sm sm:text-base"
-                    variant="hero"
+                    className="bg-[#c8d8a8] text-[#1a2e1a] font-bold hover:bg-[#d8e8b8] transition-colors w-full py-3 rounded-md text-base"
                     size="lg"
                     disabled={isLoading}
                   >
