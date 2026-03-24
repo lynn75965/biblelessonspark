@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Check, Church, Users, ArrowRight, Sparkles, LayoutDashboard, Target, Eye } from 'lucide-react';
+import { Check, Church, Users, ArrowRight, Star, LayoutDashboard, Target, Eye } from 'lucide-react';
 import { ROUTES } from "@/constants/routes";
 
 const OrgLanding = () => {
@@ -403,7 +403,7 @@ const OrgLanding = () => {
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                       <Badge className="bg-primary text-primary-foreground">
-                        <Sparkles className="h-3 w-3 mr-1" />
+                        <Star className="h-3 w-3 mr-1" />
                         Most Popular
                       </Badge>
                     </div>

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, UserPlus, RefreshCw, Shield, User, Users, Mail, Loader2, Clock, Send, X, Gift, Calendar, Layers, Download, Filter } from "lucide-react";
+import { Trash2, Pencil, UserPlus, RefreshCw, Shield, User, Users, Mail, Loader2, Clock, Send, X, Gift, Calendar, Layers, Download, Filter } from "lucide-react";
 import { format, isPast, addDays, differenceInDays } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
@@ -855,7 +855,7 @@ export function UserManagement() {
                                   }}
                                   title="Edit Role"
                                 >
-                                  <Edit className="h-4 w-4" />
+                                  <Pencil className="h-4 w-4" />
                                 </Button>
                               </DialogTrigger>
                               <DialogContent>

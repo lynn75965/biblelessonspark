@@ -29,7 +29,7 @@ import {
   ArrowLeft,
   Loader2,
   Church,
-  Sparkles,
+  Star,
   Mail,
   LayoutDashboard,
   Eye,
@@ -37,6 +37,7 @@ import {
   Play,
   Lightbulb
 } from 'lucide-react';
+import { getOrgTierByTierKey } from '@/constants/orgPricingConfig';
 
 // --- Interactive Tour Configuration (Self-Service Entry item 8) ---
 // Each step describes a key Org Manager feature the new Shepherd should know.
@@ -178,16 +179,10 @@ const OrgSuccess = () => {
     }
   }, [user, authLoading, navigate]);
 
-  // Format tier name for display
+  // Format tier name for display -- resolves from orgPricingConfig.ts SSOT
   const formatTierName = (tier: string): string => {
-    const tierMap: Record<string, string> = {
-      'org_single_staff': 'Single Staff',
-      'org_starter': 'Starter',
-      'org_growth': 'Growth',
-      'org_develop': 'Develop',
-      'org_expansion': 'Expansion',
-    };
-    return tierMap[tier] || tier;
+    const orgTier = getOrgTierByTierKey(tier);
+    return orgTier?.displayName || tier;
   };
 
   // Tour navigation handlers
@@ -280,7 +275,7 @@ const OrgSuccess = () => {
                 <div>
                   <CardTitle>{orgData.name}</CardTitle>
                   <CardDescription className="flex items-center gap-2">
-                    <Sparkles className="h-3 w-3" />
+                    <Star className="h-3 w-3" />
                     {formatTierName(orgData.subscription_tier)} Tier
                   </CardDescription>
                 </div>

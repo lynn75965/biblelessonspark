@@ -14,7 +14,7 @@ import {
   HelpCircle, 
   Mail, 
   BookOpen, 
-  Sparkles, 
+  Star, 
   Receipt, 
   Download,
   Settings,
@@ -61,7 +61,7 @@ const Help = () => {
     {
       title: "Generate Lessons",
       description: "How to create your first lesson",
-      icon: Sparkles,
+      icon: Star,
       href: "/docs#generate"
     },
     {

@@ -35,7 +35,7 @@ import {
   Building2,
   CreditCard,
   Info,
-  Sparkles
+  Star
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ROUTES } from "@/constants/routes";
@@ -543,7 +543,7 @@ const OrgSetup = () => {
                       >
                         {isPopular && (
                           <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-xs">
-                            <Sparkles className="h-3 w-3 mr-1" />
+                            <Star className="h-3 w-3 mr-1" />
                             Popular
                           </Badge>
                         )}

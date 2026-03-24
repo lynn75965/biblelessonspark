@@ -19,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, BookOpen, Sparkles, Newspaper, Copy, Check } from 'lucide-react';
+import { Loader2, BookOpen, Star, Newspaper, Copy, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -419,7 +419,7 @@ export function ParableGenerator({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-amber-500" />
+            <Star className="h-5 w-5 text-amber-500" />
             Modern Parable Generator
           </CardTitle>
           <CardDescription>
@@ -537,7 +537,7 @@ export function ParableGenerator({
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Star className="mr-2 h-4 w-4" />
                 Generate Modern Parable
               </>
             )}

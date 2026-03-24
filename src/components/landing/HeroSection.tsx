@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, Sparkles, Users, Clock, Star } from "lucide-react";
+import { BookOpen, Users, Clock, Star } from "lucide-react";
 import heroImage from "@/assets/hero-image.jpg";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
@@ -77,7 +77,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
             {/* Feature highlights */}
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center lg:justify-start gap-2 sm:gap-3 lg:gap-4">
               <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
-                <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-secondary shrink-0" />
+                <Star className="h-3 w-3 sm:h-4 sm:w-4 text-secondary shrink-0" />
                 <span>Enhancement</span>
               </div>
               <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-muted-foreground">
@@ -137,7 +137,7 @@ export function HeroSection({ onRequestAccess, onSignIn }: HeroSectionProps) {
                 <CardContent className="p-2 sm:p-3 lg:p-4">
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <div className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 rounded-lg bg-gradient-primary flex items-center justify-center shrink-0">
-                      <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4 text-white" />
+                      <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 lg:h-4 lg:w-4 text-white" />
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium text-xs sm:text-sm truncate">Smart Enhanced</p>

@@ -837,7 +837,7 @@ export default function Auth() {
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
-                        className="text-xs text-primary hover:underline"
+                        className="text-xs text-[#4a7a4a] dark:text-[#c8d8a8] hover:text-[#1a2e1a] dark:hover:text-white transition-colors"
                       >
                         Forgot Password?
                       </button>
@@ -877,8 +877,7 @@ export default function Auth() {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full text-sm sm:text-base"
-                    variant="hero"
+                    className="bg-[#c8d8a8] text-[#1a2e1a] font-bold hover:bg-[#d8e8b8] transition-colors w-full py-3 rounded-md text-base"
                     size="lg"
                     disabled={isLoading}
                   >
@@ -1018,13 +1017,6 @@ export default function Auth() {
           </CardContent>
         </Card>
 
-        {/* Back to Home */}
-        <div className="text-center mt-4 sm:mt-6">
-          <Button variant="ghost" onClick={() => navigate(ROUTES.HOME)} size="sm" className="text-xs sm:text-sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
-          </Button>
-        </div>
       </div>
       {/* Legal Modal */}
       <LegalModal

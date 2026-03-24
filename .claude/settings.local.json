@@ -38,7 +38,20 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Profile defaults not pre-populating lesson form - forceMount TabsContent\")",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Rename Crimson Pro to Century Schoolbook, remove stale private beta copy, add live preview to LessonExportModal\")",
       "Bash(powershell -Command \"Get-ChildItem 'C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src' -Recurse -Include '*.tsx' | Select-String 'handlePrint|Printer|window.open' | Select-Object Filename, LineNumber, Line | Format-Table -AutoSize -Wrap\")",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"CLEANUP: Delete orphaned BookletPrintModal -- print removal complete\")"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"CLEANUP: Delete orphaned BookletPrintModal -- print removal complete\")",
+      "Bash(while read:*)",
+      "Bash(do sort:*)",
+      "Bash(do echo:*)",
+      "Bash(done)",
+      "Bash(node -e \":*)",
+      "Bash(pkill -f \"vite --host --port\")",
+      "Bash(echo \"EXIT_CODE: $?\")",
+      "Bash(netstat -ano)",
+      "Bash(curl -s http://localhost:8080)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(node:*)",
+      "Bash(then echo:*)",
+      "Bash(fi)"
     ]
   }
 }

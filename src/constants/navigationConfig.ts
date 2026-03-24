@@ -18,7 +18,7 @@
  * - Feb 9, 2026: Added teachingTeam for Phase 27 Teaching Team
  */
 
-import { Shield, Building2, LayoutDashboard, Settings, LogOut, Sparkles, CreditCard, Wrench, Users } from "lucide-react";
+import { ShieldCheck, Building2, LayoutDashboard, Settings2, LogOut, Star, CreditCard, Wrench, Users } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
 import { ROUTES as APP_ROUTES } from "./routes";
 
@@ -45,7 +45,7 @@ export interface NavigationItem {
   id: string;
   label: string;
   route: string;
-  icon: typeof Shield;
+  icon: typeof ShieldCheck;
   description?: string;
   dividerAfter?: boolean;
 }
@@ -55,7 +55,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     id: 'adminPanel',
     label: 'Administrator Panel',
     route: NAV_ROUTES.admin,
-    icon: Shield,
+    icon: ShieldCheck,
     description: 'Platform-wide administration',
     dividerAfter: false,
   },
@@ -95,7 +95,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     id: 'parables',
     label: 'Parable Generator',
     route: NAV_ROUTES.parables,
-    icon: Sparkles,
+    icon: Star,
     description: 'Create modern parables',
     dividerAfter: false,
   },
@@ -111,7 +111,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     id: 'settings',
     label: 'User Profile',
     route: '', // Handled by onClick in Header.tsx -- opens UserProfileModal directly
-    icon: Settings,
+    icon: Settings2,
     description: 'Update your profile defaults',
     dividerAfter: true,
   },

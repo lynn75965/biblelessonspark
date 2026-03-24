@@ -37,7 +37,7 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Sparkles, Lock, Share2, User } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -457,16 +457,16 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
               <CardHeader className="p-4 sm:p-6">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base sm:text-lg mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                    <CardTitle className="text-base sm:text-lg mb-1 line-clamp-2 text-foreground dark:text-[#e8f0e8] group-hover:text-primary transition-colors">
                       {lesson.ai_lesson_title || lesson.title || lesson.passage_or_topic}
                     </CardTitle>
                     {lesson.bible_passage && (
-                      <CardDescription className="text-xs sm:text-sm line-clamp-1">
+                      <CardDescription className="text-xs sm:text-sm line-clamp-1 text-muted-foreground dark:text-[#a8c0a8]">
                         Bible Passage: {lesson.bible_passage}
                       </CardDescription>
                     )}
                     {!lesson.bible_passage && lesson.focused_topic && (
-                      <CardDescription className="text-xs sm:text-sm line-clamp-1">
+                      <CardDescription className="text-xs sm:text-sm line-clamp-1 text-muted-foreground dark:text-[#a8c0a8]">
                         Theme: {lesson.focused_topic}
                       </CardDescription>
                     )}
@@ -474,7 +474,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
-                  <Badge className={`${getAgeGroupBadgeColor(lesson.age_group)} text-xs`} variant="secondary">
+                  <Badge className={`${getAgeGroupBadgeColor(lesson.age_group)} dark:bg-[#3d5a3d] dark:text-[#e8f0e8] dark:border-[#4d6a4d] text-xs`} variant="secondary">
                     <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                     <span className="hidden sm:inline">{lesson.age_group}</span>
                     <span className="sm:hidden">{getAgeGroupShortLabel(lesson.age_group)}</span>
@@ -521,7 +521,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
               </CardHeader>
 
               <CardContent className="p-4 sm:p-6 pt-0">
-                <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                <div className="flex items-center justify-between text-xs text-muted-foreground dark:text-[#8aa88a] mb-4">
                   <span className="flex items-center gap-1">
                     <BookOpen className="h-3 w-3" />
                     Created {formatDate(lesson.created_at)}
@@ -530,7 +530,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
 
                 <div className="flex gap-2">
                   <Button data-tour="library-view-button" onClick={() => onViewLesson?.(lesson)} className="flex-1" size="sm">
-                    <Eye className="h-3.5 w-3.5 mr-1.5" />
+                    <Eye className="h-4 w-4 mr-1.5" />
                     View
                   </Button>
                   {/* Visibility Toggle (Phase 26) -- only on user's own lessons */}
@@ -547,9 +547,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
                     >
                       {lesson.visibility === 'shared' ? (
-                        <Share2 className="h-3.5 w-3.5" />
+                        <Share2 className="h-4 w-4" />
                       ) : (
-                        <Lock className="h-3.5 w-3.5" />
+                        <Lock className="h-4 w-4" />
                       )}
                     </Button>
                   )}
@@ -563,7 +563,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                         className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
                         title="Generate a devotional from this lesson"
                       >
-                        <Sparkles className="h-3.5 w-3.5" />
+                        <Heart className="h-4 w-4" />
                       </Button>
                     ) : (
                       <Button
@@ -579,7 +579,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                         className="opacity-50 hover:opacity-75"
                         title={getUpgradePrompt(tier, 'devotional')}
                       >
-                        <Lock className="h-3.5 w-3.5" />
+                        <Lock className="h-4 w-4" />
                       </Button>
                     )
                   )}
@@ -591,7 +591,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       size="sm"
                       className="hover:bg-destructive hover:text-destructive-foreground"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>

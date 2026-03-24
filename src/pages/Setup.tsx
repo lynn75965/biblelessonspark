@@ -11,7 +11,7 @@ import {
   ArrowRight,
   User,
   Settings,
-  Sparkles,
+  Star,
   Download,
   Clock,
   Lightbulb,
@@ -72,7 +72,7 @@ const Setup = () => {
         "Confirm your theological lens selection",
         "Click 'Generate Lesson' and wait for completion"
       ],
-      icon: Sparkles,
+      icon: Star,
       time: "2 minutes"
     },
     {
@@ -297,7 +297,7 @@ const Setup = () => {
             </Button>
             <Button asChild variant="outline" className="h-auto py-4">
               <Link to="/training" className="flex flex-col items-center gap-2">
-                <Sparkles className="h-5 w-5" />
+                <Star className="h-5 w-5" />
                 <span>Training Videos</span>
               </Link>
             </Button>

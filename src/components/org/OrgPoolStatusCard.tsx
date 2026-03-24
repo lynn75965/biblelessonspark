@@ -31,7 +31,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   ShoppingCart,
-  Sparkles
+  Star
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,7 +207,7 @@ export function OrgPoolStatusCard({
             </p>
             {showPurchaseOptions && (
               <Button onClick={() => setUpgradeDialogOpen(true)}>
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Star className="h-4 w-4 mr-2" />
                 Choose a Plan
               </Button>
             )}
@@ -475,7 +475,7 @@ function SubscriptionDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
+            <Star className="h-5 w-5" />
             {currentTier ? "Upgrade Subscription" : "Choose a Plan"}
           </DialogTitle>
           <DialogDescription>

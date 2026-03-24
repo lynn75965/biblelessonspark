@@ -37,6 +37,9 @@ export const ROUTES = {
   ORG_MANAGER: '/org-manager',
   // Teaching Team
   TEACHING_TEAM: '/teaching-team',
+  // Sidebar extras
+  BONUSES: '/bonuses',
+  MORE_TOOLS: '/more-tools',
   // Legal routes
   PRIVACY: '/legal/privacy',
   TERMS: '/legal/terms',

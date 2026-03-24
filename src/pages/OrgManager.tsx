@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { AppShell } from "@/components/layout/AppShell";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import {
   Users,
   BookOpen,
   BarChart3,
-  Settings,
+  Settings2,
   ArrowLeft,
   Target,
   Layers,
@@ -156,10 +155,8 @@ export default function OrgManager() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header isAuthenticated organizationName={organization?.name} />
-
-      <main className="container py-4 sm:py-6 px-4 sm:px-6 flex-1">
+    <AppShell>
+      <div className="py-4 sm:py-6">
         {/* Header Section */}
         <div className="flex items-center gap-4 mb-6">
           <Link to={ROUTES.DASHBOARD}>
@@ -269,7 +266,7 @@ export default function OrgManager() {
               </TabsTrigger>
             )}
             <TabsTrigger value="settings" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Settings className="h-4 w-4 flex-shrink-0" />
+              <Settings2 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Settings</span>
             </TabsTrigger>
           </TabsList>
@@ -468,9 +465,7 @@ export default function OrgManager() {
             )}
           </TabsContent>
         </Tabs>
-      </main>
-
-      <Footer />
+      </div>
 
       <OrganizationSettingsModal
         open={showOrgSettingsModal}
@@ -518,7 +513,7 @@ export default function OrgManager() {
           }}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

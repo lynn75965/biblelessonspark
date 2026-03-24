@@ -32,7 +32,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sparkles, ArrowLeft, Copy, BookOpen, Clock, Users, CheckCircle, Lightbulb } from "lucide-react";
+import { Heart, ArrowLeft, Copy, BookOpen, Clock, Users, CheckCircle, Lightbulb } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -348,7 +348,7 @@ export function DevotionalGenerator() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="h-6 w-6 text-amber-500" />
+            <Heart className="h-6 w-6 text-amber-500" />
             DevotionalSpark
           </h1>
           <p className="text-muted-foreground text-sm">
@@ -527,7 +527,7 @@ export function DevotionalGenerator() {
                 </>
               ) : (
                 <>
-                  <Sparkles className="h-4 w-4 mr-2" />
+                  <Heart className="h-4 w-4 mr-2" />
                   Generate Devotional
                 </>
               )}
@@ -601,7 +601,7 @@ export function DevotionalGenerator() {
                 onClick={() => setDevotional(null)}
                 className="w-full"
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Heart className="h-4 w-4 mr-2" />
                 Generate Another Devotional
               </Button>
             </div>

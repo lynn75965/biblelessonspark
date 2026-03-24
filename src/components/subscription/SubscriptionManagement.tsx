@@ -7,7 +7,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard, Calendar, Sparkles, ExternalLink } from 'lucide-react';
+import { Loader2, CreditCard, Calendar, Star, ExternalLink } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { formatPrice } from '@/constants/pricingConfig';
 
@@ -93,7 +93,7 @@ export function SubscriptionManagement() {
           <div>
             <p className="text-sm text-muted-foreground">Current Plan</p>
             <p className="text-lg font-semibold flex items-center gap-2">
-              {tier === 'personal' && <Sparkles className="h-4 w-4 text-amber-500" />}
+              {tier === 'personal' && <Star className="h-4 w-4 text-amber-500" />}
               {getTierDisplay()}
             </p>
           </div>
@@ -155,7 +155,7 @@ export function SubscriptionManagement() {
               onClick={() => window.location.href = '/pricing'}
               className="w-full bg-sky-600 hover:bg-sky-700"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Star className="h-4 w-4 mr-2" />
               Upgrade to Personal
             </Button>
           )}

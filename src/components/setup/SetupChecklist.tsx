@@ -9,7 +9,7 @@ import {
   Church, 
   BookOpen,
   Users,
-  Sparkles,
+  Star,
   ArrowRight,
   Mail,
   CreditCard,
@@ -337,7 +337,7 @@ export function SetupChecklist({ isModal = false, onClose }: SetupChecklistProps
           <Card className="border-success bg-gradient-to-r from-success/10 to-primary/10">
             <CardContent className="p-6 text-center">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success text-white mx-auto mb-3">
-                <Sparkles className="h-6 w-6" />
+                <Star className="h-6 w-6" />
               </div>
               <h3 className="text-xl font-bold text-foreground mb-2">
                 Congratulations! 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -32,9 +33,10 @@ interface HeaderProps {
   organizationName?: string;
   hideOrgContext?: boolean; // NEW: Hide org badge for Personal Workspace
   hideUserMenu?: boolean;  // Hide avatar/dropdown when sidebar provides navigation
+  className?: string;      // Allow parent to override header visibility
 }
 
-export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrgContext = false, hideUserMenu = false }: HeaderProps) {
+export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrgContext = false, hideUserMenu = false, className }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { organization, userRole, hasOrganization } = useOrganization();
@@ -105,7 +107,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
   };
 
   return (<>
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className={cn("sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60", className)}>
       <div className="container flex h-14 sm:h-16 items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 min-w-0 flex-1">
           {/* Logo + Wordmark - SSOT from BRANDING, matches Footer styling */}
@@ -136,7 +138,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
         <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
           {authenticated ? (
             <>
-              <NotificationBell />
+              {!hideUserMenu && <NotificationBell />}
 
               {!hideUserMenu && (
                 <>

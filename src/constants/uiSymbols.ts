@@ -36,8 +36,8 @@ export const UI_SYMBOLS = {
   /** Star (\u2605) - Use for favorites, defaults, ratings */
   STAR: '\u2605',
   
-  /** Sparkles (\u2728) - Use for premium/special features */
-  SPARKLES: '\u2728',
+  /** Star symbol (\u2728) - Use for premium/special features */
+  PREMIUM: '\u2728',
 
   // -----------------------------------------------------
   // PROMPT FORMATTING (Backend primarily)

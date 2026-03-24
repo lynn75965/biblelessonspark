@@ -14,7 +14,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { STRIPE_ORG, STRIPE_INDIVIDUAL } from "../_shared/pricingConfig.ts";
+import { ORG_TIERS, STRIPE_INDIVIDUAL } from "../_shared/pricingConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -80,13 +80,13 @@ serve(async (req) => {
       const isOrgOwnerOrManager = membership?.role === "owner" || membership?.role === "manager";
       if (!isOrgCreator && !isOrgOwnerOrManager) throw new Error("Only organization managers can subscribe");
 
-      // SSOT: Resolve Stripe price ID from pricingConfig.ts -- never query org_tier_config
-      const orgTierConfig = STRIPE_ORG[tier as keyof typeof STRIPE_ORG];
+      // SSOT: Resolve Stripe price ID from ORG_TIERS (mirrors orgPricingConfig.ts)
+      const orgTierConfig = ORG_TIERS.find(t => t.tier === tier);
       if (!orgTierConfig) throw new Error(`Invalid tier: ${tier}`);
 
       const stripePriceId = billing_interval === "annual"
-        ? orgTierConfig.prices.annual
-        : orgTierConfig.prices.monthly;
+        ? orgTierConfig.priceAnnual
+        : orgTierConfig.priceMonthly;
       if (!stripePriceId) throw new Error(`No Stripe price for ${tier} ${billing_interval}`);
 
       let stripeCustomerId = org.stripe_customer_id;

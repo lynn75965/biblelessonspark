@@ -10,7 +10,7 @@ import {
   BookOpen,
   Clock,
   CheckCircle,
-  Sparkles,
+  Star,
   Users,
   FileText,
   Lightbulb,
@@ -60,7 +60,7 @@ const Training = () => {
       description: "A complete walkthrough of generating a lesson from scratch, including tips for best results.",
       duration: "5 min read",
       level: "Beginner",
-      icon: Sparkles
+      icon: Star
     },
     {
       title: "Understanding Age Group Profiles",

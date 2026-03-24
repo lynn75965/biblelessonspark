@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sparkles, BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
@@ -1225,7 +1225,7 @@ export function EnhanceLessonForm({
             {!lessonsLoading && lessonCount === 0 && !step1Complete && !step2Complete && (
               <div data-tour="workspace-welcome" className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
-                  <Sparkles className="h-6 w-6 text-primary shrink-0" />
+                  <Star className="h-6 w-6 text-primary shrink-0" />
                   <div>
                     <h3 className="font-semibold text-foreground">Welcome! Create your lesson in 3 simple steps.</h3>
                     <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
@@ -1802,7 +1802,7 @@ export function EnhanceLessonForm({
                 </div>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-4 w-4" />
+                  <Star className="mr-2 h-4 w-4" />
                   Generate My Lesson
                 </>
               )}
@@ -2058,7 +2058,7 @@ export function EnhanceLessonForm({
             {currentLesson.metadata?.teaser && lessonViewMode === "full" && (
               <div className="mb-3 p-2.5 bg-primary/5 border border-primary/30 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="h-4 w-4 text-primary" />
+                  <Star className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-primary text-sm">
                     Group Teaser (Pre-Lesson)
                   </h3>

@@ -27,7 +27,8 @@
 
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -37,7 +38,6 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -83,23 +83,29 @@ interface SidebarContentProps {
   onItemClick: (item: SidebarItem) => void;
 }
 
-function SidebarContent({ sections, activeTab, currentPath, onItemClick }: SidebarContentProps) {
+function SidebarContent({ sections, activeTab, currentPath, onItemClick, theme, toggleTheme }: SidebarContentProps & { theme: string; toggleTheme: () => void }) {
   return (
-    <nav className="flex flex-col gap-1 py-2" aria-label="Sidebar navigation">
-      {sections.map((section, sectionIndex) => (
-        <div key={section.id}>
-          {/* Section divider (not before the first section) */}
-          {sectionIndex > 0 && (
-            <div className="mx-3 my-2 border-t border-border" />
-          )}
+    <>
+      {/* Logo block with theme toggle */}
+      <div className="flex items-center justify-between px-3 py-4 border-b border-[#2d4a2d]">
+        <div className="flex items-center gap-2">
+          <img src={BRANDING.logo.icon} alt={BRANDING.logo.altText} className="h-7 w-7 rounded-lg object-contain" />
+          <span className="font-bold text-[15px] text-white tracking-wide">{BRANDING.appName}</span>
+        </div>
+        <button
+          onClick={toggleTheme}
+          className="text-[#c8d8c8] hover:text-white transition-colors cursor-pointer"
+          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
+      </div>
 
-          {/* Section label */}
-          <p className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-            {section.label}
-          </p>
-
-          {/* Section items */}
-          {section.items.map(item => {
+      <nav className="flex flex-col gap-1 py-2" aria-label="Sidebar navigation">
+        {sections.map((section) => (
+          <div key={section.id}>
+            {/* Items flow as one clean list -- no labels or dividers */}
+            {section.items.map(item => {
             const IconComponent = item.icon;
             const isActive = isSidebarTabItem(item)
               ? item.tabValue === activeTab
@@ -108,11 +114,11 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick }: Sideb
                 : false;
 
             const itemClasses = cn(
-              "flex items-center gap-3 w-full px-3 py-2 mx-1 rounded-md text-sm transition-colors text-left",
-              "hover:bg-accent hover:text-accent-foreground",
+              "flex items-center gap-3 w-full px-3 py-2.5 mx-1 rounded-md text-[13px] transition-colors text-left",
+              "hover:bg-[#2d4a2d] hover:text-white",
               isActive
-                ? "bg-accent text-accent-foreground font-medium"
-                : "text-muted-foreground"
+                ? "bg-[#2d4a2d] text-white font-semibold tracking-wide"
+                : "text-[#d8e8d8] font-medium tracking-wide"
             );
 
             // Route items render as <Link> for proper navigation
@@ -125,7 +131,7 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick }: Sideb
                   className={itemClasses}
                   title={item.description}
                 >
-                  <IconComponent className="h-4 w-4 shrink-0" />
+                  <IconComponent className="h-[18px] w-[18px] shrink-0" />
                   <span className="truncate">{item.label}</span>
                 </Link>
               );
@@ -139,14 +145,15 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick }: Sideb
                 className={itemClasses}
                 title={item.description}
               >
-                <IconComponent className="h-4 w-4 shrink-0" />
+                <IconComponent className="h-[18px] w-[18px] shrink-0" />
                 <span className="truncate">{item.label}</span>
               </button>
             );
           })}
         </div>
       ))}
-    </nav>
+      </nav>
+    </>
   );
 }
 
@@ -163,6 +170,7 @@ export function AppShell({
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { userRole, hasOrganization } = useOrganization();
@@ -206,12 +214,12 @@ export function AppShell({
 
   return (
     <div className={BRANDING.layout.pageWrapper}>
-      <Header isAuthenticated hideOrgContext hideUserMenu />
+      <Header isAuthenticated hideOrgContext hideUserMenu className="hidden" />
 
       <div className="flex flex-1">
         {/* Desktop sidebar -- always visible on md+ */}
-        <aside className="hidden md:flex md:w-56 lg:w-64 flex-col border-r border-border bg-background shrink-0 overflow-y-auto">
-          <SidebarContent {...sidebarProps} />
+        <aside className="hidden md:flex md:w-56 lg:w-64 flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-y-auto sticky top-0 h-screen">
+          <SidebarContent {...sidebarProps} theme={theme} toggleTheme={toggleTheme} />
         </aside>
 
         {/* Mobile sidebar -- Sheet drawer */}
@@ -227,11 +235,11 @@ export function AppShell({
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetTitle className="px-3 pt-4 pb-2 text-sm font-semibold">
+            <SheetContent side="left" className="w-64 p-0 flex flex-col bg-[#1a2e1a] border-[#2d4a2d]">
+              <SheetTitle className="sr-only">
                 Navigation
               </SheetTitle>
-              <SidebarContent {...sidebarProps} />
+              <SidebarContent {...sidebarProps} theme={theme} toggleTheme={toggleTheme} />
             </SheetContent>
           </Sheet>
         </div>
@@ -242,7 +250,6 @@ export function AppShell({
         </main>
       </div>
 
-      <Footer />
     </div>
   );
 }

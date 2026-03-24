@@ -26,17 +26,22 @@
  */
 
 import {
-  Sparkles,
+  PenLine,
   BookOpen,
-  BookHeart,
-  Library,
+  Heart,
+  Layers,
   Users,
   Building2,
-  Shield,
+  ShieldCheck,
   Wrench,
   CreditCard,
-  Settings,
+  CircleUser,
   LogOut,
+  GraduationCap,
+  LifeBuoy,
+  CircleHelp,
+  Gift,
+  Hammer,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
@@ -80,7 +85,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
   buildLesson: {
     id: 'buildLesson',
     label: 'Build Lesson',
-    icon: Sparkles,
+    icon: PenLine,
     description: 'Create a new Bible study lesson',
     tabValue: DASHBOARD_TAB_VALUES.BUILD,
   },
@@ -94,14 +99,14 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
   devotionalLibrary: {
     id: 'devotionalLibrary',
     label: 'Devotional Library',
-    icon: BookHeart,
+    icon: Heart,
     description: 'Browse and manage devotionals',
     tabValue: DASHBOARD_TAB_VALUES.DEVOTIONAL_LIBRARY,
   },
   seriesLibrary: {
     id: 'seriesLibrary',
     label: 'Series Library',
-    icon: Library,
+    icon: Layers,
     description: 'Browse and manage lesson series',
     tabValue: DASHBOARD_TAB_VALUES.SERIES_LIBRARY,
   },
@@ -122,7 +127,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
   adminPanel: {
     id: 'adminPanel',
     label: 'Administrator Panel',
-    icon: Shield,
+    icon: ShieldCheck,
     description: 'Platform-wide administration',
     route: ROUTES.ADMIN,
   },
@@ -143,7 +148,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
   userProfile: {
     id: 'userProfile',
     label: 'User Profile',
-    icon: Settings,
+    icon: CircleUser,
     description: 'Update your profile defaults',
     action: 'openProfile',
   },
@@ -153,6 +158,41 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: LogOut,
     description: 'Sign out of your account',
     action: 'signOut',
+  },
+  tutorials: {
+    id: 'tutorials',
+    label: 'Tutorials',
+    icon: GraduationCap,
+    description: 'Learn how to use BibleLessonSpark',
+    route: ROUTES.TRAINING,
+  },
+  support: {
+    id: 'support',
+    label: 'Support',
+    icon: LifeBuoy,
+    description: 'Get help and support',
+    route: ROUTES.HELP,
+  },
+  faqs: {
+    id: 'faqs',
+    label: 'FAQs',
+    icon: CircleHelp,
+    description: 'Frequently asked questions',
+    route: ROUTES.HELP,
+  },
+  bonuses: {
+    id: 'bonuses',
+    label: 'Resources',
+    icon: Gift,
+    description: 'Special resources for teachers',
+    route: ROUTES.BONUSES,
+  },
+  moreTools: {
+    id: 'moreTools',
+    label: 'Teacher Tools',
+    icon: Hammer,
+    description: 'Additional teaching tools',
+    route: ROUTES.MORE_TOOLS,
   },
 } as const;
 
@@ -190,7 +230,12 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
   account: {
     id: 'account',
     label: 'Account',
-    items: ['pricing', 'userProfile', 'signOut'],
+    items: ['pricing', 'userProfile'],
+  },
+  resources: {
+    id: 'resources',
+    label: '',
+    items: ['tutorials', 'support', 'faqs', 'bonuses', 'moreTools', 'signOut'],
   },
 } as const;
 
@@ -214,22 +259,26 @@ export const SIDEBAR_BY_ROLE: Record<Role, string[]> = {
     'ministryOversight',
     'platformAdmin',
     'account',
+    'resources',
   ],
   [ROLES.orgLeader]: [
     'buildAndPrepare',
     'myTeachingTeam',
     'ministryOversight',
     'account',
+    'resources',
   ],
   [ROLES.orgMember]: [
     'buildAndPrepare',
     'myTeachingTeam',
     'account',
+    'resources',
   ],
   [ROLES.individual]: [
     'buildAndPrepare',
     'myTeachingTeamConditional',
     'account',
+    'resources',
   ],
 } as const;
 

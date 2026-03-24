@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate, Link } from "react-router-dom";
-import { Header } from "@/components/layout/Header";
+import { AppShell } from "@/components/layout/AppShell";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { BetaAnalyticsDashboard } from "@/components/analytics/BetaAnalyticsDashboard";
 import { FeedbackQuestionsManager } from "@/components/admin/FeedbackQuestionsManager";
@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, Users, Settings, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText } from "lucide-react";
+import { ShieldCheck, Users, Settings2, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -189,14 +189,12 @@ export default function Admin() {
   }
 
   return (
-    <div className={BRANDING.layout.pageWrapper}>
-      <Header />
-      <main className={`${BRANDING.layout.contentWrapper} py-6`}>
+    <AppShell>
         {/* Admin Header - Mobile friendly */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-              <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold truncate">Admin Panel</h1>
@@ -208,7 +206,7 @@ export default function Admin() {
           
           {/* Manage Toolbelt Button */}
           <Button asChild variant="outline" className="flex items-center gap-2">
-            <Link to="/admin/toolbelt">
+            <Link to={ROUTES.ADMIN_TOOLBELT}>
               <Wrench className="h-4 w-4" />
               <span>Manage Toolbelt</span>
             </Link>
@@ -227,7 +225,7 @@ export default function Admin() {
               <span className="hidden sm:inline">Content</span>
             </TabsTrigger>
             <TabsTrigger value="configuration" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Settings className="h-4 w-4 flex-shrink-0" />
+              <Settings2 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Configuration</span>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
@@ -235,7 +233,7 @@ export default function Admin() {
               <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
-              <Shield className="h-4 w-4 flex-shrink-0" />
+              <ShieldCheck className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
             <TabsTrigger value="growth" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
@@ -285,7 +283,7 @@ export default function Admin() {
             <Tabs defaultValue="settings">
               <TabsList className="bg-background border mb-4">
                 <TabsTrigger value="settings" className="flex items-center gap-1.5 text-sm">
-                  <Settings className="h-3.5 w-3.5" />
+                  <Settings2 className="h-3.5 w-3.5" />
                   Settings
                 </TabsTrigger>
                 <TabsTrigger value="export" className="flex items-center gap-1.5 text-sm">
@@ -429,8 +427,7 @@ export default function Admin() {
             </Tabs>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+    </AppShell>
   );
 }
 

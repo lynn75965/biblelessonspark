@@ -43,9 +43,12 @@ import {
   Clock,
   Copy,
   CheckCircle,
-  Sparkles,
+  Heart,
   ExternalLink,
   Loader2,
+  Download,
+  Mail,
+  ArrowLeft,
 } from "lucide-react";
 import { useDevotionals, Devotional } from "@/hooks/useDevotionals";
 import { supabase } from "@/integrations/supabase/client";
@@ -158,7 +161,7 @@ export function DevotionalLibrary() {
       <Card className="bg-gradient-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Heart className="h-5 w-5 text-primary" />
             My Devotionals
           </CardTitle>
           <CardDescription>Browse and manage your generated devotionals</CardDescription>
@@ -205,11 +208,11 @@ export function DevotionalLibrary() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
-                  <Badge className={`${TARGET_BADGE_COLORS[devotional.target_id] || "bg-gray-100 text-gray-800"} text-xs`} variant="secondary">
+                  <Badge className={`${TARGET_BADGE_COLORS[devotional.target_id] || "bg-gray-100 text-gray-800"} dark:bg-[#3d5a3d] dark:text-[#e8f0e8] dark:border-[#4d6a4d] text-xs`} variant="secondary">
                     <Users className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                     {getTargetLabel(devotional.target_id)}
                   </Badge>
-                  <Badge className={`${LENGTH_BADGE_COLORS[devotional.length_id] || "bg-gray-100 text-gray-800"} text-xs`} variant="secondary">
+                  <Badge className={`${LENGTH_BADGE_COLORS[devotional.length_id] || "bg-gray-100 text-gray-800"} dark:bg-[#3d5a3d] dark:text-[#e8f0e8] dark:border-[#4d6a4d] text-xs`} variant="secondary">
                     <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                     {getLengthLabel(devotional.length_id)}
                   </Badge>
@@ -254,7 +257,7 @@ export function DevotionalLibrary() {
       ) : (
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Sparkles className="h-16 w-16 text-muted-foreground/50 mb-4" />
+            <Heart className="h-16 w-16 text-muted-foreground/50 mb-4" />
             <div className="space-y-2 text-center">
               <h3 className="text-lg font-semibold">
                 {searchTerm || targetFilter !== "all" ? "No devotionals match your filters" : "No devotionals yet"}
@@ -278,10 +281,38 @@ export function DevotionalLibrary() {
                 <DialogTitle className="text-xl">{selectedDevotional.title || "Untitled Devotional"}</DialogTitle>
                 <DialogDescription>{selectedDevotional.bible_passage} - {selectedDevotional.word_count} words</DialogDescription>
               </DialogHeader>
-              <div className="flex gap-2 py-2">
+              <div className="flex flex-wrap gap-2 py-2">
                 <Button variant="outline" size="sm" onClick={() => handleCopy(selectedDevotional.content || "")}>
                   {copied ? <CheckCircle className="h-4 w-4 mr-1.5 text-primary" /> : <Copy className="h-4 w-4 mr-1.5" />}
                   {copied ? "Copied" : "Copy"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const content = selectedDevotional.content || "";
+                  const slug = (selectedDevotional.title || "devotional").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+                  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `devotional-${slug}.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast({ title: "Downloaded", description: "Devotional saved as text file." });
+                }}>
+                  <Download className="h-4 w-4 mr-1.5" />
+                  Download
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => {
+                  const subject = encodeURIComponent(selectedDevotional.title || "Devotional");
+                  const bodyPreview = (selectedDevotional.content || "").slice(0, 100) + "...";
+                  const body = encodeURIComponent(bodyPreview);
+                  window.open(`mailto:?subject=${subject}&body=${body}`, "_self");
+                }}>
+                  <Mail className="h-4 w-4 mr-1.5" />
+                  Email
+                </Button>
+                <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => setSelectedDevotional(null)}>
+                  <ArrowLeft className="h-4 w-4 mr-1.5" />
+                  Back to Library
                 </Button>
               </div>
               <div className="prose prose-sm max-w-none">

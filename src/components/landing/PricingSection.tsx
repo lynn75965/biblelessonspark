@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Sparkles, Loader2 } from "lucide-react";
+import { Check, X, Star, Loader2 } from "lucide-react";
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from "@/hooks/usePricingPlans";
 import { UPGRADE_PROMPTS, formatPrice } from "@/constants/pricingConfig";
 import { formatLoading } from "@/constants/uiSymbols";
@@ -200,11 +200,11 @@ export function PricingSection() {
               )}
               <ul className="space-y-3 text-left">
                 <li className="flex items-center gap-3 text-sm font-medium text-accent">
-                  <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                  <Star className="h-5 w-5 text-amber-500 flex-shrink-0" />
                   <span><strong>{personalPlan.lessonsPerMonth}</strong> lessons per month</span>
                 </li>
                 <li className="flex items-center gap-3 text-sm font-medium text-accent">
-                  <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                  <Star className="h-5 w-5 text-amber-500 flex-shrink-0" />
                   <span><strong>All 8</strong> lesson sections</span>
                 </li>
                 {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
@@ -215,7 +215,7 @@ export function PricingSection() {
                 ))}
                 {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
                   <li key={section} className="flex items-center gap-3 text-sm font-medium text-accent">
-                    <Sparkles className="h-5 w-5 text-amber-500 flex-shrink-0" />
+                    <Star className="h-5 w-5 text-amber-500 flex-shrink-0" />
                     <span>{section}</span>
                   </li>
                 ))}
@@ -226,7 +226,7 @@ export function PricingSection() {
                 className="w-full min-h-[44px] bg-sky-600 hover:bg-sky-700"
                 onClick={() => handleGetStarted('personal')}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
+                <Star className="h-4 w-4 mr-2" />
                 Sign Up
               </Button>
             </CardFooter>

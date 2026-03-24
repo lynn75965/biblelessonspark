@@ -7,7 +7,7 @@ import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sparkles, AlertCircle, Calendar, Zap } from 'lucide-react';
+import { Star, AlertCircle, Calendar, Zap } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 
@@ -72,7 +72,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
             onClick={onUpgradeClick}
             className="text-sky-600 hover:text-accent p-1 h-auto"
           >
-            <Sparkles className="h-4 w-4" />
+            <Star className="h-4 w-4" />
           </Button>
         )}
       </div>
@@ -107,7 +107,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
             onClick={onUpgradeClick}
             className="text-sky-600 hover:text-accent"
           >
-            <Sparkles className="h-4 w-4 mr-1" />
+            <Star className="h-4 w-4 mr-1" />
             Upgrade
           </Button>
         )}
@@ -155,7 +155,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
                   size="sm"
                   className="mt-2 bg-sky-600 hover:bg-sky-700"
                 >
-                  <Sparkles className="h-4 w-4 mr-1" />
+                  <Star className="h-4 w-4 mr-1" />
                   Upgrade Now
                 </Button>
               )}
@@ -176,7 +176,7 @@ export function UsageDisplay({ onUpgradeClick, compact = false }: UsageDisplayPr
       {isFreeTier && !isAtLimit && !isNearLimit && (
         <div className="mt-3 p-2 bg-sky-50 rounded-md">
           <p className="text-xs text-accent">
-            <Sparkles className="h-3 w-3 inline mr-1" />
+            <Star className="h-3 w-3 inline mr-1" />
             Upgrade to Personal for complete 8-section lessons with Theological Background, 
             Activities, and Discussion guides.
           </p>

@@ -8,6 +8,7 @@ import App from "./App.tsx";
 import { TenantProvider } from "@/contexts/TenantContext";
 import { getTenantConfig } from "@/lib/tenant/getTenantConfig";
 import { BrandingProvider } from "@/components/BrandingProvider";
+import { ThemeProvider } from "@/components/layout/ThemeProvider";
 
 async function bootstrap() {
   const host = window.location.hostname;
@@ -27,17 +28,19 @@ async function bootstrap() {
 
   createRoot(container).render(
     <React.StrictMode>
-      {/* 
-        BrandingProvider:
-        1. Injects base CSS variables from branding.ts (SSOT)
-        2. If tenant has custom colors, overrides --primary/--secondary
-        3. White-label tenants get their Admin Panel colors applied automatically
-      */}
-      <BrandingProvider tenantBranding={tenant.branding}>
-        <TenantProvider config={tenant}>
-          <App />
-        </TenantProvider>
-      </BrandingProvider>
+      <ThemeProvider>
+        {/*
+          BrandingProvider:
+          1. Injects base CSS variables from branding.ts (SSOT)
+          2. If tenant has custom colors, overrides --primary/--secondary
+          3. White-label tenants get their Admin Panel colors applied automatically
+        */}
+        <BrandingProvider tenantBranding={tenant.branding}>
+          <TenantProvider config={tenant}>
+            <App />
+          </TenantProvider>
+        </BrandingProvider>
+      </ThemeProvider>
     </React.StrictMode>
   );
 }

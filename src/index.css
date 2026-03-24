@@ -149,24 +149,25 @@
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 95%;
+    /* ===== Forest Green Dark Theme ===== */
+    --background: 120 12% 8%;
+    --foreground: 120 15% 92%;
+    --card: 120 25% 16%;
+    --card-foreground: 120 15% 92%;
+    --popover: 120 25% 11%;
+    --popover-foreground: 120 15% 92%;
     --primary: 120 20% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 40 61% 65%;
     --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 120 20% 13%;
+    --muted-foreground: 120 15% 71%;
     --accent: 43 52% 65%;
     --accent-foreground: 0 0% 10%;
     --destructive: 340 59% 35%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --border: 120 22% 18%;
+    --input: 120 25% 16%;
     --ring: 120 20% 40%;
   }
 
