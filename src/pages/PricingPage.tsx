@@ -11,6 +11,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -103,25 +104,36 @@ export default function PricingPage() {
     return loadingPlan !== null || (user !== null && currentTier === tier);
   };
 
-  if (plansLoading) {
+  // Layout wrapper: AppShell for authenticated users, Header/Footer for public
+  const PageWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (user) {
+      return <AppShell>{children}</AppShell>;
+    }
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
+        {children}
+        <Footer />
+      </div>
+    );
+  };
+
+  if (plansLoading) {
+    return (
+      <PageWrapper>
         <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-primary/5 to-background">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-2 text-muted-foreground">Loading pricing...</p>
           </div>
         </main>
-        <Footer />
-      </div>
+      </PageWrapper>
     );
   }
 
   if (plansError || !freePlan || !personalPlan) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
+      <PageWrapper>
         <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-primary/5 to-background">
           <Alert className="max-w-md border-destructive/50 bg-destructive/10">
             <AlertCircle className="h-4 w-4 text-destructive" />
@@ -130,8 +142,7 @@ export default function PricingPage() {
             </AlertDescription>
           </Alert>
         </main>
-        <Footer />
-      </div>
+      </PageWrapper>
     );
   }
 
@@ -141,8 +152,7 @@ export default function PricingPage() {
   const annualSavingsDisplay = formatPrice(annualSavings);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <PageWrapper>
       <main className="flex-1 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4 py-12">
           <div className="text-center max-w-3xl mx-auto">
@@ -352,7 +362,6 @@ export default function PricingPage() {
           </div>
         </div>
       </main>
-      <Footer />
 
       {/* Email Confirmation Dialog */}
       <Dialog open={showEmailConfirm} onOpenChange={setShowEmailConfirm}>
@@ -375,14 +384,14 @@ export default function PricingPage() {
             </p>
             <p className="text-sm text-muted-foreground mt-3">
               Make sure this is the email you use to log in to BibleLessonSpark.
-              If you need to use a different email, please log out and sign in 
+              If you need to use a different email, please log out and sign in
               with the correct email before upgrading.
             </p>
           </div>
           <div className="flex gap-3 mt-6">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowEmailConfirm(false)} 
+            <Button
+              variant="outline"
+              onClick={() => setShowEmailConfirm(false)}
               className="flex-1"
             >
               Go Back
@@ -397,6 +406,6 @@ export default function PricingPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageWrapper>
   );
 }

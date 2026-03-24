@@ -42,7 +42,8 @@
       "Bash(git pull:*)",
       "Bash(git merge:*)",
       "Bash(git stash:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase A complete -- role-guided sidebar navigation, dark/light mode, icon system, AppShell migration, font and color pickers, booklet adjustments, DB migration, pricing unification\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase A complete -- role-guided sidebar navigation, dark/light mode, icon system, AppShell migration, font and color pickers, booklet adjustments, DB migration, pricing unification\" 2>&1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Pricing page shows sidebar for authenticated users, standard header for public visitors\" 2>&1)"
     ]
   }
 }
