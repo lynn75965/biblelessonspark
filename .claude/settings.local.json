@@ -54,7 +54,10 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: PricingPage -- prevent layout flash by checking auth loading state before rendering\" 2>&1)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: PricingPage always uses AppShell -- no conditional logic, no flash, matches TeachingTeam pattern\" 2>&1)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Move UserProfileModal into AppShell -- works on every page without per-page prop\" 2>&1)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"REWORK: Complete sidebar navigation rework -- self-contained AppShell, tab navigation via location state, no prop drilling\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"REWORK: Complete sidebar navigation rework -- self-contained AppShell, tab navigation via location state, no prop drilling\" 2>&1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .\\\\deploy.ps1 \"FEATURE: Step 1 card UI, multi-page curriculum upload, auto scripture/focus extraction, paste extraction, single upload button, no pre-selected card, summary fixes\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\lynn\\\\biblelessonspark\\\\deploy.ps1\" \"FEATURE: Step 1 card UI, multi-page curriculum upload, auto scripture/focus extraction, paste extraction, single upload button, no pre-selected card, summary fixes\")",
+      "Bash(powershell -Command \"Get-Content -Encoding Byte 'C:\\\\Users\\\\lynn\\\\biblelessonspark\\\\supabase\\\\functions\\\\extract-lesson\\\\index.ts' | Select-Object -First 3\")"
     ]
   }
 }

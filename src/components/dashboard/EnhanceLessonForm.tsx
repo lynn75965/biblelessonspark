@@ -40,7 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+
 import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -372,15 +372,23 @@ export function EnhanceLessonForm({
   // STEP 1: LESSON CONTENT STATE
   // ============================================================================
 
-  const [contentInputType, setContentInputType] = useState<"curriculum" | "passage" | "topic">("passage");
+  const [contentInputType, setContentInputType] = useState<"curriculum" | "passage" | "topic" | null>(null);
   const [biblePassage, setBiblePassage] = useState("");
   const [showBibleSuggestions, setShowBibleSuggestions] = useState(false);
   const [focusedTopic, setFocusedTopic] = useState("");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [extractedContent, setExtractedContent] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [extractedPages, setExtractedPages] = useState<string[]>([]);
+  const [scriptureLockedFromExtraction, setScriptureLockedFromExtraction] = useState(false);
   const [pastedContent, setPastedContent] = useState<string>("");
   const [curriculumInputMode, setCurriculumInputMode] = useState<"file" | "paste">("file");
   const [isExtracting, setIsExtracting] = useState(false);
+  const [showExtractionNote, setShowExtractionNote] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Derived: combine all extracted pages into single string for downstream consumers
+  const extractedContent = extractedPages.length > 0
+    ? extractedPages.join("\n\n---\n\n")
+    : null;
 
   // ============================================================================
   // STEP 2: AUDIENCE STATE
@@ -469,9 +477,10 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const isStep1Complete = (): boolean => {
+    if (contentInputType === null) return false;
     if (contentInputType === "curriculum") {
       return (curriculumInputMode === "paste" && pastedContent.trim().length > 0) ||
-             (curriculumInputMode === "file" && extractedContent !== null);
+             (curriculumInputMode === "file" && extractedPages.length > 0);
     }
     return biblePassage.trim().length > 0 || focusedTopic.trim().length > 0;
   };
@@ -488,7 +497,14 @@ export function EnhanceLessonForm({
 
   // Generate summary text for collapsed steps
   const getStep1Summary = (): string => {
+    if (contentInputType === null) return "";
     if (contentInputType === "curriculum") {
+      if (biblePassage.trim() || focusedTopic.trim()) {
+        const parts = [];
+        if (biblePassage.trim()) parts.push(biblePassage.trim());
+        if (focusedTopic.trim()) parts.push(focusedTopic.trim());
+        return parts.join(" - ");
+      }
       if (curriculumInputMode === "paste" && pastedContent.trim()) {
         return `Pasted content (${pastedContent.length} chars)`;
       }
@@ -499,7 +515,7 @@ export function EnhanceLessonForm({
     const parts = [];
     if (biblePassage.trim()) parts.push(biblePassage.trim());
     if (focusedTopic.trim()) parts.push(`"${focusedTopic.trim()}"`);
-    return parts.join(" ? ") || "";
+    return parts.join(" - ") || "";
   };
 
   const getStep2Summary = (): string => {
@@ -782,26 +798,24 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload a file smaller than 10MB",
-        variant: "destructive",
-      });
-      return;
+    // Validate all files first
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: `${files[i].name} exceeds 10MB limit`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
-    setUploadedFile(file);
     setIsExtracting(true);
-    setExtractedContent(null);
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append("file", file);
-
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -812,33 +826,61 @@ export function EnhanceLessonForm({
       }
 
       const supabaseUrl = "https://hphebzdftpjbiudpfcrs.supabase.co";
-      const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: formDataToSend,
-      });
 
-      if (!response.ok) {
-        throw new Error(`Extraction failed: ${response.status}`);
-      }
+      // Process files sequentially to avoid race conditions
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formDataToSend = new FormData();
+        formDataToSend.append("file", file);
 
-      const result = await response.json();
-
-      if (result.success && result.extractedText) {
-        setExtractedContent(result.extractedText);
-        toast({
-          title: "File processed successfully",
-          description: `Extracted ${result.extractedText.length} characters from ${file.name}`,
+        const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: formDataToSend,
         });
-      } else {
-        throw new Error(result.error || "Failed to extract content");
+
+        if (!response.ok) {
+          throw new Error(`Extraction failed for ${file.name}: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.extractedText) {
+          // Check if this is the very first file overall (no prior uploads)
+          const isFirstFileEver = uploadedFiles.length === 0 && i === 0;
+
+          setUploadedFiles(prev => [...prev, file]);
+          setExtractedPages(prev => [...prev, result.extractedText]);
+
+          // Only populate scripture/focus from the first file ever uploaded
+          if (isFirstFileEver && !scriptureLockedFromExtraction) {
+            let populated = false;
+            if (result.extractedPassage && !biblePassage.trim()) {
+              setBiblePassage(result.extractedPassage);
+              populated = true;
+            }
+            if (result.extractedFocus && !focusedTopic.trim()) {
+              setFocusedTopic(result.extractedFocus);
+              populated = true;
+            }
+            if (populated) {
+              setShowExtractionNote(true);
+              setScriptureLockedFromExtraction(true);
+            }
+          }
+
+          toast({
+            title: "File processed",
+            description: `Extracted ${result.extractedText.length} characters from ${file.name}`,
+          });
+        } else {
+          throw new Error(result.error || `Failed to extract content from ${file.name}`);
+        }
       }
     } catch (error: any) {
       console.error("File extraction error:", error);
-      setUploadedFile(null);
-      setExtractedContent(null);
       toast({
         title: "File processing failed",
         description: error.message || "Please try again",
@@ -846,14 +888,18 @@ export function EnhanceLessonForm({
       });
     } finally {
       setIsExtracting(false);
+      // Clear the input so the same files can be re-selected if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
   const handleCurriculumModeChange = (mode: "file" | "paste") => {
     setCurriculumInputMode(mode);
     if (mode === "paste") {
-      setUploadedFile(null);
-      setExtractedContent(null);
+      setUploadedFiles([]);
+      setExtractedPages([]);
     } else {
       setPastedContent("");
     }
@@ -870,10 +916,131 @@ export function EnhanceLessonForm({
     return null;
   };
 
+  const handlePastedContentExtraction = async () => {
+    if (pastedContent.trim().length < 200) return;
+    if (scriptureLockedFromExtraction) return;
+
+    setIsExtracting(true);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const authToken = session?.access_token;
+      if (!authToken) return;
+
+      const supabaseUrl = "https://hphebzdftpjbiudpfcrs.supabase.co";
+      const formDataToSend = new FormData();
+      formDataToSend.append("pastedText", pastedContent.trim());
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: formDataToSend,
+      });
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      if (result.success) {
+        let populated = false;
+        if (result.extractedPassage && !biblePassage.trim()) {
+          setBiblePassage(result.extractedPassage);
+          populated = true;
+        }
+        if (result.extractedFocus && !focusedTopic.trim()) {
+          setFocusedTopic(result.extractedFocus);
+          populated = true;
+        }
+        if (populated) {
+          setShowExtractionNote(true);
+          setScriptureLockedFromExtraction(true);
+        }
+      }
+    } catch (error) {
+      console.error("Pasted content extraction error:", error);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   const clearCurriculumContent = () => {
-    setUploadedFile(null);
-    setExtractedContent(null);
+    setUploadedFiles([]);
+    setExtractedPages([]);
     setPastedContent("");
+    if (scriptureLockedFromExtraction) {
+      setBiblePassage("");
+      setFocusedTopic("");
+    }
+    setScriptureLockedFromExtraction(false);
+    setShowExtractionNote(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemovePage = async (index: number) => {
+    const wasFirstPage = index === 0 && scriptureLockedFromExtraction;
+    const newFiles = uploadedFiles.filter((_, i) => i !== index);
+    const newPages = extractedPages.filter((_, i) => i !== index);
+    setUploadedFiles(newFiles);
+    setExtractedPages(newPages);
+
+    // If removing the first page and scripture was locked from it, re-extract from new first page
+    if (wasFirstPage) {
+      setBiblePassage("");
+      setFocusedTopic("");
+      setShowExtractionNote(false);
+      setScriptureLockedFromExtraction(false);
+
+      if (newFiles.length > 0) {
+        // Re-extract scripture/focus from the new first file
+        setIsExtracting(true);
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          const authToken = session?.access_token;
+          if (authToken) {
+            const supabaseUrl = "https://hphebzdftpjbiudpfcrs.supabase.co";
+            const formDataToSend = new FormData();
+            formDataToSend.append("file", newFiles[0]);
+            const response = await fetch(`${supabaseUrl}/functions/v1/extract-lesson`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${authToken}` },
+              body: formDataToSend,
+            });
+            if (response.ok) {
+              const result = await response.json();
+              if (result.success) {
+                let populated = false;
+                if (result.extractedPassage) {
+                  setBiblePassage(result.extractedPassage);
+                  populated = true;
+                }
+                if (result.extractedFocus) {
+                  setFocusedTopic(result.extractedFocus);
+                  populated = true;
+                }
+                if (populated) {
+                  setShowExtractionNote(true);
+                  setScriptureLockedFromExtraction(true);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Re-extraction error:", error);
+        } finally {
+          setIsExtracting(false);
+        }
+      }
+    }
+
+    if (newFiles.length === 0 && fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   // ============================================================================
@@ -966,7 +1133,7 @@ export function EnhanceLessonForm({
         include_liturgical: includeLiturgical,
         include_cultural: includeCultural,
         freshness_mode: freshnessMode,
-        uploaded_file: curriculumInputMode === "file" ? uploadedFile : null,
+        uploaded_file: curriculumInputMode === "file" && uploadedFiles.length > 0 ? uploadedFiles[0] : null,
         extracted_content: effectiveContent,
         // CONSISTENT STYLE MODE - Frontend drives these flags
         extract_style_metadata: isConsistentSeriesLesson1,
@@ -1257,190 +1424,388 @@ export function EnhanceLessonForm({
             onToggle={() => setExpandedStep(1)}
           >
             <div className="space-y-4">
-              {/* Radio selection for content type */}
-              <RadioGroup
-                value={contentInputType}
-                onValueChange={(value) =>
-                  setContentInputType(value as "curriculum" | "passage" | "topic")
-                }
-                className="space-y-3"
-                disabled={isSubmitting || isExtracting}
+              {/* Content type selection cards */}
+              <div
+                role="radiogroup"
+                aria-label="Content source type"
+                className="grid grid-cols-1 md:grid-cols-3 gap-3"
               >
-                {/* Option 1: Upload/Paste Curriculum */}
-                <div className="flex items-start space-x-3">
-                  <RadioGroupItem value="curriculum" id="content-curriculum" className="mt-1" />
-                  <div className="flex-1">
-                    <Label htmlFor="content-curriculum" className="font-medium cursor-pointer">
-                      Upload or paste existing curriculum for enhancement
-                    </Label>
-                    {contentInputType === "curriculum" && (
-                      <div className="mt-3 pl-0 space-y-3">
-                        {/* Toggle between file upload and paste */}
-                        <div className="flex gap-2">
+                {/* Card 1: Enhance Existing Curriculum */}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={contentInputType === "curriculum"}
+                  disabled={isSubmitting || isExtracting}
+                  onClick={() => setContentInputType("curriculum")}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setContentInputType("passage");
+                    }
+                    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setContentInputType("topic");
+                    }
+                  }}
+                  tabIndex={contentInputType === "curriculum" ? 0 : -1}
+                  className={`text-left rounded-lg border-2 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                    contentInputType === "curriculum"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/30"
+                  } ${isSubmitting || isExtracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Upload className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm leading-tight">Enhance Existing Curriculum</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        Upload or paste your current lesson or curriculum so BibleLessonSpark can strengthen, reshape, or expand it.
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1.5 italic">Best for teachers who already have material.</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Card 2: Build from a Bible Passage (Recommended) */}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={contentInputType === "passage"}
+                  disabled={isSubmitting || isExtracting}
+                  onClick={() => setContentInputType("passage")}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setContentInputType("topic");
+                    }
+                    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setContentInputType("curriculum");
+                    }
+                  }}
+                  tabIndex={contentInputType === "passage" ? 0 : -1}
+                  className={`text-left rounded-lg border-2 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                    contentInputType === "passage"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/30"
+                  } ${isSubmitting || isExtracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm leading-tight">Build from a Bible Passage</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        Enter a Scripture passage and generate a full lesson built on that text.
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1.5 italic">Most teachers start here.</p>
+                    </div>
+                  </div>
+                </button>
+
+                {/* Card 3: Create from a Topic or Question */}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={contentInputType === "topic"}
+                  disabled={isSubmitting || isExtracting}
+                  onClick={() => setContentInputType("topic")}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                      e.preventDefault();
+                      setContentInputType("curriculum");
+                    }
+                    if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      setContentInputType("passage");
+                    }
+                  }}
+                  tabIndex={contentInputType === "topic" ? 0 : -1}
+                  className={`text-left rounded-lg border-2 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                    contentInputType === "topic"
+                      ? "border-primary bg-primary/5"
+                      : "border-muted hover:border-muted-foreground/30"
+                  } ${isSubmitting || isExtracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <Layers className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm leading-tight">Create from a Topic or Question</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                        Start with a theme, doctrinal question, life issue, or teaching idea and generate a lesson from it.
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1.5 italic">Great for flexible lesson planning.</p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Conditional inputs below the card row */}
+              {/* Curriculum upload/paste -- only when "curriculum" is selected */}
+              {contentInputType === "curriculum" && (
+                <div className="space-y-3">
+                  {/* Toggle to paste mode */}
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={curriculumInputMode === "paste" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handleCurriculumModeChange("paste")}
+                      disabled={isSubmitting || isExtracting}
+                      className="flex items-center gap-2"
+                    >
+                      <Type className="h-4 w-4" />
+                      Paste Text
+                    </Button>
+                  </div>
+
+                  {/* File Upload Mode - MOBILE FIX: flex-col on mobile */}
+                  {curriculumInputMode === "file" && (
+                    <div className="space-y-2">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <Input
+                          ref={fileInputRef}
+                          type="file"
+                          accept={fileAcceptTypes}
+                          multiple
+                          onChange={handleFileChange}
+                          disabled={isSubmitting || isExtracting}
+                          className="sr-only"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isSubmitting || isExtracting}
+                          className="flex items-center gap-2 w-full sm:w-auto"
+                        >
+                          <Upload className="h-4 w-4" />
+                          {uploadedFiles.length === 0
+                            ? "Upload Curriculum -- PDF, TXT, JPG, JPEG, PNG"
+                            : "Add More Curriculum If Needed"}
+                        </Button>
+                        {uploadedFiles.length > 0 && (
                           <Button
                             type="button"
-                            variant={curriculumInputMode === "file" ? "default" : "outline"}
+                            variant="ghost"
                             size="sm"
-                            onClick={() => handleCurriculumModeChange("file")}
+                            onClick={clearCurriculumContent}
                             disabled={isSubmitting || isExtracting}
-                            className="flex items-center gap-2"
                           >
-                            <Upload className="h-4 w-4" />
-                            Upload File
+                            Clear All
                           </Button>
-                          <Button
-                            type="button"
-                            variant={curriculumInputMode === "paste" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => handleCurriculumModeChange("paste")}
-                            disabled={isSubmitting || isExtracting}
-                            className="flex items-center gap-2"
-                          >
-                            <Type className="h-4 w-4" />
-                            Paste Text
-                          </Button>
-                        </div>
-
-                        {/* File Upload Mode - MOBILE FIX: flex-col on mobile */}
-                        {curriculumInputMode === "file" && (
-                          <div className="space-y-2">
-                            <p className="text-xs text-muted-foreground">
-                              Supports PDF, TXT, JPG, JPEG, PNG (&lt;10MB). For Word docs, save as
-                              PDF first.
-                            </p>
-                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                              <Input
-                                type="file"
-                                accept={fileAcceptTypes}
-                                onChange={handleFileChange}
-                                disabled={isSubmitting || isExtracting}
-                                className="cursor-pointer flex-1 min-w-0"
-                              />
-                              {uploadedFile && (
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={clearCurriculumContent}
-                                  disabled={isSubmitting || isExtracting}
-                                >
-                                  Clear
-                                </Button>
-                              )}
-                            </div>
-                            {/* MOBILE FIX: break-words on extraction message */}
-                            {isExtracting && (
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
-                                <span className="break-words">Extracting content (may take 60-90 seconds for PDFs)...</span>
-                              </div>
-                            )}
-                            {extractedContent && (
-                              <div className="text-sm text-primary">
-                                ? File content extracted ({extractedContent.length} characters)
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Paste Text Mode */}
-                        {curriculumInputMode === "paste" && (
-                          <div className="space-y-2">
-                            <Textarea
-                              placeholder="Paste your existing lesson content here..."
-                              value={pastedContent}
-                              onChange={(e) => setPastedContent(e.target.value)}
-                              disabled={isSubmitting}
-                              rows={5}
-                              className="font-mono text-sm"
-                            />
-                            {/* MOBILE FIX: flex-wrap on pasted content row */}
-                            {pastedContent.trim() && (
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-sm text-primary">
-                                  ? {pastedContent.length} characters entered
-                                </span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setPastedContent("")}
-                                  disabled={isSubmitting}
-                                >
-                                  Clear
-                                </Button>
-                              </div>
-                            )}
-                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Option 2: Bible Passage */}
-                <div className="flex items-start space-x-3">
-                  <RadioGroupItem value="passage" id="content-passage" className="mt-1" />
-                  <div className="flex-1">
-                    <Label htmlFor="content-passage" className="font-medium cursor-pointer">
-                      Start from a Bible passage
-                    </Label>
-                    {(contentInputType === "passage" || contentInputType === "topic") && (
-                      <div className="mt-2 relative">
-                        <Input
-                          className={FORM_STYLING.biblePassageInput}
-                          placeholder="e.g., John 3:16-21"
-                          value={biblePassage}
-                          onChange={(e) => {
-                            setBiblePassage(e.target.value);
-                            setShowBibleSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
-                          }}
-                          onFocus={() => setShowBibleSuggestions(biblePassage.length >= FORM_STYLING.autocompleteMinChars)}
-                          onBlur={() => setTimeout(() => setShowBibleSuggestions(false), 150)}
-                          disabled={isSubmitting}
-                          autoComplete="off"
-                        />
-                        {showBibleSuggestions && findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
-                          <div className={FORM_STYLING.autocompleteDropdown}>
-                            {findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
-                              <div
-                                key={book}
-                                className={FORM_STYLING.autocompleteItem}
-                                onMouseDown={() => {
-                                  setBiblePassage(book + " ");
-                                  setShowBibleSuggestions(false);
-                                }}
-                              >
-                                {book}
+                      {/* MOBILE FIX: break-words on extraction message */}
+                      {isExtracting && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                          <span className="break-words">Extracting content (may take 60-90 seconds for PDFs)...</span>
+                        </div>
+                      )}
+                      {uploadedFiles.length > 0 && (
+                        <div className="space-y-2 mt-2">
+                          <p className="text-sm font-medium text-muted-foreground">
+                            Curriculum pages loaded: {uploadedFiles.length}
+                          </p>
+                          <div className="space-y-1">
+                            {uploadedFiles.map((file, idx) => (
+                              <div key={`${file.name}-${idx}`} className="flex items-center justify-between rounded border bg-muted/50 px-3 py-1.5 text-sm">
+                                <span className="truncate max-w-[250px]" title={file.name}>{file.name}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                                  onClick={() => handleRemovePage(idx)}
+                                  disabled={isSubmitting || isExtracting}
+                                >
+                                  Remove
+                                </Button>
                               </div>
                             ))}
                           </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                          {extractedContent && (
+                            <div className="text-sm text-primary">
+                              Total extracted: {extractedContent.length} characters
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {showExtractionNote && extractedContent && (
+                        <div className="mt-3 rounded-md border-l-4 border-amber-400 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+                          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Found in your curriculum</p>
+                          {biblePassage && (
+                            <div>
+                              <Label className="text-xs text-amber-700 dark:text-amber-300">Scripture:</Label>
+                              <Input
+                                className="mt-1 text-sm"
+                                value={biblePassage}
+                                onChange={(e) => setBiblePassage(e.target.value)}
+                                disabled={isSubmitting}
+                              />
+                            </div>
+                          )}
+                          {focusedTopic && (
+                            <div>
+                              <Label className="text-xs text-amber-700 dark:text-amber-300">Focus:</Label>
+                              <Input
+                                className="mt-1 text-sm"
+                                value={focusedTopic}
+                                onChange={(e) => setFocusedTopic(e.target.value)}
+                                disabled={isSubmitting}
+                              />
+                            </div>
+                          )}
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            Confirm or edit these before proceeding to Step 2.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                {/* Option 3: Topic/Theme */}
-                <div className="flex items-start space-x-3">
-                  <RadioGroupItem value="topic" id="content-topic" className="mt-1" />
-                  <div className="flex-1">
-                    <Label htmlFor="content-topic" className="font-medium cursor-pointer">
-                      Start from a topic, theme or question
-                    </Label>
-                    {(contentInputType === "passage" || contentInputType === "topic") && (
-                      <div className="mt-2">
-                        <Input
-                          placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
-                          value={focusedTopic}
-                          onChange={(e) => setFocusedTopic(e.target.value)}
-                          disabled={isSubmitting}
-                        />
-                      </div>
-                    )}
+                  {/* Paste Text Mode */}
+                  {curriculumInputMode === "paste" && (
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder="Paste your existing lesson content here..."
+                        value={pastedContent}
+                        onChange={(e) => setPastedContent(e.target.value)}
+                        disabled={isSubmitting}
+                        rows={5}
+                        className="font-mono text-sm"
+                      />
+                      {!scriptureLockedFromExtraction && (
+                        <Button
+                          type="button"
+                          variant="default"
+                          size="sm"
+                          onClick={handlePastedContentExtraction}
+                          disabled={pastedContent.trim().length < 200 || isExtracting || scriptureLockedFromExtraction}
+                          className="mt-2 gap-2 bg-primary hover:bg-primary-hover"
+                        >
+                          {isExtracting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Finding scripture and focus...
+                            </>
+                          ) : (
+                            <>
+                              <BookOpen className="h-4 w-4" />
+                              Find Scripture and Focus in My Curriculum
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {/* MOBILE FIX: flex-wrap on pasted content row */}
+                      {pastedContent.trim() && (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-sm text-primary">
+                            ? {pastedContent.length} characters entered
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPastedContent("")}
+                            disabled={isSubmitting}
+                          >
+                            Clear
+                          </Button>
+                        </div>
+                      )}
+                      {isExtracting && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
+                          <span>Scanning for scripture and focus...</span>
+                        </div>
+                      )}
+                      {showExtractionNote && !isExtracting && (
+                        <div className="mt-3 rounded-md border-l-4 border-amber-400 bg-amber-50 dark:bg-amber-950/20 p-3 space-y-2">
+                          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Found in your curriculum</p>
+                          {biblePassage && (
+                            <div>
+                              <Label className="text-xs text-amber-700 dark:text-amber-300">Scripture:</Label>
+                              <Input
+                                className="mt-1 text-sm"
+                                value={biblePassage}
+                                onChange={(e) => setBiblePassage(e.target.value)}
+                                disabled={isSubmitting}
+                              />
+                            </div>
+                          )}
+                          {focusedTopic && (
+                            <div>
+                              <Label className="text-xs text-amber-700 dark:text-amber-300">Focus:</Label>
+                              <Input
+                                className="mt-1 text-sm"
+                                value={focusedTopic}
+                                onChange={(e) => setFocusedTopic(e.target.value)}
+                                disabled={isSubmitting}
+                              />
+                            </div>
+                          )}
+                          <p className="text-xs text-amber-600 dark:text-amber-400">
+                            Confirm or edit these before proceeding to Step 2.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Bible passage + topic inputs -- shown for BOTH "passage" and "topic" */}
+              {(contentInputType === "passage" || contentInputType === "topic") && (
+                <div className="space-y-3">
+                  {/* Bible Passage input */}
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Bible Passage</Label>
+                    <div className="relative">
+                      <Input
+                        className={FORM_STYLING.biblePassageInput}
+                        placeholder="e.g., John 3:16-21"
+                        value={biblePassage}
+                        onChange={(e) => {
+                          setBiblePassage(e.target.value);
+                          setShowBibleSuggestions(e.target.value.length >= FORM_STYLING.autocompleteMinChars);
+                        }}
+                        onFocus={() => setShowBibleSuggestions(biblePassage.length >= FORM_STYLING.autocompleteMinChars)}
+                        onBlur={() => setTimeout(() => setShowBibleSuggestions(false), 150)}
+                        disabled={isSubmitting}
+                        autoComplete="off"
+                      />
+                      {showBibleSuggestions && findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
+                        <div className={FORM_STYLING.autocompleteDropdown}>
+                          {findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
+                            <div
+                              key={book}
+                              className={FORM_STYLING.autocompleteItem}
+                              onMouseDown={() => {
+                                setBiblePassage(book + " ");
+                                setShowBibleSuggestions(false);
+                              }}
+                            >
+                              {book}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Topic/Theme input */}
+                  <div>
+                    <Label className="text-sm font-medium mb-1.5 block">Topic or Question</Label>
+                    <Input
+                      placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
+                      value={focusedTopic}
+                      onChange={(e) => setFocusedTopic(e.target.value)}
+                      disabled={isSubmitting}
+                    />
                   </div>
                 </div>
-              </RadioGroup>
+              )}
 
               {/* Continue Button */}
               {step1Complete && (
@@ -1450,7 +1815,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(2)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Continue to Step 2 ?
+                    Proceed to Step 2 ?
                   </Button>
                 </div>
               )}
