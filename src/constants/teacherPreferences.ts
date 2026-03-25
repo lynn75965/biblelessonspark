@@ -526,7 +526,7 @@ export const LESSON_SEQUENCE_OPTIONS: PreferenceOption[] = [
   { 
     id: "part_of_series", 
     label: "Part of Series", 
-    description: "One lesson in a connected series (7 max)",
+    description: "One lesson in a connected series (13 max)",
     directive: "LESSON SEQUENCE (Part of Series): Include brief connection to series theme. Reference \"last week\" and \"next week\" concepts where appropriate. Build toward cumulative understanding. Include series memory work if applicable."
   },
   { 

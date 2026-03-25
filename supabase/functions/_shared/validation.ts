@@ -1,3 +1,5 @@
+import { MAX_SERIES_LESSONS, MIN_SERIES_LESSONS } from './seriesConfig.ts';
+
 /**
  * Enhanced input validation for Edge Function
  * Prevents injection attacks, oversized inputs, and malformed data
@@ -121,13 +123,13 @@ export function validateLessonRequest(data: any): LessonRequest {
 
   // Validate numbers for series
   if (data.lesson_number !== undefined && data.lesson_number !== null) {
-    if (typeof data.lesson_number !== 'number' || data.lesson_number < 1 || data.lesson_number > 7) {
-      throw new Error('lesson_number must be a number between 1 and 7');
+    if (typeof data.lesson_number !== 'number' || data.lesson_number < 1 || data.lesson_number > MAX_SERIES_LESSONS) {
+      throw new Error(`lesson_number must be a number between 1 and ${MAX_SERIES_LESSONS}`);
     }
   }
   if (data.total_lessons !== undefined && data.total_lessons !== null) {
-    if (typeof data.total_lessons !== 'number' || data.total_lessons < 2 || data.total_lessons > 7) {
-      throw new Error('total_lessons must be a number between 2 and 7');
+    if (typeof data.total_lessons !== 'number' || data.total_lessons < MIN_SERIES_LESSONS || data.total_lessons > MAX_SERIES_LESSONS) {
+      throw new Error(`total_lessons must be a number between ${MIN_SERIES_LESSONS} and ${MAX_SERIES_LESSONS}`);
     }
   }
 
