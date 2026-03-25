@@ -33,7 +33,7 @@ import {
 export default function PricingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { tier: currentTier, startCheckout, isFreeTier } = useSubscription();
   const { freePlan, personalPlan, isLoading: plansLoading, error: plansError } = usePricingPlans();
   
@@ -103,6 +103,9 @@ export default function PricingPage() {
   const isButtonDisabled = (tier: SubscriptionTier): boolean => {
     return loadingPlan !== null || (user !== null && currentTier === tier);
   };
+
+  // Prevent layout flash: wait for auth to resolve before rendering any layout
+  if (authLoading) return null;
 
   // Layout wrapper: AppShell for authenticated users, Header/Footer for public
   const PageWrapper = ({ children }: { children: React.ReactNode }) => {
