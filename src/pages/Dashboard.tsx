@@ -9,7 +9,6 @@ import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { SeriesLibrary } from "@/components/dashboard/SeriesLibrary";
-import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,7 +63,6 @@ export default function Dashboard() {
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
   const feedbackSubmittedRef = useRef(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [activeTab, setActiveTab] = useState("enhance");
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -166,10 +164,6 @@ export default function Dashboard() {
     setActiveTab(tabValue);
   };
 
-  const handleProfileUpdated = async () => {
-    await loadUserProfile();
-  };
-
   const handleUseFocus = (data: FocusApplicationData) => {
     setFocusDataToApply(data);
     setActiveTab("enhance");
@@ -211,7 +205,6 @@ export default function Dashboard() {
     <AppShell
       activeTab={activeTab}
       onTabChange={handleTabChange}
-      onOpenProfile={() => setShowProfileModal(true)}
       conditions={{ hasTeam }}
     >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
@@ -362,11 +355,6 @@ export default function Dashboard() {
         <span className="hidden sm:inline ml-1">Feedback</span>
       </Button>
 
-      <UserProfileModal
-        open={showProfileModal}
-        onOpenChange={setShowProfileModal}
-        onProfileUpdated={handleProfileUpdated}
-      />
 
       <BetaFeedbackModal
         open={showBetaFeedbackModal}

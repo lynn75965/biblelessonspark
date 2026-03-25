@@ -52,7 +52,8 @@
       "Bash(where python3:*)",
       "Bash(where py:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: PricingPage -- prevent layout flash by checking auth loading state before rendering\" 2>&1)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: PricingPage always uses AppShell -- no conditional logic, no flash, matches TeachingTeam pattern\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: PricingPage always uses AppShell -- no conditional logic, no flash, matches TeachingTeam pattern\" 2>&1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Move UserProfileModal into AppShell -- works on every page without per-page prop\" 2>&1)"
     ]
   }
 }

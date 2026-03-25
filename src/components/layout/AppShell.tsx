@@ -51,6 +51,7 @@ import {
   type ResolvedSidebarSection,
 } from "@/constants/sidebarConfig";
 import { BRANDING } from "@/config/branding";
+import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 
 // =============================================================================
 // TYPES
@@ -62,8 +63,6 @@ interface AppShellProps {
   activeTab?: string;
   /** Callback when a sidebar tab item is clicked (switches dashboard tab) */
   onTabChange?: (tabValue: string) => void;
-  /** Callback to open the user profile modal */
-  onOpenProfile?: () => void;
   /**
    * Runtime conditions for conditional sidebar sections.
    * Keys match the `condition` field in SidebarSection definitions.
@@ -170,10 +169,10 @@ export function AppShell({
   children,
   activeTab,
   onTabChange,
-  onOpenProfile,
   conditions = {},
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const location = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
@@ -196,8 +195,9 @@ export function AppShell({
       onTabChange(item.tabValue);
       setMobileOpen(false);
     } else if (isSidebarActionItem(item)) {
-      if (item.action === 'openProfile' && onOpenProfile) {
-        onOpenProfile();
+      if (item.action === 'openProfile') {
+        setShowProfileModal(true);
+        setMobileOpen(false);
       } else if (item.action === 'signOut') {
         await signOut();
         window.location.href = '/auth';
@@ -218,6 +218,7 @@ export function AppShell({
   };
 
   return (
+    <>
     <div className={BRANDING.layout.pageWrapper}>
       <Header isAuthenticated hideOrgContext hideUserMenu className="hidden" />
 
@@ -256,5 +257,11 @@ export function AppShell({
       </div>
 
     </div>
+
+    <UserProfileModal
+      open={showProfileModal}
+      onOpenChange={setShowProfileModal}
+    />
+    </>
   );
 }
