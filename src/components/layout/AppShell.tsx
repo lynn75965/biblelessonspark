@@ -120,10 +120,10 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick, theme, 
                 : false;
 
             const itemClasses = cn(
-              "flex items-center gap-3 w-full px-4 py-2.5 text-[13px] font-medium tracking-wide transition-colors text-left",
+              "flex items-center gap-3 w-full px-4 py-2.5 text-[13px] font-medium tracking-wide transition-colors text-left rounded-md",
               isActive
                 ? "bg-[#4a7a4a] text-white font-semibold"
-                : "text-[#d8e8d8] hover:bg-[#1a2e1a] hover:text-[#e8f0e8]"
+                : "text-[#d8e8d8] hover:bg-[#2d4a2d] hover:text-white"
             );
 
             // Route items render as <Link> for proper navigation
