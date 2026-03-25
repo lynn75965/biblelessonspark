@@ -5,11 +5,16 @@
  * ARCHITECTURE:
  * - Sidebar items come exclusively from sidebarConfig.ts (SSOT)
  * - Role resolution uses the same hook chain as Header.tsx
- * - Tab items call onTabChange to switch dashboard tabs (no navigation)
+ * - Tab items navigate to /dashboard with state: { tab: tabValue }
  * - Route items use <Link> to navigate to other pages
- * - Action items trigger callbacks (profile modal, sign out)
+ * - Action items trigger internal callbacks (profile modal, sign out)
  * - Conditional sections (e.g. Teaching Team for individuals)
  *   are evaluated against the conditions prop at render time
+ *
+ * SELF-CONTAINED:
+ * AppShell owns all navigation logic. No page passes tab callbacks
+ * or profile callbacks. Tab navigation uses React Router location
+ * state so Dashboard reads the target tab on mount.
  *
  * GOVERNING PRINCIPLE:
  * Every role lands on the lesson builder. The sidebar adds
@@ -23,10 +28,11 @@
  *
  * CHANGELOG:
  * - March 22, 2026: Initial creation for ui-sidebar branch
+ * - March 25, 2026: Self-contained rework -- no prop drilling
  */
 
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Menu, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
@@ -51,6 +57,7 @@ import {
   type ResolvedSidebarSection,
 } from "@/constants/sidebarConfig";
 import { BRANDING } from "@/config/branding";
+import { ROUTES } from "@/constants/routes";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 
 // =============================================================================
@@ -59,10 +66,6 @@ import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
 
 interface AppShellProps {
   children: React.ReactNode;
-  /** Current active dashboard tab value (for highlighting sidebar tab items) */
-  activeTab?: string;
-  /** Callback when a sidebar tab item is clicked (switches dashboard tab) */
-  onTabChange?: (tabValue: string) => void;
   /**
    * Runtime conditions for conditional sidebar sections.
    * Keys match the `condition` field in SidebarSection definitions.
@@ -77,12 +80,12 @@ interface AppShellProps {
 
 interface SidebarContentProps {
   sections: ResolvedSidebarSection[];
-  activeTab?: string;
   currentPath: string;
+  currentTab: string | null;
   onItemClick: (item: SidebarItem) => void;
 }
 
-function SidebarContent({ sections, activeTab, currentPath, onItemClick, theme, toggleTheme }: SidebarContentProps & { theme: string; toggleTheme: () => void }) {
+function SidebarContent({ sections, currentPath, currentTab, onItemClick, theme, toggleTheme }: SidebarContentProps & { theme: string; toggleTheme: () => void }) {
   return (
     <>
       {/* Logo block with theme toggle */}
@@ -107,7 +110,7 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick, theme, 
             {section.items.map(item => {
             const IconComponent = item.icon;
             const isActive = isSidebarTabItem(item)
-              ? item.tabValue === activeTab
+              ? currentPath === ROUTES.DASHBOARD && item.tabValue === currentTab
               : isSidebarRouteItem(item)
                 ? (() => {
                     const itemPath = (item.route || '').split('#')[0];
@@ -167,13 +170,12 @@ function SidebarContent({ sections, activeTab, currentPath, onItemClick, theme, 
 
 export function AppShell({
   children,
-  activeTab,
-  onTabChange,
   conditions = {},
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
@@ -189,10 +191,17 @@ export function AppShell({
     return conditions[section.condition] === true;
   });
 
+  // Determine current tab for active state highlighting
+  // Dashboard reads tab from location.state; AppShell reads it for highlighting
+  const currentTab: string | null = location.pathname === ROUTES.DASHBOARD
+    ? (location.state as any)?.tab || 'enhance'
+    : null;
+
   // Handle sidebar item clicks
   const handleItemClick = async (item: SidebarItem) => {
-    if (isSidebarTabItem(item) && onTabChange && item.tabValue) {
-      onTabChange(item.tabValue);
+    if (isSidebarTabItem(item) && item.tabValue) {
+      // Navigate to /dashboard with tab in location state
+      navigate(ROUTES.DASHBOARD, { state: { tab: item.tabValue } });
       setMobileOpen(false);
     } else if (isSidebarActionItem(item)) {
       if (item.action === 'openProfile') {
@@ -212,8 +221,8 @@ export function AppShell({
   // Shared sidebar content props
   const sidebarProps: SidebarContentProps = {
     sections: visibleSections,
-    activeTab,
     currentPath: location.pathname,
+    currentTab,
     onItemClick: handleItemClick,
   };
 

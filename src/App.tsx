@@ -115,8 +115,16 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path={ROUTES.DOCS} element={<Docs />} />
-            <Route path={ROUTES.HELP} element={<Help />} />
-            <Route path={ROUTES.TRAINING} element={<Training />} />
+            <Route path={ROUTES.HELP} element={
+              <ProtectedRoute>
+                <Help />
+              </ProtectedRoute>
+            } />
+            <Route path={ROUTES.TRAINING} element={
+              <ProtectedRoute>
+                <Training />
+              </ProtectedRoute>
+            } />
             <Route path={ROUTES.COMMUNITY} element={<Community />} />
             <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
             <Route path={ROUTES.TERMS} element={<TermsOfService />} />

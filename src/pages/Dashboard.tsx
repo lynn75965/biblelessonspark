@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DASHBOARD_TABS, DASHBOARD_TEXT } from "@/constants/dashboardConfig";
@@ -60,10 +60,12 @@ function setHasSubmittedFeedback(): void {
 
 export default function Dashboard() {
   // STATE DECLARATIONS
+  const location = useLocation();
+  const initialTab = (location.state as any)?.tab || DASHBOARD_TAB_VALUES.BUILD;
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
   const feedbackSubmittedRef = useRef(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("enhance");
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
@@ -91,16 +93,25 @@ export default function Dashboard() {
     disabled: activeTab !== 'enhance' || selectedLesson !== null 
   });
 
+  // Respond to sidebar tab navigation via location.state
+  useEffect(() => {
+    const stateTab = (location.state as any)?.tab;
+    const validTabs = Object.values(DASHBOARD_TAB_VALUES);
+    if (stateTab && validTabs.includes(stateTab as any)) {
+      setActiveTab(stateTab);
+    }
+  }, [location.state]);
+
   // Handle URL query parameters (SSOT: routes.ts)
   useEffect(() => {
     const tabParam = searchParams.get(DASHBOARD_QUERY_PARAMS.TAB);
     const viewLessonId = searchParams.get(DASHBOARD_QUERY_PARAMS.VIEW_LESSON);
-    
+
     const validTabs = Object.values(DASHBOARD_TAB_VALUES);
     if (tabParam && validTabs.includes(tabParam as any)) {
       setActiveTab(tabParam);
     }
-    
+
     if (viewLessonId && lessons.length > 0) {
       const lessonToView = lessons.find((l: any) => l.id === viewLessonId);
       if (lessonToView) {
@@ -203,8 +214,6 @@ export default function Dashboard() {
 
   return (
     <AppShell
-      activeTab={activeTab}
-      onTabChange={handleTabChange}
       conditions={{ hasTeam }}
     >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
