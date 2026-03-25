@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Project Master Document
-## Date: March 22, 2026
+## Date: March 25, 2026
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -610,6 +610,10 @@ beta_feedback_view, production_feedback_view, parable_usage (verify), user_parab
 | exportSettingsConfig.ts | src/constants/ | Admin-editable export formatting settings |
 | transferRequestConfig.ts | src/constants/ | Teacher transfer request workflow rules |
 | programConfig.ts | src/constants/ | Static content (maintenance messages, beta updates) |
+| sidebarConfig.ts | src/constants/ | Sidebar navigation items, sections, and role-based arrays (SSOT for AppShell sidebar) |
+| orgPricingConfig.ts | src/constants/ | Sole authority for org tier data -- display names, Stripe IDs, prices, limits (STRIPE_ORG block removed from pricingConfig.ts March 24, 2026) |
+| AppShell.tsx | src/components/layout/ | Authenticated page layout wrapper -- sidebar + content, self-contained navigation, owns UserProfileModal |
+| ThemeProvider.tsx | src/components/layout/ | Dark/light mode context provider -- persists preference in localStorage, consumed by AppShell and all themed components |
 
 ### Backend Mirrors (read-only copies synced from frontend)
 | File | Location | Source |
@@ -738,32 +742,33 @@ PLATFORM GUARDRAILS (Lynn owns -- non-negotiable Christian orthodoxy)
 
 ---
 
-### PHASE A -- Complete ui-sidebar Branch and Clear Technical Debt
+### PHASE A -- Complete ui-sidebar Branch and Clear Technical Debt -- COMPLETE (March 23-24, 2026)
 
-**Sidebar completion:**
-1. Migrate all remaining pages to AppShell -- Teaching Team, Org Manager, Admin Panel, Manage Toolbelt, Pricing
-2. Dark mode color refinements across all pages and components
-3. Light mode color and contrast refinements across all pages and components
-4. Complete icon consistency audit across all remaining pages not yet reviewed
+All 11 tasks completed. See SESSION LOG: March 23-25, 2026 for details.
 
-**Technical debt cleared in this phase:**
-5. Remove Print button from EnhanceLessonForm.tsx -- handlePrint function, Printer import, window.open call, formatLessonContentForPrint import if solely used by handlePrint
-6. Confirm caller of BookletPrintModal.tsx then delete entire file
-7. Extend single-lesson export to include font picker and color scheme picker -- series export has both, individual lesson export does not. Wire loadPdfFonts into exportToPdf.ts, wire color scheme into exportToPdf.ts and exportToDocx.ts, add picker UI to LessonExportModal.tsx
-8. Audit OrgSetup.tsx for stale hardcoded references to old tier names (Single Staff, Growth, Develop, Expansion) -- all display names must import from orgPricingConfig.ts SSOT
-9. Booklet economical printing -- body font 10.5pt to 10pt, line spacing refinement to 1.10x-1.15x, values from seriesExportConfig.ts SSOT
-10. Rename legacy include_student_handouts column in profiles table via proper Supabase migration
-11. Unify pricingConfig.ts STRIPE_ORG block with orgPricingConfig.ts -- 4 tiers vs 5 tiers with different keys must be resolved before org billing is developed further. orgPricingConfig.ts becomes sole authority.
+1. ~~Migrate all remaining pages to AppShell~~ -- DONE
+2. ~~Dark mode color refinements~~ -- DONE
+3. ~~Light mode color and contrast refinements~~ -- DONE
+4. ~~Complete icon consistency audit~~ -- DONE
+5. ~~Remove Print button from EnhanceLessonForm.tsx~~ -- DONE (already removed March 20)
+6. ~~Confirm caller of BookletPrintModal.tsx then delete~~ -- DONE (already deleted March 22)
+7. ~~Single-lesson export font picker and color scheme picker~~ -- DONE (already completed March 22)
+8. ~~Audit OrgSetup.tsx for stale tier names~~ -- DONE
+9. ~~Booklet economical printing~~ -- DONE
+10. ~~Rename include_student_handouts column~~ -- DONE (46th migration: 20260324180000_rename_include_student_handouts.sql)
+11. ~~Unify pricingConfig.ts STRIPE_ORG with orgPricingConfig.ts~~ -- DONE (STRIPE_ORG block removed from pricingConfig.ts; orgPricingConfig.ts is sole authority)
 
 ---
 
-### PHASE B -- Merge ui-sidebar to Main Branch
+### PHASE B -- Merge ui-sidebar to Main Branch -- COMPLETE (March 25, 2026)
 
-1. Full regression test across all six user roles on localhost before merge -- Free Teacher, Paid Teacher, Teaching Team Lead, Teaching Team Member, Organization Manager, Platform Admin -- both light and dark mode
-2. Verify all AppShell-migrated pages render correctly for every role
-3. Merge ui-sidebar to main -- single clean merge commit
-4. Update PROJECT_MASTER.md and CLAUDE.md to reflect new architecture as live platform standard
-5. Deploy and verify at biblelessonspark.com
+All 5 tasks completed. See SESSION LOG: March 23-25, 2026 for details.
+
+1. ~~Full regression test across all six user roles~~ -- DONE
+2. ~~Verify all AppShell-migrated pages render correctly~~ -- DONE
+3. ~~Merge ui-sidebar to main~~ -- DONE (clean merge commit)
+4. ~~Update PROJECT_MASTER.md and CLAUDE.md~~ -- DONE (this update)
+5. ~~Deploy and verify at biblelessonspark.com~~ -- DONE
 
 ---
 
@@ -1156,6 +1161,9 @@ Full platform vulnerability sweep covering financial integrity, subscription lif
 31. **WorkspaceSettingsPanel.tsx was dead code targeting nonexistent table** -- Component was never imported or rendered anywhere. Its migration file incorrectly targeted `workspace_settings` (which does not exist); the actual column `include_student_handouts` is on the `profiles` table. Both the component (497 lines) and the incorrect migration file were deleted March 20, 2026. No users affected.
 32. **Feedback form appeared after every lesson generation** -- No frequency cap existed; the form triggered on every lesson. Fixed March 20, 2026: form now shows every 5th lesson generated (tracked via localStorage). After submission, counter resets to 0 for first-timers, requires 10 more lessons for returning submitters. After dismiss without submitting, asks again after 2 more lessons. Manual Feedback button unaffected.
 33. **EnhanceLessonForm Print button silently removed during SSOT audit** -- The Print button (handlePrint + Printer icon) was removed from EnhanceLessonForm.tsx during the March 20, 2026 SSOT audit session but was not separately tracked as a print removal. Discovered clean on March 22 during planned print removal task. BookletPrintModal.tsx (305 lines) confirmed orphaned -- never imported by any file -- and deleted March 22, 2026.
+34. **PricingPage conditional layout caused sidebar flash** -- PricingPage had a `PageWrapper` that switched between AppShell (authenticated) and Header/Footer (public) based on `useAuth().user`. During auth resolution, `user` was briefly null, causing Header/Footer to flash before switching to AppShell. Fix: PricingPage now always uses AppShell; route wrapped in ProtectedRoute in App.tsx. March 25, 2026.
+35. **Sidebar tab items did not navigate from non-dashboard pages** -- Tab items (Build Lesson, Lesson Library, etc.) used `onTabChange` prop callback, which only worked on Dashboard. Clicking from any other page did nothing. Fix: AppShell now navigates to /dashboard with `location.state: { tab: tabValue }`. Dashboard reads tab from location.state on mount and via useEffect. March 25, 2026.
+36. **UserProfileModal only worked on Dashboard** -- AppShell accepted `onOpenProfile` as an optional prop, but only Dashboard passed it. Profile sidebar click was silently swallowed on all other pages. Fix: AppShell now owns the UserProfileModal state internally. No prop required from any page. March 25, 2026.
 
 ### SSOT Violations Identified This Afternoon -- Carry Forward to Next Session
 1. `SERIES_EXPORT_FORMATS.BOOKLET = 'booklet_pdf'` is dead code. Modal sends `format: 'pdf'` with `layout: 'booklet'`. useSeriesExport.ts works around with `|| options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET`. Fix: modal must set `format: SERIES_EXPORT_FORMATS.BOOKLET`; dispatch should check format only.
@@ -1215,24 +1223,34 @@ All five Series Export font choices now render distinctly in PDF output. Previou
 
 ### WHAT'S NEXT
 
-1. **3 SSOT violations carry-forward (from March 10 afternoon):**
+**Phase A -- COMPLETE (March 23-24, 2026)**
+**Phase B -- COMPLETE (March 25, 2026)**
+
+**Current priority: Phase C -- Library and Content Management Improvements**
+
+1. Retroactive series assignment -- add any existing lesson to any existing series after generation
+2. Series lesson reordering -- position lessons within a series before publishing
+3. Reshape history in Lesson Library -- every reshape recorded, searchable, viewable, exportable
+4. Consistent toolbar everywhere -- Copy, Download, Email on lessons, devotionals, and series
+
+**Carry-forward items (lower priority):**
+
+5. **3 SSOT violations carry-forward (from March 10 afternoon):**
    - SERIES_EXPORT_FORMATS.BOOKLET = 'booklet_pdf' is dead code -- modal sends format: 'pdf' with layout: 'booklet'
    - doc.line() calls in buildBookletPdf use BK_W - BK_M instead of BK_W - BK_OUTER (lines 10.8pt too far right)
    - buildSeriesExportFilename() bypassed for booklet exports (resolves when violation 1 is fixed)
 
-2. **OrgSetup.tsx stale tier name audit** -- May contain inline copy referencing old tier names ("Single Staff", "Growth") by string. Display names are pulled from orgPricingConfig.ts SSOT (correct), but any hardcoded prose should be checked.
-
-3. **pricingConfig.ts STRIPE_ORG vs orgPricingConfig.ts unification** -- pricingConfig.ts has 4 org tiers (starter/growth/full/enterprise); orgPricingConfig.ts has 5 tiers with different keys. Pre-existing tension. No functionality broken -- future cleanup when org billing is actively developed.
-
-4. **Org landing page visual polish** -- No hero image or visual element above the fold. Mobile tier card experience creates long scroll on small screens (5 cards in single column).
-
-5. **Booklet economical printing** -- Recommended adjustments not yet implemented: body font 10.5pt -> 10pt, line spacing adjustment, tighter margins. Do NOT adopt 5.5x8.5 landscape fold.
-
-6. **include_student_handouts column in profiles table** -- Cosmetic legacy naming. Column exists in live database but is only referenced by dead code (WorkspaceSettingsPanel.tsx removed March 20, 2026). Low priority rename via Supabase migration when convenient.
+6. **Org landing page visual polish** -- No hero image or visual element above the fold. Mobile tier card experience creates long scroll on small screens (5 cards in single column).
 
 7. **Admin UI feature flag toggles** -- Deferred post-launch
 8. **Frontend org creation / upgrade paths** -- Deferred
 9. **Multi-tenant migration** -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
+
+**Resolved in Phase A (no longer carry-forward):**
+- ~~OrgSetup.tsx stale tier names~~ -- audited and fixed
+- ~~pricingConfig.ts STRIPE_ORG vs orgPricingConfig.ts~~ -- STRIPE_ORG removed; orgPricingConfig.ts is sole authority
+- ~~Booklet economical printing~~ -- completed
+- ~~include_student_handouts column rename~~ -- 46th migration applied
 
 ---
 
@@ -1696,13 +1714,15 @@ This session introduced sidebar navigation to the Dashboard, replacing the horiz
 - Build clean at 3822 modules, zero errors
 - Dev server confirmed running at localhost:8081
 
-### Remaining Work on ui-sidebar Branch
+### Remaining Work on ui-sidebar Branch -- ALL COMPLETE
 
-1. Wrap remaining authenticated pages (Admin, Account, OrgManager, TeachingTeam, ToolbeltAdmin, toolbelt sub-pages) in AppShell
-2. Fix Organization Manager sidebar item route (currently points to ROUTES.ORG, may need ROUTES.ORG_MANAGER)
-3. Standardize Dashboard vs Workspace terminology across sidebar labels
-4. Test all five role configurations (platformAdmin, orgLeader, orgMember, individual with team, individual without team)
-5. Merge to main only after Lynn approves -- restore CLAUDE.md Rule #9 override note at merge time
+All 5 items completed. Branch merged to main March 25, 2026.
+
+1. ~~Wrap remaining authenticated pages in AppShell~~ -- DONE (Phase A)
+2. ~~Fix Organization Manager sidebar item route~~ -- DONE
+3. ~~Standardize Dashboard vs Workspace terminology~~ -- DONE
+4. ~~Test all five role configurations~~ -- DONE (Phase B regression test)
+5. ~~Merge to main~~ -- DONE (March 25, 2026)
 
 ### Files Modified This Session
 
@@ -1717,4 +1737,101 @@ This session introduced sidebar navigation to the Dashboard, replacing the horiz
 | src/pages/Help.tsx | Removed duplicate BRANDING import |
 | src/components/DevotionalGenerator.tsx | Removed duplicate ROUTES import |
 | PROJECT_MASTER.md | This session log |
+
+---
+
+## SESSION LOG: March 23-25, 2026 -- Phase A Completion, Phase B Merge, Sidebar Navigation Rework
+
+### Phase A -- All 11 Tasks Completed (March 23-24, 2026)
+
+**Tasks 1-4 (Sidebar completion):**
+- All remaining authenticated pages migrated to AppShell: Teaching Team, Org Manager, Admin Panel, Manage Toolbelt, Pricing, Help, Training, Bonuses, More Tools, Devotionals, Account
+- Dark mode color refinements across all pages
+- Light mode color and contrast refinements
+- Icon consistency audit completed
+
+**Tasks 5-7 (Already done in prior sessions):**
+- Print button removal (March 20), BookletPrintModal deletion (March 22), single-lesson export font/color picker (March 22)
+
+**Task 8: OrgSetup.tsx stale tier name audit**
+- Audited and fixed all hardcoded references to old tier names
+
+**Task 9: Booklet economical printing**
+- Body font adjusted to 10pt, line spacing refined to 1.10-1.15x per seriesExportConfig.ts SSOT
+
+**Task 10: include_student_handouts column rename**
+- 46th Supabase migration created: `20260324180000_rename_include_student_handouts.sql`
+- Renames `include_student_handouts` to `include_group_handouts` on profiles table
+- Safe conditional rename (IF EXISTS guard)
+
+**Task 11: Unify pricingConfig.ts STRIPE_ORG with orgPricingConfig.ts**
+- STRIPE_ORG block removed from pricingConfig.ts (comment at line 45 documents removal)
+- orgPricingConfig.ts is now the sole authority for all org tier data: display names, Stripe IDs, prices, lesson limits
+- All org edge functions (org-stripe-webhook, create-org-checkout-session) already import from _shared/pricingConfig.ts which delegates to orgPricingConfig.ts patterns
+
+### Phase B -- Merge to Main (March 25, 2026)
+
+- ui-sidebar branch merged to main via clean merge commit
+- Full regression test across all roles
+- Deployed to biblelessonspark.com via deploy.ps1
+- All AppShell-migrated pages verified rendering correctly
+
+### Sidebar Navigation Rework (March 25, 2026)
+
+Complete rework of AppShell to be fully self-contained. Four commits on main:
+
+**Commit f3a9819 -- FIX: PricingPage -- prevent layout flash by checking auth loading state before rendering**
+- Initial fix: added authLoading early return to prevent Header/Footer flash
+
+**Commit ef25296 -- FIX: PricingPage always uses AppShell -- no conditional logic, no flash, matches TeachingTeam pattern**
+- Removed Header/Footer imports and conditional PageWrapper
+- PricingPage always renders inside AppShell
+- /pricing route wrapped in ProtectedRoute in App.tsx
+- Simplified button text and badge logic (user always exists behind ProtectedRoute)
+
+**Commit 87932d1 -- FIX: Move UserProfileModal into AppShell -- works on every page without per-page prop**
+- UserProfileModal state and rendering moved from Dashboard.tsx into AppShell.tsx
+- Removed onOpenProfile prop from AppShellProps interface
+- Profile sidebar click now works on every page (Pricing, Teaching Team, Help, etc.)
+- Removed orphaned handleProfileUpdated function from Dashboard
+
+**Commit 39c789c -- REWORK: Complete sidebar navigation rework -- self-contained AppShell, tab navigation via location state, no prop drilling**
+- AppShell props reduced to: `children: React.ReactNode` and `conditions?: Record<string, boolean>`
+- Removed `activeTab`, `onTabChange`, `onOpenProfile` props entirely
+- Tab items (Build Lesson, Lesson Library, etc.) now navigate via `useNavigate(ROUTES.DASHBOARD, { state: { tab: tabValue } })`
+- Dashboard.tsx reads tab from `location.state?.tab` on mount and via useEffect
+- Tab active state highlighting: checks `location.pathname === /dashboard && location.state.tab === tabValue`
+- /help and /training routes wrapped in ProtectedRoute (they use AppShell which requires auth context)
+- AppShell owns all navigation decisions -- no page passes navigation callbacks
+
+### AppShell Architecture (as of March 25, 2026)
+
+**Props:**
+```typescript
+interface AppShellProps {
+  children: React.ReactNode;
+  conditions?: Record<string, boolean>;
+}
+```
+
+**Self-contained behaviors:**
+- Tab items: navigate to /dashboard with state: { tab: tabValue }
+- Route items: <Link> to item.route
+- Action items: openProfile sets internal showProfileModal state; signOut calls signOut() then redirects
+- Sidebar active state: tab items check location.state.tab; route items check location.pathname; action items never active
+- UserProfileModal owned internally -- no page passes onOpenProfile
+
+**Dark/light mode:**
+- ThemeProvider.tsx provides `{ theme, toggleTheme }` context
+- Theme toggle button in sidebar logo block
+- Preference persisted in localStorage
+
+### Files Modified This Session (March 25, 2026)
+
+| File | Change |
+|---|---|
+| src/components/layout/AppShell.tsx | Complete rewrite: self-contained, location.state tab navigation, owns UserProfileModal, props reduced to children+conditions |
+| src/pages/Dashboard.tsx | Reads tab from location.state, removed activeTab/onTabChange/onOpenProfile props, removed UserProfileModal |
+| src/pages/PricingPage.tsx | Always uses AppShell, removed Header/Footer/conditional layout |
+| src/App.tsx | /pricing, /help, /training wrapped in ProtectedRoute |
 
