@@ -5,12 +5,11 @@
 // Colors: BibleLessonSpark palette (Forest Green, Antique Gold, Burgundy, Warm Cream)
 //
 // 2026-02-26: Added email confirmation reminder before checkout
+// 2026-03-25: Simplified to AppShell-only layout (matches TeachingTeam pattern)
 // ============================================================
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,10 +32,10 @@ import {
 export default function PricingPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { tier: currentTier, startCheckout, isFreeTier } = useSubscription();
   const { freePlan, personalPlan, isLoading: plansLoading, error: plansError } = usePricingPlans();
-  
+
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>(DEFAULT_BILLING_INTERVAL);
   const [loadingPlan, setLoadingPlan] = useState<SubscriptionTier | null>(null);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
@@ -45,16 +44,7 @@ export default function PricingPage() {
 
   const handleSelectPlan = async (tier: SubscriptionTier) => {
     if (tier === 'free') {
-      if (user) {
-        navigate(ROUTES.DASHBOARD);
-      } else {
-        navigate(ROUTES.AUTH);
-      }
-      return;
-    }
-
-    if (!user) {
-      navigate(`${ROUTES.AUTH}?redirect=${ROUTES.PRICING}&plan=personal`);
+      navigate(ROUTES.DASHBOARD);
       return;
     }
 
@@ -94,49 +84,31 @@ export default function PricingPage() {
 
   const getButtonText = (tier: SubscriptionTier): string => {
     if (loadingPlan === tier) return 'Loading...';
-    if (!user) return tier === 'free' ? 'Get Started Free' : 'Sign Up';
     if (currentTier === tier) return 'Current Plan';
     if (tier === 'free') return 'Downgrade';
     return 'Upgrade Now';
   };
 
   const isButtonDisabled = (tier: SubscriptionTier): boolean => {
-    return loadingPlan !== null || (user !== null && currentTier === tier);
-  };
-
-  // Prevent layout flash: wait for auth to resolve before rendering any layout
-  if (authLoading) return null;
-
-  // Layout wrapper: AppShell for authenticated users, Header/Footer for public
-  const PageWrapper = ({ children }: { children: React.ReactNode }) => {
-    if (user) {
-      return <AppShell>{children}</AppShell>;
-    }
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        {children}
-        <Footer />
-      </div>
-    );
+    return loadingPlan !== null || currentTier === tier;
   };
 
   if (plansLoading) {
     return (
-      <PageWrapper>
+      <AppShell>
         <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-primary/5 to-background">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
             <p className="mt-2 text-muted-foreground">Loading pricing...</p>
           </div>
         </main>
-      </PageWrapper>
+      </AppShell>
     );
   }
 
   if (plansError || !freePlan || !personalPlan) {
     return (
-      <PageWrapper>
+      <AppShell>
         <main className="flex-1 flex items-center justify-center bg-gradient-to-b from-primary/5 to-background">
           <Alert className="max-w-md border-destructive/50 bg-destructive/10">
             <AlertCircle className="h-4 w-4 text-destructive" />
@@ -145,7 +117,7 @@ export default function PricingPage() {
             </AlertDescription>
           </Alert>
         </main>
-      </PageWrapper>
+      </AppShell>
     );
   }
 
@@ -155,7 +127,7 @@ export default function PricingPage() {
   const annualSavingsDisplay = formatPrice(annualSavings);
 
   return (
-    <PageWrapper>
+    <AppShell>
       <main className="flex-1 bg-gradient-to-b from-primary/5 to-background">
         <div className="container mx-auto px-4 py-12">
           <div className="text-center max-w-3xl mx-auto">
@@ -163,7 +135,7 @@ export default function PricingPage() {
               Simple, Transparent Pricing
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Start free, upgrade when you need complete lessons. 
+              Start free, upgrade when you need complete lessons.
               No hidden fees, cancel anytime.
             </p>
 
@@ -216,8 +188,8 @@ export default function PricingPage() {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* FREE PLAN */}
-            <Card className={`relative ${currentTier === 'free' && user ? 'ring-2 ring-muted-foreground/30' : ''}`}>
-              {currentTier === 'free' && user && (
+            <Card className={`relative ${currentTier === 'free' ? 'ring-2 ring-muted-foreground/30' : ''}`}>
+              {currentTier === 'free' && (
                 <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-muted-foreground">
                   Current Plan
                 </Badge>
@@ -268,12 +240,12 @@ export default function PricingPage() {
 
             {/* PERSONAL PLAN */}
             <Card className={`relative border-2 ${
-              currentTier === 'personal' && user 
-                ? 'ring-2 ring-primary border-primary' 
+              currentTier === 'personal'
+                ? 'ring-2 ring-primary border-primary'
                 : 'border-primary'
             }`}>
               <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-secondary text-secondary-foreground">
-                {currentTier === 'personal' && user ? 'Current Plan' : 'Most Popular'}
+                {currentTier === 'personal' ? 'Current Plan' : 'Most Popular'}
               </Badge>
               <CardHeader className="text-center pb-2">
                 <CardTitle className="text-2xl">{personalPlan.planName}</CardTitle>
@@ -346,8 +318,8 @@ export default function PricingPage() {
               <div>
                 <h3 className="font-semibold text-lg">What is included in a section?</h3>
                 <p className="text-muted-foreground mt-1">
-                  Each lesson can have up to 8 sections covering different aspects: from theological 
-                  background to interactive activities. Free users get the 3 core sections, while 
+                  Each lesson can have up to 8 sections covering different aspects: from theological
+                  background to interactive activities. Free users get the 3 core sections, while
                   Personal users get all 8 for complete, well-rounded lessons.
                 </p>
               </div>
@@ -409,6 +381,6 @@ export default function PricingPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </PageWrapper>
+    </AppShell>
   );
 }

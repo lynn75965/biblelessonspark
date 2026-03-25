@@ -56,7 +56,11 @@ const App = () => (
           <Routes>
             <Route path={ROUTES.HOME} element={<Index />} />
             <Route path={ROUTES.AUTH} element={<Auth />} />
-            <Route path={ROUTES.PRICING} element={<PricingPage />} />
+            <Route path={ROUTES.PRICING} element={
+              <ProtectedRoute>
+                <PricingPage />
+              </ProtectedRoute>
+            } />
             <Route
               path={ROUTES.DASHBOARD}
               element={
