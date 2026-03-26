@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen, Users, Clock, Star } from "lucide-react";
-import heroImage from "@/assets/hero-image.jpg";
+import heroImage from "@/assets/woman_using_BLS_at_home.jpg";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { shouldShowPublicBetaEnrollment } from "@/constants/betaEnrollmentConfig";
 import { useTenant } from "@/contexts/TenantContext";

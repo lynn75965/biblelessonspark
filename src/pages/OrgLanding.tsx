@@ -26,6 +26,7 @@ const OrgLanding = () => {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
+  const [showAllTiers, setShowAllTiers] = useState(false);
 
   // Existing-org banner state
   const [existingOrgName, setExistingOrgName] = useState<string | null>(null);
@@ -174,30 +175,41 @@ const OrgLanding = () => {
       {/* 1. HERO SECTION */}
       {/* ============================================================ */}
       <section className="py-12 sm:py-16 lg:py-20 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <Badge variant="secondary" className="mb-4">
-            <Church className="h-3 w-3 mr-1" />
-            For Ministry Leaders
-          </Badge>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary mb-4">
-            Shepherd Your Teaching Ministry with Clarity and Confidence
-          </h1>
-          <p className="text-lg sm:text-xl text-muted-foreground mb-4 max-w-2xl mx-auto">
-            Align every teacher. Strengthen every class. Support faithful teaching
-            across your entire ministry -- without adding complexity.
-          </p>
-          <p className="text-base text-muted-foreground mb-8 max-w-2xl mx-auto">
-            {BRANDING.appName} equips your teachers with personalized lesson preparation
-            while giving you a clear view of how your ministry is growing in truth and unity.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" onClick={() => handleGetStarted()} className="text-lg px-8">
-              Start Shepherding Your Teaching Ministry
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button size="lg" variant="outline" onClick={scrollToHowItWorks}>
-              See How It Works
-            </Button>
+        <div className="max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
+          {/* Left column -- text */}
+          <div className="flex-1 text-center lg:text-left">
+            <Badge variant="secondary" className="mb-4">
+              <Church className="h-3 w-3 mr-1" />
+              For Ministry Leaders
+            </Badge>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-primary mb-4">
+              Shepherd Your Teaching Ministry with Clarity and Confidence
+            </h1>
+            <p className="text-lg sm:text-xl text-muted-foreground mb-4 max-w-2xl">
+              Align every teacher. Strengthen every class. Support faithful teaching
+              across your entire ministry -- without adding complexity.
+            </p>
+            <p className="text-base text-muted-foreground mb-8 max-w-2xl">
+              {BRANDING.appName} equips your teachers with personalized lesson preparation
+              while giving you a clear view of how your ministry is growing in truth and unity.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+              <Button size="lg" onClick={() => handleGetStarted()} className="text-lg px-8">
+                Start Shepherding Your Teaching Ministry
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button size="lg" variant="outline" onClick={scrollToHowItWorks}>
+                See How It Works
+              </Button>
+            </div>
+          </div>
+          {/* Right column -- hero image */}
+          <div className="lg:flex-1 w-full mt-4 sm:mt-6 lg:mt-0">
+            <img
+              src="/bls_hero_org_manager.jpg"
+              alt="Ministry teaching team"
+              className="w-full h-auto rounded-lg shadow-lg block"
+            />
           </div>
         </div>
       </section>
@@ -386,19 +398,23 @@ const OrgLanding = () => {
           </div>
 
           {/* Tier Cards -- displayName and bestFor read from orgPricingConfig.ts SSOT */}
+          {/* Mobile: show 3 middle tiers by default, toggle to reveal all 5 */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {activeTiers.map((tier) => {
               const price = billingInterval === 'year' ? tier.priceAnnual : tier.priceMonthly;
               const { savings } = calculateSavings(tier.priceMonthly, tier.priceAnnual);
               // Most Popular stays on the tier formerly called Growth (org_growth)
               const isPopular = tier.tier === 'org_growth';
+              // Middle 3 tiers shown by default on mobile; outer 2 hidden until expanded
+              const isMiddleTier = tier.tier === 'org_starter' || tier.tier === 'org_growth' || tier.tier === 'org_develop';
+              const hiddenOnMobile = !isMiddleTier && !showAllTiers;
 
               return (
                 <Card
                   key={tier.tier}
                   className={`relative flex flex-col ${
                     isPopular ? 'border-primary shadow-lg ring-2 ring-primary/20' : ''
-                  }`}
+                  } ${hiddenOnMobile ? 'hidden sm:flex' : ''}`}
                 >
                   {isPopular && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -457,6 +473,16 @@ const OrgLanding = () => {
                 </Card>
               );
             })}
+          </div>
+
+          {/* Mobile-only toggle to show/hide outer tiers */}
+          <div className="sm:hidden text-center mt-4">
+            <button
+              onClick={() => setShowAllTiers(!showAllTiers)}
+              className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+            >
+              {showAllTiers ? 'Show less' : 'See all plans'}
+            </button>
           </div>
 
           {/* Lesson Packs Note */}
