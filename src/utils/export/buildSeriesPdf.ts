@@ -598,15 +598,15 @@ export async function buildBookletPdf(
   function bkEnsure(h: number): void { if (cy + h > BK_BOT) bkPage(); }
   function bkReset(): void {
     const [r,g,b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(pdfFont,'normal'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(r,g,b);
+    doc.setFont(pdfFont,'normal'); doc.setFontSize(EXPORT_SPACING.bookletBody.fontPt); doc.setTextColor(r,g,b);
   }
 
   function bkBody(text: string, italic?: boolean): void {
     const [r,g,b] = hexToRgb(EXPORT_SPACING.colors.bodyText);
     doc.setFont(pdfFont, italic ? 'italic' : 'normal');
-    doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(r,g,b);
+    doc.setFontSize(EXPORT_SPACING.bookletBody.fontPt); doc.setTextColor(r,g,b);
     const lines = doc.splitTextToSize(sanitizeForPdf(text), BK_CW) as string[];
-    const lh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    const lh = EXPORT_SPACING.bookletBody.fontPt * EXPORT_SPACING.bookletBody.lineHeight;
     // Widow prevention: if multiple lines and only 1 fits, advance page first
     if (lines.length > 1) {
       const spaceLeft = BK_BOT - cy;
@@ -622,7 +622,7 @@ export async function buildBookletPdf(
     doc.setFont(pdfFont,'bold'); doc.setFontSize(11); doc.setTextColor(r,g,b);
     const lines = doc.splitTextToSize(sanitizeForPdf(text), BK_CW) as string[];
     // Keep-with-next: subheading + 3 body lines must fit on same page
-    const bodyLh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight;
+    const bodyLh = EXPORT_SPACING.bookletBody.fontPt * EXPORT_SPACING.bookletBody.lineHeight;
     bkEnsure(16 * lines.length + 3 + bodyLh * 3);
     for (const line of lines) { doc.text(line, BK_M, cy); cy += 16; }
     cy += 3; bkReset();
@@ -645,7 +645,7 @@ export async function buildBookletPdf(
       if (/^\s*[*-]\s+/.test(line)) { bkBody('- ' + line.replace(/^\s*[*-]\s+/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (line.trim() === '') { cy += EXPORT_SPACING.paragraph.afterPt; continue; }
       if (/^%/.test(line.trim())) { bkBody('- ' + line.replace(/^%[^\s]*\s*/,'').replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
-      if (/^\*\*[A-Z]/.test(line.trim())) { const s = line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1'); const ci = s.indexOf(':'); const blh2 = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight; if (cy + blh2 * 3 > BK_BOT) { bkPage(); } if (ci !== -1 && ci < s.length - 1) { const lb = s.slice(0, ci + 1); const ct = s.slice(ci + 1).trim(); doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(0,0,0); const lls = doc.splitTextToSize(sanitizeForPdf(lb), BK_CW) as string[]; const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight; for (const bl of lls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } bkReset(); if (ct) { const cls = doc.splitTextToSize(sanitizeForPdf(ct), BK_CW) as string[]; for (const cl of cls) { bkEnsure(blh); doc.text(cl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; } } else { doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(0,0,0); const bls = doc.splitTextToSize(sanitizeForPdf(s), BK_CW) as string[]; const blh = EXPORT_SPACING.body.fontPt * EXPORT_SPACING.body.lineHeight; for (const bl of bls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; bkReset(); } continue; }
+      if (/^\*\*[A-Z]/.test(line.trim())) { const s = line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1'); const ci = s.indexOf(':'); const blh2 = EXPORT_SPACING.bookletBody.fontPt * EXPORT_SPACING.bookletBody.lineHeight; if (cy + blh2 * 3 > BK_BOT) { bkPage(); } if (ci !== -1 && ci < s.length - 1) { const lb = s.slice(0, ci + 1); const ct = s.slice(ci + 1).trim(); doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.bookletBody.fontPt); doc.setTextColor(0,0,0); const lls = doc.splitTextToSize(sanitizeForPdf(lb), BK_CW) as string[]; const blh = EXPORT_SPACING.bookletBody.fontPt * EXPORT_SPACING.bookletBody.lineHeight; for (const bl of lls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } bkReset(); if (ct) { const cls = doc.splitTextToSize(sanitizeForPdf(ct), BK_CW) as string[]; for (const cl of cls) { bkEnsure(blh); doc.text(cl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; } } else { doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.bookletBody.fontPt); doc.setTextColor(0,0,0); const bls = doc.splitTextToSize(sanitizeForPdf(s), BK_CW) as string[]; const blh = EXPORT_SPACING.bookletBody.fontPt * EXPORT_SPACING.bookletBody.lineHeight; for (const bl of bls) { bkEnsure(blh); doc.text(bl, BK_M, cy); cy += blh; } cy += EXPORT_SPACING.paragraph.afterPt; bkReset(); } continue; }
       if (/^[A-Z][^:\n]{2,48}:$/.test(line.trim())) { bkSubhead(line.trim().replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1')); continue; }
       if (/^>\s*/.test(line.trim())) { bkBody(sanitizeForPdf(line.replace(/^>\s*/,''))); continue; }
       bkBody(sanitizeForPdf(line.replace(/\*\*([^*]+)\*\*/g,'$1').replace(/\*([^*]+)\*/g,'$1').replace(/_([^_]+)_/g,'$1')));
@@ -685,8 +685,8 @@ export async function buildBookletPdf(
   for (const entry of tocEntries) {
     bkEnsure(24);
     const [er,eg,eb] = hexToRgb(EXPORT_SPACING.colors.bodyText);
-    doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.body.fontPt); doc.setTextColor(er,eg,eb);
-    doc.text(entry.chapterHeading, BK_M, cy); cy += EXPORT_SPACING.body.fontPt + 4;
+    doc.setFont(pdfFont,'bold'); doc.setFontSize(EXPORT_SPACING.bookletBody.fontPt); doc.setTextColor(er,eg,eb);
+    doc.text(entry.chapterHeading, BK_M, cy); cy += EXPORT_SPACING.bookletBody.fontPt + 4;
     if (entry.passage) {
       const [pr,pg2,pb] = hexToRgb(EXPORT_SPACING.colors.metaText);
       doc.setFont(pdfFont,'italic'); doc.setFontSize(9); doc.setTextColor(pr,pg2,pb);

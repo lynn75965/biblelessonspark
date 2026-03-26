@@ -340,6 +340,10 @@ export const EXPORT_SPACING = {
     fontPt:     11,
     lineHeight: 1.12,
   },
+  bookletBody: {
+    fontPt:     10,
+    lineHeight: 1.12,
+  },
   paragraph: {
     afterPt: 4,
   },
