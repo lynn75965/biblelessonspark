@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Project Master Document
-## Date: March 25, 2026
+## Date: March 26, 2026
 ## Purpose: Continue from exactly where we left off in a new chat
 
 ---
@@ -1991,3 +1991,72 @@ pastoral response to a real person in need.
   but requires teacher to click a button rather than being
   fully automatic like file upload path -- acceptable for
   now but worth revisiting
+
+---
+
+## SESSION LOG: March 26, 2026 -- Step 1 UI Polish + Dark Mode SSOT Fix
+
+### Step 1 Card Visual Polish (EnhanceLessonForm.tsx)
+
+Three contentInputType selection cards (curriculum, passage, topic) received
+a full selection-state styling pass:
+- Added `relative` positioning to each card button
+- Changed `transition-colors` to `transition-all`
+- Selected card: `shadow-md`, unselected: `shadow-sm`
+- Selected card: small filled green dot (bg-primary) in top-right corner
+- Selected card: icon and title text switch to `text-primary`
+- All three cards treated identically -- no badge, label, or treatment
+  implies preference between them
+
+### Step 1 OR Separators
+
+The three cards were originally in a CSS grid with no visual separation cue.
+Volunteer teachers (ages 60-85) were not understanding they must choose
+exactly one of the three options.
+
+- Changed grid layout to flex row (md:flex-row, flex-col on mobile)
+- Added bold "OR" separators between Card 1/Card 2 and Card 2/Card 3
+- Added instructional heading: "Choose ONE Scriptural Foundation" with
+  ONE underlined and Scriptural Foundation in GoldAccent (brand secondary)
+  matching the Step 2 and Step 3 title styling
+
+### Proceed Button Cleanup
+
+Removed trailing question mark character from "Proceed to Step 2" and
+"Proceed to Step 3" button labels.
+
+### Dark Mode SSOT Fix (brand-values.json + generate-css.cjs + index.css)
+
+The .dark block in index.css was hand-edited and out of sync with the
+generator. The generator's hardcoded neutral 0 0% values would have wiped
+the Forest Green dark theme on the next build.
+
+Correct SSOT fix applied through the full chain:
+- Added darkMode section to brand-values.json (surfaceHue 120, lifted
+  lightness values for background/card/popover/muted/border/input/
+  foreground/mutedForeground)
+- Updated generate-css.cjs to read brandValues.darkMode and generate
+  the .dark CSS block from it instead of hardcoded neutral values
+- index.css regenerated -- dark block now matches SSOT exactly
+
+### prebuild Script Added
+
+package.json had no prebuild script despite index.css header claiming
+the generator runs automatically before each build. Added:
+  "prebuild": "node scripts/generate-css.cjs"
+Generator now fires automatically on every npm run build.
+
+### Files Changed This Session
+- src/components/dashboard/EnhanceLessonForm.tsx
+- src/config/brand-values.json
+- scripts/generate-css.cjs
+- src/index.css (regenerated)
+- package.json
+
+### What Is NOT Yet Done (carry forward)
+- Landing page improvements (deferred post-tutorials)
+- Paste text extraction: scripture/focus extraction works but requires
+  teacher to click a button rather than being fully automatic like file
+  upload path -- acceptable for now but worth revisiting
+- Dark mode: conservative lightness lifts applied -- may need further
+  adjustment after real-world review by users
