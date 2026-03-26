@@ -1835,3 +1835,159 @@ interface AppShellProps {
 | src/pages/PricingPage.tsx | Always uses AppShell, removed Header/Footer/conditional layout |
 | src/App.tsx | /pricing, /help, /training wrapped in ProtectedRoute |
 
+---
+
+## SESSION LOG: March 25, 2026 -- Step 1 Card UI, Curriculum Upload Pipeline, Series Max Fix
+
+### Overview
+Complete rebuild of Step 1 (Choose Your Scriptural
+Foundation) from a radio-button list to a three-card
+selection UI, plus a full curriculum upload pipeline
+with automatic scripture and focus extraction, plus
+an emergency production fix for series lesson maximum.
+
+### Features Delivered
+
+**Step 1 Card UI (EnhanceLessonForm.tsx)**
+- Replaced RadioGroup with 3 large selectable cards
+  in a role="radiogroup" container with full keyboard
+  navigation and accessibility
+- Cards: Enhance Existing Curriculum, Build from a
+  Bible Passage, Create from a Topic or Question
+- No card pre-selected on page load -- contentInputType
+  defaults to null so all three cards appear visually equal
+- Removed Recommended badge from Card 2 -- all three
+  options are equally valued
+- Inputs reveal below card row after selection
+- Combined passage and topic entry preserved for
+  Cards 2 and 3
+- Button renamed from "Continue to Step 2" to
+  "Proceed to Step 2"
+- RadioGroup and RadioGroupItem imports removed
+
+**Curriculum Upload Pipeline -- File Upload (Card 1)**
+- Multi-page upload: teachers upload multiple image
+  or PDF files representing pages of printed curriculum
+- Single styled button replaces native browser input:
+  "Upload Curriculum -- PDF, TXT, JPG, JPEG, PNG"
+  on first load
+  "Add More Curriculum If Needed" after first upload
+- Page list shows filenames with Remove buttons and
+  running count: "Curriculum pages loaded: N"
+- Scripture and focus auto-extracted from first uploaded
+  file via Haiku (claude-haiku-4-5-20251001) call in
+  extract-lesson Edge Function
+- Scripture and focus lock after first file -- subsequent
+  pages add content but do not overwrite identified values
+- "Found in your curriculum" note displays extracted
+  values as editable inputs
+- Helper text: "Confirm or edit these before proceeding
+  to Step 2."
+- Removing first page clears locked values and
+  re-extracts from new first page
+- Clear All resets everything cleanly
+
+**Curriculum Upload Pipeline -- Paste Text (Card 1)**
+- Paste mode now also extracts scripture and focus
+- "Find Scripture and Focus in My Curriculum" button
+  triggers Haiku extraction on pasted text
+  (minimum 200 characters)
+- Button hides after extraction -- "Found in your
+  curriculum" note appears identically to file upload
+- extract-lesson Edge Function updated with Path A:
+  accepts pastedText from formData, skips file parsing,
+  runs same Haiku extraction, returns same response shape
+
+**Step 1 Summary (collapsed view)**
+- Curriculum path: shows extracted scripture and focus
+  when available, falls back to character count
+- Passage/topic path: shows values separated by " - "
+  (non-ASCII separator replaced)
+
+### Emergency Production Fix -- Series Maximum
+
+**Bug:** User attempted to generate first lesson of a
+12-lesson series. generate-lesson Edge Function rejected
+with: "total_lessons must be a number between 2 and 7"
+
+**Root Cause:** SSOT violation. Frontend seriesConfig.ts
+had maxLessons: 12 but backend validation.ts had hardcoded
+maximum of 7. Backend mirror file
+supabase/functions/_shared/seriesConfig.ts did not exist
+despite being documented as required in the frontend SSOT
+file header.
+
+**Fix -- 5 files:**
+- src/constants/seriesConfig.ts: maxLessons 12 -> 13
+  (covers full quarterly -- 13 weeks)
+- supabase/functions/_shared/seriesConfig.ts: NEW file,
+  exports MAX_SERIES_LESSONS=13 and MIN_SERIES_LESSONS=2
+- supabase/functions/_shared/validation.ts: imports from
+  mirror, replaced all hardcoded 7 and 2 references
+- src/constants/teacherPreferences.ts: "(7 max)" ->
+  "(13 max)"
+- supabase/functions/_shared/teacherPreferences.ts:
+  "(7 max)" -> "(13 max)"
+  Plus: pre-existing em dashes cleaned from lines
+  69, 241, 297, 606, 647, 662
+
+**Resolution:** Lynn logged in as the affected user and
+generated their first lesson personally. High-touch
+pastoral response to a real person in need.
+
+### Files Changed This Session
+- src/components/dashboard/EnhanceLessonForm.tsx
+- supabase/functions/extract-lesson/index.ts
+- src/constants/seriesConfig.ts
+- src/constants/teacherPreferences.ts
+- supabase/functions/_shared/seriesConfig.ts (NEW)
+- supabase/functions/_shared/validation.ts
+- supabase/functions/_shared/teacherPreferences.ts
+
+### Edge Functions Deployed This Session
+- extract-lesson: deployed twice
+  1. Initial Haiku extraction for file uploads
+  2. Path A added for paste text extraction
+- generate-lesson: deployed once for series max fix
+
+### Architecture Notes
+- extract-lesson handles one file at a time -- multi-page
+  accumulation is managed entirely in the frontend
+- generate-lesson receives combined extracted text via
+  derived extractedContent constant joining pages with
+  newline separator
+- Theology profile governs lesson output regardless of
+  curriculum theology -- structural coupling is real,
+  theological override is authoritative
+- BOM stripped from extract-lesson/index.ts source file
+  (was causing ASCII guard failures on deploy)
+
+### Bug History Additions
+33. contentInputType defaulting to "passage" caused Card 2
+    visual emphasis on page load. Fixed by changing default
+    to null. March 25, 2026.
+34. getStep1Summary non-ASCII separator tripped ASCII guard.
+    Replaced with " - ". March 25, 2026.
+35. Paste extraction not triggering -- Edge Function
+    pastedText path was not deployed when frontend was
+    tested. Deploy order matters: Edge Function must deploy
+    before frontend changes that depend on it.
+    March 25, 2026.
+36. BOM in extract-lesson/index.ts blocked commits.
+    Stripped via Node.js fs write without BOM encoding.
+    March 25, 2026.
+37. SSOT violation -- series maximum hardcoded in backend
+    at 7 while frontend SSOT allowed 12. Backend mirror
+    _shared/seriesConfig.ts never created. User attempt
+    to generate a 12-lesson quarterly series failed with
+    validation error. Fixed by creating mirror and updating
+    maximum to 13. March 25, 2026.
+
+### What Is NOT Yet Done (carry forward)
+- Styling pass on Step 1 cards (visual refinement planned
+  from start of session -- not yet completed)
+- Landing page improvements (deferred post-tutorials)
+- Paste text extraction: scripture/focus extraction works
+  but requires teacher to click a button rather than being
+  fully automatic like file upload path -- acceptable for
+  now but worth revisiting
