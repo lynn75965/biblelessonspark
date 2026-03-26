@@ -2060,3 +2060,84 @@ Generator now fires automatically on every npm run build.
   upload path -- acceptable for now but worth revisiting
 - Dark mode: conservative lightness lifts applied -- may need further
   adjustment after real-world review by users
+
+---
+
+## SESSION LOG: March 26, 2026 -- UI Polish + SSOT Fixes + Image Updates
+
+### Step 1 Card Visual Polish (EnhanceLessonForm.tsx)
+- Added relative positioning, transition-all, shadow-md/shadow-sm to all three contentInputType selection cards
+- Selected card: green dot indicator top-right, icon and title switch to text-primary
+- All three cards treated identically -- no badge or preference implied
+- OR separators added between cards (bold, flex layout replacing grid)
+- Step 1 title changed to "Choose ONE Scriptural Foundation" with ONE underlined and Scriptural Foundation in GoldAccent
+- Trailing question marks removed from "Proceed to Step 2" and "Proceed to Step 3" buttons
+- contentInputType confirmed initializing to null -- no card selected on fresh load
+
+### Dark Mode SSOT Fix
+- brand-values.json: Added darkMode section as SSOT for all .dark CSS variables (surfaceHue 120, lifted lightness values)
+- generate-css.cjs: Updated to read brandValues.darkMode and generate .dark block from SSOT instead of hardcoded neutral 0 0% values
+- index.css: Regenerated -- dark block now uses Forest Green hue with lifted surface values
+- package.json: Added "prebuild": "node scripts/generate-css.cjs" -- generator now fires automatically on every npm run build
+- Previous hand-edited .dark block was out of sync and would have been wiped on next build -- now SSOT-protected
+
+### Booklet Economical Printing
+- seriesExportConfig.ts: Added bookletBody: { fontPt: 10, lineHeight: 1.12 } alongside existing body: { fontPt: 11 }
+- buildSeriesPdf.ts: All booklet functions now read from EXPORT_SPACING.bookletBody -- full-page body font 11pt untouched
+- Reviewed and approved on localhost before deploy
+
+### Org Tier Mapping Bug Fix (Critical)
+- resolveTierFromPriceId in both pricingConfig.ts and _shared/pricingConfig.ts was using replace(/^org_/, '') to map org tier keys to SubscriptionTier values
+- This produced invalid values for three tiers: org_single_staff -> single_staff, org_develop -> develop, org_expansion -> expansion
+- Fix: replaced with explicit ORG_TIER_TO_SUBSCRIPTION_TIER mapping object in both files
+- Correct mapping: org_single_staff -> starter, org_starter -> starter, org_growth -> growth, org_develop -> full, org_expansion -> enterprise
+- Both stripe-webhook and org-stripe-webhook Edge Functions redeployed via npx supabase functions deploy
+- SSOT compliant: frontend SSOT updated first, backend mirror updated to match exactly
+
+### Items Confirmed Already Complete (no work needed)
+- Print button removal: fully complete -- no BookletPrintModal, no handlePrint, no window.print anywhere in codebase
+- Single-lesson export font and color picker: fully complete -- LessonExportModal.tsx, exportToPdf.ts, exportToDocx.ts all wired
+- OrgSetup.tsx tier name audit: clean -- all display names pull from orgPricingConfig.ts SSOT dynamically
+- pricingConfig.ts STRIPE_ORG vs orgPricingConfig.ts tension: resolved March 24 (Phase A11) -- STRIPE_ORG block removed, orgPricingConfig.ts is sole authority
+
+### Hero Images Added
+- src/assets/woman_using_BLS_at_home.jpg: Added to main site landing page hero (HeroSection.tsx) -- replaces previous placeholder
+- public/bls_hero_org_manager.jpg: Added to /org landing page (OrgLanding.tsx) hero right column -- 4-teacher classroom scene, fully uncropped, scales naturally to any screen size
+- OrgLanding.tsx hero: Two-column layout on desktop (text left, image right), image below text on mobile, no object-fit cropping -- full photo always visible
+
+### Org Landing Page Mobile Tier Cards
+- On mobile: only 3 middle tiers shown by default (Strengthening, Multiplication, Expansion)
+- "See all plans" toggle reveals Foundation and Network tiers
+- Toggle text changes to "Show less" when expanded
+- showAllTiers is local React state -- no routing changes
+- On sm and above all 5 tiers always visible
+
+### Files Changed This Session
+- src/components/dashboard/EnhanceLessonForm.tsx
+- src/config/brand-values.json
+- scripts/generate-css.cjs
+- src/index.css (regenerated)
+- package.json
+- src/constants/seriesExportConfig.ts
+- src/utils/export/buildSeriesPdf.ts
+- src/constants/pricingConfig.ts
+- supabase/functions/_shared/pricingConfig.ts
+- src/components/landing/HeroSection.tsx
+- src/pages/OrgLanding.tsx
+- src/assets/woman_using_BLS_at_home.jpg (new)
+- src/assets/bls_hero_org_manager.jpg (new)
+- public/bls_hero_org_manager.jpg (new)
+
+### Edge Functions Deployed This Session
+- stripe-webhook: redeployed for org tier mapping fix
+- org-stripe-webhook: redeployed for org tier mapping fix
+
+### Bug History Additions
+38. Org tier mapping produced invalid SubscriptionTier values -- replace(/^org_/, '') on org_single_staff, org_develop, org_expansion produced values not in the SubscriptionTier enum. Silent failure in webhook tier resolution for those three tiers. Fixed with explicit mapping object. March 26, 2026.
+
+### What Is NOT Yet Done (carry forward)
+- include_student_handouts column cosmetic rename -- low priority, no active code references it
+- Admin UI feature flag toggles -- deferred post-launch
+- Frontend org creation UI -- deferred post-launch
+- Multi-tenant migration -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
+- Dark mode: conservative lightness lifts applied -- may need further adjustment after real-world user review
