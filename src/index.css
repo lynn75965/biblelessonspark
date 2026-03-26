@@ -7,7 +7,7 @@
  * SSOT: To change colors/fonts, edit src/config/brand-values.json
  * Then run: npm run build
  *
- * Generated: 2026-01-15T10:23:47.465Z
+ * Generated: 2026-03-26T16:52:33.513Z
  *
  * Color Reference:
  *   Primary (Forest Green): #3D5C3D → 120 20% 30%
@@ -149,25 +149,25 @@
   }
 
   .dark {
-    /* ===== Forest Green Dark Theme ===== */
-    --background: 120 12% 8%;
+    /* ===== Forest Green Dark Theme (from brand-values.json darkMode) ===== */
+    --background: 120 12% 11%;
     --foreground: 120 15% 92%;
-    --card: 120 25% 16%;
+    --card: 120 20% 20%;
     --card-foreground: 120 15% 92%;
-    --popover: 120 25% 11%;
+    --popover: 120 20% 15%;
     --popover-foreground: 120 15% 92%;
     --primary: 120 20% 40%;
     --primary-foreground: 0 0% 100%;
     --secondary: 40 61% 65%;
     --secondary-foreground: 0 0% 10%;
-    --muted: 120 20% 13%;
+    --muted: 120 15% 17%;
     --muted-foreground: 120 15% 71%;
     --accent: 43 52% 65%;
     --accent-foreground: 0 0% 10%;
     --destructive: 340 59% 35%;
     --destructive-foreground: 0 0% 100%;
-    --border: 120 22% 18%;
-    --input: 120 25% 16%;
+    --border: 120 18% 26%;
+    --input: 120 20% 20%;
     --ring: 120 20% 40%;
   }
 

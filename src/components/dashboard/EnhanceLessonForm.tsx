@@ -1414,7 +1414,7 @@ export function EnhanceLessonForm({
           <AccordionStep
             data-tour="workspace-step1"
             stepNumber={1}
-            title={<>Choose Your <GoldAccent>Scriptural Foundation</GoldAccent></>}
+            title={<>Choose <span className="underline">ONE</span> <GoldAccent>Scriptural Foundation</GoldAccent></>}
             description=""
             isExpanded={expandedStep === 1}
             isComplete={step1Complete}
@@ -1428,7 +1428,7 @@ export function EnhanceLessonForm({
               <div
                 role="radiogroup"
                 aria-label="Content source type"
-                className="grid grid-cols-1 md:grid-cols-3 gap-3"
+                className="flex flex-col md:flex-row gap-3 items-stretch"
               >
                 {/* Card 1: Enhance Existing Curriculum */}
                 <button
@@ -1448,16 +1448,19 @@ export function EnhanceLessonForm({
                     }
                   }}
                   tabIndex={contentInputType === "curriculum" ? 0 : -1}
-                  className={`text-left rounded-lg border-2 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  className={`md:flex-1 relative text-left rounded-lg border-2 p-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     contentInputType === "curriculum"
-                      ? "border-primary bg-primary/5"
-                      : "border-muted hover:border-muted-foreground/30"
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-muted hover:border-muted-foreground/30 shadow-sm"
                   } ${isSubmitting || isExtracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
+                  {contentInputType === "curriculum" && (
+                    <span className="absolute top-2 right-2 h-3 w-3 rounded-full bg-primary" />
+                  )}
                   <div className="flex items-start gap-3">
-                    <Upload className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <Upload className={`h-5 w-5 mt-0.5 flex-shrink-0 ${contentInputType === "curriculum" ? "text-primary" : "text-muted-foreground"}`} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm leading-tight">Enhance Existing Curriculum</p>
+                      <p className={`font-semibold text-sm leading-tight ${contentInputType === "curriculum" ? "text-primary" : ""}`}>Enhance Existing Curriculum</p>
                       <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                         Upload or paste your current lesson or curriculum so BibleLessonSpark can strengthen, reshape, or expand it.
                       </p>
@@ -1466,7 +1469,12 @@ export function EnhanceLessonForm({
                   </div>
                 </button>
 
-                {/* Card 2: Build from a Bible Passage (Recommended) */}
+                {/* OR separator */}
+                <div className="flex md:flex-col items-center justify-center py-1 md:py-0 md:px-1 flex-shrink-0" aria-hidden="true">
+                  <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">or</span>
+                </div>
+
+                {/* Card 2: Build from a Bible Passage */}
                 <button
                   type="button"
                   role="radio"
@@ -1484,16 +1492,19 @@ export function EnhanceLessonForm({
                     }
                   }}
                   tabIndex={contentInputType === "passage" ? 0 : -1}
-                  className={`text-left rounded-lg border-2 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  className={`md:flex-1 relative text-left rounded-lg border-2 p-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     contentInputType === "passage"
-                      ? "border-primary bg-primary/5"
-                      : "border-muted hover:border-muted-foreground/30"
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-muted hover:border-muted-foreground/30 shadow-sm"
                   } ${isSubmitting || isExtracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
+                  {contentInputType === "passage" && (
+                    <span className="absolute top-2 right-2 h-3 w-3 rounded-full bg-primary" />
+                  )}
                   <div className="flex items-start gap-3">
-                    <BookOpen className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <BookOpen className={`h-5 w-5 mt-0.5 flex-shrink-0 ${contentInputType === "passage" ? "text-primary" : "text-muted-foreground"}`} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm leading-tight">Build from a Bible Passage</p>
+                      <p className={`font-semibold text-sm leading-tight ${contentInputType === "passage" ? "text-primary" : ""}`}>Build from a Bible Passage</p>
                       <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                         Enter a Scripture passage and generate a full lesson built on that text.
                       </p>
@@ -1501,6 +1512,11 @@ export function EnhanceLessonForm({
                     </div>
                   </div>
                 </button>
+
+                {/* OR separator */}
+                <div className="flex md:flex-col items-center justify-center py-1 md:py-0 md:px-1 flex-shrink-0" aria-hidden="true">
+                  <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">or</span>
+                </div>
 
                 {/* Card 3: Create from a Topic or Question */}
                 <button
@@ -1520,16 +1536,19 @@ export function EnhanceLessonForm({
                     }
                   }}
                   tabIndex={contentInputType === "topic" ? 0 : -1}
-                  className={`text-left rounded-lg border-2 p-4 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  className={`md:flex-1 relative text-left rounded-lg border-2 p-4 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     contentInputType === "topic"
-                      ? "border-primary bg-primary/5"
-                      : "border-muted hover:border-muted-foreground/30"
+                      ? "border-primary bg-primary/5 shadow-md"
+                      : "border-muted hover:border-muted-foreground/30 shadow-sm"
                   } ${isSubmitting || isExtracting ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                 >
+                  {contentInputType === "topic" && (
+                    <span className="absolute top-2 right-2 h-3 w-3 rounded-full bg-primary" />
+                  )}
                   <div className="flex items-start gap-3">
-                    <Layers className="h-5 w-5 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <Layers className={`h-5 w-5 mt-0.5 flex-shrink-0 ${contentInputType === "topic" ? "text-primary" : "text-muted-foreground"}`} />
                     <div className="min-w-0">
-                      <p className="font-semibold text-sm leading-tight">Create from a Topic or Question</p>
+                      <p className={`font-semibold text-sm leading-tight ${contentInputType === "topic" ? "text-primary" : ""}`}>Create from a Topic or Question</p>
                       <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
                         Start with a theme, doctrinal question, life issue, or teaching idea and generate a lesson from it.
                       </p>
@@ -1815,7 +1834,7 @@ export function EnhanceLessonForm({
                     onClick={() => setExpandedStep(2)}
                     className="bg-primary hover:bg-primary-hover"
                   >
-                    Proceed to Step 2 ?
+                    Proceed to Step 2
                   </Button>
                 </div>
               )}

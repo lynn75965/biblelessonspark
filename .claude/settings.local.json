@@ -58,7 +58,9 @@
       "Bash(powershell -ExecutionPolicy Bypass -File .\\\\deploy.ps1 \"FEATURE: Step 1 card UI, multi-page curriculum upload, auto scripture/focus extraction, paste extraction, single upload button, no pre-selected card, summary fixes\")",
       "Bash(powershell -ExecutionPolicy Bypass -File \"C:\\\\Users\\\\lynn\\\\biblelessonspark\\\\deploy.ps1\" \"FEATURE: Step 1 card UI, multi-page curriculum upload, auto scripture/focus extraction, paste extraction, single upload button, no pre-selected card, summary fixes\")",
       "Bash(powershell -Command \"Get-Content -Encoding Byte 'C:\\\\Users\\\\lynn\\\\biblelessonspark\\\\supabase\\\\functions\\\\extract-lesson\\\\index.ts' | Select-Object -First 3\")",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(powershell -Command 'Copy-Item \"$env:USERPROFILE\\\\Downloads\\\\fix_brand_values.cjs\" \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\fix_brand_values.cjs\"; Copy-Item \"$env:USERPROFILE\\\\Downloads\\\\fix_generator.cjs\" \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\fix_generator.cjs\"; Copy-Item \"$env:USERPROFILE\\\\Downloads\\\\fix_step1_cards.cjs\" \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\fix_step1_cards.cjs\"')",
+      "Bash(node:*)"
     ]
   }
 }

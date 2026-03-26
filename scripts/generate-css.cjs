@@ -114,6 +114,9 @@ function generateCSS() {
   const warning = hexToHsl(BRAND.warning);
   const info = hexToHsl(BRAND.info);
 
+  // Dark mode surface values from brand-values.json
+  const dk = brandValues.darkMode;
+
   return `/**
  * BibleLessonSpark Global Styles
  * ==============================
@@ -265,24 +268,25 @@ function generateCSS() {
   }
 
   .dark {
-    --background: 0 0% 10%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 12%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 12%;
-    --popover-foreground: 0 0% 95%;
+    /* ===== Forest Green Dark Theme (from brand-values.json darkMode) ===== */
+    --background: ${dk.surfaceHue} ${dk.background.saturation}% ${dk.background.lightness}%;
+    --foreground: ${dk.surfaceHue} ${dk.foreground.saturation}% ${dk.foreground.lightness}%;
+    --card: ${dk.surfaceHue} ${dk.card.saturation}% ${dk.card.lightness}%;
+    --card-foreground: ${dk.surfaceHue} ${dk.foreground.saturation}% ${dk.foreground.lightness}%;
+    --popover: ${dk.surfaceHue} ${dk.popover.saturation}% ${dk.popover.lightness}%;
+    --popover-foreground: ${dk.surfaceHue} ${dk.foreground.saturation}% ${dk.foreground.lightness}%;
     --primary: ${adjustLightness(primary, 10)};
     --primary-foreground: 0 0% 100%;
     --secondary: ${adjustLightness(secondary, 9)};
     --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 20%;
-    --muted-foreground: 0 0% 65%;
+    --muted: ${dk.surfaceHue} ${dk.muted.saturation}% ${dk.muted.lightness}%;
+    --muted-foreground: ${dk.surfaceHue} ${dk.mutedForeground.saturation}% ${dk.mutedForeground.lightness}%;
     --accent: ${adjustLightness(accent, 9)};
     --accent-foreground: 0 0% 10%;
     --destructive: ${adjustLightness(destructive, 10)};
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
+    --border: ${dk.surfaceHue} ${dk.border.saturation}% ${dk.border.lightness}%;
+    --input: ${dk.surfaceHue} ${dk.input.saturation}% ${dk.input.lightness}%;
     --ring: ${adjustLightness(primary, 10)};
   }
 

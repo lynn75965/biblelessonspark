@@ -47,6 +47,18 @@
     }
   },
   
+  "darkMode": {
+    "surfaceHue": 120,
+    "background": { "saturation": 12, "lightness": 11 },
+    "card": { "saturation": 20, "lightness": 20 },
+    "popover": { "saturation": 20, "lightness": 15 },
+    "muted": { "saturation": 15, "lightness": 17 },
+    "border": { "saturation": 18, "lightness": 26 },
+    "input": { "saturation": 20, "lightness": 20 },
+    "foreground": { "saturation": 15, "lightness": 92 },
+    "mutedForeground": { "saturation": 15, "lightness": 71 }
+  },
+
   "typography": {
     "fontFamily": {
       "primary": "\"Poppins\", system-ui, sans-serif",

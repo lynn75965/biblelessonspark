@@ -8,6 +8,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite --host --port 8080",
+        "prebuild": "node scripts/generate-css.cjs",
         "build": "vite build",
         "build:dev": "vite build --mode development",
         "lint": "eslint .",
