@@ -302,6 +302,14 @@ export function isPaidTier(tier: SubscriptionTier): boolean {
 // Added: 2026-02-26
 // ============================================================
 
+const ORG_TIER_TO_SUBSCRIPTION_TIER: Record<string, SubscriptionTier> = {
+  org_single_staff: 'starter',
+  org_starter:      'starter',
+  org_growth:       'growth',
+  org_develop:      'full',
+  org_expansion:    'enterprise',
+};
+
 export function resolveTierFromPriceId(priceId: string): SubscriptionTier | null {
   // Individual subscriptions
   const personal = STRIPE_INDIVIDUAL.personal;
@@ -311,8 +319,8 @@ export function resolveTierFromPriceId(priceId: string): SubscriptionTier | null
   // Organization subscriptions -- from ORG_TIERS (mirrors orgPricingConfig.ts)
   for (const tier of ORG_TIERS) {
     if (priceId === tier.priceMonthly || priceId === tier.priceAnnual) {
-      // Map org tier key to SubscriptionTier (strip org_ prefix)
-      return tier.tier.replace(/^org_/, '') as SubscriptionTier;
+      const tierName = ORG_TIER_TO_SUBSCRIPTION_TIER[tier.tier] ?? null;
+      return tierName;
     }
   }
   return null;
