@@ -85,22 +85,30 @@ interface SidebarContentProps {
   onItemClick: (item: SidebarItem) => void;
 }
 
-function SidebarContent({ sections, currentPath, currentTab, onItemClick, theme, toggleTheme }: SidebarContentProps & { theme: string; toggleTheme: () => void }) {
+function SidebarContent({ sections, currentPath, currentTab, onItemClick, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
   return (
     <>
-      {/* Logo block with theme toggle */}
-      <div className="flex items-center justify-between px-3 py-4 border-b border-[#2d4a2d]">
-        <div className="flex items-center gap-2">
+      {/* Logo block */}
+      <div className="px-3 py-4 border-b border-[#2d4a2d]">
+        <div className="flex items-center gap-2 mb-3">
           <img src={BRANDING.logo.icon} alt={BRANDING.logo.altText} className="h-7 w-7 rounded-lg object-contain" />
           <span className="font-bold text-[15px] text-white tracking-wide">{BRANDING.appName}</span>
         </div>
-        <button
-          onClick={toggleTheme}
-          className="text-[#c8d8c8] hover:text-white transition-colors cursor-pointer"
-          title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-        >
-          {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
+        {/* Intensity slider */}
+        <div className="flex items-center gap-2">
+          <Moon className="h-4 w-4 text-[#8a9f8a] shrink-0" />
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={intensity}
+            onChange={(e) => setIntensity(Number(e.target.value))}
+            className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-[#2d4a2d] accent-[#c8d8c8]"
+            aria-label="Theme intensity"
+          />
+          <Sun className="h-4 w-4 text-[#8a9f8a] shrink-0" />
+        </div>
       </div>
 
       <nav className="flex flex-col gap-1 py-2" aria-label="Sidebar navigation">
@@ -176,7 +184,7 @@ export function AppShell({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { theme, toggleTheme } = useTheme();
+  const { intensity, setIntensity } = useTheme();
   const { signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { userRole, hasOrganization } = useOrganization();
@@ -234,7 +242,7 @@ export function AppShell({
       <div className="flex flex-1">
         {/* Desktop sidebar -- always visible on md+ */}
         <aside className="hidden md:flex md:w-56 lg:w-64 flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-y-auto sticky top-0 h-screen">
-          <SidebarContent {...sidebarProps} theme={theme} toggleTheme={toggleTheme} />
+          <SidebarContent {...sidebarProps} intensity={intensity} setIntensity={setIntensity} />
         </aside>
 
         {/* Mobile sidebar -- Sheet drawer */}
@@ -254,7 +262,7 @@ export function AppShell({
               <SheetTitle className="sr-only">
                 Navigation
               </SheetTitle>
-              <SidebarContent {...sidebarProps} theme={theme} toggleTheme={toggleTheme} />
+              <SidebarContent {...sidebarProps} intensity={intensity} setIntensity={setIntensity} />
             </SheetContent>
           </Sheet>
         </div>
