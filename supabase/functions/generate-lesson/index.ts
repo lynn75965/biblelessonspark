@@ -951,11 +951,17 @@ ${styleExtractionPromptAddition}
       checkpoint = logTiming('Guardrail check', checkpoint);
 
       // =========================================================================
+      // EXTRACT AI-GENERATED TITLE FROM SECTION 1
+      // =========================================================================
+      const titleMatch = generatedLesson.match(/\*\*Lesson Title:\*\*\s*(.+)/i);
+      const extractedTitle = titleMatch ? titleMatch[1].replace(/["\u201C\u201D*]/g, '').trim() : null;
+
+      // =========================================================================
       // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
       // =========================================================================
       const lessonData = {
         user_id: user.id,
-        title: lessonInput,
+        title: extractedTitle || lessonInput,
         original_text: generatedLesson,
         organization_id: orgPoolResult?.organization_id || null,
         audience_profile: audience_profile || { role: 'Teacher', assembly: 'Class', participant: 'Student' },
