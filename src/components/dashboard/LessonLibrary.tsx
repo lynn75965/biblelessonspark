@@ -37,9 +37,11 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
+import { useSeriesManager } from "@/hooks/useSeriesManager";
+import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
 import { useToast } from "@/hooks/use-toast";
@@ -178,11 +180,17 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const [teamLessons, setTeamLessons] = useState<LessonDisplay[]>([]);
   const [teamLessonsLoading, setTeamLessonsLoading] = useState(false);
 
-  const { lessons, loading, deleteLesson, updateLessonVisibility } = useLessons();
+  const { lessons, loading, deleteLesson, updateLessonVisibility, refetch: refreshLessons } = useLessons();
   const { hasTeam, team, members, fetchTeamLessons } = useTeachingTeam();
   const { tier } = useSubscription();
   const { toast } = useToast();
   const canUseDevotional = hasFeatureAccess(tier, 'devotional');
+  const { allSeries, fetchAllSeries, linkLessonToSeries } = useSeriesManager();
+  const [addToSeriesOpenId, setAddToSeriesOpenId] = useState<string | null>(null);
+  const [addingToSeries, setAddingToSeries] = useState(false);
+
+  // Fetch series list on mount for "Add to Series" dropdown
+  useEffect(() => { fetchAllSeries(); }, []);
 
   // Transform user's own lessons for display
   const displayLessons: LessonDisplay[] = lessons.map((lesson) =>
@@ -315,6 +323,48 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     if (lesson.bible_version_id) params.set("bibleVersion", lesson.bible_version_id);
     
     navigate(`/devotionals?${params.toString()}`);
+  };
+
+  const handleAddToSeries = async (lessonId: string, seriesId: string) => {
+    setAddingToSeries(true);
+    try {
+      // Query actual max position for this series
+      const { data: maxRow } = await supabase
+        .from('lessons')
+        .select('series_lesson_number')
+        .eq('series_id', seriesId)
+        .order('series_lesson_number', { ascending: false })
+        .limit(1)
+        .single();
+
+      const nextPosition = (maxRow?.series_lesson_number ?? 0) + 1;
+      const success = await linkLessonToSeries(lessonId, seriesId, nextPosition);
+
+      if (success) {
+        const series = allSeries.find(s => s.id === seriesId);
+        toast({
+          title: "Added to series",
+          description: `Lesson added as #${nextPosition} in "${series?.series_name || 'series'}".`,
+        });
+        refreshLessons();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add lesson to series. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("Error adding lesson to series:", err);
+      toast({
+        title: "Error",
+        description: "Failed to add lesson to series.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToSeries(false);
+      setAddToSeriesOpenId(null);
+    }
   };
 
   if (loading) {
@@ -593,6 +643,48 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                  )}
+                  {/* Add to Series -- only own lessons not already in a series */}
+                  {!lesson.isTeamLesson && !lesson.series_id && allSeries.length > 0 && (
+                    <div className="relative">
+                      <Button
+                        onClick={() => setAddToSeriesOpenId(addToSeriesOpenId === lesson.id ? null : lesson.id)}
+                        variant="outline"
+                        size="sm"
+                        disabled={addingToSeries}
+                        className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                        title="Add to Series"
+                      >
+                        <ListPlus className="h-4 w-4" />
+                      </Button>
+                      {addToSeriesOpenId === lesson.id && (
+                        <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border bg-popover p-1 shadow-md">
+                          <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Add to series:</p>
+                          {allSeries.map((series) => (
+                            <button
+                              key={series.id}
+                              onClick={() => handleAddToSeries(lesson.id, series.id)}
+                              disabled={addingToSeries}
+                              className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors truncate"
+                            >
+                              {series.series_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Series badge -- shown when lesson is already in a series */}
+                  {lesson.series_id && (
+                    <Badge
+                      variant="outline"
+                      className="text-blue-700 border-blue-300 bg-blue-50 text-xs cursor-pointer hover:bg-blue-100 transition-colors"
+                      title={allSeries.find(s => s.id === lesson.series_id)?.series_name || ''}
+                      onClick={() => navigate(ROUTES.DASHBOARD, { state: { tab: 'series-library', expandSeriesId: lesson.series_id } })}
+                    >
+                      <BookOpen className="h-2.5 w-2.5 mr-1" />
+                      In Series
+                    </Badge>
                   )}
                 </div>
               </CardContent>

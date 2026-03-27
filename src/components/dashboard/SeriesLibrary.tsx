@@ -1,6 +1,6 @@
 /**
  * SeriesLibrary Component
- * Location: src/components/SeriesLibrary.tsx
+ * Location: src/components/dashboard/SeriesLibrary.tsx
  *
  * SSOT Compliance:
  * - LessonSeries type from @/constants/seriesConfig
@@ -11,24 +11,124 @@
  * FIX: March 2026 -- switched from fetchActiveSeries (in_progress only)
  *   to fetchAllSeries (in_progress + completed) so completed series are visible.
  * FIX: March 2026 -- Print Series Booklet button removed. Export Series only.
+ * FEATURE: March 27, 2026 -- Expand/collapse lesson list with up/down reorder controls
  */
 
-import { useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { BookOpen, CheckCircle, Clock, Archive } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BookOpen, CheckCircle, Clock, Archive, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
 import { useSeriesManager } from '@/hooks/useSeriesManager';
 import { useSubscription } from '@/hooks/useSubscription';
 import { isSeriesComplete, SERIES_STATUSES } from '@/constants/seriesConfig';
 import { SeriesExportButton } from '@/components/SeriesExport/SeriesExportButton';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface SeriesLesson {
+  id: string;
+  title: string | null;
+  series_lesson_number: number;
+}
 
 export function SeriesLibrary() {
   const { allSeries, isLoading, fetchAllSeries } = useSeriesManager();
   const { tier } = useSubscription();
+  const { toast } = useToast();
+  const location = useLocation();
+  const expandConsumedRef = useRef(false);
+
+  const [expandedSeriesId, setExpandedSeriesId] = useState<string | null>(null);
+  const [seriesLessons, setSeriesLessons] = useState<SeriesLesson[]>([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [reordering, setReordering] = useState(false);
 
   useEffect(() => {
     fetchAllSeries();
   }, []);
+
+  // Auto-expand a series when navigated from "In Series" badge
+  useEffect(() => {
+    const targetId = (location.state as any)?.expandSeriesId;
+    if (targetId && !expandConsumedRef.current && allSeries.length > 0) {
+      expandConsumedRef.current = true;
+      setExpandedSeriesId(targetId);
+      fetchSeriesLessons(targetId);
+      // Clear the state so refresh does not re-trigger
+      window.history.replaceState({}, '');
+    }
+  }, [allSeries, location.state]);
+
+  const fetchSeriesLessons = async (seriesId: string) => {
+    setLessonsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('id, title, series_lesson_number')
+        .eq('series_id', seriesId)
+        .order('series_lesson_number', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching series lessons:', error);
+        setSeriesLessons([]);
+        return;
+      }
+      setSeriesLessons((data || []) as SeriesLesson[]);
+    } catch (err) {
+      console.error('Error in fetchSeriesLessons:', err);
+      setSeriesLessons([]);
+    } finally {
+      setLessonsLoading(false);
+    }
+  };
+
+  const handleToggleExpand = (seriesId: string) => {
+    if (expandedSeriesId === seriesId) {
+      setExpandedSeriesId(null);
+      setSeriesLessons([]);
+    } else {
+      setExpandedSeriesId(seriesId);
+      fetchSeriesLessons(seriesId);
+    }
+  };
+
+  const handleReorder = async (lessonIndex: number, direction: 'up' | 'down') => {
+    const swapIndex = direction === 'up' ? lessonIndex - 1 : lessonIndex + 1;
+    if (swapIndex < 0 || swapIndex >= seriesLessons.length) return;
+
+    setReordering(true);
+    try {
+      const lessonA = seriesLessons[lessonIndex];
+      const lessonB = seriesLessons[swapIndex];
+
+      // Swap series_lesson_number values
+      const [errA] = await Promise.all([
+        supabase.from('lessons').update({ series_lesson_number: lessonB.series_lesson_number }).eq('id', lessonA.id),
+        supabase.from('lessons').update({ series_lesson_number: lessonA.series_lesson_number }).eq('id', lessonB.id),
+      ]).then(results => results.map(r => r.error));
+
+      if (errA) {
+        toast({ title: "Error", description: "Failed to reorder lessons.", variant: "destructive" });
+        return;
+      }
+
+      // Update local state immediately
+      const updated = [...seriesLessons];
+      const tempNum = updated[lessonIndex].series_lesson_number;
+      updated[lessonIndex].series_lesson_number = updated[swapIndex].series_lesson_number;
+      updated[swapIndex].series_lesson_number = tempNum;
+      // Re-sort by position
+      updated.sort((a, b) => a.series_lesson_number - b.series_lesson_number);
+      setSeriesLessons(updated);
+    } catch (err) {
+      console.error('Error reordering:', err);
+      toast({ title: "Error", description: "Failed to reorder lessons.", variant: "destructive" });
+    } finally {
+      setReordering(false);
+    }
+  };
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -92,6 +192,7 @@ export function SeriesLibrary() {
           {allSeries.map((series) => {
             const completedCount  = series.lesson_summaries?.length ?? 0;
             const progressPercent = Math.round((completedCount / series.total_lessons) * 100);
+            const isExpanded = expandedSeriesId === series.id;
 
             return (
               <Card key={series.id} className="group hover:shadow-glow transition-all duration-normal bg-gradient-card">
@@ -134,7 +235,62 @@ export function SeriesLibrary() {
 
                   <div className="flex gap-2">
                     <SeriesExportButton series={series} tier={tier} />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleExpand(series.id)}
+                      className="gap-1"
+                    >
+                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      Lessons
+                    </Button>
                   </div>
+
+                  {/* Expanded lesson list with reorder controls */}
+                  {isExpanded && (
+                    <div className="mt-4 border-t pt-3 space-y-1">
+                      {lessonsLoading ? (
+                        <div className="flex items-center justify-center py-4">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                        </div>
+                      ) : seriesLessons.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-3">No lessons in this series yet.</p>
+                      ) : (
+                        seriesLessons.map((lesson, index) => (
+                          <div key={lesson.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
+                            <span className="text-xs font-medium text-muted-foreground w-5 text-center shrink-0">
+                              {lesson.series_lesson_number}
+                            </span>
+                            <span className="text-sm truncate flex-1 min-w-0">
+                              {lesson.title || 'Untitled Lesson'}
+                            </span>
+                            <div className="flex gap-0.5 shrink-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                disabled={index === 0 || reordering}
+                                onClick={() => handleReorder(index, 'up')}
+                                title="Move up"
+                              >
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                disabled={index === seriesLessons.length - 1 || reordering}
+                                onClick={() => handleReorder(index, 'down')}
+                                title="Move down"
+                              >
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -157,4 +313,3 @@ export function SeriesLibrary() {
     </div>
   );
 }
-

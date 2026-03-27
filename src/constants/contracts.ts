@@ -292,6 +292,8 @@ export interface Lesson {
     ageGroup?: string;
     theologyProfile?: string;
   } | null;
+  series_id?: string | null;
+  series_lesson_number?: number | null;
 }
 
 /**
