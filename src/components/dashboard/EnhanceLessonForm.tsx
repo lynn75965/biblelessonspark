@@ -965,6 +965,30 @@ export function EnhanceLessonForm({
     }
   };
 
+  // Auto-extract scripture and focus from pasted text after 1s debounce
+  const pasteExtractTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (pasteExtractTimerRef.current) {
+      clearTimeout(pasteExtractTimerRef.current);
+      pasteExtractTimerRef.current = null;
+    }
+    if (
+      curriculumInputMode === "paste" &&
+      pastedContent.trim().length >= 200 &&
+      !scriptureLockedFromExtraction &&
+      !isExtracting
+    ) {
+      pasteExtractTimerRef.current = setTimeout(() => {
+        handlePastedContentExtraction();
+      }, 1000);
+    }
+    return () => {
+      if (pasteExtractTimerRef.current) {
+        clearTimeout(pasteExtractTimerRef.current);
+      }
+    };
+  }, [pastedContent, curriculumInputMode, scriptureLockedFromExtraction, isExtracting]);
+
   const clearCurriculumContent = () => {
     setUploadedFiles([]);
     setExtractedPages([]);
