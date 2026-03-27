@@ -37,7 +37,7 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, ChevronDown, ChevronUp, Copy } from "lucide-react";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
@@ -50,6 +50,7 @@ import { Lesson } from "@/constants/contracts";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
 import { AUDIENCE_ROLES } from "@/constants/audienceConfig";
+import { LESSON_SHAPES } from "@/constants/lessonShapeProfiles";
 
 // ============================================================================
 // INTERFACES
@@ -188,6 +189,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const { allSeries, fetchAllSeries, linkLessonToSeries } = useSeriesManager();
   const [addToSeriesOpenId, setAddToSeriesOpenId] = useState<string | null>(null);
   const [addingToSeries, setAddingToSeries] = useState(false);
+  const [reshapeExpandedId, setReshapeExpandedId] = useState<string | null>(null);
 
   // Fetch series list on mount for "Add to Series" dropdown
   useEffect(() => { fetchAllSeries(); }, []);
@@ -567,6 +569,12 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       Draft
                     </Badge>
                   )}
+                  {lesson.shape_id && (
+                    <Badge variant="outline" className="text-yellow-700 border-yellow-400 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-950/20 text-xs">
+                      <Shapes className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                      {LESSON_SHAPES.find(s => s.id === lesson.shape_id)?.shortName || 'Reshaped'}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
 
@@ -687,6 +695,43 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     </Badge>
                   )}
                 </div>
+
+                {/* Reshaped content expander */}
+                {lesson.shaped_content && lesson.shape_id && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setReshapeExpandedId(reshapeExpandedId === lesson.id ? null : lesson.id)}
+                      className="flex items-center gap-1.5 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors cursor-pointer"
+                    >
+                      {reshapeExpandedId === lesson.id ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                      View Reshaped ({LESSON_SHAPES.find(s => s.id === lesson.shape_id)?.shortName || 'Reshaped'})
+                    </button>
+                    {reshapeExpandedId === lesson.id && (
+                      <div className="mt-2 p-3 bg-yellow-50/50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-yellow-800 dark:text-yellow-400">
+                            {LESSON_SHAPES.find(s => s.id === lesson.shape_id)?.name || 'Reshaped Version'}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-950/30"
+                            onClick={() => {
+                              navigator.clipboard.writeText(lesson.shaped_content || '');
+                              toast({ title: "Copied", description: "Reshaped content copied to clipboard." });
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-line">
+                          {lesson.shaped_content.slice(0, 300)}{lesson.shaped_content.length > 300 ? '...' : ''}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
