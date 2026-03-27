@@ -55,18 +55,18 @@ function logTiming(label: string, startTime: number): number {
 
 function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, includeTeaser: boolean = false) {
   return sections.map((section) => {
-    const rules = section.contentRules.map((r) => `    • ${r}`).join('\n');
-    const prohibitions = section.prohibitions.map((p) => `    • ${p}`).join('\n');
+    const rules = section.contentRules.map((r) => `    \u2022 ${r}`).join('\n');
+    const prohibitions = section.prohibitions.map((p) => `    \u2022 ${p}`).join('\n');
     const redundancyNote = section.redundancyLock.length > 0
-      ? `\n    ⚠️ REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
+      ? `\n    \u26A0\uFE0F REDUNDANCY LOCK: Do NOT repeat content from: ${section.redundancyLock.join(', ')}`
       : '';
-    const optionalNote = section.optional ? '\n    • OPTIONAL SECTION - Only include when requested' : '';
+    const optionalNote = section.optional ? '\n    \u2022 OPTIONAL SECTION - Only include when requested' : '';
 
     let enforcementNote = '';
     if (section.id === 5) {
       enforcementNote = `
 
-⚠️ CRITICAL ENFORCEMENT FOR THIS SECTION:
+\u26A0\uFE0F CRITICAL ENFORCEMENT FOR THIS SECTION:
 1. MANDATORY MINIMUM: ${section.minWords} words (COUNT CAREFULLY)
 2. Every sentence must ADD NEW INSIGHT or DEPTH
 3. If explaining a concept, give the WHY and HOW, not just the WHAT
@@ -74,14 +74,14 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
 5. Connect abstract theology to concrete life application
 6. Give teachers substance to answer student questions confidently
 
-🚫 FORBIDDEN - These do NOT count toward word target:
+\u{1F6AB} FORBIDDEN - These do NOT count toward word target:
 - Repetition of content from other sections
 - Transitional phrases ("As we discussed...", "Moving on...")
 - Padding sentences that add no value
 - Circular reasoning or restating the same point
 - Generic statements without specific application
 
-✓ REQUIRED - Every sentence must do ONE of these:
+\u2713 REQUIRED - Every sentence must do ONE of these:
 - Unpack a theological concept with depth
 - Explain WHY something matters (not just that it does)
 - Give concrete examples or applications
@@ -89,7 +89,7 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
 - Draw from Section 3's depth and make it spoken/teachable
 - Bridge abstract truth to student's real-world experience
 
-⚠️ QUALITY CHECK: Before finishing this section, ask yourself:
+\u26A0\uFE0F QUALITY CHECK: Before finishing this section, ask yourself:
 "Could a volunteer teacher use this to answer student questions with confidence?"
 If no, add more depth and explanation.`;
     }
@@ -110,12 +110,12 @@ ${prohibitions}${redundancyNote}
 function buildTruthGuardrails() {
   return `
 -------------------------------------------------------------------------------
-⚠️ TRUTH AND INTEGRITY GUARDRAILS (APPLIES TO ALL SECTIONS)
+\u26A0\uFE0F TRUTH AND INTEGRITY GUARDRAILS (APPLIES TO ALL SECTIONS)
 -------------------------------------------------------------------------------
 
 YOU ARE GENERATING CONTENT FOR BIBLE TEACHERS WHO WILL READ THIS VERBATIM TO THEIR CLASS.
 If you fabricate a fact, a teacher will unknowingly present a lie to their students.
-This is a matter of ministerial integrity — treat it with absolute seriousness.
+This is a matter of ministerial integrity \u2014 treat it with absolute seriousness.
 
 RULE 1: NEVER FABRICATE CURRENT EVENTS
 - Do NOT invent news stories, infrastructure projects, research studies, surveys, or statistics
@@ -126,15 +126,15 @@ RULE 1: NEVER FABRICATE CURRENT EVENTS
 RULE 2: NEVER ASSUME LOCAL KNOWLEDGE
 - Do NOT reference "our state", "our city", "our community", or "our area" as if describing a real local event
 - Do NOT assume knowledge of the teacher's geographic location, local news, or regional context
-- You have NO knowledge of current events — do not pretend otherwise
+- You have NO knowledge of current events \u2014 do not pretend otherwise
 
 RULE 3: ALL ILLUSTRATIONS MUST BE HONEST
 Every illustration, story, or example in the lesson MUST be one of these:
-  ✅ CLEARLY HYPOTHETICAL: "Imagine you're...", "Think about a time when...", "Picture this..."
-  ✅ UNIVERSAL HUMAN EXPERIENCE: "Most of us have felt...", "We've all had moments where..."
-  ✅ VERIFIABLE HISTORICAL FACT: Well-known events that can be independently confirmed
-  ✅ BIBLICAL NARRATIVE: Stories and examples directly from Scripture
-  ❌ NEVER: A made-up news story, fake quote, invented statistic, or fabricated current event
+  \u2705 CLEARLY HYPOTHETICAL: "Imagine you're...", "Think about a time when...", "Picture this..."
+  \u2705 UNIVERSAL HUMAN EXPERIENCE: "Most of us have felt...", "We've all had moments where..."
+  \u2705 VERIFIABLE HISTORICAL FACT: Well-known events that can be independently confirmed
+  \u2705 BIBLICAL NARRATIVE: Stories and examples directly from Scripture
+  \u274C NEVER: A made-up news story, fake quote, invented statistic, or fabricated current event
 
 RULE 4: WHEN IN DOUBT, USE HYPOTHETICAL FRAMING
 - If you want to illustrate a point with a modern scenario, ALWAYS frame it as hypothetical
@@ -198,8 +198,8 @@ function buildTeaserInstructions(includeTeaser: boolean, teaserFreshness: Teaser
   const teaserSection = getTeaserSection();
   if (!teaserSection) return '';
 
-  const rules = teaserSection.contentRules.map((r) => `    • ${r}`).join('\n');
-  const prohibitions = teaserSection.prohibitions.map((p) => `    • ${p}`).join('\n');
+  const rules = teaserSection.contentRules.map((r) => `    \u2022 ${r}`).join('\n');
+  const prohibitions = teaserSection.prohibitions.map((p) => `    \u2022 ${p}`).join('\n');
 
   const freshnessDirectives = teaserFreshness 
     ? buildTeaserFreshnessPrompt(teaserFreshness)
@@ -248,15 +248,15 @@ REQUIRED SIGNOFF:
 - Create urgency through curiosity, not promotional language
 
 SIGNOFF EXAMPLES:
-❌ WRONG: "Join us Sunday to learn about God's plan!"
-✓ RIGHT: "When we gather, we'll explore this together. I think you'll find some clarity."
+\u274C WRONG: "Join us Sunday to learn about God's plan!"
+\u2713 RIGHT: "When we gather, we'll explore this together. I think you'll find some clarity."
 
 FINAL QUALITY CHECK:
 Before outputting the teaser, verify:
-1. Does it contain ANY words from the prohibited lists? → REWRITE
-2. Could this teaser work for 10+ different lessons? → If no, make it MORE generic
-3. Does it reveal the Bible passage, topic, or doctrine? → REWRITE
-4. Does it use "Ever wonder/feel/notice"? → REWRITE with different opener
+1. Does it contain ANY words from the prohibited lists? \u2192 REWRITE
+2. Could this teaser work for 10+ different lessons? \u2192 If no, make it MORE generic
+3. Does it reveal the Bible passage, topic, or doctrine? \u2192 REWRITE
+4. Does it use "Ever wonder/feel/notice"? \u2192 REWRITE with different opener
 
 REMEMBER:
 - ONLY touch on emotions and questions the student already feels
@@ -441,7 +441,7 @@ serve(async (req) => {
             .from('profiles')
             .update({ trial_full_lessons_used: 0, trial_short_lessons_used: 0, trial_period_start: null })
             .eq('id', user.id);
-          console.log('Trial period expired — counts reset for user:', user.id);
+          console.log('Trial period expired \u2014 counts reset for user:', user.id);
         }
 
         if (trialStatus.fullAvailable || trialStatus.isAdminGrant) {
@@ -451,11 +451,11 @@ serve(async (req) => {
           isFullTrialLesson = true;
           console.log('Trial: Free user gets full 8 sections');
         } else if (trialStatus.shortAvailable) {
-          // Full lessons exhausted — short (3-section) lesson available
+          // Full lessons exhausted \u2014 short (3-section) lesson available
           sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
           isTrialLesson = true;
           isFullTrialLesson = false;
-          console.log('Trial: Full lessons exhausted — generating short 3-section lesson');
+          console.log('Trial: Full lessons exhausted \u2014 generating short 3-section lesson');
         } else {
           // Both full and short exhausted for this period
           return new Response(JSON.stringify({
@@ -922,11 +922,11 @@ ${styleExtractionPromptAddition}
               rewriteTokensOutput = rewriteData.usage?.output_tokens || 0;
 
               console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully`);
-              console.log(`Rewrite tokens — Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
+              console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
 
               const postRewriteCheck = checkOutputGuardrails(generatedLesson);
               if (!postRewriteCheck.passed) {
-                console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite — delivering as-is`);
+                console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
               } else {
                 guardrailCheckPassed = true;
                 console.log('GUARDRAIL: All violations resolved after rewrite');
@@ -945,7 +945,7 @@ ${styleExtractionPromptAddition}
           }
         }
       } else {
-        console.log('GUARDRAIL: Passed — no violations detected');
+        console.log('GUARDRAIL: Passed \u2014 no violations detected');
       }
 
       checkpoint = logTiming('Guardrail check', checkpoint);
