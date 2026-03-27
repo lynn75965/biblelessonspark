@@ -1057,6 +1057,48 @@ ${styleExtractionPromptAddition}
       console.log('Lesson saved:', lesson.id);
 
       // =========================================================================
+      // LOG GUARDRAIL VIOLATIONS TO DATABASE (if any were detected)
+      // =========================================================================
+      if (!guardrailCheckPassed && guardrailResult && guardrailResult.totalViolations > 0) {
+        try {
+          const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
+          const allViolatedTerms = violatedSections.flatMap(s =>
+            s.violations.map(v => v.patternId)
+          );
+          const violationContexts = violatedSections.flatMap(s =>
+            s.violations.map(v => ({
+              term: v.patternId,
+              occurrences: 1,
+              samples: [v.matchedText],
+            }))
+          );
+
+          const { error: violationInsertError } = await supabase
+            .from('guardrail_violations')
+            .insert({
+              lesson_id: lesson.id,
+              user_id: user.id,
+              theology_profile_id: theology_profile_id,
+              theology_profile_name: theologyProfile.name,
+              violated_terms: allViolatedTerms,
+              violation_count: guardrailResult.totalViolations,
+              violation_contexts: violationContexts,
+              lesson_title: lessonInput,
+              age_group: age_group,
+              bible_passage: bible_passage || null,
+            });
+
+          if (violationInsertError) {
+            console.error('Failed to log guardrail violation:', violationInsertError.message);
+          } else {
+            console.log(`GUARDRAIL: Logged ${guardrailResult.totalViolations} violation(s) to guardrail_violations table`);
+          }
+        } catch (violationLogError) {
+          console.error('GUARDRAIL LOGGING ERROR:', violationLogError);
+        }
+      }
+
+      // =========================================================================
       // PHASE 13.6: CONSUME FROM ORG POOL (if applicable)
       // =========================================================================
       if (useOrgPool && orgPoolResult?.organization_id) {
