@@ -1,0 +1,1 @@
+ALTER TABLE lesson_series ADD COLUMN IF NOT EXISTS pin_order INTEGER NULL;

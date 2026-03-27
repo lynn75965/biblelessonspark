@@ -145,7 +145,8 @@ export function useSeriesManager(): UseSeriesManagerReturn {
         .select('*')
         .eq('user_id', session.user.id)
         .in('status', [SERIES_STATUSES.IN_PROGRESS, SERIES_STATUSES.COMPLETED])
-        .order('updated_at', { ascending: false });
+        .order('pin_order', { ascending: true, nullsFirst: false })
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching all series:', error);

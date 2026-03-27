@@ -15,17 +15,18 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, CheckCircle, Clock, Archive, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Archive, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pin } from 'lucide-react';
 import { useSeriesManager } from '@/hooks/useSeriesManager';
 import { useSubscription } from '@/hooks/useSubscription';
 import { isSeriesComplete, SERIES_STATUSES } from '@/constants/seriesConfig';
 import { SeriesExportButton } from '@/components/SeriesExport/SeriesExportButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { ROUTES } from '@/constants/routes';
 
 interface SeriesLesson {
   id: string;
@@ -38,16 +39,39 @@ export function SeriesLibrary() {
   const { tier } = useSubscription();
   const { toast } = useToast();
   const location = useLocation();
+  const navigate = useNavigate();
   const expandConsumedRef = useRef(false);
 
   const [expandedSeriesId, setExpandedSeriesId] = useState<string | null>(null);
   const [seriesLessons, setSeriesLessons] = useState<SeriesLesson[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(false);
   const [reordering, setReordering] = useState(false);
+  const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchAllSeries();
   }, []);
+
+  // Batch fetch actual lesson counts per series (one query, not N)
+  useEffect(() => {
+    if (allSeries.length === 0) return;
+    const fetchCounts = async () => {
+      const seriesIds = allSeries.map(s => s.id);
+      const { data, error } = await supabase
+        .from('lessons')
+        .select('series_id')
+        .in('series_id', seriesIds);
+      if (error || !data) return;
+      const counts: Record<string, number> = {};
+      for (const row of data) {
+        if (row.series_id) {
+          counts[row.series_id] = (counts[row.series_id] || 0) + 1;
+        }
+      }
+      setLessonCounts(counts);
+    };
+    fetchCounts();
+  }, [allSeries]);
 
   // Auto-expand a series when navigated from "In Series" badge
   useEffect(() => {
@@ -130,6 +154,75 @@ export function SeriesLibrary() {
     }
   };
 
+  const handleTogglePin = async (seriesId: string, currentPinOrder: number | null | undefined) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return;
+      const userId = session.user.id;
+
+      if (currentPinOrder === 1) {
+        // Unpin: set to NULL, then re-number remaining pinned series
+        await supabase
+          .from('lesson_series')
+          .update({ pin_order: null })
+          .eq('id', seriesId)
+          .eq('user_id', userId);
+
+        // Get remaining pinned series ordered by pin_order
+        const { data: remaining } = await supabase
+          .from('lesson_series')
+          .select('id, pin_order')
+          .eq('user_id', userId)
+          .not('pin_order', 'is', null)
+          .order('pin_order', { ascending: true });
+
+        // Re-number from 1
+        if (remaining) {
+          for (let i = 0; i < remaining.length; i++) {
+            await supabase
+              .from('lesson_series')
+              .update({ pin_order: i + 1 })
+              .eq('id', remaining[i].id)
+              .eq('user_id', userId);
+          }
+        }
+      } else {
+        // Pin or re-pin to position 1: increment all existing pinned, then set target to 1
+        const { data: pinned } = await supabase
+          .from('lesson_series')
+          .select('id, pin_order')
+          .eq('user_id', userId)
+          .not('pin_order', 'is', null)
+          .neq('id', seriesId)
+          .order('pin_order', { ascending: true });
+
+        // Re-number others starting from 2
+        if (pinned) {
+          for (let i = 0; i < pinned.length; i++) {
+            await supabase
+              .from('lesson_series')
+              .update({ pin_order: i + 2 })
+              .eq('id', pinned[i].id)
+              .eq('user_id', userId);
+          }
+        }
+
+        // Set target to position 1
+        await supabase
+          .from('lesson_series')
+          .update({ pin_order: 1 })
+          .eq('id', seriesId)
+          .eq('user_id', userId);
+      }
+
+      // Refresh to get new sort order
+      fetchAllSeries();
+    } catch (err) {
+      console.error('Error toggling pin:', err);
+      toast({ title: "Error", description: "Failed to update pin.", variant: "destructive" });
+    }
+  };
+
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -190,9 +283,10 @@ export function SeriesLibrary() {
       {allSeries.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {allSeries.map((series) => {
-            const completedCount  = series.lesson_summaries?.length ?? 0;
-            const progressPercent = Math.round((completedCount / series.total_lessons) * 100);
+            const fallbackCount = series.lesson_summaries?.length ?? 0;
             const isExpanded = expandedSeriesId === series.id;
+            const displayCount = isExpanded ? seriesLessons.length : (lessonCounts[series.id] ?? fallbackCount);
+            const progressPercent = Math.round((displayCount / series.total_lessons) * 100);
 
             return (
               <Card key={series.id} className="group hover:shadow-glow transition-all duration-normal bg-gradient-card">
@@ -203,9 +297,20 @@ export function SeriesLibrary() {
                         {series.series_name}
                       </CardTitle>
                       <CardDescription className="text-xs sm:text-sm">
-                        {completedCount} of {series.total_lessons} lessons
+                        {displayCount} of {series.total_lessons} lessons
                       </CardDescription>
                     </div>
+                    <button
+                      onClick={() => handleTogglePin(series.id, series.pin_order)}
+                      className={`shrink-0 cursor-pointer transition-colors ${
+                        series.pin_order != null
+                          ? 'text-yellow-400 hover:text-yellow-500'
+                          : 'text-muted-foreground hover:text-yellow-400'
+                      }`}
+                      title={series.pin_order != null ? (series.pin_order === 1 ? 'Unpin series' : 'Move to top') : 'Pin to top'}
+                    >
+                      <Pin className={`h-4 w-4 ${series.pin_order != null ? 'fill-yellow-400' : ''}`} />
+                    </button>
                   </div>
 
                   <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3">
@@ -257,14 +362,18 @@ export function SeriesLibrary() {
                         <p className="text-sm text-muted-foreground text-center py-3">No lessons in this series yet.</p>
                       ) : (
                         seriesLessons.map((lesson, index) => (
-                          <div key={lesson.id} className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-muted/50 transition-colors">
+                          <div
+                            key={lesson.id}
+                            className="flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer hover:bg-muted transition-colors"
+                            onClick={() => navigate(ROUTES.DASHBOARD, { state: { tab: 'enhance', viewLessonId: lesson.id, origin: 'series', originSeriesId: series.id } })}
+                          >
                             <span className="text-xs font-medium text-muted-foreground w-5 text-center shrink-0">
                               {lesson.series_lesson_number}
                             </span>
-                            <span className="text-sm truncate flex-1 min-w-0">
+                            <span className="text-sm line-clamp-2 flex-1 min-w-0">
                               {lesson.title || 'Untitled Lesson'}
                             </span>
-                            <div className="flex gap-0.5 shrink-0">
+                            <div className="flex gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                               <Button
                                 variant="ghost"
                                 size="sm"

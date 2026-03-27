@@ -95,6 +95,7 @@ export interface LessonSeries {
   status: SeriesStatus;
   created_at: string;
   updated_at: string;
+  pin_order?: number | null;
 }
 
 // ============================================================================

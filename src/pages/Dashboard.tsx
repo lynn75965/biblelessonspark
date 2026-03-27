@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams, useLocation } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DASHBOARD_TABS, DASHBOARD_TEXT } from "@/constants/dashboardConfig";
-import { DASHBOARD_QUERY_PARAMS, DASHBOARD_TAB_VALUES } from "@/constants/routes";
+import { ROUTES, DASHBOARD_QUERY_PARAMS, DASHBOARD_TAB_VALUES } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
@@ -67,11 +67,15 @@ export default function Dashboard() {
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [viewOrigin, setViewOrigin] = useState<string | null>(null);
+  const [originSeriesId, setOriginSeriesId] = useState<string | null>(null);
+  const [pendingViewLessonId, setPendingViewLessonId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // HOOKS
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -93,14 +97,36 @@ export default function Dashboard() {
     disabled: activeTab !== 'enhance' || selectedLesson !== null 
   });
 
-  // Respond to sidebar tab navigation via location.state
+  // Respond to sidebar tab navigation and Series Library lesson view via location.state
   useEffect(() => {
-    const stateTab = (location.state as any)?.tab;
+    const state = location.state as any;
+    if (!state) return;
+
     const validTabs = Object.values(DASHBOARD_TAB_VALUES);
-    if (stateTab && validTabs.includes(stateTab as any)) {
-      setActiveTab(stateTab);
+    if (state.tab && validTabs.includes(state.tab as any)) {
+      setActiveTab(state.tab);
+    }
+
+    // Series Library lesson view: resolve lesson from state
+    if (state.viewLessonId) {
+      setPendingViewLessonId(state.viewLessonId);
+      setViewOrigin(state.origin || null);
+      setOriginSeriesId(state.originSeriesId || null);
+      // Clear state so refresh does not re-trigger
+      window.history.replaceState({}, '');
     }
   }, [location.state]);
+
+  // Resolve pending lesson view once lessons are loaded
+  useEffect(() => {
+    if (!pendingViewLessonId || lessons.length === 0) return;
+    const lessonToView = lessons.find((l: any) => l.id === pendingViewLessonId);
+    if (lessonToView) {
+      setSelectedLesson(lessonToView);
+      setActiveTab("enhance");
+      setPendingViewLessonId(null);
+    }
+  }, [pendingViewLessonId, lessons]);
 
   // Handle URL query parameters (SSOT: routes.ts)
   useEffect(() => {
@@ -292,6 +318,12 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Pending lesson view: show spinner instead of form to prevent flash */}
+            {pendingViewLessonId && !selectedLesson ? (
+              <div className="flex items-center justify-center p-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
+              </div>
+            ) : (
             <EnhanceLessonForm
               onLessonGenerated={(lesson) => {
                 setLastGeneratedLessonId(lesson?.id || null);
@@ -317,12 +349,20 @@ export default function Dashboard() {
               userPreferredAgeGroup={userProfile?.preferred_age_group || "youngadult"}
               defaultDoctrine="SBC"
               viewingLesson={selectedLesson}
+              viewingOrigin={viewOrigin}
               onClearViewing={() => {
                 setSelectedLesson(null);
-                setActiveTab("library");
+                setViewOrigin(null);
+                if (viewOrigin === 'series' && originSeriesId) {
+                  navigate(ROUTES.DASHBOARD, { state: { tab: 'series-library', expandSeriesId: originSeriesId } });
+                } else {
+                  setActiveTab("library");
+                }
+                setOriginSeriesId(null);
               }}
               initialFocusData={focusDataToApply || undefined}
             />
+            )}
           </TabsContent>
 
           <TabsContent value="library" className="mt-6">

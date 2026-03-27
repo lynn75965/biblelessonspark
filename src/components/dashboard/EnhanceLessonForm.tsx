@@ -87,6 +87,7 @@ interface EnhanceLessonFormProps {
   userPreferredAgeGroup?: string;
   defaultDoctrine?: string;
   viewingLesson?: any;
+  viewingOrigin?: string | null;
   onClearViewing?: () => void;
   /** Phase 27: Called when reshape succeeds ? updates local lessons array */
   onLessonShapeUpdated?: (lessonId: string, shapedContent: string, shapeId: string) => void;
@@ -345,6 +346,7 @@ export function EnhanceLessonForm({
   userPreferredAgeGroup,
   defaultDoctrine,
   viewingLesson,
+  viewingOrigin,
   onClearViewing,
   onLessonShapeUpdated,
   initialFocusData,
@@ -1398,7 +1400,7 @@ export function EnhanceLessonForm({
                 className="mb-4 gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
-                Back to My Lesson Library
+                {viewingOrigin === 'series' ? 'Back to Series' : 'Back to My Lesson Library'}
               </Button>
               <h1 className="text-2xl font-bold text-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
                 <BookOpen className="h-6 w-6 text-primary flex-shrink-0" />
