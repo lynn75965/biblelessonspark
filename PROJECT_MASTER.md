@@ -2141,3 +2141,24 @@ Generator now fires automatically on every npm run build.
 - Frontend org creation UI -- deferred post-launch
 - Multi-tenant migration -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
 - Dark mode: conservative lightness lifts applied -- may need further adjustment after real-world user review
+
+## SESSION LOG: March 27, 2026 -- Phase C Completion + Intensity Slider + Title Extraction
+
+### ADDITIONAL WORK COMPLETED MARCH 27, 2026 (afternoon):
+
+- Phase C3: Reshape history in Lesson Library -- shape badge (gold) on reshaped lesson cards, View Reshaped expander with content preview and copy button. Purple color corrected to gold for dark mode compatibility.
+- Intensity slider bridge zone fix: neon green and yellow cast eliminated by reducing saturation to near-zero at anchor points 40 and 60. Smooth continuous dark-to-light progression.
+- Series Library bugs fixed: lesson count mismatch resolved via batch count query, lesson title truncation corrected to line-clamp-2, blank screen fixed (isExpanded used before declaration -- temporal dead zone ReferenceError).
+- Series lesson click-to-view: clicking a lesson row in the expanded series list opens the full lesson view.
+- Return-to-series navigation: lesson view opened from Series Library shows "Back to Series" button, returns to Series Library with the same series expanded.
+- Intermittent popout eliminated: pending-view spinner prevents EnhanceLessonForm from flashing while lesson loads.
+- Series card pinning: pin icon on each series card, pinned series float to top of Series Library sorted by pin_order, most recently pinned moves to position 1, persists across sessions via database. Migration: 20260327180000_add_pin_order_to_lesson_series.sql.
+- Lesson title extraction: generate-lesson Edge Function now extracts AI-generated title from Section 1 and saves it to lessons.title (previously stored user input like "Psalm 34:8" instead of the actual lesson title). Backfilled 5 existing untitled lessons.
+- Guardrail violation logging: generate-lesson Edge Function now INSERTs to guardrail_violations table when violations are detected. Admin Panel GuardrailViolationsPanel already queries this table -- pipeline is now connected end-to-end.
+- Auto-extract scripture and focus from pasted curriculum text: EnhanceLessonForm now auto-triggers extraction after 1-second debounce when 200+ characters are pasted, matching the file upload path behavior.
+
+### OUTSTANDING CARRY-FORWARDS (updated):
+- Phase C4: Consistent toolbar everywhere -- next task
+- Phase C5: Devotional series
+- Pre-existing Unicode in generate-lesson/index.ts lines 58-118
+- Tutorial video scripts -- blocked until Lynn provides screenshots or screen recording of live platform
