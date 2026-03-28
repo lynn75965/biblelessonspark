@@ -327,6 +327,36 @@ export type Database = {
         }
         Relationships: []
       }
+      devotional_series: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          description: string | null
+          pin_order: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          description?: string | null
+          pin_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          description?: string | null
+          pin_order?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       devotionals: {
         Row: {
           age_group_id: string | null
@@ -345,6 +375,8 @@ export type Database = {
           section_reflection_questions: string | null
           section_scripture_in_context: string | null
           section_theological_insights: string | null
+          series_id: string | null
+          series_devotional_number: number | null
           source_lesson_id: string | null
           status: string
           target_id: string
@@ -373,6 +405,8 @@ export type Database = {
           section_reflection_questions?: string | null
           section_scripture_in_context?: string | null
           section_theological_insights?: string | null
+          series_id?: string | null
+          series_devotional_number?: number | null
           source_lesson_id?: string | null
           status?: string
           target_id?: string
@@ -401,6 +435,8 @@ export type Database = {
           section_reflection_questions?: string | null
           section_scripture_in_context?: string | null
           section_theological_insights?: string | null
+          series_id?: string | null
+          series_devotional_number?: number | null
           source_lesson_id?: string | null
           status?: string
           target_id?: string
@@ -418,6 +454,13 @@ export type Database = {
             columns: ["source_lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devotionals_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "devotional_series"
             referencedColumns: ["id"]
           },
         ]

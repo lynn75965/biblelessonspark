@@ -37,6 +37,8 @@ export interface Devotional {
   section_theological_insights: string | null;
   section_reflection_questions: string | null;
   section_prayer_prompt: string | null;
+  series_id: string | null;
+  series_devotional_number: number | null;
   word_count: number | null;
   generation_duration_ms: number | null;
   anthropic_model: string | null;

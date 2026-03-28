@@ -61,7 +61,8 @@
       "Bash(git:*)",
       "Bash(powershell -Command 'Copy-Item \"$env:USERPROFILE\\\\Downloads\\\\fix_brand_values.cjs\" \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\fix_brand_values.cjs\"; Copy-Item \"$env:USERPROFILE\\\\Downloads\\\\fix_generator.cjs\" \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\fix_generator.cjs\"; Copy-Item \"$env:USERPROFILE\\\\Downloads\\\\fix_step1_cards.cjs\" \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\fix_step1_cards.cjs\"')",
       "Bash(node:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase C3 -- Reshape history badge and expander in Lesson Library\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase C3 -- Reshape history badge and expander in Lesson Library\" 2>&1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase C5 -- Devotional series grouping in Devotional Library \\(storage and browsing only\\)\")"
     ]
   }
 }
