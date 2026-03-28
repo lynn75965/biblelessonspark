@@ -42,6 +42,7 @@ import {
   CircleHelp,
   Gift,
   Hammer,
+  Printer,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
@@ -109,6 +110,13 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Layers,
     description: 'Browse and manage lesson series',
     tabValue: DASHBOARD_TAB_VALUES.SERIES_LIBRARY,
+  },
+  publishing: {
+    id: 'publishing',
+    label: 'Publishing',
+    icon: Printer,
+    description: 'Print and share your lessons, devotionals, and series',
+    route: ROUTES.PUBLISH,
   },
   teachingTeam: {
     id: 'teachingTeam',
@@ -204,7 +212,7 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
   buildAndPrepare: {
     id: 'buildAndPrepare',
     label: 'Build & Prepare',
-    items: ['buildLesson', 'lessonLibrary', 'devotionalLibrary', 'seriesLibrary'],
+    items: ['buildLesson', 'lessonLibrary', 'devotionalLibrary', 'seriesLibrary', 'publishing'],
   },
   myTeachingTeam: {
     id: 'myTeachingTeam',

@@ -85,6 +85,7 @@ export const BOOKLET_COLOR_SCHEMES: ColorScheme[] = [
   { id: 'burgundy_copper',  label: 'Burgundy & Copper',  primary: '6B2737', accent: 'B5651D', hr: 'B5651D' },
   { id: 'deep_teal_bronze', label: 'Deep Teal & Bronze', primary: '1A5F5A', accent: 'A0522D', hr: 'A0522D' },
   { id: 'plum_sage',        label: 'Plum & Sage',        primary: '5B2C6F', accent: '5F8575', hr: '5F8575' },
+  { id: 'black_white',      label: 'Black & White',       primary: '1a1a1a', accent: '555555', hr: '888888' },
 ];
 
 export type ColorSchemeId = typeof BOOKLET_COLOR_SCHEMES[number]['id'];
@@ -447,6 +448,21 @@ export function buildSeriesExportFilename(
   const ext = format === SERIES_EXPORT_FORMATS.DOCX ? 'docx' : 'pdf';
   return slug + '.' + ext;
 }
+
+// ============================================================================
+// ECONOMICAL PRINT
+// ============================================================================
+
+export const ECONOMICAL_PRINT = {
+  fontPt: 10,
+  lineHeight: 1.12,
+  margins: {
+    top: 32.4,       // 0.45 inch in points
+    bottom: 32.4,    // 0.45 inch in points
+    left: 39.6,      // 0.55 inch in points
+    right: 32.4,     // 0.45 inch in points
+  },
+} as const;
 
 // ============================================================================
 // MIME TYPES

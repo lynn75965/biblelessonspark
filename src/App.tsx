@@ -41,6 +41,9 @@ import TeachingTeam from "./pages/TeachingTeam";
 
 // Admin Toolbelt
 import ToolbeltAdmin from "./pages/ToolbeltAdmin";
+
+// Phase D: Publishing Hub
+import PublishingHub from "./pages/PublishingHub";
 import { ROUTES } from "@/constants/routes";
 
 const queryClient = new QueryClient();
@@ -171,6 +174,13 @@ const App = () => (
             <Route path={ROUTES.MORE_TOOLS} element={
               <ProtectedRoute>
                 <MoreTools />
+              </ProtectedRoute>
+            } />
+
+            {/* Phase D: Publishing Hub */}
+            <Route path={ROUTES.PUBLISH} element={
+              <ProtectedRoute>
+                <PublishingHub />
               </ProtectedRoute>
             } />
 

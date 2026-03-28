@@ -8,7 +8,7 @@ import { EXPORT_FORMATTING, EXPORT_SPACING, isBoldLabel, isSkipLabel, getSection
 import type { AudienceProfile } from "../constants/audienceConfig";
 import { GROUP_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
 import type { FontId, ColorSchemeId } from "../constants/seriesExportConfig";
-import { getFontOption, getColorScheme } from "../constants/seriesExportConfig";
+import { getFontOption, getColorScheme, ECONOMICAL_PRINT } from "../constants/seriesExportConfig";
 import { loadPdfFonts } from "./export/loadPdfFonts";
 
 // ============================================================================
@@ -158,6 +158,8 @@ interface ExportToPdfOptions {
   fontId?: FontId;
   /** Color scheme from seriesExportConfig SSOT (default: forest_gold) */
   colorSchemeId?: ColorSchemeId;
+  /** Economical print: smaller body font (10pt) and tighter line spacing */
+  economicalPrint?: boolean;
 }
 
 export const exportToPdf = async ({
@@ -168,6 +170,7 @@ export const exportToPdf = async ({
   audienceProfile,
   fontId,
   colorSchemeId,
+  economicalPrint,
 }: ExportToPdfOptions): Promise<void> => {
 
   // Resolve font and color scheme from SSOT (defaults: Pagella + Forest & Gold)
@@ -175,14 +178,32 @@ export const exportToPdf = async ({
   const scheme  = getColorScheme(colorSchemeId ?? null);
   const pdfFont = fontOpt.pdfFamily;
 
+  // Economical print: override body font size, line height, and margins from SSOT
+  const bodyFontPt = economicalPrint ? ECONOMICAL_PRINT.fontPt : body.fontPt;
+  const bodyLineH  = economicalPrint ? ECONOMICAL_PRINT.lineHeight : body.lineHeight;
+
+  // Margins: economical uses SSOT points->mm; standard uses lessonStructure values
+  const mTopMm    = economicalPrint ? ptToMm(ECONOMICAL_PRINT.margins.top)    : MARGIN_TOP_MM;
+  const mBottomMm = economicalPrint ? ptToMm(ECONOMICAL_PRINT.margins.bottom) : MARGIN_BOTTOM_MM;
+  const mLeftMm   = economicalPrint ? ptToMm(ECONOMICAL_PRINT.margins.left)   : MARGIN_LEFT_MM;
+  const mRightMm  = economicalPrint ? ptToMm(ECONOMICAL_PRINT.margins.right)  : MARGIN_RIGHT_MM;
+
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "letter" });
 
   // Load and register custom TTF fonts (no-op for jsPDF built-ins such as times)
   await loadPdfFonts(doc, fontOpt);
 
   // PDF color palette -- body/meta/footer from EXPORT_SPACING; headings/accents from scheme
+  // Teaser background: light tint derived from scheme accent (10% opacity over white)
+  const accentRgb = hexToRgb(scheme.accent);
+  const teaserBgHex = [
+    Math.round(255 + (accentRgb[0] - 255) * 0.08),
+    Math.round(255 + (accentRgb[1] - 255) * 0.08),
+    Math.round(255 + (accentRgb[2] - 255) * 0.08),
+  ] as [number, number, number];
+
   const PDF_COLORS = {
-    teaserBg:      hexToRgb(colors.teaserBg),
+    teaserBg:      teaserBgHex,
     teaserBorder:  hexToRgb(scheme.accent),
     teaserText:    hexToRgb(scheme.accent),
     bodyText:      hexToRgb(colors.bodyText),
@@ -194,7 +215,7 @@ export const exportToPdf = async ({
 
   const pageWidth  = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const contentWidth = pageWidth - MARGIN_LEFT_MM - MARGIN_RIGHT_MM;
+  const contentWidth = pageWidth - mLeftMm - mRightMm;
 
   // Footer reservation: footer sits at pdfFooterIn from bottom edge
   const footerY = pageHeight - FOOTER_FROM_BOTTOM_MM;
@@ -202,22 +223,17 @@ export const exportToPdf = async ({
   const contentBottomY = footerY - ptToMm(footer.fontPt) - 2;
 
   // Character tracking: -0.5% at body size (micro-typography)
-  doc.setCharSpace(body.fontPt * -0.005);
+  doc.setCharSpace(bodyFontPt * -0.005);
 
-  let yPosition = MARGIN_TOP_MM;
+  let yPosition = mTopMm;
 
-  // Synthetic bold: PDF fill-then-stroke rendering mode adds a thin stroke
-  // around each glyph, guaranteeing visible bold weight even when the TTF
-  // bold variant is subtle or jsPDF does not render it distinctly.
-  const setPdfFont = (style: 'bold' | 'normal' | 'italic', color?: [number, number, number], fontSize?: number): void => {
+  // Font setter: always resets PDF text rendering mode to fill-only (0 Tr).
+  // This prevents strikethrough artifacts and yellow highlight bleeding from
+  // stale fill-then-stroke state. Bold weight comes from the TTF bold variant
+  // registered by loadPdfFonts -- no synthetic stroke needed.
+  const setPdfFont = (style: 'bold' | 'normal' | 'italic'): void => {
     doc.setFont(pdfFont, style);
-    if (style === 'bold' && color && fontSize) {
-      doc.setDrawColor(...color);
-      doc.setLineWidth(ptToMm(fontSize * 0.02));
-      (doc as any).internal.write('2 Tr'); // fill-then-stroke
-    } else {
-      (doc as any).internal.write('0 Tr'); // fill only (normal)
-    }
+    (doc as any).internal.write('0 Tr'); // fill only -- never stroke text
   };
 
   const lessonTitle   = extractLessonTitle(content);
@@ -237,24 +253,24 @@ export const exportToPdf = async ({
     // --- Standard rendering ---
     doc.setFontSize(fontSize);
     if (isBold) {
-      setPdfFont("bold", textColor ?? PDF_COLORS.bodyText, fontSize);
+      setPdfFont("bold");
     } else {
       setPdfFont("normal");
     }
     doc.setTextColor(...(textColor ?? PDF_COLORS.bodyText));
     const lines = doc.splitTextToSize(sanitizedText, contentWidth);
     if (lines.length === 0) return;
-    const lineH = ptToMm(fontSize * body.lineHeight);
+    const lineH = ptToMm(fontSize * bodyLineH);
     const spaceLeft = contentBottomY - yPosition;
     const linesFit = Math.max(0, Math.floor(spaceLeft / lineH));
 
     if (linesFit >= lines.length) {
-      for (const ln of lines) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
+      for (const ln of lines) { doc.text(ln, mLeftMm, yPosition); yPosition += lineH; }
       return;
     }
     if (linesFit < 2) {
-      doc.addPage(); yPosition = MARGIN_TOP_MM;
-      for (const ln of lines) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
+      doc.addPage(); yPosition = mTopMm;
+      for (const ln of lines) { doc.text(ln, mLeftMm, yPosition); yPosition += lineH; }
       return;
     }
     let linesOnThisPage = linesFit;
@@ -263,75 +279,123 @@ export const exportToPdf = async ({
       linesOnThisPage = lines.length - 2;
     }
     const firstPart = lines.slice(0, linesOnThisPage);
-    for (const ln of firstPart) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
-    doc.addPage(); yPosition = MARGIN_TOP_MM;
+    for (const ln of firstPart) { doc.text(ln, mLeftMm, yPosition); yPosition += lineH; }
+    doc.addPage(); yPosition = mTopMm;
     const secondPart = lines.slice(linesOnThisPage);
-    for (const ln of secondPart) { doc.text(ln, MARGIN_LEFT_MM, yPosition); yPosition += lineH; }
+    for (const ln of secondPart) { doc.text(ln, mLeftMm, yPosition); yPosition += lineH; }
   };
 
   // ---- Helper: Add labeled text (bold label, normal value) ----
   // Bold mechanism: identical to section headings (doc.setFont + doc.text)
   // plus double-draw at 0.15mm offset for guaranteed visible bold weight.
-  const addLabeledText = (label: string, value: string, fontSize: number = body.fontPt): void => {
+  const addLabeledText = (label: string, value: string, fontSize: number = bodyFontPt): void => {
     const sanitizedLabel = sanitizeText(label);
     const sanitizedValue = sanitizeText(value);
-    const lineH = ptToMm(fontSize * body.lineHeight);
+    const lineH = ptToMm(fontSize * bodyLineH);
 
-    // --- Bold label: same sequence as section headings ---
+    // --- Bold label ---
     doc.setFontSize(fontSize);
-    doc.setFont(pdfFont, "bold");
+    setPdfFont("bold");
     doc.setTextColor(...PDF_COLORS.bodyText);
     const labelWidth     = doc.getTextWidth(sanitizedLabel + " ");
     const remainingWidth = contentWidth - labelWidth;
     if (yPosition + lineH > contentBottomY) {
       doc.addPage();
-      yPosition = MARGIN_TOP_MM;
+      yPosition = mTopMm;
     }
-    // Draw label bold (double-draw for guaranteed visible weight)
-    doc.text(sanitizedLabel, MARGIN_LEFT_MM, yPosition);
-    doc.text(sanitizedLabel, MARGIN_LEFT_MM + 0.15, yPosition);
+    doc.text(sanitizedLabel, mLeftMm, yPosition);
 
     // --- Normal value: switch to normal, draw after label ---
-    doc.setFont(pdfFont, "normal");
+    setPdfFont("normal");
     const valueLines = doc.splitTextToSize(sanitizedValue, remainingWidth);
     if (valueLines.length >= 1 && valueLines[0]) {
-      doc.text(valueLines[0], MARGIN_LEFT_MM + labelWidth, yPosition);
+      doc.text(valueLines[0], mLeftMm + labelWidth, yPosition);
     }
     yPosition += lineH;
     for (let vi = 1; vi < valueLines.length; vi++) {
       if (yPosition + lineH > contentBottomY) {
         doc.addPage();
-        yPosition = MARGIN_TOP_MM;
+        yPosition = mTopMm;
       }
-      doc.text(valueLines[vi], MARGIN_LEFT_MM, yPosition);
+      doc.text(valueLines[vi], mLeftMm, yPosition);
       yPosition += lineH;
     }
   };
 
-  // ---- Helper: Render body paragraph with inline bold label detection ----
-  // If text starts with "Label:" (short, capitalized), renders label bold, rest normal.
-  // Otherwise renders entire text in normal weight.
+  // ---- Helper: Render body paragraph with inline bold spans ----
+  // Splits text on **bold** markers and renders each span in the correct weight.
+  // Mixed lines like "**Label:** normal text" render Label: bold and text normal.
+  //
+  // Strategy: break text into word-level chunks each tagged bold/normal, then
+  // draw word-by-word, wrapping to next line when x exceeds contentWidth.
+  // This avoids the fragile splitTextToSize character-offset approach.
   const addBodyParagraph = (text: string): void => {
-    const cleaned = text.replace(/\*\*/g, "").trim();
-    if (!cleaned) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
 
-    // Detect inline label: "Label:" at start, label < 60 chars, starts with capital
-    const inlineMatch = cleaned.match(/^([A-Z][^:]{0,58}):\s*(.*)$/);
-    if (inlineMatch) {
-      const labelPart = inlineMatch[1].trim();
-      const valuePart = inlineMatch[2].trim();
-      // Keep-with-next: label + 2 body lines must fit
-      const keepH = ptToMm(body.fontPt * body.lineHeight * 3);
-      if (yPosition + keepH > contentBottomY) {
-        doc.addPage();
-        yPosition = MARGIN_TOP_MM;
-      }
-      addLabeledText(labelPart + ":", valuePart, body.fontPt);
+    // If no bold markers, use the simple addText path
+    if (!trimmed.includes('**')) {
+      const cleaned = sanitizeText(trimmed);
+      if (!cleaned) return;
+      addText(cleaned, bodyFontPt, false);
       return;
     }
 
-    // No label detected -- render as plain body text
-    addText(cleaned, body.fontPt, false);
+    // Split on ** markers: odd-indexed segments are bold, even are normal
+    const segments = trimmed.split(/\*\*/).map((s, idx) => ({
+      text: sanitizeText(s),
+      bold: idx % 2 === 1,
+    })).filter(s => s.text.length > 0);
+
+    if (segments.length === 0) return;
+
+    const fontSize = bodyFontPt;
+    const lineH = ptToMm(fontSize * bodyLineH);
+    doc.setFontSize(fontSize);
+
+    // Page break if needed
+    if (yPosition + lineH > contentBottomY) {
+      doc.addPage();
+      yPosition = mTopMm;
+    }
+
+    // Break each segment into words, preserving bold flag
+    const words: { word: string; bold: boolean }[] = [];
+    for (const seg of segments) {
+      const segWords = seg.text.split(/(\s+)/);
+      for (const w of segWords) {
+        if (w.length > 0) words.push({ word: w, bold: seg.bold });
+      }
+    }
+
+    // Render word-by-word with line wrapping
+    let xPos = mLeftMm;
+    const rightEdge = mLeftMm + contentWidth;
+    for (const chunk of words) {
+      setPdfFont(chunk.bold ? "bold" : "normal");
+      doc.setFontSize(fontSize);
+      const wWidth = doc.getTextWidth(chunk.word);
+
+      // If this word would exceed the line, wrap
+      if (xPos > mLeftMm && xPos + wWidth > rightEdge) {
+        yPosition += lineH;
+        xPos = mLeftMm;
+        if (yPosition + lineH > contentBottomY) {
+          doc.addPage();
+          yPosition = mTopMm;
+        }
+        // Skip leading whitespace at start of new line
+        if (chunk.word.trim().length === 0) continue;
+      }
+
+      doc.setTextColor(...PDF_COLORS.bodyText);
+      doc.text(chunk.word, xPos, yPosition);
+      xPos += wWidth;
+    }
+
+    // Advance past the last line
+    yPosition += lineH;
+    setPdfFont("normal");
   };
 
   // ---- Helper: Add horizontal rule with scheme hr color ----
@@ -340,11 +404,11 @@ export const exportToPdf = async ({
     yPosition += ptToMm(hr.beforePt);
     if (yPosition + 2 > contentBottomY) {
       doc.addPage();
-      yPosition = MARGIN_TOP_MM;
+      yPosition = mTopMm;
     }
     doc.setDrawColor(...PDF_COLORS.hrLine);
     doc.setLineWidth(ptToMm(hr.thickness));
-    doc.line(MARGIN_LEFT_MM, yPosition, pageWidth - MARGIN_RIGHT_MM, yPosition);
+    doc.line(mLeftMm, yPosition, pageWidth - mRightMm, yPosition);
     yPosition += ptToMm(hr.afterPt);
   };
 
@@ -360,32 +424,32 @@ export const exportToPdf = async ({
     const teaserText  = sanitizeText(teaserContent);
     doc.setFontSize(teaser.fontPt);
     const teaserLines  = doc.splitTextToSize(teaserText, contentWidth - 10);
-    const teaserHeight = ptToMm(teaser.fontPt * body.lineHeight * teaserLines.length) + 10;
+    const teaserHeight = ptToMm(teaser.fontPt * bodyLineH * teaserLines.length) + 10;
 
     if (yPosition + teaserHeight > contentBottomY) {
       doc.addPage();
-      yPosition = MARGIN_TOP_MM;
+      yPosition = mTopMm;
     }
 
     // Teaser box -- scheme accent for border/text, SSOT teaserBg fill
     doc.setFillColor(...PDF_COLORS.teaserBg);
     doc.setDrawColor(...PDF_COLORS.teaserBorder);
-    doc.roundedRect(MARGIN_LEFT_MM, yPosition - 2, contentWidth, teaserHeight, 2, 2, "FD");
+    doc.roundedRect(mLeftMm, yPosition - 2, contentWidth, teaserHeight, 2, 2, "FD");
     yPosition += 3;
 
     // Teaser label
     doc.setFontSize(9);
-    setPdfFont("bold", PDF_COLORS.teaserText, 9);
+    setPdfFont("bold");
     doc.setTextColor(...PDF_COLORS.teaserText);
-    doc.text(EXPORT_FORMATTING.teaserLabel, MARGIN_LEFT_MM + 5, yPosition);
+    doc.text(EXPORT_FORMATTING.teaserLabel, mLeftMm + 5, yPosition);
     yPosition += 4;
 
     // Teaser content
     doc.setFontSize(teaser.fontPt);
     setPdfFont("italic");
     doc.setTextColor(...PDF_COLORS.teaserText);
-    doc.text(teaserLines, MARGIN_LEFT_MM + 5, yPosition);
-    yPosition += ptToMm(teaser.fontPt * body.lineHeight * teaserLines.length) + 4;
+    doc.text(teaserLines, mLeftMm + 5, yPosition);
+    yPosition += ptToMm(teaser.fontPt * bodyLineH * teaserLines.length) + 4;
 
     doc.setTextColor(...PDF_COLORS.bodyText);
     setPdfFont("normal");
@@ -432,10 +496,10 @@ export const exportToPdf = async ({
           i++;
           continue;
         }
-        const headingKeep = ptToMm(sectionHeader.beforePt + sectionHeaderFont.fontPt * body.lineHeight + sectionHeader.afterPt + body.fontPt * body.lineHeight * 3);
+        const headingKeep = ptToMm(sectionHeader.beforePt + sectionHeaderFont.fontPt * bodyLineH + sectionHeader.afterPt + bodyFontPt * bodyLineH * 3);
         if (yPosition + headingKeep > contentBottomY) {
           doc.addPage();
-          yPosition = MARGIN_TOP_MM;
+          yPosition = mTopMm;
         }
         addSpacing(sectionHeader.beforePt);
         addText(sectionInfo.cleanTitle, sectionHeaderFont.fontPt, true, PDF_COLORS.sectionHeader);
@@ -446,10 +510,10 @@ export const exportToPdf = async ({
 
       // Markdown ## headers -- section heading level
       if (trimmedLine.startsWith("## ")) {
-        const headingKeep = ptToMm(sectionHeader.beforePt + sectionHeaderFont.fontPt * body.lineHeight + sectionHeader.afterPt + body.fontPt * body.lineHeight * 3);
+        const headingKeep = ptToMm(sectionHeader.beforePt + sectionHeaderFont.fontPt * bodyLineH + sectionHeader.afterPt + bodyFontPt * bodyLineH * 3);
         if (yPosition + headingKeep > contentBottomY) {
           doc.addPage();
-          yPosition = MARGIN_TOP_MM;
+          yPosition = mTopMm;
         }
         addSpacing(sectionHeader.beforePt);
         addText(trimmedLine.replace("## ", "").replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'), sectionHeaderFont.fontPt, true, PDF_COLORS.sectionHeader);
@@ -461,10 +525,10 @@ export const exportToPdf = async ({
       // Markdown ### headers -- subheading level (12pt bold, 6pt before, 2pt after)
       // Must stay attached to next paragraph (at least 2 body lines)
       if (trimmedLine.startsWith("### ")) {
-        const subKeep = ptToMm(subheading.beforePt + subheading.fontPt * body.lineHeight + subheading.afterPt + body.fontPt * body.lineHeight * 2);
+        const subKeep = ptToMm(subheading.beforePt + subheading.fontPt * bodyLineH + subheading.afterPt + bodyFontPt * bodyLineH * 2);
         if (yPosition + subKeep > contentBottomY) {
           doc.addPage();
-          yPosition = MARGIN_TOP_MM;
+          yPosition = mTopMm;
         }
         addSpacing(subheading.beforePt);
         addText(trimmedLine.replace("### ", "").replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'), subheading.fontPt, true);
@@ -475,10 +539,10 @@ export const exportToPdf = async ({
 
       // Markdown # headers -- title level
       if (trimmedLine.startsWith("# ")) {
-        const headingKeep = ptToMm(sectionHeader.beforePt + title.fontPt * body.lineHeight + sectionHeader.afterPt + body.fontPt * body.lineHeight * 3);
+        const headingKeep = ptToMm(sectionHeader.beforePt + title.fontPt * bodyLineH + sectionHeader.afterPt + bodyFontPt * bodyLineH * 3);
         if (yPosition + headingKeep > contentBottomY) {
           doc.addPage();
-          yPosition = MARGIN_TOP_MM;
+          yPosition = mTopMm;
         }
         addSpacing(sectionHeader.beforePt);
         addText(trimmedLine.replace("# ", "").replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1'), title.fontPt, true);
@@ -498,12 +562,12 @@ export const exportToPdf = async ({
           else break;
         }
         // If this is the first bullet and we can't fit at least 2, move to next page
-        const bulletLineH = ptToMm(body.fontPt * body.lineHeight);
+        const bulletLineH = ptToMm(bodyFontPt * bodyLineH);
         if (bulletCount >= 2) {
           const twoBulletH = bulletLineH * 2 + ptToMm(listItem.afterPt);
           if (yPosition + twoBulletH > contentBottomY) {
             doc.addPage();
-            yPosition = MARGIN_TOP_MM;
+            yPosition = mTopMm;
           }
         }
 
@@ -512,9 +576,9 @@ export const exportToPdf = async ({
         const bulletIndentMm = ptToMm(listItem.indentPt);
         const textIndentMm = ptToMm(listItem.textIndentPt);
         if (boldMatch) {
-          addLabeledText("- " + boldMatch[1] + ":", boldMatch[2], body.fontPt);
+          addLabeledText("- " + boldMatch[1] + ":", boldMatch[2], bodyFontPt);
         } else {
-          doc.setFontSize(body.fontPt);
+          doc.setFontSize(bodyFontPt);
           setPdfFont("normal");
           doc.setTextColor(...PDF_COLORS.bodyText);
           // Draw bullet glyph at indent, text at text indent
@@ -522,15 +586,15 @@ export const exportToPdf = async ({
           const bulletLines = doc.splitTextToSize(sanitizeText(bulletText.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1')), bulletTextWidth);
           if (yPosition + bulletLineH > contentBottomY) {
             doc.addPage();
-            yPosition = MARGIN_TOP_MM;
+            yPosition = mTopMm;
           }
-          doc.text("-", MARGIN_LEFT_MM + bulletIndentMm, yPosition);
+          doc.text("-", mLeftMm + bulletIndentMm, yPosition);
           for (let bi = 0; bi < bulletLines.length; bi++) {
             if (bi > 0 && yPosition + bulletLineH > contentBottomY) {
               doc.addPage();
-              yPosition = MARGIN_TOP_MM;
+              yPosition = mTopMm;
             }
-            doc.text(bulletLines[bi], MARGIN_LEFT_MM + textIndentMm, yPosition);
+            doc.text(bulletLines[bi], mLeftMm + textIndentMm, yPosition);
             yPosition += bulletLineH;
           }
         }
@@ -541,29 +605,8 @@ export const exportToPdf = async ({
 
       // Numbered lists
       if (/^\d+[.)]\s/.test(trimmedLine)) {
-        addText(trimmedLine, body.fontPt, false);
+        addText(trimmedLine, bodyFontPt, false);
         addSpacing(listItem.afterPt);
-        i++;
-        continue;
-      }
-
-      // Detect ** bold label lines: e.g. **Key Takeaway:** content
-      if (/^\*\*[A-Z]/.test(trimmedLine)) {
-        const stripped = trimmedLine.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
-        const colonIdx = stripped.indexOf(':');
-        const labelLineH = ptToMm(body.fontPt * body.lineHeight);
-        if (yPosition + labelLineH * 3 > contentBottomY) {
-          doc.addPage();
-          yPosition = MARGIN_TOP_MM;
-        }
-        if (colonIdx !== -1 && colonIdx < stripped.length - 1) {
-          const label = stripped.slice(0, colonIdx + 1);
-          const contentAfter = stripped.slice(colonIdx + 1).trim();
-          addLabeledText(label, contentAfter, body.fontPt);
-        } else {
-          addText(stripped, body.fontPt, true);
-        }
-        addSpacing(paragraph.afterPt);
         i++;
         continue;
       }
@@ -590,11 +633,11 @@ export const exportToPdf = async ({
 
   // 1. DOCUMENT TITLE
   doc.setFontSize(title.fontPt);
-  setPdfFont("bold", PDF_COLORS.bodyText, title.fontPt);
+  setPdfFont("bold");
   doc.setTextColor(...PDF_COLORS.bodyText);
   const titleLines = doc.splitTextToSize(sanitizeText(documentTitle), contentWidth);
-  doc.text(titleLines, MARGIN_LEFT_MM, yPosition);
-  yPosition += ptToMm(title.fontPt * body.lineHeight * titleLines.length);
+  doc.text(titleLines, mLeftMm, yPosition);
+  yPosition += ptToMm(title.fontPt * bodyLineH * titleLines.length);
   addSpacing(title.afterPt);
 
   // 2. METADATA LINE
@@ -606,7 +649,7 @@ export const exportToPdf = async ({
     if (meta.ageGroup)  metadataParts.push(sanitizeText(meta.ageGroup));
     if (meta.theology)  metadataParts.push(sanitizeText(meta.theology));
     if (metadataParts.length > 0) {
-      doc.text(metadataParts.join("  |  "), MARGIN_LEFT_MM, yPosition);
+      doc.text(metadataParts.join("  |  "), mLeftMm, yPosition);
       addSpacing(metadata.afterPt);
     }
     doc.setTextColor(...PDF_COLORS.bodyText);
@@ -655,7 +698,7 @@ export const exportToPdf = async ({
     const copyrightLines = doc.splitTextToSize(copyrightText, contentWidth);
     const copyrightWidth = doc.getTextWidth(copyrightLines[0]);
     doc.text(copyrightLines, (pageWidth - copyrightWidth) / 2, yPosition + 3);
-    yPosition += ptToMm(footer.fontPt * body.lineHeight * copyrightLines.length) + 3;
+    yPosition += ptToMm(footer.fontPt * bodyLineH * copyrightLines.length) + 3;
     doc.setTextColor(...PDF_COLORS.bodyText);
     setPdfFont("normal");
   }
@@ -664,15 +707,15 @@ export const exportToPdf = async ({
   let section8StartPage = -1;
   if (section8Lines.length > 0) {
     doc.addPage();
-    yPosition         = MARGIN_TOP_MM;
+    yPosition         = mTopMm;
     section8StartPage = doc.getNumberOfPages();
 
     // Standalone title -- scheme primary color
     doc.setFontSize(sectionHeaderFont.fontPt);
-    setPdfFont("bold", PDF_COLORS.sectionHeader, sectionHeaderFont.fontPt);
+    setPdfFont("bold");
     doc.setTextColor(...PDF_COLORS.sectionHeader);
-    doc.text(getSection8StandaloneTitle(audienceProfile?.participant), MARGIN_LEFT_MM, yPosition);
-    yPosition += ptToMm(sectionHeaderFont.fontPt * body.lineHeight);
+    doc.text(getSection8StandaloneTitle(audienceProfile?.participant), mLeftMm, yPosition);
+    yPosition += ptToMm(sectionHeaderFont.fontPt * bodyLineH);
     addSpacing(sectionHeader.afterPt);
 
     // Teaser box on Section 8 page

@@ -19,7 +19,7 @@ import { EXPORT_FORMATTING, EXPORT_SPACING, getSection8StandaloneTitle } from ".
 import type { AudienceProfile } from "../constants/audienceConfig";
 import { GROUP_HANDOUT_HEADING_REGEX } from "../constants/lessonShapeProfiles";
 import type { FontId, ColorSchemeId, ColorScheme } from "../constants/seriesExportConfig";
-import { getFontOption, getColorScheme } from "../constants/seriesExportConfig";
+import { getFontOption, getColorScheme, ECONOMICAL_PRINT } from "../constants/seriesExportConfig";
 
 // SSOT destructure
 const {
@@ -131,7 +131,7 @@ function buildTeaserBox(teaserText: string, docxFont: string, accentColor: strin
       children: [new TextRun({
         text:    teaserText,
         italics: true,
-        size:    body.fontHalfPt,
+        size:    bodyFontHalfPt,
         font:    docxFont,
       })],
       spacing: { after: teaser.marginAfterTwips },
@@ -150,7 +150,7 @@ function buildTeaserBox(teaserText: string, docxFont: string, accentColor: strin
  */
 function buildTextRuns(
   text:     string,
-  fontSize: number = body.fontHalfPt,
+  fontSize: number = bodyFontHalfPt,
   docxFont: string = fonts.docx
 ): TextRun[] {
   if (!text) return [];
@@ -246,6 +246,8 @@ interface DocxExportOptions {
   fontId?: FontId;
   /** Color scheme from seriesExportConfig SSOT (default: forest_gold) */
   colorSchemeId?: ColorSchemeId;
+  /** Economical print: smaller body font (10pt / 20 half-pt) and tighter line spacing */
+  economicalPrint?: boolean;
 }
 
 export const exportToDocx = async (options: DocxExportOptions): Promise<void> => {
@@ -257,11 +259,21 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     audienceProfile,
     fontId,
     colorSchemeId,
+    economicalPrint,
   } = options;
 
   // Resolve font and color scheme from SSOT (defaults: Pagella + Forest & Gold)
   const fontOpt  = getFontOption(fontId ?? null);
   const scheme   = getColorScheme(colorSchemeId ?? null);
+
+  // Economical print: override body font size (half-points for docx) and margins (twips)
+  const bodyFontHalfPt = economicalPrint ? ECONOMICAL_PRINT.fontPt * 2 : body.fontHalfPt;
+
+  // Margins: economical uses SSOT points->twips (1pt = 20 twips); standard uses lessonStructure
+  const mTopTwips    = economicalPrint ? ECONOMICAL_PRINT.margins.top * 20    : (margins.topTwips ?? margins.twips);
+  const mBottomTwips = economicalPrint ? ECONOMICAL_PRINT.margins.bottom * 20 : (margins.bottomTwips ?? margins.twips);
+  const mLeftTwips   = economicalPrint ? ECONOMICAL_PRINT.margins.left * 20   : (margins.leftTwips ?? margins.twips);
+  const mRightTwips  = economicalPrint ? ECONOMICAL_PRINT.margins.right * 20  : (margins.rightTwips ?? margins.twips);
   const docxFont = fontOpt.docxName;
 
   const lessonTitle = extractDocTitle(content);
@@ -348,7 +360,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
         children: [new TextRun({
           text:  headerText,
           bold:  true,
-          size:  body.fontHalfPt,
+          size:  bodyFontHalfPt,
           color: scheme.primary,
           font:  docxFont,
         })],
@@ -364,7 +376,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
         children: [new TextRun({
           text:  headerText,
           bold:  true,
-          size:  body.fontHalfPt,
+          size:  bodyFontHalfPt,
           color: scheme.primary,
           font:  docxFont,
         })],
@@ -380,7 +392,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
         children: [new TextRun({
           text:  headerText,
           bold:  true,
-          size:  body.fontHalfPt,
+          size:  bodyFontHalfPt,
           color: scheme.primary,
           font:  docxFont,
         })],
@@ -392,7 +404,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     if (/^[-**]\s/.test(trimmed)) {
       const bulletText = trimmed.replace(/^[-**]\s*/, '');
       paragraphs.push(new Paragraph({
-        children: buildTextRuns(bulletText, body.fontHalfPt, docxFont),
+        children: buildTextRuns(bulletText, bodyFontHalfPt, docxFont),
         bullet:   { level: 0 },
         spacing:  { after: listItem.afterTwips },
       }));
@@ -402,14 +414,14 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     if (/^\d+[.)]\s/.test(trimmed)) {
       const itemText = trimmed.replace(/^\d+[.)]\s*/, '');
       paragraphs.push(new Paragraph({
-        children: buildTextRuns(itemText, body.fontHalfPt, docxFont),
+        children: buildTextRuns(itemText, bodyFontHalfPt, docxFont),
         spacing:  { after: listItem.afterTwips },
       }));
       return;
     }
 
     paragraphs.push(new Paragraph({
-      children: buildTextRuns(trimmed, body.fontHalfPt, docxFont),
+      children: buildTextRuns(trimmed, bodyFontHalfPt, docxFont),
       spacing:  { after: paragraph.afterTwips },
     }));
   };
@@ -479,7 +491,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
         document: {
           run: {
             font: docxFont,
-            size: body.fontHalfPt,
+            size: bodyFontHalfPt,
           },
         },
       },
@@ -488,10 +500,10 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
       properties: {
         page: {
           margin: {
-            top:    margins.topTwips ?? margins.twips,
-            right:  margins.rightTwips ?? margins.twips,
-            bottom: margins.bottomTwips ?? margins.twips,
-            left:   margins.leftTwips ?? margins.twips,
+            top:    mTopTwips,
+            right:  mRightTwips,
+            bottom: mBottomTwips,
+            left:   mLeftTwips,
           },
         },
       },
