@@ -627,13 +627,19 @@ export default function PublishingHub() {
   /** Parse raw lesson text into styled preview elements */
   function renderMarkdownPreview(raw: string): React.ReactNode[] {
     // Normalize: insert newlines before inline section separators
+    // Content from the database may be a single continuous string with no newlines.
+    // Step 1: normalize line endings
+    // Step 2: insert breaks before markdown patterns
+    // Step 3: insert breaks before bold labels (**Label:**)
+    // Step 4: insert breaks between sentences (period/!/? followed by 2+ spaces)
     const normalized = raw
       .replace(/\r\n/g, '\n')
       .replace(/\r/g, '\n')
       .replace(/([.!?])\s{2,}##\s/g, '$1\n## ')
       .replace(/\s##\s/g, '\n## ')
       .replace(/\s---\s/g, '\n---\n')
-      .replace(/([^\n])\*\*([^*]+):\*\*/g, '$1\n**$2:**');
+      .replace(/([^\n])\*\*([^*]+):\*\*/g, '$1\n**$2:**')
+      .replace(/([.!?])\s{2,}/g, '$1\n');
     const lines = normalized.split('\n');
     const elements: React.ReactNode[] = [];
 

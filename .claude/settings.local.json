@@ -66,7 +66,8 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase D Part 1 -- Publishing Hub with lesson content, full size preview, economical print, Black and White color scheme\")",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Wrap PublishingHub route inside AppShell so sidebar renders correctly\" 2>&1)",
       "Bash(npx vite:*)",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase D Part 2 -- Publishing Hub wired to all three libraries, booklet preview diagram, series content preview, search, zoom hints, economical print margins, Black and White color scheme\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase D Part 2 -- Publishing Hub wired to all three libraries, booklet preview diagram, series content preview, search, zoom hints, economical print margins, Black and White color scheme\" 2>&1)",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Preview body text rendering -- definitive fix based on computed styles\")"
     ]
   }
 }
