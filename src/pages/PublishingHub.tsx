@@ -626,7 +626,12 @@ export default function PublishingHub() {
 
   /** Parse raw lesson text into styled preview elements */
   function renderMarkdownPreview(raw: string): React.ReactNode[] {
-    const lines = raw.split('\n');
+    // Normalize: insert newlines before inline section separators
+    const normalized = raw
+      .replace(/ ## /g, '\n## ')
+      .replace(/ --- /g, '\n---\n')
+      .replace(/\*\*([^*]+):\*\*/g, '\n**$1:**');
+    const lines = normalized.split('\n').filter(line => line !== undefined);
     const elements: React.ReactNode[] = [];
 
     for (let i = 0; i < lines.length; i++) {
