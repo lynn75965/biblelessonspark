@@ -26,6 +26,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +61,7 @@ import {
   Pin,
   FolderPlus,
   X,
+  Printer,
 } from "lucide-react";
 import { useDevotionals, Devotional } from "@/hooks/useDevotionals";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +76,7 @@ import {
   DEVOTIONAL_SERIES_UI as UI,
   DEVOTIONAL_SERIES_LIMITS as LIMITS,
 } from "@/constants/devotionalSeriesConfig";
+import { ROUTES } from "@/constants/routes";
 
 // ============================================================================
 // TYPES
@@ -117,6 +120,7 @@ const LENGTH_BADGE_COLORS: Record<string, string> = {
 // ============================================================================
 
 export function DevotionalLibrary() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { devotionals, loading, deleteDevotional, refetch } = useDevotionals();
 
@@ -568,6 +572,9 @@ export function DevotionalLibrary() {
           </Button>
           <Button onClick={() => handleCopy(devotional.content || "")} variant="outline" size="sm" title="Copy to clipboard">
             <Copy className="h-3.5 w-3.5" />
+          </Button>
+          <Button onClick={() => navigate(ROUTES.PUBLISH + '?type=devotional&id=' + devotional.id)} variant="outline" size="sm" title="Publish">
+            <Printer className="h-3.5 w-3.5" />
           </Button>
           {showAddToSeries && series.length > 0 && (
             <Button onClick={() => setAddToSeriesDevotionalId(devotional.id)} variant="outline" size="sm" title={UI.addToSeriesButton}>

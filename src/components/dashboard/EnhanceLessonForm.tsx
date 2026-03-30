@@ -2261,9 +2261,10 @@ export function EnhanceLessonForm({
                 <LessonExportButtons
                   onExport={onExport}
                   lesson={{
+                    id: currentLesson.id,
                     title: currentLesson.title || "Generated Lesson",
                     original_text: lessonContentForExport,
-                    metadata: isFreeOutputOnly 
+                    metadata: isFreeOutputOnly
                       ? { ...currentLesson.metadata, teaser: null }
                       : currentLesson.metadata,
                   }}

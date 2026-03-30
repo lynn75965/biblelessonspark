@@ -1,16 +1,20 @@
 /**
  * THEME PROVIDER
- * Continuous intensity slider (0-100) with localStorage persistence
- * 0 = darkest dark, 50 = default midpoint, 100 = brightest light
+ * 4-level discrete intensity selector with localStorage persistence
+ * Levels defined in brand-values.json (SSOT)
  *
  * CHANGELOG:
  * - March 23, 2026: Initial creation for ui-sidebar branch
  * - March 27, 2026: Replace binary toggle with continuous intensity slider
+ * - March 30, 2026: Replace continuous slider with 4-level discrete selector
  */
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import brandValues from "@/config/brand-values.json";
 
 type Theme = "light" | "dark";
+
+export const THEME_LEVELS: { value: number; label: string }[] = brandValues.themeIntensityLevels;
 
 interface ThemeContextValue {
   theme: Theme;
@@ -21,7 +25,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "bls-theme-intensity";
-const DEFAULT_INTENSITY = 50;
+const DEFAULT_INTENSITY = 65;
 
 // Four anchor points per CSS variable for continuous interpolation
 // [0] = darkest (intensity 0), [1] = mid-dark baseline (40),
@@ -53,17 +57,28 @@ const ANCHORS: Record<string, { h: number; s: number; l: number }[]> = {
   ],
 };
 
+function snapToNearest(val: number): number {
+  const validValues = THEME_LEVELS.map(l => l.value);
+  let closest = validValues[0];
+  let minDist = Math.abs(val - closest);
+  for (const v of validValues) {
+    const dist = Math.abs(val - v);
+    if (dist < minDist) { closest = v; minDist = dist; }
+  }
+  return closest;
+}
+
 function getInitialIntensity(): number {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored !== null) {
       const val = parseInt(stored, 10);
-      if (!isNaN(val) && val >= 0 && val <= 100) return val;
+      if (!isNaN(val) && val >= 0 && val <= 100) return snapToNearest(val);
     }
     // Migrate from old binary key
     const oldTheme = localStorage.getItem("theme");
-    if (oldTheme === "dark") return 25;
-    if (oldTheme === "light") return 50;
+    if (oldTheme === "dark") return THEME_LEVELS[0].value;
+    if (oldTheme === "light") return DEFAULT_INTENSITY;
   } catch {
     // localStorage unavailable
   }

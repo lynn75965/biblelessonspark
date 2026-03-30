@@ -13,11 +13,13 @@
 // ============================================================================
 
 import React, { useState } from 'react';
-import { Download, Lock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Download, Lock, Printer } from 'lucide-react';
 import { hasFeatureAccess } from '@/constants/featureFlags';
 import { SubscriptionTier } from '@/constants/pricingConfig';
 import type { LessonSeries } from '@/constants/seriesConfig';
 import { SERIES_EXPORT_UI } from '@/constants/seriesExportConfig';
+import { ROUTES } from '@/constants/routes';
 import { SeriesExportModal } from './SeriesExportModal';
 
 // ============================================================================
@@ -40,6 +42,7 @@ export function SeriesExportButton({
   tier,
   className = '',
 }: SeriesExportButtonProps): React.ReactElement {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const canExport = hasFeatureAccess(tier, 'seriesExport');
@@ -89,24 +92,42 @@ export function SeriesExportButton({
   // --------------------------------------------------------------------------
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsModalOpen(true)}
-        title="Click to choose your export format (Word or PDF) and download your complete series as a printable curriculum document"
-        aria-label={`${SERIES_EXPORT_UI.buttonLabel}: ${series.series_name}`}
-        className={`
-          inline-flex items-center gap-2
-          px-3 py-1.5 text-sm font-medium rounded-md
-          bg-primary text-primary-foreground
-          hover:bg-primary/90
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-          transition-colors duration-150
-          ${className}
-        `}
-      >
-        <Download className="h-4 w-4" aria-hidden="true" />
-        {SERIES_EXPORT_UI.buttonLabel}
-      </button>
+      <div className={`inline-flex items-center gap-2 ${className}`}>
+        <button
+          type="button"
+          onClick={() => setIsModalOpen(true)}
+          title="Click to choose your export format (Word or PDF) and download your complete series as a printable curriculum document"
+          aria-label={`${SERIES_EXPORT_UI.buttonLabel}: ${series.series_name}`}
+          className="
+            inline-flex items-center gap-2
+            px-3 py-1.5 text-sm font-medium rounded-md
+            bg-primary text-primary-foreground
+            hover:bg-primary/90
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+            transition-colors duration-150
+          "
+        >
+          <Download className="h-4 w-4" aria-hidden="true" />
+          {SERIES_EXPORT_UI.buttonLabel}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(ROUTES.PUBLISH + '?type=series&id=' + series.id)}
+          aria-label={`Publish: ${series.series_name}`}
+          className="
+            inline-flex items-center gap-2
+            px-3 py-1.5 text-sm font-medium rounded-md
+            border border-border text-foreground
+            hover:bg-muted/50
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+            transition-colors duration-150
+          "
+        >
+          <Printer className="h-4 w-4" aria-hidden="true" />
+          Publish
+        </button>
+      </div>
 
       {isModalOpen && (
         <SeriesExportModal

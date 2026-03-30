@@ -86,11 +86,10 @@ export function SeriesExportModal({
     ensureGoogleFonts();
   }, []);
 
-  const isTrifold = selectedLayout === SERIES_EXPORT_LAYOUTS.TRIFOLD;
   const isBooklet = selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET;
   useEffect(() => {
-    if (isTrifold || isBooklet) setSelectedFormat(SERIES_EXPORT_FORMATS.PDF);
-  }, [isTrifold, isBooklet]);
+    if (isBooklet) setSelectedFormat(SERIES_EXPORT_FORMATS.PDF);
+  }, [isBooklet]);
 
   const scheme    = getColorScheme(selectedColorScheme);
   const fontOpt   = getFontOption(selectedFont);
@@ -114,8 +113,8 @@ export function SeriesExportModal({
       layout:                   selectedLayout,
       colorSchemeId:            selectedColorScheme,
       font:                     selectedFont,
-      includeHandoutBooklet:    isTrifold ? false : includeHandout,
-      omitSection8FromChapters: isTrifold ? false : includeHandout,
+      includeHandoutBooklet:    includeHandout,
+      omitSection8FromChapters: includeHandout,
     };
     const success = await exportSeries(series, options);
     if (success) { toast.success(SERIES_EXPORT_UI.successMessage); onClose(); }
@@ -255,7 +254,7 @@ export function SeriesExportModal({
               <fieldset>
                 <legend className="text-sm font-medium text-foreground mb-2">{SERIES_EXPORT_UI.layoutLabel}</legend>
                 <div className="space-y-2">
-                  {(Object.values(SERIES_EXPORT_LAYOUTS) as SeriesExportLayout[]).map((layout) => (
+                  {([SERIES_EXPORT_LAYOUTS.FULL_PAGE, SERIES_EXPORT_LAYOUTS.BOOKLET] as SeriesExportLayout[]).map((layout) => (
                     <label
                       key={layout}
                       className={'flex items-start gap-3 cursor-pointer p-3 rounded-md border transition-colors ' +
@@ -273,6 +272,16 @@ export function SeriesExportModal({
                       </div>
                     </label>
                   ))}
+                  {/* Tri-Fold -- Coming Soon (not yet implemented) */}
+                  <div className="flex items-start gap-3 p-3 rounded-md border border-border bg-muted/30 opacity-60 cursor-not-allowed">
+                    <div>
+                      <span className="text-sm font-medium text-muted-foreground block">
+                        Tri-Fold Group Handout
+                        <span className="ml-2 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Coming Soon</span>
+                      </span>
+                      <span className="text-xs text-muted-foreground block mt-0.5">One page per lesson showing only the Group Handout {'\u2014'} available soon</span>
+                    </div>
+                  </div>
                 </div>
               </fieldset>
 
@@ -332,7 +341,7 @@ export function SeriesExportModal({
                 <legend className="text-sm font-medium text-foreground mb-2">{SERIES_EXPORT_UI.formatLabel}</legend>
                 <div className="space-y-2">
                   {([SERIES_EXPORT_FORMATS.PDF, SERIES_EXPORT_FORMATS.DOCX] as SeriesExportFormat[]).map((fmt) => {
-                    const isDisabled = (isTrifold || isBooklet) && fmt === SERIES_EXPORT_FORMATS.DOCX;
+                    const isDisabled = isBooklet && fmt === SERIES_EXPORT_FORMATS.DOCX;
                     return (
                       <label
                         key={fmt}
@@ -366,7 +375,7 @@ export function SeriesExportModal({
               </fieldset>
 
               {/* Group Handout checkbox -- hidden for trifold */}
-              {!isTrifold && (
+              {(
                 <fieldset>
                   <legend className="text-sm font-medium text-foreground mb-2">{SERIES_EXPORT_UI.optionsLabel}</legend>
                   <label className={'flex items-start gap-3 cursor-pointer p-3 rounded-md border transition-colors ' +

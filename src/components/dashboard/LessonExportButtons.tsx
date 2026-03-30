@@ -11,13 +11,16 @@
  */
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Copy,
   Download,
   Check,
   Mail,
+  Printer,
 } from "lucide-react";
+import { ROUTES } from "@/constants/routes";
 import { useToast } from "@/hooks/use-toast";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "@/constants/lessonStructure";
 import {
@@ -50,6 +53,7 @@ interface LessonMetadata {
 }
 
 interface LessonData {
+  id?: string;
   title: string;
   original_text: string;
   metadata?: LessonMetadata | null;
@@ -72,6 +76,7 @@ export function LessonExportButtons({
   isPaidUser = false,
   senderName = "",
 }: LessonExportButtonsProps) {
+  const navigate = useNavigate();
   const [copied,           setCopied]           = useState(false);
   const [emailDialogOpen,  setEmailDialogOpen]  = useState(false);
   const [exportModalOpen,  setExportModalOpen]  = useState(false);
@@ -194,6 +199,19 @@ export function LessonExportButtons({
           <Mail className="h-4 w-4 mr-1.5" />
           {EMAIL_DELIVERY_CONFIG.labels.buttonText}
         </Button>
+
+        {/* PUBLISH */}
+        {lesson.id && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(ROUTES.PUBLISH + '?type=lesson&id=' + lesson.id)}
+            disabled={disabled}
+          >
+            <Printer className="h-4 w-4 mr-1.5" />
+            Publish
+          </Button>
+        )}
       </div>
 
       {/* Download modal -- font, color scheme, and format picker */}

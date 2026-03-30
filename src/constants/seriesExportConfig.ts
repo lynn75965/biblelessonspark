@@ -62,6 +62,9 @@ export const SERIES_EXPORT_LAYOUT_DESCRIPTIONS: Record<SeriesExportLayout, strin
   [SERIES_EXPORT_LAYOUTS.TRIFOLD]:   'PDF only -- one page per lesson',
 };
 
+/** Layouts that exist as constants but are not yet implemented in the export pipeline. */
+export const SERIES_EXPORT_LAYOUTS_COMING_SOON = ['trifold'] as const;
+
 export const SERIES_LAYOUT_DIMENSIONS = {
   fullpage: { widthIn: 8.5,  heightIn: 11.0 },
   booklet:  { widthIn: 5.5,  heightIn:  8.5 },

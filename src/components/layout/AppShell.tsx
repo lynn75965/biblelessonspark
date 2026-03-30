@@ -33,8 +33,8 @@
 
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Sun, Moon } from "lucide-react";
-import { useTheme } from "@/components/layout/ThemeProvider";
+import { Menu } from "lucide-react";
+import { useTheme, THEME_LEVELS } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -94,20 +94,30 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, intens
           <img src={BRANDING.logo.icon} alt={BRANDING.logo.altText} className="h-7 w-7 rounded-lg object-contain" />
           <span className="font-bold text-[15px] text-white tracking-wide">{BRANDING.appName}</span>
         </div>
-        {/* Intensity slider */}
-        <div className="flex items-center gap-2">
-          <Moon className="h-4 w-4 text-[#8a9f8a] shrink-0" />
-          <input
-            type="range"
-            min={0}
-            max={100}
-            step={1}
-            value={intensity}
-            onChange={(e) => setIntensity(Number(e.target.value))}
-            className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-[#2d4a2d] accent-[#c8d8c8]"
-            aria-label="Theme intensity"
-          />
-          <Sun className="h-4 w-4 text-[#8a9f8a] shrink-0" />
+        {/* Theme intensity selector */}
+        <div className="flex items-center justify-center gap-1.5">
+          {THEME_LEVELS.map((level) => {
+            const isActive = intensity === level.value;
+            const fills: Record<number, string> = { 15: "#1a1a1a", 40: "#4a4a4a", 65: "#a0a0a0", 90: "#f0f0f0" };
+            const fill = fills[level.value] || "#a0a0a0";
+            const needsBorder = level.value === 90;
+            return (
+              <button
+                key={level.value}
+                onClick={() => setIntensity(level.value)}
+                className={`flex flex-col items-center gap-0.5 rounded-md px-1.5 py-1 transition-all cursor-pointer ${
+                  isActive ? "ring-2 ring-[#4A7A4A] bg-[#2d4a2d]/50" : "hover:bg-[#2d4a2d]/30"
+                }`}
+                aria-label={`Theme: ${level.label}`}
+                title={level.label}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18">
+                  <circle cx="9" cy="9" r="7" fill={fill} stroke={needsBorder ? "#666" : "none"} strokeWidth={needsBorder ? 1 : 0} />
+                </svg>
+                <span className="text-[10px] text-[#8a9f8a] leading-none">{level.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

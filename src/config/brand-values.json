@@ -59,6 +59,13 @@
     "mutedForeground": { "saturation": 15, "lightness": 71 }
   },
 
+  "themeIntensityLevels": [
+    { "value": 15, "label": "Dark" },
+    { "value": 40, "label": "Dim" },
+    { "value": 65, "label": "Soft" },
+    { "value": 90, "label": "Light" }
+  ],
+
   "typography": {
     "fontFamily": {
       "primary": "\"Poppins\", system-ui, sans-serif",

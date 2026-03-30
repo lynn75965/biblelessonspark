@@ -89,6 +89,19 @@ export const PUBLISHING_HUB_UI = {
   downloadingButton: 'Downloading...',
   // Empty state
   emptyLessons: 'No lessons yet. Build your first lesson to get started.',
+  // Devotionals tab
+  devotionalsTabLabel: 'Devotionals',
+  noDevotionals: 'No devotionals yet',
+  loadingDevotionals: 'Loading devotionals...',
+  selectDevotionalPrompt: 'Select a devotional to begin',
+  // Series tab
+  seriesTabLabel: 'Series',
+  noSeries: 'No series yet',
+  loadingSeries: 'Loading series...',
+  selectSeriesPrompt: 'Select a series to begin',
+  // Layout (series)
+  layoutLabel: 'Layout',
+  includeGroupHandout: 'Include Group Handout',
   // Toasts
   toastPdfSuccess: 'PDF downloaded',
   toastDocxSuccess: 'Document downloaded',
@@ -101,7 +114,17 @@ export const PUBLISHING_HUB_UI = {
   economicalPrintDescription: 'Reduced margins and font size for fewer pages and less ink \u2014 benefit for home printing',
   // Full Size Preview
   previewFullSizeButton: 'Preview Full Size',
-  previewZoomHint: 'For the most accurate preview, make sure your browser zoom is set to 100%. Press Ctrl+0 (Windows) or Cmd+0 (Mac) to reset zoom.',
-  previewModalInstruction: 'This preview shows your lesson at full print size. What you see here is what will print. For best accuracy, set your browser zoom to 100% \u2014 press Ctrl+0 (Windows) or Cmd+0 (Mac).',
+  previewZoomHint: 'For best accuracy, set your browser zoom to 100% \u2014 press Ctrl+0 (numeral) in Windows or Cmd+0 (numeral) in Mac.',
+  previewModalInstruction: 'This preview shows your lesson at full print size. What you see here is what will print. For best accuracy, set your browser zoom to 100% \u2014 press Ctrl+0 (numeral) in Windows or Cmd+0 (numeral) in Mac.',
   closePreview: 'Close Preview',
+  // Search
+  searchPlaceholder: 'Search...',
+  searchLessonsPlaceholder: 'Search lessons...',
+  searchDevotionalsPlaceholder: 'Search devotionals...',
+  searchSeriesPlaceholder: 'Search series...',
+  // Series preview
+  seriesLessonCount: (n: number) => n === 1 ? '1 lesson in this series' : n + ' lessons in this series',
+  seriesLoadingLessons: 'Loading lesson list...',
+  // Series format constraints
+  seriesFormatPdfOnly: 'PDF only for this layout',
 } as const;
