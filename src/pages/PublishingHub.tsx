@@ -678,7 +678,7 @@ export default function PublishingHub() {
       }
 
       // ## Heading
-      if (trimmed.startsWith('## ')) {
+      if (trimmed.startsWith('## ') && trimmed.length > 3) {
         const headingText = trimmed.slice(3);
         elements.push(
           <div key={'h-' + i} style={headingStyle}>
@@ -701,7 +701,7 @@ export default function PublishingHub() {
 
       // Normal paragraph with inline bold
       elements.push(
-        <div key={'p-' + i} style={{ marginBottom: '4px', ...textContainStyle }}>
+        <div key={'p-' + i} style={{ marginBottom: '4px', fontWeight: 400, fontStyle: 'normal', ...textContainStyle }}>
           {renderInlineText(trimmed, 'pi-' + i)}
         </div>
       );
