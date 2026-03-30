@@ -635,8 +635,31 @@ export default function PublishingHub() {
       .replace(/\s---\s/g, '\n---\n')
       .replace(/([^\n])\*\*([^*]+):\*\*/g, '$1\n**$2:**');
     const lines = normalized.split('\n');
-    console.log('LINE COUNT:', lines.length, 'FIRST 3:', lines.slice(0, 3));
     const elements: React.ReactNode[] = [];
+
+    const headingStyle: React.CSSProperties = {
+      fontSize: '15px',
+      fontWeight: 700,
+      color: primaryHex,
+      letterSpacing: '0.03em',
+      marginTop: '16px',
+      marginBottom: '6px',
+      paddingBottom: '3px',
+      borderBottom: '1px solid ' + accentHex,
+      display: 'block',
+      maxWidth: '100%',
+      wordBreak: 'break-word',
+      overflowWrap: 'break-word',
+    };
+
+    const ruleStyle: React.CSSProperties = {
+      height: '2px',
+      backgroundColor: accentHex,
+      opacity: 0.6,
+      margin: '12px 0',
+      width: '100%',
+      display: 'block',
+    };
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -650,9 +673,7 @@ export default function PublishingHub() {
 
       // Horizontal rule --- or *** or ___
       if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
-        elements.push(
-          <div key={'hr-' + i} style={{ height: '1px', backgroundColor: accentHex, margin: '12px 0', width: '100%' }} />
-        );
+        elements.push(<div key={'hr-' + i} style={ruleStyle} />);
         continue;
       }
 
@@ -660,14 +681,7 @@ export default function PublishingHub() {
       if (trimmed.startsWith('## ')) {
         const headingText = trimmed.slice(3);
         elements.push(
-          <div
-            key={'h-' + i}
-            style={{
-              fontSize: ecoSubheadSize, fontWeight: 700, color: primaryHex,
-              letterSpacing: '0.03em', marginTop: '10px', marginBottom: '4px',
-              ...textContainStyle,
-            }}
-          >
+          <div key={'h-' + i} style={headingStyle}>
             {renderInlineText(headingText, 'hi-' + i)}
           </div>
         );
@@ -678,14 +692,7 @@ export default function PublishingHub() {
       if (trimmed.startsWith('# ')) {
         const headingText = trimmed.slice(2);
         elements.push(
-          <div
-            key={'h1-' + i}
-            style={{
-              fontSize: ecoHeadingSize, fontWeight: 700, color: primaryHex,
-              marginTop: '12px', marginBottom: '4px',
-              ...textContainStyle,
-            }}
-          >
+          <div key={'h1-' + i} style={headingStyle}>
             {renderInlineText(headingText, 'h1i-' + i)}
           </div>
         );
