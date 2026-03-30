@@ -4,6 +4,7 @@
 // SSOT: seriesExportConfig.ts for fonts, color schemes, layouts.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { AppShell } from "@/components/layout/AppShell";
 import { useSearchParams } from "react-router-dom";
 import { Printer, Loader2, Maximize2, X, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -1290,6 +1291,7 @@ export default function PublishingHub() {
   // --------------------------------------------------------------------------
 
   return (
+    <AppShell>
     <div className="min-h-screen bg-background">
       <style>{`
         .preview-scroll-container::-webkit-scrollbar { width: 12px; }
@@ -1849,5 +1851,6 @@ export default function PublishingHub() {
         </div>
       )}
     </div>
+    </AppShell>
   );
 }

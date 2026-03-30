@@ -63,7 +63,8 @@
       "Bash(node:*)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase C3 -- Reshape history badge and expander in Lesson Library\" 2>&1)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase C5 -- Devotional series grouping in Devotional Library \\(storage and browsing only\\)\")",
-      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase D Part 1 -- Publishing Hub with lesson content, full size preview, economical print, Black and White color scheme\")"
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase D Part 1 -- Publishing Hub with lesson content, full size preview, economical print, Black and White color scheme\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Wrap PublishingHub route inside AppShell so sidebar renders correctly\" 2>&1)"
     ]
   }
 }
