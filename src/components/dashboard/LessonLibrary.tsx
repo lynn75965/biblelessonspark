@@ -147,9 +147,14 @@ const transformToDisplay = (
   const userInputPassage = filters?.bible_passage || null;
   const userInputTopic = filters?.focused_topic || null;
 
-  // Extract Primary Scripture Passage from lesson content (Section 1)
-  const passageMatch = (lesson.original_text || "").match(/\*\*Primary Scripture Passage:\*\*\s*(.+)/i);
-  const extractedPassage = passageMatch ? passageMatch[1].trim() : null;
+  // Extract Primary Scripture Passage(s) from lesson content (Section 1)
+  // Handles both same-line and next-line formats, singular and plural
+  const rawText = lesson.original_text || "";
+  const sameLineMatch = rawText.match(/\*\*Primary Scripture Passages?:\*\*[ \t]+(.+)/i);
+  const nextLineMatch = rawText.match(/\*\*Primary Scripture Passages?:\*\*[ \t]*\n+[ \t]*(.+)/i);
+  const extractedPassage = sameLineMatch
+    ? sameLineMatch[1].replace(/\*\*/g, '').trim()
+    : nextLineMatch ? nextLineMatch[1].replace(/\*\*/g, '').trim() : null;
 
   return {
     ...lesson,
