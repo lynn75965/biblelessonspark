@@ -662,243 +662,52 @@ export default function PublishingHub() {
     return elements;
   }
 
-  // --------------------------------------------------------------------------
-  // BOOKLET SHEET SIMULATION
-  // --------------------------------------------------------------------------
+  /** Parse raw lesson text into styled elements at booklet scale (10px base) */
+  function renderBookletMarkdown(raw: string): React.ReactNode[] {
+    const lines = raw.split('\n');
+    const elements: React.ReactNode[] = [];
 
-  interface BookletPage {
-    pageNumber: number;
-    content: React.ReactNode;
-    isBlank?: boolean;
-  }
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
 
-  function buildBookletPages(): BookletPage[] {
-    const pages: BookletPage[] = [];
-    let pageNum = 1;
-
-    // Page 1 -- Front Cover
-    pages.push({
-      pageNumber: pageNum++,
-      content: (
-        <div>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: primaryHex, marginBottom: '4px', ...tw }}>
-            {selectedSeries?.series_name || 'Series'}
-          </div>
-          <div style={{ height: '1px', background: accentHex, opacity: 0.6, margin: '6px 0' }} />
-          <div style={{ fontSize: '9px', color: '#555555', marginBottom: '4px', ...tw }}>
-            {seriesLessons.length === 1 ? '1 Lesson' : seriesLessons.length + ' Lessons'}
-          </div>
-          <div style={{ fontSize: '8px', color: '#9ca3af', ...tw }}>biblelessonspark.com</div>
-        </div>
-      ),
-    });
-
-    // Page 2 -- Table of Contents
-    pages.push({
-      pageNumber: pageNum++,
-      content: (
-        <div>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: primaryHex, marginBottom: '6px', ...tw }}>Table of Contents</div>
-          {seriesLessons.map((sl, idx) => (
-            <div key={'bktoc-' + sl.id} style={{ fontSize: '10px', color: '#1a1a1a', padding: '2px 0', ...tw }}>
-              <span style={{ fontWeight: 600, color: primaryHex, marginRight: '5px' }}>{(sl.series_lesson_number ?? idx + 1)}.</span>
-              {sl.title || 'Untitled Lesson'}
-            </div>
-          ))}
-        </div>
-      ),
-    });
-
-    // Lesson content pages -- split into ~2500 char chunks
-    for (let li = 0; li < seriesLessons.length; li++) {
-      const sl = seriesLessons[li];
-      const raw = sl.original_text || '';
-      const lessonNum = sl.series_lesson_number ?? li + 1;
-      const lessonTitle = sl.title || 'Untitled Lesson';
-
-      if (!raw) {
-        pages.push({
-          pageNumber: pageNum++,
-          content: (
-            <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: primaryHex, marginBottom: '4px', ...tw }}>
-                Lesson {lessonNum} {'\u2014'} {lessonTitle}
-              </div>
-              <div style={{ fontSize: '10px', color: '#999999', fontStyle: 'italic', ...tw }}>No content available.</div>
-            </div>
-          ),
-        });
+      if (trimmed === '') {
+        elements.push(<div key={'bsp-' + i} style={{ height: '6px' }} />);
         continue;
       }
 
-      // Split into chunks by lines, roughly 2500 chars per half-page
-      const lines = raw.split('\n');
-      const chunks: string[][] = [];
-      let currentChunk: string[] = [];
-      let currentLen = 0;
-
-      for (const line of lines) {
-        if (currentLen + line.length > 2500 && currentChunk.length > 0) {
-          chunks.push(currentChunk);
-          currentChunk = [];
-          currentLen = 0;
-        }
-        currentChunk.push(line);
-        currentLen += line.length;
+      if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
+        elements.push(
+          <div key={'bhr-' + i} style={{ height: '1px', backgroundColor: accentHex, margin: '8px 0', width: '100%' }} />
+        );
+        continue;
       }
-      if (currentChunk.length > 0) chunks.push(currentChunk);
 
-      for (let ci = 0; ci < chunks.length; ci++) {
-        const chunkText = chunks[ci].join('\n');
-        const isFirst = ci === 0;
-        pages.push({
-          pageNumber: pageNum++,
-          content: (
-            <div>
-              {isFirst && (
-                <div style={{ fontSize: '12px', fontWeight: 700, color: primaryHex, marginBottom: '4px', ...tw }}>
-                  Lesson {lessonNum} {'\u2014'} {lessonTitle}
-                </div>
-              )}
-              {renderBookletContent(chunkText)}
-            </div>
-          ),
-        });
+      if (trimmed.startsWith('## ')) {
+        elements.push(
+          <div key={'bh-' + i} style={{ fontSize: '11px', fontWeight: 600, color: primaryHex, marginTop: '12px', marginBottom: '4px', ...tw }}>
+            {renderInlineText(trimmed.slice(3), 'bhi-' + i)}
+          </div>
+        );
+        continue;
       }
-    }
 
-    // Final page -- Back Cover
-    pages.push({
-      pageNumber: pageNum++,
-      content: (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: '#ffffff', ...tw, textAlign: 'center' as const }}>
-            {selectedSeries?.series_name || 'Series'}
+      if (trimmed.startsWith('# ')) {
+        elements.push(
+          <div key={'bh1-' + i} style={{ fontSize: '12px', fontWeight: 600, color: primaryHex, marginTop: '12px', marginBottom: '4px', ...tw }}>
+            {renderInlineText(trimmed.slice(2), 'bh1i-' + i)}
           </div>
-          <div style={{ fontSize: '9px', color: '#ffffffcc', marginTop: '4px', ...tw, textAlign: 'center' as const }}>
-            biblelessonspark.com
-          </div>
+        );
+        continue;
+      }
+
+      elements.push(
+        <div key={'bp-' + i} style={{ marginBottom: '4px', ...tw }}>
+          {renderInlineText(trimmed, 'bpi-' + i)}
         </div>
-      ),
-    });
-
-    // Pad to even number
-    if (pages.length % 2 !== 0) {
-      pages.push({ pageNumber: pageNum++, content: <div />, isBlank: true });
+      );
     }
 
-    return pages;
-  }
-
-  /** Render booklet content lines with markdown-like formatting at small scale */
-  function renderBookletContent(raw: string): React.ReactNode {
-    const lines = raw.split('\n');
-    return (
-      <>
-        {lines.map((line, i) => {
-          const trimmed = line.trim();
-          if (trimmed === '') return <div key={i} style={{ height: '3px' }} />;
-          if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
-            return <div key={i} style={{ height: '1px', backgroundColor: accentHex, margin: '4px 0', width: '100%' }} />;
-          }
-          if (trimmed.startsWith('## ')) {
-            return (
-              <div key={i} style={{ fontSize: '11px', fontWeight: 700, color: primaryHex, marginTop: '3px', marginBottom: '2px', ...tw }}>
-                {renderInlineText(trimmed.slice(3), 'bkh-' + i)}
-              </div>
-            );
-          }
-          if (trimmed.startsWith('# ')) {
-            return (
-              <div key={i} style={{ fontSize: '12px', fontWeight: 700, color: primaryHex, marginTop: '4px', marginBottom: '2px', ...tw }}>
-                {renderInlineText(trimmed.slice(2), 'bkh1-' + i)}
-              </div>
-            );
-          }
-          return (
-            <div key={i} style={{ marginBottom: '1px', ...tw }}>
-              {renderInlineText(trimmed, 'bkp-' + i)}
-            </div>
-          );
-        })}
-      </>
-    );
-  }
-
-  /** Render booklet sheets -- pairs of pages side by side */
-  function renderBookletSheets(maxSheetWidth: string): React.ReactNode {
-    const pages = buildBookletPages();
-    const sheets: { left: BookletPage; right: BookletPage }[] = [];
-    for (let i = 0; i < pages.length; i += 2) {
-      sheets.push({ left: pages[i], right: pages[i + 1] });
-    }
-
-    const halfPageStyle: React.CSSProperties = {
-      width: '50%',
-      height: '100%',
-      padding: '10px 12px',
-      overflow: 'hidden',
-      position: 'relative',
-      fontSize: '10px',
-      lineHeight: '1.3',
-      fontFamily: fontOpt.cssFamily,
-      wordBreak: 'break-word',
-      overflowWrap: 'break-word',
-      color: '#1a1a1a',
-    };
-
-    // Track which page number is the back cover for primary-color background
-    const lastRealPage = pages.filter(p => !p.isBlank).pop();
-    const backCoverNum = lastRealPage?.pageNumber ?? -1;
-
-    return (
-      <>
-        {sheets.map((sheet, si) => (
-          <div key={'sheet-' + si}>
-            <div style={{ textAlign: 'center', fontSize: '10px', color: '#9ca3af', marginBottom: '4px' }}>
-              Sheet {si + 1} of {sheets.length} {'\u2014'} Reading pages {sheet.left.pageNumber} and {sheet.right.pageNumber}
-            </div>
-            {/* Outer wrapper for max-width centering */}
-            <div style={{ width: '100%', maxWidth: maxSheetWidth, margin: '0 auto 24px auto' }}>
-              {/* Padding-bottom trick for landscape aspect ratio (8.5/11 = 77.27%) */}
-              <div style={{ width: '100%', paddingBottom: '77.3%', position: 'relative' }}>
-                {/* Absolute inner container */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0, left: 0, right: 0, bottom: 0,
-                  display: 'flex',
-                  flexDirection: 'row',
-                  background: '#ffffff',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                  borderRadius: '2px',
-                  overflow: 'hidden',
-                }}>
-                  {/* Left half */}
-                  <div style={{
-                    ...halfPageStyle,
-                    borderRight: '1px dashed #d1d5db',
-                    ...(sheet.left.pageNumber === backCoverNum ? { background: primaryHex, color: '#ffffff' } : {}),
-                  }}>
-                    {sheet.left.content}
-                  </div>
-                  {/* Right half */}
-                  <div style={{
-                    ...halfPageStyle,
-                    ...(sheet.right.pageNumber === backCoverNum ? { background: primaryHex, color: '#ffffff' } : {}),
-                    ...(sheet.right.isBlank ? { background: '#fafafa' } : {}),
-                  }}>
-                    {sheet.right.content}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-        <div style={{ textAlign: 'center', padding: '8px', fontSize: '12px', fontStyle: 'italic', color: '#6b7280' }}>
-          Preview shows content in reading order. When printed double-sided and folded, pages will automatically arrange in the correct booklet order. Print double-sided, fold in half, and staple along the center fold.
-        </div>
-      </>
-    );
+    return elements;
   }
 
   const previewRef = useRef<HTMLDivElement>(null);
@@ -1569,20 +1378,125 @@ export default function PublishingHub() {
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{PUBLISHING_HUB_UI.previewZoomHint}</p>
                     {isSeriesBooklet ? (
-                      /* ---- BOOKLET SHEET SIMULATION ---- */
+                      /* ---- BOOKLET: DIAGRAM + CONTENT PREVIEW ---- */
                       <div>
-                        <div style={pw.boxChrome}>
-                          <div className="preview-scroll-container" style={{ ...pw.boxScroll, background: '#e5e7eb', padding: '20px' }}>
-                            {loadingSeriesLessons ? (
-                              <div className="flex items-center gap-2 py-8 text-muted-foreground" style={{ justifyContent: 'center' }}>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span className="text-sm">{PUBLISHING_HUB_UI.seriesLoadingLessons}</span>
-                              </div>
-                            ) : (
-                              renderBookletSheets('680px')
-                            )}
+                        {/* PART 1: Booklet Diagram */}
+                        <div style={{ border: `1.5px solid ${accentHex}`, borderRadius: '8px', padding: '16px', marginBottom: '12px', background: '#ffffff' }}>
+                          {/* Page/sheet estimate -- prominent at top */}
+                          <div style={{ fontFamily: fontOpt.cssFamily, fontSize: '15px', fontWeight: 700, color: primaryHex, textAlign: 'center', marginBottom: '12px' }}>
+                            Your series will print as approximately {seriesLessons.length * 4} pages {'\u2014'} {Math.ceil((seriesLessons.length * 4) / 4)} sheets of paper
                           </div>
+
+                          {/* SVG Diagram */}
+                          <svg width="100%" height="140" viewBox="0 0 400 140" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', marginBottom: '8px' }}>
+                            {/* Sheet rectangle */}
+                            <rect x="40" y="10" width="320" height="80" rx="2" fill="#ffffff" stroke={primaryHex} strokeWidth="1.5" />
+                            {/* Fold line */}
+                            <line x1="200" y1="10" x2="200" y2="90" stroke={accentHex} strokeWidth="1.5" strokeDasharray="6 3" />
+                            {/* Left label */}
+                            <text x="120" y="55" textAnchor="middle" fill={primaryHex} fontSize="10" fontFamily={fontOpt.cssFamily}>Inside pages</text>
+                            {/* Right label */}
+                            <text x="280" y="55" textAnchor="middle" fill={primaryHex} fontSize="10" fontFamily={fontOpt.cssFamily}>Cover</text>
+                            {/* Fold arrow */}
+                            <line x1="200" y1="98" x2="200" y2="107" stroke="#9ca3af" strokeWidth="1" />
+                            <polygon points="195,107 205,107 200,113" fill="#9ca3af" />
+                            <text x="200" y="126" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>Fold here</text>
+                            {/* Bottom description */}
+                            <text x="200" y="140" textAnchor="middle" fill={primaryHex} fontSize="11" fontFamily={fontOpt.cssFamily}>
+                              {'11 \u00D7 8.5" sheet \u00B7 fold in half \u00B7 staple along the fold'}
+                            </text>
+                          </svg>
+
+                          {/* Bullet points */}
+                          <ul style={{ fontFamily: fontOpt.cssFamily, fontSize: '12px', color: '#1a1a1a', margin: '12px 0 0 18px', lineHeight: '1.8' }}>
+                            <li>{'Prints on standard letter paper (8.5 \u00D7 11") \u2014 works on any home printer'}</li>
+                            <li>{'Fold each sheet in half to create a 5.5 \u00D7 8.5" booklet'}</li>
+                            <li>Staple along the center fold for a finished quarterly-style booklet</li>
+                          </ul>
                         </div>
+
+                        {/* PART 2: Content Preview */}
+                        <div style={{ fontFamily: fontOpt.cssFamily, fontSize: '13px', fontWeight: 600, color: primaryHex, marginTop: '16px', marginBottom: '8px' }}>
+                          Content Preview {'\u2014'} verify your lesson content before downloading
+                        </div>
+                        {loadingSeriesLessons ? (
+                          <div className="flex items-center gap-2 py-8 text-muted-foreground" style={{ justifyContent: 'center' }}>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">{PUBLISHING_HUB_UI.seriesLoadingLessons}</span>
+                          </div>
+                        ) : (
+                          <div style={{ border: `1px solid ${accentHex}`, borderRadius: '6px', background: '#ffffff' }}>
+                            <div className="preview-scroll-container" style={{
+                              height: '400px',
+                              overflowY: 'scroll' as const,
+                              overflowX: 'hidden' as const,
+                              scrollbarWidth: 'auto' as const,
+                              scrollbarColor: '#9ca3af #f3f4f6',
+                              padding: '16px',
+                              fontFamily: fontOpt.cssFamily,
+                              fontSize: '10px',
+                              lineHeight: '1.3',
+                              color: '#1a1a1a',
+                              wordBreak: 'break-word' as const,
+                              overflowWrap: 'break-word' as const,
+                            }}>
+                              {/* Cover block */}
+                              <div style={{ fontSize: '14px', fontWeight: 700, color: primaryHex, marginBottom: '4px', ...tw }}>
+                                {selectedSeries.series_name}
+                              </div>
+                              <div style={{ height: '2px', background: accentHex, opacity: 0.6, marginBottom: '6px' }} />
+                              <div style={{ fontSize: '10px', color: '#555555', marginBottom: '12px', ...tw }}>
+                                {seriesLessons.length === 1 ? '1 Lesson' : seriesLessons.length + ' Lessons'}
+                              </div>
+
+                              {/* Table of Contents */}
+                              <div style={{ fontSize: '12px', fontWeight: 700, color: primaryHex, marginBottom: '6px', ...tw }}>
+                                Table of Contents
+                              </div>
+                              {seriesLessons.map((sl, idx) => {
+                                const tocTitle = sl.title || sl.filters?.bible_passage || 'Untitled Lesson';
+                                return (
+                                  <div key={'bktoc-' + sl.id} style={{ fontSize: '10px', color: '#1a1a1a', padding: '2px 0', ...tw }}>
+                                    <span style={{ fontWeight: 600, color: primaryHex, marginRight: '6px' }}>{(sl.series_lesson_number ?? idx + 1)}.</span>
+                                    {tocTitle}
+                                  </div>
+                                );
+                              })}
+                              <div style={{ height: '2px', background: accentHex, opacity: 0.6, margin: '12px 0' }} />
+
+                              {/* Full lesson content */}
+                              {seriesLessons.map((sl, idx) => {
+                                const lessonTitle = sl.title || sl.filters?.bible_passage || 'Untitled Lesson';
+                                return (
+                                <div key={'bklesson-' + sl.id} style={{ marginBottom: '16px' }}>
+                                  <div style={{ fontSize: '12px', fontWeight: 700, color: primaryHex, marginBottom: '4px', ...tw }}>
+                                    Lesson {sl.series_lesson_number ?? idx + 1} {'\u2014'} {lessonTitle}
+                                  </div>
+                                  {sl.original_text ? renderBookletMarkdown(sl.original_text) : (
+                                    <div style={{ fontSize: '10px', color: '#999999', fontStyle: 'italic', ...tw }}>No content available.</div>
+                                  )}
+                                  {idx < seriesLessons.length - 1 && (
+                                    <div style={{ height: '2px', background: accentHex, opacity: 0.8, margin: '12px 0' }} />
+                                  )}
+                                </div>
+                                );
+                              })}
+
+                              {/* Group handout note */}
+                              {includeGroupHandout && (
+                                <div style={{ fontSize: '10px', fontStyle: 'italic', color: '#888888', marginTop: '10px', ...tw }}>
+                                  Group Handout section will be included at the end of this document.
+                                </div>
+                              )}
+
+                              {/* Footer */}
+                              <div style={pw.footerRow}>
+                                <span style={pw.footerText}>biblelessonspark.com</span>
+                                <span style={pw.footerText}>{SERIES_EXPORT_LAYOUT_LABELS[seriesLayout]}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground mt-2">{PUBLISHING_HUB_UI.previewNote}</p>
                       </div>
                     ) : (
@@ -1713,9 +1627,64 @@ export default function PublishingHub() {
               }}
             >
               {isSeriesBooklet ? (
-                /* Booklet: sheet simulation at larger scale */
-                <div style={{ padding: '24px' }}>
-                  {renderBookletSheets('860px')}
+                /* Booklet: full content preview (no diagram in modal) */
+                <div style={{
+                  padding: '48px',
+                  fontFamily: fontOpt.cssFamily,
+                  fontSize: '12px',
+                  lineHeight: '1.4',
+                  color: '#1a1a1a',
+                  wordBreak: 'break-word' as const,
+                  overflowWrap: 'break-word' as const,
+                }}>
+                  {/* Cover */}
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: primaryHex, marginBottom: '6px', ...tw }}>
+                    {selectedSeries.series_name}
+                  </div>
+                  <div style={{ height: '2px', background: accentHex, opacity: 0.6, marginBottom: '16px' }} />
+                  <div style={{ fontSize: '13px', color: '#555555', marginBottom: '24px', ...tw }}>
+                    {seriesLessons.length === 1 ? '1 Lesson' : seriesLessons.length + ' Lessons'}
+                  </div>
+
+                  {/* Table of Contents */}
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: primaryHex, marginBottom: '10px', ...tw }}>
+                    Table of Contents
+                  </div>
+                  {seriesLessons.map((sl, idx) => (
+                    <div key={'fsbktoc-' + sl.id} style={{ fontSize: '13px', color: '#1a1a1a', padding: '3px 0', ...tw }}>
+                      <span style={{ fontWeight: 600, color: primaryHex, marginRight: '8px' }}>{(sl.series_lesson_number ?? idx + 1)}.</span>
+                      {sl.title || 'Untitled Lesson'}
+                    </div>
+                  ))}
+                  <div style={{ height: '2px', background: accentHex, opacity: 0.6, margin: '20px 0' }} />
+
+                  {/* Full lesson content */}
+                  {seriesLessons.map((sl, idx) => (
+                    <div key={'fsbklesson-' + sl.id} style={{ marginBottom: '24px' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: primaryHex, marginBottom: '8px', ...tw }}>
+                        Lesson {sl.series_lesson_number ?? idx + 1} {'\u2014'} {sl.title || 'Untitled Lesson'}
+                      </div>
+                      {sl.original_text ? renderMarkdownPreview(sl.original_text) : (
+                        <div style={{ fontSize: '13px', color: '#999999', fontStyle: 'italic', ...tw }}>No content available.</div>
+                      )}
+                      {idx < seriesLessons.length - 1 && (
+                        <div style={{ height: '3px', background: accentHex, opacity: 0.8, margin: '24px 0' }} />
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Group handout note */}
+                  {includeGroupHandout && (
+                    <div style={{ fontSize: '13px', fontStyle: 'italic', color: '#888888', marginTop: '16px', ...tw }}>
+                      Group Handout section will be included at the end of this document.
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '20px', borderTop: '1px solid #e5e7eb', marginTop: '20px' }}>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>biblelessonspark.com</span>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>{SERIES_EXPORT_LAYOUT_LABELS[seriesLayout]}</span>
+                  </div>
                 </div>
               ) : (
                 /* Full Page: standard scrollable content */
