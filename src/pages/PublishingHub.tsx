@@ -635,7 +635,7 @@ export default function PublishingHub() {
       .replace(/\s---\s/g, '\n---\n')
       .replace(/([^\n])\*\*([^*]+):\*\*/g, '$1\n**$2:**');
     const lines = normalized.split('\n');
-    console.log('LINE COUNT:', lines.length, 'FIRST 3 LINES:', lines.slice(0, 3));
+    console.log('LINE COUNT:', lines.length, 'FIRST 3:', lines.slice(0, 3));
     const elements: React.ReactNode[] = [];
 
     for (let i = 0; i < lines.length; i++) {
