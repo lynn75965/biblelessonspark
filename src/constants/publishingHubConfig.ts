@@ -127,4 +127,8 @@ export const PUBLISHING_HUB_UI = {
   seriesLoadingLessons: 'Loading lesson list...',
   // Series format constraints
   seriesFormatPdfOnly: 'PDF only for this layout',
+  // Series completion status
+  seriesComplete: 'Complete',
+  seriesInProgress: 'In Progress',
+  seriesEmpty: 'Empty',
 } as const;

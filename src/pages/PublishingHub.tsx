@@ -65,6 +65,8 @@ interface SeriesRow {
   id: string;
   series_name: string;
   created_at: string;
+  total_lessons: number | null;
+  lesson_summaries: unknown[] | null;
 }
 
 interface SeriesLessonRow {
@@ -270,7 +272,7 @@ export default function PublishingHub() {
       setLoadingSeries(true);
       const { data, error } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at')
+        .select('id, series_name, created_at, total_lessons, lesson_summaries')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -507,7 +509,7 @@ export default function PublishingHub() {
   const isSeriesBooklet = seriesLayout === SERIES_EXPORT_LAYOUTS.BOOKLET;
   useEffect(() => {
     if (isSeriesBooklet) setSeriesFormat(SERIES_EXPORT_FORMATS.BOOKLET);
-    else if (isSeriesTrifold) setSeriesFormat(SERIES_EXPORT_FORMATS.PDF);
+    else if (isSeriesTrifold) setSeriesFormat(SERIES_EXPORT_FORMATS.TRIFOLD);
   }, [isSeriesTrifold, isSeriesBooklet]);
 
   // --------------------------------------------------------------------------
@@ -986,6 +988,7 @@ export default function PublishingHub() {
     getSubtitle: (item: T) => string,
     getDate: (item: T) => string,
     searchNode?: React.ReactNode,
+    renderExtra?: (item: T) => React.ReactNode,
   ) => (
     <div className="lg:col-span-1">
       <div className="border border-border rounded-lg overflow-hidden">
@@ -1026,6 +1029,7 @@ export default function PublishingHub() {
                 {subtitle && (
                   <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
                 )}
+                {renderExtra && renderExtra(item)}
                 <p className="text-xs text-muted-foreground mt-0.5">{getDate(item)}</p>
               </button>
             );
@@ -1205,7 +1209,6 @@ export default function PublishingHub() {
                     {renderColorSchemePicker()}
                   </div>
                   {renderFormatPicker()}
-                  {renderEconomicalPrint()}
                   {renderContentPreview(devPreviewTitle, devPreviewShortTitle, devPreviewPassage, devPreviewRawText)}
                   {renderDownloadButton(handleDevotionalDownload)}
                 </div>
@@ -1231,6 +1234,28 @@ export default function PublishingHub() {
               () => '',
               (s) => formatDate(s.created_at),
               renderSearchInput(searchSeries, setSearchSeries, PUBLISHING_HUB_UI.searchSeriesPlaceholder),
+              (s) => {
+                const total = s.total_lessons || 0;
+                const completed = Array.isArray(s.lesson_summaries) ? s.lesson_summaries.length : 0;
+                const isComplete = total > 0 && completed >= total;
+                const isInProgress = completed > 0 && completed < total;
+                const statusLabel = isComplete
+                  ? PUBLISHING_HUB_UI.seriesComplete
+                  : isInProgress
+                    ? PUBLISHING_HUB_UI.seriesInProgress
+                    : PUBLISHING_HUB_UI.seriesEmpty;
+                const badgeClass = isComplete
+                  ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                  : isInProgress
+                    ? 'text-amber-700 bg-amber-50 border-amber-200'
+                    : 'text-muted-foreground bg-muted/50 border-border';
+                return (
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-xs text-muted-foreground">{completed} of {total} lessons</span>
+                    <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded border ' + badgeClass}>{statusLabel}</span>
+                  </div>
+                );
+              },
             )}
 
             <div className="lg:col-span-2">
@@ -1250,7 +1275,7 @@ export default function PublishingHub() {
                   <fieldset className="border border-border rounded-lg p-4">
                     <legend className="text-sm font-medium text-foreground mb-2">{PUBLISHING_HUB_UI.layoutLabel}</legend>
                     <div className="space-y-1.5">
-                      {([SERIES_EXPORT_LAYOUTS.FULL_PAGE, SERIES_EXPORT_LAYOUTS.BOOKLET] as SeriesExportLayout[]).map(layout => (
+                      {([SERIES_EXPORT_LAYOUTS.FULL_PAGE, SERIES_EXPORT_LAYOUTS.BOOKLET, SERIES_EXPORT_LAYOUTS.TRIFOLD] as SeriesExportLayout[]).map(layout => (
                         <label
                           key={layout}
                           className={
@@ -1277,29 +1302,21 @@ export default function PublishingHub() {
                           </div>
                         </label>
                       ))}
-                      {/* Tri-Fold -- Coming Soon (not yet implemented) */}
-                      <div className="flex items-start gap-3 px-3 py-2 rounded-md border border-border bg-muted/30 opacity-60 cursor-not-allowed">
-                        <div>
-                          <span className="text-sm font-medium text-muted-foreground block">
-                            Tri-Fold Group Handout
-                            <span className="ml-2 text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Coming Soon</span>
-                          </span>
-                          <span className="text-xs text-muted-foreground block mt-0.5">One page per lesson showing only the Group Handout {'\u2014'} available soon</span>
-                        </div>
-                      </div>
                     </div>
                   </fieldset>
 
-                  {/* Include Group Handout checkbox */}
-                  <label className="flex items-start gap-3 cursor-pointer p-3 rounded-md border border-border hover:bg-muted/50 transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={includeGroupHandout}
-                      onChange={(e) => setIncludeGroupHandout(e.target.checked)}
-                      className="mt-0.5 accent-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground">{PUBLISHING_HUB_UI.includeGroupHandout}</span>
-                  </label>
+                  {/* Include Group Handout checkbox -- hidden for Tri-Fold (it IS the handout) */}
+                  {!isSeriesTrifold && (
+                    <label className="flex items-start gap-3 cursor-pointer p-3 rounded-md border border-border hover:bg-muted/50 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={includeGroupHandout}
+                        onChange={(e) => setIncludeGroupHandout(e.target.checked)}
+                        className="mt-0.5 accent-primary"
+                      />
+                      <span className="text-sm font-medium text-foreground">{PUBLISHING_HUB_UI.includeGroupHandout}</span>
+                    </label>
+                  )}
 
                   {/* Economical print -- Full Page only */}
                   {seriesLayout === SERIES_EXPORT_LAYOUTS.FULL_PAGE && renderEconomicalPrint()}
@@ -1320,9 +1337,10 @@ export default function PublishingHub() {
                           type="radio"
                           name="pub-series-format"
                           value={SERIES_EXPORT_FORMATS.PDF}
-                          checked={seriesFormat === SERIES_EXPORT_FORMATS.PDF || seriesFormat === SERIES_EXPORT_FORMATS.BOOKLET}
+                          checked={seriesFormat === SERIES_EXPORT_FORMATS.PDF || seriesFormat === SERIES_EXPORT_FORMATS.BOOKLET || seriesFormat === SERIES_EXPORT_FORMATS.TRIFOLD}
                           onChange={() => {
                             if (isSeriesBooklet) setSeriesFormat(SERIES_EXPORT_FORMATS.BOOKLET);
+                            else if (isSeriesTrifold) setSeriesFormat(SERIES_EXPORT_FORMATS.TRIFOLD);
                             else setSeriesFormat(SERIES_EXPORT_FORMATS.PDF);
                           }}
                           className="mt-0.5 accent-primary"
@@ -1335,7 +1353,7 @@ export default function PublishingHub() {
                       <label
                         className={
                           "flex items-start gap-3 p-3 rounded-md border transition-colors " +
-                          (isSeriesBooklet
+                          (isSeriesBooklet || isSeriesTrifold
                             ? "opacity-50 cursor-not-allowed border-border bg-muted/30"
                             : seriesFormat === SERIES_EXPORT_FORMATS.DOCX
                               ? "cursor-pointer border-primary bg-primary/5"
@@ -1347,13 +1365,13 @@ export default function PublishingHub() {
                           name="pub-series-format"
                           value={SERIES_EXPORT_FORMATS.DOCX}
                           checked={seriesFormat === SERIES_EXPORT_FORMATS.DOCX}
-                          disabled={isSeriesBooklet}
+                          disabled={isSeriesBooklet || isSeriesTrifold}
                           onChange={() => setSeriesFormat(SERIES_EXPORT_FORMATS.DOCX)}
                           className="mt-0.5 accent-primary"
                         />
                         <div>
                           <span className="text-sm font-medium text-foreground block">{PUBLISHING_HUB_UI.formatDocxLabel}</span>
-                          {isSeriesBooklet ? (
+                          {isSeriesBooklet || isSeriesTrifold ? (
                             <span className="text-xs text-amber-600 block mt-0.5 font-medium">{PUBLISHING_HUB_UI.seriesFormatPdfOnly}</span>
                           ) : (
                             <span className="text-xs text-muted-foreground block mt-0.5">{PUBLISHING_HUB_UI.formatDocxDescription}</span>
@@ -1377,7 +1395,103 @@ export default function PublishingHub() {
                       </button>
                     </div>
                     <p className="text-xs text-muted-foreground mb-2">{PUBLISHING_HUB_UI.previewZoomHint}</p>
-                    {isSeriesBooklet ? (
+                    {isSeriesTrifold ? (
+                      /* ---- TRI-FOLD: DIAGRAM + CONTENT PREVIEW ---- */
+                      <div>
+                        {/* PART 1: Tri-Fold Diagram */}
+                        <div style={{ border: `1.5px solid ${accentHex}`, borderRadius: '8px', padding: '16px', marginBottom: '12px', background: '#ffffff' }}>
+                          {/* Sheet count -- prominent at top */}
+                          <div style={{ fontFamily: fontOpt.cssFamily, fontSize: '15px', fontWeight: 700, color: primaryHex, textAlign: 'center', marginBottom: '12px' }}>
+                            Your series will produce {seriesLessons.length} Tri-Fold {seriesLessons.length === 1 ? 'sheet' : 'sheets'} {'\u2014'} one per lesson
+                          </div>
+
+                          {/* SVG Diagram */}
+                          <svg width="100%" height="160" viewBox="0 0 460 160" preserveAspectRatio="xMidYMid meet" style={{ display: 'block', marginBottom: '8px' }}>
+                            {/* Landscape sheet */}
+                            <rect x="30" y="10" width="400" height="90" rx="2" fill="#ffffff" stroke={primaryHex} strokeWidth="1.5" />
+                            {/* First fold line */}
+                            <line x1="163" y1="10" x2="163" y2="100" stroke={accentHex} strokeWidth="1.5" strokeDasharray="6 3" />
+                            {/* Second fold line */}
+                            <line x1="297" y1="10" x2="297" y2="100" stroke={accentHex} strokeWidth="1.5" strokeDasharray="6 3" />
+                            {/* Panel labels */}
+                            <text x="96" y="55" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>Back</text>
+                            <text x="230" y="55" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>Inside Left</text>
+                            <text x="378" y="48" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>Inside Right</text>
+                            <text x="378" y="62" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>/ Front</text>
+                            {/* Fold arrows */}
+                            <line x1="163" y1="108" x2="163" y2="117" stroke="#9ca3af" strokeWidth="1" />
+                            <polygon points="158,117 168,117 163,123" fill="#9ca3af" />
+                            <text x="163" y="135" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>Fold</text>
+                            <line x1="297" y1="108" x2="297" y2="117" stroke="#9ca3af" strokeWidth="1" />
+                            <polygon points="292,117 302,117 297,123" fill="#9ca3af" />
+                            <text x="297" y="135" textAnchor="middle" fill="#9ca3af" fontSize="9" fontFamily={fontOpt.cssFamily}>Fold</text>
+                            {/* Bottom description */}
+                            <text x="230" y="155" textAnchor="middle" fill={primaryHex} fontSize="11" fontFamily={fontOpt.cssFamily}>
+                              {'8.5 \u00D7 11" sheet \u00B7 fold into thirds \u00B7 one sheet per lesson'}
+                            </text>
+                          </svg>
+
+                          {/* Bullet points */}
+                          <ul style={{ fontFamily: fontOpt.cssFamily, fontSize: '12px', color: '#1a1a1a', margin: '12px 0 0 18px', lineHeight: '1.8' }}>
+                            <li>Each lesson produces one tri-fold sheet for group members</li>
+                            <li>Contains only the Group Handout section from each lesson</li>
+                            <li>Print one sheet per group member, fold into thirds</li>
+                          </ul>
+                        </div>
+
+                        {/* PART 2: Content Preview */}
+                        <div style={{ fontFamily: fontOpt.cssFamily, fontSize: '13px', fontWeight: 600, color: primaryHex, marginTop: '16px', marginBottom: '8px' }}>
+                          Content Preview {'\u2014'} Group Handout content for each lesson
+                        </div>
+                        {loadingSeriesLessons ? (
+                          <div className="flex items-center gap-2 py-8 text-muted-foreground" style={{ justifyContent: 'center' }}>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="text-sm">{PUBLISHING_HUB_UI.seriesLoadingLessons}</span>
+                          </div>
+                        ) : (
+                          <div style={{ border: `1px solid ${accentHex}`, borderRadius: '6px', background: '#ffffff' }}>
+                            <div className="preview-scroll-container" style={{
+                              height: '400px',
+                              overflowY: 'scroll' as const,
+                              overflowX: 'hidden' as const,
+                              scrollbarWidth: 'auto' as const,
+                              scrollbarColor: '#9ca3af #f3f4f6',
+                              padding: '16px',
+                              fontFamily: fontOpt.cssFamily,
+                              fontSize: '11px',
+                              lineHeight: '1.4',
+                              color: '#1a1a1a',
+                              wordBreak: 'break-word' as const,
+                              overflowWrap: 'break-word' as const,
+                            }}>
+                              {seriesLessons.map((sl, idx) => {
+                                const lessonTitle = sl.title || sl.filters?.bible_passage || 'Untitled Lesson';
+                                const handoutText = sl.original_text || '';
+                                // Extract Section 8 content from lesson text
+                                const section8Match = handoutText.match(/(?:##?\s*)?(?:Section\s*8[:\s]|GROUP\s+HANDOUT|Group\s+Handout)[^\n]*\n([\s\S]*?)(?=(?:##?\s*)?(?:Section\s*\d|STUDENT\s+TEASER|Student\s+Teaser)|$)/i);
+                                const handoutContent = section8Match ? section8Match[1].trim() : '';
+                                return (
+                                  <div key={'tf-' + sl.id} style={{ marginBottom: '16px' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 700, color: primaryHex, marginBottom: '6px', ...tw }}>
+                                      Lesson {sl.series_lesson_number ?? idx + 1} {'\u2014'} {lessonTitle}
+                                    </div>
+                                    {handoutContent ? renderBookletMarkdown(handoutContent) : (
+                                      <div style={{ fontSize: '11px', color: '#999999', fontStyle: 'italic', ...tw }}>
+                                        Group Handout content not available for this lesson.
+                                      </div>
+                                    )}
+                                    {idx < seriesLessons.length - 1 && (
+                                      <div style={{ height: '2px', background: accentHex, opacity: 0.8, margin: '12px 0' }} />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-2">{PUBLISHING_HUB_UI.previewNote}</p>
+                      </div>
+                    ) : isSeriesBooklet ? (
                       /* ---- BOOKLET: DIAGRAM + CONTENT PREVIEW ---- */
                       <div>
                         {/* PART 1: Booklet Diagram */}
@@ -1621,12 +1735,49 @@ export default function PublishingHub() {
                 height: '90vh',
                 overflowY: 'scroll' as const,
                 overflowX: 'hidden' as const,
-                background: isSeriesBooklet ? '#e5e7eb' : '#ffffff',
+                background: (isSeriesBooklet || isSeriesTrifold) ? '#ffffff' : '#ffffff',
                 scrollbarWidth: 'auto' as const,
                 scrollbarColor: '#9ca3af #f3f4f6',
               }}
             >
-              {isSeriesBooklet ? (
+              {isSeriesTrifold ? (
+                /* Tri-Fold: Group Handout content preview in modal */
+                <div style={{
+                  padding: '48px',
+                  fontFamily: fontOpt.cssFamily,
+                  fontSize: '13px',
+                  lineHeight: '1.5',
+                  color: '#1a1a1a',
+                  wordBreak: 'break-word' as const,
+                  overflowWrap: 'break-word' as const,
+                }}>
+                  {seriesLessons.map((sl, idx) => {
+                    const lessonTitle = sl.title || sl.filters?.bible_passage || 'Untitled Lesson';
+                    const handoutText = sl.original_text || '';
+                    const section8Match = handoutText.match(/(?:##?\s*)?(?:Section\s*8[:\s]|GROUP\s+HANDOUT|Group\s+Handout)[^\n]*\n([\s\S]*?)(?=(?:##?\s*)?(?:Section\s*\d|STUDENT\s+TEASER|Student\s+Teaser)|$)/i);
+                    const handoutContent = section8Match ? section8Match[1].trim() : '';
+                    return (
+                      <div key={'fstf-' + sl.id} style={{ marginBottom: '24px' }}>
+                        <div style={{ fontSize: '16px', fontWeight: 700, color: primaryHex, marginBottom: '8px', ...tw }}>
+                          Lesson {sl.series_lesson_number ?? idx + 1} {'\u2014'} {lessonTitle}
+                        </div>
+                        {handoutContent ? renderMarkdownPreview(handoutContent) : (
+                          <div style={{ fontSize: '13px', color: '#999999', fontStyle: 'italic', ...tw }}>
+                            Group Handout content not available for this lesson.
+                          </div>
+                        )}
+                        {idx < seriesLessons.length - 1 && (
+                          <div style={{ height: '3px', background: accentHex, opacity: 0.8, margin: '24px 0' }} />
+                        )}
+                      </div>
+                    );
+                  })}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '20px', borderTop: '1px solid #e5e7eb', marginTop: '20px' }}>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>biblelessonspark.com</span>
+                    <span style={{ fontSize: '10px', color: '#9ca3af' }}>{SERIES_EXPORT_LAYOUT_LABELS[seriesLayout]}</span>
+                  </div>
+                </div>
+              ) : isSeriesBooklet ? (
                 /* Booklet: full content preview (no diagram in modal) */
                 <div style={{
                   padding: '48px',

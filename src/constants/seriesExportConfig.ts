@@ -10,6 +10,7 @@
 //   - buildSeriesDocx.ts
 //   - buildSeriesPdf.ts
 //   - buildHandoutBooklet.ts
+//   - buildTrifoldPdf.ts
 // ============================================================================
 
 // ============================================================================
@@ -20,6 +21,7 @@ export const SERIES_EXPORT_FORMATS = {
   PDF:     'pdf',
   DOCX:    'docx',
   BOOKLET: 'booklet_pdf',
+  TRIFOLD: 'trifold_pdf',
 } as const;
 
 export type SeriesExportFormat =
@@ -29,12 +31,14 @@ export const SERIES_EXPORT_FORMAT_LABELS: Record<SeriesExportFormat, string> = {
   [SERIES_EXPORT_FORMATS.PDF]:     'PDF Document',
   [SERIES_EXPORT_FORMATS.DOCX]:    'Word Document (.docx)',
   [SERIES_EXPORT_FORMATS.BOOKLET]: 'Booklet PDF (saddle-stitch)',
+  [SERIES_EXPORT_FORMATS.TRIFOLD]: 'Tri-Fold PDF (Group Handout)',
 };
 
 export const SERIES_EXPORT_FORMAT_SUBTITLES: Record<SeriesExportFormat, string> = {
   [SERIES_EXPORT_FORMATS.PDF]:     'Recommended for printing',
   [SERIES_EXPORT_FORMATS.DOCX]:    'Opens in Google Docs, LibreOffice, Word, and more',
   [SERIES_EXPORT_FORMATS.BOOKLET]: 'Saddle-stitch / fold-and-staple',
+  [SERIES_EXPORT_FORMATS.TRIFOLD]: 'One tri-fold sheet per lesson',
 };
 
 // ============================================================================
@@ -63,7 +67,7 @@ export const SERIES_EXPORT_LAYOUT_DESCRIPTIONS: Record<SeriesExportLayout, strin
 };
 
 /** Layouts that exist as constants but are not yet implemented in the export pipeline. */
-export const SERIES_EXPORT_LAYOUTS_COMING_SOON = ['trifold'] as const;
+export const SERIES_EXPORT_LAYOUTS_COMING_SOON: readonly string[] = [];
 
 export const SERIES_LAYOUT_DIMENSIONS = {
   fullpage: { widthIn: 8.5,  heightIn: 11.0 },
@@ -268,6 +272,17 @@ export const BOOKLET_PAGE = {
   marginBottom: 28.8,
   marginLeft:   18,
   marginRight:  28.8,
+} as const;
+
+export const TRIFOLD_PAGE = {
+  sheetWidthPt:   792,     // 11 inches landscape
+  sheetHeightPt:  612,     // 8.5 inches landscape
+  panelWidthPt:   264,     // 3.667 inches (sheet / 3)
+  panelHeightPt:  612,     // 8.5 inches
+  marginTopPt:    28.8,    // 0.4 inch
+  marginBottomPt: 28.8,    // 0.4 inch
+  marginLeftPt:   18,      // 0.25 inch
+  marginRightPt:  18,      // 0.25 inch
 } as const;
 
 // ============================================================================
@@ -475,4 +490,5 @@ export const SERIES_EXPORT_FORMAT_MIME: Record<SeriesExportFormat, string> = {
   [SERIES_EXPORT_FORMATS.PDF]:     'application/pdf',
   [SERIES_EXPORT_FORMATS.DOCX]:    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   [SERIES_EXPORT_FORMATS.BOOKLET]: 'application/pdf',
+  [SERIES_EXPORT_FORMATS.TRIFOLD]: 'application/pdf',
 };

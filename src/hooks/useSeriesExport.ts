@@ -20,6 +20,7 @@ import {
 } from '@/constants/seriesExportConfig';
 import { buildSeriesDocx } from '@/utils/export/buildSeriesDocx';
 import { buildSeriesPdf, buildBookletPdf } from '@/utils/export/buildSeriesPdf';
+import { buildTrifoldPdf } from '@/utils/export/buildTrifoldPdf';
 
 export interface SeriesExportState {
   isExporting: boolean;
@@ -92,6 +93,8 @@ export function useSeriesExport(): UseSeriesExportReturn {
           buffer = await buildSeriesDocx(series, orderedLessons, options, setStep);
         } else if (options.format === SERIES_EXPORT_FORMATS.BOOKLET) {
           buffer = await buildBookletPdf(series, orderedLessons, options, setStep);
+        } else if (options.format === SERIES_EXPORT_FORMATS.TRIFOLD) {
+          buffer = await buildTrifoldPdf(series, orderedLessons, options, setStep);
         } else {
           buffer = await buildSeriesPdf(series, orderedLessons, options, setStep);
         }

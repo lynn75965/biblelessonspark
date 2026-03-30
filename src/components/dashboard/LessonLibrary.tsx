@@ -64,6 +64,7 @@ interface LessonLibraryProps {
 
 interface LessonDisplay extends Lesson {
   ai_lesson_title: string | null;
+  extracted_passage: string | null;
   bible_passage: string | null;
   focused_topic: string | null;
   passage_or_topic: string;
@@ -143,14 +144,18 @@ const transformToDisplay = (
 ): LessonDisplay => {
   const filters = lesson.filters as Record<string, any> | null;
   const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
-  const aiGeneratedScripture = extractPrimaryScripture(lesson.original_text || "");
   const userInputPassage = filters?.bible_passage || null;
   const userInputTopic = filters?.focused_topic || null;
+
+  // Extract Primary Scripture Passage from lesson content (Section 1)
+  const passageMatch = (lesson.original_text || "").match(/\*\*Primary Scripture Passage:\*\*\s*(.+)/i);
+  const extractedPassage = passageMatch ? passageMatch[1].trim() : null;
 
   return {
     ...lesson,
     ai_lesson_title: aiGeneratedTitle,
-    bible_passage: userInputPassage || aiGeneratedScripture,
+    extracted_passage: extractedPassage,
+    bible_passage: userInputPassage,
     focused_topic: userInputTopic,
     passage_or_topic: lesson.title || filters?.passageOrTopic || "Untitled Lesson",
     age_group: filters?.age_group || AGE_GROUPS[AGE_GROUPS.length - 1].id,
@@ -510,16 +515,11 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base sm:text-lg mb-1 line-clamp-2 text-foreground dark:text-[#e8f0e8] group-hover:text-primary transition-colors">
-                      {lesson.ai_lesson_title || lesson.title || lesson.passage_or_topic}
+                      {lesson.ai_lesson_title || lesson.title || lesson.bible_passage || lesson.focused_topic || 'Untitled Lesson'}
                     </CardTitle>
-                    {lesson.bible_passage && (
+                    {(lesson.extracted_passage || lesson.bible_passage || lesson.focused_topic) && (
                       <CardDescription className="text-xs sm:text-sm line-clamp-1 text-muted-foreground dark:text-[#a8c0a8]">
-                        Bible Passage: {lesson.bible_passage}
-                      </CardDescription>
-                    )}
-                    {!lesson.bible_passage && lesson.focused_topic && (
-                      <CardDescription className="text-xs sm:text-sm line-clamp-1 text-muted-foreground dark:text-[#a8c0a8]">
-                        Theme: {lesson.focused_topic}
+                        {lesson.extracted_passage || lesson.bible_passage || lesson.focused_topic}
                       </CardDescription>
                     )}
                   </div>
