@@ -108,6 +108,22 @@ function getPassageDisplay(lesson: LessonRow): string {
   return f?.bible_passage || f?.focused_topic || '';
 }
 
+/** Extract AI-generated lesson title from original_text */
+function extractLessonCardTitle(lesson: LessonRow): string {
+  const titleMatch = lesson.original_text?.match(/\*\*Lesson Title:\*\*\s*(.+)/i);
+  const extracted = titleMatch ? titleMatch[1].replace(/["\u201C\u201D*]/g, '').trim() : null;
+  return extracted || lesson.title || lesson.filters?.bible_passage || lesson.filters?.focused_topic || 'Untitled Lesson';
+}
+
+/** Extract Primary Scripture Passage from original_text */
+function extractLessonCardPassage(lesson: LessonRow): string {
+  const raw = lesson.original_text || '';
+  const sameLineMatch = raw.match(/\*\*Primary Scripture Passages?\s*:\*\*[ \t]+(.+)/i);
+  const nextLineMatch = raw.match(/\*\*Primary Scripture Passages?\s*:\*\*[ \t]*\n+[ \t]*(.+)/i);
+  const extracted = (sameLineMatch?.[1] || nextLineMatch?.[1])?.replace(/\*\*/g, '').trim() || null;
+  return extracted || lesson.filters?.bible_passage || lesson.filters?.focused_topic || '';
+}
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -310,6 +326,20 @@ export default function PublishingHub() {
       setSelectedSeriesId(paramId);
     }
   }, [searchParams]);
+
+  // --------------------------------------------------------------------------
+  // SCROLL DEEP-LINKED ITEM INTO VIEW
+  // --------------------------------------------------------------------------
+
+  useEffect(() => {
+    const id = selectedLessonId || selectedDevotionalId || selectedSeriesId;
+    if (!id) return;
+    const timer = setTimeout(() => {
+      const el = document.querySelector(`[data-item-id="${id}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [selectedLessonId, selectedDevotionalId, selectedSeriesId, loadingLessons, loadingDevotionals, loadingSeries]);
 
   // --------------------------------------------------------------------------
   // FETCH SERIES LESSONS (when a series is selected)
@@ -1012,6 +1042,7 @@ export default function PublishingHub() {
             return (
               <button
                 key={item.id}
+                data-item-id={item.id}
                 onClick={() => onSelect(item.id)}
                 className={
                   "w-full text-left px-4 py-3 border-b border-border last:border-b-0 transition-colors " +
@@ -1151,8 +1182,8 @@ export default function PublishingHub() {
               PUBLISHING_HUB_UI.tabLessons,
               selectedLessonId,
               setSelectedLessonId,
-              (l) => l.title || 'Untitled Lesson',
-              (l) => getPassageDisplay(l),
+              (l) => extractLessonCardTitle(l),
+              (l) => extractLessonCardPassage(l),
               (l) => formatDate(l.created_at),
               renderSearchInput(searchLessons, setSearchLessons, PUBLISHING_HUB_UI.searchLessonsPlaceholder),
             )}
