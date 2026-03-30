@@ -628,10 +628,14 @@ export default function PublishingHub() {
   function renderMarkdownPreview(raw: string): React.ReactNode[] {
     // Normalize: insert newlines before inline section separators
     const normalized = raw
-      .replace(/ ## /g, '\n## ')
-      .replace(/ --- /g, '\n---\n')
-      .replace(/\*\*([^*]+):\*\*/g, '\n**$1:**');
-    const lines = normalized.split('\n').filter(line => line !== undefined);
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/([.!?])\s{2,}##\s/g, '$1\n## ')
+      .replace(/\s##\s/g, '\n## ')
+      .replace(/\s---\s/g, '\n---\n')
+      .replace(/([^\n])\*\*([^*]+):\*\*/g, '$1\n**$2:**');
+    const lines = normalized.split('\n');
+    console.log('LINE COUNT:', lines.length, 'FIRST 3 LINES:', lines.slice(0, 3));
     const elements: React.ReactNode[] = [];
 
     for (let i = 0; i < lines.length; i++) {
