@@ -83,7 +83,9 @@
       "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FEATURE: Phase E Part 1 -- share controls in Publishing Hub \\(lessons, devotionals, series\\) -- Personal plan only\" 2>&1)",
       "Bash(powershell -Command 'Get-ChildItem \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\" -Recurse | Where-Object { $_.Name -eq \"SharedContentPage.tsx\" } | Select-Object FullName')",
       "Bash(powershell -Command '$bytes = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\pages\\\\SharedContentPage.tsx\"\\); $nonAscii = $bytes | Where-Object { $_ -gt 127 }; if \\($nonAscii\\) { Write-Host \"NON-ASCII BYTES FOUND: $\\($nonAscii.Count\\)\" } else { Write-Host \"ASCII CLEAN\" }')",
-      "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: SharedContentPage -- add Authorization Bearer header to Edge Function fetch\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: SharedContentPage -- add Authorization Bearer header to Edge Function fetch\" 2>&1)",
+      "Bash(powershell -Command '\n$files = @\\(\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\pages\\\\SharedContentPage.tsx\",\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\supabase\\\\functions\\\\get-shared-content\\\\index.ts\"\n\\)\nforeach \\($f in $files\\) {\n  $bytes = [System.IO.File]::ReadAllBytes\\($f\\)\n  $nonAscii = $bytes | Where-Object { $_ -gt 127 }\n  if \\($nonAscii\\) { Write-Host \"NON-ASCII: $f \\($\\($nonAscii.Count\\) bytes\\)\" }\n  else { Write-Host \"CLEAN: $f\" }\n}')",
+      "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: SharedContentPage -- use supabase.functions.invoke instead of raw fetch; Edge Function accepts POST body\" 2>&1)"
     ]
   }
 }

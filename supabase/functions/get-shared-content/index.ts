@@ -16,9 +16,19 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const url = new URL(req.url);
-    const token = url.searchParams.get('token');
-    const type  = url.searchParams.get('type'); // 'lesson' | 'devotional' | 'series'
+    // Accept both POST (supabase.functions.invoke) and GET (direct URL)
+    let token: string | null = null;
+    let type: string | null = null;
+
+    if (req.method === 'POST') {
+      const body = await req.json();
+      token = body.token ?? null;
+      type  = body.type ?? null;
+    } else {
+      const url = new URL(req.url);
+      token = url.searchParams.get('token');
+      type  = url.searchParams.get('type');
+    }
 
     if (!token || !type) {
       return new Response(

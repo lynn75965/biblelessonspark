@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, BookOpen, AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { DIGITAL_WING_UI } from '@/constants/digitalWingConfig';
 
 interface SharedLesson {
@@ -66,23 +67,15 @@ export default function SharedContentPage() {
       const types = ['lesson', 'devotional', 'series'] as const;
 
       for (const type of types) {
-        // Use fetch directly since get-shared-content is a GET with query params
-        const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-shared-content?token=${encodeURIComponent(token)}&type=${type}`;
-        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const resp  = await fetch(fnUrl, {
-          headers: {
-            'apikey':        anonKey,
-            'Authorization': 'Bearer ' + anonKey,
-          },
-        });
+        const { data: result, error: fnError } = await supabase.functions.invoke(
+          'get-shared-content',
+          { body: { token, type } }
+        );
 
-        if (resp.ok) {
-          const json = await resp.json();
-          if (json && json.type && json.content) {
-            setData(json as SharedContent);
-            setLoading(false);
-            return;
-          }
+        if (!fnError && result && result.type && result.content) {
+          setData(result as SharedContent);
+          setLoading(false);
+          return;
         }
       }
 
