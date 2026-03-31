@@ -18,6 +18,12 @@ export const DIGITAL_WING_UI = {
   shareButtonDisable:      'Stop Sharing',
   shareButtonDisableConfirm: 'Stop sharing this content? The link will stop working.',
 
+  // Scope labels
+  shareScopeFull:          'Full Lesson',
+  shareScopeFullDesc:      'All 8 sections -- for substitute teacher training',
+  shareScopeHandout:       'Group Handout Only',
+  shareScopeHandoutDesc:   'Section 8 only -- for class members',
+
   // Sharing status
   sharingActive:           'Sharing active',
   sharingInactive:         'Not shared',

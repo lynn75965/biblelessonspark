@@ -1,7 +1,9 @@
 // supabase/functions/get-shared-content/index.ts
 // Phase E: Public Edge Function -- no auth required
-// Reads lesson, devotional, or series content by share_token
-// SSOT: share_token columns on lessons, devotionals, lesson_series tables
+// Accepts POST body: { token: string, type: 'lesson'|'devotional'|'series', scope: 'full'|'handout' }
+// scope 'handout' returns Section 8 content only (lessons and series)
+// scope 'full' returns all content
+// SSOT: share_token (full) and share_token_handout columns on lessons, lesson_series tables
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -10,29 +12,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/** Extract Section 8 / Group Handout content from full lesson text */
+function extractHandout(text: string): string {
+  if (!text) return '';
+  const match = text.match(
+    /(?:##?\s*)?(?:Section\s*8[:\s]|GROUP\s+HANDOUT|Group\s+Handout)[^\n]*\n([\s\S]*?)(?=(?:##?\s*)?(?:Section\s*\d|STUDENT\s+TEASER|Student\s+Teaser)|$)/i
+  );
+  return match ? match[1].trim() : '';
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Accept both POST (supabase.functions.invoke) and GET (direct URL)
-    let token: string | null = null;
-    let type: string | null = null;
-
-    if (req.method === 'POST') {
-      const body = await req.json();
-      token = body.token ?? null;
-      type  = body.type ?? null;
-    } else {
-      const url = new URL(req.url);
-      token = url.searchParams.get('token');
-      type  = url.searchParams.get('type');
-    }
+    const body = await req.json();
+    const token = body?.token as string | undefined;
+    const type  = body?.type  as string | undefined;
+    const scope = (body?.scope as string | undefined) ?? 'full';
 
     if (!token || !type) {
       return new Response(
-        JSON.stringify({ error: 'Missing token or type parameter' }),
+        JSON.stringify({ error: 'Missing token or type' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -43,10 +45,13 @@ Deno.serve(async (req: Request) => {
     );
 
     if (type === 'lesson') {
+      // Determine which column to match based on scope
+      const tokenColumn = scope === 'handout' ? 'share_token_handout' : 'share_token';
+
       const { data, error } = await supabase
         .from('lessons')
         .select('id, title, original_text, filters, metadata, created_at')
-        .eq('share_token', token)
+        .eq(tokenColumn, token)
         .single();
 
       if (error || !data) {
@@ -56,8 +61,12 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const content = scope === 'handout'
+        ? { ...data, original_text: extractHandout(data.original_text) }
+        : data;
+
       return new Response(
-        JSON.stringify({ type: 'lesson', content: data }),
+        JSON.stringify({ type: 'lesson', scope, content }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -77,16 +86,18 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ type: 'devotional', content: data }),
+        JSON.stringify({ type: 'devotional', scope: 'full', content: data }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (type === 'series') {
+      const tokenColumn = scope === 'handout' ? 'share_token_handout' : 'share_token';
+
       const { data: series, error: seriesError } = await supabase
         .from('lesson_series')
         .select('id, series_name, created_at, total_lessons')
-        .eq('share_token', token)
+        .eq(tokenColumn, token)
         .single();
 
       if (seriesError || !series) {
@@ -109,8 +120,15 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const processedLessons = (lessons || []).map(l => ({
+        ...l,
+        original_text: scope === 'handout'
+          ? extractHandout(l.original_text || '')
+          : l.original_text,
+      }));
+
       return new Response(
-        JSON.stringify({ type: 'series', content: { ...series, lessons: lessons || [] } }),
+        JSON.stringify({ type: 'series', scope, content: { ...series, lessons: processedLessons } }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

@@ -41,9 +41,9 @@ interface SharedSeries {
 }
 
 type SharedContent =
-  | { type: 'lesson';     content: SharedLesson }
-  | { type: 'devotional'; content: SharedDevotional }
-  | { type: 'series';     content: SharedSeries }
+  | { type: 'lesson';     scope: string; content: SharedLesson }
+  | { type: 'devotional'; scope: string; content: SharedDevotional }
+  | { type: 'series';     scope: string; content: SharedSeries }
   | null;
 
 export default function SharedContentPage() {
@@ -63,13 +63,18 @@ export default function SharedContentPage() {
       setLoading(true);
       setError(null);
 
-      // Try lesson first, then devotional, then series
-      const types = ['lesson', 'devotional', 'series'] as const;
+      const attempts: Array<{ type: 'lesson' | 'devotional' | 'series'; scope: 'full' | 'handout' }> = [
+        { type: 'lesson',     scope: 'full' },
+        { type: 'lesson',     scope: 'handout' },
+        { type: 'devotional', scope: 'full' },
+        { type: 'series',     scope: 'full' },
+        { type: 'series',     scope: 'handout' },
+      ];
 
-      for (const type of types) {
+      for (const attempt of attempts) {
         const { data: result, error: fnError } = await supabase.functions.invoke(
           'get-shared-content',
-          { body: { token, type } }
+          { body: { token, type: attempt.type, scope: attempt.scope } }
         );
 
         if (!fnError && result && result.type && result.content) {
@@ -160,6 +165,11 @@ export default function SharedContentPage() {
           <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e3a5f', marginBottom: '6px', lineHeight: '1.3' }}>
             {lesson.title}
           </h1>
+          {data.scope === 'handout' && (
+            <div style={{ display: 'inline-block', fontSize: '12px', fontWeight: 600, color: '#c9a84c', background: '#fef9ee', border: '1px solid #f3e4b0', borderRadius: '4px', padding: '2px 10px', marginBottom: '8px' }}>
+              Group Handout
+            </div>
+          )}
           {passage && (
             <p style={{ fontSize: '15px', fontStyle: 'italic', color: '#6b7280', marginBottom: '16px' }}>{passage}</p>
           )}

@@ -54,6 +54,7 @@ interface LessonRow {
   filters: Record<string, any> | null;
   metadata: Record<string, any> | null;
   share_token: string | null;
+  share_token_handout: string | null;
 }
 
 interface DevotionalRow {
@@ -72,6 +73,7 @@ interface SeriesRow {
   total_lessons: number | null;
   lesson_summaries: unknown[] | null;
   share_token: string | null;
+  share_token_handout: string | null;
 }
 
 interface SeriesLessonRow {
@@ -216,13 +218,15 @@ export default function PublishingHub() {
   const handleEnableSharing = async (
     table: 'lessons' | 'devotionals' | 'lesson_series',
     id: string,
+    scope: 'full' | 'handout' = 'full',
   ) => {
     setSharingLoading(true);
     try {
       const token = crypto.randomUUID();
+      const column = scope === 'handout' ? 'share_token_handout' : 'share_token';
       const { error } = await supabase
         .from(table)
-        .update({ share_token: token })
+        .update({ [column]: token })
         .eq('id', id);
 
       if (error) {
@@ -230,13 +234,12 @@ export default function PublishingHub() {
         return;
       }
 
-      // Update local state so UI reflects immediately
       if (table === 'lessons') {
-        setLessons(prev => prev.map(l => l.id === id ? { ...l, share_token: token } : l));
+        setLessons(prev => prev.map(l => l.id === id ? { ...l, [column]: token } : l));
       } else if (table === 'devotionals') {
-        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, share_token: token } : d));
+        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, [column]: token } : d));
       } else {
-        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, share_token: token } : s));
+        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, [column]: token } : s));
       }
 
       toast({ title: DIGITAL_WING_UI.toastSharingEnabled });
@@ -250,13 +253,15 @@ export default function PublishingHub() {
   const handleDisableSharing = async (
     table: 'lessons' | 'devotionals' | 'lesson_series',
     id: string,
+    scope: 'full' | 'handout' = 'full',
   ) => {
     if (!window.confirm(DIGITAL_WING_UI.shareButtonDisableConfirm)) return;
     setSharingLoading(true);
     try {
+      const column = scope === 'handout' ? 'share_token_handout' : 'share_token';
       const { error } = await supabase
         .from(table)
-        .update({ share_token: null })
+        .update({ [column]: null })
         .eq('id', id);
 
       if (error) {
@@ -265,11 +270,11 @@ export default function PublishingHub() {
       }
 
       if (table === 'lessons') {
-        setLessons(prev => prev.map(l => l.id === id ? { ...l, share_token: null } : l));
+        setLessons(prev => prev.map(l => l.id === id ? { ...l, [column]: null } : l));
       } else if (table === 'devotionals') {
-        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, share_token: null } : d));
+        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, [column]: null } : d));
       } else {
-        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, share_token: null } : s));
+        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, [column]: null } : s));
       }
 
       toast({ title: DIGITAL_WING_UI.toastSharingDisabled });
@@ -280,10 +285,10 @@ export default function PublishingHub() {
     }
   };
 
-  const handleCopyLink = async (token: string, id: string) => {
+  const handleCopyLink = async (token: string, id: string, scope: 'full' | 'handout' = 'full') => {
     try {
       await navigator.clipboard.writeText(getShareUrl(token));
-      setCopiedId(id);
+      setCopiedId(id + '-' + scope);
       toast({ title: DIGITAL_WING_UI.toastLinkCopied });
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
@@ -325,7 +330,7 @@ export default function PublishingHub() {
       setLoadingLessons(true);
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, original_text, created_at, filters, metadata, share_token')
+        .select('id, title, original_text, created_at, filters, metadata, share_token, share_token_handout')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -385,7 +390,7 @@ export default function PublishingHub() {
       setLoadingSeries(true);
       const { data, error } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token')
+        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -1009,37 +1014,31 @@ export default function PublishingHub() {
   // SHARED UI FRAGMENTS
   // --------------------------------------------------------------------------
 
-  /** Share controls -- rendered below the download button for all three content types */
-  const renderShareControls = (
+  /** Render a single share scope row (Full Lesson or Group Handout) */
+  const renderShareScopeRow = (
     table: 'lessons' | 'devotionals' | 'lesson_series',
     id: string,
     shareToken: string | null | undefined,
+    scope: 'full' | 'handout',
+    label: string,
+    description: string,
   ) => (
-    <div style={{ borderTop: '1px solid', paddingTop: '16px' }} className="border-border">
-      <div className="flex items-center gap-2 mb-3">
-        <Share2 className="h-4 w-4 text-muted-foreground" />
-        <p className="text-sm font-medium text-foreground">{DIGITAL_WING_UI.shareLabel}</p>
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-medium text-foreground">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
         {shareToken && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 font-medium ml-auto">
-            {DIGITAL_WING_UI.sharingActive}
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 font-medium shrink-0 ml-2">
+            Active
           </span>
         )}
       </div>
-
-      {!isPaidUser ? (
-        <div className="p-3 rounded-md border border-border bg-muted/30 text-center space-y-2">
-          <p className="text-xs text-muted-foreground">{DIGITAL_WING_UI.upgradePrompt}</p>
-          <a
-            href="/pricing"
-            className="inline-block text-xs font-medium text-primary hover:underline"
-          >
-            {DIGITAL_WING_UI.upgradeButton}
-          </a>
-        </div>
-      ) : shareToken ? (
-        <div className="space-y-2">
+      {shareToken ? (
+        <div className="space-y-1.5">
           <div className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted/20">
-            <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <Link2 className="h-3 w-3 text-muted-foreground shrink-0" />
             <span className="text-xs text-muted-foreground truncate flex-1 font-mono">
               {getShareUrl(shareToken)}
             </span>
@@ -1047,18 +1046,18 @@ export default function PublishingHub() {
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => handleCopyLink(shareToken, id)}
+              onClick={() => handleCopyLink(shareToken, id, scope)}
               disabled={sharingLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-background hover:bg-muted/50 transition-colors flex-1 justify-center"
             >
-              {copiedId === id
+              {copiedId === id + '-' + scope
                 ? <><Check className="h-3 w-3 text-emerald-600" />{DIGITAL_WING_UI.shareButtonCopied}</>
                 : <><Link2 className="h-3 w-3" />{DIGITAL_WING_UI.shareButtonCopy}</>
               }
             </button>
             <button
               type="button"
-              onClick={() => handleDisableSharing(table, id)}
+              onClick={() => handleDisableSharing(table, id, scope)}
               disabled={sharingLoading}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-destructive/40 text-destructive hover:bg-destructive/5 transition-colors"
             >
@@ -1069,16 +1068,58 @@ export default function PublishingHub() {
       ) : (
         <button
           type="button"
-          onClick={() => handleEnableSharing(table, id)}
+          onClick={() => handleEnableSharing(table, id, scope)}
           disabled={sharingLoading}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-primary/40 text-primary hover:bg-primary/5 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md border border-primary/40 text-primary hover:bg-primary/5 transition-colors"
         >
           {sharingLoading
-            ? <Loader2 className="h-4 w-4 animate-spin" />
-            : <Share2 className="h-4 w-4" />
+            ? <Loader2 className="h-3 w-3 animate-spin" />
+            : <Share2 className="h-3 w-3" />
           }
           {DIGITAL_WING_UI.shareButtonEnable}
         </button>
+      )}
+    </div>
+  );
+
+  /** Share controls -- rendered below the download button for all three content types */
+  const renderShareControls = (
+    table: 'lessons' | 'devotionals' | 'lesson_series',
+    id: string,
+    shareToken: string | null | undefined,
+    shareTokenHandout?: string | null,
+  ) => (
+    <div style={{ borderTop: '1px solid' }} className="border-border pt-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Share2 className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium text-foreground">{DIGITAL_WING_UI.shareLabel}</p>
+      </div>
+
+      {!isPaidUser ? (
+        <div className="p-3 rounded-md border border-border bg-muted/30 text-center space-y-2">
+          <p className="text-xs text-muted-foreground">{DIGITAL_WING_UI.upgradePrompt}</p>
+          <a href="/pricing" className="inline-block text-xs font-medium text-primary hover:underline">
+            {DIGITAL_WING_UI.upgradeButton}
+          </a>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {renderShareScopeRow(
+            table, id, shareToken, 'full',
+            DIGITAL_WING_UI.shareScopeFull,
+            DIGITAL_WING_UI.shareScopeFullDesc,
+          )}
+          {shareTokenHandout !== undefined && (
+            <>
+              <div style={{ height: '1px' }} className="bg-border" />
+              {renderShareScopeRow(
+                table, id, shareTokenHandout, 'handout',
+                DIGITAL_WING_UI.shareScopeHandout,
+                DIGITAL_WING_UI.shareScopeHandoutDesc,
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
@@ -1470,7 +1511,7 @@ export default function PublishingHub() {
                   {renderEconomicalPrint()}
                   {renderContentPreview(previewTitle, previewShortTitle, previewPassage, previewRawText)}
                   {renderDownloadButton(handleLessonDownload)}
-                  {renderShareControls('lessons', selectedLesson.id, selectedLesson.share_token)}
+                  {renderShareControls('lessons', selectedLesson.id, selectedLesson.share_token, selectedLesson.share_token_handout)}
                 </div>
               )}
             </div>
@@ -1985,7 +2026,7 @@ export default function PublishingHub() {
                   </div>
 
                   {renderDownloadButton(handleSeriesDownload)}
-                  {renderShareControls('lesson_series', selectedSeries.id, selectedSeries.share_token)}
+                  {renderShareControls('lesson_series', selectedSeries.id, selectedSeries.share_token, selectedSeries.share_token_handout)}
                 </div>
               )}
             </div>
