@@ -997,29 +997,29 @@ Export Series modal is live and working at biblelessonspark.com. Screenshot conf
 24. **_imposeBooklet "PDFEmbeddedPage undefined"** -- pdf-lib embedPdf() requires serialized bytes, not a PDFDocument object. Passing srcDoc directly caused all embedded pages to be undefined. Fix: `const srcBytes = await srcDoc.save()` then `embedPdf(srcBytes, allIndices)`. March 10, 2026.
 25. **Booklet margins not matching spec** -- BOOKLET_PAGE constants were 54pt (0.75") instead of spec values. marginLeft was being used for all four sides via single BK_M constant. Fix: added BK_OUTER, corrected all four margin values in SSOT. March 10, 2026.
 
-## Session — March 10, 2026
+## Session -- March 10, 2026
 
 ### Work completed
 Three SSOT violations identified and remediated in a single commit (c41b8fe).
 
-**V1 — SERIES_EXPORT_FORMATS.BOOKLET dead code (SeriesExportModal.tsx)**
+**V1 -- SERIES_EXPORT_FORMATS.BOOKLET dead code (SeriesExportModal.tsx)**
 Root cause: handleExport always sent format: selectedFormat, which is 'pdf'
 when booklet layout is active. SERIES_EXPORT_FORMATS.BOOKLET was never used.
 Fix: format field now resolves to SERIES_EXPORT_FORMATS.BOOKLET when
 selectedLayout === SERIES_EXPORT_LAYOUTS.BOOKLET.
 
-**V2 — doc.line() right-end used BK_M instead of BK_OUTER (buildSeriesPdf.ts)**
+**V2 -- doc.line() right-end used BK_M instead of BK_OUTER (buildSeriesPdf.ts)**
 Root cause: Four doc.line() calls in buildBookletPdf used BK_W - BK_M (18pt
 spine margin) for the right boundary instead of BK_W - BK_OUTER (28.8pt outer
 margin). Lines extended 10.8pt past the correct text block edge.
 Fix: All four calls updated to BK_W - BK_OUTER.
 
-**V3 — buildSeriesExportFilename() bypassed for booklet downloads**
-Root cause: Downstream consequence of V1 — format: 'pdf' caused filename
+**V3 -- buildSeriesExportFilename() bypassed for booklet downloads**
+Root cause: Downstream consequence of V1 -- format: 'pdf' caused filename
 function to produce no _Booklet suffix.
 Fix: Resolved automatically by V1 fix. No additional changes required.
 
-**V1 cleanup — useSeriesExport.ts**
+**V1 cleanup -- useSeriesExport.ts**
 Removed || options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET workaround from
 dispatch logic. Single clean condition now matches on format alone.
 
@@ -1029,23 +1029,23 @@ dispatch logic. Single clean condition now matches on format alone.
 - src/utils/export/buildSeriesPdf.ts
 
 ### Commit
-c41b8fe — FIX: Resolve 3 SSOT violations in booklet export pipeline
+c41b8fe -- FIX: Resolve 3 SSOT violations in booklet export pipeline
 
-## Session — March 10, 2026 (Afternoon — SSOT Violations + Export Hardening)
+## Session -- March 10, 2026 (Afternoon -- SSOT Violations + Export Hardening)
 
 ### SSOT Violations Resolved (commit c41b8fe)
-Three violations carried forward from the morning session — all fixed and deployed.
+Three violations carried forward from the morning session -- all fixed and deployed.
 
-V1 — SeriesExportModal.tsx: handleExport now sends SERIES_EXPORT_FORMATS.BOOKLET
+V1 -- SeriesExportModal.tsx: handleExport now sends SERIES_EXPORT_FORMATS.BOOKLET
 when booklet layout is selected. SSOT constant was previously dead code.
 
-V2 — buildSeriesPdf.ts: All four doc.line() calls in buildBookletPdf corrected
+V2 -- buildSeriesPdf.ts: All four doc.line() calls in buildBookletPdf corrected
 from BK_W - BK_M to BK_W - BK_OUTER. Lines were 10.8pt past the text block edge.
 
-V3 — buildSeriesExportFilename() bypass resolved automatically by V1 fix.
+V3 -- buildSeriesExportFilename() bypass resolved automatically by V1 fix.
 Booklet downloads now carry correct _Booklet filename suffix.
 
-V1 cleanup — useSeriesExport.ts: Removed || options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET
+V1 cleanup -- useSeriesExport.ts: Removed || options.layout === SERIES_EXPORT_LAYOUTS.BOOKLET
 workaround. Dispatch now matches on format alone.
 
 Files changed: SeriesExportModal.tsx, useSeriesExport.ts, buildSeriesPdf.ts
@@ -1053,18 +1053,18 @@ Files changed: SeriesExportModal.tsx, useSeriesExport.ts, buildSeriesPdf.ts
 ### Export Hardening (commit a990e65)
 Four carry-forward hardening items addressed in a single commit.
 
-1. bkContent() — blockquote prefix (^>) stripped before rendering;
+1. bkContent() -- blockquote prefix (^>) stripped before rendering;
    _italic_ markers stripped in catch-all line alongside **bold**
 
-2. SeriesExportModal.tsx — advisory notice displayed when series has 10+
+2. SeriesExportModal.tsx -- advisory notice displayed when series has 10+
    lessons. Amber banner, informational only. Download button fully enabled.
    User is never blocked.
 
-3. sanitizeForPdf() — added replacements for arrows (-> <-), math symbols
+3. sanitizeForPdf() -- added replacements for arrows (-> <-), math symbols
    (x / +/- ~ != <= >=), and common fractions (1/2 1/4 3/4) before the
    final [^\x00-\x7F] catch-all.
 
-4. renderBodyText() — orphan prevention: paragraphs wrapping to 2+ lines
+4. renderBodyText() -- orphan prevention: paragraphs wrapping to 2+ lines
    where fewer than 2 lines fit on the current page are pushed to the next
    page rather than splitting mid-sentence.
 
@@ -1072,17 +1072,17 @@ Files changed: buildSeriesPdf.ts, SeriesExportModal.tsx
 
 ### Outstanding items
 None. All known violations and hardening items resolved.
-## Session — March 10, 2026 (Late Afternoon — Subscription Risk Remediation)
+## Session -- March 10, 2026 (Late Afternoon -- Subscription Risk Remediation)
 
-### Priority 1 Resolved — John Eckeberger Stripe subscription ID
+### Priority 1 Resolved -- John Eckeberger Stripe subscription ID
 stripe_subscription_id updated from placeholder to sub_1T4RffI4GLksxBfVCoOhq1OX
 via Supabase SQL Editor. Verified with SELECT query. No code change required.
 
-### Priority 2A — Webhook failure alerting
+### Priority 2A -- Webhook failure alerting
 Stripe Dashboard alert notifications enabled for failed webhook deliveries.
 No code change. Email alert fires when endpoint fails repeatedly.
 
-### Priority 2B — Cancellation handler lessons_used bug (commit 16e331d)
+### Priority 2B -- Cancellation handler lessons_used bug (commit 16e331d)
 Root cause: handleSubscriptionCanceled set tier=free and lessons_limit to
 free-tier value but did not reset lessons_used. A subscriber who used 15 of
 20 paid lessons then canceled was immediately blocked from the free tier
@@ -1471,7 +1471,7 @@ Started with a button label overflow. Ended with a full architectural restoratio
 
 **Problem 2:** Feedback form Ease of Use question said "LessonSparkUSA" instead of "BibleLessonSpark."
 
-**Fix:** The question text lives in the `feedback_questions` database table (loaded dynamically at runtime). Updated via Admin Panel → Beta Feedback Questions manager. No code deploy needed -- live immediately.
+**Fix:** The question text lives in the `feedback_questions` database table (loaded dynamically at runtime). Updated via Admin Panel  Beta Feedback Questions manager. No code deploy needed -- live immediately.
 
 **Deploy:** `FIX: Feedback form frequency cap (every 5th lesson) + branding correction`
 
@@ -1515,7 +1515,7 @@ Started with a button label overflow. Ended with a full architectural restoratio
 
 ---
 
-### Fix 4: Project-Wide "Student Handout" → "Group Handout" Rename
+### Fix 4: Project-Wide "Student Handout"  "Group Handout" Rename
 
 **Reason:** "Group Handout" is more accurate for a variety of ministry group settings (not just student/classroom contexts).
 
@@ -1523,8 +1523,8 @@ Started with a button label overflow. Ended with a full architectural restoratio
 
 **Safe renames (executed):**
 - All display strings, section names, config labels, comments, documentation (~45 active file instances)
-- Variable renames: STUDENT_HANDOUT_HEADING_REGEX → GROUP_HANDOUT_HEADING_REGEX, STUDENT_HANDOUT_STANDALONE_TITLE → GROUP_HANDOUT_STANDALONE_TITLE, STUDENT_HANDOUT_SECTION_NUMBER → GROUP_HANDOUT_SECTION_NUMBER
-- BOOKLET_LABELS.studentHandout → BOOKLET_LABELS.groupHandout
+- Variable renames: STUDENT_HANDOUT_HEADING_REGEX  GROUP_HANDOUT_HEADING_REGEX, STUDENT_HANDOUT_STANDALONE_TITLE  GROUP_HANDOUT_STANDALONE_TITLE, STUDENT_HANDOUT_SECTION_NUMBER  GROUP_HANDOUT_SECTION_NUMBER
+- BOOKLET_LABELS.studentHandout  BOOKLET_LABELS.groupHandout
 - i18n keys updated in English, Spanish, and French
 
 **Preserved untouched (functional identifiers):**
@@ -1575,20 +1575,20 @@ Started with a button label overflow. Ended with a full architectural restoratio
 
 | File | Change |
 |---|---|
-| src/pages/OrgLanding.tsx | Button label: "Shepherd My Teaching Ministry" → "Shepherd My Teachers" |
+| src/pages/OrgLanding.tsx | Button label: "Shepherd My Teaching Ministry"  "Shepherd My Teachers" |
 | src/pages/OrgLanding.tsx (via FeedbackModal) | Feedback frequency cap logic |
-| 31 active source files | "Student Handout" → "Group Handout" (87 replacements) |
+| 31 active source files | "Student Handout"  "Group Handout" (87 replacements) |
 | src/components/workspace/WorkspaceSettingsPanel.tsx | DELETED (497 lines dead code) |
 | supabase/migrations/20260320_rename_*.sql | DELETED (wrong table target) |
 | src/integrations/supabase/types.ts | Removed 3 include_group_handouts type definitions |
 | supabase/functions/org-stripe-webhook/index.ts | Replaced banned DB table queries with SSOT constants |
 | supabase/functions/create-org-checkout-session/index.ts | Replaced banned DB table queries with SSOT constants |
-| src/pages/EnhanceLessonForm.tsx | Fixed dead tier === 'admin' check; renamed "Student Teaser" → "Group Teaser" |
+| src/pages/EnhanceLessonForm.tsx | Fixed dead tier === 'admin' check; renamed "Student Teaser"  "Group Teaser" |
 | src/App.tsx | All 25 hardcoded route paths replaced with ROUTES.* constants |
 | src/constants/pricingConfig.ts + _shared mirror | Section names and plan features synced |
-| src/hooks/useSubscription.tsx | Fallback lesson limit → TIER_LESSON_LIMITS.free |
-| src/hooks/useRateLimit.ts | Fallback lesson limit → TIER_LESSON_LIMITS.free |
-| 15+ component files | Hardcoded route paths → ROUTES constants |
+| src/hooks/useSubscription.tsx | Fallback lesson limit  TIER_LESSON_LIMITS.free |
+| src/hooks/useRateLimit.ts | Fallback lesson limit  TIER_LESSON_LIMITS.free |
+| 15+ component files | Hardcoded route paths  ROUTES constants |
 | supabase/migrations/ | 7 placeholder files added for dashboard-applied migrations |
 | CLAUDE.md | /audit-ssot slash command added; Rules 20-21 added |
 | SSOT_AUDIT_REPORT.md | NEW -- full audit findings saved to project root |
