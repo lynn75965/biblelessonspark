@@ -55,6 +55,8 @@ interface LessonRow {
   metadata: Record<string, any> | null;
   share_token: string | null;
   share_token_handout: string | null;
+  share_font_id: string | null;
+  share_color_scheme_id: string | null;
 }
 
 interface DevotionalRow {
@@ -64,6 +66,8 @@ interface DevotionalRow {
   content: string | null;
   created_at: string;
   share_token: string | null;
+  share_font_id: string | null;
+  share_color_scheme_id: string | null;
 }
 
 interface SeriesRow {
@@ -74,6 +78,8 @@ interface SeriesRow {
   lesson_summaries: unknown[] | null;
   share_token: string | null;
   share_token_handout: string | null;
+  share_font_id: string | null;
+  share_color_scheme_id: string | null;
 }
 
 interface SeriesLessonRow {
@@ -226,7 +232,11 @@ export default function PublishingHub() {
       const column = scope === 'handout' ? 'share_token_handout' : 'share_token';
       const { error } = await supabase
         .from(table)
-        .update({ [column]: token })
+        .update({
+          [column]: token,
+          share_font_id: selectedFont,
+          share_color_scheme_id: selectedColorScheme,
+        })
         .eq('id', id);
 
       if (error) {
@@ -235,11 +245,11 @@ export default function PublishingHub() {
       }
 
       if (table === 'lessons') {
-        setLessons(prev => prev.map(l => l.id === id ? { ...l, [column]: token } : l));
+        setLessons(prev => prev.map(l => l.id === id ? { ...l, [column]: token, share_font_id: selectedFont, share_color_scheme_id: selectedColorScheme } : l));
       } else if (table === 'devotionals') {
-        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, [column]: token } : d));
+        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, [column]: token, share_font_id: selectedFont, share_color_scheme_id: selectedColorScheme } : d));
       } else {
-        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, [column]: token } : s));
+        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, [column]: token, share_font_id: selectedFont, share_color_scheme_id: selectedColorScheme } : s));
       }
 
       toast({ title: DIGITAL_WING_UI.toastSharingEnabled });
@@ -330,7 +340,7 @@ export default function PublishingHub() {
       setLoadingLessons(true);
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, original_text, created_at, filters, metadata, share_token, share_token_handout')
+        .select('id, title, original_text, created_at, filters, metadata, share_token, share_token_handout, share_font_id, share_color_scheme_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -360,7 +370,7 @@ export default function PublishingHub() {
       setLoadingDevotionals(true);
       const { data, error } = await supabase
         .from('devotionals')
-        .select('id, title, bible_passage, content, created_at, share_token')
+        .select('id, title, bible_passage, content, created_at, share_token, share_font_id, share_color_scheme_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -390,7 +400,7 @@ export default function PublishingHub() {
       setLoadingSeries(true);
       const { data, error } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout')
+        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout, share_font_id, share_color_scheme_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 

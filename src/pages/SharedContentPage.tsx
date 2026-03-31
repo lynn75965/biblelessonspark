@@ -9,6 +9,7 @@ import { useParams } from 'react-router-dom';
 import { Loader2, BookOpen, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { DIGITAL_WING_UI } from '@/constants/digitalWingConfig';
+import { getFontOption, getColorScheme } from '@/constants/seriesExportConfig';
 
 interface SharedLesson {
   id: string;
@@ -41,9 +42,9 @@ interface SharedSeries {
 }
 
 type SharedContent =
-  | { type: 'lesson';     scope: string; content: SharedLesson }
-  | { type: 'devotional'; scope: string; content: SharedDevotional }
-  | { type: 'series';     scope: string; content: SharedSeries }
+  | { type: 'lesson';     scope: string; fontId: string | null; colorSchemeId: string | null; content: SharedLesson }
+  | { type: 'devotional'; scope: string; fontId: string | null; colorSchemeId: string | null; content: SharedDevotional }
+  | { type: 'series';     scope: string; fontId: string | null; colorSchemeId: string | null; content: SharedSeries }
   | null;
 
 export default function SharedContentPage() {
@@ -91,43 +92,6 @@ export default function SharedContentPage() {
     load();
   }, [token]);
 
-  const renderMarkdown = (raw: string): React.ReactNode[] => {
-    const lines    = raw.split('\n');
-    const elements: React.ReactNode[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trim();
-      if (!trimmed) {
-        elements.push(<div key={'sp-' + i} style={{ height: '8px' }} />);
-        continue;
-      }
-      if (trimmed === '---' || trimmed === '***') {
-        elements.push(<hr key={'hr-' + i} style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '16px 0' }} />);
-        continue;
-      }
-      if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
-        const text = trimmed.replace(/^#{1,2}\s+/, '').replace(/\*\*/g, '');
-        elements.push(
-          <div key={'h-' + i} style={{ fontSize: '16px', fontWeight: 700, color: '#1e3a5f', margin: '20px 0 6px 0' }}>
-            {text}
-          </div>
-        );
-        continue;
-      }
-      const parts = trimmed.split(/\*\*(.*?)\*\*/g);
-      elements.push(
-        <div key={'p-' + i} style={{ marginBottom: '6px', lineHeight: '1.6', color: '#1a1a1a' }}>
-          {parts.map((part, pi) =>
-            pi % 2 === 1
-              ? <strong key={pi}>{part}</strong>
-              : <span key={pi}>{part}</span>
-          )}
-        </div>
-      );
-    }
-    return elements;
-  };
-
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb' }}>
@@ -156,13 +120,56 @@ export default function SharedContentPage() {
     );
   }
 
+  const fontOpt = getFontOption(data?.fontId ?? null);
+  const scheme  = getColorScheme(data?.colorSchemeId ?? null);
+  const primaryHex = '#' + scheme.primary;
+  const accentHex  = '#' + scheme.accent;
+  const cssFamily  = fontOpt.cssFamily;
+
+  const renderMarkdown = (raw: string): React.ReactNode[] => {
+    const lines    = raw.split('\n');
+    const elements: React.ReactNode[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed) {
+        elements.push(<div key={'sp-' + i} style={{ height: '8px' }} />);
+        continue;
+      }
+      if (trimmed === '---' || trimmed === '***') {
+        elements.push(<hr key={'hr-' + i} style={{ border: 'none', borderTop: '1px solid #e5e7eb', margin: '16px 0' }} />);
+        continue;
+      }
+      if (trimmed.startsWith('## ') || trimmed.startsWith('# ')) {
+        const text = trimmed.replace(/^#{1,2}\s+/, '').replace(/\*\*/g, '');
+        elements.push(
+          <div key={'h-' + i} style={{ fontSize: '16px', fontWeight: 700, color: primaryHex, margin: '20px 0 6px 0' }}>
+            {text}
+          </div>
+        );
+        continue;
+      }
+      const parts = trimmed.split(/\*\*(.*?)\*\*/g);
+      elements.push(
+        <div key={'p-' + i} style={{ marginBottom: '6px', lineHeight: '1.6', color: '#1a1a1a' }}>
+          {parts.map((part, pi) =>
+            pi % 2 === 1
+              ? <strong key={pi}>{part}</strong>
+              : <span key={pi}>{part}</span>
+          )}
+        </div>
+      );
+    }
+    return elements;
+  };
+
   const renderContent = () => {
     if (data.type === 'lesson') {
       const lesson  = data.content;
       const passage = (lesson.filters as Record<string, string> | null)?.bible_passage || '';
       return (
         <>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e3a5f', marginBottom: '6px', lineHeight: '1.3' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: primaryHex, marginBottom: '6px', lineHeight: '1.3' }}>
             {lesson.title}
           </h1>
           {data.scope === 'handout' && (
@@ -173,7 +180,7 @@ export default function SharedContentPage() {
           {passage && (
             <p style={{ fontSize: '15px', fontStyle: 'italic', color: '#6b7280', marginBottom: '16px' }}>{passage}</p>
           )}
-          <div style={{ height: '3px', background: '#c9a84c', borderRadius: '2px', marginBottom: '24px' }} />
+          <div style={{ height: '3px', background: accentHex, borderRadius: '2px', marginBottom: '24px' }} />
           {renderMarkdown(lesson.original_text || '')}
         </>
       );
@@ -183,11 +190,11 @@ export default function SharedContentPage() {
       const dev = data.content;
       return (
         <>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e3a5f', marginBottom: '6px', lineHeight: '1.3' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: primaryHex, marginBottom: '6px', lineHeight: '1.3' }}>
             {dev.title || 'Devotional'}
           </h1>
           <p style={{ fontSize: '15px', fontStyle: 'italic', color: '#6b7280', marginBottom: '16px' }}>{dev.bible_passage}</p>
-          <div style={{ height: '3px', background: '#c9a84c', borderRadius: '2px', marginBottom: '24px' }} />
+          <div style={{ height: '3px', background: accentHex, borderRadius: '2px', marginBottom: '24px' }} />
           {renderMarkdown(dev.content || '')}
         </>
       );
@@ -197,16 +204,16 @@ export default function SharedContentPage() {
       const series = data.content;
       return (
         <>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: '#1e3a5f', marginBottom: '6px', lineHeight: '1.3' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: primaryHex, marginBottom: '6px', lineHeight: '1.3' }}>
             {series.series_name}
           </h1>
           <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
             {series.lessons.length} {series.lessons.length === 1 ? 'Lesson' : 'Lessons'}
           </p>
-          <div style={{ height: '3px', background: '#c9a84c', borderRadius: '2px', marginBottom: '24px' }} />
+          <div style={{ height: '3px', background: accentHex, borderRadius: '2px', marginBottom: '24px' }} />
           {series.lessons.map((lesson, idx) => (
             <div key={lesson.id} style={{ marginBottom: '32px' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#1e3a5f', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: primaryHex, marginBottom: '12px' }}>
                 {'Lesson ' + (lesson.series_lesson_number ?? idx + 1) + ' \u2014 ' + (lesson.title || 'Untitled Lesson')}
               </h2>
               {renderMarkdown(lesson.original_text || '')}
@@ -233,7 +240,7 @@ export default function SharedContentPage() {
       </div>
 
       {/* Content */}
-      <div style={{ flex: 1, maxWidth: '720px', width: '100%', margin: '0 auto', padding: '40px 24px' }}>
+      <div style={{ flex: 1, maxWidth: '720px', width: '100%', margin: '0 auto', padding: '40px 24px', fontFamily: cssFamily }}>
         {renderContent()}
       </div>
 

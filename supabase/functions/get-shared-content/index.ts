@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
 
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, original_text, filters, metadata, created_at')
+        .select('id, title, original_text, filters, metadata, created_at, share_font_id, share_color_scheme_id')
         .eq(tokenColumn, token)
         .single();
 
@@ -66,7 +66,7 @@ Deno.serve(async (req: Request) => {
         : data;
 
       return new Response(
-        JSON.stringify({ type: 'lesson', scope, content }),
+        JSON.stringify({ type: 'lesson', scope, fontId: data.share_font_id ?? null, colorSchemeId: data.share_color_scheme_id ?? null, content }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
     if (type === 'devotional') {
       const { data, error } = await supabase
         .from('devotionals')
-        .select('id, title, bible_passage, content, created_at')
+        .select('id, title, bible_passage, content, created_at, share_font_id, share_color_scheme_id')
         .eq('share_token', token)
         .single();
 
@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ type: 'devotional', scope: 'full', content: data }),
+        JSON.stringify({ type: 'devotional', scope: 'full', fontId: data.share_font_id ?? null, colorSchemeId: data.share_color_scheme_id ?? null, content: data }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -96,7 +96,7 @@ Deno.serve(async (req: Request) => {
 
       const { data: series, error: seriesError } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at, total_lessons')
+        .select('id, series_name, created_at, total_lessons, share_font_id, share_color_scheme_id')
         .eq(tokenColumn, token)
         .single();
 
@@ -128,7 +128,7 @@ Deno.serve(async (req: Request) => {
       }));
 
       return new Response(
-        JSON.stringify({ type: 'series', scope, content: { ...series, lessons: processedLessons } }),
+        JSON.stringify({ type: 'series', scope, fontId: series.share_font_id ?? null, colorSchemeId: series.share_color_scheme_id ?? null, content: { ...series, lessons: processedLessons } }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
