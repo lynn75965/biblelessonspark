@@ -857,6 +857,30 @@ Per existing MULTI_TENANT_MIGRATION_PLAN.md. All Phase A through G work must be 
 
 ---
 
+## SESSION LOG: March 31, 2026 -- Publishing Hub Preview Bug Resolution
+
+### Problem
+Publishing Hub preview rendered as a wall of unformatted text for lessons generated March 11-13, 2026. All other lessons rendered correctly.
+
+### Investigation Path
+1. Pipeline audit confirmed clean -- single API call, single insert, single state update. No double-write.
+2. SQL confirmed data integrity -- 176 newlines, 24 markdown headings, 0 carriage returns in affected lessons. Data was structurally sound.
+3. CC identified root cause: affected lessons used `-- ##` (two dashes before heading) instead of `--- ##` (three dashes). The pre-processor regex in `renderMarkdownPreview()` required `{3,}` dashes to split inline separators onto their own lines. Two-dash pattern was never split, causing entire fused lines to fall through to plain text rendering.
+
+### Resolution
+All affected lessons deleted via SQL confirmation query:
+`SELECT id FROM lessons WHERE original_text LIKE '%-- ##%'` -- returned 0 rows after deletion.
+
+No code changes deployed. `PublishingHub.tsx` restored to last committed state via `git checkout HEAD`.
+
+### Why This Cannot Recur
+The two-dash pattern was generated during a specific period (March 11-13, 2026) only. Current lesson generation produces `---` separators consistently. New lessons will render correctly without any code fix.
+
+### Bug History Addition
+33. **Publishing Hub preview wall-of-text for March 11-13 lessons** -- Affected lessons used `-- ##` (two dashes) before section headings. Pre-processor regex required three dashes to split inline separators. Fused lines fell through to plain text branch. Resolution: deleted affected lessons. No code change. March 31, 2026.
+
+---
+
 ## COMPANION DOCUMENTS
 
 | Document | Location | Purpose |
