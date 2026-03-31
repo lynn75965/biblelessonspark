@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSearchParams } from "react-router-dom";
-import { Printer, Loader2, Maximize2, X, Search } from "lucide-react";
+import { Printer, Loader2, Maximize2, X, Search, Share2, Link2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,8 @@ import {
 import type { PublishingContentType, PublishingFormat } from "@/constants/publishingHubConfig";
 import { useSeriesExport } from "@/hooks/useSeriesExport";
 import type { LessonSeries } from "@/constants/seriesConfig";
+import { DIGITAL_WING_UI, DIGITAL_WING_BASE_URL } from "@/constants/digitalWingConfig";
+import { useSubscription } from "@/hooks/useSubscription";
 
 // ============================================================================
 // TYPES
@@ -51,6 +53,7 @@ interface LessonRow {
   created_at: string;
   filters: Record<string, any> | null;
   metadata: Record<string, any> | null;
+  share_token: string | null;
 }
 
 interface DevotionalRow {
@@ -59,6 +62,7 @@ interface DevotionalRow {
   bible_passage: string;
   content: string | null;
   created_at: string;
+  share_token: string | null;
 }
 
 interface SeriesRow {
@@ -67,6 +71,7 @@ interface SeriesRow {
   created_at: string;
   total_lessons: number | null;
   lesson_summaries: unknown[] | null;
+  share_token: string | null;
 }
 
 interface SeriesLessonRow {
@@ -136,6 +141,7 @@ function formatDate(iso: string): string {
 export default function PublishingHub() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { tier } = useSubscription();
   const [searchParams] = useSearchParams();
 
   // Content type tab
@@ -194,6 +200,97 @@ export default function PublishingHub() {
   // Series export hook
   const { exportSeries: runSeriesExport } = useSeriesExport();
 
+  // Sharing state
+  const [sharingLoading, setSharingLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // --------------------------------------------------------------------------
+  // SHARING HANDLERS
+  // --------------------------------------------------------------------------
+
+  const isPaidUser = tier !== 'free';
+
+  const getShareUrl = (token: string): string =>
+    DIGITAL_WING_BASE_URL + '/' + token;
+
+  const handleEnableSharing = async (
+    table: 'lessons' | 'devotionals' | 'lesson_series',
+    id: string,
+  ) => {
+    setSharingLoading(true);
+    try {
+      const token = crypto.randomUUID();
+      const { error } = await supabase
+        .from(table)
+        .update({ share_token: token })
+        .eq('id', id);
+
+      if (error) {
+        toast({ title: DIGITAL_WING_UI.toastShareError, variant: 'destructive' });
+        return;
+      }
+
+      // Update local state so UI reflects immediately
+      if (table === 'lessons') {
+        setLessons(prev => prev.map(l => l.id === id ? { ...l, share_token: token } : l));
+      } else if (table === 'devotionals') {
+        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, share_token: token } : d));
+      } else {
+        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, share_token: token } : s));
+      }
+
+      toast({ title: DIGITAL_WING_UI.toastSharingEnabled });
+    } catch {
+      toast({ title: DIGITAL_WING_UI.toastShareError, variant: 'destructive' });
+    } finally {
+      setSharingLoading(false);
+    }
+  };
+
+  const handleDisableSharing = async (
+    table: 'lessons' | 'devotionals' | 'lesson_series',
+    id: string,
+  ) => {
+    if (!window.confirm(DIGITAL_WING_UI.shareButtonDisableConfirm)) return;
+    setSharingLoading(true);
+    try {
+      const { error } = await supabase
+        .from(table)
+        .update({ share_token: null })
+        .eq('id', id);
+
+      if (error) {
+        toast({ title: DIGITAL_WING_UI.toastShareError, variant: 'destructive' });
+        return;
+      }
+
+      if (table === 'lessons') {
+        setLessons(prev => prev.map(l => l.id === id ? { ...l, share_token: null } : l));
+      } else if (table === 'devotionals') {
+        setDevotionals(prev => prev.map(d => d.id === id ? { ...d, share_token: null } : d));
+      } else {
+        setSeriesList(prev => prev.map(s => s.id === id ? { ...s, share_token: null } : s));
+      }
+
+      toast({ title: DIGITAL_WING_UI.toastSharingDisabled });
+    } catch {
+      toast({ title: DIGITAL_WING_UI.toastShareError, variant: 'destructive' });
+    } finally {
+      setSharingLoading(false);
+    }
+  };
+
+  const handleCopyLink = async (token: string, id: string) => {
+    try {
+      await navigator.clipboard.writeText(getShareUrl(token));
+      setCopiedId(id);
+      toast({ title: DIGITAL_WING_UI.toastLinkCopied });
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast({ title: DIGITAL_WING_UI.toastShareError, variant: 'destructive' });
+    }
+  };
+
   // --------------------------------------------------------------------------
   // RESTORE SAVED PREFERENCES
   // --------------------------------------------------------------------------
@@ -228,7 +325,7 @@ export default function PublishingHub() {
       setLoadingLessons(true);
       const { data, error } = await supabase
         .from('lessons')
-        .select('id, title, original_text, created_at, filters, metadata')
+        .select('id, title, original_text, created_at, filters, metadata, share_token')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -258,7 +355,7 @@ export default function PublishingHub() {
       setLoadingDevotionals(true);
       const { data, error } = await supabase
         .from('devotionals')
-        .select('id, title, bible_passage, content, created_at')
+        .select('id, title, bible_passage, content, created_at, share_token')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -288,7 +385,7 @@ export default function PublishingHub() {
       setLoadingSeries(true);
       const { data, error } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at, total_lessons, lesson_summaries')
+        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -912,6 +1009,80 @@ export default function PublishingHub() {
   // SHARED UI FRAGMENTS
   // --------------------------------------------------------------------------
 
+  /** Share controls -- rendered below the download button for all three content types */
+  const renderShareControls = (
+    table: 'lessons' | 'devotionals' | 'lesson_series',
+    id: string,
+    shareToken: string | null | undefined,
+  ) => (
+    <div style={{ borderTop: '1px solid', paddingTop: '16px' }} className="border-border">
+      <div className="flex items-center gap-2 mb-3">
+        <Share2 className="h-4 w-4 text-muted-foreground" />
+        <p className="text-sm font-medium text-foreground">{DIGITAL_WING_UI.shareLabel}</p>
+        {shareToken && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200 font-medium ml-auto">
+            {DIGITAL_WING_UI.sharingActive}
+          </span>
+        )}
+      </div>
+
+      {!isPaidUser ? (
+        <div className="p-3 rounded-md border border-border bg-muted/30 text-center space-y-2">
+          <p className="text-xs text-muted-foreground">{DIGITAL_WING_UI.upgradePrompt}</p>
+          <a
+            href="/pricing"
+            className="inline-block text-xs font-medium text-primary hover:underline"
+          >
+            {DIGITAL_WING_UI.upgradeButton}
+          </a>
+        </div>
+      ) : shareToken ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 p-2 rounded-md border border-border bg-muted/20">
+            <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs text-muted-foreground truncate flex-1 font-mono">
+              {getShareUrl(shareToken)}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => handleCopyLink(shareToken, id)}
+              disabled={sharingLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-background hover:bg-muted/50 transition-colors flex-1 justify-center"
+            >
+              {copiedId === id
+                ? <><Check className="h-3 w-3 text-emerald-600" />{DIGITAL_WING_UI.shareButtonCopied}</>
+                : <><Link2 className="h-3 w-3" />{DIGITAL_WING_UI.shareButtonCopy}</>
+              }
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDisableSharing(table, id)}
+              disabled={sharingLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-destructive/40 text-destructive hover:bg-destructive/5 transition-colors"
+            >
+              {DIGITAL_WING_UI.shareButtonDisable}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => handleEnableSharing(table, id)}
+          disabled={sharingLoading}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md border border-primary/40 text-primary hover:bg-primary/5 transition-colors"
+        >
+          {sharingLoading
+            ? <Loader2 className="h-4 w-4 animate-spin" />
+            : <Share2 className="h-4 w-4" />
+          }
+          {DIGITAL_WING_UI.shareButtonEnable}
+        </button>
+      )}
+    </div>
+  );
+
   /** Font picker fieldset -- reused across all three content types */
   const renderFontPicker = () => (
     <fieldset className="border border-border rounded-lg p-4">
@@ -1299,6 +1470,7 @@ export default function PublishingHub() {
                   {renderEconomicalPrint()}
                   {renderContentPreview(previewTitle, previewShortTitle, previewPassage, previewRawText)}
                   {renderDownloadButton(handleLessonDownload)}
+                  {renderShareControls('lessons', selectedLesson.id, selectedLesson.share_token)}
                 </div>
               )}
             </div>
@@ -1338,6 +1510,7 @@ export default function PublishingHub() {
                   {renderFormatPicker()}
                   {renderContentPreview(devPreviewTitle, devPreviewShortTitle, devPreviewPassage, devPreviewRawText)}
                   {renderDownloadButton(handleDevotionalDownload)}
+                  {renderShareControls('devotionals', selectedDevotional.id, selectedDevotional.share_token)}
                 </div>
               )}
             </div>
@@ -1812,6 +1985,7 @@ export default function PublishingHub() {
                   </div>
 
                   {renderDownloadButton(handleSeriesDownload)}
+                  {renderShareControls('lesson_series', selectedSeries.id, selectedSeries.share_token)}
                 </div>
               )}
             </div>
