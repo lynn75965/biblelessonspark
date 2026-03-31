@@ -1,10 +1,12 @@
 /**
  * formatLessonContent.ts
- * Version: 2.2.0 - Handle all markdown heading levels (#, ##, ###, ####) for shaped content
+ * Version: 2.3.0 - Fix inline "--- ## Section N:" pattern that blocked heading and HR conversion
  * SSOT COMPLIANT: All values imported from lessonStructure.ts
  * NO hardcoded spacing/font values - frontend drives backend
- * 
+ *
  * v2.2.0 -- Added #### (h4) support for Focus-Discover-Respond shaped content
+ * v2.3.0 -- Pre-separate inline "--- ## heading" patterns; tolerate leading whitespace on headings;
+ *           match 2-3 dashes for HR to handle partially-split dividers
  */
 import React from "react";
 import { EXPORT_FORMATTING, EXPORT_SPACING } from "../constants/lessonStructure";
@@ -114,23 +116,32 @@ export function convertToRichHtml(text: string): string {
 export function formatLessonContentToHtml(content: string | null | undefined): string {
   if (!content) return "";
   let text = normalizeLineEndings(content);
+  // CHANGE 1: Pre-separate inline "--- ## Heading" patterns before other processing.
+  // Lessons from certain date ranges store "--- ## Section N:" on a single line with no
+  // newline between the divider and the heading. ensureLineBreaks cannot handle this
+  // correctly without first splitting them onto separate lines.
+  text = text.replace(/(-{3,})\s*(#{1,4}\s)/g, '$1\n$2');
   text = stripBareHeadingMarkers(text);
   text = ensureLineBreaks(text);
   text = normalizeLegacyContent(text);
   return text
-    // Handle all heading levels: #### -> h4, ### -> h3, ## -> h2, # -> h1 (most specific first)
-    .replace(/^#### (.*?)$/gm, '<h4 class="text-sm font-bold mt-2 mb-1 text-primary">$1</h4>')
-    .replace(/^### (.*?)$/gm, '<h3 class="text-base font-bold mt-3 mb-1 text-primary">$1</h3>')
-    .replace(/^## (.*?)$/gm, '<h2 class="text-lg font-bold mt-4 mb-2 text-primary">$1</h2>')
-    .replace(/^# (.*?)$/gm, '<h1 class="text-xl font-bold mt-5 mb-2 text-primary">$1</h1>')
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\n?---\n?/g, '<hr class="my-4 border-t-2 border-muted-foreground/30">')
+    // CHANGE 2: Allow optional leading horizontal whitespace on heading lines.
+    // ensureLineBreaks can leave a leading space before ## when splitting inline patterns.
+    .replace(/^[ \t]*#### (.*?)$/gm, '<h4 style="font-size:13px;font-weight:700;margin:10px 0 3px 0;color:inherit">$1</h4>')
+    .replace(/^[ \t]*### (.*?)$/gm, '<h3 style="font-size:14px;font-weight:700;margin:14px 0 4px 0;color:inherit">$1</h3>')
+    .replace(/^[ \t]*## (.*?)$/gm, '<h2 style="font-size:15px;font-weight:700;margin:16px 0 6px 0;color:inherit">$1</h2>')
+    .replace(/^[ \t]*# (.*?)$/gm, '<h1 style="font-size:16px;font-weight:700;margin:18px 0 8px 0;color:inherit">$1</h1>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight:700">$1</strong>')
+    // CHANGE 3: Match 2-3 dashes with optional surrounding horizontal whitespace.
+    // A "---" that was partially split by Change 1 processing may become "--" residue;
+    // this regex handles both forms so no literal dashes reach the final output.
+    .replace(/\n?[ \t]*-{2,3}[ \t]*\n?/g, '<hr style="margin:14px 0;border:none;border-top:1px solid rgba(0,0,0,0.18)">')
     .replace(/\x95/g, "*")
-    .replace(/\n\n/g, "</p><p class='mt-2'>")
+    .replace(/\n\n/g, '</p><p style="margin-top:10px">')
     .replace(/\n/g, "<br>")
     .replace(/^(.*)$/, "<p>$1</p>")
     .replace(/<p><\/p>/g, "")
-    .replace(/<p class='mt-2'><\/p>/g, "");
+    .replace(/<p style="margin-top:10px"><\/p>/g, "");
 }
 
 export const LESSON_CONTENT_CONTAINER_CLASSES = `
