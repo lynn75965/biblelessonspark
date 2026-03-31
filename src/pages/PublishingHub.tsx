@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSearchParams } from "react-router-dom";
-import { Printer, Loader2, Maximize2, X, Search, Share2, Link2, Check } from "lucide-react";
+import { Printer, Loader2, Maximize2, X, Search, Share2, Link2, Check, QrCode } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +41,7 @@ import { useSeriesExport } from "@/hooks/useSeriesExport";
 import type { LessonSeries } from "@/constants/seriesConfig";
 import { DIGITAL_WING_UI, DIGITAL_WING_BASE_URL } from "@/constants/digitalWingConfig";
 import { useSubscription } from "@/hooks/useSubscription";
+import QRCode from 'qrcode';
 
 // ============================================================================
 // TYPES
@@ -211,15 +212,59 @@ export default function PublishingHub() {
   // Sharing state
   const [sharingLoading, setSharingLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  // --------------------------------------------------------------------------
-  // SHARING HANDLERS
-  // --------------------------------------------------------------------------
+  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
 
   const isPaidUser = tier !== 'free';
 
   const getShareUrl = (token: string): string =>
     DIGITAL_WING_BASE_URL + '/' + token;
+
+  // --------------------------------------------------------------------------
+  // QR CODE GENERATION
+  // --------------------------------------------------------------------------
+
+  const generateQrForToken = (token: string) => {
+    if (!token || qrDataUrls[token]) return;
+    QRCode.toDataURL(getShareUrl(token), {
+      width: 200,
+      margin: 2,
+      color: { dark: '1e3a5f', light: 'ffffff' },
+    }).then(dataUrl => {
+      setQrDataUrls(prev => ({ ...prev, [token]: dataUrl }));
+    }).catch(() => { /* ignore */ });
+  };
+
+  // Generate QR codes for all active share tokens whenever lists load or change
+  useEffect(() => {
+    const tokens: string[] = [];
+    lessons.forEach(l => {
+      if (l.share_token) tokens.push(l.share_token);
+      if (l.share_token_handout) tokens.push(l.share_token_handout);
+    });
+    devotionals.forEach(d => {
+      if (d.share_token) tokens.push(d.share_token);
+    });
+    seriesList.forEach(s => {
+      if (s.share_token) tokens.push(s.share_token);
+      if (s.share_token_handout) tokens.push(s.share_token_handout);
+    });
+    tokens.forEach(t => generateQrForToken(t));
+  }, [lessons, devotionals, seriesList]);
+
+  const handleDownloadQr = (token: string, contentTitle: string) => {
+    const dataUrl = qrDataUrls[token];
+    if (!dataUrl) return;
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = contentTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 40) + '_QR.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  // --------------------------------------------------------------------------
+  // SHARING HANDLERS
+  // --------------------------------------------------------------------------
 
   const handleEnableSharing = async (
     table: 'lessons' | 'devotionals' | 'lesson_series',
@@ -253,6 +298,7 @@ export default function PublishingHub() {
       }
 
       toast({ title: DIGITAL_WING_UI.toastSharingEnabled });
+      generateQrForToken(token);
     } catch {
       toast({ title: DIGITAL_WING_UI.toastShareError, variant: 'destructive' });
     } finally {
@@ -1032,6 +1078,7 @@ export default function PublishingHub() {
     scope: 'full' | 'handout',
     label: string,
     description: string,
+    contentTitle: string,
   ) => (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
@@ -1074,6 +1121,23 @@ export default function PublishingHub() {
               {DIGITAL_WING_UI.shareButtonDisable}
             </button>
           </div>
+          {qrDataUrls[shareToken] && (
+            <div className="flex flex-col items-center gap-1.5 pt-2 border-t border-border">
+              <img
+                src={qrDataUrls[shareToken]}
+                alt={DIGITAL_WING_UI.qrCodeLabel}
+                style={{ width: '100px', height: '100px', borderRadius: '4px', border: '1px solid #e5e7eb' }}
+              />
+              <button
+                type="button"
+                onClick={() => handleDownloadQr(shareToken, contentTitle)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <QrCode className="h-3 w-3" />
+                {DIGITAL_WING_UI.qrCodeDownload}
+              </button>
+            </div>
+          )}
         </div>
       ) : (
         <button
@@ -1098,6 +1162,7 @@ export default function PublishingHub() {
     id: string,
     shareToken: string | null | undefined,
     shareTokenHandout?: string | null,
+    contentTitle: string = 'BibleLessonSpark',
   ) => (
     <div style={{ borderTop: '1px solid' }} className="border-border pt-4 space-y-4">
       <div className="flex items-center gap-2">
@@ -1118,6 +1183,7 @@ export default function PublishingHub() {
             table, id, shareToken, 'full',
             DIGITAL_WING_UI.shareScopeFull,
             DIGITAL_WING_UI.shareScopeFullDesc,
+            contentTitle,
           )}
           {shareTokenHandout !== undefined && (
             <>
@@ -1126,6 +1192,7 @@ export default function PublishingHub() {
                 table, id, shareTokenHandout, 'handout',
                 DIGITAL_WING_UI.shareScopeHandout,
                 DIGITAL_WING_UI.shareScopeHandoutDesc,
+                contentTitle,
               )}
             </>
           )}
@@ -1521,7 +1588,7 @@ export default function PublishingHub() {
                   {renderEconomicalPrint()}
                   {renderContentPreview(previewTitle, previewShortTitle, previewPassage, previewRawText)}
                   {renderDownloadButton(handleLessonDownload)}
-                  {renderShareControls('lessons', selectedLesson.id, selectedLesson.share_token, selectedLesson.share_token_handout)}
+                  {renderShareControls('lessons', selectedLesson.id, selectedLesson.share_token, selectedLesson.share_token_handout, selectedLesson.title || 'Lesson')}
                 </div>
               )}
             </div>
@@ -1561,7 +1628,7 @@ export default function PublishingHub() {
                   {renderFormatPicker()}
                   {renderContentPreview(devPreviewTitle, devPreviewShortTitle, devPreviewPassage, devPreviewRawText)}
                   {renderDownloadButton(handleDevotionalDownload)}
-                  {renderShareControls('devotionals', selectedDevotional.id, selectedDevotional.share_token)}
+                  {renderShareControls('devotionals', selectedDevotional.id, selectedDevotional.share_token, null, selectedDevotional.title || 'Devotional')}
                 </div>
               )}
             </div>
@@ -2036,7 +2103,7 @@ export default function PublishingHub() {
                   </div>
 
                   {renderDownloadButton(handleSeriesDownload)}
-                  {renderShareControls('lesson_series', selectedSeries.id, selectedSeries.share_token, selectedSeries.share_token_handout)}
+                  {renderShareControls('lesson_series', selectedSeries.id, selectedSeries.share_token, selectedSeries.share_token_handout, selectedSeries.series_name || 'Series')}
                 </div>
               )}
             </div>

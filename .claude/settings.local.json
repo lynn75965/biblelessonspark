@@ -91,7 +91,10 @@
       "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FIX: SharedContentPage -- try both full and handout scopes when resolving share token\" 2>&1)",
       "Bash(powershell -Command '\nGet-ChildItem \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\" -Recurse | Where-Object { $_.Name -eq \"PublishingHub.tsx\" } | Select-Object FullName\nGet-ChildItem \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\" -Recurse | Where-Object { $_.Name -eq \"SharedContentPage.tsx\" } | Select-Object FullName\nGet-ChildItem \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\supabase\\\\functions\\\\get-shared-content\" | Select-Object Name')",
       "Bash(powershell -Command '\n$files = @\\(\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\pages\\\\PublishingHub.tsx\",\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\pages\\\\SharedContentPage.tsx\",\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\supabase\\\\functions\\\\get-shared-content\\\\index.ts\"\n\\)\nforeach \\($f in $files\\) {\n  $bytes = [System.IO.File]::ReadAllBytes\\($f\\)\n  $nonAscii = $bytes | Where-Object { $_ -gt 127 }\n  if \\($nonAscii\\) { Write-Host \"NON-ASCII: $f \\($\\($nonAscii.Count\\) bytes\\)\" }\n  else { Write-Host \"CLEAN: $f\" }\n}')",
-      "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FEATURE: Phase E Option B -- shared pages reflect teacher font and color scheme selections\" 2>&1)"
+      "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FEATURE: Phase E Option B -- shared pages reflect teacher font and color scheme selections\" 2>&1)",
+      "Bash(npm install:*)",
+      "Bash(powershell -Command '\n$files = @\\(\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\pages\\\\PublishingHub.tsx\",\n  \"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\constants\\\\digitalWingConfig.ts\"\n\\)\nforeach \\($f in $files\\) {\n  $bytes = [System.IO.File]::ReadAllBytes\\($f\\)\n  $nonAscii = $bytes | Where-Object { $_ -gt 127 }\n  if \\($nonAscii\\) { Write-Host \"NON-ASCII: $f \\($\\($nonAscii.Count\\) bytes\\)\" }\n  else { Write-Host \"CLEAN: $f\" }\n}')",
+      "Bash(powershell -ExecutionPolicy Bypass -File ./deploy.ps1 \"FEATURE: Phase E Part 2 -- QR codes for share links, auto-generated on load and on enable, downloadable as PNG\" 2>&1)"
     ]
   }
 }

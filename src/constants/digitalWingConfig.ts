@@ -38,6 +38,10 @@ export const DIGITAL_WING_UI = {
   toastSharingDisabled:    'Sharing disabled',
   toastShareError:         'Could not update sharing',
 
+  // QR codes
+  qrCodeLabel:    'QR Code',
+  qrCodeDownload: 'Download QR Code',
+
   // Public page
   publicPageCta:           'Create your own Bible lessons at BibleLessonSpark.com',
   publicPageCtaUrl:        'https://biblelessonspark.com',
