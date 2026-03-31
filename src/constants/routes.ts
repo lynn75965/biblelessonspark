@@ -39,6 +39,7 @@ export const ROUTES = {
   // Teaching Team
   TEACHING_TEAM: '/teaching-team',
   PUBLISH: '/publish',
+  SHARE: '/share/:token',
   // Sidebar extras
   BONUSES: '/bonuses',
   MORE_TOOLS: '/more-tools',

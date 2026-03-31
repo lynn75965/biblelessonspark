@@ -44,6 +44,8 @@ import ToolbeltAdmin from "./pages/ToolbeltAdmin";
 
 // Phase D: Publishing Hub
 import PublishingHub from "./pages/PublishingHub";
+// Phase E: Digital Wing
+import SharedContentPage from "./pages/SharedContentPage";
 import { ROUTES } from "@/constants/routes";
 
 const queryClient = new QueryClient();
@@ -58,6 +60,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path={ROUTES.HOME} element={<Index />} />
+            <Route path={ROUTES.SHARE} element={<SharedContentPage />} />
             <Route path={ROUTES.AUTH} element={<Auth />} />
             <Route path={ROUTES.PRICING} element={
               <ProtectedRoute>

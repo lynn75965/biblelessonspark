@@ -86,6 +86,13 @@ export const FEATURE_FLAGS = {
     upgradePrompt:  'Upgrade to Personal Plan to export your series as a complete curriculum document.',
   },
 
+  digitalSharing: {
+    requiredTier:  'personal',
+    enabled:        true,
+    label:          'Digital Sharing',
+    upgradePrompt:  'Upgrade to Personal Plan to share lessons, devotionals, and series via public links.',
+  },
+
 } as const satisfies Record<string, FeatureFlag>;
 
 export type FeatureKey = keyof typeof FEATURE_FLAGS;
