@@ -19,7 +19,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, CheckCircle, Clock, Archive, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pin } from 'lucide-react';
+import { BookOpen, CheckCircle, Clock, Archive, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Pin, Trash2 } from 'lucide-react';
 import { useSeriesManager } from '@/hooks/useSeriesManager';
 import { useSubscription } from '@/hooks/useSubscription';
 import { isSeriesComplete, SERIES_STATUSES } from '@/constants/seriesConfig';
@@ -47,6 +47,8 @@ export function SeriesLibrary() {
   const [lessonsLoading, setLessonsLoading] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [lessonCounts, setLessonCounts] = useState<Record<string, number>>({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchAllSeries();
@@ -231,6 +233,45 @@ export function SeriesLibrary() {
     });
   };
 
+  const handleDeleteSeries = async (seriesId: string) => {
+    const count = lessonCounts[seriesId] ?? 0;
+    if (count > 0) {
+      toast({
+        title: 'Cannot delete series',
+        description: 'Remove all lessons from this series before deleting it.',
+        variant: 'destructive',
+      });
+      setDeleteConfirmId(null);
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('lesson_series')
+        .delete()
+        .eq('id', seriesId);
+
+      if (error) {
+        toast({ title: 'Delete failed', description: error.message, variant: 'destructive' });
+        return;
+      }
+
+      toast({ title: 'Series deleted' });
+      setDeleteConfirmId(null);
+      if (expandedSeriesId === seriesId) {
+        setExpandedSeriesId(null);
+        setSeriesLessons([]);
+      }
+      fetchAllSeries();
+    } catch (err) {
+      console.error('Error deleting series:', err);
+      toast({ title: 'Delete failed', description: 'Something went wrong.', variant: 'destructive' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getStatusBadge = (series: {
     status: string;
     lesson_summaries: unknown[];
@@ -338,7 +379,7 @@ export function SeriesLibrary() {
                     </span>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <SeriesExportButton series={series} tier={tier} />
                     <Button
                       variant="outline"
@@ -349,6 +390,39 @@ export function SeriesLibrary() {
                       {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       Lessons
                     </Button>
+                    {deleteConfirmId === series.id ? (
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        <span className="text-xs text-destructive font-medium">Delete series?</span>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          disabled={deleting}
+                          onClick={() => handleDeleteSeries(series.id)}
+                        >
+                          {deleting ? 'Deleting...' : 'Yes, delete'}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs"
+                          disabled={deleting}
+                          onClick={() => setDeleteConfirmId(null)}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 ml-auto text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleteConfirmId(series.id)}
+                        title="Delete series"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
                   {/* Expanded lesson list with reorder controls */}

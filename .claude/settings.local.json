@@ -69,7 +69,8 @@
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FEATURE: Phase D Part 2 -- Publishing Hub wired to all three libraries, booklet preview diagram, series content preview, search, zoom hints, economical print margins, Black and White color scheme\" 2>&1)",
       "Bash(powershell -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Preview body text rendering -- definitive fix based on computed styles\")",
       "Bash(taskkill //F //IM node.exe)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)",
+      "Bash(powershell -Command '$content = [System.IO.File]::ReadAllBytes\\(\"C:\\\\Users\\\\Lynn\\\\biblelessonspark\\\\src\\\\components\\\\dashboard\\\\SeriesLibrary.tsx\"\\); $nonAscii = $content | Where-Object { $_ -gt 127 }; if \\($nonAscii\\) { Write-Host \"NON-ASCII BYTES FOUND: $\\($nonAscii.Count\\)\" } else { Write-Host \"ASCII CLEAN\" }')"
     ]
   }
 }
