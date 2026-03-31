@@ -68,8 +68,12 @@ export default function SharedContentPage() {
       for (const type of types) {
         // Use fetch directly since get-shared-content is a GET with query params
         const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-shared-content?token=${encodeURIComponent(token)}&type=${type}`;
+        const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
         const resp  = await fetch(fnUrl, {
-          headers: { 'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY },
+          headers: {
+            'apikey':        anonKey,
+            'Authorization': 'Bearer ' + anonKey,
+          },
         });
 
         if (resp.ok) {
