@@ -2186,3 +2186,67 @@ Generator now fires automatically on every npm run build.
 - Phase C5: Devotional series
 - Pre-existing Unicode in generate-lesson/index.ts lines 58-118
 - Tutorial video scripts -- blocked until Lynn provides screenshots or screen recording of live platform
+
+
+## SESSION LOG: March 31, 2026 -- Phase D Completion + Series Deletion
+
+### Booklet Spread Simulation (Publishing Hub)
+
+Completed the in-progress Phase D booklet preview simulation in `src/pages/PublishingHub.tsx`.
+
+**What was there:** The booklet branch of the inline series preview had Part 1 (fold diagram + bullet points -- correct and kept) and Part 2 (a flat single-column scrollable content dump at 10px font -- placeholder quality).
+
+**What was built:** Replaced Part 2 with a true booklet spread simulation. Added `buildBookletSpreads()` helper function inside the component that builds an array of logical half-pages (Cover, Table of Contents, one page per lesson, blank pad if needed for even count) and pairs them into spreads. Each spread renders as a landscape-proportioned container (500px wide, aspect ratio 5.5x8.5") with two side-by-side half-page panels divided by a dashed center fold line. Spread labels show "Spread N of N -- pp. X-Y". Actual fetched lesson content renders in each panel via the existing `renderBookletMarkdown()` function. Scrollable via the existing `preview-scroll-container` class. Group Handout note appears below spreads when checkbox is checked.
+
+**Files changed:** `src/pages/PublishingHub.tsx`
+
+**Deployed:** Committed as part of session work.
+
+---
+
+### Phase D -- Print Wing: COMPLETE
+
+Full audit confirmed all Phase D Print Wing items are done:
+
+- Part 1: Publishing Hub UI (font picker, color scheme picker, format picker, economical print toggle, scrollable preview panel, full-size preview modal) -- complete
+- Part 2: All three libraries (Lesson, Devotional, Series) wired with Publish buttons navigating to `/publish?type=[type]&id=[id]` -- complete
+- Booklet spread simulation -- completed this session
+- Print button removal -- confirmed complete; all remaining Printer icon references in DevotionalLibrary.tsx, LessonExportButtons.tsx, SeriesExportButton.tsx, and sidebarConfig.ts are Publishing Hub navigation icons, not print triggers
+- Single-lesson and devotional export font and color picker -- confirmed already complete; exportToPdf and exportToDocx both accept fontId, colorSchemeId, and economicalPrint; PublishingHub.tsx already passes picker selections through to both functions at the download handlers
+
+**Phase E (Digital Wing -- shareable URLs, QR codes, ePub) is next. Explicitly out of scope for Phase D.**
+
+---
+
+### Series Deletion (commit 0be48f8)
+
+Added the ability to delete a series from the Series Library. Previously, empty series had no deletion path.
+
+**Rules:**
+- Only empty series (0 lessons) can be deleted
+- Series with lessons show a destructive toast: "Remove all lessons from this series before deleting it" -- no deletion occurs
+- Two-step confirmation: trash icon appears on each card; clicking it shows inline "Delete series?" with "Yes, delete" and "Cancel" buttons; no modal
+- On successful delete: toast confirmation, card removed, series list refreshed, expanded state cleared if the deleted series was expanded
+
+**Implementation:**
+- Trash2 icon added to lucide-react import
+- deleteConfirmId state tracks which series is in confirm state
+- deleting state tracks in-flight delete request
+- handleDeleteSeries() checks lessonCounts[seriesId] before issuing the Supabase delete; if count > 0, shows toast and aborts
+- Inline confirm UI replaces the trash button when deleteConfirmId === series.id; returns to trash icon on Cancel or completion
+- Delete targets lesson_series table directly; safe because only empty series reach this path
+
+**File changed:** `src/components/dashboard/SeriesLibrary.tsx`
+
+**Deployed:** Commit 0be48f8
+
+---
+
+### What Is NOT Yet Done (carry forward)
+
+- Phase E: Digital Wing -- shareable URLs, QR codes, ePub (explicitly post-Phase D)
+- Tutorial video scripts -- still blocked pending current screenshots or screen recording from Lynn
+- include_student_handouts column rename -- low priority cosmetic debt
+- pricingConfig.ts STRIPE_ORG block vs orgPricingConfig.ts unification -- pre-existing tension, no functionality broken
+- OrgSetup.tsx stale tier name audit -- imports from SSOT so display names are correct, but inline prose should be checked
+- Multi-tenant migration -- Phases 1-5 per MULTI_TENANT_MIGRATION_PLAN.md, not started
