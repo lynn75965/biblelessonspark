@@ -36,8 +36,8 @@ const ANCHORS: Record<string, { h: number; s: number; l: number }[]> = {
     { h: 120, s: 12, l: 0 },     // 0: extreme dark
     { h: 120, s: 11, l: 4 },     // 15: Dark (near-black forest green)
     { h: 120, s: 15, l: 24 },    // 40: Dim (medium forest green)
-    { h: 38,  s: 21, l: 91 },    // 60: Soft baseline (warm parchment)
-    { h: 54,  s: 93, l: 100 },   // 100: extreme light (BLS warm white)
+    { h: 38,  s: 34, l: 91 },    // 60: Soft baseline (warm parchment)
+    { h: 50,  s: 0,  l: 100 },   // 100: extreme light (crisp white)
   ],
   card: [
     { h: 120, s: 20, l: 8 },
