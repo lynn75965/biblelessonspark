@@ -42,6 +42,8 @@ import type { LessonSeries } from "@/constants/seriesConfig";
 import { DIGITAL_WING_UI, DIGITAL_WING_BASE_URL } from "@/constants/digitalWingConfig";
 import { useSubscription } from "@/hooks/useSubscription";
 import QRCode from 'qrcode';
+import { exportToEpub } from "@/utils/export/exportToEpub";
+import type { EpubChapter } from "@/utils/export/exportToEpub";
 
 // ============================================================================
 // TYPES
@@ -199,6 +201,7 @@ export default function PublishingHub() {
 
   // Export state
   const [exporting, setExporting] = useState(false);
+  const [epubExporting, setEpubExporting] = useState(false);
 
   // Full size preview modal
   const [fullPreviewOpen, setFullPreviewOpen] = useState(false);
@@ -689,6 +692,75 @@ export default function PublishingHub() {
       });
     } finally {
       setExporting(false);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // EPUB EXPORT HANDLER
+  // --------------------------------------------------------------------------
+
+  const handleEpubExport = async () => {
+    if (!selectedSeries || epubExporting) return;
+    setEpubExporting(true);
+
+    try {
+      let chapters: EpubChapter[] = [];
+      let contentType: 'lesson' | 'devotional' = 'lesson';
+
+      if (seriesLessons.length > 0) {
+        // Lesson series
+        contentType = 'lesson';
+        chapters = seriesLessons.map((sl, idx) => {
+          const raw = sl.original_text || '';
+          const titleMatch = raw.match(/\*\*Lesson Title:\*\*\s*(.+)/i);
+          const extractedTitle = titleMatch ? titleMatch[1].replace(/["\u201C\u201D*]/g, '').trim() : null;
+          return {
+            id: sl.id,
+            title: extractedTitle || sl.title || sl.filters?.bible_passage || 'Untitled Lesson',
+            number: sl.series_lesson_number ?? idx + 1,
+            content: raw,
+          };
+        });
+      } else {
+        // Try devotional series
+        const { data: devotionalData, error: devError } = await supabase
+          .from('devotionals')
+          .select('id, title, content, series_devotional_number')
+          .eq('series_id', selectedSeries.id)
+          .order('series_devotional_number', { ascending: true });
+
+        if (devError || !devotionalData || devotionalData.length === 0) {
+          toast({ title: PUBLISHING_HUB_UI.epubNoContent, variant: 'destructive' });
+          return;
+        }
+
+        contentType = 'devotional';
+        chapters = devotionalData.map((d, idx) => ({
+          id: d.id,
+          title: d.title || 'Untitled Devotional',
+          number: (d.series_devotional_number as number | null) ?? idx + 1,
+          content: d.content || '',
+        }));
+      }
+
+      await exportToEpub({
+        seriesName:    selectedSeries.series_name,
+        chapters,
+        contentType,
+        fontId:        selectedFont,
+        colorSchemeId: selectedColorScheme,
+      });
+
+      toast({ title: 'ePub downloaded' });
+    } catch (err) {
+      console.error('ePub export error:', err);
+      toast({
+        title:       PUBLISHING_HUB_UI.toastExportError,
+        description: PUBLISHING_HUB_UI.toastExportErrorDescription,
+        variant:     'destructive',
+      });
+    } finally {
+      setEpubExporting(false);
     }
   };
 
@@ -2103,6 +2175,21 @@ export default function PublishingHub() {
                   </div>
 
                   {renderDownloadButton(handleSeriesDownload)}
+                  <button
+                    type="button"
+                    onClick={handleEpubExport}
+                    disabled={epubExporting || loadingSeriesLessons}
+                    className={
+                      "w-full px-4 py-2.5 text-sm font-medium rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-center gap-2 " +
+                      (epubExporting
+                        ? "border-border bg-muted text-muted-foreground cursor-not-allowed"
+                        : "border-primary/40 text-primary hover:bg-primary/5")
+                    }
+                  >
+                    {epubExporting && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {epubExporting ? PUBLISHING_HUB_UI.epubButtonWorking : PUBLISHING_HUB_UI.epubButton}
+                  </button>
+                  <p className="text-xs text-muted-foreground text-center">{PUBLISHING_HUB_UI.epubDescription}</p>
                   {renderShareControls('lesson_series', selectedSeries.id, selectedSeries.share_token, selectedSeries.share_token_handout, selectedSeries.series_name || 'Series')}
                 </div>
               )}

@@ -2223,12 +2223,6 @@ export function EnhanceLessonForm({
               Warning: Must remain on this page until lesson is fully generated
             </p>
 
-            {/* Readiness indicator */}
-            {(!step1Complete || !step2Complete) && (
-              <p className="text-xs text-center text-muted-foreground">
-                Complete Steps 1 and 2 to generate your lesson
-              </p>
-            )}
           </div>
         </form>
         )}

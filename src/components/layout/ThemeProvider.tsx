@@ -27,33 +27,38 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 const STORAGE_KEY = "bls-theme-intensity";
 const DEFAULT_INTENSITY = 65;
 
-// Four anchor points per CSS variable for continuous interpolation
-// [0] = darkest (intensity 0), [1] = mid-dark baseline (40),
-// [2] = mid-light baseline (60), [3] = brightest (100)
+// Five anchor points per CSS variable for 4-zone interpolation
+// [0] = extreme dark (0), [1] = Dark preset (15), [2] = Dim preset (40),
+// [3] = Soft/light baseline (60), [4] = extreme light (100)
+// Zones: 0-15, 15-40, 40-60, 60-100
 const ANCHORS: Record<string, { h: number; s: number; l: number }[]> = {
   background: [
-    { h: 120, s: 12, l: 0 },   // 0: darkest
-    { h: 120, s: 8,  l: 11 },  // 40: dark baseline (low sat near bridge)
-    { h: 50,  s: 5,  l: 96 },  // 60: light baseline (near-neutral)
-    { h: 50,  s: 100, l: 99 }, // 100: brightest (full BLS warm white)
+    { h: 120, s: 12, l: 0 },     // 0: extreme dark
+    { h: 120, s: 11, l: 4 },     // 15: Dark (near-black forest green)
+    { h: 120, s: 15, l: 24 },    // 40: Dim (medium forest green)
+    { h: 38,  s: 21, l: 91 },    // 60: Soft baseline (warm parchment)
+    { h: 54,  s: 93, l: 100 },   // 100: extreme light (BLS warm white)
   ],
   card: [
     { h: 120, s: 20, l: 8 },
-    { h: 120, s: 8,  l: 20 },
-    { h: 0,   s: 0,  l: 98 },
-    { h: 0,   s: 0,  l: 100 },
+    { h: 120, s: 16, l: 13 },
+    { h: 120, s: 12, l: 29 },
+    { h: 38,  s: 29, l: 94.5 },
+    { h: 38,  s: 0,  l: 100 },
   ],
   popover: [
     { h: 120, s: 20, l: 3 },
-    { h: 120, s: 8,  l: 15 },
-    { h: 0,   s: 0,  l: 98 },
-    { h: 0,   s: 0,  l: 100 },
+    { h: 120, s: 16, l: 8 },
+    { h: 120, s: 12, l: 27 },
+    { h: 38,  s: 29, l: 93.3 },
+    { h: 38,  s: 0,  l: 100 },
   ],
   muted: [
     { h: 120, s: 15, l: 5 },
-    { h: 120, s: 6,  l: 17 },
-    { h: 43,  s: 5,  l: 95 },
-    { h: 43,  s: 41, l: 97 },
+    { h: 120, s: 12, l: 10 },
+    { h: 120, s: 10, l: 20 },
+    { h: 39,  s: 18, l: 87.5 },
+    { h: 47,  s: 34, l: 99.5 },
   ],
 };
 
@@ -104,24 +109,29 @@ function applyIntensity(intensity: number): void {
   }
 
   // Determine which two anchors to interpolate between
-  // Zone 0-40: anchors[0] -> anchors[1]
-  // Zone 40-60: anchors[1] -> anchors[2] (bridge zone)
-  // Zone 60-100: anchors[2] -> anchors[3]
+  // Zone 0-15:  anchors[0] -> anchors[1] (extreme dark -> Dark)
+  // Zone 15-40: anchors[1] -> anchors[2] (Dark -> Dim)
+  // Zone 40-60: anchors[2] -> anchors[3] (Dim -> Soft bridge)
+  // Zone 60-100: anchors[3] -> anchors[4] (Soft -> extreme light)
   let anchorA: number;
   let anchorB: number;
   let t: number;
 
-  if (intensity <= 40) {
+  if (intensity <= 15) {
     anchorA = 0;
     anchorB = 1;
-    t = intensity / 40;
-  } else if (intensity <= 60) {
+    t = intensity / 15;
+  } else if (intensity <= 40) {
     anchorA = 1;
     anchorB = 2;
-    t = (intensity - 40) / 20;
-  } else {
+    t = (intensity - 15) / 25;
+  } else if (intensity <= 60) {
     anchorA = 2;
     anchorB = 3;
+    t = (intensity - 40) / 20;
+  } else {
+    anchorA = 3;
+    anchorB = 4;
     t = (intensity - 60) / 40;
   }
 

@@ -131,4 +131,9 @@ export const PUBLISHING_HUB_UI = {
   seriesComplete: 'Complete',
   seriesInProgress: 'In Progress',
   seriesEmpty: 'Empty',
+  // ePub export
+  epubButton:          'Download ePub',
+  epubButtonWorking:   'Generating ePub...',
+  epubDescription:     'For Kindle, Apple Books, and other e-readers',
+  epubNoContent:       'No content found for this series.',
 } as const;
