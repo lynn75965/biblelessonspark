@@ -2160,6 +2160,7 @@ Generator now fires automatically on every npm run build.
 ### Bug History Additions
 38. Org tier mapping produced invalid SubscriptionTier values -- replace(/^org_/, '') on org_single_staff, org_develop, org_expansion produced values not in the SubscriptionTier enum. Silent failure in webhook tier resolution for those three tiers. Fixed with explicit mapping object. March 26, 2026.
 39. Accessibility requirements omitted from nav gating prompt -- Free-tier sidebar graying prompt was sent to CC without explicit WCAG requirements. Caught before deploy and corrected with follow-up prompt. Root fix: Rule 22 and Accessibility Verification Block added to CLAUDE.md and PROJECT_MASTER.md as permanent governance. April 4, 2026.
+40. Free-tier lesson viewer defaulted to full preview mode -- lessonViewMode useState initialized to "full" unconditionally. useEffect only enforced "full" for paid users with no else branch for free users. Free-tier user (Jana Thomas) saw all 8 sections by default instead of "What Free Looks Like" (sections 1, 5, 8). Fix: useState now initializes conditionally on tier; useEffect sets "free" for non-paid users. aria-pressed and aria-label added to both toggle buttons per Rule 22. Commit a3d84fe. April 4, 2026.
 
 ### What Is NOT Yet Done (carry forward)
 - include_student_handouts column cosmetic rename -- low priority, no active code references it
@@ -2448,12 +2449,75 @@ the headless browser captured the page.
   improved sighted UX; proper button semantics improved keyboard
   navigation for everyone.
 
+P8 -- Free-tier lesson viewer defaulted to full preview (Bug #40)
+lessonViewMode useState initialized to "full" unconditionally.
+useEffect only enforced "full" for paid users with no else branch.
+Free-tier user saw all 8 sections by default instead of "What Free
+Looks Like" (sections 1, 5, 8). Fix: useState now initializes
+conditionally on tier; useEffect sets "free" for non-paid users.
+Commit: a3d84fe
+
+P9 -- Preview Mode toggle buttons not accessible
+"Full Lesson (8 sections)" and "What Free Looks Like" toggle buttons
+had no aria-pressed or aria-label. Added aria-pressed={lessonViewMode
+=== "full"/"free"} and descriptive aria-label to both per Rule 22.
+Commit: a3d84fe
+
+### Additional Work (April 4)
+
+Hybrid free-tier sidebar navigation (commit fa8561f):
+- sidebarConfig.ts: Added NavItemTierGate type ('always' | 'paid_only'
+  | 'hidden_free') and tierGate property to every SidebarItem
+- AppShell.tsx: useSubscription() hook added; locked items render at
+  opacity-50 with Lock icon and open UpgradePromptModal on click;
+  hidden_free items use conditional rendering (return null)
+- WCAG 2.1 AA: aria-disabled="true", aria-label with "Personal Plan
+  required", tabIndex={0}, aria-hidden="true" on decorative icons,
+  onKeyDown for Enter/Space
+- Reordered sidebar sections for all roles
+
+Upgrade modal copy refresh (commits fa8561f):
+- Default billing interval changed from monthly to yearly
+- Headline: "Unlock Your Full Discipleship Toolkit"
+- Subhead: discipleship-focused copy with quarterly mention
+- Free plan list: "3 full lessons & 2 shortened lessons" + 3 SSOT sections
+- Personal plan: "All lessons with 8 sections!"
+- Cancellation notice: "Cancel anytime before your next billing date.
+  No charges after cancellation."
+
+DOCX export crash fix (commit e6398a3):
+- buildTeaserBox used bodyFontHalfPt from wrong scope (module-level
+  function referencing local variable). Added fontHalfPt parameter.
+- buildTextRuns default parameter referenced bodyFontHalfPt from wrong
+  scope. Changed to body.fontHalfPt (module-scoped SSOT).
+
+Rule 22 governance (commit 700b240):
+- Added Rule #22 (accessibility non-negotiable) to CLAUDE.md and
+  PROJECT_MASTER.md
+- Added Accessibility Verification Block appendix to CLAUDE.md
+- Added Bug #39 documenting the governance gap
+
 ### Files Changed
 - src/components/dashboard/EnhanceLessonForm.tsx
 - src/components/dashboard/TeacherCustomization.tsx
+- src/constants/sidebarConfig.ts
+- src/components/layout/AppShell.tsx
+- src/components/subscription/UpgradePromptModal.tsx
+- src/constants/pricingConfig.ts
+- src/utils/exportToDocx.ts
+- CLAUDE.md
+- PROJECT_MASTER.md
 
 ### Commits
 - dd06127 ACCESSIBILITY: Fix accordion keyboard navigation,
   remove auto-advance, aria labels, required fields, series label
 - 4fd7008 ACCESSIBILITY: Bible passage autocomplete ARIA
   combobox pattern, listbox, keyboard Escape dismiss
+- 3f02157 DOCS: Append Phase E, theme, and accessibility session
+  logs to PROJECT_MASTER.md
+- fa8561f FEATURE: Hybrid free-tier sidebar nav with accessibility
+  compliance, upgrade modal copy refresh
+- 700b240 DOCS: Add Rule 22 accessibility governance
+- e6398a3 FIX: exportToDocx scope bug in buildTeaserBox and
+  buildTextRuns
+- a3d84fe FIX: Free-tier lesson viewer defaults to free preview mode
