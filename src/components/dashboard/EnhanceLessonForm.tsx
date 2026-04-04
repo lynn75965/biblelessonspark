@@ -361,11 +361,22 @@ export function EnhanceLessonForm({
   
   const navigate = useNavigate();
   const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1);
+  const {
+    tier,
+    lessonsUsed: subLessonsUsed,
+    lessonsLimit: subLessonsLimit,
+    sectionsAllowed,
+    canGenerate,
+    resetDate,
+    checkCanGenerate,
+    incrementUsage,
+    isLoading: subscriptionLoading,
+  } = useSubscription();
 
   // ============================================================================
   // LESSON VIEW MODE TOGGLE (Full vs Free comparison)
   // ============================================================================
-  
+
   const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">(tier === 'free' ? "free" : "full");
 
   // Free tier shows only sections 1, 5, 8
@@ -553,17 +564,6 @@ export function EnhanceLessonForm({
 
   const { enhanceLesson, isEnhancing } = useEnhanceLesson();
   const { reshapeLesson, isReshaping } = useReshapeLesson();
-  const {
-    tier,
-    lessonsUsed: subLessonsUsed,
-    lessonsLimit: subLessonsLimit,
-    sectionsAllowed,
-    canGenerate,
-    resetDate,
-    checkCanGenerate,
-    incrementUsage,
-    isLoading: subscriptionLoading,
-  } = useSubscription();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [senderDisplayName, setSenderDisplayName] = useState("");
   const { toast } = useToast();
