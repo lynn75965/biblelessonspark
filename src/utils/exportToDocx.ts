@@ -109,7 +109,7 @@ function extractDocTitle(content: string): string | null {
 /**
  * Create styled teaser box -- scheme accent for borders/text
  */
-function buildTeaserBox(teaserText: string, docxFont: string, accentColor: string): Paragraph[] {
+function buildTeaserBox(teaserText: string, docxFont: string, accentColor: string, fontHalfPt: number): Paragraph[] {
   return [
     new Paragraph({
       children: [new TextRun({
@@ -131,7 +131,7 @@ function buildTeaserBox(teaserText: string, docxFont: string, accentColor: strin
       children: [new TextRun({
         text:    teaserText,
         italics: true,
-        size:    bodyFontHalfPt,
+        size:    fontHalfPt,
         font:    docxFont,
       })],
       spacing: { after: teaser.marginAfterTwips },
@@ -150,7 +150,7 @@ function buildTeaserBox(teaserText: string, docxFont: string, accentColor: strin
  */
 function buildTextRuns(
   text:     string,
-  fontSize: number = bodyFontHalfPt,
+  fontSize: number = body.fontHalfPt,
   docxFont: string = fonts.docx
 ): TextRun[] {
   if (!text) return [];
@@ -312,7 +312,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
 
   // 3. STUDENT TEASER AT TOP
   if (teaserContent && teaserContent.trim()) {
-    paragraphs.push(...buildTeaserBox(teaserContent, docxFont, scheme.accent));
+    paragraphs.push(...buildTeaserBox(teaserContent, docxFont, scheme.accent, bodyFontHalfPt));
   }
 
   // 4. SPLIT CONTENT AT SECTION 8
@@ -475,7 +475,7 @@ export const exportToDocx = async (options: DocxExportOptions): Promise<void> =>
     }));
 
     if (teaserContent && teaserContent.trim()) {
-      paragraphs.push(...buildTeaserBox(teaserContent, docxFont, scheme.accent));
+      paragraphs.push(...buildTeaserBox(teaserContent, docxFont, scheme.accent, bodyFontHalfPt));
     }
 
     // Process Section 8 content (skip header line -- added above)
