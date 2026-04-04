@@ -366,7 +366,7 @@ export function EnhanceLessonForm({
   // LESSON VIEW MODE TOGGLE (Full vs Free comparison)
   // ============================================================================
   
-  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">("full");
+  const [lessonViewMode, setLessonViewMode] = useState<"full" | "free">(tier === 'free' ? "free" : "full");
 
   // Free tier shows only sections 1, 5, 8
   // Free tier sections - imported from SSOT (pricingConfig.ts)
@@ -766,6 +766,8 @@ export function EnhanceLessonForm({
   useEffect(() => {
     if (isPaidUser) {
       setLessonViewMode("full");
+    } else {
+      setLessonViewMode("free");
     }
   }, [isPaidUser]);
 
@@ -2323,6 +2325,8 @@ export function EnhanceLessonForm({
                     <button
                       type="button"
                       onClick={() => setLessonViewMode("full")}
+                      aria-pressed={lessonViewMode === "full"}
+                      aria-label="Preview mode: Full Lesson, 8 sections"
                       className={`px-4 py-2 text-sm font-medium transition-colors ${
                         lessonViewMode === "full"
                           ? "bg-primary text-white"
@@ -2334,6 +2338,8 @@ export function EnhanceLessonForm({
                     <button
                       type="button"
                       onClick={() => setLessonViewMode("free")}
+                      aria-pressed={lessonViewMode === "free"}
+                      aria-label="Preview mode: What Free Looks Like, sections 1, 5, and 8 only"
                       className={`px-4 py-2 text-sm font-medium transition-colors ${
                         lessonViewMode === "free"
                           ? "bg-secondary text-white"
