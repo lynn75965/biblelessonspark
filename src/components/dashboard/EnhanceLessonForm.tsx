@@ -148,26 +148,44 @@ const AccordionStep = ({
 }: AccordionStepProps) => {
   return (
     <Card className={`border shadow-sm transition-all duration-200 ${isLocked ? "opacity-60" : ""}`}>
-      {/* Clickable Header */}
-      <CardHeader 
-        className={`pb-3 cursor-pointer select-none ${isLocked ? "cursor-not-allowed" : "hover:bg-muted/50"}`}
-        onClick={() => !isLocked && onToggle()}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {/* Expand/Collapse Icon */}
-            {isExpanded ? (
-              <ChevronDown className="h-5 w-5 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-            )}
-            <StepBadge number={stepNumber} isComplete={isComplete} />
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Watch Video Link */}
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          {/* Clickable toggle area - left side */}
+          <button
+            type="button"
+            onClick={() => !isLocked && onToggle()}
+            aria-expanded={isExpanded}
+            disabled={isLocked}
+            className={`flex-1 text-left select-none appearance-none bg-transparent border-0 p-0 rounded-sm
+              focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+              ${isLocked ? "cursor-not-allowed opacity-60" : "hover:bg-muted/50 cursor-pointer"}`}
+          >
+            <div className="flex items-center gap-3">
+              {isExpanded ? (
+                <ChevronDown className="h-5 w-5 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-muted-foreground" />
+              )}
+              <StepBadge number={stepNumber} isComplete={isComplete} />
+            </div>
+            <div className="ml-10 mt-2">
+              <CardTitle className="text-lg text-foreground">{title}</CardTitle>
+              {!isExpanded && (
+                <CardDescription className="mt-1">
+                  {isComplete && completeSummary ? completeSummary : description}
+                </CardDescription>
+              )}
+              {isExpanded && (
+                <CardDescription className="mt-1">{description}</CardDescription>
+              )}
+            </div>
+          </button>
+
+          {/* Action buttons - right side, outside the toggle button */}
+          <div className="flex items-center gap-2 shrink-0">
             {videoUrl && (
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 className="text-primary hover:text-primary/80 hover:bg-primary/10 gap-1"
@@ -180,45 +198,29 @@ const AccordionStep = ({
                 Watch
               </Button>
             )}
-            
-            {/* Completion/Lock Indicator */}
             {isComplete && !isExpanded && (
-              <span className="text-primary text-sm font-medium flex items-center gap-1"><Check className="h-3 w-3" /> Done</span>
+              <span className="text-primary text-sm font-medium flex items-center gap-1">
+                <Check className="h-3 w-3" /> Done
+              </span>
             )}
             {isLocked && (
               <Lock className="h-4 w-4 text-muted-foreground" />
             )}
+            {!isExpanded && isComplete && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggle();
+                }}
+              >
+                Edit
+              </Button>
+            )}
           </div>
         </div>
-        
-        <div className="ml-10 mt-2">
-          <CardTitle className="text-lg text-foreground">{title}</CardTitle>
-          {/* Show description when collapsed, or summary when complete and collapsed */}
-          {!isExpanded && (
-            <CardDescription className="mt-1">
-              {isComplete && completeSummary ? completeSummary : description}
-            </CardDescription>
-          )}
-          {isExpanded && (
-            <CardDescription className="mt-1">{description}</CardDescription>
-          )}
-        </div>
-        
-        {/* Edit button when collapsed and complete */}
-        {!isExpanded && isComplete && (
-          <div className="ml-10 mt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggle();
-              }}
-            >
-              Edit
-            </Button>
-          </div>
-        )}
       </CardHeader>
       
       {/* Expandable Content */}
@@ -1361,28 +1363,6 @@ export function EnhanceLessonForm({
   const step2Complete = isStep2Complete();
   const step3Complete = isStep3Complete();
 
-  // Track previous step2Complete state to detect completion transition
-  const prevStep2CompleteRef = useRef(step2Complete);
-
-  // AUTO-EXPAND STEP 3: Only when Step 2 BECOMES complete (false?true), not when already complete
-  // This allows Edit button to work without auto-advancing away
-  useEffect(() => {
-    const wasComplete = prevStep2CompleteRef.current;
-    const isNowComplete = step2Complete;
-    
-    // Only auto-expand if Step 2 just became complete (transition from false to true)
-    if (step1Complete && !wasComplete && isNowComplete && expandedStep === 2) {
-      const timer = setTimeout(() => {
-        setExpandedStep(3);
-      }, 300);
-      prevStep2CompleteRef.current = isNowComplete;
-      return () => clearTimeout(timer);
-    }
-    
-    // Update ref for next render
-    prevStep2CompleteRef.current = isNowComplete;
-  }, [step1Complete, step2Complete, expandedStep]);
-
   return (
     <>
       {/* Main Form Container */}
@@ -1890,7 +1870,7 @@ export function EnhanceLessonForm({
                     Age Group <span className="text-red-500">*</span>
                   </Label>
                   <Select value={ageGroup} onValueChange={setAgeGroup} disabled={isSubmitting}>
-                    <SelectTrigger id="age-group">
+                    <SelectTrigger id="age-group" aria-required="true">
                       <SelectValue placeholder="Select age group" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1919,7 +1899,7 @@ export function EnhanceLessonForm({
                     onValueChange={setTheologyProfileId}
                     disabled={isSubmitting}
                   >
-                    <SelectTrigger id="theology-profile">
+                    <SelectTrigger id="theology-profile" aria-required="true">
                       <SelectValue placeholder="Select theology profile" />
                     </SelectTrigger>
                     <SelectContent>
@@ -1949,7 +1929,7 @@ export function EnhanceLessonForm({
                   onValueChange={setBibleVersionId}
                   disabled={isSubmitting}
                 >
-                  <SelectTrigger id="bible-version">
+                  <SelectTrigger id="bible-version" aria-required="true">
                     <SelectValue placeholder="Select Bible version" />
                   </SelectTrigger>
                   <SelectContent>

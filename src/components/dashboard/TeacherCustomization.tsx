@@ -420,10 +420,15 @@ export function TeacherCustomization({
 
   return (
     <Card data-tour="workspace-step3" className="w-full border shadow-sm">
-      <CardHeader
-        className="cursor-pointer hover:bg-accent/50 transition-colors pb-3"
-        onClick={onToggleExpand}
-      >
+      <CardHeader className="pb-3">
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          aria-expanded={isExpanded}
+          className="w-full text-left appearance-none bg-transparent border-0 p-0 rounded-sm
+            hover:bg-accent/50 transition-colors cursor-pointer
+            focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        >
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -460,6 +465,7 @@ export function TeacherCustomization({
             )}
           </div>
         </div>
+        </button>
       </CardHeader>
 
       {isExpanded && (
@@ -497,6 +503,7 @@ export function TeacherCustomization({
                     type="button"
                     variant="ghost"
                     size="icon"
+                    aria-label="Delete profile"
                     onClick={() => setDeleteConfirmId(currentProfileId)}
                     disabled={disabled || isSavingProfile}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -520,21 +527,7 @@ export function TeacherCustomization({
                 <SelectContent>
                   {TEACHING_STYLES.map((style) => (
                     <SelectItem key={style.id} value={style.id}>
-                      <div className="flex items-center gap-2">
-                        {style.label}
-                        {style.tooltip && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3 w-3 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-[250px]">
-                                <p>{style.tooltip}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
+                      {style.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -766,7 +759,7 @@ export function TeacherCustomization({
           {/* Part of Series: Series Management UI (Phase 24) */}
           {lessonSequence === "part_of_series" && (
             <div className="p-4 bg-muted/50 rounded-lg border">
-              <Label className="text-sm font-medium mb-3 block">Teaching Series</Label>
+              <Label htmlFor="series-select" className="text-sm font-medium mb-3 block">Teaching Series</Label>
 
               {/* Series Selection Dropdown */}
               <div className="space-y-3">
@@ -775,7 +768,7 @@ export function TeacherCustomization({
                   onValueChange={handleSeriesSelect}
                   disabled={disabled || isLoadingSeries}
                 >
-                  <SelectTrigger className={FORM_STYLING.selectMaxWidth}>
+                  <SelectTrigger id="series-select" className={FORM_STYLING.selectMaxWidth}>
                     <SelectValue placeholder="Select or create a series" />
                   </SelectTrigger>
                   <SelectContent>
