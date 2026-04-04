@@ -53,6 +53,14 @@ import { DASHBOARD_TAB_VALUES } from "./routes";
 // TYPE DEFINITIONS
 // =============================================================================
 
+/**
+ * Tier gating for sidebar items:
+ * - 'always': visible and active for all tiers
+ * - 'paid_only': visible for all but grayed + locked for free users
+ * - 'hidden_free': hidden entirely from free users
+ */
+export type NavItemTierGate = 'always' | 'paid_only' | 'hidden_free';
+
 export interface SidebarItem {
   id: string;
   label: string;
@@ -64,6 +72,8 @@ export interface SidebarItem {
   route?: string;
   /** For onClick items (profile modal, sign out) */
   action?: 'openProfile' | 'signOut';
+  /** Tier-based visibility gating -- defaults to 'always' if omitted */
+  tierGate?: NavItemTierGate;
 }
 
 export interface SidebarSection {
@@ -89,6 +99,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: PenLine,
     description: 'Create a new Bible study lesson',
     tabValue: DASHBOARD_TAB_VALUES.BUILD,
+    tierGate: 'always',
   },
   lessonLibrary: {
     id: 'lessonLibrary',
@@ -96,6 +107,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: BookOpen,
     description: 'Browse and manage your lessons',
     tabValue: DASHBOARD_TAB_VALUES.LIBRARY,
+    tierGate: 'always',
   },
   devotionalLibrary: {
     id: 'devotionalLibrary',
@@ -103,6 +115,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Heart,
     description: 'Browse and manage devotionals',
     tabValue: DASHBOARD_TAB_VALUES.DEVOTIONAL_LIBRARY,
+    tierGate: 'paid_only',
   },
   seriesLibrary: {
     id: 'seriesLibrary',
@@ -110,6 +123,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Layers,
     description: 'Browse and manage lesson series',
     tabValue: DASHBOARD_TAB_VALUES.SERIES_LIBRARY,
+    tierGate: 'paid_only',
   },
   publishing: {
     id: 'publishing',
@@ -117,6 +131,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Printer,
     description: 'Print and share your lessons, devotionals, and series',
     route: ROUTES.PUBLISH,
+    tierGate: 'always',
   },
   teachingTeam: {
     id: 'teachingTeam',
@@ -124,6 +139,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Users,
     description: 'Share lessons with fellow teachers',
     route: ROUTES.TEACHING_TEAM,
+    tierGate: 'paid_only',
   },
   orgManager: {
     id: 'orgManager',
@@ -131,6 +147,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Building2,
     description: 'Manage your organization',
     route: ROUTES.ORG_MANAGER,
+    tierGate: 'hidden_free',
   },
   adminPanel: {
     id: 'adminPanel',
@@ -138,6 +155,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: ShieldCheck,
     description: 'Platform-wide administration',
     route: ROUTES.ADMIN,
+    tierGate: 'always',
   },
   toolbeltAdmin: {
     id: 'toolbeltAdmin',
@@ -145,6 +163,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Wrench,
     description: 'Teacher Toolbelt administration',
     route: ROUTES.ADMIN_TOOLBELT,
+    tierGate: 'always',
   },
   pricing: {
     id: 'pricing',
@@ -152,6 +171,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: CreditCard,
     description: 'View plans and pricing',
     route: ROUTES.PRICING,
+    tierGate: 'always',
   },
   userProfile: {
     id: 'userProfile',
@@ -159,6 +179,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: CircleUser,
     description: 'Update your profile defaults',
     action: 'openProfile',
+    tierGate: 'always',
   },
   signOut: {
     id: 'signOut',
@@ -166,6 +187,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: LogOut,
     description: 'Sign out of your account',
     action: 'signOut',
+    tierGate: 'always',
   },
   tutorials: {
     id: 'tutorials',
@@ -173,6 +195,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: GraduationCap,
     description: 'Learn how to use BibleLessonSpark',
     route: ROUTES.TRAINING,
+    tierGate: 'always',
   },
   support: {
     id: 'support',
@@ -180,6 +203,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: LifeBuoy,
     description: 'Get help and support',
     route: ROUTES.HELP,
+    tierGate: 'always',
   },
   faqs: {
     id: 'faqs',
@@ -187,6 +211,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: CircleHelp,
     description: 'Frequently asked questions',
     route: ROUTES.FAQS,
+    tierGate: 'always',
   },
   bonuses: {
     id: 'bonuses',
@@ -194,6 +219,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Gift,
     description: 'Special resources for teachers',
     route: ROUTES.BONUSES,
+    tierGate: 'hidden_free',
   },
   moreTools: {
     id: 'moreTools',
@@ -201,6 +227,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     icon: Hammer,
     description: 'Additional teaching tools',
     route: ROUTES.MORE_TOOLS,
+    tierGate: 'hidden_free',
   },
 } as const;
 
@@ -238,12 +265,12 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
   account: {
     id: 'account',
     label: 'Account',
-    items: ['pricing', 'userProfile'],
+    items: ['userProfile', 'tutorials', 'faqs', 'support', 'pricing', 'signOut'],
   },
-  resources: {
-    id: 'resources',
+  extras: {
+    id: 'extras',
     label: '',
-    items: ['tutorials', 'support', 'faqs', 'bonuses', 'moreTools', 'signOut'],
+    items: ['bonuses', 'moreTools'],
   },
 } as const;
 
@@ -267,26 +294,26 @@ export const SIDEBAR_BY_ROLE: Record<Role, string[]> = {
     'ministryOversight',
     'platformAdmin',
     'account',
-    'resources',
+    'extras',
   ],
   [ROLES.orgLeader]: [
     'buildAndPrepare',
     'myTeachingTeam',
     'ministryOversight',
     'account',
-    'resources',
+    'extras',
   ],
   [ROLES.orgMember]: [
     'buildAndPrepare',
     'myTeachingTeam',
     'account',
-    'resources',
+    'extras',
   ],
   [ROLES.individual]: [
     'buildAndPrepare',
     'myTeachingTeamConditional',
     'account',
-    'resources',
+    'extras',
   ],
 } as const;
 

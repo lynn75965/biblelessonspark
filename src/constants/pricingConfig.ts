@@ -240,8 +240,8 @@ export const UPGRADE_PROMPTS = {
     description: "Upgrade for more lessons and complete 8-section lessons.",
   },
   featureTeaser: {
-    title: "Unlock Complete Lessons",
-    description: "Paid plans include 5 additional sections for well-rounded lessons.",
+    title: "Unlock Your Full Discipleship Toolkit",
+    description: "Personal Plan gives you 20 complete, 8-section lessons every month \u2014 plus devotional content, lesson reshaping, teaching team collaboration, and full export tools to equip every person in your care. You can even publish your own quarterly!",
   },
   sections: {
     title: "Get All 8 Sections",

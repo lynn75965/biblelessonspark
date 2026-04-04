@@ -33,7 +33,7 @@
 
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { Menu, Lock } from "lucide-react";
 import { useTheme, THEME_LEVELS } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,6 +56,9 @@ import {
   type SidebarItem,
   type ResolvedSidebarSection,
 } from "@/constants/sidebarConfig";
+import { useSubscription } from "@/hooks/useSubscription";
+import { isPaidTier } from "@/constants/pricingConfig";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
@@ -83,9 +86,11 @@ interface SidebarContentProps {
   currentPath: string;
   currentTab: string | null;
   onItemClick: (item: SidebarItem) => void;
+  isFreeTier: boolean;
+  onLockedItemClick: () => void;
 }
 
-function SidebarContent({ sections, currentPath, currentTab, onItemClick, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
+function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, onLockedItemClick, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
   return (
     <>
       {/* Logo block */}
@@ -126,8 +131,16 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, intens
           <div key={section.id}>
             {/* Items flow as one clean list -- no labels or dividers */}
             {section.items.map(item => {
+            const tierGate = item.tierGate || 'always';
+
+            // hidden_free items are not rendered at all for free users
+            if (isFreeTier && tierGate === 'hidden_free') return null;
+
+            // paid_only items are grayed + locked for free users
+            const isLocked = isFreeTier && tierGate === 'paid_only';
+
             const IconComponent = item.icon;
-            const isActive = isSidebarTabItem(item)
+            const isActive = !isLocked && (isSidebarTabItem(item)
               ? currentPath === ROUTES.DASHBOARD && item.tabValue === currentTab
               : isSidebarRouteItem(item)
                 ? (() => {
@@ -137,14 +150,42 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, intens
                     if (!itemHash) return !window.location.hash;
                     return window.location.hash === itemHash;
                   })()
-                : false;
+                : false);
 
             const itemClasses = cn(
               "flex items-center gap-3 w-full px-4 py-2.5 text-[13px] font-medium tracking-wide transition-colors text-left rounded-md",
-              isActive
-                ? "bg-[#4a7a4a] text-white font-semibold"
-                : "text-[#d8e8d8] hover:bg-[#2d4a2d] hover:text-white"
+              isLocked
+                ? "text-[#d8e8d8] opacity-50 cursor-pointer hover:bg-[#2d4a2d] hover:text-white"
+                : isActive
+                  ? "bg-[#4a7a4a] text-white font-semibold"
+                  : "text-[#d8e8d8] hover:bg-[#2d4a2d] hover:text-white"
             );
+
+            // Locked items render as button that opens upgrade modal
+            // aria-disabled keeps item in tab order; disabled would remove focus
+            if (isLocked) {
+              return (
+                <button
+                  key={item.id}
+                  aria-disabled="true"
+                  aria-label={`${item.label}, Personal Plan required`}
+                  tabIndex={0}
+                  onClick={onLockedItemClick}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onLockedItemClick();
+                    }
+                  }}
+                  className={itemClasses}
+                  title={`Upgrade to unlock ${item.label}`}
+                >
+                  <IconComponent className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                  <span className="truncate">{item.label}</span>
+                  <Lock className="h-3.5 w-3.5 shrink-0 ml-auto" aria-hidden="true" />
+                </button>
+              );
+            }
 
             // Route items render as <Link> for proper navigation
             if (isSidebarRouteItem(item) && item.route) {
@@ -192,12 +233,15 @@ export function AppShell({
 }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { intensity, setIntensity } = useTheme();
   const { signOut } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { userRole, hasOrganization } = useOrganization();
+  const { tier } = useSubscription();
+  const isFreeTier = !isPaidTier(tier);
 
   // Resolve role and get sidebar sections (same chain as Header.tsx)
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
@@ -236,12 +280,19 @@ export function AppShell({
     }
   };
 
+  const handleLockedItemClick = () => {
+    setShowUpgradeModal(true);
+    setMobileOpen(false);
+  };
+
   // Shared sidebar content props
   const sidebarProps: SidebarContentProps = {
     sections: visibleSections,
     currentPath: location.pathname,
     currentTab,
     onItemClick: handleItemClick,
+    isFreeTier,
+    onLockedItemClick: handleLockedItemClick,
   };
 
   return (
@@ -288,6 +339,12 @@ export function AppShell({
     <UserProfileModal
       open={showProfileModal}
       onOpenChange={setShowProfileModal}
+    />
+
+    <UpgradePromptModal
+      isOpen={showUpgradeModal}
+      onClose={() => setShowUpgradeModal(false)}
+      trigger="feature_teaser"
     />
     </>
   );

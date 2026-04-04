@@ -35,7 +35,7 @@ export function UpgradePromptModal({
   const { user } = useAuth();
   const { startCheckout, lessonsUsed, lessonsLimit, resetDate, tier } = useSubscription();
   const { freePlan, personalPlan, isLoading: plansLoading } = usePricingPlans();
-  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('month');
+  const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
 
@@ -215,11 +215,7 @@ export function UpgradePromptModal({
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" />
-                {freePlan.lessonsPerMonth} lessons/month
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                {freePlan.sectionsIncluded.length} sections
+                3 full lessons & 2 shortened lessons
               </li>
               {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                 <li key={section} className="flex items-center gap-2 text-muted-foreground">
@@ -227,15 +223,6 @@ export function UpgradePromptModal({
                   {section}
                 </li>
               ))}
-              {UPGRADE_PROMPTS.sections.paidAdds.slice(0, 3).map((section) => (
-                <li key={section} className="flex items-center gap-2 text-muted-foreground">
-                  <X className="h-4 w-4" />
-                  {section}
-                </li>
-              ))}
-              <li className="text-muted-foreground text-xs ml-6">
-                + {UPGRADE_PROMPTS.sections.paidAdds.length - 3} more sections...
-              </li>
             </ul>
           </div>
 
@@ -264,7 +251,7 @@ export function UpgradePromptModal({
               </li>
               <li className="flex items-center gap-2 font-medium text-accent">
                 <Check className="h-4 w-4 text-sky-600" />
-                {personalPlan.sectionsIncluded.length} sections (all!)
+                All lessons with 8 sections!
               </li>
               {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                 <li key={section} className="flex items-center gap-2">
@@ -334,7 +321,7 @@ export function UpgradePromptModal({
         </div>
 
         <p className="text-xs text-center text-muted-foreground mt-2">
-          Cancel anytime. No questions asked.
+          Cancel anytime before your next billing date. No charges after cancellation.
         </p>
       </DialogContent>
     </Dialog>
