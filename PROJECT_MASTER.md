@@ -41,6 +41,7 @@ BibleLessonSpark (biblelessonspark.com) is a Bible study lesson generator platfo
 19. **Corrupted files -- restore from git before patching.** If a file is corrupted by a bad write, run `git checkout HEAD -- src/path/to/file.ts` FIRST to restore it, then apply the fix to the clean restored file. Never patch a corrupted file. Added March 6, 2026.
 20. **Supabase migration CLI is operational.** Use `npx supabase db push --linked` for future database migrations -- do NOT apply migrations manually via the Dashboard SQL editor. The migration history was fully reconciled on March 20, 2026 (45 migrations in sync, zero drift). All future schema changes must go through a migration file in `supabase/migrations/` so CLI tracking stays clean. Never run `supabase db push` without first verifying the migration SQL is correct and the schema change is not already applied to the live database. Added March 20, 2026.
 21. **Run /audit-ssot at the start of any session touching constants, configs, pricing, tier names, routes, or backend functions.** This slash command is defined in CLAUDE.md and runs a read-only SSOT and Frontend-Drives-Backend audit, saving findings to `SSOT_AUDIT_REPORT.md`. It is diagnostic only -- no code changes. Added March 20, 2026.
+22. **Accessibility is non-negotiable on every UI change.** Every interactive element must meet WCAG 2.1 AA minimum. Required on every UI task: (1) aria-disabled="true" never the disabled attribute on buttons that must stay focusable; (2) decorative icons always aria-hidden="true"; (3) locked/gated items stay in tab order with tabIndex={0}; (4) aria-label must describe both purpose and state; (5) hidden items use conditional rendering not CSS display:none; (6) nav landmarks never removed or left unlabeled; (7) aria-live="polite" on status/generation regions; (8) role="alert" on error messages; (9) focus moves to first error on validation failure and to result heading after generation completes; (10) every CC prompt touching UI must append the ACCESSIBILITY VERIFICATION BLOCK defined in the appendix of CLAUDE.md. Added April 4, 2026.
 
 ---
 
@@ -2158,6 +2159,7 @@ Generator now fires automatically on every npm run build.
 
 ### Bug History Additions
 38. Org tier mapping produced invalid SubscriptionTier values -- replace(/^org_/, '') on org_single_staff, org_develop, org_expansion produced values not in the SubscriptionTier enum. Silent failure in webhook tier resolution for those three tiers. Fixed with explicit mapping object. March 26, 2026.
+39. Accessibility requirements omitted from nav gating prompt -- Free-tier sidebar graying prompt was sent to CC without explicit WCAG requirements. Caught before deploy and corrected with follow-up prompt. Root fix: Rule 22 and Accessibility Verification Block added to CLAUDE.md and PROJECT_MASTER.md as permanent governance. April 4, 2026.
 
 ### What Is NOT Yet Done (carry forward)
 - include_student_handouts column cosmetic rename -- low priority, no active code references it

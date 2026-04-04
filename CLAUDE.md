@@ -247,6 +247,20 @@ or backend functions -- run the /audit-ssot slash command first.
 It is read-only and diagnostic. It saves findings to SSOT_AUDIT_REPORT.md.
 Never modify SSOT files without first knowing the current violation state.
 
+### Rule #22: Accessibility is non-negotiable on every UI change
+Every interactive element must meet WCAG 2.1 AA minimum. Required on every UI task:
+(1) aria-disabled="true" never the disabled attribute on buttons that must stay focusable;
+(2) decorative icons always aria-hidden="true";
+(3) locked/gated items stay in tab order with tabIndex={0};
+(4) aria-label must describe both purpose and state;
+(5) hidden items use conditional rendering not CSS display:none;
+(6) nav landmarks never removed or left unlabeled;
+(7) aria-live="polite" on status/generation regions;
+(8) role="alert" on error messages;
+(9) focus moves to first error on validation failure and to result heading after generation completes;
+(10) every CC prompt touching UI must append the ACCESSIBILITY VERIFICATION BLOCK defined in the appendix of this file.
+Added April 4, 2026.
+
 ---
 
 ## DEBUGGING PROTOCOL
@@ -395,4 +409,49 @@ Before any work begins:
 2. Read PROJECT_MASTER.md -- required, contains current session state and What's Next
 3. Read the actual source files relevant to the task
 4. Confirm understanding before making any changes
+5. npm run build after changes and before deploying
+
+---
+
+## ACCESSIBILITY VERIFICATION BLOCK
+## Append this block to every CC prompt that touches any UI component, navigation, modal, form, or interactive element.
+
+ACCESSIBILITY VERIFICATION (required on every UI change)
+
+BibleLessonSpark is committed to WCAG 2.1 AA compliance.
+A blind teacher must be able to use every feature without friction.
+
+Before reporting build complete, verify every interactive element changed or added:
+
+ARIA
+- Buttons that must stay focusable use aria-disabled="true" -- never the disabled attribute
+- Decorative icons have aria-hidden="true"
+- Locked/gated items have aria-label describing both name and reason: "{Label}, Personal Plan required"
+- Status regions use aria-live="polite"
+- Error messages use role="alert"
+- Nav landmarks have aria-label or equivalent
+
+KEYBOARD
+- Tab order includes all interactive elements including locked ones
+- Hidden elements use conditional rendering -- not display:none or visibility:hidden
+- Focus moves to first error on validation failure
+- Focus moves to result heading after lesson generation completes
+- Enter/Space activates every button and control
+
+STRUCTURE
+- Heading hierarchy is logical -- no skipped levels
+- Form inputs have explicit label elements -- not placeholder-only
+- Input groups use fieldset and legend where appropriate
+- Skip link present on any page with substantial navigation
+
+COMPONENTS
+- Native HTML controls preferred on accessible flows
+- If shadcn/Radix components used, verify correct ARIA behavior is not stripped by customization
+
+ROUTES (if a new route was added)
+- routes.ts updated
+- App.tsx updated in the same pass
+
+Keyboard-only verification: Tab through every changed element without using the mouse.
+Confirm focus is visible at all times. Report any element that cannot be reached by keyboard.
 5. Run npm run build after changes and before deploying
