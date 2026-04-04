@@ -402,6 +402,135 @@ Run this command at the start of any session touching constants, configs, pricin
 
 ---
 
+## COPY GOVERNANCE -- UPGRADE & CONVERSION MESSAGING
+
+Last updated: April 4, 2026
+
+This section governs all copy written for free-tier conversion moments,
+upgrade prompts, locked feature states, and any message shown to a user
+at the boundary between Free and Personal plan access.
+
+Claude Code must read this section before modifying any of the following files:
+  - src/components/dashboard/UsageDisplay.tsx
+  - src/components/dashboard/EnhanceLessonForm.tsx
+  - src/components/subscription/UpgradePromptModal.tsx
+  - src/constants/sidebarConfig.ts (locked item labels and tooltips)
+
+### THE FOUNDATIONAL PRINCIPLE
+
+When a free-tier user encounters an upgrade prompt on BibleLessonSpark,
+they are not making a software purchasing decision.
+
+They are making a ministry calling decision.
+
+The question they are silently answering is not:
+    "Do I want more features?"
+
+It is:
+    "What kind of shepherd am I going to be for these people?"
+
+This is a Great Commission moment (Matthew 28:19). Copy that lists software
+features at this moment fails the teacher and fails the platform's mission.
+Copy that speaks to her calling, to the people in her care, and to the
+consequence of her decision succeeds.
+
+Claude Code must never reduce this moment to a transaction.
+
+### THE THREE CONVERSION MOMENTS
+
+There are exactly three places in the UI where a free-tier teacher encounters
+a calling decision. Each has its own tone requirement.
+
+Moment 1 -- Lesson Usage Card (top-right dashboard)
+The first place she sees her limit. She is still hopeful.
+Tone: Honoring + invitational + forward-looking.
+She has done something right. Now she can go further.
+
+Moment 2 -- Exhausted Lessons Banner (center dashboard + EnhanceLessonForm)
+The moment of decision. She cannot move forward without choosing.
+This is the most important copy on the platform.
+Tone: Honest + pastoral + clear consequence without manipulation.
+Not "you are blocked." But: "there is more available to you now."
+
+Moment 3 -- Locked Sidebar Items (Devotional Library, Series Library, Teaching Team)
+Silent callings she sees on every visit. Each locked item carries its own
+specific ministry meaning for her people.
+Tone: Specific to that tool's ministry purpose -- never generic.
+Copy must speak to what that tool does for HER GROUP, not her prep.
+
+### PROTECTED LINES -- DO NOT WEAKEN OR REMOVE
+
+These lines are in production in UpgradePromptModal.tsx and represent the
+platform's core conversion voice. All new copy must be consistent with the
+weight and tone of these lines. They are not negotiable.
+
+    "A good lesson teaches. An equipped teacher disciples."
+
+    "A free account prepares a lesson. The Personal Plan equips a class."
+
+    Column headers: "WHERE YOU ARE" vs "WHERE YOU COULD TAKE THEM"
+
+If a code change would alter, soften, or remove any of these lines,
+STOP. Flag it. Do not proceed without explicit instruction from Lynn.
+
+### LOCKED SIDEBAR ITEM MICRO-COPY
+
+When UpgradePromptModal is triggered by a specific locked sidebar item,
+the opening line of the modal must reflect that item's specific ministry
+purpose. Generic copy is not acceptable here.
+
+  Devotional Library:
+    "Your group's faith doesn't pause on Monday. DevotionalSpark
+     follows them all week -- connecting Sunday's lesson to Tuesday's life."
+
+  Series Library:
+    "One lesson teaches a truth. A series builds a disciple.
+     Plan weeks ahead and let your group see where you're taking them."
+
+  Teaching Team:
+    "Moses had Aaron. Paul had Timothy. You were never meant to lead alone.
+     Invite your co-teachers and carry this together."
+
+### COPY RULES -- ENFORCED ON EVERY CHANGE
+
+1. Never lead with the limit. Acknowledge it briefly, then pivot immediately
+   to what is NOW available.
+
+2. Never list software features as the primary reason to upgrade.
+   Always frame the upgrade around what happens to HER PEOPLE.
+
+3. The contrast is always:
+       teaching a lesson  vs.  discipling believers
+   Not:
+       free plan  vs.  paid plan
+
+4. "Your group" is preferred over "your class" -- more inclusive for all
+   ministry contexts.
+
+5. Button copy must feel like an act of ministry, not a purchase:
+     CORRECT:  "Equip My Class"
+     CORRECT:  "Yes -- Let's Do More"
+     CORRECT:  "Step Into Personal -- Equip My Class"
+     AVOID:    "Upgrade Now" as a standalone phrase
+
+6. Never pressure. Always clarify. The decision must feel like her own --
+   arrived at through reflection, not urgency.
+
+7. Speak to her calling, not her fear.
+   Speak to her people's growth, not her platform limits.
+
+### VOICE STANDARD
+
+Warm. Pastoral. Honest. Direct without being commercial.
+This is a Baptist volunteer teacher audience. She gave up her Sunday morning
+to serve her people. She deserves to be spoken to as the faithful minister
+she already is -- and invited toward the fuller version of that ministry
+she can become.
+
+Every word written at these conversion moments must be worthy of that calling.
+
+---
+
 ## PROJECT ROOT AUDIT FILES
 
 SSOT_AUDIT_REPORT.md -- Generated by /audit-ssot. Contains all SSOT and
