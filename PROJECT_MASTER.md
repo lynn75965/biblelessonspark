@@ -95,3 +95,64 @@ Every File Write. Date header updated to April 4, 2026.
 - 16522e8 FIX: Move useSubscription before lessonViewMode useState
 - a737c3f FIX: Trial counter increment error handling in generate-lesson
 - 161cda9 FIX: April 4 2026 production fixes
+
+### April 4, 2026 -- Planning Session (Copy Governance, Conversion Messaging Strategy)
+
+#### Context
+This was a Claude.ai planning session, not a Claude Code implementation session.
+No source files were changed. One governance document was updated and committed.
+
+#### Conversion Moment Strategy -- Three Moments Identified
+Reviewed free-tier upgrade messaging across the dashboard. Established that the
+three upgrade prompts are not software purchasing moments -- they are ministry
+calling moments. The teacher is silently answering: "What kind of shepherd am I
+going to be for these people?" (Matthew 28:19). Feature-list copy fails here.
+Calling-focused copy succeeds.
+
+Three conversion moments defined and documented:
+1. Lesson Usage Card (top-right) -- tone: honoring + invitational
+2. Exhausted Lessons Banner (center dashboard + EnhanceLessonForm) -- tone:
+   honest + pastoral + clear consequence without manipulation. Most important
+   copy on the platform.
+3. Locked Sidebar Items (Devotional Library, Series Library, Teaching Team) --
+   each requires its own micro-copy tied to that tool's specific ministry purpose.
+   ChatGPT analysis identified moments 1 and 2 only. Moment 3 was identified
+   here and added to governance.
+
+#### Protected Lines Established
+Two lines already in production in UpgradePromptModal.tsx were identified as
+non-negotiable anchors. All future copy must be consistent with their weight:
+  "A good lesson teaches. An equipped teacher disciples."
+  "A free account prepares a lesson. The Personal Plan equips a class."
+These lines must never be weakened, softened, or removed without explicit
+instruction from Lynn.
+
+#### Locked Sidebar Micro-Copy (for UpgradePromptModal variant by trigger)
+Devotional Library: "Your group's faith doesn't pause on Monday. DevotionalSpark
+  follows them all week -- connecting Sunday's lesson to Tuesday's life."
+Series Library: "One lesson teaches a truth. A series builds a disciple.
+  Plan weeks ahead and let your group see where you're taking them."
+Teaching Team: "Moses had Aaron. Paul had Timothy. You were never meant to lead
+  alone. Invite your co-teachers and carry this together."
+
+#### Two Reusable Prompts Written
+Prompt 1 -- For Claude.ai planning sessions touching upgrade copy or onboarding
+  language. Establishes the Great Commission framing, three conversion moments,
+  protected lines, copy rules, and voice standard. Paste at session start.
+Prompt 2 -- For Claude Code implementation sessions touching conversion-moment
+  files. Identifies the three files, the required voice for each, the protected
+  lines, locked sidebar micro-copy, and button copy rules. Paste at session start
+  before any file changes.
+
+#### CLAUDE.md Updated (commit a3167e0)
+Added new section: ## COPY GOVERNANCE -- UPGRADE & CONVERSION MESSAGING
+Inserted between ## SLASH COMMANDS and ## PROJECT ROOT AUDIT FILES.
+130 insertions. ASCII guard passed. Clean push to main.
+Section governs: UsageDisplay.tsx, EnhanceLessonForm.tsx,
+UpgradePromptModal.tsx, sidebarConfig.ts.
+
+#### Files Changed This Session
+- CLAUDE.md (Copy Governance section added)
+
+#### Commits This Session
+- a3167e0  DOCS: Add Copy Governance section for upgrade conversion messaging
