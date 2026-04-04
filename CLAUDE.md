@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Claude Code Instructions
-# Last updated: March 20, 2026
+# Last updated: April 4, 2026
 # READ THIS ENTIRE FILE BEFORE TOUCHING ANY CODE
 
 ## AUTO-READ ON SESSION START
@@ -38,14 +38,24 @@ package.json has "type": "module" -- use .cjs for Node scripts
 ## DEPLOY SEQUENCE (NEVER SKIP STEPS)
 
 1. npm run build           (must be clean -- zero errors)
-2. .\deploy.ps1 "message"  (PowerShell, -ExecutionPolicy Bypass)
+2. Start dev server: npm run dev
+3. HOLD -- Lynn must verify on localhost in a new browser tab
+4. Do NOT run deploy.ps1 until Lynn gives explicit approval
+5. .\deploy.ps1 "message"  (PowerShell, -ExecutionPolicy Bypass)
 
+NEVER run deploy.ps1 without Lynn's explicit localhost approval first. No exceptions.
 NEVER push code that has not compiled cleanly.
 NEVER use Lovable, Vercel, or any other host. Netlify only.
 
 ---
 
 ## FILE WRITING -- CRITICAL RULES
+
+### PATH VERIFICATION BEFORE EVERY FILE WRITE -- no exceptions
+Before writing or editing any file, confirm its exact path:
+Get-ChildItem "C:\Users\Lynn\biblelessonspark\src" -Recurse | Where-Object { $_.Name -eq "TargetFile.tsx" }
+Replace "TargetFile.tsx" with the actual filename. Do not assume paths from memory.
+Files may live in subdirectories you do not expect (e.g., dashboard/, layout/, landing/).
 
 ### NEVER use Set-Content -Encoding UTF8
 PowerShell UTF8 adds a BOM (\xEF\xBB\xBF) that trips the ASCII deploy guard.
@@ -454,4 +464,20 @@ ROUTES (if a new route was added)
 
 Keyboard-only verification: Tab through every changed element without using the mouse.
 Confirm focus is visible at all times. Report any element that cannot be reached by keyboard.
-5. Run npm run build after changes and before deploying
+
+---
+
+## MANDATORY SESSION-END PROTOCOL -- not optional
+
+At the end of every working session, before signing off:
+
+1. Update PROJECT_MASTER.md with a session log covering all work completed,
+   files changed, commits made, bugs found/fixed, and carry-forward items.
+2. Update CLAUDE.md ONLY if new rules were added or existing rules changed.
+3. Commit both files: .\deploy.ps1 "DOCS: Update PROJECT_MASTER and CLAUDE for [date] session"
+4. Remind Lynn: "Please re-upload PROJECT_MASTER.md to the Claude.ai project
+   so the next session has current context."
+
+This protocol ensures no session's work is lost between conversations.
+Skipping it causes the next session to start with stale context, leading
+to duplicated work and missed carry-forwards.

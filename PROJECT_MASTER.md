@@ -2521,3 +2521,20 @@ Rule 22 governance (commit 700b240):
 - e6398a3 FIX: exportToDocx scope bug in buildTeaserBox and
   buildTextRuns
 - a3d84fe FIX: Free-tier lesson viewer defaults to free preview mode
+- f9d736c DOCS: Update PROJECT_MASTER and CLAUDE for April 4 session
+
+### CLAUDE.md Structural Obligations Audit
+
+Audited CLAUDE.md for five mandatory structural obligations.
+Three were missing, two were already present:
+
+- PRESENT: Accessibility Verification Block (Rule #22 + appendix)
+- PRESENT: File-write rule (no BOM) -- lines 55-59
+- ADDED: Mandatory Session-End Protocol -- update PROJECT_MASTER.md,
+  update CLAUDE.md if rules changed, commit, remind Lynn to re-upload
+- ADDED: Hold-before-deploy discipline -- deploy sequence now requires
+  Lynn's explicit localhost approval before deploy.ps1
+- ADDED: Path verification before every file write -- Get-ChildItem
+  command required before writing any file, no exceptions
+- FIXED: Stray duplicate line removed from end of file
+- UPDATED: CLAUDE.md date header changed from March 20 to April 4, 2026
