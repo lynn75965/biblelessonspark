@@ -1785,9 +1785,15 @@ export function EnhanceLessonForm({
                 <div className="space-y-3">
                   {/* Bible Passage input */}
                   <div>
-                    <Label className="text-sm font-medium mb-1.5 block">Bible Passage</Label>
+                    <Label htmlFor="bible-passage" className="text-sm font-medium mb-1.5 block">Bible Passage</Label>
                     <div className="relative">
                       <Input
+                        id="bible-passage"
+                        role="combobox"
+                        aria-expanded={showBibleSuggestions}
+                        aria-autocomplete="list"
+                        aria-controls="bible-passage-suggestions"
+                        aria-haspopup="listbox"
                         className={FORM_STYLING.biblePassageInput}
                         placeholder="e.g., John 3:16-21"
                         value={biblePassage}
@@ -1797,14 +1803,26 @@ export function EnhanceLessonForm({
                         }}
                         onFocus={() => setShowBibleSuggestions(biblePassage.length >= FORM_STYLING.autocompleteMinChars)}
                         onBlur={() => setTimeout(() => setShowBibleSuggestions(false), 150)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setShowBibleSuggestions(false);
+                          }
+                        }}
                         disabled={isSubmitting}
                         autoComplete="off"
                       />
                       {showBibleSuggestions && findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).length > 0 && (
-                        <div className={FORM_STYLING.autocompleteDropdown}>
+                        <ul
+                          id="bible-passage-suggestions"
+                          role="listbox"
+                          aria-label="Bible book suggestions"
+                          className={FORM_STYLING.autocompleteDropdown}
+                        >
                           {findMatchingBooks(biblePassage, 5, FORM_STYLING.autocompleteMinChars).map((book) => (
-                            <div
+                            <li
                               key={book}
+                              role="option"
+                              aria-selected={biblePassage.startsWith(book)}
                               className={FORM_STYLING.autocompleteItem}
                               onMouseDown={() => {
                                 setBiblePassage(book + " ");
@@ -1812,9 +1830,9 @@ export function EnhanceLessonForm({
                               }}
                             >
                               {book}
-                            </div>
+                            </li>
                           ))}
-                        </div>
+                        </ul>
                       )}
                     </div>
                   </div>
