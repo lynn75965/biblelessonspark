@@ -1138,11 +1138,18 @@ ${styleExtractionPromptAddition}
           updateData.trial_short_lessons_used = currentShort + 1;
         }
 
-        await supabase
+        const { error: trialUpdateError } = await supabase
           .from('profiles')
           .update(updateData)
           .eq('id', user.id);
-        console.log('Trial consumed:', isFullTrialLesson ? 'full (8-section)' : 'short (3-section)', 'for user:', user.id);
+        if (trialUpdateError) {
+          console.error('CRITICAL: Trial counter increment failed for user:',
+            user.id, 'error:', trialUpdateError.message);
+        } else {
+          console.log('Trial consumed:',
+            isFullTrialLesson ? 'full (8-section)' : 'short (3-section)',
+            'for user:', user.id);
+        }
       }
 
       if (metricId) {
