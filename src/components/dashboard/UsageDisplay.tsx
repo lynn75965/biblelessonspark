@@ -12,6 +12,7 @@ import { Loader2, Zap, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSubscription } from "@/hooks/useSubscription";
 import { TRIAL_CONFIG } from "@/constants/trialConfig";
+import { TIER_LESSON_LIMITS } from "@/constants/pricingConfig";
 import { ROUTES } from "@/constants/routes";
 
 export function UsageDisplay() {
@@ -89,7 +90,30 @@ export function UsageDisplay() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {isFreeTier ? (
+        {isFreeTier && fullRemaining <= 0 && shortRemaining <= 0 ? (
+          /* Fully exhausted -- prominent blocked state */
+          <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
+            <p className="text-sm font-semibold text-amber-900">Your free lessons are used for this period</p>
+            {resetDate && (
+              <p className="text-xs text-amber-700">Resets {formatResetDate(resetDate)}</p>
+            )}
+            <p className="text-xs text-amber-800">
+              Upgrade to give your class theological depth, activities, discussion, DevotionalSpark follow-ups, and a published quarterly curriculum.
+            </p>
+            <Button
+              size="sm"
+              className="w-full bg-primary hover:bg-primary-hover"
+              aria-label="Upgrade to Personal Plan to equip your class"
+              onClick={() => navigate(ROUTES.PRICING)}
+            >
+              <ArrowUpRight className="mr-1 h-3 w-3" aria-hidden="true" />
+              Equip My Class
+            </Button>
+            <p className="text-[11px] text-amber-700 text-center">
+              Complete lessons {'\u00b7'} DevotionalSpark {'\u00b7'} Series {'\u00b7'} Publish {'\u00b7'} Export
+            </p>
+          </div>
+        ) : isFreeTier ? (
           <div className="space-y-2">
             {/* Full lessons bar */}
             <div className="space-y-1">
@@ -127,7 +151,7 @@ export function UsageDisplay() {
           </div>
         )}
 
-        {isFreeTier && (
+        {isFreeTier && (fullRemaining > 0 || shortRemaining > 0) && (
           <Button
             variant="outline"
             size="sm"
@@ -135,7 +159,7 @@ export function UsageDisplay() {
             onClick={() => navigate(ROUTES.PRICING)}
           >
             <ArrowUpRight className="mr-1 h-3 w-3" />
-            Upgrade for 20 lessons/month
+            Upgrade for {TIER_LESSON_LIMITS.personal} lessons/month
           </Button>
         )}
 

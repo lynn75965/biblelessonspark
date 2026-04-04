@@ -240,8 +240,8 @@ export const UPGRADE_PROMPTS = {
     description: "Upgrade for more lessons and complete 8-section lessons.",
   },
   featureTeaser: {
-    title: "Unlock Your Full Discipleship Toolkit",
-    description: "Personal Plan gives you 20 complete, 8-section lessons every month \u2014 plus devotional content, lesson reshaping, teaching team collaboration, and full export tools to equip every person in your care. You can even publish your own quarterly!",
+    title: "Ready to Do Even More for Your Class?",
+    description: "You have already taken the first step \u2014 preparing a lesson grounded in Scripture. The Personal Plan gives you everything that comes next: the theological depth your class deserves, activities that move truth from heard to experienced, a DevotionalSpark follow-up that carries the passage into their week, and the tools to build and publish a complete quarterly curriculum your class holds in their hands.",
   },
   sections: {
     title: "Get All 8 Sections",

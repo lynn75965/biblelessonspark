@@ -81,7 +81,7 @@ export function UpgradePromptModal({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-[600px]">
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-sky-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         </DialogContent>
       </Dialog>
@@ -205,8 +205,14 @@ export function UpgradePromptModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
+        <p className="text-center text-sm italic text-muted-foreground py-3 border-y border-border my-4">
+          A good lesson teaches. An equipped teacher disciples.
+        </p>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* LEFT COLUMN -- Where you are */}
           <div className="border rounded-lg p-4 bg-muted/50">
+            <p className="text-xs font-medium text-muted-foreground text-center uppercase tracking-wide mb-2">Where you are</p>
             <div className="text-center mb-4">
               <h3 className="font-semibold text-lg">{freePlan.planName}</h3>
               <p className="text-2xl font-bold">$0</p>
@@ -214,22 +220,28 @@ export function UpgradePromptModal({
             </div>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                3 full lessons & 2 shortened lessons
+                <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                {freePlan.lessonsPerMonth} lessons per month
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                3 core sections only
               </li>
               {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                 <li key={section} className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="h-4 w-4 text-primary" />
+                  <Check className="h-4 w-4 text-primary" aria-hidden="true" />
                   {section}
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="border-2 border-sky-500 rounded-lg p-4 bg-sky-50 relative">
+          {/* RIGHT COLUMN -- Where you could take them */}
+          <div className="border-2 border-primary rounded-lg p-4 bg-primary/5 relative">
             <Badge className="absolute -top-2 -right-2 bg-secondary">
               Recommended
             </Badge>
+            <p className="text-xs font-bold text-primary text-center uppercase tracking-wide mb-2">Where you could take them</p>
             <div className="text-center mb-4">
               <h3 className="font-semibold text-lg">{personalPlan.planName}</h3>
               <div className="flex items-center justify-center gap-2">
@@ -244,28 +256,54 @@ export function UpgradePromptModal({
                 </p>
               )}
             </div>
+
+            {/* Band 1 -- All lesson sections */}
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2 font-medium text-accent">
-                <Check className="h-4 w-4 text-sky-600" />
+              <li className="flex items-center gap-2 font-medium">
+                <Check className="h-4 w-4 text-primary" aria-hidden="true" />
                 {personalPlan.lessonsPerMonth} lessons/month
               </li>
-              <li className="flex items-center gap-2 font-medium text-accent">
-                <Check className="h-4 w-4 text-sky-600" />
-                All lessons with 8 sections!
+              <li className="flex items-center gap-2 font-medium">
+                <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                <strong>All 8</strong> lesson sections
               </li>
               {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
                 <li key={section} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
+                  <Check className="h-4 w-4 text-primary" aria-hidden="true" />
                   {section}
                 </li>
               ))}
               {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
-                <li key={section} className="flex items-center gap-2 text-accent font-medium">
-                  <Star className="h-4 w-4 text-amber-500" />
+                <li key={section} className="flex items-center gap-2 text-primary font-medium">
+                  <Check className="h-4 w-4 text-primary" aria-hidden="true" />
                   {section}
                 </li>
               ))}
             </ul>
+
+            {/* Divider */}
+            <div className="border-t border-primary/20 my-3" />
+
+            {/* Band 2 -- Beyond Sunday */}
+            <p className="text-xs font-bold text-primary uppercase tracking-wide mb-2" aria-hidden="true">Beyond Sunday</p>
+            <ul className="space-y-2 text-sm">
+              <li className="flex items-center gap-2 text-primary font-medium">
+                <Star className="h-4 w-4 text-primary" aria-hidden="true" />
+                DevotionalSpark follow-up for your class
+              </li>
+              <li className="flex items-center gap-2 text-primary font-medium">
+                <Star className="h-4 w-4 text-primary" aria-hidden="true" />
+                Series of 2 to 13 lessons
+              </li>
+              <li className="flex items-center gap-2 text-primary font-medium">
+                <Star className="h-4 w-4 text-primary" aria-hidden="true" />
+                Publish as booklet, ePub, or Kindle curriculum
+              </li>
+            </ul>
+
+            <p className="text-xs text-muted-foreground italic mt-3">
+              A free account prepares a lesson. The Personal Plan equips a class.
+            </p>
           </div>
         </div>
 
@@ -299,12 +337,13 @@ export function UpgradePromptModal({
 
         <div className="flex gap-3 mt-6">
           <Button variant="outline" onClick={onClose} className="flex-1">
-            Maybe Later
+            Not right now
           </Button>
           <Button
             onClick={handleUpgradeClick}
             disabled={isLoading}
-            className="flex-1 bg-sky-600 hover:bg-sky-700"
+            aria-label="Yes, upgrade to Personal Plan and do more for your class"
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isLoading ? (
               <>
@@ -314,7 +353,7 @@ export function UpgradePromptModal({
             ) : (
               <>
                 <Star className="h-4 w-4 mr-2" />
-                Upgrade to {personalPlan.planName}
+                Yes {'\u2014'} Let's Do More
               </>
             )}
           </Button>

@@ -58,7 +58,7 @@ import { getBibleVersionOptions, getDefaultBibleVersion, getBibleVersion } from 
 import { ALLOWED_FILE_TYPES } from "@/lib/fileValidation";
 import { API_ERROR_CODES } from "@/constants/apiErrorCodes";
 import { TeacherPreferences } from "@/constants/teacherPreferences";
-import { FREE_TIER_SECTION_NUMBERS, PRICING_DISPLAY } from "@/constants/pricingConfig";
+import { FREE_TIER_SECTION_NUMBERS, PRICING_DISPLAY, TIER_LESSON_LIMITS } from "@/constants/pricingConfig";
 import { getVideo, hasVideoUrl } from "@/constants/helpVideos";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
@@ -1397,7 +1397,7 @@ export function EnhanceLessonForm({
           <>
             {/* Welcome Banner for NEW Users Only (0 lessons) */}
             {/* Only show after lessons have loaded to prevent flicker */}
-            {!lessonsLoading && lessonCount === 0 && !step1Complete && !step2Complete && (
+            {!lessonsLoading && lessonCount === 0 && subLessonsUsed < subLessonsLimit && (
               <div data-tour="workspace-welcome" className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-3">
                   <Star className="h-6 w-6 text-primary shrink-0" />
@@ -1416,6 +1416,31 @@ export function EnhanceLessonForm({
         {/* ================================================================ */}
         {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Limit reached banner -- above Step 1 */}
+          {subLessonsUsed >= subLessonsLimit && (
+            <div role="alert" aria-live="polite" className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+              <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-amber-900">
+                  You{'\u2019'}ve used all your free lessons for this period
+                </p>
+                <p className="text-xs text-amber-700">
+                  Your lessons reset on {resetDate ? resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next billing cycle'}.
+                  Upgrade now for complete lessons, DevotionalSpark follow-ups for your class, series publishing, and full export tools.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="bg-primary hover:bg-primary-hover"
+                  aria-label="Upgrade to Personal Plan to equip your class with complete lessons and publishing tools"
+                  onClick={() => navigate(ROUTES.PRICING)}
+                >
+                  Equip My Class {'\u2014'} Upgrade Now
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* ================================================================ */}
           {/* STEP 1: Choose Your Scripture (Accordion) */}
           {/* ================================================================ */}
