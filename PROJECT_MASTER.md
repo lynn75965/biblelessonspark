@@ -58,7 +58,7 @@ Sizing: max-h-[90vh] overflow-y-auto on DialogContent.
 ASCII compliance verified -- zero non-ASCII characters.
 
 #### Protected Lines Preserved
-- "A good lesson teaches. An equipped teacher disciplines." -- unchanged
+- "A good lesson teaches. An equipped teacher disciples." -- unchanged
 - "WHERE YOU ARE" / "WHERE YOU COULD TAKE THEM" column headers -- unchanged
 - All aria attributes, role="alert", aria-hidden values -- unchanged
 
