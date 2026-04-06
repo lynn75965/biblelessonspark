@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { STRIPE_INDIVIDUAL, SubscriptionTier, getTierSections, isPaidTier, TIER_LESSON_LIMITS } from '@/constants/pricingConfig';
+import { TRIAL_CONFIG } from '@/constants/trialConfig';
 
 interface SubscriptionState {
   tier: SubscriptionTier;
@@ -21,6 +22,8 @@ interface SubscriptionState {
   upgradeNeeded: boolean;
   isLoading: boolean;
   error: string | null;
+  trialFullUsed: number;
+  trialShortUsed: number;
 }
 
 interface CheckoutOptions {
@@ -45,6 +48,8 @@ export function useSubscription() {
     upgradeNeeded: false,
     isLoading: true,
     error: null,
+    trialFullUsed: 0,
+    trialShortUsed: 0,
   });
 
   const fetchSubscription = useCallback(async () => {
@@ -65,8 +70,25 @@ export function useSubscription() {
 
       if (data && data.length > 0) {
         const result = data[0];
+        const resolvedTier: SubscriptionTier = result.tier || 'free';
+
+        // Fetch trial counters from profiles for free-tier users.
+        // These are stored separately from the RPC's lessons_used and are
+        // used ONLY for the progress bar display -- not for exhausted state.
+        let trialFull = 0;
+        let trialShort = 0;
+        if (resolvedTier === 'free') {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('trial_full_lessons_used, trial_short_lessons_used')
+            .eq('id', user.id)
+            .single();
+          trialFull = profile?.trial_full_lessons_used ?? 0;
+          trialShort = profile?.trial_short_lessons_used ?? 0;
+        }
+
         setState({
-          tier: result.tier || 'free',
+          tier: resolvedTier,
           status: 'active',
           lessonsUsed: result.lessons_used || 0,
           lessonsLimit: result.lessons_limit || TIER_LESSON_LIMITS.free,
@@ -78,6 +100,8 @@ export function useSubscription() {
           upgradeNeeded: result.upgrade_needed ?? false,
           isLoading: false,
           error: null,
+          trialFullUsed: trialFull,
+          trialShortUsed: trialShort,
         });
       } else {
         setState(prev => ({ ...prev, isLoading: false }));

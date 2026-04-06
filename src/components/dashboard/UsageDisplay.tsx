@@ -25,6 +25,8 @@ export function UsageDisplay() {
     resetDate,
     isLoading,
     isFreeTier,
+    trialFullUsed,
+    trialShortUsed,
   } = useSubscription();
 
   if (isLoading) {
@@ -48,7 +50,8 @@ export function UsageDisplay() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Free-tier split: full lessons consumed first, short lessons after
+  // Free-tier split: fullRemaining/shortRemaining drive the exhausted banner
+  // condition and MUST stay derived from lessonsUsed (the RPC value).
   const fullLimit  = TRIAL_CONFIG.fullLessonsPerPeriod;   // 3
   const shortLimit = TRIAL_CONFIG.shortLessonsPerPeriod;  // 2
   const fullUsed   = Math.min(lessonsUsed, fullLimit);
@@ -56,13 +59,20 @@ export function UsageDisplay() {
   const fullRemaining  = fullLimit  - fullUsed;
   const shortRemaining = shortLimit - shortUsed;
 
+  // Display values: read from profiles (where the Edge Function writes).
+  // These are used ONLY for progress bar numbers -- not for exhausted gating.
+  const displayFullUsed  = Math.min(trialFullUsed, fullLimit);
+  const displayShortUsed = Math.min(trialShortUsed, shortLimit);
+
   const renderFreeSummary = () => {
     if (fullRemaining === 0 && shortRemaining === 0) {
       return 'No lessons remaining';
     }
+    const displayFullRemaining  = fullLimit  - displayFullUsed;
+    const displayShortRemaining = shortLimit - displayShortUsed;
     const parts: string[] = [];
-    parts.push(`${fullRemaining} of ${fullLimit} full`);
-    parts.push(`${shortRemaining} of ${shortLimit} short`);
+    parts.push(`${displayFullRemaining} of ${fullLimit} full`);
+    parts.push(`${displayShortRemaining} of ${shortLimit} short`);
     return parts.join(' and ') + ' lessons remaining';
   };
 
@@ -119,22 +129,22 @@ export function UsageDisplay() {
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Full lessons (8 sections)</span>
-                <span className="font-medium text-foreground">{fullUsed} / {fullLimit}</span>
+                <span className="font-medium text-foreground">{displayFullUsed} / {fullLimit}</span>
               </div>
               <Progress
-                value={Math.round((fullUsed / fullLimit) * 100)}
-                className={`h-1.5 ${fullUsed >= fullLimit ? '[&>div]:bg-destructive' : fullUsed >= 2 ? '[&>div]:bg-secondary' : ''}`}
+                value={Math.round((displayFullUsed / fullLimit) * 100)}
+                className={`h-1.5 ${displayFullUsed >= fullLimit ? '[&>div]:bg-destructive' : displayFullUsed >= 2 ? '[&>div]:bg-secondary' : ''}`}
               />
             </div>
             {/* Short lessons bar */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Short lessons (3 sections)</span>
-                <span className="font-medium text-foreground">{shortUsed} / {shortLimit}</span>
+                <span className="font-medium text-foreground">{displayShortUsed} / {shortLimit}</span>
               </div>
               <Progress
-                value={Math.round((shortUsed / shortLimit) * 100)}
-                className={`h-1.5 ${shortUsed >= shortLimit ? '[&>div]:bg-destructive' : shortUsed >= 1 ? '[&>div]:bg-secondary' : ''}`}
+                value={Math.round((displayShortUsed / shortLimit) * 100)}
+                className={`h-1.5 ${displayShortUsed >= shortLimit ? '[&>div]:bg-destructive' : displayShortUsed >= 1 ? '[&>div]:bg-secondary' : ''}`}
               />
             </div>
           </div>

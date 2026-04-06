@@ -105,7 +105,8 @@
       "Bash(npx browser-driver-manager:*)",
       "Bash(netstat -tlnp)",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
-      "Bash(perl:*)"
+      "Bash(perl:*)",
+      "Bash(powershell.exe:*)"
     ]
   }
 }
