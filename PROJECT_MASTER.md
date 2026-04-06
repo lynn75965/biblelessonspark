@@ -1,3 +1,24 @@
+### April 6, 2026 -- Free-Tier Lesson Counter Fix
+
+#### Bug #33: Free-tier lesson counter showed 0/3 regardless of actual usage (commit 7dd77c5)
+The Lesson Usage widget read from user_subscriptions.lessons_used via the
+check_lesson_limit RPC, which is never incremented for free-tier users. The Edge
+Function writes to profiles.trial_full_lessons_used and
+profiles.trial_short_lessons_used instead. Fix: added trialFullUsed and
+trialShortUsed fields to useSubscription.tsx via a direct profiles query for
+free-tier users. UsageDisplay.tsx uses these for progress bar display only.
+Exhausted banner condition remains on the RPC-derived lessonsUsed value --
+untouched. Commit 7dd77c5. April 6, 2026.
+
+#### Files Changed This Session
+- src/hooks/useSubscription.tsx
+- src/components/dashboard/UsageDisplay.tsx
+
+#### Commits This Session
+- 7dd77c5 FIX: Free-tier lesson counter displays real usage from profiles trial columns
+
+---
+
 ### April 5, 2026 -- Upgrade Modal Rewrite, Pricing Page Removal, Calling-Moment Copy
 
 #### PricingPage Deleted and All Routes Resolved (commit 0f438a5)
