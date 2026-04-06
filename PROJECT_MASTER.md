@@ -1,4 +1,89 @@
+### April 5, 2026 -- Upgrade Modal Rewrite, Pricing Page Removal, Calling-Moment Copy
 
+#### PricingPage Deleted and All Routes Resolved (commit 0f438a5)
+Deleted src/pages/PricingPage.tsx entirely. Removed import and route from App.tsx.
+Every navigate(ROUTES.PRICING) and href="/pricing" across the codebase was replaced
+with UpgradePromptModal triggers. Files updated:
+- src/components/dashboard/UsageDisplay.tsx -- added modal state + UpgradePromptModal
+- src/components/dashboard/EnhanceLessonForm.tsx -- 3 navigate calls changed to setShowUpgradeModal
+- src/components/DevotionalGenerator.tsx -- replaced navigateUpgrade alias with modal
+- src/components/dashboard/LessonLibrary.tsx -- added modal state + UpgradePromptModal
+- src/pages/TeachingTeam.tsx -- onUpgrade callback now opens modal
+- src/components/subscription/SubscriptionManagement.tsx -- window.location.href replaced with modal
+- src/pages/PublishingHub.tsx -- anchor tag replaced with button opening modal
+- src/components/landing/PricingSection.tsx -- auth redirect changed to ROUTES.DASHBOARD; error fallback text simplified
+- src/config/footerLinks.ts -- /pricing changed to /#pricing (landing page anchor)
+- src/constants/navigationConfig.ts -- pricing route changed to ROUTES.DASHBOARD
+- src/components/admin/EmailSequenceManager.tsx -- /pricing URL detection changed to /#pricing
+
+#### Sidebar Pricing Tab Opens Modal (commit 0f438a5)
+sidebarConfig.ts: Pricing item changed from route: ROUTES.PRICING to action: 'openUpgradeModal'.
+AppShell.tsx: Added 'openUpgradeModal' case in handleItemClick to trigger setShowUpgradeModal.
+For free users the modal opens; for paid users it also opens (shows current plan info).
+
+#### UpgradePromptModal -- Section Collapse and Band Rename (commit 0f438a5)
+Removed the two .map() blocks listing individual section names (freeIncluded and paidAdds).
+Replaced with one compact summary row. Band title changed from "Beyond Sunday" to
+"Becoming a Discipler". Three star items and italic summary kept.
+
+#### PricingPage Beyond Sunday Section (commit 0f438a5, before deletion)
+Added hr divider, "Beyond Sunday" label, and three Star items (DevotionalSpark,
+Series, Publish) to the Personal plan card on PricingPage before it was deleted.
+
+#### Calling-Moment Copy -- UsageDisplay Exhausted Banner (commit 0f438a5)
+Heading: "You've prepared lessons. You've shown up faithfully."
+Subtext: "The Personal Plan doesn't change what you prepare. It changes what happens to your people."
+Reset line includes "No long contract."
+Button: "Yes -- Equip My Class"
+Feature line: "Not more curriculum. The difference between a classroom and a community."
+
+#### Calling-Moment Copy -- EnhanceLessonForm Blocked Notice (commit 0f438a5)
+Full pastoral paragraph about classroom vs. community. Separate reset line with
+"No long contract." Button: "Yes -- Equip My Class". role="alert" and
+aria-live="polite" preserved.
+
+#### Calling-Moment Copy -- UpgradePromptModal Final Revision (commit 0f438a5)
+Title: "Ready to Do Even More for Your Class?"
+Description: shortened to focus on what happens in the room and the week.
+Free column: honoring italic line + simplified 3-item list (no individual section names).
+Personal column: compact summary "More room to prepare. More continuity. More capacity to lead."
+Band renamed to "WHAT BEGINS TO CHANGE" with three transformation-focused items:
+  - Your class begins to engage, not just listen.
+  - Truth that is heard on Sunday starts to take root.
+  - One lesson builds into another -- people begin to grow.
+Italic summary: "Not a different lesson. A fuller way to lead."
+Primary CTA: "Yes -- Equip My Class" (aria-label updated).
+Secondary: "I'll stay here for now".
+Sizing: max-h-[90vh] overflow-y-auto on DialogContent.
+ASCII compliance verified -- zero non-ASCII characters.
+
+#### Protected Lines Preserved
+- "A good lesson teaches. An equipped teacher disciplines." -- unchanged
+- "WHERE YOU ARE" / "WHERE YOU COULD TAKE THEM" column headers -- unchanged
+- All aria attributes, role="alert", aria-hidden values -- unchanged
+
+#### Files Changed This Session
+- src/pages/PricingPage.tsx (DELETED)
+- src/App.tsx
+- src/components/dashboard/UsageDisplay.tsx
+- src/components/dashboard/EnhanceLessonForm.tsx
+- src/components/subscription/UpgradePromptModal.tsx
+- src/components/subscription/SubscriptionManagement.tsx
+- src/components/DevotionalGenerator.tsx
+- src/components/dashboard/LessonLibrary.tsx
+- src/components/layout/AppShell.tsx
+- src/components/landing/PricingSection.tsx
+- src/pages/TeachingTeam.tsx
+- src/pages/PublishingHub.tsx
+- src/constants/sidebarConfig.ts
+- src/constants/navigationConfig.ts
+- src/config/footerLinks.ts
+- src/components/admin/EmailSequenceManager.tsx
+
+#### Commits This Session
+- 0f438a5 FEATURE: Upgrade modal rewrite - teacher to discipler calling-moment copy, sizing fix, all upgrade surfaces updated
+
+---
 
 ### April 4, 2026 -- Continued Session (Free-Tier UX, Upgrade Messaging, Trial Enforcement)
 
