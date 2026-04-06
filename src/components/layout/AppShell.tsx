@@ -33,7 +33,7 @@
 
 import { useState, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Lock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Menu, Lock, ChevronLeft, ChevronRight, Mic, Square } from "lucide-react";
 import { useTheme, THEME_LEVELS } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +62,7 @@ import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
+import { useSpeechInput, isSpeechSupported } from "@/utils/useSpeechInput";
 
 // =============================================================================
 // TYPES
@@ -90,9 +91,12 @@ interface SidebarContentProps {
   onLockedItemClick: () => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  voiceNavListening?: boolean;
+  onVoiceNavToggle?: () => void;
+  voiceNavMessage?: string | null;
 }
 
-function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, onLockedItemClick, collapsed = false, onToggleCollapse, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
+function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, onLockedItemClick, collapsed = false, onToggleCollapse, voiceNavListening = false, onVoiceNavToggle, voiceNavMessage, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
   return (
     <>
       {/* Collapse toggle -- desktop only */}
@@ -243,6 +247,37 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
       ))}
       </nav>
       </div>
+
+      {/* Voice navigation button */}
+      {isSpeechSupported && onVoiceNavToggle && (
+        <div className={cn("border-t border-[#2d4a2d] px-3 py-3", collapsed && "px-1")}>
+          <button
+            onClick={onVoiceNavToggle}
+            className={cn(
+              "flex items-center w-full rounded-md py-2 text-[13px] font-medium transition-colors",
+              collapsed ? "justify-center px-0" : "gap-3 px-4",
+              voiceNavListening
+                ? "text-red-400 bg-[#2d4a2d]"
+                : "text-[#8a9f8a] hover:text-white hover:bg-[#2d4a2d]"
+            )}
+            aria-label={voiceNavListening ? 'Stop voice navigation' : 'Navigate by voice'}
+            title={voiceNavListening ? 'Stop listening' : 'Say a menu item name to navigate'}
+          >
+            {voiceNavListening ? (
+              <span className="relative flex h-[18px] w-[18px] items-center justify-center shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <Square className="relative h-3 w-3 fill-current" />
+              </span>
+            ) : (
+              <Mic className="h-[18px] w-[18px] shrink-0" />
+            )}
+            {!collapsed && <span className="truncate">{voiceNavListening ? 'Listening...' : 'Voice Navigate'}</span>}
+          </button>
+          {voiceNavMessage && !collapsed && (
+            <p className="text-[11px] text-amber-400 mt-1 px-4">{voiceNavMessage}</p>
+          )}
+        </div>
+      )}
     </>
   );
 }
@@ -323,6 +358,30 @@ export function AppShell({
     setMobileOpen(false);
   };
 
+  // Voice navigation
+  const [voiceNavMessage, setVoiceNavMessage] = useState<string | null>(null);
+
+  const handleVoiceNavResult = useCallback((transcript: string) => {
+    const spoken = transcript.toLowerCase().trim();
+    // Flatten all sidebar items for matching
+    const allItems = visibleSections.flatMap(s => s.items);
+    const match = allItems.find(item =>
+      item.label.toLowerCase() === spoken ||
+      spoken.includes(item.label.toLowerCase())
+    );
+    if (match) {
+      setVoiceNavMessage(null);
+      handleItemClick(match);
+    } else {
+      setVoiceNavMessage(`"${transcript}" not recognized`);
+      setTimeout(() => setVoiceNavMessage(null), 3000);
+    }
+  }, [visibleSections, handleItemClick]);
+
+  const voiceNav = useSpeechInput({
+    onResult: handleVoiceNavResult,
+  });
+
   // Shared sidebar content props
   const sidebarProps: SidebarContentProps = {
     sections: visibleSections,
@@ -331,6 +390,9 @@ export function AppShell({
     onItemClick: handleItemClick,
     isFreeTier,
     onLockedItemClick: handleLockedItemClick,
+    voiceNavListening: voiceNav.isListening,
+    onVoiceNavToggle: voiceNav.toggle,
+    voiceNavMessage,
   };
 
   return (

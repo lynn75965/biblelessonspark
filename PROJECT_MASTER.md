@@ -1,3 +1,21 @@
+## WHAT'S NEXT
+
+### Voice Navigation -- IN PROGRESS, set aside April 6, 2026
+Partial implementation deployed. Current state:
+- Sidebar voice navigation working for most items -- "Publishing" label match unconfirmed
+- "Build Lesson" voice command not navigating correctly -- tab switch vs route issue unresolved
+- Microphone icons on Bible Passage and Topic or Question fields working
+- Additional Notes field has microphone icon
+- Scripture Foundation card selection (3 cards in Step 1) has no voice support
+- Step 2 dropdowns (Age Group, Theology Profile, Bible Version) have no voice support
+- Generate Lesson button has no voice activation
+- Full interactive element map of Build Lesson flow needed before further work
+- Fundamental requirement: a user who cannot type or use a mouse must be able to complete the entire Build Lesson flow by voice alone -- from Step 1 card selection through Generate
+- Files involved: src/utils/useSpeechInput.ts, src/components/layout/AppShell.tsx, src/components/dashboard/EnhanceLessonForm.tsx
+- Next step: complete interactive element map, then redesign voice system to cover every interaction point
+
+---
+
 ### April 6, 2026 -- Free-Tier Lesson Counter Fix
 
 #### Bug #33: Free-tier lesson counter showed 0/3 regardless of actual usage (commit 7dd77c5)

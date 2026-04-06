@@ -205,11 +205,67 @@ export function UpgradePromptModal({
           </DialogDescription>
         </DialogHeader>
 
-        <p className="text-center text-sm italic text-muted-foreground py-3 border-y border-border my-4">
+        <div className="flex justify-center mt-4">
+          <div className="inline-flex rounded-lg border p-1">
+            <button
+              onClick={() => setBillingInterval('month')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingInterval === 'month'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Monthly ({monthlyPrice})
+            </button>
+            <button
+              onClick={() => setBillingInterval('year')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                billingInterval === 'year'
+                  ? 'bg-accent/10 text-accent'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Yearly ({formatPrice(personalPlan.priceAnnual)})
+              {annualSavings > 0 && (
+                <span className="ml-1 text-xs text-primary">Save {annualSavingsDisplay}</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-3">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            I{'\u2019'}ll stay here for now
+          </Button>
+          <Button
+            onClick={handleUpgradeClick}
+            disabled={isLoading}
+            aria-label="Yes, upgrade to Personal Plan to equip my class"
+            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Star className="h-4 w-4 mr-2" />
+                Yes - I'll Make Disciples
+              </>
+            )}
+          </Button>
+        </div>
+
+        <p className="text-xs text-center text-muted-foreground mt-1">
+          Cancel anytime before your next billing date. No charges after cancellation.
+        </p>
+
+        <p className="text-center text-sm italic text-muted-foreground py-2 border-y border-border my-2">
           A good lesson teaches. An equipped teacher disciples.
         </p>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3">
           {/* LEFT COLUMN -- Where you are */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <p className="text-xs font-medium text-muted-foreground text-center uppercase tracking-wide mb-2">Where you are</p>
@@ -297,62 +353,6 @@ export function UpgradePromptModal({
             </p>
           </div>
         </div>
-
-        <div className="flex justify-center mt-4">
-          <div className="inline-flex rounded-lg border p-1">
-            <button
-              onClick={() => setBillingInterval('month')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                billingInterval === 'month'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Monthly ({monthlyPrice})
-            </button>
-            <button
-              onClick={() => setBillingInterval('year')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                billingInterval === 'year'
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Yearly ({formatPrice(personalPlan.priceAnnual)})
-              {annualSavings > 0 && (
-                <span className="ml-1 text-xs text-primary">Save {annualSavingsDisplay}</span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <Button variant="outline" onClick={onClose} className="flex-1">
-            I{'\u2019'}ll stay here for now
-          </Button>
-          <Button
-            onClick={handleUpgradeClick}
-            disabled={isLoading}
-            aria-label="Yes, upgrade to Personal Plan to equip my class"
-            className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                <Star className="h-4 w-4 mr-2" />
-                Yes {'\u2014'} Equip My Class
-              </>
-            )}
-          </Button>
-        </div>
-
-        <p className="text-xs text-center text-muted-foreground mt-2">
-          Cancel anytime before your next billing date. No charges after cancellation.
-        </p>
       </DialogContent>
     </Dialog>
   );
