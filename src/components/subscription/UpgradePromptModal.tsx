@@ -188,7 +188,7 @@ export function UpgradePromptModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Star className="h-5 w-5 text-amber-500" />
@@ -265,7 +265,7 @@ export function UpgradePromptModal({
           A good lesson teaches. An equipped teacher disciples.
         </p>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* LEFT COLUMN -- Where you are */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <p className="text-xs font-medium text-muted-foreground text-center uppercase tracking-wide mb-2">Where you are</p>

@@ -16,24 +16,67 @@ Partial implementation deployed. Current state:
 
 ---
 
-### April 6, 2026 -- Free-Tier Lesson Counter Fix
+### April 6, 2026 -- Counter Fix, Mobile Scroll, Sidebar Collapse, Upgrade Modal, Voice Nav
 
-#### Bug #33: Free-tier lesson counter showed 0/3 regardless of actual usage (commit 7dd77c5)
-The Lesson Usage widget read from user_subscriptions.lessons_used via the
-check_lesson_limit RPC, which is never incremented for free-tier users. The Edge
+#### Bug #33: Free-tier lesson counter showed 0/3 (commit 7dd77c5)
+Lesson Usage widget read from user_subscriptions.lessons_used via the
+check_lesson_limit RPC, which is never incremented for free-tier users. Edge
 Function writes to profiles.trial_full_lessons_used and
 profiles.trial_short_lessons_used instead. Fix: added trialFullUsed and
 trialShortUsed fields to useSubscription.tsx via a direct profiles query for
 free-tier users. UsageDisplay.tsx uses these for progress bar display only.
 Exhausted banner condition remains on the RPC-derived lessonsUsed value --
-untouched. Commit 7dd77c5. April 6, 2026.
+untouched.
+
+#### Bug #34: Free-tier lesson counter showed 0/3 regardless of actual usage
+Resolved commit 7dd77c5, April 6, 2026. Same root cause as Bug #33 -- the
+display read from the wrong data source. The Edge Function correctly incremented
+profiles.trial_full_lessons_used but the frontend read from user_subscriptions
+via the check_lesson_limit RPC. Fix added separate trialFullUsed/trialShortUsed
+fields that read directly from profiles for free-tier users.
+
+#### Mobile Sidebar Touch Scrolling (commits badc0ca)
+iPhone 13 sidebar opened but could not be scrolled by touch. Desktop aside had
+overflow-y-auto h-screen but the mobile Sheet had neither. Fix: wrapped nav
+element in a div with flex-1 min-h-0 overflow-y-auto and
+style={{ WebkitOverflowScrolling: 'touch' }} for iOS Safari momentum scrolling.
+
+#### Desktop Sidebar Collapse Toggle (commit 02b3d96)
+Added collapse/expand toggle to the desktop sidebar. Collapsed state shows
+narrow strip (w-14) with icons only, no text labels, no theme selector.
+Expanded state shows full sidebar (w-56 lg:w-64) exactly as before. Toggle
+button at top uses ChevronLeft/ChevronRight. State persists in localStorage
+key bls_sidebar_collapsed. Mobile Sheet completely unaffected. Locked items
+show mini lock badge overlay in collapsed state. Tooltips via title attribute
+on hover.
+
+#### Upgrade Modal Restructure (commit cae2ca6)
+Moved billing toggle (Monthly/Yearly) and button row above the fold --
+immediately after DialogHeader. Teacher sees CTA without scrolling. Spacing
+tightened: tagline py-3 my-4 to py-2 my-2, grid gap-4 to gap-3, button row
+mt-6 to mt-3, cancellation mt-2 to mt-1. CTA button label changed from
+"Yes -- Equip My Class" to "Yes - I'll Make Disciples".
+
+#### Voice Navigation -- Partial (commit cae2ca6)
+Created src/utils/useSpeechInput.ts hook wrapping browser-native Web Speech API.
+Added mic buttons to Bible Passage, Topic, and Additional Notes fields in
+EnhanceLessonForm.tsx. Added Voice Navigate button at bottom of sidebar in
+AppShell.tsx (both desktop and mobile). Set aside for redesign -- see WHAT'S NEXT.
 
 #### Files Changed This Session
 - src/hooks/useSubscription.tsx
 - src/components/dashboard/UsageDisplay.tsx
+- src/components/layout/AppShell.tsx
+- src/components/dashboard/EnhanceLessonForm.tsx
+- src/components/subscription/UpgradePromptModal.tsx
+- src/utils/useSpeechInput.ts (NEW)
+- PROJECT_MASTER.md
 
 #### Commits This Session
 - 7dd77c5 FIX: Free-tier lesson counter displays real usage from profiles trial columns
+- badc0ca FIX: Mobile sidebar touch scrolling - wrap nav in overflow-y-auto flex container
+- 02b3d96 FEATURE: Desktop sidebar collapse toggle - icons-only narrow strip with persistence
+- cae2ca6 FEATURE: Upgrade modal - billing toggle and buttons above fold, new CTA label
 
 ---
 
