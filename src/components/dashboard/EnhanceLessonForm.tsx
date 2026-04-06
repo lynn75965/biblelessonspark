@@ -1422,20 +1422,22 @@ export function EnhanceLessonForm({
               <Lock className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />
               <div className="space-y-2">
                 <p className="text-sm font-semibold text-amber-900">
-                  You{'\u2019'}ve used all your free lessons for this period
+                  Your free lessons are used for this period.
                 </p>
                 <p className="text-xs text-amber-700">
-                  Your lessons reset on {resetDate ? resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next billing cycle'}.
-                  Upgrade now for complete lessons, DevotionalSpark follow-ups for your class, series publishing, and full export tools.
+                  The lesson you prepare will tell your group what Scripture says. The Personal Plan will help them live it {'\u2014'} Monday through Saturday. Discussion that opens hearts. Devotionals that follow them home. A series that builds week after week. That is not more curriculum. That is the difference between a classroom and a community.
+                </p>
+                <p className="text-xs text-amber-700">
+                  Resets {resetDate ? resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'next billing cycle'}. No long contract.
                 </p>
                 <Button
                   type="button"
                   size="sm"
                   className="bg-primary hover:bg-primary-hover"
-                  aria-label="Upgrade to Personal Plan to equip your class with complete lessons and publishing tools"
-                  onClick={() => navigate(ROUTES.PRICING)}
+                  aria-label="Upgrade to Personal Plan and equip your class"
+                  onClick={() => setShowUpgradeModal(true)}
                 >
-                  Equip My Class {'\u2014'} Upgrade Now
+                  Yes {'\u2014'} Equip My Class
                 </Button>
               </div>
             </div>
@@ -2659,7 +2661,7 @@ export function EnhanceLessonForm({
                   </p>
                   <Button 
                     type="button"
-                    onClick={() => navigate(ROUTES.PRICING)}
+                    onClick={() => setShowUpgradeModal(true)}
                     className="bg-secondary hover:bg-secondary text-white">
                     {PRICING_DISPLAY.personal.upgradeButton} ? {PRICING_DISPLAY.personal.ctaFull}
                   </Button>
@@ -2711,7 +2713,7 @@ export function EnhanceLessonForm({
                   <Lock className="h-3 w-3 inline-block mr-1" />
                   <button
                     type="button"
-                    onClick={() => navigate(ROUTES.PRICING)}
+                    onClick={() => setShowUpgradeModal(true)}
                     className="text-primary hover:text-primary underline"
                   >
                     Upgrade

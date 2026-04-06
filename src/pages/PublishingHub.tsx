@@ -4,6 +4,7 @@
 // SSOT: seriesExportConfig.ts for fonts, color schemes, layouts.
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { AppShell } from "@/components/layout/AppShell";
 import { useSearchParams } from "react-router-dom";
 import { Printer, Loader2, Maximize2, X, Search, Share2, Link2, Check, QrCode } from "lucide-react";
@@ -218,6 +219,7 @@ export default function PublishingHub() {
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
 
   const isPaidUser = tier !== 'free';
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const getShareUrl = (token: string): string =>
     DIGITAL_WING_BASE_URL + '/' + token;
@@ -1245,9 +1247,9 @@ export default function PublishingHub() {
       {!isPaidUser ? (
         <div className="p-3 rounded-md border border-border bg-muted/30 text-center space-y-2">
           <p className="text-xs text-muted-foreground">{DIGITAL_WING_UI.upgradePrompt}</p>
-          <a href="/pricing" className="inline-block text-xs font-medium text-primary hover:underline">
+          <button onClick={() => setShowUpgradeModal(true)} className="inline-block text-xs font-medium text-primary hover:underline">
             {DIGITAL_WING_UI.upgradeButton}
-          </a>
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -2470,6 +2472,11 @@ export default function PublishingHub() {
         </div>
       )}
     </div>
+    <UpgradePromptModal
+      isOpen={showUpgradeModal}
+      onClose={() => setShowUpgradeModal(false)}
+      trigger="feature_teaser"
+    />
     </AppShell>
   );
 }

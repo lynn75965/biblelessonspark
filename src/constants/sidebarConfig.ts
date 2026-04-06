@@ -170,7 +170,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     label: 'Pricing',
     icon: CreditCard,
     description: 'View plans and pricing',
-    route: ROUTES.PRICING,
+    action: 'openUpgradeModal',
     tierGate: 'always',
   },
   userProfile: {

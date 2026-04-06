@@ -188,20 +188,20 @@ export function UpgradePromptModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Star className="h-5 w-5 text-amber-500" />
-            {prompt.title}
+            Ready to Do Even More for Your Class?
           </DialogTitle>
           <DialogDescription className="text-base">
             {trigger === 'limit_reached' && (
-              <span className="text-destructive font-medium">
-                You have used {lessonsUsed} of {lessonsLimit} lessons. 
+              <span className="text-destructive font-medium block mb-2">
+                You have used {lessonsUsed} of {lessonsLimit} lessons.
                 Your limit resets on {formatResetDate()}.
               </span>
             )}
-            {trigger !== 'limit_reached' && prompt.description}
+            You have already taken the first step {'\u2014'} preparing a lesson grounded in Scripture. What comes next is not simply more material. It is what happens in the room, and what carries forward into the week.
           </DialogDescription>
         </DialogHeader>
 
@@ -218,21 +218,20 @@ export function UpgradePromptModal({
               <p className="text-2xl font-bold">$0</p>
               <p className="text-sm text-muted-foreground">Your current plan</p>
             </div>
+            <p className="text-xs italic text-muted-foreground mb-3">You are teaching faithfully. Your class is receiving something real.</p>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                {freePlan.lessonsPerMonth} lessons per month
+                5 lessons per month
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                3 core sections only
+                3 core sections
               </li>
-              {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
-                <li key={section} className="flex items-center gap-2 text-muted-foreground">
-                  <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                  {section}
-                </li>
-              ))}
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-primary" aria-hidden="true" />
+                A complete, class-shaped lesson every time
+              </li>
             </ul>
           </div>
 
@@ -265,44 +264,36 @@ export function UpgradePromptModal({
               </li>
               <li className="flex items-center gap-2 font-medium">
                 <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                <strong>All 8</strong> lesson sections
+                <strong>All 8</strong>{' '}lesson sections
               </li>
-              {UPGRADE_PROMPTS.sections.freeIncluded.map((section) => (
-                <li key={section} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                  {section}
-                </li>
-              ))}
-              {UPGRADE_PROMPTS.sections.paidAdds.map((section) => (
-                <li key={section} className="flex items-center gap-2 text-primary font-medium">
-                  <Check className="h-4 w-4 text-primary" aria-hidden="true" />
-                  {section}
-                </li>
-              ))}
+              <li className="flex items-start gap-2 text-sm text-muted-foreground">
+                <Check className="h-4 w-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                <span>More room to prepare. More continuity. More capacity to lead.</span>
+              </li>
             </ul>
 
             {/* Divider */}
             <div className="border-t border-primary/20 my-3" />
 
             {/* Band 2 -- Beyond Sunday */}
-            <p className="text-xs font-bold text-primary uppercase tracking-wide mb-2" aria-hidden="true">Beyond Sunday</p>
+            <p className="text-xs font-bold text-primary uppercase tracking-wide mb-2" aria-hidden="true">What Begins to Change</p>
             <ul className="space-y-2 text-sm">
-              <li className="flex items-center gap-2 text-primary font-medium">
-                <Star className="h-4 w-4 text-primary" aria-hidden="true" />
-                DevotionalSpark follow-up for your class
+              <li className="flex items-start gap-2 text-primary font-medium">
+                <Star className="h-4 w-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                Your class begins to engage, not just listen.
               </li>
-              <li className="flex items-center gap-2 text-primary font-medium">
-                <Star className="h-4 w-4 text-primary" aria-hidden="true" />
-                Series of 2 to 13 lessons
+              <li className="flex items-start gap-2 text-primary font-medium">
+                <Star className="h-4 w-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                Truth that is heard on Sunday starts to take root.
               </li>
-              <li className="flex items-center gap-2 text-primary font-medium">
-                <Star className="h-4 w-4 text-primary" aria-hidden="true" />
-                Publish as booklet, ePub, or Kindle curriculum
+              <li className="flex items-start gap-2 text-primary font-medium">
+                <Star className="h-4 w-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                One lesson builds into another {'\u2014'} people begin to grow.
               </li>
             </ul>
 
             <p className="text-xs text-muted-foreground italic mt-3">
-              A free account prepares a lesson. The Personal Plan equips a class.
+              Not a different lesson. A fuller way to lead.
             </p>
           </div>
         </div>
@@ -337,12 +328,12 @@ export function UpgradePromptModal({
 
         <div className="flex gap-3 mt-6">
           <Button variant="outline" onClick={onClose} className="flex-1">
-            Not right now
+            I{'\u2019'}ll stay here for now
           </Button>
           <Button
             onClick={handleUpgradeClick}
             disabled={isLoading}
-            aria-label="Yes, upgrade to Personal Plan and do more for your class"
+            aria-label="Yes, upgrade to Personal Plan to equip my class"
             className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isLoading ? (
@@ -353,7 +344,7 @@ export function UpgradePromptModal({
             ) : (
               <>
                 <Star className="h-4 w-4 mr-2" />
-                Yes {'\u2014'} Let's Do More
+                Yes {'\u2014'} Equip My Class
               </>
             )}
           </Button>

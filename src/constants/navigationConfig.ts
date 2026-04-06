@@ -31,7 +31,7 @@ const NAV_ROUTES = {
   org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.DASHBOARD,
   parables: APP_ROUTES.PARABLES,
-  pricing: APP_ROUTES.PRICING,
+  pricing: APP_ROUTES.DASHBOARD,
   account: APP_ROUTES.ACCOUNT,
   toolbeltAdmin: APP_ROUTES.ADMIN_TOOLBELT,
   teachingTeam: APP_ROUTES.TEACHING_TEAM,

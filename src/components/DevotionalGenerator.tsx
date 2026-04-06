@@ -49,7 +49,7 @@ import { ROUTES } from "@/constants/routes";
 import { DEFAULT_THEOLOGY_PROFILE_ID } from "@/constants/theologyProfiles";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
-import { useNavigate as useNavigateUpgrade } from "react-router-dom";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { Lock } from "lucide-react";
 
 // ============================================================================
@@ -77,7 +77,7 @@ export function DevotionalGenerator() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { tier, isFreeTier } = useSubscription();
-  const navigateUpgrade = useNavigateUpgrade();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const canUseDevotional = hasFeatureAccess(tier, 'devotional');
 
   // URL Parameters (inherited from lesson)
@@ -392,7 +392,7 @@ export function DevotionalGenerator() {
               </p>
             </div>
             <button
-              onClick={() => navigateUpgrade(ROUTES.PRICING)}
+              onClick={() => setShowUpgradeModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-md text-sm font-medium transition-colors"
             >
               View Plans
@@ -608,6 +608,11 @@ export function DevotionalGenerator() {
           </CardContent>
         </Card>
       )}
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        trigger="feature_teaser"
+      />
     </div>
   );
 }

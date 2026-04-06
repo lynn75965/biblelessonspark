@@ -9,14 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Zap, ArrowUpRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { TRIAL_CONFIG } from "@/constants/trialConfig";
 import { TIER_LESSON_LIMITS } from "@/constants/pricingConfig";
-import { ROUTES } from "@/constants/routes";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 
 export function UsageDisplay() {
-  const navigate = useNavigate();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const {
     tier,
     lessonsUsed,
@@ -93,24 +93,24 @@ export function UsageDisplay() {
         {isFreeTier && fullRemaining <= 0 && shortRemaining <= 0 ? (
           /* Fully exhausted -- prominent blocked state */
           <div role="alert" className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-3">
-            <p className="text-sm font-semibold text-amber-900">Your free lessons are used for this period</p>
-            {resetDate && (
-              <p className="text-xs text-amber-700">Resets {formatResetDate(resetDate)}</p>
-            )}
-            <p className="text-xs text-amber-800">
-              Upgrade to give your class theological depth, activities, discussion, DevotionalSpark follow-ups, and a published quarterly curriculum.
+            <p className="text-sm font-semibold text-amber-900">You{'\u2019'}ve prepared lessons. You{'\u2019'}ve shown up faithfully.</p>
+            <p className="text-xs text-amber-800 mt-1">
+              The Personal Plan doesn{'\u2019'}t change what you prepare. It changes what happens to your people.
             </p>
+            {resetDate && (
+              <p className="text-xs text-amber-700">Resets {formatResetDate(resetDate)}. No long contract.</p>
+            )}
             <Button
               size="sm"
               className="w-full bg-primary hover:bg-primary-hover"
-              aria-label="Upgrade to Personal Plan to equip your class"
-              onClick={() => navigate(ROUTES.PRICING)}
+              aria-label="Upgrade to Personal Plan and equip your class"
+              onClick={() => setShowUpgradeModal(true)}
             >
               <ArrowUpRight className="mr-1 h-3 w-3" aria-hidden="true" />
-              Equip My Class
+              Yes {'\u2014'} Equip My Class
             </Button>
             <p className="text-[11px] text-amber-700 text-center">
-              Complete lessons {'\u00b7'} DevotionalSpark {'\u00b7'} Series {'\u00b7'} Publish {'\u00b7'} Export
+              Not more curriculum. The difference between a classroom and a community.
             </p>
           </div>
         ) : isFreeTier ? (
@@ -156,7 +156,7 @@ export function UsageDisplay() {
             variant="outline"
             size="sm"
             className="w-full text-xs"
-            onClick={() => navigate(ROUTES.PRICING)}
+            onClick={() => setShowUpgradeModal(true)}
           >
             <ArrowUpRight className="mr-1 h-3 w-3" />
             Upgrade for {TIER_LESSON_LIMITS.personal} lessons/month
@@ -169,6 +169,11 @@ export function UsageDisplay() {
           </p>
         )}
       </CardContent>
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        trigger="limit_reached"
+      />
     </Card>
   );
 }

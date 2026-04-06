@@ -19,7 +19,7 @@ import Docs from "./pages/Docs";
 import Help from "./pages/Help";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
-import PricingPage from "./pages/PricingPage";
+
 import BetaSignup from "./pages/BetaSignup";
 import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -62,11 +62,6 @@ const App = () => (
             <Route path={ROUTES.HOME} element={<Index />} />
             <Route path={ROUTES.SHARE} element={<SharedContentPage />} />
             <Route path={ROUTES.AUTH} element={<Auth />} />
-            <Route path={ROUTES.PRICING} element={
-              <ProtectedRoute>
-                <PricingPage />
-              </ProtectedRoute>
-            } />
             <Route
               path={ROUTES.DASHBOARD}
               element={

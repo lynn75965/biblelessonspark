@@ -269,6 +269,9 @@ export function AppShell({
       if (item.action === 'openProfile') {
         setShowProfileModal(true);
         setMobileOpen(false);
+      } else if (item.action === 'openUpgradeModal') {
+        setShowUpgradeModal(true);
+        setMobileOpen(false);
       } else if (item.action === 'signOut') {
         await signOut();
         window.location.href = '/auth';

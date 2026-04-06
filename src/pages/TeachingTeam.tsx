@@ -1,9 +1,9 @@
+import { useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { TeachingTeamCard } from "@/components/dashboard/TeachingTeamCard";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useNavigate } from "react-router-dom";
-import { ROUTES } from "@/constants/routes";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { Users } from "lucide-react";
 
 /**
@@ -32,7 +32,7 @@ export default function TeachingTeam() {
   } = useTeachingTeam();
 
   const { isPaidTier } = useSubscription();
-  const navigate = useNavigate();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   return (
     <AppShell conditions={{ hasTeam }}>
@@ -65,7 +65,12 @@ export default function TeachingTeam() {
           onDisbandTeam={disbandTeam}
           onLeaveTeam={leaveTeam}
           isPaidUser={isPaidTier}
-          onUpgrade={() => navigate(ROUTES.PRICING)}
+          onUpgrade={() => setShowUpgradeModal(true)}
+        />
+        <UpgradePromptModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          trigger="feature_teaser"
         />
       </div>
     </AppShell>

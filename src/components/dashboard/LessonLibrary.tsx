@@ -45,6 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
 import { useToast } from "@/hooks/use-toast";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { ROUTES } from "@/constants/routes";
 import { Lesson } from "@/constants/contracts";
 import { AGE_GROUPS } from "@/constants/ageGroups";
@@ -198,6 +199,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const canUseDevotional = hasFeatureAccess(tier, 'devotional');
   const { allSeries, fetchAllSeries, linkLessonToSeries } = useSeriesManager();
   const [addToSeriesOpenId, setAddToSeriesOpenId] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [addingToSeries, setAddingToSeries] = useState(false);
   const [reshapeExpandedId, setReshapeExpandedId] = useState<string | null>(null);
 
@@ -635,7 +637,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                             title: "Personal Plan Required",
                             description: getUpgradePrompt(tier, 'devotional'),
                           });
-                          navigate(ROUTES.PRICING);
+                          setShowUpgradeModal(true);
                         }}
                         variant="outline"
                         size="sm"
@@ -764,6 +766,11 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
           </CardContent>
         </Card>
       ) : null}
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        trigger="feature_teaser"
+      />
     </div>
   );
 }

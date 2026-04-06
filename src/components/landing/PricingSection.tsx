@@ -37,7 +37,7 @@ export function PricingSection() {
     if (tier === 'free') {
       navigate(ROUTES.AUTH);
     } else {
-      navigate(`${ROUTES.AUTH}?redirect=${ROUTES.PRICING}&plan=personal`);
+      navigate(`${ROUTES.AUTH}?redirect=${ROUTES.DASHBOARD}&plan=personal`);
     }
   };
 
@@ -60,7 +60,7 @@ export function PricingSection() {
         <div className="container px-4 sm:px-6">
           <div className="text-center py-8 sm:py-12 lg:py-12 px-4">
             <p className="text-sm sm:text-base text-muted-foreground">
-              Unable to load pricing. Please <a href="/pricing" className="text-primary underline">visit our pricing page</a>.
+              Unable to load pricing. Please refresh the page or try again later.
             </p>
           </div>
         </div>

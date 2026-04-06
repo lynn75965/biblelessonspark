@@ -150,7 +150,7 @@ function textToHtml(text: string): string {
     const urlMatch = line.match(/^(https?:\/\/[^\s]+)$/);
     if (urlMatch) {
       const url = urlMatch[1].replace(/[.,;:!?)]+$/, "");
-      const isMainCta = url.includes("/pricing") || 
+      const isMainCta = url.includes("/#pricing") || 
                         url.includes("/lesson-generator") ||
                         url.includes("/preferences") ||
                         url === "https://biblelessonspark.com/" || 
@@ -158,7 +158,7 @@ function textToHtml(text: string): string {
       
       if (isMainCta) {
         let buttonText = "Get Started ?";
-        if (url.includes("/pricing")) buttonText = "View Pricing Plans ?";
+        if (url.includes("/#pricing")) buttonText = "View Pricing Plans ?";
         if (url.includes("/lesson-generator")) buttonText = "Create Your Lesson ?";
         
         htmlLines.push(`

@@ -102,7 +102,10 @@
       "Bash(powershell.exe -ExecutionPolicy Bypass -File deploy.ps1 \"FIX: Increase visual distinction between Soft and Light themes\" 2>&1)",
       "Bash(powershell:*)",
       "Bash(npx axe:*)",
-      "Bash(npx browser-driver-manager:*)"
+      "Bash(npx browser-driver-manager:*)",
+      "Bash(netstat -tlnp)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(perl:*)"
     ]
   }
 }

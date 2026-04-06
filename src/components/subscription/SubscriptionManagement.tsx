@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CreditCard, Calendar, Star, ExternalLink } from 'lucide-react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { formatPrice } from '@/constants/pricingConfig';
+import { UpgradePromptModal } from '@/components/subscription/UpgradePromptModal';
 
 export function SubscriptionManagement() {
   const {
@@ -24,6 +25,7 @@ export function SubscriptionManagement() {
   } = useSubscription();
   
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const handleManageSubscription = async () => {
     setIsPortalLoading(true);
@@ -151,8 +153,8 @@ export function SubscriptionManagement() {
               )}
             </Button>
           ) : (
-            <Button 
-              onClick={() => window.location.href = '/pricing'}
+            <Button
+              onClick={() => setShowUpgradeModal(true)}
               className="w-full bg-sky-600 hover:bg-sky-700"
             >
               <Star className="h-4 w-4 mr-2" />
@@ -161,6 +163,11 @@ export function SubscriptionManagement() {
           )}
         </div>
       </CardContent>
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        trigger="feature_teaser"
+      />
     </Card>
   );
 }
