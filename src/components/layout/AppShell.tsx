@@ -31,9 +31,9 @@
  * - March 25, 2026: Self-contained rework -- no prop drilling
  */
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Menu, Lock } from "lucide-react";
+import { Menu, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTheme, THEME_LEVELS } from "@/components/layout/ThemeProvider";
 import { Button } from "@/components/ui/button";
 import {
@@ -88,18 +88,35 @@ interface SidebarContentProps {
   onItemClick: (item: SidebarItem) => void;
   isFreeTier: boolean;
   onLockedItemClick: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, onLockedItemClick, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
+function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, onLockedItemClick, collapsed = false, onToggleCollapse, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
   return (
     <>
-      {/* Logo block */}
-      <div className="px-3 py-4 border-b border-[#2d4a2d]">
-        <div className="flex items-center gap-2 mb-3">
-          <img src={BRANDING.logo.icon} alt={BRANDING.logo.altText} className="h-7 w-7 rounded-lg object-contain" />
-          <span className="font-bold text-[15px] text-white tracking-wide">{BRANDING.appName}</span>
+      {/* Collapse toggle -- desktop only */}
+      {onToggleCollapse && (
+        <div className={cn("flex border-b border-[#2d4a2d]", collapsed ? "justify-center py-2" : "justify-end px-2 py-1")}>
+          <button
+            onClick={onToggleCollapse}
+            className="p-1.5 rounded-md text-[#8a9f8a] hover:text-white hover:bg-[#2d4a2d] transition-colors"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
         </div>
-        {/* Theme intensity selector */}
+      )}
+
+      {/* Logo block */}
+      <div className={cn("border-b border-[#2d4a2d]", collapsed ? "px-1 py-3" : "px-3 py-4")}>
+        <div className={cn("flex items-center", collapsed ? "justify-center" : "gap-2 mb-3")}>
+          <img src={BRANDING.logo.icon} alt={BRANDING.logo.altText} className="h-7 w-7 rounded-lg object-contain" />
+          {!collapsed && <span className="font-bold text-[15px] text-white tracking-wide">{BRANDING.appName}</span>}
+        </div>
+        {/* Theme intensity selector -- hidden when collapsed */}
+        {!collapsed && (
         <div className="flex items-center justify-center gap-1.5">
           {THEME_LEVELS.map((level) => {
             const isActive = intensity === level.value;
@@ -124,9 +141,10 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
             );
           })}
         </div>
+        )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       <nav className="flex flex-col gap-1 py-2" aria-label="Sidebar navigation">
         {sections.map((section) => (
           <div key={section.id}>
@@ -154,7 +172,8 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
                 : false);
 
             const itemClasses = cn(
-              "flex items-center gap-3 w-full px-4 py-2.5 text-[13px] font-medium tracking-wide transition-colors text-left rounded-md",
+              "flex items-center w-full py-2.5 text-[13px] font-medium tracking-wide transition-colors text-left rounded-md",
+              collapsed ? "justify-center px-0" : "gap-3 px-4",
               isLocked
                 ? "text-[#d8e8d8] opacity-50 cursor-pointer hover:bg-[#2d4a2d] hover:text-white"
                 : isActive
@@ -179,11 +198,14 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
                     }
                   }}
                   className={itemClasses}
-                  title={`Upgrade to unlock ${item.label}`}
+                  title={collapsed ? item.label : `Upgrade to unlock ${item.label}`}
                 >
-                  <IconComponent className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
-                  <span className="truncate">{item.label}</span>
-                  <Lock className="h-3.5 w-3.5 shrink-0 ml-auto" aria-hidden="true" />
+                  <span className="relative shrink-0">
+                    <IconComponent className="h-[18px] w-[18px]" aria-hidden="true" />
+                    {collapsed && <Lock className="absolute -bottom-1 -right-1 h-2.5 w-2.5 text-[#8a9f8a]" aria-hidden="true" />}
+                  </span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                  {!collapsed && <Lock className="h-3.5 w-3.5 shrink-0 ml-auto" aria-hidden="true" />}
                 </button>
               );
             }
@@ -196,10 +218,10 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
                   to={item.route}
                   onClick={() => onItemClick(item)}
                   className={itemClasses}
-                  title={item.description}
+                  title={collapsed ? item.label : item.description}
                 >
                   <IconComponent className="h-[18px] w-[18px] shrink-0" />
-                  <span className="truncate">{item.label}</span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             }
@@ -210,10 +232,10 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
                 key={item.id}
                 onClick={() => onItemClick(item)}
                 className={itemClasses}
-                title={item.description}
+                title={collapsed ? item.label : item.description}
               >
                 <IconComponent className="h-[18px] w-[18px] shrink-0" />
-                <span className="truncate">{item.label}</span>
+                {!collapsed && <span className="truncate">{item.label}</span>}
               </button>
             );
           })}
@@ -236,6 +258,17 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(() =>
+    typeof window !== 'undefined' && localStorage.getItem('bls_sidebar_collapsed') === 'true'
+  );
+
+  const toggleDesktopCollapse = useCallback(() => {
+    setDesktopCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('bls_sidebar_collapsed', String(next));
+      return next;
+    });
+  }, []);
   const location = useLocation();
   const navigate = useNavigate();
   const { intensity, setIntensity } = useTheme();
@@ -307,8 +340,11 @@ export function AppShell({
 
       <div className="flex flex-1">
         {/* Desktop sidebar -- always visible on md+ */}
-        <aside className="hidden md:flex md:w-56 lg:w-64 flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-y-auto sticky top-0 h-screen">
-          <SidebarContent {...sidebarProps} intensity={intensity} setIntensity={setIntensity} />
+        <aside className={cn(
+          "hidden md:flex flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-y-auto sticky top-0 h-screen transition-[width] duration-200",
+          desktopCollapsed ? "w-14" : "md:w-56 lg:w-64"
+        )}>
+          <SidebarContent {...sidebarProps} collapsed={desktopCollapsed} onToggleCollapse={toggleDesktopCollapse} intensity={intensity} setIntensity={setIntensity} />
         </aside>
 
         {/* Mobile sidebar -- Sheet drawer */}
