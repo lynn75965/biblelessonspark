@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Claude Code Instructions
-# Last updated: April 4, 2026
+# Last updated: April 13, 2026
 # READ THIS ENTIRE FILE BEFORE TOUCHING ANY CODE
 
 ## AUTO-READ ON SESSION START

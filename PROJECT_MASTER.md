@@ -1,6 +1,11 @@
 ## WHAT'S NEXT
 
 ### Voice Navigation -- IN PROGRESS, set aside April 6, 2026
+NOTE (April 13, 2026): The "Build Lesson" voice command tab-switch issue is now
+partially addressed by commit 7a19527 (replace: true + location dependency fix).
+Voice command still routes through handleItemClick, so the same fix applies.
+Remaining voice nav work unchanged -- see list below.
+
 Partial implementation deployed. Current state:
 - Sidebar voice navigation working for most items -- "Publishing" label match unconfirmed
 - "Build Lesson" voice command not navigating correctly -- tab switch vs route issue unresolved
@@ -13,6 +18,38 @@ Partial implementation deployed. Current state:
 - Fundamental requirement: a user who cannot type or use a mouse must be able to complete the entire Build Lesson flow by voice alone -- from Step 1 card selection through Generate
 - Files involved: src/utils/useSpeechInput.ts, src/components/layout/AppShell.tsx, src/components/dashboard/EnhanceLessonForm.tsx
 - Next step: complete interactive element map, then redesign voice system to cover every interaction point
+
+---
+
+### April 13, 2026 -- Build Lesson Sidebar Tab Switch Fix
+
+#### Bug #35: Build Lesson sidebar click did nothing when already on /dashboard (commit 7a19527)
+When a user was already on /dashboard (e.g., viewing a lesson in the Lesson Library)
+and clicked "Build Lesson" in the sidebar, nothing happened. React Router did not
+process the navigate() call because the path was already /dashboard.
+
+Root cause: Two issues working together:
+1. AppShell.tsx navigate() call lacked `replace: true`, so React Router treated
+   same-path navigation as a no-op.
+2. Dashboard.tsx useEffect depended on `location.state` instead of `location`.
+   Since the state object reference might not change for same-path navigation,
+   the effect did not re-fire.
+
+Fix:
+- AppShell.tsx line 336: Added `replace: true` to the navigate() call for tab items.
+  This forces React Router to process the navigation and create a new location object.
+- Dashboard.tsx line 118: Changed useEffect dependency from `[location.state]` to
+  `[location]`. Each navigate() call creates a new location with a unique key,
+  guaranteeing the tab-switch effect fires every time.
+
+#### Files Changed This Session
+- src/components/layout/AppShell.tsx (navigate replace: true)
+- src/pages/Dashboard.tsx (useEffect dependency)
+- CLAUDE.md (date update)
+- PROJECT_MASTER.md (session log)
+
+#### Commits This Session
+- 7a19527 FIX: Build Lesson sidebar click switches tab when already on dashboard
 
 ---
 
