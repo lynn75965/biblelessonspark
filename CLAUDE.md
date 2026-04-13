@@ -132,6 +132,7 @@ Changes to a domain require updating only ONE file.
 | src/config/site.ts                                | Duplicated branding.ts (deleted Feb 21)                         |
 | src/components/workspace/WorkspaceSettingsPanel.tsx | Dead code -- never imported or rendered; targeted nonexistent table (deleted March 20, 2026) |
 | src/components/dashboard/BookletPrintModal.tsx      | Print feature removed; confirmed absent April 13, 2026         |
+| src/utils/useSpeechInput.ts                         | Voice navigation removed from feature set (deleted April 13, 2026) |
 
 ### Before touching any SSOT file:
 Audit ALL consumers of that file. Every import must be verified.

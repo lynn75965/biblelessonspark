@@ -1,24 +1,5 @@
 ## WHAT'S NEXT
 
-### Voice Navigation -- IN PROGRESS, set aside April 6, 2026
-NOTE (April 13, 2026): The "Build Lesson" voice command tab-switch issue is now
-partially addressed by commit 7a19527 (replace: true + location dependency fix).
-Voice command still routes through handleItemClick, so the same fix applies.
-Remaining voice nav work unchanged -- see list below.
-
-Partial implementation deployed. Current state:
-- Sidebar voice navigation working for most items -- "Publishing" label match unconfirmed
-- "Build Lesson" voice command not navigating correctly -- tab switch vs route issue unresolved
-- Microphone icons on Bible Passage and Topic or Question fields working
-- Additional Notes field has microphone icon
-- Scripture Foundation card selection (3 cards in Step 1) has no voice support
-- Step 2 dropdowns (Age Group, Theology Profile, Bible Version) have no voice support
-- Generate Lesson button has no voice activation
-- Full interactive element map of Build Lesson flow needed before further work
-- Fundamental requirement: a user who cannot type or use a mouse must be able to complete the entire Build Lesson flow by voice alone -- from Step 1 card selection through Generate
-- Files involved: src/utils/useSpeechInput.ts, src/components/layout/AppShell.tsx, src/components/dashboard/EnhanceLessonForm.tsx
-- Next step: complete interactive element map, then redesign voice system to cover every interaction point
-
 ---
 
 ### April 13, 2026 -- Build Lesson Sidebar Tab Switch Fix
@@ -48,14 +29,31 @@ Verified that all print-related code has been fully removed:
 - src/components/dashboard/BookletPrintModal.tsx -- file does not exist
 No print button or booklet print modal remains in the codebase.
 
+#### Voice Navigation Removed (commit 71f53e4)
+Voice navigation feature removed entirely from the BLS feature set.
+- Deleted src/utils/useSpeechInput.ts (Web Speech API hook)
+- Removed Voice Navigate button and all useSpeechInput references from AppShell.tsx
+- Removed microphone icons and all useSpeechInput references from EnhanceLessonForm.tsx
+- 257 lines deleted across 3 files. Zero voice nav code remains in codebase.
+
+#### .docx Format Description Fix (commit 9208fd9)
+Updated LessonExportModal.tsx .docx description to clarify Google Docs requires
+manual Drive upload. Copied from Lynn's corrected file.
+
 #### Files Changed This Session
-- src/components/layout/AppShell.tsx (navigate replace: true)
+- src/utils/useSpeechInput.ts (DELETED)
+- src/components/layout/AppShell.tsx (navigate replace: true + voice nav removal)
+- src/components/dashboard/EnhanceLessonForm.tsx (voice nav removal)
+- src/components/dashboard/LessonExportModal.tsx (.docx description fix)
 - src/pages/Dashboard.tsx (useEffect dependency)
-- CLAUDE.md (date update)
+- CLAUDE.md (date update + deleted files table)
 - PROJECT_MASTER.md (session log)
 
 #### Commits This Session
 - 7a19527 FIX: Build Lesson sidebar click switches tab when already on dashboard
+- 895852b DOCS: Add print code removal confirmation and BookletPrintModal to deleted files
+- 9208fd9 FIX: Correct .docx format description -- Google Docs requires manual Drive upload
+- 71f53e4 REFACTOR: Remove all voice navigation code from codebase
 
 ---
 
