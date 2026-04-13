@@ -41,9 +41,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers, Mic, Square } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
-import { useSpeechInput, isSpeechSupported } from "@/utils/useSpeechInput";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
@@ -463,20 +462,6 @@ export function EnhanceLessonForm({
   const [localShapeId, setLocalShapeId] = useState<string | null>(null);
   const [selectedShapeForReshape, setSelectedShapeForReshape] = useState<string>("");
   const [showReshapeSection, setShowReshapeSection] = useState(false);
-
-  // ============================================================================
-  // VOICE INPUT (Web Speech API)
-  // ============================================================================
-
-  const speechPassage = useSpeechInput({
-    onResult: useCallback((t: string) => setBiblePassage(prev => prev ? prev + ' ' + t : t), []),
-  });
-  const speechTopic = useSpeechInput({
-    onResult: useCallback((t: string) => setFocusedTopic(prev => prev ? prev + ' ' + t : t), []),
-  });
-  const speechNotes = useSpeechInput({
-    onResult: useCallback((t: string) => setNotes(prev => prev ? prev + ' ' + t : t), []),
-  });
 
   // ============================================================================
   // SERIES MANAGER (Phase 24 - replaces manual Lesson X of Y)
@@ -1880,24 +1865,6 @@ export function EnhanceLessonForm({
                         </ul>
                       )}
                     </div>
-                    {isSpeechSupported && (
-                      <button
-                        type="button"
-                        onClick={speechPassage.toggle}
-                        className={`mt-0.5 p-2 rounded-md transition-colors shrink-0 ${speechPassage.isListening ? 'text-red-500' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-                        aria-label={speechPassage.isListening ? 'Stop voice input for Bible Passage' : 'Voice input for Bible Passage'}
-                        title={speechPassage.isListening ? 'Stop listening' : 'Speak a Bible passage'}
-                      >
-                        {speechPassage.isListening ? (
-                          <span className="relative flex h-5 w-5 items-center justify-center">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                            <Square className="relative h-3.5 w-3.5 fill-current" />
-                          </span>
-                        ) : (
-                          <Mic className="h-5 w-5" />
-                        )}
-                      </button>
-                    )}
                     </div>
                   </div>
 
@@ -1912,24 +1879,6 @@ export function EnhanceLessonForm({
                       onChange={(e) => setFocusedTopic(e.target.value)}
                       disabled={isSubmitting}
                     />
-                    {isSpeechSupported && (
-                      <button
-                        type="button"
-                        onClick={speechTopic.toggle}
-                        className={`p-2 rounded-md transition-colors shrink-0 ${speechTopic.isListening ? 'text-red-500' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-                        aria-label={speechTopic.isListening ? 'Stop voice input for Topic' : 'Voice input for Topic'}
-                        title={speechTopic.isListening ? 'Stop listening' : 'Speak a topic or question'}
-                      >
-                        {speechTopic.isListening ? (
-                          <span className="relative flex h-5 w-5 items-center justify-center">
-                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                            <Square className="relative h-3.5 w-3.5 fill-current" />
-                          </span>
-                        ) : (
-                          <Mic className="h-5 w-5" />
-                        )}
-                      </button>
-                    )}
                     </div>
                   </div>
                 </div>
@@ -2176,24 +2125,6 @@ export function EnhanceLessonForm({
                   disabled={isSubmitting}
                   rows={3}
                 />
-                {isSpeechSupported && (
-                  <button
-                    type="button"
-                    onClick={speechNotes.toggle}
-                    className={`mt-0.5 p-2 rounded-md transition-colors shrink-0 ${speechNotes.isListening ? 'text-red-500' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
-                    aria-label={speechNotes.isListening ? 'Stop voice input for Additional Notes' : 'Voice input for Additional Notes'}
-                    title={speechNotes.isListening ? 'Stop listening' : 'Speak your notes'}
-                  >
-                    {speechNotes.isListening ? (
-                      <span className="relative flex h-5 w-5 items-center justify-center">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                        <Square className="relative h-3.5 w-3.5 fill-current" />
-                      </span>
-                    ) : (
-                      <Mic className="h-5 w-5" />
-                    )}
-                  </button>
-                )}
                 </div>
               </div>
 
