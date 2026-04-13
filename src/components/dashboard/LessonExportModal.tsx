@@ -336,7 +336,7 @@ export function LessonExportModal({
                   />
                   <div>
                     <span className="text-sm font-medium text-foreground block">Word Document (.docx)</span>
-                    <span className="text-xs text-muted-foreground block mt-0.5">Opens in Word, Google Docs, LibreOffice</span>
+                    <span className="text-xs text-muted-foreground block mt-0.5">Opens in Word or LibreOffice. To use in Google Docs, upload the file to Google Drive.</span>
                   </div>
                 </label>
               </div>
