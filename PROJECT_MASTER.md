@@ -42,6 +42,12 @@ Fix:
   `[location]`. Each navigate() call creates a new location with a unique key,
   guaranteeing the tab-switch effect fires every time.
 
+#### Print Code Removal Confirmed (April 13, 2026)
+Verified that all print-related code has been fully removed:
+- src/components/dashboard/EnhanceLessonForm.tsx -- zero matches for "print" (case-insensitive)
+- src/components/dashboard/BookletPrintModal.tsx -- file does not exist
+No print button or booklet print modal remains in the codebase.
+
 #### Files Changed This Session
 - src/components/layout/AppShell.tsx (navigate replace: true)
 - src/pages/Dashboard.tsx (useEffect dependency)
