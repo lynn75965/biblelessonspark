@@ -115,7 +115,7 @@ export default function Dashboard() {
       // Clear state so refresh does not re-trigger
       window.history.replaceState({}, '');
     }
-  }, [location.state]);
+  }, [location]);
 
   // Resolve pending lesson view once lessons are loaded
   useEffect(() => {

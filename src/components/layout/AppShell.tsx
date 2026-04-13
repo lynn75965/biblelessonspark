@@ -333,7 +333,7 @@ export function AppShell({
   const handleItemClick = async (item: SidebarItem) => {
     if (isSidebarTabItem(item) && item.tabValue) {
       // Navigate to /dashboard with tab in location state
-      navigate(ROUTES.DASHBOARD, { state: { tab: item.tabValue } });
+      navigate(ROUTES.DASHBOARD, { state: { tab: item.tabValue }, replace: true });
       setMobileOpen(false);
     } else if (isSidebarActionItem(item)) {
       if (item.action === 'openProfile') {
