@@ -399,6 +399,7 @@ export function EnhanceLessonForm({
   const [isExtracting, setIsExtracting] = useState(false);
   const [showExtractionNote, setShowExtractionNote] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const topicInputRef = useRef<HTMLInputElement>(null);
 
   // Derived: combine all extracted pages into single string for downstream consumers
   const extractedContent = extractedPages.length > 0
@@ -1515,7 +1516,11 @@ export function EnhanceLessonForm({
                   role="radio"
                   aria-checked={contentInputType === "passage"}
                   disabled={isSubmitting || isExtracting}
-                  onClick={() => setContentInputType("passage")}
+                  onClick={() => {
+                    setContentInputType("passage");
+                    setTimeout(() => document.getElementById("bible-passage")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+                    setTimeout(() => document.getElementById("bible-passage")?.focus(), 50);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
                       e.preventDefault();
@@ -1559,7 +1564,11 @@ export function EnhanceLessonForm({
                   role="radio"
                   aria-checked={contentInputType === "topic"}
                   disabled={isSubmitting || isExtracting}
-                  onClick={() => setContentInputType("topic")}
+                  onClick={() => {
+                    setContentInputType("topic");
+                    setTimeout(() => document.getElementById("topic-input")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+                    setTimeout(() => topicInputRef.current?.focus(), 50);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "ArrowRight" || e.key === "ArrowDown") {
                       e.preventDefault();
@@ -1597,7 +1606,7 @@ export function EnhanceLessonForm({
               {/* Curriculum upload/paste -- only when "curriculum" is selected */}
               {contentInputType === "curriculum" && (
                 <div className="space-y-3">
-                  {/* Toggle to paste mode */}
+                  {/* Toggle: Paste Text / Upload File */}
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -1610,33 +1619,49 @@ export function EnhanceLessonForm({
                       <Type className="h-4 w-4" />
                       Paste Text
                     </Button>
+                    <Button
+                      type="button"
+                      variant={curriculumInputMode === "file" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        handleCurriculumModeChange("file");
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={isSubmitting || isExtracting}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Upload File
+                    </Button>
                   </div>
+
+                  {/* Hidden file input -- always in DOM when curriculum mode active */}
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={fileAcceptTypes}
+                    multiple
+                    onChange={handleFileChange}
+                    disabled={isSubmitting || isExtracting}
+                    className="sr-only"
+                  />
 
                   {/* File Upload Mode - MOBILE FIX: flex-col on mobile */}
                   {curriculumInputMode === "file" && (
                     <div className="space-y-2">
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <Input
-                          ref={fileInputRef}
-                          type="file"
-                          accept={fileAcceptTypes}
-                          multiple
-                          onChange={handleFileChange}
-                          disabled={isSubmitting || isExtracting}
-                          className="sr-only"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          disabled={isSubmitting || isExtracting}
-                          className="flex items-center gap-2 w-full sm:w-auto"
-                        >
-                          <Upload className="h-4 w-4" />
-                          {uploadedFiles.length === 0
-                            ? "Upload Curriculum -- PDF, TXT, JPG, JPEG, PNG"
-                            : "Add More Curriculum If Needed"}
-                        </Button>
+                        {uploadedFiles.length > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isSubmitting || isExtracting}
+                            className="flex items-center gap-2 w-full sm:w-auto"
+                          >
+                            <Upload className="h-4 w-4" />
+                            Add More Curriculum If Needed
+                          </Button>
+                        )}
                         {uploadedFiles.length > 0 && (
                           <Button
                             type="button"
@@ -1809,12 +1834,13 @@ export function EnhanceLessonForm({
                 </div>
               )}
 
-              {/* Bible passage + topic inputs -- shown for BOTH "passage" and "topic" */}
+              {/* Bible passage + topic inputs -- each shown only for its own content type */}
               {(contentInputType === "passage" || contentInputType === "topic") && (
                 <div className="space-y-3">
-                  {/* Bible Passage input */}
+                  {/* Bible Passage input -- only for "passage" mode */}
+                  {contentInputType === "passage" && (
                   <div>
-                    <Label htmlFor="bible-passage" className="text-sm font-medium mb-1.5 block">Bible Passage</Label>
+                    <Label htmlFor="bible-passage" className="text-base font-semibold mb-1.5 block">Bible Passage</Label>
                     <div className="flex items-start gap-2">
                     <div className="relative flex-1">
                       <Input
@@ -1867,12 +1893,16 @@ export function EnhanceLessonForm({
                     </div>
                     </div>
                   </div>
+                  )}
 
-                  {/* Topic/Theme input */}
+                  {/* Topic/Theme input -- only for "topic" mode */}
+                  {contentInputType === "topic" && (
                   <div>
-                    <Label className="text-sm font-medium mb-1.5 block">Topic or Question</Label>
+                    <Label className="text-base font-semibold mb-1.5 block">Topic or Question</Label>
                     <div className="flex items-center gap-2">
                     <Input
+                      id="topic-input"
+                      ref={topicInputRef}
                       className="flex-1"
                       placeholder="e.g., 'Salvation through Faith' or 'God's Grace'"
                       value={focusedTopic}
@@ -1881,6 +1911,7 @@ export function EnhanceLessonForm({
                     />
                     </div>
                   </div>
+                  )}
                 </div>
               )}
 

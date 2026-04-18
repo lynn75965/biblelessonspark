@@ -364,3 +364,88 @@ UpgradePromptModal.tsx, sidebarConfig.ts.
 
 #### Commits This Session
 - a3167e0  DOCS: Add Copy Governance section for upgrade conversion messaging
+
+---
+
+## SESSION LOG: April 13, 2026 -- Admin Delete Fix + Org Deletion Workflow Design
+
+### Fix 1: admin-delete-user Edge Function -- Complete Rewrite
+Root cause: Edge Function called `auth.admin.deleteUser()` directly, trusting
+Supabase to cascade. It does not. `org_shared_focus.created_by` has a NOT NULL
+constraint that blocked deletion with AuthApiError: unexpected_failure.
+
+Fix: Rewrote Edge Function to manually delete all user data across 30 tables
+in correct dependency order before calling deleteUser(). Jana Thomas was the
+failing test case -- manually deleted via SQL to unblock. Fix deployed and
+verified: "User deleted successfully" toast confirmed live.
+
+Tables now cleaned in order before auth deletion:
+generation_metrics, reshape_metrics, guardrail_violations, events, outputs,
+beta_feedback, feedback, email_sequence_tracking, email_rosters, notifications,
+parable_usage, modern_parables, devotional_usage, devotionals, devotional_series,
+refinements, lessons, lesson_series, teaching_team_members, teaching_teams,
+transfer_requests, credits_ledger, setup_progress, org_shared_focus,
+organization_focus, organization_members, beta_testers, invites, user_roles,
+teacher_preference_profiles, user_subscriptions, profiles
+
+Commit: FIX: admin-delete-user -- explicit cleanup of all 30 user-linked tables
+before auth deletion
+
+### Fix 2: Teaching Team Dissolution Notification -- Designed, NOT YET BUILT
+When a lead teacher is deleted, the two team members lose their team silently.
+Notification emails must be sent BEFORE the cleanup sequence runs.
+Carry forward to next session.
+
+### Fix 3: Org Deletion Approval Workflow -- Designed, NOT YET BUILT
+
+Full design approved. Implementation requires these four files first:
+- src/pages/OrgManager.tsx
+- src/pages/Admin.tsx
+- src/hooks/useAdminOperations.tsx
+- src/constants/orgManagerConfig.ts
+
+Approved build plan:
+
+1. organizationConfig.ts -- add ORG_DELETION_REQUEST constant block (SSOT first):
+   statuses: none/pending/approved
+   uiCopy: button labels, confirm dialog copy, admin badge text
+   rules: whoCanRequest, whoCanApprove, requiresAdminApproval: true
+
+2. contracts.ts -- add deletion_requested_at and deletion_requested_by to
+   Organization interface
+
+3. Migration file -- ALTER TABLE organizations ADD COLUMN deletion_requested_at
+   TIMESTAMPTZ, deletion_requested_by UUID
+
+4. Two new Edge Functions:
+   - request-org-deletion: org manager calls; sets columns; emails Lynn at
+     eckbrosmediallc@gmail.com AND support@biblelessonspark.com
+   - approve-org-deletion: admin-only; emails all org members; deletes org data
+
+5. Two new email templates:
+   - org-deletion-request-email.tsx (to admin/Lynn)
+   - org-dissolution-notice-email.tsx (to org members)
+
+6. Frontend:
+   - OrgManager.tsx: "Request Organization Closure" button (org manager only)
+     shows "Pending Admin Approval" badge if already requested
+   - Admin.tsx: amber badge on pending orgs, "Approve Deletion" button
+
+Org member dissolution email content:
+- Organization name and closure date
+- Requested by: manager name
+- Personal account remains fully active
+- All personal lessons retained in Lesson Library
+- Subscription unchanged
+- No longer part of a teaching organization
+- Contact support@biblelessonspark.com if in error
+
+Lynn personal notification email: eckbrosmediallc@gmail.com
+Admin notification email: support@biblelessonspark.com
+Both addresses receive the deletion request notification.
+
+### Bug History Additions
+33. admin-delete-user assumed Supabase cascades all FK relationships on
+    auth.users delete. It does not. org_shared_focus.created_by is NOT NULL
+    with no CASCADE, blocking deletion. Fix: explicit 30-table cleanup sequence
+    before deleteUser() call. April 13, 2026.
