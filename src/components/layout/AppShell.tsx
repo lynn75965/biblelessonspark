@@ -259,7 +259,7 @@ export function AppShell({
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(() =>
-    typeof window !== 'undefined' && localStorage.getItem('bls_sidebar_collapsed') === 'true'
+    typeof window !== 'undefined' && false
   );
 
   const toggleDesktopCollapse = useCallback(() => {
@@ -342,7 +342,7 @@ export function AppShell({
         {/* Desktop sidebar -- always visible on md+ */}
         <aside className={cn(
           "hidden md:flex flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-y-auto sticky top-0 h-screen transition-[width] duration-200",
-          desktopCollapsed ? "w-14" : "md:w-56 lg:w-64"
+          desktopCollapsed ? "w-14" : "md:w-64 lg:w-72"
         )}>
           <SidebarContent {...sidebarProps} collapsed={desktopCollapsed} onToggleCollapse={toggleDesktopCollapse} intensity={intensity} setIntensity={setIntensity} />
         </aside>

@@ -304,23 +304,6 @@ function generateCSS() {
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
-
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-
-  ::-webkit-scrollbar-track {
-    @apply bg-muted;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-muted-foreground/50;
-  }
 }
 
 @layer components {
@@ -368,6 +351,25 @@ function generateCSS() {
     padding-top: var(--section-y-lg);
     padding-bottom: var(--section-y-lg);
   }
+}
+
+/* Wide scrollbar for accessibility */
+::-webkit-scrollbar {
+  width: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4a7a4a;
+  border-radius: 8px;
+  border: 2px solid #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2d5a2d;
 }
 `;
 }
