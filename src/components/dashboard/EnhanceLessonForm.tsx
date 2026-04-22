@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
@@ -62,6 +62,7 @@ import { FREE_TIER_SECTION_NUMBERS, PRICING_DISPLAY, TIER_LESSON_LIMITS } from "
 import { getVideo, hasVideoUrl } from "@/constants/helpVideos";
 import { TeacherCustomization } from "./TeacherCustomization";
 import { LessonExportButtons } from "./LessonExportButtons";
+import { TutorialsModal } from "./TutorialsModal";
 import { FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 import { SeriesStyleMetadata } from "@/constants/seriesConfig";
@@ -361,6 +362,7 @@ export function EnhanceLessonForm({
   
   const navigate = useNavigate();
   const [expandedStep, setExpandedStep] = useState<1 | 2 | 3>(1);
+  const [showTutorials, setShowTutorials] = useState(false);
   const {
     tier,
     lessonsUsed: subLessonsUsed,
@@ -1400,15 +1402,27 @@ export function EnhanceLessonForm({
             {/* Only show after lessons have loaded to prevent flicker */}
             {!lessonsLoading && lessonCount === 0 && subLessonsUsed < subLessonsLimit && (
               <div data-tour="workspace-welcome" className="bg-gradient-to-r from-primary/5 to-amber-50 border border-primary/30 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <Star className="h-6 w-6 text-primary shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-foreground">Welcome! Create your lesson in 3 simple steps.</h3>
-                    <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <Star className="h-6 w-6 text-primary shrink-0" aria-hidden="true" />
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-foreground">Welcome! Create your lesson in 3 simple steps.</h3>
+                      <p className="text-sm text-muted-foreground mt-1">Estimated time: 3 minutes</p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTutorials(true)}
+                    aria-label="Watch 4 tutorial videos"
+                    className="shrink-0 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded px-1 py-0.5"
+                  >
+                    <PlayCircle className="h-4 w-4" aria-hidden="true" />
+                    Watch tutorials
+                  </button>
                 </div>
               </div>
             )}
+            <TutorialsModal open={showTutorials} onOpenChange={setShowTutorials} />
           </>
         )}
 

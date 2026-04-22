@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
+import { TRAINING_VIDEOS } from "@/config/trainingVideos";
 
 const Training = () => {
   const quickStartSteps = [
@@ -125,28 +126,11 @@ const Training = () => {
     }
   ];
 
-  const videos = [
-    {
-      title: "Your Personal Workspace",
-      description: "A guided tour of your dashboard and all the tools available to you.",
-      src: "https://player.vimeo.com/video/1185247853?h=ef593269e9"
-    },
-    {
-      title: "Fast Track Through Steps 1 to 3",
-      description: "Quickly learn the first three steps to generating a lesson.",
-      src: "https://player.vimeo.com/video/1184980897?h=794ce59043"
-    },
-    {
-      title: "Insights to the Generated Lesson",
-      description: "Understand the 8-section lesson format and how to make the most of it.",
-      src: "https://player.vimeo.com/video/1185175647?h=ad3dd946cd"
-    },
-    {
-      title: "Lesson Library and Publishing",
-      description: "Learn how to save, organize, and publish your lessons.",
-      src: "https://player.vimeo.com/video/1184980935?h=11d08c547c"
-    }
-  ];
+  const videos = TRAINING_VIDEOS.map((v, i) => ({
+    title: `${i + 1}. ${v.title}`,
+    description: v.description,
+    src: `https://player.vimeo.com/video/${v.id}?h=${v.hash}`,
+  }));
 
   return (
     <AppShell>
