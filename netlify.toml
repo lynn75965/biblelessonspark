@@ -1,4 +1,4 @@
-headersOrigin = "config"
+﻿headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
 
@@ -7,7 +7,7 @@ plugins = []
 [functions."*"]
 
 [build]
-publish = "C:\\Users\\lynn\\biblelessonspark\\dist"
+publish = "dist"
 publishOrigin = "config"
 commandOrigin = "config"
 command = "npm run build"
