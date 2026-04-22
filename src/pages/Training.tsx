@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { 
   GraduationCap, 
   Mail, 
-  PlayCircle,
   BookOpen,
   Clock,
   CheckCircle,
@@ -126,21 +125,26 @@ const Training = () => {
     }
   ];
 
-  const videoPlaceholders = [
+  const videos = [
     {
-      title: "Platform Overview",
-      description: "A 3-minute tour of BibleLessonSpark features and navigation.",
-      thumbnail: "overview"
+      title: "Your Personal Workspace",
+      description: "A guided tour of your dashboard and all the tools available to you.",
+      src: "https://player.vimeo.com/video/1185247853?h=ef593269e9"
     },
     {
-      title: "Generating Your First Lesson",
-      description: "Watch a complete lesson being created from start to finish.",
-      thumbnail: "generate"
+      title: "Fast Track Through Steps 1 to 3",
+      description: "Quickly learn the first three steps to generating a lesson.",
+      src: "https://player.vimeo.com/video/1184980897?h=794ce59043"
     },
     {
-      title: "Customization Options",
-      description: "Learn about teacher notes, student teasers, and advanced settings.",
-      thumbnail: "customize"
+      title: "Insights to the Generated Lesson",
+      description: "Understand the 8-section lesson format and how to make the most of it.",
+      src: "https://player.vimeo.com/video/1185175647?h=ad3dd946cd"
+    },
+    {
+      title: "Lesson Library and Publishing",
+      description: "Learn how to save, organize, and publish your lessons.",
+      src: "https://player.vimeo.com/video/1184980935?h=11d08c547c"
     }
   ];
 
@@ -210,19 +214,25 @@ const Training = () => {
         {/* Video Tutorials */}
         <section>
           <div className="text-center mb-8">
-            <Badge variant="outline" className="mb-4">Coming Soon</Badge>
             <h2 className="text-2xl font-bold">Video Tutorials</h2>
             <p className="text-muted-foreground mt-2">Visual guides to help you get the most from BibleLessonSpark</p>
           </div>
-          
-          <div className="grid sm:grid-cols-3 gap-6">
-            {videoPlaceholders.map((video, index) => (
+
+          <div className="grid sm:grid-cols-2 gap-8">
+            {videos.map((video, index) => (
               <Card key={index} className="overflow-hidden">
-                <div className="aspect-video bg-muted flex items-center justify-center">
-                  <div className="text-center">
-                    <PlayCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-2" />
-                    <span className="text-sm text-muted-foreground">Coming Soon</span>
-                  </div>
+                <div className="aspect-video w-full">
+                  <iframe
+                    title={video.title}
+                    src={video.src}
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
                 </div>
                 <CardHeader>
                   <CardTitle className="text-base">{video.title}</CardTitle>
@@ -330,6 +340,3 @@ const Training = () => {
 };
 
 export default Training;
-
-
-
