@@ -2,6 +2,54 @@
 
 ---
 
+### April 22, 2026 -- CSP Consolidation and Vimeo Training Videos Fix
+
+#### Bug: Vimeo videos at /training blocked despite netlify.toml allowing player.vimeo.com
+The five prior CSP-related commits (9df3f99, fe2b0d2, 41d5b70, 8be34ad, 0a0a51c) all
+edited netlify.toml, but a conflicting meta CSP in index.html line 14 had
+frame-src 'none'. Browsers enforce the intersection of HTTP-header CSP and
+meta-tag CSP -- the most restrictive wins -- so frame-src 'none' silently overrode
+the Netlify header. Root cause was dual CSP sources, not any Netlify configuration
+problem.
+
+Immediate fix (commit baf2c9d): Changed meta CSP frame-src 'none' to
+frame-src https://player.vimeo.com. Videos load.
+
+Consolidation (commit 5237b43): Deleted the meta CSP tag from index.html entirely.
+netlify.toml is now the single source of truth for CSP. Also added Google Fonts
+to netlify.toml CSP (style-src https://fonts.googleapis.com, font-src
+https://fonts.gstatic.com) -- the prior intersection was also silently blocking
+Google Fonts because the Netlify CSP did not include them.
+
+New architectural rule established this session:
+CSP is SSOT in netlify.toml. No meta CSP in index.html. Future CSP changes touch
+netlify.toml only.
+
+#### Deploy Script Workflow Note
+deploy.ps1 line 32 does `git add .` which stages ALL pending git modifications
+into one commit, not only task-named files. When task scope must be narrow
+(standing rule), bypass deploy.ps1 with a manual sequence: verify on main,
+git add <specific-files>, git commit -m, git push origin main. Netlify
+auto-deploys from push either way.
+
+#### Files Changed This Session
+- index.html (meta CSP removed)
+- netlify.toml (Google Fonts added to style-src and font-src)
+- PROJECT_MASTER.md (session log)
+
+#### Commits This Session
+- baf2c9d fix: allow Vimeo iframes in index.html meta CSP
+- 5237b43 fix: consolidate CSP to netlify.toml; allow Google Fonts
+
+#### Pending Uncommitted Modifications (Carry Forward)
+Two pre-existing uncommitted modifications were present at session start and
+remain untouched per task-scope rule:
+- .claude/settings.local.json -- Claude Code permission allowlist additions
+- src/index.css -- auto-regenerated build timestamp comment header
+Neither affects production behavior. Commit or discard at Lynn's discretion.
+
+---
+
 ### April 13, 2026 -- Build Lesson Sidebar Tab Switch Fix
 
 #### Bug #35: Build Lesson sidebar click did nothing when already on /dashboard (commit 7a19527)
