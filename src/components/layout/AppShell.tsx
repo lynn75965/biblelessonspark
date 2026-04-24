@@ -341,7 +341,7 @@ export function AppShell({
       <div className="flex flex-1">
         {/* Desktop sidebar -- always visible on md+ */}
         <aside className={cn(
-          "hidden md:flex flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-y-auto sticky top-0 h-screen transition-[width] duration-200",
+          "hidden md:flex flex-col border-r border-[#2d4a2d] bg-[#1a2e1a] shrink-0 overflow-hidden sticky top-0 h-screen transition-[width] duration-200",
           desktopCollapsed ? "w-14" : "md:w-64 lg:w-72"
         )}>
           <SidebarContent {...sidebarProps} collapsed={desktopCollapsed} onToggleCollapse={toggleDesktopCollapse} intensity={intensity} setIntensity={setIntensity} />
