@@ -37,3 +37,6 @@ backups/
 Remove-ConsoleLogs.ps1
 
 SSOT-PROJECT-FILES/
+
+# Claude Code local settings (per-machine; do not commit)
+.claude/settings.local.json
