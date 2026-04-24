@@ -2,6 +2,52 @@
 
 ---
 
+### April 24, 2026 -- Sidebar Scrollbar Eliminated (Outermost Container Fix)
+
+#### Bug: Persistent sidebar scrollbar after two prior fix attempts
+The desktop sidebar in AppShell.tsx still rendered a vertical scrollbar even after
+prior commits attempted to remove it:
+- 135cf4c (April 23) removed overflow-y-auto from the inner nav wrapper
+- An earlier session targeted SidebarContent's flex-1 region
+
+Both prior fixes touched inner elements while leaving the outermost <aside>
+container with overflow-y-auto. Whenever the sidebar's intrinsic content height
+exceeded h-screen by even a few pixels (logo block + theme selector + collapse
+toggle + nav list), the aside itself produced the scrollbar -- inner-element
+fixes could not suppress it.
+
+Fix (commit 859a9fa): Changed the <aside> at AppShell.tsx:344 from
+overflow-y-auto to overflow-hidden. The outermost container now clips any
+overflow regardless of inner content height. Main content area scrollbar
+(<main> at line 373) remains untouched -- its scrolling behavior is unchanged.
+
+Lesson learned this session:
+When a scrollbar appears on a fixed-height layout container, fix the outermost
+element first. Inner overflow rules cannot override an ancestor that still has
+overflow-y-auto.
+
+#### Deploy Workflow (Continued from April 22 Pattern)
+Bypassed deploy.ps1 again because two pre-existing unrelated modifications
+(.claude/settings.local.json, src/index.css) were present at session start.
+Manual sequence used: npm run build -> git add <single file> -> git commit
+-> git push origin main. Netlify auto-deployed from push.
+
+#### Files Changed This Session
+- src/components/layout/AppShell.tsx (overflow-y-auto -> overflow-hidden on <aside>)
+- PROJECT_MASTER.md (session log)
+
+#### Commits This Session
+- 859a9fa FIX: set overflow-hidden on outermost sidebar aside to remove sidebar scrollbar
+
+#### Pending Uncommitted Modifications (Carry Forward)
+The same two pre-existing uncommitted modifications from the April 22 session
+remain untouched per task-scope rule:
+- .claude/settings.local.json -- Claude Code permission allowlist additions
+- src/index.css -- auto-regenerated build timestamp comment header
+Neither affects production behavior. Commit or discard at Lynn's discretion.
+
+---
+
 ### April 22, 2026 -- CSP Consolidation and Vimeo Training Videos Fix
 
 #### Bug: Vimeo videos at /training blocked despite netlify.toml allowing player.vimeo.com
