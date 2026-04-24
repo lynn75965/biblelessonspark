@@ -2432,7 +2432,7 @@ export function EnhanceLessonForm({
                 </div>
                 {lessonViewMode === "free" && (
                   <p className="text-xs text-amber-700 mt-2">
-                    Showing sections 1, 5, and 8 only ? this is what free accounts receive after complimentary lessons expire.
+                    Showing sections 1, 5, and 8 only this is what free accounts receive after complimentary lessons expire.
                   </p>
                 )}
               </div>
@@ -2657,7 +2657,7 @@ export function EnhanceLessonForm({
                           {section.title}
                           {section.isFreeTier && lessonViewMode === "free" && !isPaidUser && (
                             <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              ? Included in Free
+                              Included in Free
                             </span>
                           )}
                         </h3>
