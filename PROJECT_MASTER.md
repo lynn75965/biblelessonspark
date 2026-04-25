@@ -52,12 +52,34 @@ pattern as April 23 cleanup commit 0778082). deploy.ps1 then staged only
 LessonLibrary.tsx because it was the lone remaining modification. ASCII
 guard passed on the pre-commit hook; pushed to main; Netlify auto-deploy.
 
+#### Feature 2: Rich-text clipboard copy for Google Docs paste
+The Copy button inside the reshape preview expander previously called
+navigator.clipboard.writeText with the raw markdown string, so pasting into
+Google Docs landed literal "# Heading" / "**bold**" markers. Replaced with
+the multi-format Async Clipboard API (LessonLibrary.tsx:760-780): converts
+the shaped content into both an HTML representation (h1/h2/h3 + strong) and
+a plain-text fallback, then writes a ClipboardItem holding both MIME types.
+Google Docs reads the text/html representation and renders proper headings
+and bold spans on paste.
+
+The onClick handler also had to switch from sync to async because the new
+flow uses await navigator.clipboard.write([...]). No try/catch was added --
+matches the existing handler pattern; a clipboard write rejection will
+surface in the devtools console and skip the success toast. Tested in
+browser; paste into Google Docs renders as formatted content.
+
+Same deploy pattern as Feature 1: reverted auto-generated src/index.css
+timestamp before deploy.ps1 so only LessonLibrary.tsx shipped.
+
 #### Files Changed This Session
-- src/components/dashboard/LessonLibrary.tsx (renderMarkdown helper + expander markup)
-- PROJECT_MASTER.md (this session log)
+- src/components/dashboard/LessonLibrary.tsx
+  - Commit 1: renderMarkdown helper + expander markup
+  - Commit 2: rich-text clipboard write in Copy onClick (now async)
+- PROJECT_MASTER.md (this session log, both updates)
 
 #### Commits This Session
 - 1e69ff5 FEATURE: Render markdown in reshaped lesson preview expander
+- a5267ba FEATURE: Copy reshaped lesson content as rich-text HTML for Google Docs paste
 
 #### Pending Uncommitted Modifications (Carry Forward)
 None at session end (after this PROJECT_MASTER.md update is committed).
