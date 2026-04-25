@@ -1,6 +1,66 @@
-# PROJECT MASTER -- Last updated: April 24, 2026
+# PROJECT MASTER -- Last updated: April 25, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### April 25, 2026 -- Markdown Rendering for Reshape Preview Expander
+
+#### Feature: Render basic markdown inside the lesson card reshape preview
+The "View Reshaped" expander on lesson cards in LessonLibrary previously
+displayed a 300-character substring of shaped_content as a plain <p> with
+whitespace-pre-line. Headings (#, ##, ###) and **bold** spans rendered as
+literal markdown punctuation, which read poorly on the dashboard.
+
+Added a small renderMarkdown(text) helper above the LessonLibrary component
+(LessonLibrary.tsx:183-192) that line-splits the input and emits:
+- <h1>/<h2>/<h3> for #, ##, ### lines
+- <strong> for **bold** spans
+- <p> for everything else (text-xs, muted-foreground, mb-0.5)
+
+Replaced the truncated <p> at LessonLibrary.tsx:769-771 with a scrollable
+<div className="text-xs text-muted-foreground max-h-40 overflow-y-auto">
+that calls renderMarkdown(lesson.shaped_content.slice(0, 600)). Preview now
+shows roughly twice as much content with proper heading and bold formatting.
+No new dependencies (no react-markdown / remark) -- the helper is local.
+
+#### Incident: Literal en-dash inserted by Write tool, caught and reverted
+The first attempt used the Write tool for a full-file replacement and
+silently introduced a literal U+2013 en-dash on line 836 (the "2-13 lessons
+per series" caption that previously used the \u201313 escape). This would
+have failed the ASCII guard on deploy.
+
+Per Rule #13, restored the file via git checkout HEAD -- LessonLibrary.tsx,
+then reapplied both edits using PowerShell with [System.IO.File]::WriteAllText
+and the UTF-8 (no BOM) encoder. PowerShell here-strings were normalized to
+the file's existing line endings (CRLF) before the .Replace calls so the
+multi-line block match would not silently miss. Verified zero non-ASCII
+bytes via grep before deploy.
+
+Lesson learned this session:
+The Write tool can normalize escape sequences into literal Unicode glyphs
+during a full-file rewrite. For BibleLessonSpark source files prefer Edit
+(surgical) or PowerShell with [System.IO.File]::WriteAllText when the
+change set is small. If Write must be used for a full file rewrite, grep
+the result for [^\x00-\x7F] before deploy. Existing Rule #16 already bans
+literal Unicode -- this incident reinforced that the verification step
+must run on every full-file write, not just hand-typed edits.
+
+#### Deploy Workflow
+Reverted the auto-generated src/index.css timestamp before commit (same
+pattern as April 23 cleanup commit 0778082). deploy.ps1 then staged only
+LessonLibrary.tsx because it was the lone remaining modification. ASCII
+guard passed on the pre-commit hook; pushed to main; Netlify auto-deploy.
+
+#### Files Changed This Session
+- src/components/dashboard/LessonLibrary.tsx (renderMarkdown helper + expander markup)
+- PROJECT_MASTER.md (this session log)
+
+#### Commits This Session
+- 1e69ff5 FEATURE: Render markdown in reshaped lesson preview expander
+
+#### Pending Uncommitted Modifications (Carry Forward)
+None at session end (after this PROJECT_MASTER.md update is committed).
 
 ---
 
