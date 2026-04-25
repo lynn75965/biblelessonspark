@@ -37,7 +37,8 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, ChevronDown, ChevronUp, Copy, Plus, Loader2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
@@ -197,10 +198,13 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const { tier } = useSubscription();
   const { toast } = useToast();
   const canUseDevotional = hasFeatureAccess(tier, 'devotional');
-  const { allSeries, fetchAllSeries, linkLessonToSeries } = useSeriesManager();
+  const { allSeries, fetchAllSeries, linkLessonToSeries, createSeries, isCreating } = useSeriesManager();
   const [addToSeriesOpenId, setAddToSeriesOpenId] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [addingToSeries, setAddingToSeries] = useState(false);
+  const [showCreateSeriesModal, setShowCreateSeriesModal] = useState(false);
+  const [newSeriesName, setNewSeriesName] = useState("");
+  const [newSeriesLessonCount, setNewSeriesLessonCount] = useState(4);
   const [reshapeExpandedId, setReshapeExpandedId] = useState<string | null>(null);
 
   // Fetch series list on mount for "Add to Series" dropdown
@@ -381,6 +385,16 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     }
   };
 
+  const handleCreateSeries = async () => {
+    const result = await createSeries(newSeriesName, newSeriesLessonCount);
+    if (result) {
+      setShowCreateSeriesModal(false);
+      setNewSeriesName("");
+      setNewSeriesLessonCount(4);
+      fetchAllSeries();
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-12">
@@ -429,6 +443,15 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                 </Button>
               </div>
             )}
+
+            <Button
+              onClick={() => setShowCreateSeriesModal(true)}
+              size="sm"
+              className="gap-1.5 shrink-0 ml-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Lesson Series
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -766,6 +789,51 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
           </CardContent>
         </Card>
       ) : null}
+      <Dialog open={showCreateSeriesModal} onOpenChange={setShowCreateSeriesModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Lesson Series</DialogTitle>
+            <DialogDescription>
+              Create a series to organize multiple lessons around a unified teaching theme or passage.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Series Name</label>
+              <Input
+                placeholder="e.g. Romans: The Gospel of Grace"
+                value={newSeriesName}
+                onChange={(e) => setNewSeriesName(e.target.value)}
+                maxLength={100}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Total Lessons</label>
+              <Select
+                value={String(newSeriesLessonCount)}
+                onValueChange={(v) => setNewSeriesLessonCount(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 12 }, (_, i) => i + 2).map((n) => (
+                    <SelectItem key={n} value={String(n)}>{n} lessons</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">{"2\u201313 lessons per series"}</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateSeriesModal(false)}>Cancel</Button>
+            <Button onClick={handleCreateSeries} disabled={isCreating || !newSeriesName.trim()}>
+              {isCreating ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Plus className="h-4 w-4 mr-1.5" />}
+              Create Series
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <UpgradePromptModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
