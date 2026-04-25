@@ -757,8 +757,25 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-950/30"
-                            onClick={() => {
-                              navigator.clipboard.writeText(lesson.shaped_content || '');
+                            onClick={async () => {
+                              const raw = lesson.shaped_content || '';
+                              const html = raw
+                                .split('\n')
+                                .map(line => {
+                                  if (/^### (.+)/.test(line)) return `<h3>${line.replace(/^### /, '')}</h3>`;
+                                  if (/^## (.+)/.test(line)) return `<h2>${line.replace(/^## /, '')}</h2>`;
+                                  if (/^# (.+)/.test(line)) return `<h1>${line.replace(/^# /, '')}</h1>`;
+                                  const bolded = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                                  return `<p>${bolded}</p>`;
+                                })
+                                .join('');
+                              const plainText = raw.replace(/^#{1,3} /gm, '').replace(/\*\*(.+?)\*\*/g, '$1');
+                              await navigator.clipboard.write([
+                                new ClipboardItem({
+                                  'text/html': new Blob([html], { type: 'text/html' }),
+                                  'text/plain': new Blob([plainText], { type: 'text/plain' }),
+                                })
+                              ]);
                               toast({ title: "Copied", description: "Reshaped content copied to clipboard." });
                             }}
                           >
