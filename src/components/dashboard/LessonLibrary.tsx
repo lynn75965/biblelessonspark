@@ -180,6 +180,17 @@ const transformToDisplay = (
 // COMPONENT
 // ============================================================================
 
+function renderMarkdown(text: string) {
+  return text.split('\n').map((line, i) => {
+    if (/^### (.+)/.test(line)) return <h3 key={i} className="text-sm font-bold mt-2 mb-0.5">{line.replace(/^### /, '')}</h3>;
+    if (/^## (.+)/.test(line)) return <h2 key={i} className="text-sm font-bold mt-2 mb-0.5">{line.replace(/^## /, '')}</h2>;
+    if (/^# (.+)/.test(line)) return <h1 key={i} className="text-sm font-bold mt-2 mb-1">{line.replace(/^# /, '')}</h1>;
+    const parts = line.split(/\*\*(.+?)\*\*/g);
+    const formatted = parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part);
+    return <p key={i} className="text-xs text-muted-foreground mb-0.5">{formatted}</p>;
+  });
+}
+
 export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: LessonLibraryProps) {
   const navigate = useNavigate();
   const [searchPassage, setSearchPassage] = useState("");
@@ -755,9 +766,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                             Copy
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground line-clamp-4 whitespace-pre-line">
-                          {lesson.shaped_content.slice(0, 300)}{lesson.shaped_content.length > 300 ? '...' : ''}
-                        </p>
+                        <div className="text-xs text-muted-foreground max-h-40 overflow-y-auto">
+                          {renderMarkdown(lesson.shaped_content.slice(0, 600))}
+                        </div>
                       </div>
                     )}
                   </div>
