@@ -70,8 +70,8 @@ export interface SidebarItem {
   tabValue?: string;
   /** For route-navigating items -- maps to ROUTES.* */
   route?: string;
-  /** For onClick items (profile modal, sign out) */
-  action?: 'openProfile' | 'signOut';
+  /** For onClick items (profile modal, sign out, upgrade modal) */
+  action?: 'openProfile' | 'signOut' | 'openUpgradeModal';
   /** Tier-based visibility gating -- defaults to 'always' if omitted */
   tierGate?: NavItemTierGate;
 }

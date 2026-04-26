@@ -1,20 +1,20 @@
 /**
- * BibleLessonSpark — Audience Configuration (SSOT)
+ * BibleLessonSpark -- Audience Configuration (SSOT)
  *
  * Single Source of Truth for all role, assembly, and participant language
  * across the platform. Every UI label, export heading, AI prompt injection,
- * and filter dimension resolves from this file — never from hardcoded strings.
+ * and filter dimension resolves from this file -- never from hardcoded strings.
  *
  * PLATFORM LANGUAGE PRINCIPLE:
- * BLS serves leaders, pastors, and teachers across many contexts — not only
+ * BLS serves leaders, pastors, and teachers across many contexts -- not only
  * Sunday School classrooms. Hardcoded terms like "Teacher," "Student,"
  * "Sunday School," and "Class" are prohibited in UI strings, export labels,
  * and generated content. Always resolve from the active AudienceProfile.
  *
  * THE TRIAD:
- *   Role        — the person leading the session  (Teacher | Pastor | Leader)
- *   Assembly    — the group gathering             (Class | Study Group | Congregation)
- *   Participant — a member of that group          (Student | Member | Attendee)
+ *   Role        -- the person leading the session  (Teacher | Pastor | Leader)
+ *   Assembly    -- the group gathering             (Class | Study Group | Congregation)
+ *   Participant -- a member of that group          (Student | Member | Attendee)
  *
  * USAGE:
  *   import { DEFAULT_AUDIENCE_PROFILE, AUDIENCE_ROLES } from '@/constants/audienceConfig';

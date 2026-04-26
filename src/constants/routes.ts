@@ -10,7 +10,6 @@ export const ROUTES = {
   // Public routes
   HOME: '/',
   AUTH: '/auth',
-  PRICING: '/pricing',
   SETUP: '/setup',
   SETUP_CHECKLIST: '/setup/checklist',
   SETUP_GUIDE: '/setup/guide',
@@ -29,7 +28,6 @@ export const ROUTES = {
   BETA_SIGNUP: '/beta-signup',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',
-  PARABLES: '/parables',
   DEVOTIONALS: '/devotionals',
   
   // Organization routes

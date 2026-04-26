@@ -1,6 +1,175 @@
-# PROJECT MASTER -- Last updated: April 25, 2026
+# PROJECT MASTER -- Last updated: April 26, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### April 26, 2026 -- Pass 0 Cleanup (Tasks 1-5)
+
+#### Pass 0 baseline integrity report
+Lynn ran a Pass 0 baseline integrity check at session start. The report
+identified five HOLDS that warranted resolution before further session
+work. This session resolved all five.
+
+#### Task 1: Parables route + page removal (narrow scope per Option A)
+Removed the orphaned Parables page and its route plumbing. Files touched:
+- src/pages/Parables.tsx (DELETED, 95 lines)
+- src/constants/routes.ts (removed PARABLES constant)
+- src/constants/navigationConfig.ts (removed parables NAV_ROUTES entry,
+  parables NAVIGATION_ITEMS entry, Star icon import, and obsolete NOTE
+  comment)
+- src/App.tsx (verified -- no edits needed; no Parables import or route
+  was registered)
+
+Lynn approved Option A (narrow four-file scope). The full Parables sweep
+of dependent code is deferred -- see "Pending Carry-Forward" below.
+
+#### Task 2: Removed dead ROUTES.PRICING constant
+PricingPage.tsx was deleted April 5, 2026 (commit 0f438a5). Pass 0
+confirmed zero live consumers of ROUTES.PRICING (only stale .backup
+files). Removed the constant from src/constants/routes.ts.
+
+#### Task 3: Widened SidebarItem.action union type
+src/constants/sidebarConfig.ts line 173 set action: 'openUpgradeModal'
+on the pricing item, but the SidebarItem.action type at line 75 only
+listed 'openProfile' | 'signOut'. Widened the union to include
+'openUpgradeModal' and updated the leading comment.
+
+#### Task 4: Fixed CLAUDE.md SSOT File Map paths
+The SSOT File Map table listed Pricing and Trial Config under src/config/
+but the actual files live under src/constants/. Fixed both rows. Also
+fixed a third occurrence of the same drift in the SUBSCRIPTION TIERS
+section header (line 335) per Lynn's approval during the diff review.
+
+#### Task 5: Non-ASCII sweep on two files (em-dashes only, per Option B)
+Lynn approved Option B (em-dashes only, two files). NotificationBell.tsx
+deferred to its own session because the emoji/arrow swaps require Lucide
+icon imports beyond a one-line edit. src/constants/index.ts and
+src/components/analytics/BetaAnalyticsDashboard.tsx (also flagged by
+Pass 0 Finding 3.1) were excluded from this session's scope.
+
+Files touched:
+- src/constants/audienceConfig.ts (6 em-dashes in JSDoc converted to --)
+- src/components/UserProfileModal.tsx
+    - 4 em-dashes in code comments converted to --
+    - 1 user-visible em-dash on line 333 converted to {'\u2014'} JSX
+      escape (Lynn's Option B election preserves the rendered em-dash
+      while keeping source ASCII-safe)
+    - 1 JSX comment on line 337 -- two middle-dot separators (U+00B7)
+      converted to | and one em-dash converted to --
+
+#### Incident: literal em-dash regression on line 333 of UserProfileModal.tsx
+While applying the Task 5 line 333 user-visible change, the new_string
+passed to the Edit tool included a literal em-dash glyph inside JSX
+braces instead of the six-ASCII-character escape \u2014. The Edit tool
+preserved the literal byte sequence, leaving one new non-ASCII byte in
+the file -- the exact regression Task 5 was meant to remove.
+
+Two PowerShell repair attempts using String.Replace also failed:
+1. First attempt: the replacement string passed to Replace() included a
+   literal em-dash glyph again -- the same input-channel error recurring
+   at the PowerShell-tool boundary.
+2. Second attempt: correctly built the replacement from char codes
+   ([char]0x5C + 'u2014' = 6 ASCII bytes), but Replace(char, string)
+   mis-resolved overloads and silently failed (zero replacements made).
+
+Resolution (per Lynn's instruction): byte-level splice using
+ReadAllBytes / WriteAllBytes. The search bytes (UTF-8 em-dash sequence
+0xE2 0x80 0x94) and replacement bytes (ASCII for the JSX escape:
+0x5C 0x75 0x32 0x30 0x31 0x34) were both built from explicit byte
+values, never from typed or pasted Unicode glyphs. Verified before
+and after byte counts: 1 -> 0.
+
+Pattern reinforced (already in user memory feedback_unicode_escape_traps):
+the Edit tool can silently emit a literal Unicode glyph from typed input,
+and PowerShell's String.Replace will not always cooperate because of
+character/string overload resolution. For surgical ASCII-guard repairs,
+prefer byte-level splice: build search and replacement arrays from
+explicit byte values, never from typed glyphs.
+
+#### Build / verification
+- npm run build: clean, 25.90s, zero errors
+- Non-ASCII bytes scan in all five edited source files: zero
+- git diff --check: clean (only LF/CRLF info warnings on Windows)
+- Live grep ROUTES.PRICING / ROUTES.PARABLES in src/: zero hits
+
+#### Files Changed This Session
+- src/pages/Parables.tsx (DELETED)
+- src/constants/routes.ts
+- src/constants/navigationConfig.ts
+- src/constants/sidebarConfig.ts
+- src/constants/audienceConfig.ts
+- src/components/UserProfileModal.tsx
+- CLAUDE.md
+- PROJECT_MASTER.md (this session log)
+
+#### Commits This Session
+- (pending) CLEANUP: Remove Parables, dead ROUTES.PRICING, fix action
+  type, fix CLAUDE.md paths, two-file non-ASCII sweep
+
+#### Pending Carry-Forward -- Full Parables sweep (separate session)
+Pass 0 Option A removed only the four explicitly listed files. The
+following Parables-related code remains in the repo and must be removed
+in a dedicated future session before /audit-ssot returns clean:
+
+  Live source files (orphaned dead code, no live consumers after
+  Parables.tsx deletion):
+    - src/components/ParableGenerator.tsx
+    - src/constants/ParableGenerator.tsx (unusual location -- second
+      copy of the component, almost certainly a refactor leftover)
+    - src/constants/parableDirectives.ts (TEACHING_DIRECTIVE,
+      STANDALONE_DIRECTIVE prompts)
+    - src/constants/parableConfig.ts (PARABLE_STEPS, parablesPerMonth
+      tier limits)
+
+  Configuration / SSOT entries:
+    - src/constants/featureFlags.ts -- parables feature flag entry
+      (line 75)
+    - src/constants/pricingConfig.ts -- 'Modern Parables Generator' line
+      in PLAN_FEATURES (line 225) AND includes_modern_parables column
+      on the DB-mirror PricingPlanFromDB type (line 352)
+    - src/hooks/usePricingPlans.tsx -- includesModernParables field
+      (lines 22, 70)
+
+  UI surface that needs verification before deletion:
+    - LessonLibrary.tsx "sparkle button" was documented in the deleted
+      Parables.tsx header as a teaching-context entry point. If the
+      sparkle button still navigates to /parables, the click target is
+      now broken. Sweep session must locate, verify, and remove or
+      repurpose.
+
+  Auto-generated (do NOT touch manually):
+    - src/integrations/supabase/types.ts -- modern_parables table type
+      and includes_modern_parables columns are in the live Supabase
+      schema. These must be removed via a Supabase migration that drops
+      the table and column, after which `npx supabase gen types
+      typescript` will regenerate the file with the references gone.
+      Editing types.ts by hand is forbidden -- it regenerates on every
+      schema change.
+
+  Database considerations:
+    - The modern_parables table contains user-generated content. Decide
+      data retention before dropping (export, archive, or delete?).
+    - If the table is dropped, any RLS policies, triggers, and indexes
+      attached to it must also be removed in the same migration.
+
+  Estimated scope: 1-2 sessions. Recommend running /audit-ssot at the
+  start of the sweep session and again after to confirm zero residual
+  Parables references.
+
+#### Pending Carry-Forward -- NotificationBell.tsx ASCII sweep
+Pass 0 Finding 3.1 also identified NotificationBell.tsx as containing
+literal Unicode at lines 105 (bell emoji), 117 (refresh arrow), and 120
+(ellipsis). Lynn deferred this file to its own session because the
+emoji/arrow swaps require importing Lucide icon components (Bell,
+RefreshCw) and adjusting JSX -- beyond a one-line surgical edit.
+
+#### Pending Carry-Forward -- Two more files identified by Pass 0
+src/constants/index.ts and src/components/analytics/BetaAnalyticsDashboard.tsx
+were both flagged by Pass 0 Finding 3.1 as containing non-ASCII bytes.
+Lynn limited this session's Task 5 scope to the two files explicitly
+named, so these two remain unfixed. Recommend bundling them into the
+NotificationBell sweep session for one-pass cleanup.
 
 ---
 

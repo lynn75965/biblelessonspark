@@ -18,7 +18,7 @@
  * - Feb 9, 2026: Added teachingTeam for Phase 27 Teaching Team
  */
 
-import { ShieldCheck, Building2, LayoutDashboard, Settings2, LogOut, Star, CreditCard, Wrench, Users } from "lucide-react";
+import { ShieldCheck, Building2, LayoutDashboard, Settings2, LogOut, CreditCard, Wrench, Users } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
 import { ROUTES as APP_ROUTES } from "./routes";
 
@@ -30,7 +30,6 @@ const NAV_ROUTES = {
   admin: APP_ROUTES.ADMIN,
   org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.DASHBOARD,
-  parables: APP_ROUTES.PARABLES,
   pricing: APP_ROUTES.DASHBOARD,
   account: APP_ROUTES.ACCOUNT,
   toolbeltAdmin: APP_ROUTES.ADMIN_TOOLBELT,
@@ -91,14 +90,6 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
     description: 'Your personal lessons',
     dividerAfter: false,
   },
-  parables: {
-    id: 'parables',
-    label: 'Parable Generator',
-    route: NAV_ROUTES.parables,
-    icon: Star,
-    description: 'Create modern parables',
-    dividerAfter: false,
-  },
   pricing: {
     id: 'pricing',
     label: 'Pricing',
@@ -131,7 +122,6 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
 
 /**
  * Defines which menu items each role sees, in display order
- * NOTE: 'parables' is defined but not included in any role menu (hidden feature)
  */
 export const MENU_BY_ROLE: Record<Role, string[]> = {
   [ROLES.platformAdmin]: [

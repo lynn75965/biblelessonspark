@@ -115,8 +115,8 @@ Changes to a domain require updating only ONE file.
 | Access Control / Roles  | src/constants/accessControl.ts            |
 | Validation Rules        | src/constants/validation.ts               |
 | Lesson Formatting       | src/utils/formatLessonContent.ts          |
-| Pricing                 | src/config/pricingConfig.ts               |
-| Trial Config            | src/config/trialConfig.ts                 |
+| Pricing                 | src/constants/pricingConfig.ts            |
+| Trial Config            | src/constants/trialConfig.ts              |
 | Feature Flags           | src/config/featureFlags.ts                |
 | Audience / Role Terms   | src/config/audienceConfig.ts              |
 | Series Export Config    | src/config/seriesExportConfig.ts          |
@@ -332,7 +332,7 @@ Deploy rule: All four primary files deploy together in a single commit.
 
 ## SUBSCRIPTION TIERS
 
-Source of truth: src/config/pricingConfig.ts and src/config/trialConfig.ts
+Source of truth: src/constants/pricingConfig.ts and src/constants/trialConfig.ts
 
 Tier names (must match database enum): free | personal | starter | growth | full | enterprise
 NOTE: admin is a ROLE (accessControl.ts), not a tier.

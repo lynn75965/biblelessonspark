@@ -33,13 +33,13 @@ export function UserProfileModal({
   onOpenChange,
   onProfileUpdated
 }: UserProfileModalProps) {
-  // Editable fields — identity & content defaults
+  // Editable fields -- identity & content defaults
   const [fullName, setFullName] = useState("");
   const [preferredLanguage, setPreferredLanguage] = useState<Language>("english");
   const [defaultBibleVersion, setDefaultBibleVersion] = useState(getDefaultBibleVersion().id);
   const [theologyProfileId, setTheologyProfileId] = useState(DEFAULT_THEOLOGY_PROFILE_ID);
 
-  // Editable fields — audience triad (Phase 3)
+  // Editable fields -- audience triad (Phase 3)
   const [audienceRole, setAudienceRole] = useState(DEFAULT_AUDIENCE_PROFILE.role);
   const [audienceAssembly, setAudienceAssembly] = useState(DEFAULT_AUDIENCE_PROFILE.assembly);
   const [audienceParticipant, setAudienceParticipant] = useState(DEFAULT_AUDIENCE_PROFILE.participant);
@@ -79,13 +79,13 @@ export function UserProfileModal({
         return;
       }
 
-      // Set editable fields — identity & content defaults
+      // Set editable fields -- identity & content defaults
       setFullName(profile?.full_name || '');
       setPreferredLanguage((profile?.preferred_language as Language) || 'english');
       setDefaultBibleVersion(profile?.default_bible_version || getDefaultBibleVersion().id);
       setTheologyProfileId(profile?.theology_profile_id || DEFAULT_THEOLOGY_PROFILE_ID);
 
-      // Set editable fields — audience triad
+      // Set editable fields -- audience triad
       // resolveAudienceProfile() safely falls back to DEFAULT_AUDIENCE_PROFILE
       // for any field that is null, missing, or invalid (e.g. pre-migration rows)
       const ap = resolveAudienceProfile(profile?.audience_profile);
@@ -330,11 +330,11 @@ export function UserProfileModal({
             <div className="grid gap-1">
               <Label className="text-sm font-medium">Ministry Context</Label>
               <p className="text-xs text-muted-foreground">
-                How content is labeled throughout the platform — for your role, your gathering, and those you serve.
+                How content is labeled throughout the platform {'\u2014'} for your role, your gathering, and those you serve.
               </p>
             </div>
 
-            {/* Role · Assembly · Participant — three columns */}
+            {/* Role | Assembly | Participant -- three columns */}
             <div className="grid grid-cols-3 gap-3">
               {/* Your Role */}
               <div className="grid gap-1">
