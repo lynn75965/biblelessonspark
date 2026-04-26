@@ -113,14 +113,40 @@ const BetaSignup = () => {
         <Card>
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold text-blue-900">
-              Join the BibleLessonSpark Beta Program
+              Beta Program Concluded
             </CardTitle>
             <CardDescription className="text-lg mt-2">
-              Help shape the future of Baptist Bible study lesson creation
+              Thank you to every teacher who tested with us.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4 text-center">
+              <p className="text-base text-foreground">
+                The BibleLessonSpark Beta Program concluded on February 28, 2026.
+                Your feedback shaped what BibleLessonSpark is today.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                The full platform is now live. If you're a beta participant,
+                your account remains active -- sign in to continue teaching.
+              </p>
+              <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={() => navigate(ROUTES.HOME)}
+                  className="bg-accent hover:bg-accent"
+                >
+                  Continue to BibleLessonSpark
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => (window.location.href = `mailto:${BRANDING.contact.supportEmail}`)}
+                >
+                  Contact Support
+                </Button>
+              </div>
+            </div>
+            {/* Original beta-signup form removed when /beta-signup route was deprecated (April 26, 2026).
+                File retained pending Lynn's approval for full deletion. */}
+            <form onSubmit={handleSubmit} className="space-y-6 hidden">
               {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>

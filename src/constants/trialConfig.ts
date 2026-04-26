@@ -144,13 +144,13 @@ export const TRIAL_CONFIG = {
       title:       "Full Lessons Used for This Period",
       description: "You have 2 short lessons (3 core sections) remaining this period.",
       upsell:      "Upgrade to Personal Plan for all 8 sections, every lesson.",
-      cta:         "Upgrade Now",
+      cta:         "Yes -- Equip My Class",
     },
     used: {
       title:       "You've Used All Your Free Lessons This Period",
       description: "Your lesson allowance resets 30 days after your first lesson this period.",
       upsell:      "Upgrade to Personal Plan for unlimited access to all 8 sections.",
-      cta:         "Upgrade Now",
+      cta:         "Yes -- Equip My Class",
     },
     adminGranted: {
       title:       "You've Been Granted a Free Full-Tier Lesson!",

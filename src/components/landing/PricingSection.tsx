@@ -1,7 +1,7 @@
 // ============================================================
 // BibleLessonSpark - LANDING PAGE PRICING SECTION (SSOT-COMPLIANT)
 // Location: src/components/landing/PricingSection.tsx
-// Uses usePricingPlans hook - same SSOT as PricingPage.tsx
+// Uses usePricingPlans hook - landing-page pricing display.
 // ============================================================
 
 import { useState, useEffect } from "react";

@@ -477,6 +477,13 @@ STOP. Flag it. Do not proceed without explicit instruction from Lynn.
 
 ### LOCKED SIDEBAR ITEM MICRO-COPY
 
+STATUS (2026-04-26): SPECIFIED BUT NOT YET IMPLEMENTED -- carry-forward to a
+dedicated session. UpgradePromptModal currently has a single trigger
+('feature_teaser') and shows the same description for all locked sidebar
+items. The per-item copy below is the approved target wording; wiring it
+through requires (a) a per-item trigger variant on UpgradePromptModal and
+(b) AppShell.handleLockedItemClick(item) passing the trigger through.
+
 When UpgradePromptModal is triggered by a specific locked sidebar item,
 the opening line of the modal must reflect that item's specific ministry
 purpose. Generic copy is not acceptable here.

@@ -197,8 +197,7 @@ export const PRICING_DISPLAY = {
     },
     ctaShort: '$9/mo or $90/yr',
     ctaFull: '$9 monthly or $7.50 monthly (paid $90 yearly)',
-    upgradeButton: 'Upgrade to Personal Plan',
-    displayName: 'Teacher Plan',
+    displayName: 'Personal Plan',
   },
 } as const;
 

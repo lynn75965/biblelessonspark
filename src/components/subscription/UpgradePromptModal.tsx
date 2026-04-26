@@ -331,8 +331,8 @@ export function UpgradePromptModal({
             {/* Divider */}
             <div className="border-t border-primary/20 my-3" />
 
-            {/* Band 2 -- Beyond Sunday */}
-            <p className="text-xs font-bold text-primary uppercase tracking-wide mb-2" aria-hidden="true">What Begins to Change</p>
+            {/* Band 2 -- What Begins to Change */}
+            <p className="text-xs font-bold text-primary uppercase tracking-wide mb-2">What Begins to Change</p>
             <ul className="space-y-2 text-sm">
               <li className="flex items-start gap-2 text-primary font-medium">
                 <Star className="h-4 w-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
@@ -353,6 +353,10 @@ export function UpgradePromptModal({
             </p>
           </div>
         </div>
+
+        <p className="text-center text-sm italic text-muted-foreground py-2 border-y border-border my-2">
+          A free account prepares a lesson. The Personal Plan equips a class.
+        </p>
       </DialogContent>
     </Dialog>
   );

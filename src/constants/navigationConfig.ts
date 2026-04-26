@@ -30,7 +30,6 @@ const NAV_ROUTES = {
   admin: APP_ROUTES.ADMIN,
   org: APP_ROUTES.ORG,
   workspace: APP_ROUTES.DASHBOARD,
-  pricing: APP_ROUTES.DASHBOARD,
   account: APP_ROUTES.ACCOUNT,
   toolbeltAdmin: APP_ROUTES.ADMIN_TOOLBELT,
   teachingTeam: APP_ROUTES.TEACHING_TEAM,
@@ -93,7 +92,7 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   pricing: {
     id: 'pricing',
     label: 'Pricing',
-    route: NAV_ROUTES.pricing,
+    route: '', // Handled by onClick in Header.tsx -- opens UpgradePromptModal
     icon: CreditCard,
     description: 'View plans and pricing',
     dividerAfter: true,

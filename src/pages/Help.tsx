@@ -94,7 +94,7 @@ const Help = () => {
         },
         {
           q: "Can multiple teachers share one account?",
-          a: "We recommend each teacher have their own account to track individual lesson history and preferences. Organizations can set up team accounts - contact us for details."
+          a: "We recommend each teacher have their own account to track individual lesson history and preferences. To set up a team account, visit biblelessonspark.com/org to create an organization."
         }
       ]
     },
@@ -164,7 +164,7 @@ const Help = () => {
         },
         {
           q: "How does the shared lesson pool work?",
-          a: "Your Shepherd tier provides a monthly pool of lessons (for example, Growth includes 100 lessons/month). Any teacher in your organization can generate lessons from this pool. The pool resets each month, and you can purchase Lesson Packs if you need more mid-month."
+          a: "Your Shepherd tier provides a monthly pool of lessons (for example, Multiplication includes 60 lessons/month). Any teacher in your organization can generate lessons from this pool. The pool resets each month, and you can purchase Lesson Packs if you need more mid-month."
         },
         {
           q: "How do I invite teachers to my organization?",
@@ -288,7 +288,7 @@ const Help = () => {
                 <CardContent>
                   <CardDescription>{link.description}</CardDescription>
                   <Button asChild variant="link" className="px-0 mt-2">
-                    <Link to={link.href}>Learn more ?</Link>
+                    <Link to={link.href}>Learn more {'\u2192'}</Link>
                   </Button>
                 </CardContent>
               </Card>

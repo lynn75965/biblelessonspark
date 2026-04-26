@@ -20,7 +20,6 @@ import Help from "./pages/Help";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
 
-import BetaSignup from "./pages/BetaSignup";
 import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
@@ -108,11 +107,6 @@ const App = () => (
             <Route path={ROUTES.PREFERENCES_LENS} element={
               <ProtectedRoute>
                 <PreferencesLens />
-              </ProtectedRoute>
-            } />
-            <Route path={ROUTES.BETA_SIGNUP} element={
-              <ProtectedRoute>
-                <BetaSignup />
               </ProtectedRoute>
             } />
             <Route path={ROUTES.DOCS} element={<Docs />} />

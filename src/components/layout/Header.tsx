@@ -16,6 +16,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useOrganization } from "@/hooks/useOrganization";
 import { supabase } from "@/integrations/supabase/client";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
+import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { Link } from "react-router-dom";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { getTheologyProfile } from "@/constants/theologyProfiles";
@@ -42,6 +43,7 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
   const { organization, userRole, hasOrganization } = useOrganization();
   const [theologicalLens, setTheologicalLens] = useState<string | null>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const authenticated = user ? true : isAuthenticated;
   const userEmail = user?.email;
@@ -202,6 +204,16 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
                           );
                         }
 
+                        // Handle Pricing specially (opens UpgradePromptModal, mirrors sidebar behavior)
+                        if (item.id === 'pricing') {
+                          return (
+                            <DropdownMenuItem key={item.id} onClick={() => setShowUpgradeModal(true)}>
+                              <IconComponent className="mr-2 h-4 w-4" />
+                              <span>{item.label}</span>
+                            </DropdownMenuItem>
+                          );
+                        }
+
                         // Render navigation link
                         return (
                           <div key={item.id}>
@@ -242,5 +254,11 @@ export function Header({ onAuthClick, isAuthenticated, organizationName, hideOrg
           onOpenChange={setShowProfileModal}
         />
       )}
+
+      <UpgradePromptModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        trigger="feature_teaser"
+      />
     </>);
 }
