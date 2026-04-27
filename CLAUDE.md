@@ -477,12 +477,18 @@ STOP. Flag it. Do not proceed without explicit instruction from Lynn.
 
 ### LOCKED SIDEBAR ITEM MICRO-COPY
 
-STATUS (2026-04-26): SPECIFIED BUT NOT YET IMPLEMENTED -- carry-forward to a
-dedicated session. UpgradePromptModal currently has a single trigger
-('feature_teaser') and shows the same description for all locked sidebar
-items. The per-item copy below is the approved target wording; wiring it
-through requires (a) a per-item trigger variant on UpgradePromptModal and
-(b) AppShell.handleLockedItemClick(item) passing the trigger through.
+STATUS (2026-04-27): IMPLEMENTED -- commit b534f6a.
+Trigger variants: 'devotionalLibrary' | 'seriesLibrary' | 'teachingTeam'
+| 'feature_teaser' (generic fallback). Wiring landed: a lockedCopy?: string
+field was added to the SidebarItem interface in sidebarConfig.ts and
+populated on the three paid_only items with the copy below verbatim.
+UpgradePromptModal imports SIDEBAR_ITEMS and ternary-branches the
+DialogDescription body on the three sidebar-item triggers, falling
+through to the existing generic copy for all other triggers. AppShell
+tracks an upgradeTrigger state and threads the clicked item through
+handleLockedItemClick(item: SidebarItem). Trigger names are camelCase to
+match SIDEBAR_ITEMS keys exactly so the modal can do
+SIDEBAR_ITEMS[trigger]?.lockedCopy with no separate translation map.
 
 When UpgradePromptModal is triggered by a specific locked sidebar item,
 the opening line of the modal must reflect that item's specific ministry

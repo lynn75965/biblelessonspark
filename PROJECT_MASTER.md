@@ -1,6 +1,141 @@
-# PROJECT MASTER -- Last updated: April 26, 2026
+# PROJECT MASTER -- Last updated: April 27, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### April 27, 2026 -- Per-Item Locked Sidebar Micro-Copy + Carry-Forward Cleanup
+
+#### Three commits, two carry-forwards closed
+This session executed three discrete tasks, each landed as its own commit:
+
+1. 40cba75 -- DOCS: Append April 26 Pass 2 session log; fix backend mirror
+   BETA_SIGNUP drift; register sync-constants script. Resolved the
+   PROJECT_MASTER.md update deferred from April 26, plus the post-push
+   correction to supabase/functions/_shared/routes.ts (surgical BETA_SIGNUP
+   removal) and added "sync-constants": "node scripts/sync-constants.cjs"
+   to package.json so future backend-mirror sync runs work. The original
+   routes.ts had a UTF-8 BOM at byte 0 (likely from the 2026-02-18 last
+   regeneration) that blocked the ASCII guard on first commit attempt;
+   stripped it byte-level via [System.IO.File]::ReadAllBytes /
+   WriteAllBytes then re-staged. (3 files, +290/-8.)
+
+2. d08378b -- CLEANUP: Delete BetaSignup.tsx -- zero consumers, route
+   deprecated April 26. Closes carry-forward (a) from April 26. Pre-delete
+   grep verified zero live consumers in src/ or supabase/. Build clean.
+   (1 file, -317.)
+
+3. b534f6a -- FEATURE: Wire per-item locked sidebar micro-copy into
+   UpgradePromptModal. Closes carry-forward (f) from April 26. Three-step
+   audit / plan / implement workflow with explicit approval gates between
+   steps. (3 files, +30/-7.)
+
+#### Per-item locked sidebar micro-copy -- wiring details
+Architecture: trigger value === sidebar item id, so the modal can do
+SIDEBAR_ITEMS[trigger]?.lockedCopy with no separate lookup table.
+Trigger names are camelCase ('devotionalLibrary', 'seriesLibrary',
+'teachingTeam') matching the SIDEBAR_ITEMS keys exactly. The existing
+'feature_teaser' / 'limit_reached' / 'manual' triggers continue to work
+unchanged and fall through to the generic teacher-step copy.
+
+Files touched (all in commit b534f6a):
+- src/constants/sidebarConfig.ts -- added lockedCopy?: string field to
+  SidebarItem interface; populated on devotionalLibrary, seriesLibrary,
+  and teachingTeam with copy verbatim from CLAUDE.md.
+- src/components/subscription/UpgradePromptModal.tsx -- imported
+  SIDEBAR_ITEMS; widened trigger union; ternary-branched the
+  DialogDescription body on the three sidebar triggers (per-item copy
+  vs. generic Fragment-wrapped fallback). Existing JSX em-dash escape
+  on the fallback line preserved unchanged.
+- src/components/layout/AppShell.tsx -- widened
+  SidebarContentProps.onLockedItemClick to (item: SidebarItem) => void;
+  threaded item through the locked-button onClick + onKeyDown handlers;
+  added upgradeTrigger state with default 'feature_teaser';
+  handleLockedItemClick narrows item.id to the three known ids and
+  sets the trigger accordingly (else fallback to 'feature_teaser');
+  the Pricing button (action: 'openUpgradeModal') resets trigger to
+  'feature_teaser' so a stale per-item value cannot leak in across
+  consecutive opens; the modal mount now uses trigger={upgradeTrigger}.
+
+Defensive-code note: the else branch in handleLockedItemClick covers any
+future paid_only item added without lockedCopy. The modal still works,
+just with the generic fallback.
+
+No other callers of UpgradePromptModal needed changes; the trigger union
+widening is purely additive.
+
+#### STATUS block trigger-name note
+Lynn's session-end protocol prompt requested STATUS block trigger names
+in a mixed casing ('devotionalLibrary' | 'series_library' |
+'teaching_team'). The actual implementation uses camelCase across all
+three (matching the SIDEBAR_ITEMS keys, since the modal does
+SIDEBAR_ITEMS[trigger] lookup; snake_case names would require a separate
+translation map). Flagged the discrepancy in the assistant reply before
+writing this commit. CLAUDE.md and PROJECT_MASTER.md document the actual
+implementation. If snake_case is preferred for any reason, that is a
+follow-up code change (rename the union members + sidebarConfig keys +
+modal lookup).
+
+#### Accessibility verification (Rule 22)
+- Locked sidebar buttons unchanged: aria-disabled="true", aria-label
+  "{Label}, Personal Plan required", tabIndex={0}, aria-hidden on icons,
+  Enter/Space keyboard handler -- all preserved.
+- Per-item description renders inside Radix DialogDescription which is
+  automatically wired to aria-describedby on the dialog. Not inside any
+  aria-hidden container. Screen readers announce it as part of dialog
+  opening.
+- No new aria-live region; no role="alert" introduced -- avoids the
+  "fires on mount" risk.
+- Tab order through the modal is unchanged (only text body changes; no
+  new focusable elements).
+
+#### Build / verification
+- npm run build: clean, 23.36s, zero errors, 3911 modules transformed.
+- Per-file ASCII grep on all three changed files: zero hits each.
+- Pre-commit ASCII guard: passed on all three commits this session.
+- git diff --check: clean (only LF/CRLF info warnings on AppShell.tsx,
+  benign Windows line-ending notice).
+
+#### Closed carry-forwards (from April 26 list)
+(a) BetaSignup.tsx file deletion -- closed via d08378b.
+(f) Per-item locked sidebar micro-copy implementation -- closed via b534f6a.
+
+#### Open carry-forwards (renumbered from April 26 list)
+(b) Full Parables sweep -- separate session.
+(c) NotificationBell.tsx ASCII sweep -- separate session.
+(d) src/constants/index.ts + BetaAnalyticsDashboard.tsx ASCII sweep --
+    bundle with (c) for one-pass cleanup.
+(e) scripts/generate-css.cjs arrow glyph fix (src/index.css regen) --
+    backend / build-script scope.
+(g) Full backend mirror regeneration -- separate session. Surfaced this
+    session that supabase/functions/_shared/routes.ts had a UTF-8 BOM at
+    byte 0. The BOM-strip is now part of pushed routes.ts content, but
+    the mirror generator script may still emit the BOM on next regen.
+    The future session that runs npm run sync-constants must verify byte
+    0 of every regenerated file is not 0xEF.
+
+#### New carry-forward
+(h) UpgradePromptModal.tsx dead code (lines 42-46): the
+    `const prompt = trigger === 'limit_reached' ? UPGRADE_PROMPTS.limitReached
+    : UPGRADE_PROMPTS.featureTeaser;` declaration is unused. Removing it
+    also makes the `UPGRADE_PROMPTS` import (line 22) the file's last
+    consumer-free import -- both should be deleted together. Recommend
+    bundling with the next planned change to UpgradePromptModal.
+
+#### Commits This Session
+- 40cba75 DOCS: Append April 26 Pass 2 session log; fix backend mirror
+  BETA_SIGNUP drift; register sync-constants script
+- d08378b CLEANUP: Delete BetaSignup.tsx -- zero consumers, route
+  deprecated April 26
+- b534f6a FEATURE: Wire per-item locked sidebar micro-copy into
+  UpgradePromptModal
+- (this commit) DOCS: Update CLAUDE.md STATUS block + PROJECT_MASTER for
+  April 27 session
+
+#### Pending Uncommitted Modifications (Carry Forward)
+- src/index.css -- carry-forward (e) above; auto-regenerated by every
+  npm run build. Do not stage manually; fix lives in
+  scripts/generate-css.cjs.
 
 ---
 
