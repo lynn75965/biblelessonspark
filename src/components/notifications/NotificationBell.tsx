@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { Bell, RefreshCw } from "lucide-react";
 
 type Notif = { 
   id: string; 
@@ -102,7 +103,7 @@ export default function NotificationBell() {
         aria-label="Notifications"
         className="relative rounded-full p-2 hover:bg-accent"
       >
-        <span className="text-xl" role="img" aria-hidden>🔔</span>
+        <Bell className="h-5 w-5" aria-hidden="true" />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground">
             {unread > 99 ? "99+" : unread}
@@ -114,10 +115,10 @@ export default function NotificationBell() {
         <div className="absolute right-0 mt-2 w-80 rounded-xl border bg-card shadow-lg z-[70]">
           <div className="flex items-center justify-between border-b px-3 py-2">
             <div className="text-sm font-semibold">Notifications</div>
-            <button onClick={load} className="text-xs text-muted-foreground hover:text-foreground" title="Refresh">↻</button>
+            <button onClick={load} className="text-muted-foreground hover:text-foreground" title="Refresh" aria-label="Refresh notifications"><RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /></button>
           </div>
           {loading ? (
-            <div className="p-4 text-sm text-muted-foreground">Loading…</div>
+            <div className="p-4 text-sm text-muted-foreground">Loading...</div>
           ) : items.length === 0 ? (
             <div className="p-4 text-center">
               <div className="text-sm text-muted-foreground mb-2">You're all caught up.</div>

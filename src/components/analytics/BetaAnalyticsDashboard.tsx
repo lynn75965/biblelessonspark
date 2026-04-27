@@ -950,7 +950,7 @@ export function BetaAnalyticsDashboard() {
                         >
                           {col.label}
                           {sortColumn === col.key && (
-                            <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                            <span className="ml-1">{sortDirection === 'asc' ? '\u2191' : '\u2193'}</span>
                           )}
                         </TableHead>
                       ))}

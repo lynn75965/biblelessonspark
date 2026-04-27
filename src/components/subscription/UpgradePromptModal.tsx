@@ -19,7 +19,7 @@ import { Check, X, Star, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
-import { UPGRADE_PROMPTS, formatPrice } from '@/constants/pricingConfig';
+import { formatPrice } from '@/constants/pricingConfig';
 import { SIDEBAR_ITEMS } from '@/constants/sidebarConfig';
 
 interface UpgradePromptModalProps {
@@ -39,10 +39,6 @@ export function UpgradePromptModal({
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
-
-  const prompt = trigger === 'limit_reached' 
-    ? UPGRADE_PROMPTS.limitReached 
-    : UPGRADE_PROMPTS.featureTeaser;
 
   const handleUpgradeClick = () => {
     // Show email confirmation before proceeding to Stripe

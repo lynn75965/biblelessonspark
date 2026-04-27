@@ -7,7 +7,7 @@
  * - Added audienceConfig exports: AudienceProfile type, AudienceRole,
  *   AudienceAssembly, AudienceParticipant, AUDIENCE_ROLES, AUDIENCE_ASSEMBLIES,
  *   AUDIENCE_PARTICIPANTS, DEFAULT_AUDIENCE_PROFILE, and validation helpers.
- *   (Phase 1 — AudienceConfig SSOT Foundation)
+ *   (Phase 1 -- AudienceConfig SSOT Foundation)
  *
  * SSOT Update v2.0.0 (February 19, 2026):
  * - Added new types from contracts.ts v2.0.0: TeachingTeam, TeachingTeamMember,
