@@ -87,7 +87,7 @@ interface SidebarContentProps {
   currentTab: string | null;
   onItemClick: (item: SidebarItem) => void;
   isFreeTier: boolean;
-  onLockedItemClick: () => void;
+  onLockedItemClick: (item: SidebarItem) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
@@ -190,11 +190,11 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
                   aria-disabled="true"
                   aria-label={`${item.label}, Personal Plan required`}
                   tabIndex={0}
-                  onClick={onLockedItemClick}
+                  onClick={() => onLockedItemClick(item)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      onLockedItemClick();
+                      onLockedItemClick(item);
                     }
                   }}
                   className={itemClasses}
@@ -258,6 +258,9 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeTrigger, setUpgradeTrigger] = useState<
+    'feature_teaser' | 'devotionalLibrary' | 'seriesLibrary' | 'teachingTeam'
+  >('feature_teaser');
   const [desktopCollapsed, setDesktopCollapsed] = useState(() =>
     typeof window !== 'undefined' && false
   );
@@ -305,6 +308,7 @@ export function AppShell({
         setShowProfileModal(true);
         setMobileOpen(false);
       } else if (item.action === 'openUpgradeModal') {
+        setUpgradeTrigger('feature_teaser');
         setShowUpgradeModal(true);
         setMobileOpen(false);
       } else if (item.action === 'signOut') {
@@ -318,7 +322,12 @@ export function AppShell({
     }
   };
 
-  const handleLockedItemClick = () => {
+  const handleLockedItemClick = (item: SidebarItem) => {
+    if (item.id === 'devotionalLibrary' || item.id === 'seriesLibrary' || item.id === 'teachingTeam') {
+      setUpgradeTrigger(item.id);
+    } else {
+      setUpgradeTrigger('feature_teaser');
+    }
     setShowUpgradeModal(true);
     setMobileOpen(false);
   };
@@ -385,7 +394,7 @@ export function AppShell({
     <UpgradePromptModal
       isOpen={showUpgradeModal}
       onClose={() => setShowUpgradeModal(false)}
-      trigger="feature_teaser"
+      trigger={upgradeTrigger}
     />
     </>
   );

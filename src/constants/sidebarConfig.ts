@@ -74,6 +74,12 @@ export interface SidebarItem {
   action?: 'openProfile' | 'signOut' | 'openUpgradeModal';
   /** Tier-based visibility gating -- defaults to 'always' if omitted */
   tierGate?: NavItemTierGate;
+  /**
+   * Per-item upgrade-modal opening copy shown when a free-tier user
+   * clicks this locked sidebar item. Read by UpgradePromptModal when
+   * trigger === item.id. Governed by CLAUDE.md Copy Governance.
+   */
+  lockedCopy?: string;
 }
 
 export interface SidebarSection {
@@ -116,6 +122,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     description: 'Browse and manage devotionals',
     tabValue: DASHBOARD_TAB_VALUES.DEVOTIONAL_LIBRARY,
     tierGate: 'paid_only',
+    lockedCopy: "Your group's faith doesn't pause on Monday. DevotionalSpark follows them all week -- connecting Sunday's lesson to Tuesday's life.",
   },
   seriesLibrary: {
     id: 'seriesLibrary',
@@ -124,6 +131,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     description: 'Browse and manage lesson series',
     tabValue: DASHBOARD_TAB_VALUES.SERIES_LIBRARY,
     tierGate: 'paid_only',
+    lockedCopy: "One lesson teaches a truth. A series builds a disciple. Plan weeks ahead and let your group see where you're taking them.",
   },
   publishing: {
     id: 'publishing',
@@ -140,6 +148,7 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     description: 'Share lessons with fellow teachers',
     route: ROUTES.TEACHING_TEAM,
     tierGate: 'paid_only',
+    lockedCopy: "Moses had Aaron. Paul had Timothy. You were never meant to lead alone. Invite your co-teachers and carry this together.",
   },
   orgManager: {
     id: 'orgManager',

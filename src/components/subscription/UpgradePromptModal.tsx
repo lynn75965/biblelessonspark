@@ -20,11 +20,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
 import { UPGRADE_PROMPTS, formatPrice } from '@/constants/pricingConfig';
+import { SIDEBAR_ITEMS } from '@/constants/sidebarConfig';
 
 interface UpgradePromptModalProps {
   isOpen: boolean;
   onClose: () => void;
-  trigger?: 'limit_reached' | 'feature_teaser' | 'manual';
+  trigger?: 'limit_reached' | 'feature_teaser' | 'manual' | 'devotionalLibrary' | 'seriesLibrary' | 'teachingTeam';
 }
 
 export function UpgradePromptModal({ 
@@ -201,7 +202,11 @@ export function UpgradePromptModal({
                 Your limit resets on {formatResetDate()}.
               </span>
             )}
-            You have already taken the first step {'\u2014'} preparing a lesson grounded in Scripture. What comes next is not simply more material. It is what happens in the room, and what carries forward into the week.
+            {(trigger === 'devotionalLibrary' || trigger === 'seriesLibrary' || trigger === 'teachingTeam') ? (
+              SIDEBAR_ITEMS[trigger]?.lockedCopy
+            ) : (
+              <>You have already taken the first step {'\u2014'} preparing a lesson grounded in Scripture. What comes next is not simply more material. It is what happens in the room, and what carries forward into the week.</>
+            )}
           </DialogDescription>
         </DialogHeader>
 
