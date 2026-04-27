@@ -4,6 +4,288 @@
 
 ---
 
+### April 26, 2026 -- Pass 2 Stale-UI Sweep
+
+#### Pass 1 audit + Pass 2 implementation
+Lynn ran a two-pass audit-then-implement on stale, contradictory, or
+inaccurate UI copy. Pass 1 produced a complete findings report (no
+edits). Pass 2 implemented the items Lynn approved.
+
+#### Approved findings implemented (16 total, one commit)
+- **Protected line restoration:** `"A free account prepares a lesson.
+  The Personal Plan equips a class."` was lost in commit 0f438a5
+  (April 5, 2026) when the right-column tagline was overwritten with
+  `"Not a different lesson. A fuller way to lead."` Restored as a
+  full-width italic closing anchor below the two-column grid in
+  UpgradePromptModal.tsx, mirroring the existing opening anchor
+  `"A good lesson teaches. An equipped teacher disciples."` Both
+  protected lines now bookend the modal.
+- **Finding #11 -- Header pricing wiring:** The header dropdown's
+  "Pricing" item previously routed to /dashboard, doing nothing
+  visible. Wired it through Header.tsx with the same special-case
+  pattern used for `settings` and `signOut`: a new `showUpgradeModal`
+  state, an `item.id === 'pricing'` branch in the `navigationItems.map`
+  that opens UpgradePromptModal, and the modal mounted alongside
+  UserProfileModal. Removed the now-unused `pricing: APP_ROUTES.DASHBOARD`
+  entry from `NAV_ROUTES`. The sidebar's existing
+  `action: 'openUpgradeModal'` behavior is unchanged; both surfaces
+  now open the same modal.
+- **Finding #16 -- Beta deprecation:** The /beta-signup route + its
+  App.tsx import + the BETA_SIGNUP constant in routes.ts were all
+  removed. BetaSignup.tsx body was replaced with a closure notice
+  ("Beta Program Concluded" + "The BibleLessonSpark Beta Program
+  concluded on February 28, 2026" + redirect/support buttons). The
+  Facebook group reference and the `lynn@biblelessonspark.com`
+  reference were removed in the same edit. The original `<form>` is
+  retained with `className="hidden"` plus a comment, pending Lynn's
+  approval for full file deletion (zero live consumers confirmed).
+- **Finding #18 -- pricingSource.ts deletion:** Confirmed zero
+  consumers in the entire repo. Queries a non-existent
+  `subscription_plans` table; uses tier names that do not match the
+  SSOT (free/personal/starter/growth/full/enterprise). Deleted.
+- **Finding #6 -- subscription/UsageDisplay.tsx deletion:** Orphan
+  duplicate of dashboard/UsageDisplay.tsx; zero imports anywhere.
+  Carried "Upgrade Now" CTA copy that violated Copy Governance Rule
+  5. Deleted.
+- **Findings #2 + #3:** pricingConfig.ts -- renamed
+  `displayName: 'Teacher Plan'` to `'Personal Plan'`; deleted unused
+  `upgradeButton: 'Upgrade to Personal Plan'` field.
+- **Findings #4 + #5:** trialConfig.ts -- replaced two `cta: "Upgrade
+  Now"` with `cta: "Yes -- Equip My Class"` (under
+  `messages.fullExhausted` and `messages.used`), per Copy Governance
+  Rule 5.
+- **Finding #7 -- Help.tsx FAQ org-tier example:** Replaced
+  `"Growth includes 100 lessons/month"` with
+  `"Multiplication includes 60 lessons/month"`. The previous example
+  contradicted orgPricingConfig.ts on two counts: there is no display
+  tier called "Growth" (display names are
+  Foundation/Strengthening/Multiplication/Expansion/Network), and the
+  100-lesson tier is "Expansion" not org_growth.
+- **Finding #8 -- Rule 22 accessibility fix:**
+  UpgradePromptModal.tsx:335 had
+  `aria-hidden="true"` on the visible "What Begins to Change" section
+  header, hiding it from assistive tech. Removed.
+- **Finding #9 -- stale code comment:** Renamed
+  `{/* Band 2 -- Beyond Sunday */}` to
+  `{/* Band 2 -- What Begins to Change */}` (band was renamed
+  April 5, 2026).
+- **Finding #10 -- stale code comment:** PricingSection.tsx header
+  comment removed dead reference
+  `same SSOT as PricingPage.tsx` (PricingPage was deleted April 5).
+- **Finding #12 -- broken arrow glyph:** Help.tsx Quick Links rendered
+  `"Learn more ?"` -- a literal `?` instead of an arrow. Replaced with
+  `Learn more {'→'}` (the BLS-approved JSX escape pattern; source
+  stays ASCII, glyph renders at runtime).
+- **Finding #14 -- backup/.txt sweep:** Deleted 13 stale files (10
+  flagged in Pass 1, plus 3 newly surfaced during the cleanup verify
+  step):
+    - src/components/dashboard/EnhanceLessonForm.tsx.backup
+    - src/components/dashboard/EnhanceLessonForm.tsx.backup-20260118
+    - src/components/dashboard/EnhanceLessonForm.tsx.accordion-backup
+    - src/components/dashboard/TeacherCustomization.tsx.backup-20251122-140234
+    - src/pages/Admin.tsx.backup
+    - src/constants/pricingConfig.ts.backup
+    - src/constants/lessonTiers.ts.backup
+    - src/constants/theologyProfiles.ts.backup-20260118
+    - src/lib/theologyPrompt.ts.txt
+    - src/lib/tenant/TenantProvider.tsx.txt
+    - src/lib/theology.ts.txt
+    - src/config/theology_profiles.ts.txt
+    - src/types/TheologyProfile.ts.txt
+- **Finding #15 -- CLAUDE.md governance correction:** The "Locked
+  Sidebar Item Micro-Copy" section in Copy Governance defines distinct
+  per-item copy for Devotional Library, Series Library, and Teaching
+  Team, but UpgradePromptModal currently has only one trigger
+  (`feature_teaser`) and shows the same description for all three.
+  Documented copy was not actually wired into the UI. Added a STATUS
+  block at the top of the section marking it
+  "specified but not yet implemented -- carry-forward to a dedicated
+  session" and naming the two wiring requirements (per-item trigger
+  variant on UpgradePromptModal + AppShell.handleLockedItemClick(item)
+  passing the trigger through).
+- **Finding #17 -- Help.tsx team-accounts copy:** Replaced
+  `"Organizations can set up team accounts - contact us for details."`
+  with
+  `"To set up a team account, visit biblelessonspark.com/org to create
+  an organization."`
+
+#### Two Unicode-trap incidents during implementation
+Both caught before commit by the ASCII grep verification step.
+Neither shipped to production.
+
+1. **BetaSignup.tsx closure notice (incident 1):** The first
+   new_string for the closure notice contained literal U+2019
+   (right-single-quote) in `you{'’'}re` and literal U+2014
+   (em-dash) in `{'—'}` -- typed as glyphs inside JSX braces
+   instead of as the `{'\\u2019'}` / `{'\\u2014'}` escape patterns.
+   The Edit tool preserved the literal bytes. Caught immediately by
+   the per-file ASCII grep. Reverted to the originally-approved
+   ASCII-only wording (straight apostrophe `you're`, double-hyphen
+   `--`).
+2. **Help.tsx arrow escape (incident 2):** First Edit tried to write
+   `Learn more {'\\u2192'}` (the explicit escape). The Edit tool
+   normalized the new_string back to a literal U+2192 arrow glyph on
+   round-trip, then refused a corrective Edit because old_string and
+   new_string compared equal (both literal arrows). Repaired with a
+   byte-level PowerShell splice: search bytes
+   `0xE2 0x86 0x92` (UTF-8 for U+2192), replacement bytes
+   `0x5C 0x75 0x32 0x31 0x39 0x32` (six ASCII bytes for `\\u2192`).
+   Both byte arrays were built from explicit byte values, never from
+   typed glyphs. One replacement made; verified ASCII-clean by grep.
+
+#### Pattern reinforced
+Same Edit-tool behavior as the April 26 Pass 0 line 333 incident on
+UserProfileModal.tsx (already in user memory
+`feedback_unicode_escape_traps`). The trap recurs whenever Claude
+types a Unicode glyph in any tool input -- the Edit tool transports
+the literal bytes faithfully. For ASCII-guard repairs the only
+reliable path is byte-level splice with explicit byte arrays. Memory
+note remains accurate; no update needed.
+
+#### Build / verification
+- npm run build: clean, 26.41s, zero errors
+- Non-ASCII bytes scan after all edits: zero new hits. Pre-existing
+  hits unchanged (src/index.css auto-generated timestamp,
+  src/constants/index.ts, NotificationBell.tsx,
+  BetaAnalyticsDashboard.tsx -- all carry-forward).
+- Pre-commit ASCII guard: passed.
+- Live grep ROUTES.PRICING / ROUTES.PARABLES / BookletPrintModal /
+  useSpeechInput in src/: zero hits each.
+- Protected lines verified: "A good lesson teaches..." unchanged;
+  "WHERE YOU ARE" / "WHERE YOU COULD TAKE THEM" unchanged;
+  "A free account prepares a lesson..." restored.
+
+#### Files Changed This Session
+26 paths in commit c46a657 -- 11 modifications + 15 deletions:
+
+Modifications:
+- CLAUDE.md
+- src/App.tsx
+- src/components/landing/PricingSection.tsx
+- src/components/layout/Header.tsx
+- src/components/subscription/UpgradePromptModal.tsx
+- src/constants/navigationConfig.ts
+- src/constants/pricingConfig.ts
+- src/constants/routes.ts
+- src/constants/trialConfig.ts
+- src/pages/BetaSignup.tsx
+- src/pages/Help.tsx
+
+Deletions: see Finding #14 list above (13 backup/.txt files), plus
+src/components/subscription/UsageDisplay.tsx (#6) and
+src/lib/pricingSource.ts (#18).
+
+PROJECT_MASTER.md update committed separately after the implementation
+commit, per session-end protocol.
+
+#### Commits This Session
+- c46a657 CLEANUP: Pass 2 stale-UI sweep -- protected-line
+  restoration, header pricing wiring, beta deprecation, copy SSOT
+  fixes (26 files, 68 insertions, 8309 deletions). Pushed to
+  origin/main; Netlify auto-deploy.
+- (pending) DOCS: Update PROJECT_MASTER for April 26, 2026 Pass 2
+  session log
+
+#### Carry-Forward Items (Open After This Session)
+
+(a) **BetaSignup.tsx file deletion -- pending Lynn approval.** Zero
+    live consumers confirmed after the route + import + constant were
+    removed. The file remains only as a closure notice inside an
+    `AppShell`-less Card; the original `<form>` is hidden behind
+    `className="hidden"` plus a comment. Lynn explicitly held the
+    file deletion this session for separate approval.
+
+(b) **Full Parables sweep (separate session).** Carried forward from
+    Pass 0 (April 26 morning session). Orphan source files in
+    src/components/ParableGenerator.tsx,
+    src/constants/ParableGenerator.tsx,
+    src/constants/parableConfig.ts,
+    src/constants/parableDirectives.ts; the
+    `'Modern Parables Generator'` line in pricingConfig.ts
+    PLAN_FEATURES; the parables featureFlag entry; the
+    `includesModernParables` field in usePricingPlans.tsx; the
+    LessonLibrary "sparkle button" target verification; and the
+    Supabase `modern_parables` table + `includes_modern_parables`
+    column removal via migration. Estimated 1-2 sessions.
+
+(c) **NotificationBell.tsx ASCII sweep (separate session).** Lines
+    105 (bell emoji), 117 (refresh arrow), 120 (ellipsis) contain
+    literal Unicode. Fix requires Lucide icon imports (Bell,
+    RefreshCw) and JSX restructuring -- beyond a one-line surgical
+    edit. Carried forward from Pass 0.
+
+(d) **src/constants/index.ts + BetaAnalyticsDashboard.tsx ASCII
+    sweep (separate session).** Both flagged by Pass 0 Finding 3.1
+    and confirmed in Pass 2 grep. Recommend bundling with item (c)
+    for one-pass cleanup of the three remaining carry-forward
+    non-ASCII source files.
+
+(e) **scripts/generate-css.cjs arrow glyph fix (separate session,
+    backend / build-script scope).** src/index.css is auto-generated
+    on every `npm run build` and emits literal `->` arrows as
+    U+2192 glyphs in the comment header (Color Reference / Typography
+    sections). Hand-editing src/index.css regresses on the next
+    build; the fix lives in the generator script. Pass 2 Finding
+    #13. Out of scope for any pure-frontend session.
+
+(f) **Per-item locked sidebar micro-copy implementation (separate
+    session).** UpgradePromptModal needs a per-item `trigger` variant
+    so the modal description can switch by sidebar source
+    (Devotional Library -- "Your group's faith doesn't pause on
+    Monday..."; Series Library -- "One lesson teaches a truth. A
+    series builds a disciple..."; Teaching Team -- "Moses had Aaron.
+    Paul had Timothy..."). AppShell.handleLockedItemClick(item) must
+    pass the trigger through. Approved copy already lives in
+    CLAUDE.md Copy Governance with a STATUS block flagging it
+    not-yet-implemented (added this session under Finding #15).
+
+(g) **Full backend mirror regeneration (separate session).** The
+    `supabase/functions/_shared/` mirror was last regenerated
+    `2026-02-18T18:17:21.483Z`. Only `routes.ts` was touched in this
+    session (surgical BETA_SIGNUP removal); the other 13 files in the
+    sync-constants FILES_TO_SYNC list (ageGroups, bibleVersions,
+    generationMetrics, lessonStructure, lessonTiers, systemSettings,
+    teacherPreferences, theologyProfiles, contracts, rateLimitConfig,
+    freshnessOptions, devotionalConfig, toolbeltConfig) are also
+    likely stale. Running `npm run sync-constants` (now registered in
+    package.json) will overwrite all 14 backend mirror files with the
+    current frontend SSOT. The diff is expected to be large and must
+    be reviewed carefully -- some divergent values may have non-stale
+    reasons. Recommend a dedicated session that (1) runs the sync,
+    (2) diffs each file before committing, (3) verifies edge function
+    callers (`send-invite/index.ts` is the only known consumer
+    today), and (4) considers wiring sync-constants into a build hook
+    so the mirror cannot drift again.
+
+#### Mirror Sync Note (post-push correction)
+The original commit message of c46a657 told Lynn to run
+`npm run sync-constants` to reconcile
+`supabase/functions/_shared/routes.ts`. That guidance was wrong on
+two levels and was corrected post-push:
+
+1. **The npm script did not exist.** package.json had no
+   `sync-constants` entry. The correct invocation was
+   `node scripts/sync-constants.cjs`. Fixed in a follow-up commit by
+   adding the script entry to package.json so future references work.
+2. **The mirror was already grossly stale -- not just BETA_SIGNUP.**
+   The `AUTO-GENERATED` header on the backend mirror was timestamped
+   `2026-02-18T18:17:21.483Z` and the file had drifted by 14+ route
+   changes (e.g., still had `PRICING`, `CREATE_LESSON`, `MY_LESSONS`;
+   missing FAQS, ORG_SETUP, ORG_SUCCESS, ORG_MANAGER, TEACHING_TEAM,
+   PUBLISH, SHARE, BONUSES, MORE_TOOLS, DEVOTIONALS; legal paths
+   diverged; DASHBOARD_TAB_VALUES diverged). Only one edge function
+   currently consumes the mirror (`send-invite/index.ts` uses
+   `buildInviteUrl` which references `ROUTES.AUTH` -- aligned in both
+   files), so the drift has not yet broken production.
+
+Resolution this session: surgical manual removal of the BETA_SIGNUP
+line from the backend mirror (Option A), plus
+`"sync-constants": "node scripts/sync-constants.cjs"` added to
+package.json (Option C). Full mirror regeneration is deferred -- see
+carry-forward (g) below.
+
+---
+
 ### April 26, 2026 -- Pass 0 Cleanup (Tasks 1-5)
 
 #### Pass 0 baseline integrity report

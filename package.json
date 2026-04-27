@@ -15,7 +15,8 @@
         "preview": "vite preview",
         "sync-branding": "node scripts/sync-branding-to-db.cjs",
         "sync-tier-config": "node scripts/sync-tier-config-to-db.cjs",
-        "sync-org-pricing": "node scripts/sync-org-pricing.cjs"
+        "sync-org-pricing": "node scripts/sync-org-pricing.cjs",
+        "sync-constants": "node scripts/sync-constants.cjs"
     },
     "dependencies": {
         "@hookform/resolvers": "^3.10.0",

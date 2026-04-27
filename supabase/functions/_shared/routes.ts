@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/routes.ts
@@ -33,7 +33,6 @@ export const ROUTES = {
   ADMIN: '/admin',
   ADMIN_TOOLBELT: '/admin/toolbelt',
   PREFERENCES_LENS: '/preferences/lens',
-  BETA_SIGNUP: '/beta-signup',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',
   
