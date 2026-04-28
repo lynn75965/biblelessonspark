@@ -1,6 +1,190 @@
-# PROJECT MASTER -- Last updated: April 27, 2026
+# PROJECT MASTER -- Last updated: April 28, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### April 28, 2026 -- Baptist Terminology Guardrails SSOT Remediation + Backend Mirror Sync
+
+#### Two commits, two carry-forwards closed
+
+1. 03068f2 -- FIX: Port Baptist terminology guardrails from backend mirror to
+   frontend SSOT. Closes carry-forward (i) from April 27 Session 2. Ported the
+   protective content that had been hand-edited into the backend mirror in
+   January 2026 but never made it into the frontend SSOT, where it would have
+   been silently erased on the next sync run. (1 file, +280/-20.)
+
+2. f0def85 -- SYNC: Regenerate backend mirrors from frontend SSOT -- ports
+   Baptist terminology guardrails. Closes carry-forward (g) from April 27
+   Session 2. The deferred backend-mirror sync that had been blocked on (i).
+   All 14 mirror files in supabase/functions/_shared/ regenerated from the
+   now-protective frontend SSOT. (14 files, +773/-636.)
+
+#### Carry-forward (i) -- ministry-critical terminology remediation
+
+The April 27 Session 2 audit found the backend mirror at HEAD contained a
+CRITICAL TERMINOLOGY FIX block dated January 2026 that was NOT in the
+frontend SSOT. The mirror was therefore the de-facto source of truth for
+the universal Baptist terminology guardrails -- a direct SSOT inversion
+that would have caused those guardrails to be silently deleted on the
+next sync. Today's work brings the frontend to parity.
+
+Three-step protocol with explicit approval gates: AUDIT (read both files,
+inventory what's missing) -> PLAN (23 surgical edits with approval) ->
+IMPLEMENT (Edit tool only, no Write tool, byte-level checks on each anchor).
+
+The 23 edits, by category:
+- 1 docblock note: "CRITICAL TERMINOLOGY FIX (January 2026)" added to the
+  file header explaining why the per-profile additions exist and which
+  profile (Reformed Baptist) is exempt.
+- 9 per-profile avoidTerminology additions: "sacrament", "sacraments",
+  "Eucharist" added to the end of the array on profiles 1-9 (NOT Reformed
+  Baptist), each preceded by a `// CRITICAL: Baptists use "ordinance" not
+  "sacrament" (except Reformed Baptist)` comment.
+- 9 per-profile preferredTerminology additions: sacrament -> ordinance,
+  sacraments -> ordinances, Eucharist -> Lord's Supper added to the same
+  9 profiles, each preceded by a `// CRITICAL: Baptist terminology for
+  ordinances` comment.
+- 1 BAPTIST_TERMINOLOGY_GUARDRAILS const block (~135 lines) inserted
+  between THEOLOGY_PROFILES array close and HELPER FUNCTIONS banner.
+  Contains 4 sub-objects: prohibitedForBaptistPractices (19 terms),
+  substitutions (19 mappings), contextualExceptions (4 entries),
+  preferredTerms (30 terms).
+- 1 generateBaptistTerminologyGuardrails() function inserted before
+  generateTheologicalGuardrails(). Renders the const into a prompt block.
+- 1 wiring line: `guardrailsBlock += '\n\n' + generateBaptistTerminologyGuardrails();`
+  appended inside generateTheologicalGuardrails() so every per-profile
+  prompt now also receives the universal Baptist terminology rules.
+- 1 verification step #6 added to the FINAL VERIFICATION checklist:
+  "No non-Baptist terminology appears (see Baptist Terminology Guardrails below)".
+
+ASCII conversions performed during port (the backend mirror had non-ASCII
+chars that would fail the frontend ASCII guard):
+- Em dash in heading: `BAPTIST TERMINOLOGY GUARDRAILS — UNIVERSAL COMPLIANCE`
+  -> `BAPTIST TERMINOLOGY GUARDRAILS -- UNIVERSAL COMPLIANCE`
+  (matches existing convention at the older `THEOLOGICAL GUARDRAILS --
+  MANDATORY COMPLIANCE` heading).
+- Arrow in substitution template: `Instead of "${avoid}" → use "${use}"`
+  -> `Instead of "${avoid}" ? use "${use}"` (matches the existing `?`
+  placeholder pattern in generateTheologicalGuardrails template at
+  pre-edit line 964).
+
+Build clean (`✓ built in 25.17s`, 3911 modules, zero errors). ASCII guard
+passed. Working tree clean after commit.
+
+#### Carry-forward (g) -- backend mirror sync (deferred from April 27)
+
+After (i) landed, ran `npm run sync-constants`. All 14 mirror files in
+supabase/functions/_shared/ regenerated from the frontend SSOT. The sync
+pre-flight script-fix (227a674 from April 27 Session 2) worked: the
+header timestamp is now static, so future no-change runs will produce
+zero diffs.
+
+Beyond the Baptist guardrails port, the sync also captured several latent
+SSOT-mirror divergences that had accumulated since the mirror was last
+regenerated (Jan 28, 2026):
+
+1. theologyProfiles.ts mirror gained:
+   - `import type { TheologyProfileId, SecurityDoctrine, TulipStance } from './contracts';`
+     (mirror had been inlining the union types).
+   - `badgeClass: string` field on the interface and on all 10 profile
+     entries (added to frontend in Feb-Apr 2026 but never synced).
+   - `DEFAULT_THEOLOGY_PROFILE_ID`, `DEFAULT_BADGE_CLASS`,
+     `getProfileBadgeClass` SSOT helpers (frontend-only until today).
+   - Em-dash conversions in summary strings on 3 profiles
+     (southern-baptist-bfm-1963, southern-baptist-bfm-2000, free-will-baptist)
+     and the inner `--but does not coerce` clause on NBC -- the mirror had
+     literal `—` (U+2014) glyphs from prior hand-edits; sync replaced them
+     with the frontend's `--` ASCII convention.
+
+2. systemSettings.ts mirror diff: +354 lines net. Largest file delta in
+   the sync. (Reflects accumulated drift between SSOT and mirror; not
+   reviewed line-by-line in this session.)
+
+3. contracts.ts mirror diff: +273 lines. Includes union-type updates that
+   propagate to other consumer mirrors (notably theologyProfiles.ts).
+
+4. generationMetrics.ts: +252 lines.
+
+5. Smaller deltas across the remaining 10 files (rateLimitConfig,
+   routes, lessonStructure, freshnessOptions, bibleVersions, ageGroups,
+   teacherPreferences, lessonTiers, devotionalConfig, toolbeltConfig).
+
+Edge-function code-path audit was performed in April 27 Session 2:
+zero active code references to the renamed/removed types
+(theologicalPreference, sbConfessionVersion, TheologicalPreferenceKey,
+SBConfessionVersionKey). All matches were in `.backup` files (not
+deployed) or in the new contracts.ts CHANGELOG comment. The sync was
+runtime-safe.
+
+Pre-commit ASCII guard passed cleanly on the 14-file commit -- the
+script's em-dash/arrow normalization avoided what would have been a
+hard block.
+
+Note: 9 of 14 mirror files triggered a `LF will be replaced by CRLF`
+warning from git (autocrlf normalization on next checkout). This is
+preexisting working-tree behavior and did not affect what was committed
+(the index stores LF). Not introduced by this session's work.
+
+#### Closed carry-forwards (from April 27 Session 2 list)
+
+(g) Backend mirror sync -- closed via f0def85.
+(i) Baptist terminology guardrails remediation -- closed via 03068f2.
+
+#### Open carry-forwards (renumbered)
+
+(b) Full Parables sweep -- separate session (unchanged).
+(j) Backend mirror backup file cleanup -- 8 .backup files in
+    supabase/functions/ awaiting decision (unchanged).
+(k) supabase/functions/_shared/ non-ASCII cleanup for 7 non-sync files
+    (emailDeliveryConfig.ts, branding.ts, lessonShapeProfiles.ts,
+    outputGuardrails.ts, customizationDirectives.ts, trialConfig.ts,
+    uiSymbols.ts; uiSymbols.ts has actual mojibake on line 10).
+    Unchanged. These are NOT in FILES_TO_SYNC so today's sync did not
+    touch them.
+
+#### Build / verification
+
+- npm run build: clean (25.17s, 3911 modules, zero errors).
+- ASCII guard: passed on both code commits (03068f2 and f0def85).
+- Working tree state at session end (before this PROJECT_MASTER commit):
+  clean. Both code commits pushed to origin/main.
+
+#### Process notes worth keeping
+
+- Combined-block anchoring is the right move when multiple Baptist
+  profiles share byte-for-byte-identical preferredTerminology objects
+  (SBC 1963 and SBC 2000). Used the unique `"the elect" ,` (space-comma)
+  pattern in SBC 1963 vs `"the elect",` (no space) in SBC 2000 as the
+  disambiguator. Worked on first try; no Edit-tool ambiguity errors.
+- The frontend's existing `?` placeholder for the substitution arrow
+  (line 964 pre-edit) is a deliberate ASCII-safe stand-in for `→`.
+  New content added in Edit E must match that convention to avoid
+  re-introducing non-ASCII into src/.
+- The sync reliably converts non-ASCII glyphs in mirror summaries to
+  the frontend's ASCII conventions. This means a clean `npm run
+  sync-constants` is also a passive ASCII-cleanup pass for the 14 files
+  in FILES_TO_SYNC. The 7 non-sync `_shared/` files (carry-forward (k))
+  do not get this treatment and need a separate scrub.
+- The April 27 Session 2 decision to NOT push the partial sync, and
+  instead surface (i) as a blocker before any sync hit production, was
+  correct. Pushing yesterday's sync would have erased the protective
+  Baptist terminology guardrails from production AI prompts. The
+  guardrails-erased state would have been undetectable from build logs,
+  type checks, or grep on src/ -- only manifest as gradual non-Baptist
+  language seeping into generated lessons over time.
+
+#### Commits This Session
+
+- 03068f2 FIX: Port Baptist terminology guardrails from backend mirror
+  to frontend SSOT
+- f0def85 SYNC: Regenerate backend mirrors from frontend SSOT -- ports
+  Baptist terminology guardrails
+- (this commit) DOCS: Update PROJECT_MASTER.md with April 28 session log
+
+#### Pending Uncommitted Modifications (Carry Forward)
+
+None. Working tree clean before this DOCS commit.
 
 ---
 
