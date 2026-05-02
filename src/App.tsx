@@ -19,6 +19,7 @@ import Docs from "./pages/Docs";
 import Help from "./pages/Help";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
+import ChurchPlantReport from "./pages/ChurchPlantReport";
 
 import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -121,6 +122,7 @@ const App = () => (
               </ProtectedRoute>
             } />
             <Route path={ROUTES.COMMUNITY} element={<Community />} />
+            <Route path={ROUTES.CHURCH_PLANT_REPORT} element={<ChurchPlantReport />} />
             <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
             <Route path={ROUTES.TERMS} element={<TermsOfService />} />
             <Route path={ROUTES.COOKIE} element={<Cookie />} />

@@ -18,7 +18,8 @@ export const ROUTES = {
   FAQS: '/help#faqs',
   TRAINING: '/training',
   COMMUNITY: '/community',
-  
+  CHURCH_PLANT_REPORT: '/church-plant-teaching-capacity-report',
+
   // Protected routes
   DASHBOARD: '/dashboard',
   ORG: '/org',
