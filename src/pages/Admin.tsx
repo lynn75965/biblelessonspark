@@ -28,6 +28,7 @@ import { ExportSettingsPanel } from "@/components/admin/ExportSettingsPanel";
 import { TransferRequestQueue } from "@/components/admin/TransferRequestQueue";
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
+import { ORG_DELETION_REQUEST } from "@/constants/organizationConfig";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -57,6 +58,8 @@ export default function Admin() {
     feedbackCount: 0,
     averageRating: null as number | null,
   });
+  const [pendingOrgDeletions, setPendingOrgDeletions] = useState<any[]>([]);
+  const [approvingOrgId, setApprovingOrgId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAdminAccess = async () => {
@@ -164,6 +167,14 @@ export default function Admin() {
           averageRating: avgRating,
         });
 
+        // Fetch orgs with pending deletion requests
+        const { data: pendingOrgs } = await supabase
+          .from('organizations')
+          .select('id, name, deletion_requested_at, deletion_requested_by')
+          .not('deletion_requested_at', 'is', null)
+          .order('deletion_requested_at', { ascending: true });
+        setPendingOrgDeletions(pendingOrgs || []);
+
       } catch (error) {
         console.error('Error checking admin access:', error);
         navigate(ROUTES.DASHBOARD);
@@ -174,6 +185,33 @@ export default function Admin() {
 
     checkAdminAccess();
   }, [user, navigate, toast]);
+
+  const handleApproveOrgDeletion = async (orgId: string, orgName: string) => {
+    if (!window.confirm(`Permanently delete organization "${orgName}" and notify all members? This cannot be undone.`)) return;
+    setApprovingOrgId(orgId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/approve-org-deletion`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ org_id: orgId }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Approval failed');
+      toast({ title: 'Organization Deleted', description: json.message });
+      setPendingOrgDeletions(prev => prev.filter(o => o.id !== orgId));
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setApprovingOrgId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -264,6 +302,43 @@ export default function Admin() {
                 </div>
               </TabsContent>
               <TabsContent value="organizations">
+                {pendingOrgDeletions.length > 0 && (
+                  <div className="mb-6 space-y-3">
+                    <h3 className="text-sm font-semibold text-destructive flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold w-5 h-5"
+                        aria-label={`${pendingOrgDeletions.length} pending deletion requests`}
+                      >
+                        {pendingOrgDeletions.length}
+                      </span>
+                      {ORG_DELETION_REQUEST.uiCopy.adminBadge}
+                    </h3>
+                    {pendingOrgDeletions.map((org) => (
+                      <div
+                        key={org.id}
+                        className="flex items-center justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3"
+                        role="alert"
+                        aria-live="polite"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{org.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Requested: {new Date(org.deletion_requested_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          disabled={approvingOrgId === org.id}
+                          aria-label={`${ORG_DELETION_REQUEST.uiCopy.adminApproveBtn} for ${org.name}`}
+                          onClick={() => handleApproveOrgDeletion(org.id, org.name)}
+                        >
+                          {approvingOrgId === org.id ? 'Deleting...' : ORG_DELETION_REQUEST.uiCopy.adminApproveBtn}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <OrganizationManagement />
               </TabsContent>
             </Tabs>

@@ -36,6 +36,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ORG_ROLES, ROLES, getEffectiveRole } from "@/constants/accessControl";
 import { isWithinMaxDepth } from "@/constants/organizationConfig";
+import { ORG_DELETION_REQUEST } from "@/constants/organizationConfig";
 import { useDisconnectFromNetwork } from "@/hooks/useDisconnectFromNetwork";
 import { useToast } from "@/hooks/use-toast";
 import { ROUTES } from "@/constants/routes";
@@ -46,6 +47,7 @@ export default function OrgManager() {
   const { isAdmin } = useAdminAccess();
   const [activeTab, setActiveTab] = useState("members");
   const [showOrgSettingsModal, setShowOrgSettingsModal] = useState(false);
+  const [requestingClosure, setRequestingClosure] = useState(false);
   const [showCreateChildDialog, setShowCreateChildDialog] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
   const [focusRefreshKey, setFocusRefreshKey] = useState(0);
@@ -153,6 +155,32 @@ export default function OrgManager() {
       </div>
     );
   }
+
+  const handleRequestClosure = async () => {
+    if (!organization?.id) return;
+    setRequestingClosure(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/request-org-deletion`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Request failed');
+      toast({ title: 'Request Submitted', description: json.message });
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setRequestingClosure(false);
+    }
+  };
 
   return (
     <AppShell>
@@ -460,6 +488,51 @@ export default function OrgManager() {
                     <Unlink className="h-4 w-4 mr-2" />
                     Disconnect from Network
                   </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Org Closure Request -- org_manager only */}
+            {userRole === 'org_manager' && (
+              <Card className="border-destructive/40 mt-6">
+                <CardHeader>
+                  <CardTitle className="text-destructive text-base">
+                    Organization Closure
+                  </CardTitle>
+                  <CardDescription>
+                    Request that this organization be permanently closed.
+                    An administrator must approve before any data is removed.
+                    All members will be notified before closure.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(organization as any)?.deletion_requested_at ? (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50">
+                        {ORG_DELETION_REQUEST.uiCopy.pendingBadge}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        Your request is awaiting administrator review.
+                      </span>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={requestingClosure}
+                      aria-label={ORG_DELETION_REQUEST.uiCopy.requestButton}
+                      onClick={() => {
+                        if (window.confirm(
+                          ORG_DELETION_REQUEST.uiCopy.confirmTitle + '\n\n' +
+                          ORG_DELETION_REQUEST.uiCopy.confirmBody
+                        )) {
+                          handleRequestClosure();
+                        }
+                      }}
+                    >
+                      {requestingClosure ? 'Submitting...' : ORG_DELETION_REQUEST.uiCopy.requestButton}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
