@@ -119,7 +119,7 @@ Changes to a domain require updating only ONE file.
 | Trial Config            | src/constants/trialConfig.ts              |
 | Feature Flags           | src/config/featureFlags.ts                |
 | Audience / Role Terms   | src/config/audienceConfig.ts              |
-| Series Export Config    | src/config/seriesExportConfig.ts          |
+| Series Export Config    | src/constants/seriesExportConfig.ts       |
 | Lesson Shape Profiles   | src/config/lessonShapeProfiles.ts         |
 | Branding                | src/config/branding.ts                    |
 
@@ -306,7 +306,7 @@ This finds every file with more than one BRANDING import in under 10 seconds.
 Primary files:
 - src/components/SeriesLibrary.tsx
 - src/components/SeriesExportModal.tsx
-- src/config/seriesExportConfig.ts
+- src/constants/seriesExportConfig.ts
 - src/utils/buildSeriesPdf.ts
 - src/utils/buildSeriesDocx.ts
 

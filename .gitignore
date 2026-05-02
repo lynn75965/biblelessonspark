@@ -40,3 +40,5 @@ SSOT-PROJECT-FILES/
 
 # Claude Code local settings (per-machine; do not commit)
 .claude/settings.local.json
+
+supabase/.temp/
