@@ -4,6 +4,114 @@
 
 ---
 
+### May 2, 2026 (Session 3) -- Org deletion approval workflow (full stack)
+
+#### Summary
+
+Complete approval-gated organization closure workflow shipped end to end
+in four phases. An org_manager can request closure from OrgManager
+settings; a platform admin sees the pending queue in Admin > People >
+Organizations and approves it; on approval all org members are emailed
+and org-linked rows are deleted in dependency order. No org data is
+removed until an admin clicks Approve.
+
+#### Phase 1 -- SSOT contracts (c20066d)
+
+`SSOT: Add ORG_DELETION_REQUEST constants and Organization deletion fields to contracts`
+
+- `src/constants/organizationConfig.ts` -- new `ORG_DELETION_REQUEST`
+  const exporting `statuses` (none/pending/approved), `rules`
+  (whoCanRequest=org_manager, whoCanApprove=admin,
+  requiresAdminApproval=true), `uiCopy` (request button, pending badge,
+  confirm copy, admin badge, approve button label) and `notifications`
+  (admin email recipients: eckbrosmediallc@gmail.com,
+  support@biblelessonspark.com). New `OrgDeletionStatus` type.
+- `src/constants/contracts.ts` -- `Organization` interface gained
+  optional `deletion_requested_at: string | null` and
+  `deletion_requested_by: string | null`.
+
+#### Phase 2 -- Migration (8a5ae47)
+
+`MIGRATION: Add deletion_requested_at and deletion_requested_by to organizations`
+
+`supabase/migrations/20260502174508_add_org_deletion_request_columns.sql`
+adds both columns to the `organizations` table. Applied via
+`npx supabase db push --linked` per Rule #20. Live database confirmed.
+
+#### Phase 3 -- Edge Functions (e3e0e55)
+
+`FEATURE: Add request-org-deletion and approve-org-deletion Edge Functions`
+
+Two new functions deployed via `npx supabase functions deploy --use-api`:
+
+- `request-org-deletion` -- authorizes the caller is the org_manager of
+  the current org, sets `deletion_requested_at = now()` and
+  `deletion_requested_by = auth.uid()` on the row, and emails both admin
+  addresses listed in `ORG_DELETION_REQUEST.notifications.adminEmails`
+  via Resend. Idempotent on the row update.
+- `approve-org-deletion` -- authorizes the caller via
+  `has_role('admin')`, fetches all org members, emails every member a
+  closure notification before any destructive operation, then deletes
+  org-linked rows in dependency order and finally the organizations row.
+
+#### Phase 4 -- Frontend wiring (40383ae)
+
+`FEATURE: Org deletion request UI -- OrgManager request button + Admin approval queue`
+
+Two files only, +148 lines:
+
+- `src/pages/OrgManager.tsx` -- Settings tab gains a destructive-bordered
+  "Organization Closure" card visible only when `userRole ===
+  'org_manager'`. If `organization.deletion_requested_at` is already set,
+  shows the amber pending badge with awaiting-review copy; otherwise
+  shows the Request button which fires `window.confirm` using
+  `ORG_DELETION_REQUEST.uiCopy.confirmTitle/confirmBody` then POSTs to
+  `request-org-deletion`. All copy sourced from the SSOT const --
+  zero hardcoded strings.
+- `src/pages/Admin.tsx` -- Organizations sub-tab queries
+  `organizations` for rows with `deletion_requested_at IS NOT NULL`
+  ordered ascending and renders them above `<OrganizationManagement />`
+  as a destructive-styled queue. Each row has an Approve button that
+  POSTs to `approve-org-deletion` with `org_id` and removes the row from
+  local state on success. Count badge has `aria-label`, each queue row
+  has `role="alert"` and `aria-live="polite"`. All copy sourced from
+  `ORG_DELETION_REQUEST.uiCopy`.
+
+#### Verification
+
+- ASCII guard PASS on both frontend files.
+- `npm run build` clean -- 3912 modules, 38.33s, zero errors.
+- Manual `git add` of the two named files (avoided deploy.ps1's
+  `git add .` per the narrow-scope rule for the source-code commit).
+
+#### Deploy (3504ce7)
+
+`FEATURE: Org deletion approval workflow -- full stack complete`
+
+`.\deploy.ps1` ran clean and pushed to origin/main. The deploy commit
+also picked up the two unstaged supabase CLI cache files
+(`supabase/.temp/cli-latest`, `supabase/.temp/linked-project.json`)
+that were already present in the working tree at session start --
+no new src files were added by the deploy commit.
+
+#### Carry-forwards CC flagged
+
+1. `approve-org-deletion` cleans 5 org-linked tables only. If other
+   tables carry an `organization_id` FK without `ON DELETE CASCADE`,
+   orphan rows are possible after closure. Audit deferred -- needs a
+   schema sweep to enumerate all `organization_id`-bearing tables and
+   their FK behavior.
+2. CLAUDE.md SSOT File Map lists `seriesExportConfig` under
+   `src/config/` but the actual file lives at `src/constants/`. Stale
+   path note. Deferred to a future CLAUDE.md cleanup.
+
+#### Out of scope
+
+No other pages, components, or edge functions touched. No SSOT
+constants modified outside `organizationConfig.ts` (Phase 1).
+
+---
+
 ### May 2, 2026 (Session 2) -- admin-delete-user rewrite + teaching team dissolution emails
 
 #### Two carry-forwards closed in one commit
