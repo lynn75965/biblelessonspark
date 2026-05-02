@@ -4,6 +4,94 @@
 
 ---
 
+### May 2, 2026 (Session 2) -- admin-delete-user rewrite + teaching team dissolution emails
+
+#### Two carry-forwards closed in one commit
+
+c28d699 -- FIX: admin-delete-user -- 30-table explicit cleanup + teaching
+team dissolution emails. Edge function rewritten and deployed directly via
+`npx supabase functions deploy admin-delete-user --project-ref hphebzdftpjbiudpfcrs --use-api`.
+Local commit pushed to origin/main after the deploy completed. (1 file,
++137/-49.)
+
+Edge function deployments bypass deploy.ps1 and Netlify entirely; the
+Netlify pipeline only handles the React frontend. Supabase functions ship
+directly via the supabase CLI to project hphebzdftpjbiudpfcrs.
+
+#### Carry-forward (a) -- 30-table explicit cleanup (never previously shipped)
+
+Despite an April 13 session-log entry that referenced this work, the
+deployed admin-delete-user function (verified May 2 via
+`supabase functions download admin-delete-user --use-api` then
+`git diff` -- zero diff) was still the original minimal version. It only
+called `adminClient.auth.admin.deleteUser(user_id)` and relied on database
+FK cascade rules for the rest of the cleanup. No explicit table deletes
+were present; no notification logic was present.
+
+The new STEP 3 block deletes from 30 user-linked tables in dependency
+order before invoking the auth admin delete in STEP 4. Each table delete
+is best-effort: failures log a `WARN: cleanup failed for <table>` prefix
+and the loop continues, so a missing table or permission gap does not
+abort the user deletion. The single special case is `teaching_teams`,
+which keys on `lead_teacher_id` instead of `user_id`. Table list, in
+dependency order:
+
+generation_metrics, reshape_metrics, guardrail_violations, events,
+outputs, beta_feedback, feedback, email_sequence_tracking, email_rosters,
+notifications, parable_usage, modern_parables, devotional_usage,
+devotionals, devotional_series, refinements, lessons, lesson_series,
+teaching_team_members, teaching_teams, transfer_requests, credits_ledger,
+setup_progress, org_shared_focus, organization_focus,
+organization_members, beta_testers, invites, user_roles,
+teacher_preference_profiles, user_subscriptions, profiles.
+
+#### Carry-forward (b) -- teaching team dissolution notification
+
+New STEP 1 finds all teams where the deleted user is `lead_teacher_id`
+and joins to gather the other members of those teams via
+`teaching_team_members` and the `profiles` table (full_name + email).
+STEP 2 sends each member a Resend email titled "Your Teaching Team Has
+Been Dissolved" before any destructive operation runs. Email failures are
+non-fatal -- they log a `WARN: Failed to send dissolution email` line but
+do not block the subsequent deletion steps.
+
+#### Two minor items CC flagged, accepted as-is
+
+1. Email-before-delete ordering. STEP 2 sends emails before STEP 3/4 run.
+   If cleanup or auth-delete fails after the email is sent, members
+   receive a "team dissolved" message about a team that still exists.
+   Accepted intentionally -- the alternative (email after success) leaves
+   recipients uninformed if the function crashes between the cleanup and
+   the email send.
+
+2. Hardcoded `from` address. The Resend send uses
+   `'BibleLessonSpark <support@biblelessonspark.com>'` directly rather
+   than reading `getEmailFrom()` from `_shared/branding.ts` (the SSOT
+   used by `notify-team-invitation/index.ts`). Minor SSOT drift on
+   outbound email branding; deferred to a future cleanup pass.
+
+#### Verification
+
+- File written via `[System.IO.File]::WriteAllText` with
+  `UTF8Encoding($false)` (the CLAUDE.md-mandated method for source files).
+  First 3 bytes `69 6D 70` ("imp...") confirm no BOM, 7,719 bytes total.
+- ASCII guard PASS: zero non-ASCII characters in the rewritten file.
+- Pre-commit hook PASS: `All staged files are ASCII-clean.`
+- `npx supabase functions deploy --use-api` succeeded; dashboard URL:
+  https://supabase.com/dashboard/project/hphebzdftpjbiudpfcrs/functions
+- Two unstaged CLI cache files (`supabase/.temp/cli-latest`,
+  `supabase/.temp/linked-project.json`) appeared during the diagnostic
+  download/deploy passes. Left unstaged per the narrow-scope rule;
+  consider .gitignoring them in a future cleanup.
+
+#### Out of scope
+
+No frontend changes. No SSOT constants modified. No other edge function
+touched. PROJECT_MASTER.md updated in a separate DOCS commit immediately
+after this entry was added.
+
+---
+
 ### May 2, 2026 -- Church Plant Teaching Capacity Report public page
 
 #### One commit, one new public route
