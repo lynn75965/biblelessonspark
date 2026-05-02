@@ -4,6 +4,68 @@
 
 ---
 
+### May 2, 2026 (Session 5) -- Carry-forward sweep (gitignore, CLAUDE.md, FK audit)
+
+#### Summary
+
+Three carry-forwards from Sessions 3 and 4 closed in two commits. One
+edge function redeployed via Supabase CLI; no deploy.ps1 invocation.
+Final state: zero open carry-forwards from this stretch of sessions.
+
+#### bc23bdf -- .gitignore + CLAUDE.md path fixes
+
+`CLEANUP: Add supabase/.temp to .gitignore; fix stale seriesExportConfig path in CLAUDE.md`
+
+Two unrelated cleanup items in a single commit (2 files, +4/-2):
+
+- `.gitignore` -- appended `supabase/.temp/` so the two persistent
+  CLI cache files (`cli-latest`, `linked-project.json`) stop showing
+  up as untracked after every `supabase` CLI invocation. Carry-forward
+  from Sessions 2 and 4 closed.
+- `CLAUDE.md` lines 122 and 309 -- corrected the stale
+  `src/config/seriesExportConfig.ts` path to
+  `src/constants/seriesExportConfig.ts`. Line 219 was flagged in the
+  task spec but on inspection contained only the bare filename
+  (no path prefix) so it was left alone. Carry-forward from
+  Sessions 3 and 4 closed.
+
+#### b45bd96 -- approve-org-deletion FK audit and invites cleanup
+
+`FIX: approve-org-deletion -- add invites cleanup before org record deletion (NO ACTION FK)`
+
+Closes the Session 3 carry-forward on org-deletion FK orphan risk.
+
+SQL audit of every foreign key referencing `organizations(id)` showed
+that the `invites` table has a `NO ACTION` delete rule -- meaning a
+pending invite would block the final `DELETE FROM organizations`
+statement and abort the closure flow midway after member emails had
+already been sent. All other FKs to `organizations` either `CASCADE`
+or `SET NULL`, so no other tables required attention.
+
+Fix is one line: `'invites'` was inserted as the first entry of the
+`orgTables` cleanup array in
+`supabase/functions/approve-org-deletion/index.ts`. The existing
+loop deletes by `organization_id` so no other code change was needed.
+
+Deployed via `npx supabase functions deploy approve-org-deletion
+--project-ref hphebzdftpjbiudpfcrs --use-api`. Local commit pushed to
+origin/main after the deploy completed.
+
+#### Carry-forwards status
+
+All three open items closed:
+
+1. `supabase/.temp/` gitignore -- DONE (bc23bdf).
+2. CLAUDE.md `seriesExportConfig` stale paths -- DONE (bc23bdf).
+3. `approve-org-deletion` FK orphan sweep -- DONE (b45bd96).
+
+#### Out of scope
+
+No frontend changes. No SSOT constants modified. No other edge
+function touched. No deploy.ps1 invocation. No Netlify deploy.
+
+---
+
 ### May 2, 2026 (Session 4) -- Backend cleanup and non-ASCII audit
 
 #### Summary
