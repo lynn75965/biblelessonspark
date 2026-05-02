@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
 
     // Delete org data in dependency order
     const orgTables = [
+      'invites',
       'org_shared_focus',
       'organization_focus',
       'teaching_team_members',
