@@ -1,6 +1,58 @@
-# PROJECT MASTER -- Last updated: April 28, 2026
+# PROJECT MASTER -- Last updated: May 2, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### May 2, 2026 -- Church Plant Teaching Capacity Report public page
+
+#### One commit, one new public route
+
+eeec5de -- FEATURE: Add 2026 Church Plant Teaching Capacity Report public
+page. Standalone marketing/research page at /church-plant-teaching-capacity-report
+publishing a literature-based ministry analysis of volunteer readiness and
+multi-age teaching challenges in church plants. (3 files, +261/-1.)
+
+#### Files changed
+
+1. src/constants/routes.ts -- added CHURCH_PLANT_REPORT public route constant
+   in the public-routes block immediately after COMMUNITY.
+2. src/App.tsx -- imported ChurchPlantReport page component, registered a
+   public Route (no ProtectedRoute wrapper) between COMMUNITY and PRIVACY in
+   the public-routes group.
+3. src/pages/ChurchPlantReport.tsx (NEW, 261 lines) -- standalone public page,
+   no auth or subscription gates. Uses BRANDING.layout.legalPageWrapper /
+   legalPageCard for site-consistent styling. Semantic HTML throughout
+   (main / article / section / h1-h3 / ul / p) with aria-labelledby on every
+   section. useEffect sets document.title and meta description on mount and
+   restores both on unmount (no react-helmet dependency in this project).
+   Zero imports from any SSOT constant file (pricingConfig, trialConfig,
+   theologyProfiles, ageGroups) -- the page is pure content. ASCII-only.
+
+#### Content (verbatim from Lynn's brief, not summarized)
+
+Executive Summary, Introduction, Methodology (with bulleted source list),
+five Key Findings as H3 subsections, Implications for Church Plants,
+Conclusion, and Sources. Hero section labels the report type as "Literature-
+Based Ministry Analysis" and includes an italicized disclosure that the
+report does not claim original survey data. Sources cited: Barna, Lifeway,
+Pew, NAMB / Send Network (2015-2024).
+
+#### Verification performed before deploy
+
+- ASCII guard ran clean on all three modified/new files (zero non-ASCII chars).
+- npm run build -- PASS in 30.60s, 3912 modules transformed, zero errors.
+- Dev server started on port 8080; Lynn verified the page on localhost and
+  approved the deploy explicitly.
+- git status --short before deploy.ps1 showed only the three task files;
+  no unrelated drift, so deploy.ps1's `git add .` was safe to use as-is.
+
+#### Out of scope on purpose
+
+No backend work, no SSOT constants modified, no theology / pricing / trial /
+auth / lesson / export / subscription file touched. The page is a pure
+read-only public landing page; it does not need a backend mirror in
+supabase/functions/_shared/.
 
 ---
 
