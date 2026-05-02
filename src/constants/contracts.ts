@@ -357,6 +357,8 @@ export interface Organization {
   beta_start_date?: string | null;
   beta_end_date?: string | null;
   beta_activated_by?: string | null;
+  deletion_requested_at?: string | null;
+  deletion_requested_by?: string | null;
 }
 
 /**

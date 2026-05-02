@@ -378,3 +378,41 @@ export const PLATFORM_MODE_ACCESS = {
 } as const;
 
 export type PlatformMode = keyof typeof PLATFORM_MODE_ACCESS;
+
+// ----------------------------------------------------------------------------
+// ORG DELETION REQUEST -- SSOT
+// ----------------------------------------------------------------------------
+// Org Manager requests closure -> platform Admin must approve before any
+// destructive action runs. All members are notified before closure.
+// ----------------------------------------------------------------------------
+
+export const ORG_DELETION_REQUEST = {
+  statuses: {
+    none:     'none',
+    pending:  'pending',
+    approved: 'approved',
+  } as const,
+  rules: {
+    whoCanRequest:          'org_manager',
+    whoCanApprove:          'admin',
+    requiresAdminApproval:  true,
+  } as const,
+  uiCopy: {
+    requestButton:    'Request Organization Closure',
+    pendingBadge:     'Pending Admin Approval',
+    confirmTitle:     'Request Organization Closure?',
+    confirmBody:      'This will notify BibleLessonSpark administrators. Your organization will not be closed until an admin approves the request. All members will be notified before closure.',
+    confirmAction:    'Yes, Submit Request',
+    confirmCancel:    'Cancel',
+    adminBadge:       'Closure Requested',
+    adminApproveBtn:  'Approve Deletion',
+  } as const,
+  notifications: {
+    adminEmails: [
+      'eckbrosmediallc@gmail.com',
+      'support@biblelessonspark.com',
+    ] as const,
+  },
+} as const;
+
+export type OrgDeletionStatus = typeof ORG_DELETION_REQUEST.statuses[keyof typeof ORG_DELETION_REQUEST.statuses];
