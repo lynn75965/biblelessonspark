@@ -4,6 +4,88 @@
 
 ---
 
+### May 2, 2026 (Session 4) -- Backend cleanup and non-ASCII audit
+
+#### Summary
+
+Two carry-forward items closed, one deferred. No frontend touched, no
+edge function logic touched, no deploy.ps1 run. Two commits this
+session: a cleanup commit deleting stale backup files and this docs
+commit.
+
+#### #7 closed (f68d40d) -- Stale .backup files removed
+
+`CLEANUP: Delete 4 stale .backup files from supabase/functions`
+
+Diagnostic find under `supabase/functions/` surfaced four orphan
+`.backup` files left behind by prior edits:
+
+```
+supabase/functions/_shared/lessonTiers.ts.backup
+supabase/functions/_shared/pricingConfig.ts.backup
+supabase/functions/_shared/subscriptionCheck.ts.backup
+supabase/functions/generate-lesson/index.ts.backup
+```
+
+Confirmed not deployed and not imported anywhere. Removed via
+`git rm` in a single commit -- 4 files, 703 deletions.
+
+#### #8 closed (no changes) -- Non-ASCII audit of _shared/ files
+
+Seven non-sync files in `supabase/functions/_shared/` were scanned
+byte-by-byte for characters above codepoint 127. All seven contained
+non-ASCII; none required changes. Findings:
+
+- `emailDeliveryConfig.ts`, `lessonShapeProfiles.ts`,
+  `outputGuardrails.ts`, `trialConfig.ts` -- em dashes (U+2014) in
+  comments and string literals.
+- `branding.ts` -- single party emoji in the welcome-message string.
+- `customizationDirectives.ts` -- empty-checkbox glyph (U+2610) used
+  as a literal checkbox marker inside prompt strings sent to the AI
+  model. Removing it would change AI output formatting.
+- `uiSymbols.ts` -- intentional SSOT symbol map. The exported const
+  `UI_SYMBOLS` defines `BULLET: '*'` (U+2022), `EM_DASH: '--'`
+  (U+2014), `ELLIPSIS: '...'` (U+2026) etc. The whole purpose of the
+  file is to centralize Unicode glyphs so the rest of the codebase
+  imports rather than typing them inline. False-alarm note: my
+  initial scan reported the bullet bytes as mojibake; they are
+  correctly UTF-8 encoded.
+
+Conclusion: the deploy.ps1 ASCII guard pre-commit hook only inspects
+files staged through the frontend deploy path. Edge function source
+files are deployed via `npx supabase functions deploy --use-api`
+which has no ASCII enforcement, so intentional Unicode payloads in
+backend SSOTs are fine. No action required.
+
+#### #9 deferred -- pricingConfig.ts / orgPricingConfig.ts unification
+
+Two pricing config files exist in the backend `_shared/` mirror layer.
+Unifying them touches the Stripe webhook tier-resolution path
+(Rule #17) and the org Stripe webhook path. Deferred to a dedicated
+session where a full SSOT audit of every consumer can run before any
+edit lands.
+
+#### Carry-forwards still open
+
+- CLAUDE.md SSOT File Map lists `seriesExportConfig` under
+  `src/config/` but the actual file lives at `src/constants/`. Stale
+  path note. Deferred to a future CLAUDE.md cleanup pass.
+- `supabase/.temp/cli-latest` and `supabase/.temp/linked-project.json`
+  are persistent untracked CLI cache files that reappear after every
+  supabase CLI invocation. Carry forward a decision on whether to
+  add `supabase/.temp/` to `.gitignore`.
+- `approve-org-deletion` schema sweep (Session 3 carry-forward) --
+  enumerate every `organization_id`-bearing table and verify FK
+  cascade behavior to prevent orphan rows after org closure.
+
+#### Out of scope
+
+No frontend changes. No edge function logic changes. No SSOT
+constants modified. No deploy.ps1 invocation. No Supabase functions
+redeployed.
+
+---
+
 ### May 2, 2026 (Session 3) -- Org deletion approval workflow (full stack)
 
 #### Summary
