@@ -65,6 +65,15 @@ Unifying them touches the Stripe webhook tier-resolution path
 session where a full SSOT audit of every consumer can run before any
 edit lands.
 
+May 2 Session 5 audit: orgPricingConfig.ts does not exist in
+supabase/functions/_shared/. The backend mirror has a single
+pricingConfig.ts already serving both individual and org concerns
+(exports ORG_TIERS, STRIPE_INDIVIDUAL, resolveTierFromPriceId,
+TIER_LESSON_LIMITS alongside individual tier constants). Three edge
+functions consume it correctly. Frontend src/constants/pricingConfig.ts
+and src/constants/orgPricingConfig.ts are separate SSOTs for separate
+domains -- correct as designed. Carry-forward closed as non-issue.
+
 #### Carry-forwards still open
 
 - CLAUDE.md SSOT File Map lists `seriesExportConfig` under
