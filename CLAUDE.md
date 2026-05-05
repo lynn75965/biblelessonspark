@@ -274,6 +274,28 @@ Every interactive element must meet WCAG 2.1 AA minimum. Required on every UI ta
 (10) every CC prompt touching UI must append the ACCESSIBILITY VERIFICATION BLOCK defined in the appendix of this file.
 Added April 4, 2026.
 
+### Rule #23: Run npm run sync-constants after every change to a file in FILES_TO_SYNC
+The following 14 files auto-sync from src/constants/ to supabase/functions/_shared/
+via scripts/sync-constants.cjs:
+ageGroups.ts, bibleVersions.ts, generationMetrics.ts, lessonStructure.ts,
+lessonTiers.ts, systemSettings.ts, teacherPreferences.ts, theologyProfiles.ts,
+routes.ts, contracts.ts, rateLimitConfig.ts, freshnessOptions.ts,
+devotionalConfig.ts, toolbeltConfig.ts
+Run npm run sync-constants immediately after editing any of these. Never hand-edit
+their _shared/ mirrors -- they are auto-generated and will be overwritten on the
+next sync. Added May 5, 2026.
+
+### Rule #24: These _shared/ files are intentionally hand-maintained -- not in FILES_TO_SYNC
+pricingConfig.ts, trialConfig.ts, validation.ts, lessonShapeProfiles.ts,
+seriesConfig.ts, branding.ts, uiSymbols.ts, organizationConfig.ts,
+betaEnrollmentConfig.ts, emailDeliveryConfig.ts, outputGuardrails.ts,
+customizationDirectives.ts, corsConfig.ts, orgPoolCheck.ts, subscriptionCheck.ts,
+rateLimit.ts
+These contain backend-specific logic with no clean frontend counterpart. When the
+frontend SSOT for any of these changes, the corresponding _shared/ file must be
+updated manually in the same commit. Never add these to FILES_TO_SYNC.
+Added May 5, 2026.
+
 ---
 
 ## DEBUGGING PROTOCOL
