@@ -1,6 +1,54 @@
-# PROJECT MASTER -- Last updated: May 2, 2026
+# PROJECT MASTER -- Last updated: May 5, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### May 5, 2026 -- Public trust page (Why Churches Can Trust BibleLessonSpark)
+
+#### Summary
+
+New public-facing trust page added at `/why-churches-can-trust-biblelessonspark`,
+intended for sharing with church leaders evaluating BLS. One feature commit, one
+docs commit. Localhost verified before deploy.
+
+#### 1c5e088 -- FEATURE: trust page + route wiring
+
+`FEATURE: Add public Why Churches Can Trust BibleLessonSpark trust page (route + App.tsx wiring)`
+
+Three files (3 files changed, 228 insertions):
+
+- `src/pages/WhyChurchesCanTrustBibleLessonSpark.tsx` -- new page. Hero,
+  ten thematic sections (Built for Faithful Bible Teaching, Aligned with
+  Doctrinal Convictions, Real Teachers, Age Groups, More Than an Outline,
+  Tool Serves the Church, Generic AI Drift, Small Churches/Plants,
+  Disciplers, Trustworthy + Simple), and a closing summary box. Imports
+  `ReactNode` only -- no AppShell, no auth, no BRANDING. Lightweight
+  marketing page consistent with public-route pattern.
+- `src/constants/routes.ts` -- added `WHY_CHURCHES_CAN_TRUST` to the
+  public-routes block of `ROUTES`.
+- `src/App.tsx` -- imported the new page, added `<Route>` element above
+  the catch-all, using `ROUTES.WHY_CHURCHES_CAN_TRUST` (Rule #3 satisfied
+  -- both files updated together).
+
+#### Non-ASCII handling
+
+Source content as supplied contained typographic apostrophes (U+2019)
+and curly double quotes (U+201C / U+201D) that would have tripped the
+ASCII guard. Resolved by encoding all 23 occurrences as JS escape
+sequences inside JSX expression containers: `{'’'}`, `{'“'}`,
+`{'”'}`. Source file is now zero non-ASCII bytes; browser still
+renders proper curly typography. Rule #16 satisfied.
+
+#### Workflow
+
+- `npm run build` -- clean (29s, only pre-existing chunk-size warnings).
+- `npm run dev` -- Lynn verified localhost:8080 before approving deploy.
+- `.\deploy.ps1` -- ASCII guard passed, pushed `3aa7318..1c5e088`.
+
+#### Carry-forwards
+
+None. Page is self-contained; no SSOT files affected; no backend changes.
 
 ---
 
