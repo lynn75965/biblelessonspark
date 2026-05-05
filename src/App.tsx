@@ -21,6 +21,8 @@ import Training from "./pages/Training";
 import Community from "./pages/Community";
 import ChurchPlantReport from "./pages/ChurchPlantReport";
 import WhyChurchesCanTrustBibleLessonSpark from "./pages/WhyChurchesCanTrustBibleLessonSpark";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 
 import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -125,6 +127,8 @@ const App = () => (
             <Route path={ROUTES.COMMUNITY} element={<Community />} />
             <Route path={ROUTES.CHURCH_PLANT_REPORT} element={<ChurchPlantReport />} />
             <Route path={ROUTES.WHY_CHURCHES_CAN_TRUST} element={<WhyChurchesCanTrustBibleLessonSpark />} />
+            <Route path={ROUTES.BLOG} element={<Blog />} />
+            <Route path={ROUTES.BLOG_POST} element={<BlogPost />} />
             <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
             <Route path={ROUTES.TERMS} element={<TermsOfService />} />
             <Route path={ROUTES.COOKIE} element={<Cookie />} />

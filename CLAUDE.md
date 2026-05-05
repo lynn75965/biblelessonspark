@@ -122,6 +122,7 @@ Changes to a domain require updating only ONE file.
 | Series Export Config    | src/constants/seriesExportConfig.ts       |
 | Lesson Shape Profiles   | src/config/lessonShapeProfiles.ts         |
 | Branding                | src/config/branding.ts                    |
+| Blog Config             | src/constants/blogConfig.ts               |
 
 ### Deleted Files -- DO NOT RECREATE
 
