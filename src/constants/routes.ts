@@ -19,6 +19,7 @@ export const ROUTES = {
   TRAINING: '/training',
   COMMUNITY: '/community',
   CHURCH_PLANT_REPORT: '/church-plant-teaching-capacity-report',
+  WHY_CHURCHES_CAN_TRUST: '/why-churches-can-trust-biblelessonspark',
 
   // Protected routes
   DASHBOARD: '/dashboard',
