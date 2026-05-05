@@ -4,6 +4,140 @@
 
 ---
 
+### May 5, 2026 (Session 2) -- Blog system (full stack: SSOT + migration + pages)
+
+#### Summary
+
+Complete public blog system shipped end to end. SSOT-first build:
+`src/constants/blogConfig.ts` owns table name, status values, and all UI
+copy; `src/constants/routes.ts` owns the path literals and `blogConfig`
+derives its routes from it. New `blog_posts` table created via
+migration with RLS allowing public read of published rows only.
+Two new public pages render index and detail. One commit (`8934030`),
+preceded by a drift-fix sync at the start of the session.
+
+#### Pre-work -- backend mirror drift fix (no commit)
+
+`npm run sync-constants` rewrote 14 backend `_shared/` files. Two real
+diffs surfaced and were corrected: `routes.ts` had been missing
+`CHURCH_PLANT_REPORT` and `WHY_CHURCHES_CAN_TRUST`; `contracts.ts` had
+a 2-line frontend-vs-backend drift. The sync was the first time it had
+run since at least the church-plant-report ship. These drifts were
+shipped together with the blog commit since both backend mirrors are
+auto-generated and the sync tool always touches all 14 files.
+
+CLAUDE.md does not currently document the `npm run sync-constants`
+command nor the `supabase/functions/_shared/` mirror policy.
+Carry-forward: add a short SSOT-Sync section to CLAUDE.md so future
+sessions run sync-constants before any ship that touches the
+`FILES_TO_SYNC` set (`ageGroups`, `bibleVersions`, `generationMetrics`,
+`lessonStructure`, `lessonTiers`, `systemSettings`, `teacherPreferences`,
+`theologyProfiles`, `routes`, `contracts`, `rateLimitConfig`,
+`freshnessOptions`, `devotionalConfig`, `toolbeltConfig`).
+
+#### 8934030 -- FEATURE: blog system
+
+`FEATURE: Blog system -- blog_posts table, Blog and BlogPost pages, SSOT blogConfig`
+
+9 files (298 insertions, 1 deletion):
+
+- `src/constants/blogConfig.ts` -- new SSOT. Exports `BLOG_CONFIG` with
+  `table='blog_posts'`, `status.published='published'`,
+  `status.draft='draft'`, `routes.index=ROUTES.BLOG`,
+  `routes.post=ROUTES.BLOG_POST`, and UI copy
+  (`title='Blog'`, `emptyState='No posts available.'`,
+  `backLabel='Back to Blog'`). Also exports `BlogStatus` type and
+  `BlogPost` row interface.
+- `src/constants/routes.ts` -- added `BLOG: '/blog'` and
+  `BLOG_POST: '/blog/:slug'` to the public block.
+- `src/App.tsx` -- imported `Blog` and `BlogPost`; registered both as
+  bare `<Route>` elements (no `ProtectedRoute`), placed alongside the
+  other public marketing routes (Rule #3 satisfied).
+- `src/pages/Blog.tsx` -- index page. Queries
+  `BLOG_CONFIG.table` filtered by `published=true`, ordered
+  `published_at desc`. Uses only `BLOG_CONFIG.ui.*` and
+  `BLOG_CONFIG.routes.post` for path interpolation. Accessible:
+  visible h1, h2 per post, `aria-live="polite"` loading region,
+  `role="alert"` error state, `time` element with `dateTime` for
+  published date.
+- `src/pages/BlogPost.tsx` -- detail page. Looks up by `:slug` URL
+  param, requires `published=true`. On load, programmatic focus
+  moves to the post heading via `tabIndex={-1}` + `useRef`. 404
+  branch renders "Post not found" headline (also focused on load).
+  Back link points to `BLOG_CONFIG.routes.index`.
+- `supabase/migrations/20260505180000_create_blog_posts.sql` -- creates
+  `blog_posts` (id uuid, title, slug unique, excerpt, content, published
+  bool default false, published_at timestamptz, created_at timestamptz),
+  enables RLS, adds two policies: public-anonymous SELECT where
+  `published=true` (roles: `anon, authenticated`), and
+  `service_role for all` for admin content management.
+- `supabase/functions/_shared/routes.ts` -- auto-synced.
+- `supabase/functions/_shared/contracts.ts` -- auto-synced (drift fix).
+- `CLAUDE.md` -- SSOT File Map gained the row
+  `| Blog Config | src/constants/blogConfig.ts |`.
+
+#### Migration verification
+
+`npx supabase migration list --linked` showed `20260505180000` as
+local-only (Remote column empty) before push -- confirming new file,
+not a re-run. `npx supabase db push --linked` reported
+`Applying migration 20260505180000_create_blog_posts.sql ... Finished`
+and the post-push list showed the same timestamp now mirrored in both
+columns. Live database verified.
+
+#### SSOT discipline check (Step 7 verification)
+
+- `'blog_posts'` literal appears only in `blogConfig.ts` and the
+  migration SQL. Both pages reference `BLOG_CONFIG.table`.
+- UI strings (`'Blog'`, `'No posts available.'`, `'Back to Blog'`)
+  appear only in `blogConfig.ts`. Both pages reference
+  `BLOG_CONFIG.ui.*`.
+- Route literals (`'/blog'`, `'/blog/:slug'`) appear only in
+  `routes.ts`. `blogConfig.ts` derives via `ROUTES.BLOG` and
+  `ROUTES.BLOG_POST`; `App.tsx` references `ROUTES.*` directly;
+  `Blog.tsx` builds detail URLs via
+  `BLOG_CONFIG.routes.post.replace(':slug', slug)`.
+
+#### Workflow
+
+- `npm run build` -- clean (3916 modules, 19.7s). Only pre-existing
+  chunk-size warnings.
+- `npm run sync-constants` -- run twice: once at session start to fix
+  drift, once after `routes.ts` edit to push BLOG/BLOG_POST.
+- `npm run dev` -- Lynn verified empty-state list and 404 branch on
+  localhost:8081 before approving deploy.
+- `git add` -- explicit file list (NOT `git add .`) to keep
+  `supabase/.temp/cli-latest` out of the commit. ASCII guard passed.
+- `git push origin main` -- direct push, bypassing `deploy.ps1` so the
+  scoped staging persisted. Same outcome as deploy.ps1 (Netlify watches
+  `main`).
+
+#### Carry-forwards
+
+1. `supabase/.temp/cli-latest` is gitignored (line 44 of `.gitignore`)
+   but is currently TRACKED in git, so every supabase CLI invocation
+   leaves it as a modified working-tree file. Untrack it via
+   `git rm --cached supabase/.temp/cli-latest supabase/.temp/linked-project.json`
+   in a future cleanup commit.
+2. CLAUDE.md does not document `npm run sync-constants` or the
+   `supabase/functions/_shared/` mirror policy. Add a short section so
+   the sync step is not skipped on future SSOT-touching sessions.
+3. Several `_shared/` files are NOT in `FILES_TO_SYNC` despite having
+   frontend SSOTs (`pricingConfig.ts`, `trialConfig.ts`,
+   `validation.ts`, `lessonShapeProfiles.ts`, `seriesConfig.ts`,
+   `branding.ts`, `uiSymbols.ts`, `organizationConfig.ts`,
+   `betaEnrollmentConfig.ts`, `emailDeliveryConfig.ts`,
+   `outputGuardrails.ts`, `customizationDirectives.ts`). They are
+   hand-maintained mirrors. Decision needed: extend `FILES_TO_SYNC`,
+   or document the hand-maintained set explicitly.
+
+#### Out of scope
+
+No edge function changes. No Stripe / pricing changes. No org-management
+changes. No accessibility or copy changes outside the new blog pages.
+
+---
+
 ### May 5, 2026 -- Public trust page (Why Churches Can Trust BibleLessonSpark)
 
 #### Summary
