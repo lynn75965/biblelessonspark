@@ -8,11 +8,11 @@
 
 #### Summary
 
-Three small carry-forwards from Session 2 closed in a single commit. No code
-behavior changed. CLAUDE.md gained two new rules documenting the sync-constants
-workflow and the hand-maintained `_shared/` set. The stale-tracked
-`supabase/.temp/cli-latest` was untracked so future supabase CLI invocations no
-longer leave it as a modified working-tree file.
+Three Session 2 carry-forwards closed in two commits, plus a follow-up
+sweep that untracked the remaining 7 `supabase/.temp/` CLI cache files
+that had been silently tracked alongside `cli-latest`. No code behavior
+changed. CLAUDE.md gained two new rules documenting the sync-constants
+workflow and the hand-maintained `_shared/` set.
 
 #### ffdf3ed -- DOCS: Rules 23-24 sync-constants policy, remove tracked temp file
 
@@ -49,6 +49,18 @@ rateLimit. When a frontend SSOT change touches one of these, the
 corresponding `_shared/` mirror must be updated by hand in the same commit.
 Rule explicitly forbids adding any of these to FILES_TO_SYNC.
 
+#### c9864df -- CLEANUP: Untrack remaining supabase/.temp/ CLI cache files
+
+Follow-up sweep after the Session 2 carry-forward review surfaced that
+`cli-latest` was not the only stale-tracked file under `supabase/.temp/`.
+Seven additional CLI cache files were also tracked despite being covered
+by `.gitignore`: `gotrue-version`, `linked-project.json`, `pooler-url`,
+`postgres-version`, `project-ref`, `rest-version`, `storage-version`.
+Removed from index via `git rm --cached` -- 7 files, 7 deletions, no
+working-tree changes (files remain on disk; supabase CLI continues to
+write them). After this commit `git ls-files supabase/.temp/` returns
+empty -- the directory is fully ignored.
+
 #### Workflow
 
 - `npm run build` -- clean (3916 modules, 21.7s). Only pre-existing
@@ -56,18 +68,18 @@ Rule explicitly forbids adding any of these to FILES_TO_SYNC.
 - ASCII verification on edited CLAUDE.md -- 0 non-ASCII bytes.
 - `git add CLAUDE.md` (cli-latest was already staged from `git rm --cached`)
   -- explicit file list, no `git add .`, no deploy.ps1 invocation.
-- `git commit -m "DOCS: Rules 23-24 sync-constants policy, remove tracked
-  temp file"` -- ASCII guard passed. No push (per task scope).
+- `git commit` -- ASCII guard passed on each commit.
+- `git push origin main` -- direct push (Netlify auto-deploys from main).
 
 #### Out of scope
 
 No source code changes. No SSOT constants modified. No edge functions
-touched. No Stripe / pricing / accessibility / copy changes. No deploy.
-No Netlify push.
+touched. No Stripe / pricing / accessibility / copy changes.
 
 #### Carry-forwards
 
-None. All three Session 2 cleanup items resolved in one commit.
+None. All three Session 2 cleanup items resolved, plus the broader
+`.temp/` sweep closed in the same session.
 
 ---
 
