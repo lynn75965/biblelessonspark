@@ -4,6 +4,96 @@
 
 ---
 
+### May 5, 2026 (Session 4) -- Wire Tailwind Typography + render blog HTML content
+
+#### Summary
+
+Two tightly-coupled changes shipped in one commit. The Tailwind Typography
+plugin was already in `devDependencies` (^0.5.16) but had never been wired
+into `tailwind.config.ts`, so `prose` classes generated nothing. BlogPost
+detail pages were rendering Supabase `content` as plain text via
+`whitespace-pre-wrap` -- meaning HTML stored in the column would have
+appeared as escaped markup. Both halves of the gap closed together so
+formatted blog content now renders as intended.
+
+#### c762e80 -- FEATURE: Wire Tailwind Typography, render blog HTML content
+
+Two files changed (7 insertions, 5 deletions):
+
+- `tailwind.config.ts` -- added `import typography from "@tailwindcss/typography";`
+  alongside the existing `tailwindcssAnimate` import. Added `typography`
+  to the `plugins` array (now `[tailwindcssAnimate, typography]`).
+  Also fixed four pre-existing U+2192 arrow glyphs in the file's doc
+  comment (line 11 "Color flow") to ASCII `->`. The arrows had been
+  there since before this session but the ASCII guard fires on any
+  non-ASCII byte in any file in the staged set, not just diffs --
+  modifying the file forced the cleanup.
+- `src/pages/BlogPost.tsx` -- replaced the body content block. Was:
+  `<div className="whitespace-pre-wrap text-lg leading-8 text-slate-800">{post.content}</div>`.
+  Now: `<div className="prose prose-lg max-w-none" dangerouslySetInnerHTML={{ __html: post.content }} />`.
+  No other changes -- routing, slug lookup, 404 branch, focus
+  management on heading via `tabIndex={-1}` + `useRef`, `aria-live`
+  loading region, `role="alert"` error region, back link, and
+  published-date `time` element are all unchanged.
+
+#### Pre-task diagnostic
+
+Before starting, verified the gap:
+- `package.json` line 88 -- `@tailwindcss/typography: ^0.5.16` in
+  `devDependencies` (not `dependencies`).
+- `tailwind.config.ts` line 155 (pre-edit) -- `plugins: [tailwindcssAnimate]`,
+  no typography import or reference. Confirmed `prose` classes would not
+  generate.
+
+#### Build verification
+
+`npm run build` clean (3916 modules, 19.57s). CSS bundle size jumped
+from 138.52 kB to 165.42 kB (+26.9 kB) -- direct evidence that the
+typography plugin is now generating `prose-*` utilities into the
+output stylesheet. No new TypeScript errors. Only the pre-existing
+chunk-size warnings.
+
+#### XSS posture
+
+`dangerouslySetInnerHTML` on `post.content` is acceptable because the
+`blog_posts` table RLS policy (migration `20260505180000_create_blog_posts.sql`)
+restricts writes to `service_role` -- public users have SELECT-only access
+to rows where `published = true`. Content is admin-authored and trusted.
+If the write path ever expands to non-admin authors, content will need
+to be sanitized (e.g. via `dompurify`) before this prop is set.
+
+#### Workflow
+
+- Diagnostic-first read of `package.json`, `tailwind.config.ts`, and
+  `src/pages/BlogPost.tsx` before any edits.
+- `npm run build` -- clean.
+- ASCII verification on both files before commit.
+- First commit attempt blocked by ASCII guard on the pre-existing arrows
+  in `tailwind.config.ts` (4 x U+2192). Fixed in the same edit, re-committed
+  successfully.
+- `git add` -- explicit file list (NOT `git add .`), no deploy.ps1
+  invocation.
+- HELD before push -- awaiting Lynn's localhost verification on the
+  detail page before deploy is authorized.
+
+#### Out of scope
+
+No backend changes. No edge function changes. No SSOT constants modified.
+No accessibility-affecting changes to the page chrome (heading focus,
+loading region, error region, back link all untouched). No other route
+or component changed.
+
+#### Carry-forwards
+
+1. Lynn to verify on localhost: navigate to a published `/blog/:slug`
+   post and confirm prose styling renders (headings, paragraphs, lists)
+   with the typography plugin's defaults.
+2. If/when blog authoring expands beyond admin-only, add content
+   sanitization in `BlogPost.tsx` before the `dangerouslySetInnerHTML`
+   prop -- per the XSS posture note above.
+
+---
+
 ### May 5, 2026 (Session 3) -- Cleanup: untrack cli-latest + Rules 23-24 sync-constants policy
 
 #### Summary
