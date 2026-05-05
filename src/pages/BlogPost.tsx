@@ -105,9 +105,10 @@ export default function BlogPost() {
                 <time dateTime={post.published_at}>{formatPublishedDate(post.published_at)}</time>
               </p>
             )}
-            <div className="whitespace-pre-wrap text-lg leading-8 text-slate-800">
-              {post.content}
-            </div>
+            <div
+              className="prose prose-lg max-w-none"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
           </article>
         )}
       </section>

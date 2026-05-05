@@ -8,13 +8,14 @@
  *   - Tailwind generates classes with var() references
  *   - BrandingProvider controls actual values at runtime
  *   
- * Color flow: branding.ts → generateTailwindCSSVariables() → BrandingProvider → CSS Variables → Here
+ * Color flow: branding.ts -> generateTailwindCSSVariables() -> BrandingProvider -> CSS Variables -> Here
  *   
  * To change ANY value: Edit ONLY src/config/branding.ts
  */
 
 import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
+import typography from "@tailwindcss/typography";
 
 export default {
   darkMode: ["class"],
@@ -152,5 +153,5 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [tailwindcssAnimate, typography],
 } satisfies Config;
