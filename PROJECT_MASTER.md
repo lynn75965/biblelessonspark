@@ -4,6 +4,73 @@
 
 ---
 
+### May 5, 2026 (Session 3) -- Cleanup: untrack cli-latest + Rules 23-24 sync-constants policy
+
+#### Summary
+
+Three small carry-forwards from Session 2 closed in a single commit. No code
+behavior changed. CLAUDE.md gained two new rules documenting the sync-constants
+workflow and the hand-maintained `_shared/` set. The stale-tracked
+`supabase/.temp/cli-latest` was untracked so future supabase CLI invocations no
+longer leave it as a modified working-tree file.
+
+#### ffdf3ed -- DOCS: Rules 23-24 sync-constants policy, remove tracked temp file
+
+Two files changed (22 insertions, 1 deletion):
+
+- `supabase/.temp/cli-latest` -- removed from git index via
+  `git rm --cached`. File still exists on disk (CLI continues to write it)
+  but is no longer tracked. `.gitignore` line 44 (`supabase/.temp/`) already
+  covers it -- no .gitignore edit required. Closes Session 2 carry-forward #1.
+- `CLAUDE.md` -- added Rule #23 and Rule #24 immediately after Rule #22,
+  before the `---` divider that precedes `## DEBUGGING PROTOCOL`.
+  Closes Session 2 carry-forwards #2 and #3.
+
+#### Rule #23 -- npm run sync-constants policy
+
+Documents the 14 files that auto-sync from `src/constants/` to
+`supabase/functions/_shared/` via `scripts/sync-constants.cjs`:
+ageGroups, bibleVersions, generationMetrics, lessonStructure, lessonTiers,
+systemSettings, teacherPreferences, theologyProfiles, routes, contracts,
+rateLimitConfig, freshnessOptions, devotionalConfig, toolbeltConfig.
+Verified against the actual `FILES_TO_SYNC` array in sync-constants.cjs
+lines 30-45 -- list matches exactly. Rule directs CC to run
+`npm run sync-constants` immediately after editing any of these and to
+never hand-edit the `_shared/` mirrors (they are overwritten on next sync).
+
+#### Rule #24 -- intentionally hand-maintained _shared/ files
+
+Documents the 16 `_shared/` files that are NOT in FILES_TO_SYNC and have
+no clean frontend SSOT counterpart: pricingConfig, trialConfig, validation,
+lessonShapeProfiles, seriesConfig, branding, uiSymbols, organizationConfig,
+betaEnrollmentConfig, emailDeliveryConfig, outputGuardrails,
+customizationDirectives, corsConfig, orgPoolCheck, subscriptionCheck,
+rateLimit. When a frontend SSOT change touches one of these, the
+corresponding `_shared/` mirror must be updated by hand in the same commit.
+Rule explicitly forbids adding any of these to FILES_TO_SYNC.
+
+#### Workflow
+
+- `npm run build` -- clean (3916 modules, 21.7s). Only pre-existing
+  chunk-size warnings.
+- ASCII verification on edited CLAUDE.md -- 0 non-ASCII bytes.
+- `git add CLAUDE.md` (cli-latest was already staged from `git rm --cached`)
+  -- explicit file list, no `git add .`, no deploy.ps1 invocation.
+- `git commit -m "DOCS: Rules 23-24 sync-constants policy, remove tracked
+  temp file"` -- ASCII guard passed. No push (per task scope).
+
+#### Out of scope
+
+No source code changes. No SSOT constants modified. No edge functions
+touched. No Stripe / pricing / accessibility / copy changes. No deploy.
+No Netlify push.
+
+#### Carry-forwards
+
+None. All three Session 2 cleanup items resolved in one commit.
+
+---
+
 ### May 5, 2026 (Session 2) -- Blog system (full stack: SSOT + migration + pages)
 
 #### Summary
