@@ -4,7 +4,88 @@
 
 ---
 
-### May 8, 2026 -- FEATURE: Public Lesson Shapes Guide page at /lesson-shapes
+### May 8, 2026 (Session 2) -- Wire Lesson Shapes Guide into Reshape flow + dashboard return link
+
+#### Summary
+
+Two follow-up UX additions to the Lesson Shapes Guide shipped earlier
+in the day. Closes carry-forward #1 from the prior Session 1 entry
+(Shape Guide access from the Reshape moment) and adds a logged-in
+return path from the new public page back to the dashboard. One
+commit: `724175a`.
+
+#### 724175a -- FEATURE: Wire Lesson Shapes Guide into Reshape panel + dashboard return link
+
+Two files changed (26 insertions, 2 deletions):
+
+- `src/components/dashboard/EnhanceLessonForm.tsx` -- added
+  `ExternalLink` to the existing `lucide-react` import on line 44.
+  Inlined a "Learn about the five shapes" link inside the existing
+  Reshape-section description paragraph (after "All content is
+  preserved -- only the structure changes"). Anchor opens
+  `ROUTES.LESSON_SHAPES_GUIDE` in a new tab via
+  `target="_blank" rel="noopener noreferrer"`. Visible
+  primary-green underlined affordance, `ExternalLink` icon with
+  `aria-hidden="true"`, screen-reader-only "(opens in new tab)"
+  span so the accessible name reads "Learn about the five shapes
+  (opens in new tab)". Renders only when the Reshape panel is
+  open -- no impact on the export button row, lesson library
+  cards, or any other surface using `LessonExportButtons`.
+- `src/pages/LessonShapesGuide.tsx` -- added 4 imports matching
+  the OrgLanding.tsx pattern (`useNavigate`, `useAuth`, `Button`,
+  `ROUTES`). Added `navigate` and `user` hooks inside the
+  component. Inserted a right-aligned outline-variant "Go to
+  Dashboard" button above the h1, conditional on `user` being
+  non-null. Mirrors OrgLanding.tsx lines 131-144 -- logged-in
+  users see the button, logged-out users see nothing rendered (no
+  empty space).
+
+#### Decision log
+
+- **Placement of Shape Guide link (Option B)**: Lynn picked
+  inline-in-Reshape-description over a new button in
+  `LessonExportButtons` (which is shared by other dashboard
+  surfaces). Scope held to the Reshape decision moment only.
+- **Go to Dashboard pattern**: matched OrgLanding.tsx's
+  conditional-on-`user` pattern rather than full sticky branded
+  header. Lynn's instruction "above the page title" indicated
+  content-area placement, not site chrome.
+
+#### Build verification
+
+`npm run build` clean: 3917 modules, 20.06s after the Reshape
+link, 20.86s after the dashboard button. Zero TypeScript errors.
+Only the pre-existing chunk-size warnings.
+
+#### Workflow
+
+- Diagnostic-first reads of `LessonLibrary.tsx`,
+  `LessonExportButtons.tsx`, and `EnhanceLessonForm.tsx` to
+  confirm Reshape is a separate UI section from the export
+  button row before proposing placement options.
+- Three placement options presented with blast-radius analysis
+  before any code change. Lynn picked Option B.
+- `OrgLanding.tsx` read first to mirror exact "Go to Dashboard"
+  button pattern (variant, navigation target, auth conditional).
+- `git add` -- explicit two-file list (NOT `git add .`),
+  bypassing `deploy.ps1`.
+
+#### Out of scope
+
+No backend changes. No edge function changes. No SSOT constants
+modified. No accessibility-elsewhere changes. The
+`LessonExportButtons` shared component was deliberately not
+touched -- placement chosen specifically to avoid affecting other
+dashboard surfaces.
+
+#### Carry-forwards
+
+None pending from this session. Optional Shape 4 color
+differentiation from Session 1 still available if desired.
+
+---
+
+### May 8, 2026 (Session 1) -- FEATURE: Public Lesson Shapes Guide page at /lesson-shapes
 
 #### Summary
 
