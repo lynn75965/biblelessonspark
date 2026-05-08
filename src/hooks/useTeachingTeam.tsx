@@ -272,7 +272,7 @@ export function useTeachingTeam() {
       setMembers([]);
       toast({
         title: 'Teaching Team created',
-        description: `"${data.name}" is ready. Invite up to ${MAX_TEAM_MEMBERS - 1} fellow teachers!`,
+        description: `"${data.name}" is ready. Invite up to ${MAX_TEAM_MEMBERS} fellow teachers!`,
       });
       return { error: null };
     } catch (error) {

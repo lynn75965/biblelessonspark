@@ -164,7 +164,7 @@ export type LessonShapeId =
 /** Status of a teaching team member's invitation */
 export type TeachingTeamMemberStatus = 'pending' | 'accepted' | 'declined';
 
-/** Maximum number of members per teaching team (lead + 2 others). SSOT. */
+/** Maximum number of members per teaching team (lead + 3 others = 4 total). SSOT. */
 export const MAX_TEAM_MEMBERS = 3;
 
 /** Days before a pending team invitation expires. SSOT. */
@@ -172,7 +172,7 @@ export const INVITATION_EXPIRY_DAYS = 30;
 
 /**
  * Teaching team entity from teaching_teams table.
- * A lead teacher creates one team and invites up to MAX_TEAM_MEMBERS - 1 others.
+ * A lead teacher creates one team and invites up to MAX_TEAM_MEMBERS others (3).
  */
 export interface TeachingTeam {
   id: string;

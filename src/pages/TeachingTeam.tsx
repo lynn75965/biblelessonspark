@@ -50,6 +50,17 @@ export default function TeachingTeam() {
           </div>
         </div>
 
+        <p className="mb-6 text-sm text-muted-foreground sm:text-base">
+          Need more than 4 teachers? Create an{' '}
+          <a
+            href="https://biblelessonspark.com/org/"
+            className="text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
+          >
+            organization
+          </a>{' '}
+          to expand your team beyond the Personal Plan limit.
+        </p>
+
         {/* Teaching Team Card -- handles all 3 states */}
         <TeachingTeamCard
           team={team}
