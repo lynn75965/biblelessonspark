@@ -219,7 +219,7 @@ const OrgSetup = () => {
       const { data, error } = await supabase.functions.invoke('create-org-checkout-session', {
         body: {
           priceId,
-          billingInterval,
+          billingInterval: billingInterval === 'year' ? 'annual' : 'monthly',
           // Pass org data as metadata - org will be created on webhook success
           orgMetadata: {
             orgName: formData.orgName.trim(),
