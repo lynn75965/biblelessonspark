@@ -4,6 +4,200 @@
 
 ---
 
+### May 8, 2026 (Session 3) -- Teaching Team capacity copy fix + Foundation Tier checkout repair
+
+#### Summary
+
+Two production-relevant fixes shipped in two commits, plus a diagnostic
+trail for the Foundation Tier checkout failure that turned out to be a
+boundary-vocabulary mismatch -- not a Stripe or function issue. Closes
+a long-standing copy/comment drift on Teaching Team capacity. Closes a
+checkout-blocking 400 on the org self-service path. Both fixes verified
+in production. Commits: `feb1344`, `d1d5f1e`.
+
+#### Diagnostic 1 -- Teaching Team tier and capacity
+
+Read `sidebarConfig.ts`, `contracts.ts`, `useTeachingTeam.tsx`,
+`TeachingTeamCard.tsx`, `featureFlags.ts`, `pricingConfig.ts`, and
+`TeachingTeam.tsx`. Confirmed:
+
+- `teachingTeam` sidebar item: `tierGate: 'paid_only'`
+  (`sidebarConfig.ts:150`).
+- Resolution chain: `teachingTeam.requiredTier = 'personal'` (in
+  `featureFlags.ts:61-66`) -> `hasFeatureAccess()` -> `isPaidTier(tier) === tier !== 'free'`.
+  Therefore Personal Plan and any higher tier (starter, growth,
+  full, enterprise) unlocks Teaching Team identically. **No org
+  required.**
+- Member cap: `MAX_TEAM_MEMBERS = 3` (`contracts.ts:162`). The
+  constant counts rows in the `teaching_team_members` table; the
+  lead teacher lives in `teaching_teams.lead_teacher_id` and is
+  NOT included in the cap. **Real capacity: lead + 3 invited = 4
+  people total per team.**
+- Cap is global, not tier-keyed. No `MAX_TEAM_MEMBERS_BY_TIER`
+  table or branch anywhere in the codebase. A Personal Plan
+  teacher gets the same team size as an Enterprise org member;
+  org tiers buy bigger lesson limits, not bigger teams.
+
+Two stale strings flagged and corrected in commit `feb1344`.
+
+#### feb1344 -- FIX: Correct Teaching Team capacity to lead + 3 = 4 total; add org upgrade note to Teaching Team page
+
+Four files changed (16 insertions, 5 deletions):
+
+- `src/constants/contracts.ts` -- two comment fixes:
+  - Line 161 was `Maximum number of members per teaching team
+    (lead + 2 others). SSOT.` -- claimed 3 total. Wrong. Code allows
+    lead + 3 = 4. Now reads `(lead + 3 others = 4 total). SSOT.`
+  - Line 169 JSDoc was `A lead teacher creates one team and invites
+    up to MAX_TEAM_MEMBERS - 1 others.` Same drift. Now reads
+    `... and invites up to MAX_TEAM_MEMBERS others (3).`
+  - `MAX_TEAM_MEMBERS = 3` constant at line 162 unchanged.
+    Behavior unchanged.
+- `src/hooks/useTeachingTeam.tsx` -- createTeam success toast at
+  line 275 was ``Invite up to ${MAX_TEAM_MEMBERS - 1} fellow teachers!``
+  rendering as "Invite up to 2 fellow teachers!" but the very next
+  invite at line 335 only blocks at `>= MAX_TEAM_MEMBERS` (3). A
+  user could invite 3 after being told they could only invite 2.
+  Now ``Invite up to ${MAX_TEAM_MEMBERS} fellow teachers!`` rendering
+  as "Invite up to 3 fellow teachers!"
+- `src/pages/TeachingTeam.tsx` -- inserted a new helper paragraph
+  between the page header and the `TeachingTeamCard`: "Need more
+  than 4 teachers? Create an organization to expand your team
+  beyond the Personal Plan limit." Inline anchor links to
+  `https://biblelessonspark.com/org/`. Styling
+  `text-sm sm:text-base text-muted-foreground` matches the existing
+  page subtext. Anchor uses BLS primary green underline.
+- `supabase/functions/_shared/contracts.ts` -- auto-synced backend
+  mirror via `npm run sync-constants` per Rule #23. 14 of 14 files
+  synced; only `contracts.ts` had real diffs.
+
+#### Diagnostic 2 -- Foundation Tier checkout failure
+
+Read `create-org-checkout-session/index.ts`,
+`_shared/pricingConfig.ts`, `orgPricingConfig.ts`, `OrgSetup.tsx`,
+`OrgPoolStatusCard.tsx`, and recent git history on each. Confirmed:
+
+- Foundation tier = `org_single_staff` per `orgPricingConfig.ts:31-32`.
+  Stripe price IDs `price_1Swo8cI4GLksxBfVmjDOAPsy` (monthly) and
+  `price_1Swo8cI4GLksxBfVKrgbURbQ` (annual) present in both the
+  frontend SSOT and the backend mirror, identical, well-formed
+  (correct `price_` prefix, canonical Stripe ID format).
+- Function self-service entry validation at line 171:
+  ``if (!billingInterval || !["monthly","annual"].includes(billingInterval)) throw new Error("Invalid or missing billingInterval")``.
+  Returns HTTP 400 via the unified catch block at line 314.
+- `OrgSetup.tsx` (the Foundation purchase entry point) was sending
+  `billingInterval` as the raw state value: `'month'` or `'year'`.
+  State declared at `OrgSetup.tsx:83` with that vocabulary; UI
+  toggles at lines 504/514 set it; line 222 of the request body
+  forwarded the raw value to the function with no translation.
+- `OrgPoolStatusCard.tsx` (the existing-org upgrade path) used the
+  snake_case key `billing_interval` and translated `'year' -> 'annual'`,
+  `'month' -> 'monthly'` at the boundary (line 116). That caller
+  worked. OrgSetup did not.
+
+**Result:** every Foundation Tier checkout from the self-service
+path returned `400 {"error": "Invalid or missing billingInterval"}`
+before ever reaching Stripe. The function had been correct since
+at least 2026-03-24 (commit `2633005`); the frontend had been wrong
+the whole time. Redeploying the function alone could not fix it.
+
+#### Function redeploy (not a git commit)
+
+Ran `npx supabase functions deploy create-org-checkout-session`.
+First attempt used `--linked`, which is **not** a valid flag for
+`functions deploy` (it is valid only for `db push`). Re-ran without
+the flag; the CLI auto-detects the linked project from local config.
+Docker not running; CLI fell back to server-side `--use-api`
+bundling automatically. Bundled `index.ts` and
+`_shared/pricingConfig.ts` (the function's only `_shared/` import).
+Confirmed deploy on project `hphebzdftpjbiudpfcrs`. The CLI does
+not print a deployment ID -- the success line is the only signal
+from the terminal; further confirmation must come from the
+Supabase Dashboard. The redeploy did not change function behavior;
+it was a sanity check before the frontend fix.
+
+#### d1d5f1e -- FIX: Translate OrgSetup billingInterval year/month to annual/monthly for create-org-checkout-session
+
+One file changed (1 insertion, 1 deletion):
+
+- `src/pages/OrgSetup.tsx:222` was `billingInterval,` (shorthand
+  passing the raw state value). Now
+  ``billingInterval: billingInterval === 'year' ? 'annual' : 'monthly',``.
+  Translates at the boundary on the way out, matching what
+  `OrgPoolStatusCard.tsx:116` already did and what the function
+  expects. All other `billingInterval` references in `OrgSetup.tsx`
+  (12 lines: state declaration, UI toggles, price selectors,
+  display strings) correctly use the original `'month'`/`'year'`
+  vocabulary against the state declaration on line 83 and were
+  intentionally untouched.
+
+#### Build verification
+
+`npm run build` clean across all iterations:
+- After `contracts.ts` comment fix: 21.43s.
+- After `TeachingTeam.tsx` note insertion: 23.05s.
+- After `OrgSetup.tsx` boundary translation: 23.02s.
+
+Module count steady at 3917. Zero TypeScript errors. Only the
+pre-existing chunk-size warnings.
+
+#### Workflow
+
+- Diagnostic-first reads of every constraint file before touching
+  any. Two diagnostics issued (Teaching Team tier+capacity;
+  Foundation checkout root cause), both before code changes, both
+  confirmed by Lynn before fixes shipped.
+- A `deploy.ps1` invocation rejected mid-flight by Lynn in favor of
+  pre-deploy verification: re-run the function deploy and grep the
+  on-disk file state. Re-attempted after that verification passed.
+  Pattern worth keeping for any session that ships both an edge
+  function and a frontend fix that depends on it.
+- `npm run sync-constants` after the `contracts.ts` edit per Rule
+  #23. 14 files re-emitted; only the `contracts.ts` mirror diff
+  was real.
+- Both commits via `deploy.ps1` (which uses `git add .`); scope
+  confirmed clean (single-purpose working tree) before each
+  invocation.
+- Edge function deployed via `npx supabase functions deploy
+  create-org-checkout-session` (no `--linked`).
+
+#### Out of scope
+
+No backend logic changes (function code unchanged; only redeployed).
+No SSOT constant value changes (`MAX_TEAM_MEMBERS = 3` unchanged).
+No Stripe Dashboard changes. No new tier or feature flag introduced.
+
+Out-of-scope drift noted but NOT fixed today:
+
+- `src/constants/orgPricingConfig.ts` `LESSON_PACKS` shows prices
+  $12 / $25 / $45, but `_shared/pricingConfig.ts` has priceCents
+  1500 / 3500 / 6000 ($15 / $35 / $60). CLAUDE.md states
+  $15 / $35 / $60. The `orgPricingConfig.ts` lesson-pack dollar
+  values are stale. Stripe price IDs match across both files; the
+  drift is documentation-only, not enforcement. Flagged for a
+  future cleanup pass.
+- `create-org-checkout-session/index.ts` returns HTTP 400 for every
+  thrown error, including conditions that should arguably be 401
+  (no auth header), 403 (not org manager), 404 (org not found), or
+  500 (missing `STRIPE_SECRET_KEY` env var). Unified catch block at
+  line 314. Not changed today; would be a wider error-handling
+  refactor.
+
+#### Carry-forwards
+
+1. **Foundation Tier checkout test in production**: `d1d5f1e` is
+   on Netlify and the function is on Supabase. Walk the org
+   self-service flow once Netlify finishes building and confirm
+   Stripe Checkout opens. If it still fails, pull function logs
+   from the Supabase Dashboard -- the new error will be a
+   different throw site, not the `billingInterval` one.
+2. Optional: lesson-pack price-vocabulary cleanup in
+   `orgPricingConfig.ts` (out-of-scope drift, see above).
+3. Optional from Session 1: differentiate Shape 4 from Shape 1 on
+   `/lesson-shapes` (both currently render `primary` forest green).
+
+---
+
 ### May 8, 2026 (Session 2) -- Wire Lesson Shapes Guide into Reshape flow + dashboard return link
 
 #### Summary
