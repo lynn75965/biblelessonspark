@@ -44,6 +44,8 @@ export const ROUTES = {
   // Sidebar extras
   BONUSES: '/bonuses',
   MORE_TOOLS: '/more-tools',
+  // Lesson Shapes Guide
+  LESSON_SHAPES_GUIDE: '/lesson-shapes',
   // Legal routes
   PRIVACY: '/legal/privacy',
   TERMS: '/legal/terms',

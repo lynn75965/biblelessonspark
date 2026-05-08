@@ -17,6 +17,7 @@ import SetupChecklist from "./pages/SetupChecklist";
 import PreferencesLens from "./pages/PreferencesLens";
 import Docs from "./pages/Docs";
 import Help from "./pages/Help";
+import LessonShapesGuide from "./pages/LessonShapesGuide";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
 import ChurchPlantReport from "./pages/ChurchPlantReport";
@@ -119,6 +120,7 @@ const App = () => (
                 <Help />
               </ProtectedRoute>
             } />
+            <Route path={ROUTES.LESSON_SHAPES_GUIDE} element={<LessonShapesGuide />} />
             <Route path={ROUTES.TRAINING} element={
               <ProtectedRoute>
                 <Training />
