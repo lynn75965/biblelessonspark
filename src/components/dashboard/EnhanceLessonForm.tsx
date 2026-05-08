@@ -41,7 +41,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink } from "lucide-react";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
@@ -2450,7 +2450,17 @@ export function EnhanceLessonForm({
                   <span className="text-sm font-semibold text-foreground dark:text-[#e8f0e8]">Choose a Teaching Shape</span>
                 </div>
                 <p className="text-xs text-muted-foreground dark:text-[#c8d8c8] mb-3">
-                  Reshape this lesson into a different pedagogical format. All content is preserved -- only the structure changes.
+                  Reshape this lesson into a different pedagogical format. All content is preserved -- only the structure changes.{' '}
+                  <a
+                    href={ROUTES.LESSON_SHAPES_GUIDE}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
+                  >
+                    Learn about the five shapes
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    <span className="sr-only">(opens in new tab)</span>
+                  </a>
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Select value={selectedShapeForReshape} onValueChange={setSelectedShapeForReshape}>

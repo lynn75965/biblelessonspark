@@ -1,4 +1,8 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { ROUTES } from "@/constants/routes";
 
 const PAGE_TITLE = "Lesson Shapes Guide | BibleLessonSpark";
 const META_DESCRIPTION =
@@ -18,6 +22,8 @@ function setMetaDescription(content: string) {
 }
 
 const LessonShapesGuide = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<Record<ShapeKey, TabState>>({
     1: "shaped",
     2: "shaped",
@@ -52,6 +58,14 @@ const LessonShapesGuide = () => {
         className="mx-auto max-w-5xl px-4 py-12 md:px-6 md:py-16"
         aria-labelledby="lesson-shapes-title"
       >
+        {user && (
+          <div className="mb-6 flex justify-end">
+            <Button variant="outline" onClick={() => navigate(ROUTES.DASHBOARD)}>
+              Go to Dashboard
+            </Button>
+          </div>
+        )}
+
         <header className="mb-12 text-center">
           <h1 id="lesson-shapes-title" className="mb-4 text-4xl font-bold text-primary md:text-5xl">Five Ways to Shape a Lesson</h1>
           <p className="mx-auto max-w-3xl font-ui text-lg text-muted-foreground">
