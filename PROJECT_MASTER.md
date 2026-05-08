@@ -1,6 +1,128 @@
-# PROJECT MASTER -- Last updated: May 5, 2026
+# PROJECT MASTER -- Last updated: May 8, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### May 8, 2026 -- FEATURE: Public Lesson Shapes Guide page at /lesson-shapes
+
+#### Summary
+
+New public page rendering all five lesson shapes (Passage Walk-Through,
+Life Connection, Gospel-Centered, Focus-Discover-Respond, Story-Driven)
+in a tabbed comparison view. Each shape card has a numbered circle
+header, a four-column metadata grid (Teaching Movement, Best For,
+Teacher Posture, Primary Skill), a description paragraph, and a
+side-by-side "Shaped Lesson / Base Lesson (Before)" demonstration
+using Luke 10:25-37 as the consistent transformation passage so
+teachers can compare formats directly. One commit: `bfd91ca`.
+
+#### bfd91ca -- FEATURE: Add public Lesson Shapes Guide page at /lesson-shapes
+
+Four files changed (491 insertions, 0 deletions):
+
+- `src/pages/LessonShapesGuide.tsx` (new, 470 lines) -- five-card
+  layout following an identical template per shape, varied only by
+  shape color, content, and "Back To Top" anchor (omitted from Shape 1
+  since it is already at top). Shape colors after the post-localhost
+  sweep: Shape 1 = primary, Shape 2 = secondary, Shape 3 = destructive,
+  Shape 4 = primary, Shape 5 = accent. State uses
+  `useState<Record<ShapeKey, TabState>>` keyed 1-5; `toggleTab` is the
+  only mutator. Hero h1 reads "Five Ways to Shape a Lesson" in BLS
+  forest green. `<nav aria-label="Lesson Shapes Navigation">` at top
+  with five jump links. All non-ASCII glyphs (em-dash, en-dash,
+  right-arrow) encoded as numeric HTML entities so the deploy guard
+  never fired.
+- `src/constants/routes.ts` -- added
+  `LESSON_SHAPES_GUIDE: '/lesson-shapes'` immediately above the Legal
+  routes block.
+- `src/App.tsx` -- added `import LessonShapesGuide from "./pages/LessonShapesGuide"`
+  and a public (non-`ProtectedRoute`) `<Route>` adjacent to the Help
+  route.
+- `supabase/functions/_shared/routes.ts` -- auto-synced via
+  `npm run sync-constants` per Rule #23.
+
+#### Cosmetic-fix flow (post-localhost review)
+
+Lynn opened localhost and reported four issues (white-on-white
+circles, hero color, etc.). Diagnostic surfaced the real cause: every
+`bg-primary-dark`, `text-primary-dark`, `bg-secondary-dark`,
+`text-secondary-dark`, `border-secondary-dark` class I had used was
+unrecognized by the project's Tailwind theme. `tailwind.config.ts`
+defines `primary` and `secondary` with only `DEFAULT/foreground/hover/light`
+-- there is no `dark` variant. Tailwind silently emits no CSS for
+unknown utilities, so headings, number circles, tabs, and
+bordered-block accents on shapes 1, 2, and 4 were rendering with no
+shape color at all.
+
+Resolution applied in-place via Edit replace_all (not a regenerated
+file): `primary-dark` -> `primary` (9 sites), `secondary-dark` ->
+`secondary` (9 sites). h1 renamed from "Lesson Shapes" to "Five Ways
+to Shape a Lesson". Five back-to-top chevron+text anchors added
+(Shape 1 omitted as redundant). CSS bundle grew 165.96 kB -> 166.10 kB
+confirming the now-valid utilities are emitting CSS.
+
+Acknowledged collision: Shape 1 and Shape 4 now both render in
+`primary` (forest green). Lynn approved as-is. Available follow-up if
+visual distinction becomes important: swap Shape 4 to `burgundy`,
+`warning`, or `success` (all defined in `tailwind.config.ts`).
+
+#### Build verification
+
+`npm run build` clean across all four iterations:
+- Initial generation: 3917 modules, 22.43s.
+- After cosmetic sweep: 3917 modules, 20.59s.
+- After "Back To Top" label add: 3917 modules, 22.00s.
+- After Shape 1 anchor removal: 3917 modules, 19.88s.
+
+Module count up exactly 1 from the prior 3916 baseline -- the new
+page. Zero TypeScript errors throughout. Only the pre-existing
+chunk-size warnings.
+
+#### Workflow
+
+- Diagnostic-first reads of `lessonShapeProfiles.ts`, `routes.ts`,
+  `App.tsx`, `tailwind.config.ts`, and the live `LessonShapesGuide.tsx`
+  before any cosmetic edit. Pushed back twice on instructions that
+  did not match file state (per Rule #14).
+- Initial file generation via Node `.cjs` script per CLAUDE.md
+  (write-lesson-shapes.cjs at repo root). Script self-checked every
+  output byte <= 127 before exit. ASCII guard never fired.
+- `routes.ts` and `App.tsx` updated via PowerShell
+  `[System.IO.File]::WriteAllText` with
+  `[System.Text.UTF8Encoding]::new($false)` per Lynn's spec for
+  these two files.
+- `npm run sync-constants` after `routes.ts` edit per Rule #23.
+- `git add` -- explicit four-file list, NOT `git add .` -- bypassing
+  `deploy.ps1` since its line 32 stages everything and the one-shot
+  generator script should not enter the repo. `git push origin main`
+  used directly.
+- HELD twice before deploy: (1) before the cosmetic sweep, awaiting
+  Lynn's choice on h1 text and sweep approval; (2) after final
+  cosmetic pass, awaiting Lynn's localhost approval. Deploy authorized
+  on second hold.
+- `write-lesson-shapes.cjs` deleted post-deploy at Lynn's request.
+
+#### Out of scope
+
+No backend changes. No edge function changes. No SSOT constants
+modified beyond the new route. No theology profile, age group,
+pricing, or accessibility-elsewhere changes. The 18-instance
+`*-primary-dark` / `*-secondary-dark` misuse was contained entirely
+within the new `LessonShapesGuide.tsx`; no other file in `src/` uses
+those class fragments (verified via grep).
+
+#### Carry-forwards
+
+1. **Pending feature**: Lynn asked for access to the Shape Guide from
+   the Lesson Library "View" modal alongside the existing Copy /
+   Download / Email / Publish / Reshape actions, "to better inform the
+   user." Scoping next: locate where the Reshape button is rendered
+   alongside the export buttons and propose placement options for a
+   "Learn about shapes" link/button that opens `/lesson-shapes` (likely
+   in a new tab, given the modal context).
+2. **Optional**: differentiate Shape 4's color from Shape 1 (both
+   currently render in `primary`). Lynn accepted as-is for now.
 
 ---
 
