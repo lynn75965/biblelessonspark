@@ -4,6 +4,145 @@
 
 ---
 
+### May 11, 2026 -- Session 2: Admin blog preview page, WYSIWYG editor, featured-image dedupe
+
+#### Summary
+
+Three pieces of related work in one commit (`77d42b9`).
+
+1. **New admin-only page at `/admin/blog-preview`.** Lists every
+   unpublished draft (`published = false`) for the signed-in admin
+   user. Each row offers Preview, Edit, Publish, and Delete. Preview
+   renders the draft using the same `prose` styles as the public
+   blog post page. Publish flips `published` to `true` and stamps
+   `published_at = now()`. Delete confirms with an inline modal
+   before removing the row. Edit opens a WYSIWYG editor backed by
+   `react-quill` (already in dependencies via shadcn).
+
+2. **WYSIWYG editor with custom UPPERCASE toolbar button.** Quill
+   toolbar is locked to a minimal allowlist (headers, bold, italic,
+   underline, lists, blockquote, link) plus a custom `.ql-uppercase`
+   button that uppercases the current selection in place. ARIA
+   label and tooltip attached imperatively in a `useEffect` keyed
+   on `mode === 'edit'`. Custom CSS tightens default Quill spacing
+   so the editor visually matches the rendered blog post.
+
+3. **Featured-image dedupe.** Tertius (and some older posts) embed
+   the featured image as the first content block, causing it to
+   render twice -- once as the hero, once at the top of the body.
+   Added `stripLeadingFeaturedImage()` in two places:
+   `BlogPost.tsx` (frontend, applied at render time so old posts
+   self-heal) and `create-blog-post/index.ts` (Edge Function,
+   applied at write time so future posts arrive clean). Both
+   implementations match a leading `<img>` (bare or wrapped in
+   `<p>`) and strip it when the `src` (query-string ignored)
+   matches `featured_image_url`. The two copies are kept in
+   lockstep by comment.
+
+#### Files changed
+
+- `src/pages/AdminBlogPreview.tsx` -- new (854 lines). List, preview,
+  edit, publish, delete flow. React Quill editor with custom
+  uppercase button. Admin role gate via `has_role()` RPC.
+- `src/App.tsx` -- mounted `AdminBlogPreview` at
+  `ROUTES.ADMIN_BLOG_PREVIEW` inside `<ProtectedRoute>`.
+- `src/constants/routes.ts` -- added
+  `ADMIN_BLOG_PREVIEW: '/admin/blog-preview'`.
+- `supabase/functions/_shared/routes.ts` -- mirror of the same
+  entry per Rule #23 sync policy (routes.ts is in `FILES_TO_SYNC`).
+- `src/constants/blogConfig.ts` -- added a new `admin: { ... }`
+  block with every label, empty state, button, and confirm string
+  the new page uses. SSOT preserved -- zero hardcoded copy in
+  `AdminBlogPreview.tsx`.
+- `src/pages/BlogPost.tsx` -- added `stripLeadingFeaturedImage()`
+  and applied to `dangerouslySetInnerHTML`. No other behavior
+  changes.
+- `supabase/functions/create-blog-post/index.ts` -- added
+  matching `stripLeadingFeaturedImage()` and applied to incoming
+  payload before insert/update. Comment in both files cross-
+  references the other so they stay aligned.
+- `supabase/migrations/20260511180000_blog_admin_policies.sql` --
+  two new RLS policies on `blog_posts`:
+  * `"Admin can read all blog posts"` (SELECT, authenticated, gated
+    by `public.has_role(auth.uid(), 'admin')`)
+  * `"Admin can manage blog posts"` (ALL, authenticated, same
+    `has_role()` gate, with USING + WITH CHECK)
+  Pre-existing public-read and service-role policies left
+  untouched. Applied via `npx supabase db push --linked` per
+  Rule #20.
+
+#### SSOT and Frontend-Drives-Backend compliance
+
+- Every UI string in `AdminBlogPreview.tsx` resolves through
+  `BLOG_CONFIG.admin.*`. Zero hardcoded labels or empty-state copy.
+- Route declared once in `routes.ts`, mirrored to `_shared/` per
+  Rule #23, mounted in `App.tsx` per Rule #3.
+- Branding colors flow through `BRANDING` and Tailwind variables.
+  Quill toolbar accent (`#3D5C3D` in the blockquote CSS) is the
+  only literal hex -- carry-forward note below.
+- Admin gate uses the same `has_role(auth.uid(), 'admin')` RPC
+  used by every other admin migration (e.g.
+  `20250120_transfer_requests.sql`). No new role model.
+- Dedupe logic implemented at both the edge boundary (write-time)
+  and the rendering boundary (read-time). Either layer alone would
+  be sufficient for new posts, but the rendering-side copy is
+  required to clean up posts already in the database.
+
+#### Rule satisfaction checklist
+
+- Rule #3 (route in routes.ts AND App.tsx): satisfied; verified
+  both files in the same commit.
+- Rule #20 (migrations via CLI, not Dashboard): satisfied; SQL
+  applied via `npx supabase db push --linked`.
+- Rule #22 (accessibility): Quill toolbar uppercase button has
+  both `aria-label` and `title`. All Quill native buttons retain
+  their default ARIA. Confirm dialog has explicit "Yes, delete" /
+  "Keep draft" buttons (no destructive default). Status toasts
+  use the existing toast system which renders `role="status"`.
+- Rule #23 (sync after touching FILES_TO_SYNC): `routes.ts` is in
+  the sync list -- `_shared/routes.ts` updated in same commit.
+
+#### Trap encountered and resolved
+
+`react-quill`'s `Quill.import('ui/icons')` registration for a
+custom toolbar button must run **before** the `<ReactQuill>`
+component first mounts. Registering inside the component body
+caused the toolbar to render the button label as raw text. Moved
+the import + icon assignment to module-scope (top of file) so it
+runs once on import. The same applies to the `formats` allowlist
+and the toolbar `modules` config -- both now defined at module
+scope as `quillFormats` and `quillModules`.
+
+#### Decisions deliberately deferred
+
+- **Admin sidebar entry for `/admin/blog-preview`.** Page is
+  reachable today by typing the URL. Adding a sidebar item
+  belongs in a UI pass, not this functional commit.
+- **Bulk publish / bulk delete.** Out of scope. Single-row
+  actions only for v1.
+- **Quill `#3D5C3D` blockquote color literal.** Acceptable in
+  injected CSS, but worth moving to a CSS variable sourced from
+  `BRANDING.colors` when the next blog-styling pass happens.
+- **Image upload from inside the editor.** Quill's image button
+  is excluded from the toolbar allowlist. Featured image is set
+  by URL field only. Upload flow can come later if needed.
+
+#### Commits
+
+- `77d42b9` -- FEATURE: WYSIWYG blog editor with UPPERCASE button,
+  dedupe duplicate featured image in posts. 8 files changed,
+  +990 / -2.
+
+#### Carry-forward
+
+- Add sidebar entry for `/admin/blog-preview` next UI pass.
+- Move Quill blockquote color literal into a CSS variable when
+  blog styling is revisited.
+- Re-upload `PROJECT_MASTER.md` to the Claude.ai project after
+  the DOCS commit lands so the next session has current context.
+
+---
+
 ### May 11, 2026 -- Blog index redesign, header nav, DELETE endpoint, apostrophe diagnosis
 
 #### Summary
