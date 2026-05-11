@@ -353,6 +353,40 @@ Deploy rule: All four primary files deploy together in a single commit.
 
 ---
 
+## MARKETING PANEL (Active Development -- May 2026)
+
+Primary files:
+- src/pages/AdminMarketing.tsx              -- page wrapper (admin gate + AppShell + internal Tabs)
+- src/components/admin/BlogPreviewPanel.tsx -- shared draft list/preview/edit/publish/delete logic
+- src/pages/AdminBlogPreview.tsx            -- thin wrapper that keeps the standalone /admin/blog-preview URL alive
+- src/constants/sidebarConfig.ts            -- `marketing` SidebarItem inside platformAdmin section
+- src/constants/routes.ts                   -- ROUTES.ADMIN_MARKETING ('/admin/marketing')
+
+Architecture:
+- Single sidebar entry routes to /admin/marketing (mirrors Admin Panel pattern).
+- Four tabs inside one page: Blog Preview (active), Amp Articles, Newsletter, Email Marketing.
+- Unbuilt tabs use shadcn's `disabled` prop on `<TabsTrigger>` with an explicit
+  `aria-label="<name>, coming soon"`. To bring a channel online: build its panel
+  component (no AppShell, no admin gate), replace the matching `<ComingSoonPanel>`
+  in `AdminMarketing.tsx`, and remove `disabled` from its `<TabsTrigger>`.
+- `BlogPreviewPanel` is the shared component. Both `/admin/marketing`'s first tab
+  and the standalone `/admin/blog-preview` page render it. The embedded copy
+  passes `showHeader={false}` so the Marketing Panel page keeps a single `<h1>`.
+- Standalone `/admin/blog-preview` URL is kept alive permanently for Tertius /
+  OpenClaw integration. Tertius posts drafts via the `create-blog-post` Edge
+  Function and this URL is the canonical review link Tertius references.
+
+Sidebar zone policy (admin role only):
+- Upper: Build & Prepare, My Teaching Team, Ministry Oversight, Resources / Teacher Tools.
+- Lower (admin-only): Platform Admin (which now contains Administrator Panel, Manage Toolbelt, Marketing).
+- Bottom: Account (always last; sign out lives here).
+
+Deploy rule: When a new channel comes online, the new panel component plus the
+`AdminMarketing.tsx` update (swap `<ComingSoonPanel>` for the live component AND
+remove `disabled` from the `<TabsTrigger>`) deploy together in a single commit.
+
+---
+
 ## SUBSCRIPTION TIERS
 
 Source of truth: src/constants/pricingConfig.ts and src/constants/trialConfig.ts

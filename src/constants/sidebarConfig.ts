@@ -43,6 +43,7 @@ import {
   Gift,
   Hammer,
   Printer,
+  Megaphone,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
@@ -166,6 +167,14 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     route: ROUTES.ADMIN,
     tierGate: 'always',
   },
+  marketing: {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    description: 'Review and approve outbound content',
+    route: ROUTES.ADMIN_MARKETING,
+    tierGate: 'always',
+  },
   toolbeltAdmin: {
     id: 'toolbeltAdmin',
     label: 'Manage Toolbelt',
@@ -269,7 +278,7 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
   platformAdmin: {
     id: 'platformAdmin',
     label: 'Platform Admin',
-    items: ['adminPanel', 'toolbeltAdmin'],
+    items: ['adminPanel', 'toolbeltAdmin', 'marketing'],
   },
   account: {
     id: 'account',
@@ -301,9 +310,9 @@ export const SIDEBAR_BY_ROLE: Record<Role, string[]> = {
     'buildAndPrepare',
     'myTeachingTeam',
     'ministryOversight',
+    'extras',
     'platformAdmin',
     'account',
-    'extras',
   ],
   [ROLES.orgLeader]: [
     'buildAndPrepare',

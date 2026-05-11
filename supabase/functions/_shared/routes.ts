@@ -35,6 +35,7 @@ export const ROUTES = {
   ADMIN: '/admin',
   ADMIN_TOOLBELT: '/admin/toolbelt',
   ADMIN_BLOG_PREVIEW: '/admin/blog-preview',
+  ADMIN_MARKETING: '/admin/marketing',
   PREFERENCES_LENS: '/preferences/lens',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',

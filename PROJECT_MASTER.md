@@ -2,6 +2,149 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 11 Session 3 (Marketing Panel):
+- Build Amp Articles preview/approval workflow (currently disabled tab in
+  Marketing Panel). Lynn already sends amps to Ampifire; in-app preview is
+  the missing piece.
+- Build Newsletter preview/approval workflow (disabled tab).
+- Build Email Marketing composer/scheduler (disabled tab).
+- Quill blockquote color literal (`#3D5C3D`) -> CSS variable from
+  `BRANDING.colors` when blog styling is next revisited (carried from
+  Session 2).
+- Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
+  lands so the next session has current context.
+
+---
+
+### May 11, 2026 -- Session 3: Marketing Panel with Blog Preview tab + shared BlogPreviewPanel
+
+#### Summary
+
+Three pieces of related work.
+
+1. **New admin-only page at `/admin/marketing`.** Marketing Panel mirrors
+   the Admin Panel pattern (own `<AppShell>`, own admin gate via
+   `has_role()` RPC, internal shadcn `<Tabs>`). Four tabs:
+   Blog Preview (active), Amp Articles (disabled), Newsletter (disabled),
+   Email Marketing (disabled). The three unbuilt tabs use shadcn's
+   `disabled` prop on `<TabsTrigger>` so screen readers announce the
+   "coming soon" state and the tabs are excluded from arrow-key navigation
+   per the WAI-ARIA tabs pattern. Default tab is Blog Preview so the page
+   opens to actionable content.
+
+2. **Extracted shared component `BlogPreviewPanel`.** The body of the
+   previous `AdminBlogPreview.tsx` (list + preview + edit + publish +
+   delete + Quill editor) moved into
+   `src/components/admin/BlogPreviewPanel.tsx`. The component takes an
+   optional `showHeader` prop so the embedded copy inside the Marketing
+   Panel tab does not render its own `<h1>` (the page's
+   `<h1>Marketing Panel</h1>` stays the only h1 -- clean heading
+   hierarchy). `AdminBlogPreview.tsx` slimmed to a thin wrapper that
+   handles the admin gate and renders
+   `<AppShell><BlogPreviewPanel /></AppShell>`. The standalone
+   `/admin/blog-preview` URL is intentionally kept alive so Tertius's
+   posted links continue to work without change.
+
+3. **Sidebar: single "Marketing" item inside Platform Admin.** Added one
+   new sidebar item `marketing` (Megaphone icon) inside the existing
+   `platformAdmin` section, alongside `adminPanel` and `toolbeltAdmin`.
+   Routes to `ROUTES.ADMIN_MARKETING`. Also reordered
+   `SIDEBAR_BY_ROLE[platformAdmin]` so the admin section sits below
+   user-facing sections and above `account`. New order:
+   `buildAndPrepare, myTeachingTeam, ministryOversight, extras,
+   platformAdmin, account`.
+
+#### Sidebar layout policy (established this session)
+
+Two-zone sidebar layout for the platformAdmin role:
+- **Upper zone (user-facing today or by subscription):** Build & Prepare,
+  My Teaching Team, Ministry Oversight, Resources / Teacher Tools (the
+  `extras` section).
+- **Lower zone (admin-only):** Platform Admin (Administrator Panel,
+  Manage Toolbelt, Marketing).
+- **Bottom (universal):** Account -- profile, sign out. Always last.
+
+Non-admin roles unchanged.
+
+#### Files changed
+
+- `src/constants/routes.ts` -- added
+  `ADMIN_MARKETING: '/admin/marketing'`.
+- `supabase/functions/_shared/routes.ts` -- synced via
+  `npm run sync-constants` (Rule #23).
+- `src/App.tsx` -- mounted `AdminMarketing` at
+  `ROUTES.ADMIN_MARKETING` inside `<ProtectedRoute>` (Rule #3).
+- `src/components/admin/BlogPreviewPanel.tsx` -- new. Shared draft
+  list/preview/edit/publish/delete logic, ReactQuill editor, custom
+  UPPERCASE button, featured-image dedupe on render. No `<AppShell>`,
+  no admin gate (each parent page handles its own).
+- `src/pages/AdminBlogPreview.tsx` -- replaced (was 854 lines; now ~66).
+  Admin gate via `has_role()` then `<AppShell><BlogPreviewPanel /></AppShell>`.
+  Behavior at the standalone URL is unchanged for users.
+- `src/pages/AdminMarketing.tsx` -- new. Same admin-gate pattern;
+  `<AppShell>` with `<Tabs defaultValue="blog-preview">`; four
+  `<TabsTrigger>` and four `<TabsContent>`; Blog Preview tab renders
+  `<BlogPreviewPanel showHeader={false} />`; other three render a
+  `<ComingSoonPanel>` placeholder.
+- `src/constants/sidebarConfig.ts` -- added `marketing` SidebarItem
+  (Megaphone icon, `route: ROUTES.ADMIN_MARKETING`,
+  `tierGate: 'always'`); placed inside `platformAdmin` section's items
+  array; reordered `SIDEBAR_BY_ROLE[platformAdmin]` per the two-zone
+  layout policy.
+
+#### SSOT compliance
+
+- Route declared once in `routes.ts`, mirrored to `_shared/` per Rule #23,
+  mounted in `App.tsx` per Rule #3.
+- Sidebar consumes `getSidebarForRole(effectiveRole)` exclusively. The
+  new item is added through `SIDEBAR_ITEMS` + `SIDEBAR_SECTIONS` SSOT
+  plumbing -- no hardcoded JSX in AppShell.
+- All blog-draft copy still resolves through `BLOG_CONFIG.admin.*`
+  (moved with the component into `BlogPreviewPanel.tsx`).
+- Marketing Panel page strings (heading, subhead, "Coming soon" blurbs)
+  are inline literals -- if a `marketingConfig.ts` SSOT becomes
+  necessary later, those are easy to extract.
+
+#### Rule satisfaction checklist
+
+- Rule #3 (route in routes.ts AND App.tsx): satisfied; both updated in
+  this commit.
+- Rule #22 (accessibility):
+  * Disabled tabs use shadcn's `disabled` prop on `<TabsTrigger>`, which
+    sets `aria-disabled="true"` and excludes the tab from roving-tabindex
+    arrow-key navigation per the Radix Tabs accessible pattern.
+  * Each disabled trigger has explicit `aria-label="<name>, coming soon"`.
+  * `<TabsList>` has `aria-label="Marketing review channels"`.
+  * All tab and decorative icons have `aria-hidden="true"`.
+  * Default tab is `blog-preview` so the page opens to actionable content.
+  * The embedded `<BlogPreviewPanel showHeader={false} />` suppresses its
+    own `<h1>` so the Marketing Panel's `<h1>Marketing Panel</h1>` stays
+    the only h1.
+- Rule #23 (sync after touching FILES_TO_SYNC): `routes.ts` is in the
+  sync list -- `_shared/routes.ts` updated via `npm run sync-constants`
+  in the same commit.
+
+#### Decisions deliberately deferred
+
+- **Deep-link query string for non-default tab** (e.g.,
+  `?tab=amp-articles`). Not needed until at least one of the other
+  three tabs becomes functional.
+- **SSOT for Marketing Panel tab labels and "Coming soon" blurbs.**
+  Five literal strings inline in `AdminMarketing.tsx`. Lift to a
+  `marketingConfig.ts` SSOT only if a content team starts editing them.
+- **Amp Articles, Newsletter, Email Marketing panel components.** Each
+  will replace its current `<ComingSoonPanel>` in `AdminMarketing.tsx`
+  and have `disabled` removed from its `<TabsTrigger>`. Built one
+  channel at a time as Lynn is ready.
+
+#### Carry-forward
+
+See WHAT'S NEXT at the top of this file.
+
+#### Commits
+
+Filled in after `.\deploy.ps1` runs.
+
 ---
 
 ### May 11, 2026 -- Session 2: Admin blog preview page, WYSIWYG editor, featured-image dedupe

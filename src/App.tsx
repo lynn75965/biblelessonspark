@@ -50,6 +50,9 @@ import ToolbeltAdmin from "./pages/ToolbeltAdmin";
 // Admin Blog Preview
 import AdminBlogPreview from "./pages/AdminBlogPreview";
 
+// Admin Marketing Panel
+import AdminMarketing from "./pages/AdminMarketing";
+
 // Phase D: Publishing Hub
 import PublishingHub from "./pages/PublishingHub";
 // Phase E: Digital Wing
@@ -99,6 +102,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <AdminBlogPreview />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN_MARKETING}
+              element={
+                <ProtectedRoute>
+                  <AdminMarketing />
                 </ProtectedRoute>
               }
             />
