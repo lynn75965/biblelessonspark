@@ -52,6 +52,7 @@ export const ROUTES = {
   MORE_TOOLS: '/more-tools',
   // Lesson Shapes Guide
   LESSON_SHAPES_GUIDE: '/lesson-shapes',
+  CURRICULUM_EVALUATION: '/curriculum-evaluation',
   // Legal routes
   PRIVACY: '/legal/privacy',
   TERMS: '/legal/terms',
