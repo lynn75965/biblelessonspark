@@ -1,6 +1,185 @@
-# PROJECT MASTER -- Last updated: May 8, 2026
+# PROJECT MASTER -- Last updated: May 10, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### May 10, 2026 -- Curriculum Evaluation Tool (new public page at /curriculum-evaluation)
+
+#### Summary
+
+New public marketing/evaluation page shipped in a single commit. Helps
+church leadership self-assess whether locally prepared, church-specific
+Bible curriculum may serve their context better than (or alongside)
+traditional published curriculum. Static landing + side-by-side
+comparison + 7-step guided wizard that scores answers, picks a result
+type (personal preparation, small pilot, department pilot, or
+full-quarter pilot), and renders a downloadable Decision Brief and
+optional Pilot Plan in PDF and DOCX. Zero existing files affected
+beyond the two SSOT updates required by Rules #3 and #23. Commit:
+`5972fae`. 20 files changed, 2,032 insertions.
+
+#### Architecture
+
+Three layers, all under new directories:
+
+- **`src/lib/curriculum-eval/`** (6 files) -- pure-logic SSOT:
+  - `types.ts` -- Category, Question, Step, Answers, Tier, ResultType,
+    ScoreReport interfaces.
+  - `schema.ts` -- the canonical STEPS array (7 steps, 28 questions),
+    plus `CORE_STEP_IDS` and `STEP_BY_ID` lookup. `conf6` helper for
+    repeated 6-option confidence scales, properly typed as
+    `Partial<Record<Category, number>>` (caught during code review
+    before scoring.ts was written -- see Carry-forward #1).
+  - `scoring.ts` -- `scoreAnswers(answers)` normalizes each category
+    to [0,1] via `sums / (counts * 4)`, then computes overall via the
+    weighted sum: transition 0.5 + leadership 0.2 + scripture 0.15 +
+    teaching 0.15 = 1.00. Tier cutoffs: <0.4 low, <0.7 moderate,
+    >=0.7 high. Result type derived from transitionReadiness +
+    manyClasses (Q4_2 answer = C/D/E).
+  - `brief.ts` -- `buildDecisionBrief(answers, report, opts)` returns
+    plain-text brief with a Risks-to-Address-First section driven by
+    actual category scores (e.g. `scripture < 0.6` adds a risk line).
+  - `pilot-plan.ts` -- `buildPilotPlan(answers, report)` generates a
+    structured plan: Week 0 prep + N teaching weeks (mid-pilot review
+    inserted at `Math.ceil(weeks/2)` when weeks >= 4) + final review.
+    Length mapping: A=1, B=2, C=4, D=6, E=13 weeks. Plus
+    `pilotPlanToText` for export.
+  - `export.ts` -- `exportTextAsPDF` (jspdf, letter, 54pt margins,
+    helvetica, header-aware line styling, page-break handling) and
+    `exportTextAsDOCX` (docx, HEADING_1/HEADING_2, bulleted lists,
+    1080-twip margins). Both call `saveAs` from file-saver.
+
+- **`src/components/curriculum-eval/`** (10 files) -- UI:
+  - `Hero.tsx` -- top hero with Start + See Comparison CTAs.
+  - `WhyConsider.tsx` -- static "new question worth considering"
+    section with 3-card grid.
+  - `ComparisonTable.tsx` -- forwardRef'd 10-row Traditional vs Local
+    table. `scroll-mt-24` for anchor offset.
+  - `Question.tsx` -- one question (radio or checkbox) wrapped in
+    fieldset/legend for screen-reader semantics. Per-option cards
+    with shadcn RadioGroupItem or Checkbox + Label htmlFor. Optional
+    details textarea revealed by a chevron toggle.
+  - `StepCard.tsx` -- Card wrapping one Step; numbered Question list.
+  - `Wizard.tsx` -- state machine. Phase = step | interstitial |
+    result. Steps 1-5 advance sequentially; idx 4 jumps to idx 5
+    unconditionally; idx 6 scores and transitions to result.
+    Auto-scroll to card on phase change via useEffect on phase.
+    Results renders DecisionBrief + PilotPlan inside.
+  - `DecisionBrief.tsx` -- card with Copy/PDF/DOCX header + scrollable
+    pre block of the brief text. Clipboard copy flips a 2-second
+    "Copied" state.
+  - `PilotPlan.tsx` -- card with Copy/PDF/DOCX header + structured
+    rendering: overview dl, vertical timeline ol (decorative bullet
+    markers `aria-hidden="true"`), success criteria, risks-to-watch.
+  - `ClosingSection.tsx` -- forwardRef'd pastoral note + "When you
+    are ready" card. "BibleLessonSpark" inside the card is an anchor
+    linking to https://biblelessonspark.com (added via surgical edit
+    after the initial component write, post-localhost-verification).
+  - `Results.tsx` -- COPY-record keyed by ResultType. Primary CTAs
+    route by label substring ("Generate Decision Brief" -> reveal
+    brief; "pilot plan" substring -> reveal plan; else scroll to
+    ClosingSection). PilotPlan only renders if includeStep7;
+    fallback hint card otherwise.
+
+- **`src/pages/CurriculumEvaluationPage.tsx`** -- composes Hero,
+  WhyConsider, ComparisonTable, wizard section (heading + Wizard),
+  ClosingSection. Three refs: wizardRef (HTMLDivElement),
+  comparisonRef (HTMLElement), closingRef (HTMLElement) provide
+  scroll targets. Public route -- no ProtectedRoute wrapper.
+
+#### Routing wiring (Rules #3 and #23 verified)
+
+Both files updated in the same deploy:
+
+- `src/constants/routes.ts` -- inserted
+  `CURRICULUM_EVALUATION: '/curriculum-evaluation'` immediately after
+  `LESSON_SHAPES_GUIDE`. Note: LESSON_SHAPES_GUIDE sits below the
+  `// Protected routes` comment block but is publicly rendered in
+  App.tsx, so this placement matches the existing pattern for
+  public-but-grouped-below-protected routes.
+- `supabase/functions/_shared/routes.ts` -- auto-synced via
+  `npm run sync-constants`. 14 of 14 files synced; only routes.ts
+  had real diffs.
+- `src/App.tsx` -- two surgical edits:
+  - `import CurriculumEvaluationPage from "./pages/CurriculumEvaluationPage"`
+    inserted immediately after the `LessonShapesGuide` import.
+  - `<Route path={ROUTES.CURRICULUM_EVALUATION} element={<CurriculumEvaluationPage />} />`
+    inserted immediately after the `LESSON_SHAPES_GUIDE` Route, with
+    no ProtectedRoute wrapper.
+
+#### Build and deploy
+
+- `npm run build` -- clean. 3,933 modules transformed in 26.81s.
+  Zero TypeScript errors. Zero TypeScript warnings. Three advisory
+  warnings (baseline-browser-mapping >2 months old, browserslist 6
+  months old, main bundle >500 kB) -- all pre-existing, not
+  introduced by this work.
+- `npm run dev` started on http://localhost:8080 for localhost
+  verification. Page verified clean before deploy approval.
+- `.\deploy.ps1` -- ASCII guard passed. Commit `5972fae` to main.
+  Pushed to origin/main. Netlify auto-deploy triggered.
+
+#### Carry-forward observations
+
+These are flagged but deferred. Not bugs as shipped; worth revisiting
+if/when the page evolves.
+
+1. **conf6 helper type cast (resolved in this session).** Initial
+   `schema.ts` used `Parameters<typeof k>[0]` and
+   `Record<string, number>` for the helper; this would not have been
+   assignable to the `Partial<Record<Category, number>>` shape that
+   `Option` expects. Caught during code review and fixed with one
+   surgical Edit before scoring.ts was written. Helper now reads
+   `(cat: Category) => ... as Partial<Record<Category, number>>`.
+   The `k<T>` function was removed entirely.
+
+2. **Wizard interstitial phase is unreachable.** The `Phase` union
+   defines `{ kind: "interstitial"; report }`, and the render branch
+   exists, but no `setPhase({ kind: "interstitial", ... })` call
+   exists anywhere. Dead code as shipped. If the intent was to show
+   the low/moderate/high tier interstitial messaging that already
+   lives in that render branch, idx-4's onNext needs to score and
+   set interstitial instead of jumping straight to step 5.
+
+3. **`unlockedAfterLow` state is set but never read** in Wizard.tsx.
+   Declared, written in three places, reset on restart -- but no UI
+   or logic reads it. Lenient `tsconfig` did not flag it; a stricter
+   `noUnusedLocals` setting would.
+
+4. **Accessibility deferrals (Rule #22).** Three observations not
+   addressed in this version:
+   - Wizard.tsx "Back" and "Save and Continue" buttons use the
+     HTML `disabled` attribute, not `aria-disabled="true"`. Per
+     Rule #22 item 1, disabled buttons that must stay focusable
+     should use aria-disabled so screen-reader users can land on
+     them and hear why they cannot proceed.
+   - DecisionBrief.tsx / PilotPlan.tsx "Copied" state changes on
+     Copy buttons are visual-only; no `aria-live="polite"` region
+     announces success. Rule #22 item 7 unsatisfied.
+   - Results.tsx: when Generate Decision Brief or Build Pilot Plan
+     reveals new content, focus does not move to the revealed
+     heading and no status region announces the appearance.
+     Rule #22 item 9 (focus moves to result heading after generation
+     completes) unsatisfied.
+
+5. **String-based button routing in Results.tsx.** `handleClick`
+   switches on literal copy ("Generate Decision Brief") and substring
+   ("pilot plan", case-insensitive). If COPY labels are ever edited
+   for tone, the routing will silently break. A label/action
+   discriminator on the `ResultCopy` shape would be more robust.
+
+6. **No SEO `<head>` metadata.** Other public pages may set
+   `document.title` or use a head helper; this page does not. Not
+   specified in spec, not added.
+
+#### What's next
+
+Page is shipped and live at https://biblelessonspark.com/curriculum-evaluation.
+The carry-forward items above can be addressed in a follow-up session
+if the page sees real traffic or if leadership wants to surface the
+interstitial messaging that already exists in Wizard.tsx but never
+fires.
 
 ---
 
