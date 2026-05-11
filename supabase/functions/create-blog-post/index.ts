@@ -103,19 +103,6 @@ serve(async (req) => {
       });
     }
 
-    // Diagnostic: log raw body to verify what arrives from Tertius.
-    // Apostrophe-stripping investigation (May 2026). Remove once root cause confirmed.
-    const rawBodyForLog = await req.clone().text();
-    console.log(
-      "create-blog-post raw-body diagnostic:",
-      JSON.stringify({
-        method: req.method,
-        contentType: req.headers.get("content-type"),
-        bodyLength: rawBodyForLog.length,
-        bodySample: rawBodyForLog.slice(0, 1500),
-      }),
-    );
-
     // Parse payload (JSON or multipart)
     let payload: BlogPostPayload;
     try {

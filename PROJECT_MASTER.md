@@ -1,6 +1,119 @@
-# PROJECT MASTER -- Last updated: May 10, 2026
+# PROJECT MASTER -- Last updated: May 11, 2026
 
 ## WHAT'S NEXT
+
+---
+
+### May 11, 2026 -- Blog index redesign, header nav, DELETE endpoint, apostrophe diagnosis
+
+#### Summary
+
+Four pieces of related work landed in two commits today.
+
+1. Added a DELETE method to the `create-blog-post` Edge Function so
+   Tertius can delete a draft in a single request when the user
+   declines publication. Same X-Blog-Api-Key auth, JSON body
+   `{ slug }`, returns `{ success, message }` or 404
+   `{ error: "Post not found" }`.
+
+2. Diagnosed reported apostrophe stripping (`God's kingdom` ->
+   `God kingdom` in DB). Verified the Edge Function performs zero
+   string manipulation; JSON parsing preserves apostrophes; the
+   `blog_posts` schema has no triggers or generated columns. Added a
+   raw-body diagnostic log to the Edge Function, captured proof that
+   posts arrive at our function already stripped. Root cause and
+   correction handled upstream of our system. Diagnostic log removed
+   and Edge Function redeployed clean today.
+
+3. Redesigned `/blog` from a vertical list into a 3/2/1 column card
+   grid. New `BlogCard.tsx` component renders a 16:9 hero image (or
+   gradient placeholder), title, 150-char truncated excerpt, "N min
+   read" estimate, formatted published date, and "Read more" link
+   with hover lift. Sticky search bar with real-time title+excerpt
+   filter (content search deferred per Option C). Pagination via
+   Load More button driven by Supabase `range(from, to)` with
+   `count: 'exact'`. Skeleton placeholders during loading. Two
+   distinct empty states: "No posts available" (table empty) vs "No
+   posts found. Try different keywords." (filtered to zero). SEO
+   meta title + description set via `useEffect` with cleanup,
+   matching the `ChurchPlantReport.tsx` pattern.
+
+4. Added `BlogHeaderNav.tsx` shared component (logo on left linked
+   to home, "Go to BibleLessonSpark" button on right linked to
+   home) mounted on both `/blog` and `/blog/:slug`.
+
+#### Files changed
+
+- `src/constants/blogConfig.ts` -- extended SSOT: `pagination.pageSize`,
+  `readTime.wordsPerMinute`, `excerpt.maxChars`, and new UI strings
+  (`metaDescription`, `searchPlaceholder`, `searchEmptyState`,
+  `loadingLabel`, `loadMoreLabel`, `loadingMoreLabel`, `readMoreLabel`,
+  `readTimeSuffix`, `homeButtonLabel`).
+- `src/pages/Blog.tsx` -- full rewrite (grid, search, pagination,
+  skeletons, empty states, SEO).
+- `src/pages/BlogPost.tsx` -- added `BlogHeaderNav` above the
+  existing "Back to Blog" link.
+- `src/components/blog/BlogCard.tsx` -- new (~120 lines).
+- `src/components/blog/BlogHeaderNav.tsx` -- new (~25 lines).
+- `supabase/functions/create-blog-post/index.ts` -- DELETE endpoint
+  added, diagnostic log added then removed (clean redeploy this session).
+
+#### SSOT and Frontend-Drives-Backend compliance
+
+- All branding colors flow through Tailwind CSS variables sourced
+  from `BRANDING` (`bg-primary`, `text-primary`, `bg-background`,
+  `bg-card`). Zero hex literals.
+- Logo path and alt text from `BRANDING.logo.primary` and
+  `BRANDING.logo.altText`.
+- All blog tunables and UI copy live in `BLOG_CONFIG`. Zero magic
+  numbers in components.
+- Home route via `ROUTES.HOME`. Blog post route via
+  `BLOG_CONFIG.routes.post`. Zero hardcoded path literals.
+- Page title built via `getPageTitle(BLOG_CONFIG.ui.title)`. App
+  name not duplicated.
+- Schema columns selected match the `BlogPost` interface
+  declarations exactly. No queries against `tags` / `categories`
+  / other columns the schema does not declare.
+- `blogConfig.ts` is intentionally not in `FILES_TO_SYNC` per Rule
+  #24 -- pure frontend, no `_shared/` mirror needed.
+- No backend schema changes. No new migrations. No edits to
+  `_shared/` utilities.
+
+#### Trap encountered and resolved
+
+`BlogCard.tsx` was initially written with literal Unicode middle-dot
+and right-arrow glyphs. The .ts/.tsx ASCII guard would have blocked
+the deploy. Fixed via byte-level PowerShell substitution (per
+`feedback_unicode_escape_traps.md`) to convert each literal character
+to its JavaScript escape sequence (six ASCII chars: backslash, u, and
+four hex digits). All six touched .ts/.tsx files verified pure ASCII
+before commit.
+
+#### Decisions deliberately deferred
+
+- **Category filter on the blog index.** Schema has no
+  `tags`/`categories` columns and `blogConfig.ts` does not declare
+  them. Adding it requires a migration + SSOT extension. Defer
+  until business need is clear.
+- **Server-side content search.** Current search runs client-side
+  on title + excerpt of loaded posts. As post count grows past a
+  few pages this will need a debounced Supabase `ilike` against
+  the `content` column.
+- **Read-time accuracy.** Estimate uses 200 wpm against
+  HTML-stripped word count of `content`. Good enough for v1.
+
+#### Commits
+
+- `16b9bda` -- FEATURE: blog index redesign, header nav, DELETE
+  endpoint, raw-body diagnostic logging. 6 files changed,
+  +442 / -62.
+- (this DOCS commit) -- removes the diagnostic log and updates
+  PROJECT_MASTER.
+
+#### Carry-forward
+
+None. Apostrophe diagnostic concluded. Diagnostic log removed.
+Dev server stopped. No pending tasks.
 
 ---
 
@@ -1392,7 +1505,7 @@ chars that would fail the frontend ASCII guard):
   -> `BAPTIST TERMINOLOGY GUARDRAILS -- UNIVERSAL COMPLIANCE`
   (matches existing convention at the older `THEOLOGICAL GUARDRAILS --
   MANDATORY COMPLIANCE` heading).
-- Arrow in substitution template: `Instead of "${avoid}" → use "${use}"`
+- Arrow in substitution template: `Instead of "${avoid}" -> use "${use}"`
   -> `Instead of "${avoid}" ? use "${use}"` (matches the existing `?`
   placeholder pattern in generateTheologicalGuardrails template at
   pre-edit line 964).
@@ -1486,7 +1599,7 @@ preexisting working-tree behavior and did not affect what was committed
   pattern in SBC 1963 vs `"the elect",` (no space) in SBC 2000 as the
   disambiguator. Worked on first try; no Edit-tool ambiguity errors.
 - The frontend's existing `?` placeholder for the substitution arrow
-  (line 964 pre-edit) is a deliberate ASCII-safe stand-in for `→`.
+  (line 964 pre-edit) is a deliberate ASCII-safe stand-in for `->`.
   New content added in Edit E must match that convention to avoid
   re-introducing non-ASCII into src/.
 - The sync reliably converts non-ASCII glyphs in mirror summaries to
@@ -1533,7 +1646,7 @@ None. Working tree clean before this DOCS commit.
    regenerated src/index.css in the same commit so HEAD matches what
    the deterministic generator produces; future builds no longer dirty
    the working tree. Required two iterations: the first attempt left
-   `→` JS escapes in the .cjs source, which the template literal
+   `->` JS escapes in the .cjs source, which the template literal
    evaluated back to the arrow glyph at build time, so index.css was
    still non-ASCII. Diagnosis surfaced that the recurring
    `M src/index.css` after every build was driven by the timestamp
@@ -1676,7 +1789,7 @@ edits to the backend mirror tree, violating SSOT in spirit.
 - generate-css.cjs fix surfaced that the recurring `M src/index.css`
   after every build was timestamp-driven, not arrow-driven. The
   arrows had been in committed HEAD all along (deploy ASCII guard
-  apparently does not gate .css files). The .cjs `→` JS escape
+  apparently does not gate .css files). The .cjs `->` JS escape
   evaluates to the arrow glyph at build time, so escape-only fixes
   do not solve the index.css cleanliness goal -- need ASCII '->' in
   the template literal directly.
@@ -1913,7 +2026,7 @@ edits). Pass 2 implemented the items Lynn approved.
   `same SSOT as PricingPage.tsx` (PricingPage was deleted April 5).
 - **Finding #12 -- broken arrow glyph:** Help.tsx Quick Links rendered
   `"Learn more ?"` -- a literal `?` instead of an arrow. Replaced with
-  `Learn more {'→'}` (the BLS-approved JSX escape pattern; source
+  `Learn more {'->'}` (the BLS-approved JSX escape pattern; source
   stays ASCII, glyph renders at runtime).
 - **Finding #14 -- backup/.txt sweep:** Deleted 13 stale files (10
   flagged in Pass 1, plus 3 newly surfaced during the cleanup verify
