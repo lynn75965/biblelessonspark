@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { BLOG_CONFIG, type BlogPost as BlogPostRow } from "@/constants/blogConfig";
+import BlogHeaderNav from "@/components/blog/BlogHeaderNav";
 
 function formatPublishedDate(value: string | null): string {
   if (!value) return "";
@@ -56,6 +57,7 @@ export default function BlogPost() {
 
   return (
     <main className="min-h-screen bg-white text-slate-900">
+      <BlogHeaderNav />
       <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
         <div className="mb-8">
           <Link

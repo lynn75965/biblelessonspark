@@ -5,18 +5,26 @@ import { getCorsHeadersFromRequest } from "../_shared/corsConfig.ts";
 /**
  * create-blog-post Edge Function
  *
- * Purpose: External bot integration (Tertius / OpenClaw) to create blog posts.
+ * Purpose: External bot integration (Tertius / OpenClaw) to create or delete blog posts.
  * Authenticates via X-Blog-Api-Key header matching BLOG_API_KEY env var.
- * Inserts into blog_posts using the service role client (bypasses RLS).
+ * Uses the service role client (bypasses RLS).
  *
- * Accepts: multipart/form-data OR application/json
- * Required fields: title, slug, excerpt, content
- * Optional fields: featured_image_url, published (default true), published_at (default now)
+ * POST -- create a blog post
+ *   Accepts: multipart/form-data OR application/json
+ *   Required fields: title, slug, excerpt, content
+ *   Optional fields: featured_image_url, published (default true), published_at (default now)
+ *   Returns 200: { success, slug, url }
+ *   Returns 400: { error: "missing required field: <field>" }
+ *   Returns 401: { error: "unauthorized" }
+ *   Returns 409: { error: "slug already exists" }
  *
- * Returns 200: { success, slug, url }
- * Returns 400: { error: "missing required field: <field>" }
- * Returns 401: { error: "unauthorized" }
- * Returns 409: { error: "slug already exists" }
+ * DELETE -- delete a blog post by slug
+ *   Accepts: application/json
+ *   Required field: slug
+ *   Returns 200: { success: true, message: "Post deleted" }
+ *   Returns 400: { error: "missing required field: slug" }
+ *   Returns 401: { error: "unauthorized" }
+ *   Returns 404: { error: "Post not found" }
  */
 
 const PUBLIC_SITE_URL = "https://biblelessonspark.com";
@@ -77,7 +85,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST") {
+  if (req.method !== "POST" && req.method !== "DELETE") {
     return new Response(JSON.stringify({ error: "method not allowed" }), {
       status: 405,
       headers: jsonHeaders,
@@ -85,7 +93,7 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate via X-Blog-Api-Key
+    // Authenticate via X-Blog-Api-Key (shared by POST and DELETE)
     const expectedKey = Deno.env.get("BLOG_API_KEY");
     const providedKey = req.headers.get("x-blog-api-key");
     if (!expectedKey || !providedKey || providedKey !== expectedKey) {
@@ -94,6 +102,19 @@ serve(async (req) => {
         headers: jsonHeaders,
       });
     }
+
+    // Diagnostic: log raw body to verify what arrives from Tertius.
+    // Apostrophe-stripping investigation (May 2026). Remove once root cause confirmed.
+    const rawBodyForLog = await req.clone().text();
+    console.log(
+      "create-blog-post raw-body diagnostic:",
+      JSON.stringify({
+        method: req.method,
+        contentType: req.headers.get("content-type"),
+        bodyLength: rawBodyForLog.length,
+        bodySample: rawBodyForLog.slice(0, 1500),
+      }),
+    );
 
     // Parse payload (JSON or multipart)
     let payload: BlogPostPayload;
@@ -104,6 +125,44 @@ serve(async (req) => {
         status: 400,
         headers: jsonHeaders,
       });
+    }
+
+    // DELETE -- remove a blog post by slug
+    if (req.method === "DELETE") {
+      const deleteSlug = toStr(payload.slug)?.trim();
+      if (!deleteSlug) {
+        return new Response(
+          JSON.stringify({ error: "missing required field: slug" }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+
+      const { data: deletedRows, error: deleteError } = await supabaseAdmin
+        .from(BLOG_TABLE)
+        .delete()
+        .eq("slug", deleteSlug)
+        .select("id");
+
+      if (deleteError) {
+        console.error("create-blog-post delete error:", deleteError);
+        return new Response(
+          JSON.stringify({ error: "delete failed", details: deleteError.message }),
+          { status: 500, headers: jsonHeaders },
+        );
+      }
+
+      if (!deletedRows || deletedRows.length === 0) {
+        return new Response(JSON.stringify({ error: "Post not found" }), {
+          status: 404,
+          headers: jsonHeaders,
+        });
+      }
+
+      console.log(`create-blog-post: deleted slug=${deleteSlug}`);
+      return new Response(
+        JSON.stringify({ success: true, message: "Post deleted" }),
+        { status: 200, headers: jsonHeaders },
+      );
     }
 
     const title = toStr(payload.title)?.trim();
