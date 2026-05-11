@@ -143,7 +143,11 @@ See WHAT'S NEXT at the top of this file.
 
 #### Commits
 
-Filled in after `.\deploy.ps1` runs.
+- `dfc929b` -- FEATURE: Marketing Panel at /admin/marketing with shared
+  BlogPreviewPanel component and sidebar Marketing item. 9 files changed,
+  +1176 / -794. The 794 deletions are almost all from
+  `AdminBlogPreview.tsx` shrinking from 854 lines to a 66-line wrapper
+  -- the same logic now lives in `BlogPreviewPanel.tsx`.
 
 ---
 
