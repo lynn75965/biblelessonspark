@@ -33,6 +33,7 @@ export interface BlogPost {
   slug: string;
   excerpt: string | null;
   content: string;
+  featured_image_url: string | null;
   published: boolean;
   published_at: string | null;
   created_at: string;

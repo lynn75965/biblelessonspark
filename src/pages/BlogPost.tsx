@@ -28,7 +28,7 @@ export default function BlogPost() {
     (async () => {
       const { data, error: queryError } = await supabase
         .from(BLOG_CONFIG.table)
-        .select("id, title, slug, excerpt, content, published, published_at, created_at")
+        .select("id, title, slug, excerpt, content, featured_image_url, published, published_at, created_at")
         .eq("slug", slug)
         .eq("published", true)
         .maybeSingle();
@@ -104,6 +104,13 @@ export default function BlogPost() {
               <p className="mb-8 text-sm text-slate-500">
                 <time dateTime={post.published_at}>{formatPublishedDate(post.published_at)}</time>
               </p>
+            )}
+            {post.featured_image_url && (
+              <img
+                src={post.featured_image_url}
+                alt={post.title}
+                className="w-full rounded-lg object-cover max-h-96 mb-8"
+              />
             )}
             <div
               className="prose prose-lg max-w-none"
