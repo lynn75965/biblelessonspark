@@ -28,6 +28,7 @@ export const ROUTES = {
   ORG: '/org',
   ADMIN: '/admin',
   ADMIN_TOOLBELT: '/admin/toolbelt',
+  ADMIN_BLOG_PREVIEW: '/admin/blog-preview',
   PREFERENCES_LENS: '/preferences/lens',
   ADMIN_BETA_METRICS: '/admin/beta-metrics',
   ACCOUNT: '/account',

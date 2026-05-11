@@ -47,6 +47,9 @@ import TeachingTeam from "./pages/TeachingTeam";
 // Admin Toolbelt
 import ToolbeltAdmin from "./pages/ToolbeltAdmin";
 
+// Admin Blog Preview
+import AdminBlogPreview from "./pages/AdminBlogPreview";
+
 // Phase D: Publishing Hub
 import PublishingHub from "./pages/PublishingHub";
 // Phase E: Digital Wing
@@ -88,6 +91,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ToolbeltAdmin />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path={ROUTES.ADMIN_BLOG_PREVIEW}
+              element={
+                <ProtectedRoute>
+                  <AdminBlogPreview />
                 </ProtectedRoute>
               }
             />

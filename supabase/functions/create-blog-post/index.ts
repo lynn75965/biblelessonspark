@@ -63,6 +63,39 @@ function toBool(value: unknown, fallback: boolean): boolean {
   return fallback;
 }
 
+// Tertius sometimes embeds the featured image as the first block of content,
+// causing it to render twice (once as featured_image, once at the top of body).
+// Strip a leading <img> (with or without a wrapping <p>) when its src matches
+// the featured_image_url. Query strings are ignored so ?w=1200 vs ?w=800 still
+// matches.
+function stripLeadingFeaturedImage(
+  content: string,
+  featuredUrl: string | null,
+): string {
+  if (!featuredUrl) return content;
+  const featuredPath = featuredUrl.split("?")[0];
+
+  const wrapped = content.match(
+    /^\s*<p[^>]*>\s*<img[^>]*src=["']([^"']+)["'][^>]*>\s*<\/p>\s*/i,
+  );
+  if (wrapped) {
+    const srcPath = wrapped[1].split("?")[0];
+    if (srcPath === featuredPath || wrapped[1] === featuredUrl) {
+      return content.substring(wrapped[0].length);
+    }
+  }
+
+  const bare = content.match(/^\s*<img[^>]*src=["']([^"']+)["'][^>]*>\s*/i);
+  if (bare) {
+    const srcPath = bare[1].split("?")[0];
+    if (srcPath === featuredPath || bare[1] === featuredUrl) {
+      return content.substring(bare[0].length);
+    }
+  }
+
+  return content;
+}
+
 async function readPayload(req: Request): Promise<BlogPostPayload> {
   const contentType = req.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
@@ -155,8 +188,11 @@ serve(async (req) => {
     const title = toStr(payload.title)?.trim();
     const slug = toStr(payload.slug)?.trim();
     const excerpt = toStr(payload.excerpt)?.trim();
-    const content = toStr(payload.content);
+    const rawContent = toStr(payload.content);
     const featured_image_url = toStr(payload.featured_image_url)?.trim() || null;
+    const content = rawContent
+      ? stripLeadingFeaturedImage(rawContent, featured_image_url)
+      : rawContent;
     const published = toBool(payload.published, true);
     const published_at = toStr(payload.published_at)?.trim() || new Date().toISOString();
 

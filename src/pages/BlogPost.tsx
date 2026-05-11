@@ -11,6 +11,34 @@ function formatPublishedDate(value: string | null): string {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
 }
 
+// Tertius (and some older posts) embed the featured image as the first
+// content block, so it renders twice. Strip a leading <img> whose src matches
+// the featured_image_url. Mirrors the same logic in create-blog-post edge fn.
+function stripLeadingFeaturedImage(content: string, featuredUrl: string | null): string {
+  if (!featuredUrl) return content;
+  const featuredPath = featuredUrl.split("?")[0];
+
+  const wrapped = content.match(
+    /^\s*<p[^>]*>\s*<img[^>]*src=["']([^"']+)["'][^>]*>\s*<\/p>\s*/i,
+  );
+  if (wrapped) {
+    const srcPath = wrapped[1].split("?")[0];
+    if (srcPath === featuredPath || wrapped[1] === featuredUrl) {
+      return content.substring(wrapped[0].length);
+    }
+  }
+
+  const bare = content.match(/^\s*<img[^>]*src=["']([^"']+)["'][^>]*>\s*/i);
+  if (bare) {
+    const srcPath = bare[1].split("?")[0];
+    if (srcPath === featuredPath || bare[1] === featuredUrl) {
+      return content.substring(bare[0].length);
+    }
+  }
+
+  return content;
+}
+
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogPostRow | null>(null);
@@ -116,7 +144,9 @@ export default function BlogPost() {
             )}
             <div
               className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{
+                __html: stripLeadingFeaturedImage(post.content, post.featured_image_url),
+              }}
             />
           </article>
         )}
