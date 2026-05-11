@@ -2,3 +2,9 @@ project_id = "hphebzdftpjbiudpfcrs"
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+[functions.create-blog-post]
+verify_jwt = false
+
+[functions.upload-blog-image]
+verify_jwt = false
