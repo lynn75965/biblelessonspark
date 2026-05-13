@@ -105,6 +105,13 @@ export default function Dashboard() {
     const validTabs = Object.values(DASHBOARD_TAB_VALUES);
     if (state.tab && validTabs.includes(state.tab as any)) {
       setActiveTab(state.tab);
+      // Sidebar tab nav (no viewLessonId): clear any viewing-lesson state so
+      // the tab opens fresh. Matches handleTabChange's clearViewingOnClick.
+      if (!state.viewLessonId) {
+        setSelectedLesson(null);
+        setViewOrigin(null);
+        setOriginSeriesId(null);
+      }
     }
 
     // Series Library lesson view: resolve lesson from state
