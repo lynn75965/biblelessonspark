@@ -1,8 +1,8 @@
-# PROJECT MASTER -- Last updated: May 11, 2026
+# PROJECT MASTER -- Last updated: May 13, 2026
 
 ## WHAT'S NEXT
 
-Carry-forward from May 11 Session 3 (Marketing Panel):
+Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
 - Build Amp Articles preview/approval workflow (currently disabled tab in
   Marketing Panel). Lynn already sends amps to Ampifire; in-app preview is
   the missing piece.
@@ -13,6 +13,86 @@ Carry-forward from May 11 Session 3 (Marketing Panel):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 13, 2026 -- Session 1: Build Lesson sidebar -- clear selectedLesson on tab nav
+
+#### Summary
+
+Surgical follow-up to the April 13 fix (commit `7a19527`). That commit
+made the Build Lesson sidebar click trigger a tab switch when already on
+`/dashboard` (added `replace: true` to the `navigate()` call and switched
+the `useEffect` deps from `[location.state]` to `[location]`). It fixed
+the tab-switch path but did not address one remaining failure mode:
+
+**The bug**: User opens a lesson from the Lesson Library, which sets
+`selectedLesson` and switches to the `enhance` tab. The
+`EnhanceLessonForm` renders in viewing mode because
+`viewingLesson={selectedLesson}` is truthy. The user clicks Build Lesson
+in the sidebar -- navigation fires, the `useEffect` re-runs,
+`setActiveTab('enhance')` is a no-op (already on enhance), but
+`selectedLesson` is never cleared. Result: the lesson view stays on
+screen and Build Lesson appears to do nothing.
+
+**The fix**: In Dashboard.tsx's location-state `useEffect`, when
+`state.tab` is set AND `state.viewLessonId` is NOT set (i.e. a plain
+sidebar tab nav, not a Series-Library "view lesson" deep-link), also
+clear `selectedLesson`, `viewOrigin`, and `originSeriesId`. Mirrors the
+`clearViewingOnClick` logic in `handleTabChange` that was already
+applied for direct Tabs-component user clicks (which the sidebar nav
+bypasses by writing `activeTab` directly via state).
+
+#### Files changed
+
+- `src/pages/Dashboard.tsx` -- added a 5-line branch inside the
+  existing `useEffect` at line 101. No new effects, no new state, no
+  changes to AppShell, sidebarConfig, or routes.
+
+#### Diagnostic findings (recorded for future sessions)
+
+- All four dashboard tabs (`buildLesson`, `lessonLibrary`,
+  `devotionalLibrary`, `seriesLibrary`) are configured in
+  `sidebarConfig.ts` as **tab items** (`tabValue: ...`), not route
+  items. They flow through AppShell's `handleItemClick` tab-item
+  branch, which calls
+  `navigate(ROUTES.DASHBOARD, { state: { tab: ... }, replace: true })`.
+- Route items (e.g. Marketing, Admin, Publish) render as `<Link>` and
+  do NOT pass any state. This is fine because those routes don't read
+  `location.state`.
+- The Series-Library lesson view path uses `state.viewLessonId` and is
+  intentionally preserved -- the new branch only fires when
+  `viewLessonId` is absent.
+
+#### Why this matters
+
+Lesson viewing is not a separate route. `EnhanceLessonForm` switches
+between "build form" and "view lesson" modes based on the
+`viewingLesson` prop. Any sidebar tab nav that doesn't clear
+`selectedLesson` will appear to do nothing for users currently in
+viewing mode. The fix makes sidebar nav consistent with the existing
+"click a Tabs trigger" behavior.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): all four target files read in full
+  before any edit.
+- Rule #2 (complete solutions, no partial fixes): single coherent
+  change, build verified clean.
+- Rule #5 (npm run build before deploy): clean, 3938 modules, 25.70s,
+  zero TypeScript errors.
+- Rule #22 (accessibility): no UI markup changed; existing ARIA on
+  sidebar buttons and Tabs is untouched.
+
+#### Commits
+
+- `838cc8a` -- FIX: Build Lesson sidebar clears selectedLesson so
+  lesson view closes when switching tabs. 1 file changed, +7 lines.
+
+#### Carry-forward
+
+See WHAT'S NEXT at the top of this file. No new follow-ups from this
+session.
 
 ---
 
