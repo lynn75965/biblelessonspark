@@ -1,6 +1,17 @@
-# PROJECT MASTER -- Last updated: May 13, 2026
+# PROJECT MASTER -- Last updated: May 14, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 14 Session 1 (Unverified-signup duplicate fix):
+- Decide whether the orphan cleanup should become a recurring job.
+  Migration `20260514000001` is one-shot. A pg_cron weekly job or a
+  scheduled Edge Function would prevent future accumulation if the
+  guard in `handle_new_user()` is ever bypassed (e.g. by a future
+  trigger or direct INSERT).
+- Two diagnostic SQL files sit untracked at project root --
+  `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql` and
+  `DIAGNOSE_AUTH_FUNCTIONS.sql`. Commit as DOCS for future reference
+  or delete; left untouched per session scope.
 
 Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
 - Build Amp Articles preview/approval workflow (currently disabled tab in
@@ -13,6 +24,138 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 14, 2026 -- Session 1: Prevent duplicate unverified account creation
+
+#### Summary
+
+Database-only fix targeting orphaned/duplicate unverified Supabase auth
+accounts. The original `handle_new_user()` trigger function ran on every
+`auth.users` INSERT and unconditionally inserted a `public.profiles`
+row -- with no check on `email_confirmed_at`. Because the partial
+unique index on `auth.users.email` only enforces uniqueness when
+`is_sso_user = false`, a double-submit on the signup form could land
+two unverified `auth.users` rows for the same email, each accompanied
+by a `public.profiles` row.
+
+**The fix**: rewrite `handle_new_user()` to skip the profile INSERT
+when `NEW.email_confirmed_at IS NULL`, then add a second path --
+`create_profile_on_verification()` wired to a new
+`on_email_verified_create_profile` AFTER UPDATE trigger -- that
+inserts the profile only when `OLD.email_confirmed_at IS NULL AND
+NEW.email_confirmed_at IS NOT NULL`. Both paths share an identical
+INSERT (same columns, same defaults, `ON CONFLICT (id) DO NOTHING`),
+so verified-from-the-start signups (OAuth, magic-link auto-confirm,
+admin-created users) still get a profile through `handle_new_user()`
+on the same INSERT transaction.
+
+A second migration deletes `public.profiles` rows whose `auth.users`
+parent is unverified AND older than 7 days. `auth.users` itself is
+intentionally untouched -- that table is managed by Supabase Auth and
+the migration runner must not delete from it; orphan auth rows are
+purged via Dashboard or admin API.
+
+#### Files changed
+
+- `supabase/migrations/20260514000000_fix_handle_new_user_require_verification.sql`
+  (new, 95 lines) -- rewrites `handle_new_user()`, adds
+  `create_profile_on_verification()`, creates trigger
+  `on_email_verified_create_profile`. Idempotent via `CREATE OR REPLACE`
+  and `DROP TRIGGER IF EXISTS`.
+- `supabase/migrations/20260514000001_cleanup_unverified_orphan_accounts.sql`
+  (new, 24 lines) -- one-shot DELETE on `public.profiles` for orphan rows
+  older than 7 days. Idempotent; rerun is a zero-row no-op.
+
+#### Diagnostic findings (recorded for future sessions)
+
+- `auth.users` has three Dashboard-configured triggers (none of them
+  in `supabase/migrations/` until this commit):
+  - `on_auth_user_created` -> `handle_new_user()` -- fires AFTER
+    INSERT, creates profile.
+  - `on_auth_user_email_update` -> `sync_user_email()` -- fires on
+    email change, syncs `profiles.email`. Unrelated to this fix.
+  - `on_email_verified` -> `add_user_to_email_sequence()` -- fires
+    when `email_confirmed_at` transitions NULL -> NOT NULL. Writes
+    only to `email_sequence_tracking`. Does NOT create a profile -- a
+    latent gap that the original always-create `handle_new_user()`
+    masked.
+- Trigger firing order on `auth.users` UPDATE verified safe in this
+  session. `on_email_verified` fires alphabetically BEFORE the new
+  `on_email_verified_create_profile`. Confirmed
+  `add_user_to_email_sequence()` reads only `NEW.id`, `NEW.email`,
+  and `NEW.raw_user_meta_data` from the trigger event -- it does NOT
+  SELECT from `public.profiles`, so the new trigger sitting "later"
+  in firing order is harmless. No rename needed.
+- `public.profiles` has NO `email` column. Profiles relate to auth
+  via `id` FK; email is read from `auth.users` when needed (e.g.
+  existing RLS policies do
+  `SELECT email FROM auth.users WHERE id = auth.uid()`). An "add
+  unique constraint on profiles.email" path was rejected during
+  diagnosis -- the column doesn't exist and adding it would be a
+  bigger schema change with backfill/sync implications.
+- `auth.users.email` has only a partial unique index that excludes
+  SSO users. This is Supabase's default and explains the race window
+  the original task was trying to plug.
+- Pre-fix population: 4 unverified `auth.users`, all with profile
+  rows, 1 older than 7 days. Migration 2 deleted that one orphan
+  profile.
+- Pre-fix duplicate-email count: 0. Prior duplicates (Michael E.
+  Brice) had already been resolved manually. Going forward the new
+  trigger flow prevents new duplicates regardless.
+
+#### Why this matters
+
+- Closes the duplicate-unverified-profile race at its root: an
+  unverified `auth.users` row can no longer have a matching
+  `public.profiles` row, so race-created duplicate auth rows can't
+  manifest as duplicate profile rows downstream.
+- Hardens the verified-user flow: profile creation is now guaranteed
+  on the verification transition, not just on signup. Closes the
+  latent gap where `add_user_to_email_sequence()` was the only thing
+  firing on verify and was never going to create a profile.
+- Preserves OAuth / admin-created paths: verified-on-INSERT signups
+  still get their profile via `handle_new_user()` because the guard
+  only short-circuits when `email_confirmed_at IS NULL`.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): two read-only diagnostic SQL
+  scripts run against the live DB before writing either migration;
+  verbatim `handle_new_user()` body fetched and reviewed before the
+  rewrite.
+- Rule #2 (complete solutions): both migrations are complete,
+  self-contained, and idempotent. No partial fixes.
+- Rule #5 (npm run build): clean, 3938 modules, 25.13s, zero
+  TypeScript errors. Build is unrelated to DB migrations but verified
+  per protocol.
+- Rule #14 (never present uncertain options): paused twice during
+  diagnosis -- once to verify which trigger/function actually handled
+  profile creation, once to fetch the function body before rewriting.
+  Avoided guessing at the INSERT column list.
+- Rule #16 (ASCII only): byte-level scan confirmed zero non-ASCII
+  bytes and no BOM in both migration files; pre-commit ASCII guard
+  passed cleanly.
+- Rule #20 (migration CLI): both migrations applied via
+  `npx supabase db push --linked`. No Dashboard SQL editor usage.
+  Verified the migration was not already applied before push (brand
+  new timestamps, never seen by remote).
+- Scope discipline (feedback memory): manually staged only the two
+  migration files, bypassing `deploy.ps1`'s `git add .`. Diagnostic
+  SQL artifacts left untracked locally.
+
+#### Commits
+
+- `44492d0` -- FIX: Block profile creation for unverified signups +
+  clean up orphans. 2 files changed, +119 insertions.
+
+#### Carry-forward
+
+See WHAT'S NEXT at the top of this file. Two follow-ups added
+(recurring-cleanup decision, untracked diagnostic SQL files). The
+trigger-firing-order question was raised mid-session and verified
+safe within the session -- no follow-up needed.
 
 ---
 
