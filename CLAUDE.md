@@ -290,7 +290,7 @@ pricingConfig.ts, trialConfig.ts, validation.ts, lessonShapeProfiles.ts,
 seriesConfig.ts, branding.ts, uiSymbols.ts, organizationConfig.ts,
 betaEnrollmentConfig.ts, emailDeliveryConfig.ts, outputGuardrails.ts,
 customizationDirectives.ts, corsConfig.ts, orgPoolCheck.ts, subscriptionCheck.ts,
-rateLimit.ts
+rateLimit.ts, blogConfig.ts
 These contain backend-specific logic with no clean frontend counterpart. When the
 frontend SSOT for any of these changes, the corresponding _shared/ file must be
 updated manually in the same commit. Never add these to FILES_TO_SYNC.

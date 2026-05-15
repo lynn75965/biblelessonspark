@@ -9,8 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import BlogCard, { type BlogCardPost } from "@/components/blog/BlogCard";
 import BlogHeaderNav from "@/components/blog/BlogHeaderNav";
 
-const SELECT_COLUMNS =
-  "id, title, slug, excerpt, content, featured_image_url, published_at";
+const SELECT_COLUMNS = BLOG_CONFIG.columns.public;
 
 function setMetaDescription(content: string) {
   let tag = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;

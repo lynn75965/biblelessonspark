@@ -5,12 +5,58 @@
 
 import { ROUTES } from './routes';
 
+// Metadata column shape. Single JSONB column on blog_posts.
+// All five sections are optional. Top-level keys outside this set are rejected
+// by the create-blog-post Edge Function (allowedKeys check).
+export interface PostMetadata {
+  seo?: {
+    meta_title?: string;
+    meta_description?: string;
+    primary_keyword?: string;
+    secondary_keywords?: string[];
+    [key: string]: unknown;
+  };
+  aeo?: {
+    featured_snippets?: unknown[];
+    people_also_ask?: unknown[];
+    [key: string]: unknown;
+  };
+  images?: {
+    hero?: Record<string, unknown>;
+    supportive?: Record<string, unknown>;
+    [key: string]: unknown;
+  };
+  social?: {
+    facebook_teaser?: string;
+    email_subject?: string;
+    hooks?: unknown[];
+    [key: string]: unknown;
+  };
+  structured_data?: Record<string, unknown>;
+}
+
+// Column selection SSOT. Public reads must never request the metadata column.
+// Admin reads (RLS-gated) include it.
+const PUBLIC_COLUMNS =
+  'id, title, slug, excerpt, content, featured_image_url, published, published_at, created_at';
+const ADMIN_COLUMNS =
+  'id, title, slug, excerpt, content, featured_image_url, published, published_at, created_at, metadata';
+
 export const BLOG_CONFIG = {
   table: 'blog_posts',
 
   status: {
     published: 'published',
     draft: 'draft',
+  },
+
+  columns: {
+    public: PUBLIC_COLUMNS,
+    admin: ADMIN_COLUMNS,
+  },
+
+  metadata: {
+    allowedKeys: ['seo', 'aeo', 'images', 'social', 'structured_data'] as const,
   },
 
   routes: {
@@ -89,4 +135,5 @@ export interface BlogPost {
   published: boolean;
   published_at: string | null;
   created_at: string;
+  metadata?: PostMetadata | null;
 }

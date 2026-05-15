@@ -1,22 +1,42 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
 import { getCorsHeadersFromRequest } from "../_shared/corsConfig.ts";
+import { BLOG_TABLE, validateMetadata, type PostMetadata } from "../_shared/blogConfig.ts";
 
 /**
  * create-blog-post Edge Function
  *
- * Purpose: External bot integration (Tertius / OpenClaw) to create or delete blog posts.
+ * Single CRUD endpoint for external bot integration (Tertius / OpenClaw).
  * Authenticates via X-Blog-Api-Key header matching BLOG_API_KEY env var.
  * Uses the service role client (bypasses RLS).
  *
- * POST -- create a blog post
+ * GET    -- read one post by slug
+ *   /functions/v1/create-blog-post?slug=<slug>
+ *   Returns 200: { success: true, post: {...full row including metadata...} }
+ *   Returns 400: { error: "missing required query param: slug" }
+ *   Returns 401: { error: "unauthorized" }
+ *   Returns 404: { error: "Post not found" }
+ *
+ * POST   -- create a blog post
  *   Accepts: multipart/form-data OR application/json
  *   Required fields: title, slug, excerpt, content
- *   Optional fields: featured_image_url, published (default true), published_at (default now)
- *   Returns 200: { success, slug, url }
- *   Returns 400: { error: "missing required field: <field>" }
+ *   Optional fields: featured_image_url, published (default true),
+ *                    published_at (default now), metadata (JSON object)
+ *   Returns 200: { success: true, slug, url, post: {...} }
+ *   Returns 400: { error: "missing required field: <field>" } or metadata error
  *   Returns 401: { error: "unauthorized" }
  *   Returns 409: { error: "slug already exists" }
+ *
+ * PUT    -- update an existing blog post by slug
+ *   Accepts: application/json
+ *   Required field: slug
+ *   Optional fields (any subset): title, excerpt, content, featured_image_url,
+ *                                  published, published_at, metadata
+ *   Pass metadata: null to clear it. Omit a field to leave it unchanged.
+ *   Returns 200: { success: true, post: {...updated row...} }
+ *   Returns 400: { error: "missing required field: slug" } or metadata error
+ *   Returns 401: { error: "unauthorized" }
+ *   Returns 404: { error: "Post not found" }
  *
  * DELETE -- delete a blog post by slug
  *   Accepts: application/json
@@ -28,7 +48,8 @@ import { getCorsHeadersFromRequest } from "../_shared/corsConfig.ts";
  */
 
 const PUBLIC_SITE_URL = "https://biblelessonspark.com";
-const BLOG_TABLE = "blog_posts";
+const FULL_COLUMNS =
+  "id, title, slug, excerpt, content, featured_image_url, published, published_at, created_at, metadata";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -45,6 +66,7 @@ interface BlogPostPayload {
   featured_image_url?: unknown;
   published?: unknown;
   published_at?: unknown;
+  metadata?: unknown;
 }
 
 function toStr(value: unknown): string | null {
@@ -61,6 +83,19 @@ function toBool(value: unknown, fallback: boolean): boolean {
     if (v === "false" || v === "0" || v === "no") return false;
   }
   return fallback;
+}
+
+// Multipart form values are always strings. If a bot sends metadata via
+// multipart form-data, the value will arrive as a JSON string. Parse it.
+function coerceMetadataInput(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw;
+  const trimmed = raw.trim();
+  if (trimmed === "") return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return { __parse_error__: true };
+  }
 }
 
 // Tertius sometimes embeds the featured image as the first block of content,
@@ -110,6 +145,14 @@ async function readPayload(req: Request): Promise<BlogPostPayload> {
   return (await req.json()) as BlogPostPayload;
 }
 
+async function fetchPostBySlug(slug: string) {
+  return await supabaseAdmin
+    .from(BLOG_TABLE)
+    .select(FULL_COLUMNS)
+    .eq("slug", slug)
+    .maybeSingle();
+}
+
 serve(async (req) => {
   const corsHeaders = getCorsHeadersFromRequest(req);
   const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
@@ -118,7 +161,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "POST" && req.method !== "DELETE") {
+  if (req.method !== "GET" && req.method !== "POST" && req.method !== "PUT" && req.method !== "DELETE") {
     return new Response(JSON.stringify({ error: "method not allowed" }), {
       status: 405,
       headers: jsonHeaders,
@@ -126,7 +169,7 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate via X-Blog-Api-Key (shared by POST and DELETE)
+    // Authenticate via X-Blog-Api-Key (shared by all four methods)
     const expectedKey = Deno.env.get("BLOG_API_KEY");
     const providedKey = req.headers.get("x-blog-api-key");
     if (!expectedKey || !providedKey || providedKey !== expectedKey) {
@@ -136,7 +179,40 @@ serve(async (req) => {
       });
     }
 
-    // Parse payload (JSON or multipart)
+    // GET -- read one post by slug (query param)
+    if (req.method === "GET") {
+      const url = new URL(req.url);
+      const getSlug = url.searchParams.get("slug")?.trim();
+      if (!getSlug) {
+        return new Response(
+          JSON.stringify({ error: "missing required query param: slug" }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+
+      const { data: post, error: getError } = await fetchPostBySlug(getSlug);
+      if (getError) {
+        console.error("create-blog-post get error:", getError);
+        return new Response(
+          JSON.stringify({ error: "fetch failed", details: getError.message }),
+          { status: 500, headers: jsonHeaders },
+        );
+      }
+      if (!post) {
+        return new Response(JSON.stringify({ error: "Post not found" }), {
+          status: 404,
+          headers: jsonHeaders,
+        });
+      }
+
+      console.log(`create-blog-post: GET slug=${getSlug}`);
+      return new Response(JSON.stringify({ success: true, post }), {
+        status: 200,
+        headers: jsonHeaders,
+      });
+    }
+
+    // Parse payload (JSON or multipart) -- shared by POST, PUT, DELETE
     let payload: BlogPostPayload;
     try {
       payload = await readPayload(req);
@@ -185,6 +261,107 @@ serve(async (req) => {
       );
     }
 
+    // PUT -- update fields on an existing post (any subset, by slug)
+    if (req.method === "PUT") {
+      const putSlug = toStr(payload.slug)?.trim();
+      if (!putSlug) {
+        return new Response(
+          JSON.stringify({ error: "missing required field: slug" }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+
+      const updateRow: Record<string, unknown> = {};
+
+      if (payload.title !== undefined) {
+        const v = toStr(payload.title)?.trim();
+        if (!v) {
+          return new Response(
+            JSON.stringify({ error: "title cannot be empty" }),
+            { status: 400, headers: jsonHeaders },
+          );
+        }
+        updateRow.title = v;
+      }
+      if (payload.excerpt !== undefined) {
+        const v = toStr(payload.excerpt);
+        updateRow.excerpt = v == null || v.trim() === "" ? null : v.trim();
+      }
+      if (payload.content !== undefined) {
+        const v = toStr(payload.content);
+        if (!v) {
+          return new Response(
+            JSON.stringify({ error: "content cannot be empty" }),
+            { status: 400, headers: jsonHeaders },
+          );
+        }
+        const featured = toStr(payload.featured_image_url)?.trim() || null;
+        updateRow.content = stripLeadingFeaturedImage(v, featured);
+      }
+      if (payload.featured_image_url !== undefined) {
+        const v = toStr(payload.featured_image_url)?.trim();
+        updateRow.featured_image_url = v || null;
+      }
+      if (payload.published !== undefined) {
+        updateRow.published = toBool(payload.published, true);
+      }
+      if (payload.published_at !== undefined) {
+        const v = toStr(payload.published_at)?.trim();
+        updateRow.published_at = v || null;
+      }
+      if (payload.metadata !== undefined) {
+        const coerced = coerceMetadataInput(payload.metadata);
+        if (coerced && typeof coerced === "object" && (coerced as { __parse_error__?: boolean }).__parse_error__) {
+          return new Response(
+            JSON.stringify({ error: "metadata is not valid JSON" }),
+            { status: 400, headers: jsonHeaders },
+          );
+        }
+        const validation = validateMetadata(coerced);
+        if (!validation.ok) {
+          return new Response(
+            JSON.stringify({ error: validation.error }),
+            { status: 400, headers: jsonHeaders },
+          );
+        }
+        updateRow.metadata = validation.value;
+      }
+
+      if (Object.keys(updateRow).length === 0) {
+        return new Response(
+          JSON.stringify({ error: "no updatable fields provided" }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+
+      const { data: updatedRows, error: updateError } = await supabaseAdmin
+        .from(BLOG_TABLE)
+        .update(updateRow)
+        .eq("slug", putSlug)
+        .select(FULL_COLUMNS);
+
+      if (updateError) {
+        console.error("create-blog-post update error:", updateError);
+        return new Response(
+          JSON.stringify({ error: "update failed", details: updateError.message }),
+          { status: 500, headers: jsonHeaders },
+        );
+      }
+      if (!updatedRows || updatedRows.length === 0) {
+        return new Response(JSON.stringify({ error: "Post not found" }), {
+          status: 404,
+          headers: jsonHeaders,
+        });
+      }
+
+      console.log(`create-blog-post: PUT slug=${putSlug} fields=${Object.keys(updateRow).join(",")}`);
+      return new Response(
+        JSON.stringify({ success: true, post: updatedRows[0] }),
+        { status: 200, headers: jsonHeaders },
+      );
+    }
+
+    // POST -- create a new post
     const title = toStr(payload.title)?.trim();
     const slug = toStr(payload.slug)?.trim();
     const excerpt = toStr(payload.excerpt)?.trim();
@@ -210,6 +387,26 @@ serve(async (req) => {
           { status: 400, headers: jsonHeaders },
         );
       }
+    }
+
+    // Validate metadata if provided
+    let metadata: PostMetadata | null = null;
+    if (payload.metadata !== undefined) {
+      const coerced = coerceMetadataInput(payload.metadata);
+      if (coerced && typeof coerced === "object" && (coerced as { __parse_error__?: boolean }).__parse_error__) {
+        return new Response(
+          JSON.stringify({ error: "metadata is not valid JSON" }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+      const validation = validateMetadata(coerced);
+      if (!validation.ok) {
+        return new Response(
+          JSON.stringify({ error: validation.error }),
+          { status: 400, headers: jsonHeaders },
+        );
+      }
+      metadata = validation.value;
     }
 
     // Check for existing slug
@@ -246,10 +443,14 @@ serve(async (req) => {
     if (featured_image_url) {
       insertRow.featured_image_url = featured_image_url;
     }
+    if (metadata && Object.keys(metadata).length > 0) {
+      insertRow.metadata = metadata;
+    }
 
-    const { error: insertError } = await supabaseAdmin
+    const { data: insertedRows, error: insertError } = await supabaseAdmin
       .from(BLOG_TABLE)
-      .insert(insertRow);
+      .insert(insertRow)
+      .select(FULL_COLUMNS);
 
     if (insertError) {
       console.error("create-blog-post insert error:", insertError);
@@ -267,10 +468,15 @@ serve(async (req) => {
     }
 
     const url = `${PUBLIC_SITE_URL}/blog/${slug}`;
-    console.log(`create-blog-post: created slug=${slug} published=${published}`);
+    console.log(`create-blog-post: created slug=${slug} published=${published} hasMetadata=${metadata !== null}`);
 
     return new Response(
-      JSON.stringify({ success: true, slug, url }),
+      JSON.stringify({
+        success: true,
+        slug,
+        url,
+        post: insertedRows?.[0] ?? null,
+      }),
       { status: 200, headers: jsonHeaders },
     );
   } catch (error) {

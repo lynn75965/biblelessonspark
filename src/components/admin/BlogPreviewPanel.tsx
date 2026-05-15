@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   Eye,
 } from "lucide-react";
-import { BLOG_CONFIG, type BlogPost } from "@/constants/blogConfig";
+import { BLOG_CONFIG, type BlogPost, type PostMetadata } from "@/constants/blogConfig";
 
 const quillFormats = [
   "header",
@@ -112,7 +112,9 @@ type DraftRow = Pick<
   | "featured_image_url"
   | "created_at"
   | "published_at"
->;
+> & {
+  metadata?: PostMetadata | null;
+};
 
 type EditForm = {
   title: string;
@@ -120,10 +122,59 @@ type EditForm = {
   excerpt: string;
   content: string;
   featured_image_url: string;
+  metadata_json: string;
 };
 
-const SELECT_COLUMNS =
-  "id, title, slug, excerpt, content, featured_image_url, created_at, published_at";
+const SELECT_COLUMNS = BLOG_CONFIG.columns.admin;
+
+const ALLOWED_METADATA_KEYS = BLOG_CONFIG.metadata.allowedKeys;
+
+// Validates a metadata JSON string typed into the admin edit form.
+// Mirrors supabase/functions/_shared/blogConfig.ts:validateMetadata
+// Returns { value: PostMetadata | null } on success (null when input is empty).
+function parseMetadataJson(
+  input: string,
+): { ok: true; value: PostMetadata | null } | { ok: false; error: string } {
+  const trimmed = input.trim();
+  if (trimmed === "") return { ok: true, value: null };
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Not valid JSON: ${err instanceof Error ? err.message : "parse error"}`,
+    };
+  }
+  if (parsed === null) return { ok: true, value: null };
+  if (typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { ok: false, error: "Metadata must be a JSON object" };
+  }
+  const obj = parsed as Record<string, unknown>;
+  for (const key of Object.keys(obj)) {
+    if (!(ALLOWED_METADATA_KEYS as readonly string[]).includes(key)) {
+      return {
+        ok: false,
+        error: `Disallowed top-level key "${key}". Allowed: ${ALLOWED_METADATA_KEYS.join(", ")}`,
+      };
+    }
+    const section = obj[key];
+    if (section === null || section === undefined) continue;
+    if (typeof section !== "object" || Array.isArray(section)) {
+      return { ok: false, error: `Section "${key}" must be a JSON object` };
+    }
+  }
+  return { ok: true, value: obj as PostMetadata };
+}
+
+function formatMetadataForEdit(metadata: PostMetadata | null | undefined): string {
+  if (!metadata) return "";
+  try {
+    return JSON.stringify(metadata, null, 2);
+  } catch {
+    return "";
+  }
+}
 
 function stripLeadingFeaturedImage(content: string, featuredUrl: string | null): string {
   if (!featuredUrl) return content;
@@ -297,7 +348,10 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
     excerpt: "",
     content: "",
     featured_image_url: "",
+    metadata_json: "",
   });
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [metadataExpanded, setMetadataExpanded] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -402,7 +456,10 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
       excerpt: d.excerpt ?? "",
       content: d.content,
       featured_image_url: d.featured_image_url ?? "",
+      metadata_json: formatMetadataForEdit(d.metadata ?? null),
     });
+    setMetadataError(null);
+    setMetadataExpanded(false);
     setMode("edit");
   }
 
@@ -472,6 +529,20 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
       });
       return;
     }
+
+    const metadataResult = parseMetadataJson(editForm.metadata_json);
+    if (!metadataResult.ok) {
+      setMetadataError(metadataResult.error);
+      setMetadataExpanded(true);
+      toast({
+        title: "Metadata is not valid",
+        description: metadataResult.error,
+        variant: "destructive",
+      });
+      return;
+    }
+    setMetadataError(null);
+
     setSaving(true);
     const { error } = await supabase
       .from(BLOG_CONFIG.table)
@@ -481,6 +552,7 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
         excerpt: editForm.excerpt.trim() || null,
         content: editForm.content,
         featured_image_url: editForm.featured_image_url.trim() || null,
+        metadata: metadataResult.value,
       })
       .eq("id", selectedId);
     setSaving(false);
@@ -608,6 +680,17 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
             ),
           }}
         />
+
+        {selectedDraft.metadata && Object.keys(selectedDraft.metadata).length > 0 && (
+          <details className="mt-10 rounded-lg border border-border bg-muted/30 p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
+              SEO / AEO metadata (admin only -- not shown to readers)
+            </summary>
+            <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap break-all rounded bg-background p-3 font-mono text-xs text-foreground">
+              {JSON.stringify(selectedDraft.metadata, null, 2)}
+            </pre>
+          </details>
+        )}
 
         <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-6">
           <Button
@@ -751,6 +834,45 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
               />
             </div>
           </div>
+
+          <details
+            open={metadataExpanded}
+            onToggle={(e) =>
+              setMetadataExpanded((e.currentTarget as HTMLDetailsElement).open)
+            }
+            className="rounded-lg border border-border bg-muted/30 p-4"
+          >
+            <summary className="cursor-pointer text-sm font-semibold text-foreground">
+              SEO / AEO metadata (admin only -- not shown to readers)
+            </summary>
+            <div className="mt-3">
+              <Label htmlFor="edit-metadata-json" className="text-xs text-muted-foreground">
+                JSON object. Allowed top-level keys: {ALLOWED_METADATA_KEYS.join(", ")}. Leave blank to clear.
+              </Label>
+              <Textarea
+                id="edit-metadata-json"
+                value={editForm.metadata_json}
+                onChange={(e) => {
+                  setEditForm((f) => ({ ...f, metadata_json: e.target.value }));
+                  if (metadataError) setMetadataError(null);
+                }}
+                rows={12}
+                className="mt-1.5 font-mono text-xs"
+                placeholder='{"seo": {"meta_title": "..."}, "aeo": {...}}'
+                aria-invalid={metadataError ? true : undefined}
+                aria-describedby={metadataError ? "edit-metadata-error" : undefined}
+              />
+              {metadataError && (
+                <p
+                  id="edit-metadata-error"
+                  role="alert"
+                  className="mt-2 text-xs text-destructive"
+                >
+                  {metadataError}
+                </p>
+              )}
+            </div>
+          </details>
         </div>
 
         <div className="mt-8 flex flex-wrap gap-2 border-t border-border pt-6">

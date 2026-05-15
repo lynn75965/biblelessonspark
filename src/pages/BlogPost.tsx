@@ -57,7 +57,7 @@ export default function BlogPost() {
     (async () => {
       const { data, error: queryError } = await supabase
         .from(BLOG_CONFIG.table)
-        .select("id, title, slug, excerpt, content, featured_image_url, published, published_at, created_at")
+        .select(BLOG_CONFIG.columns.public)
         .eq("slug", slug)
         .eq("published", true)
         .maybeSingle();
