@@ -1,6 +1,16 @@
-# PROJECT MASTER -- Last updated: May 14, 2026
+# PROJECT MASTER -- Last updated: May 15, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 15 Session 1 (Blog metadata + bot CRUD):
+- Confirm Tertius is sending the metadata payload on POST and that GET/PUT
+  flows work end-to-end. The Edge Function returns full post (with metadata)
+  on success so Tertius can verify storage. If anything fails the response
+  payload includes a specific 400-level error message.
+- Optional: structured-fields metadata editor (per-section inputs instead
+  of one JSON textarea) -- only if Lynn finds the JSON textarea cumbersome.
+- The two root-level diagnostic SQL files (`DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`,
+  `DIAGNOSE_AUTH_FUNCTIONS.sql`) remain untracked. Still deferred.
 
 Carry-forward from May 14 Session 1 (Unverified-signup duplicate fix):
 - Decide whether the orphan cleanup should become a recurring job.
@@ -8,10 +18,6 @@ Carry-forward from May 14 Session 1 (Unverified-signup duplicate fix):
   scheduled Edge Function would prevent future accumulation if the
   guard in `handle_new_user()` is ever bypassed (e.g. by a future
   trigger or direct INSERT).
-- Two diagnostic SQL files sit untracked at project root --
-  `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql` and
-  `DIAGNOSE_AUTH_FUNCTIONS.sql`. Commit as DOCS for future reference
-  or delete; left untouched per session scope.
 
 Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
 - Build Amp Articles preview/approval workflow (currently disabled tab in
@@ -24,6 +30,111 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 15, 2026 -- Session 1: Blog metadata SSOT + bot CRUD + gpt-image-1
+
+#### Summary
+
+Two pieces of work landed in one feature commit (`4257fbf`).
+
+**Part A -- Blog post metadata (admin-visible, public-hidden).**
+External bot integration (Tertius / OpenClaw) needs a place to store SEO/
+AEO/social/images/structured_data metadata alongside each blog post.
+Previously this data lived in HTML comments inside `content`. Added a
+single nullable `metadata JSONB` column on `public.blog_posts`. Shape is
+defined frontend-first as `PostMetadata` in `src/constants/blogConfig.ts`
+with five allowed top-level keys: `seo`, `aeo`, `images`, `social`,
+`structured_data`. Backend mirror (`supabase/functions/_shared/blogConfig.ts`)
+exports `BLOG_TABLE`, `METADATA_ALLOWED_KEYS`, and a `validateMetadata()`
+helper -- hand-maintained per Rule #24 (now appended to the rule's list).
+Public-facing pages (`Blog.tsx`, `BlogPost.tsx`) query
+`BLOG_CONFIG.columns.public` (excludes metadata). Admin preview
+(`BlogPreviewPanel.tsx`) queries `BLOG_CONFIG.columns.admin` (includes
+metadata), shows it in a collapsible read-only `<details>` pane below the
+post body, and lets Lynn edit it as a JSON textarea with parse + allowed-
+keys validation on save.
+
+**Part B -- Edge Function extended to full CRUD.**
+OpenClaw recommended creating `get-blog-post` and `update-blog-post` Edge
+Functions. That was overruled per BLS architecture: admin already has full
+CRUD via RLS-gated `supabase.from(...)` calls, and the bot only needs one
+endpoint. `create-blog-post` was extended in place to handle all four
+HTTP methods (GET by `?slug=`, POST, PUT partial-update, DELETE). The
+function now returns the full post row (including metadata) on POST and
+PUT success so Tertius can verify storage. Single auth path (`X-Blog-Api-Key`),
+single CORS config, single shared mirror import.
+
+**Part C -- generate-blog-image switched to GPT-Image-1.**
+Carry-forward from May 14. The function previously called `dall-e-3` with
+`response_format: "b64_json"`. Switched model to `gpt-image-1`, dropped the
+unsupported `response_format` field, switched size to `1536x1024` and
+quality to `medium`. Response parser now tries `b64_json` first and falls
+back to fetching the `url` field so the function works regardless of which
+return shape OpenAI sends. Storage bucket migration `20260514120000`
+(idempotent) also applied this session.
+
+#### Files changed
+
+- `src/constants/blogConfig.ts` -- added `PostMetadata` interface,
+  `BLOG_CONFIG.columns.public/admin`, `BLOG_CONFIG.metadata.allowedKeys`,
+  extended `BlogPost` with optional `metadata` field.
+- `supabase/functions/_shared/blogConfig.ts` (new) -- backend subset:
+  `BLOG_TABLE`, `METADATA_ALLOWED_KEYS`, `validateMetadata()`, `PostMetadata`
+  type. Hand-maintained per Rule #24.
+- `CLAUDE.md` -- appended `blogConfig.ts` to Rule #24's hand-maintained list.
+- `supabase/migrations/20260515120000_add_blog_post_metadata.sql` (new) --
+  `ALTER TABLE blog_posts ADD COLUMN IF NOT EXISTS metadata JSONB` plus
+  column comment. Applied via `npx supabase db push --linked`.
+- `supabase/functions/create-blog-post/index.ts` -- full rewrite: GET handler
+  by slug, PUT handler with partial-field update, POST now accepts/returns
+  metadata, all responses with mutations return the full post row. Imports
+  `BLOG_TABLE`, `validateMetadata`, `PostMetadata` from `_shared/blogConfig.ts`.
+- `src/pages/Blog.tsx` -- replaced inline `SELECT_COLUMNS` literal with
+  `BLOG_CONFIG.columns.public`.
+- `src/pages/BlogPost.tsx` -- same SSOT switch.
+- `src/components/admin/BlogPreviewPanel.tsx` -- uses
+  `BLOG_CONFIG.columns.admin`, displays metadata in preview pane, adds
+  metadata JSON textarea to edit form with `parseMetadataJson()`
+  validation (mirrors backend `validateMetadata`).
+- `supabase/functions/generate-blog-image/index.ts` (new in git, was
+  uncommitted from May 14) -- gpt-image-1, 1536x1024 medium, b64_json/url
+  fallback.
+- `supabase/migrations/20260514120000_create_blog_images_bucket.sql` (new
+  in git, was uncommitted from May 14) -- idempotent bucket + policies.
+
+#### Deploys this session
+
+- Migrations applied to live DB via `npx supabase db push --linked`:
+  `20260514120000_create_blog_images_bucket`, `20260515120000_add_blog_post_metadata`.
+- Edge Function `create-blog-post` deployed via
+  `npx supabase functions deploy create-blog-post --project-ref hphebzdftpjbiudpfcrs`.
+- Edge Function `generate-blog-image` deployed in three steps earlier in
+  the session (model -> quality -> size + URL fallback). Each via
+  `npx supabase functions deploy generate-blog-image --project-ref ...`.
+- Frontend pushed to `origin/main` as commit `4257fbf` -- Netlify auto-build.
+
+#### Verified before push
+
+- `npm run build` clean (zero errors).
+- `BLOG_API_KEY` already stored as a Supabase Edge Function secret
+  (confirmed via `npx supabase secrets list`). No action needed for auth.
+- Lynn verified Blog Preview and public Blog on `localhost:8080` and
+  approved the deploy.
+
+#### Architectural decisions worth remembering
+
+- OpenClaw's spec violated SSOT and Frontend-Drives-Backend by proposing
+  backend-defined metadata validation and two new Edge Functions. Lynn
+  flagged this immediately; the plan was rewritten before any code landed.
+  Single Edge Function with method-based branching is the BLS pattern for
+  bot-facing endpoints (matches the existing POST/DELETE branching in
+  `create-blog-post`).
+- Column-list SSOT (`BLOG_CONFIG.columns.public/admin`) replaces three
+  inline column-string literals across two public pages and one admin
+  panel. New blog columns now require updating one constant, not three
+  call sites.
 
 ---
 
