@@ -367,6 +367,11 @@ export default function Dashboard() {
                 }
                 setOriginSeriesId(null);
               }}
+              onLessonContentUpdated={(lessonId, updates) => {
+                setSelectedLesson((prev: any) =>
+                  prev && prev.id === lessonId ? { ...prev, ...updates } : prev
+                );
+              }}
               initialFocusData={focusDataToApply || undefined}
             />
             )}

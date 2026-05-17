@@ -151,6 +151,79 @@ export function useLessons() {
   };
 
   /**
+   * Update lesson title and/or content (inline WYSIWYG editing)
+   * Both fields are validated for non-empty content when provided.
+   * Returns true on success, false on validation error or Supabase error.
+   * updated_at is always stamped explicitly because the lessons table
+   * has no confirmed DEFAULT/trigger for updated_at.
+   */
+  const updateLessonContent = async (
+    lessonId: string,
+    updates: { title?: string; original_text?: string }
+  ): Promise<boolean> => {
+    if (!user) {
+      toast({
+        title: "Not signed in",
+        description: "You must be signed in to edit lessons.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (updates.original_text !== undefined && !updates.original_text.trim()) {
+      toast({
+        title: "Lesson content cannot be empty",
+        description: "Please add content before saving.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (updates.title !== undefined && !updates.title.trim()) {
+      toast({
+        title: "Lesson title cannot be empty",
+        description: "Please add a title before saving.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const payload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.title !== undefined) payload.title = updates.title.trim();
+    if (updates.original_text !== undefined) payload.original_text = updates.original_text;
+
+    try {
+      const { error } = await supabase
+        .from('lessons')
+        .update(payload)
+        .eq('id', lessonId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setLessons(prev => prev.map(lesson =>
+        lesson.id === lessonId ? { ...lesson, ...payload } : lesson
+      ));
+
+      toast({
+        title: "Lesson updated",
+        description: "Your changes have been saved.",
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating lesson:', error);
+      toast({
+        title: "Error saving lesson",
+        description: "Failed to save changes. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
+  /**
    * Save reshaped lesson content (Phase 27 -- Lesson Shapes)
    * Stores shaped_content and shape_id on the lessons row
    * One shaped version per lesson -- reshaping again overwrites previous
@@ -226,6 +299,7 @@ export function useLessons() {
     createLesson,
     deleteLesson,
     updateLessonVisibility,
+    updateLessonContent,
     updateLessonShape,
     clearLessonShape,
     refetch: fetchLessons,

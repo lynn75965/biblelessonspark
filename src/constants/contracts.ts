@@ -280,6 +280,7 @@ export interface Lesson {
   upload_path: string | null;
   filters: LessonFilters | null;
   created_at: string | null;
+  updated_at?: string | null;
   user_id: string;
   organization_id: string | null;
   theology_profile_id?: TheologyProfileId | null;

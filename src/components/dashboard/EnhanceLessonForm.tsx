@@ -41,8 +41,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil } from "lucide-react";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
+import { marked } from "marked";
+import TurndownService from "turndown";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
+import { useLessons } from "@/hooks/useLessons";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
@@ -76,6 +81,75 @@ import {
 } from "@/constants/lessonShapeProfiles";
 
 // ============================================================================
+// INLINE LESSON EDITOR -- module-scope configuration
+// Quill modules/formats and marked/turndown helpers live at module scope so
+// that they are reference-stable across renders (avoids the Quill mount-order
+// trap where re-created config objects re-mount the editor mid-typing).
+// marked is v18 (per-call options API; setOptions removed in v5+).
+// turndown default-import works under TS bundler module resolution.
+// ============================================================================
+
+const markdownToHtml = (markdown: string): string => {
+  if (!markdown || !markdown.trim()) return "";
+  return marked.parse(markdown, { gfm: true, breaks: false }) as string;
+};
+
+const turndownService = new TurndownService({
+  headingStyle: "atx",
+  bulletListMarker: "-",
+  codeBlockStyle: "fenced",
+});
+
+// Collapse Quill <br> tags to a single newline (Quill emits <br> inside
+// paragraphs for soft breaks; turndown's default produces double newlines).
+turndownService.addRule("blankReplacement", {
+  filter: (node: Node) =>
+    node.nodeName === "BR" &&
+    (node as Element).parentElement?.nodeName !== "TD",
+  replacement: () => "\n",
+});
+
+const htmlToMarkdown = (html: string): string => {
+  if (!html || !html.trim()) return "";
+  return turndownService.turndown(html).trim();
+};
+
+// Sync the title input into the body's "**Lesson Title:** ..." line so the
+// displayed title (which extractLessonTitle pulls from the body) refreshes
+// after a save. Matches the same shape extractLessonTitle parses.
+const syncTitleInBody = (markdown: string, newTitle: string): string => {
+  if (!markdown) return markdown;
+  if (!newTitle || !newTitle.trim()) return markdown;
+  const trimmed = newTitle.trim();
+  const titleLineRegex = /^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*.*$/im;
+  if (titleLineRegex.test(markdown)) {
+    return markdown.replace(titleLineRegex, `**Lesson Title:** ${trimmed}`);
+  }
+  return `**Lesson Title:** ${trimmed}\n\n${markdown}`;
+};
+
+const LESSON_EDITOR_FORMATS = [
+  "header",
+  "bold", "italic", "underline",
+  "list", "bullet",
+  "blockquote",
+  "link",
+];
+
+const LESSON_EDITOR_MODULES = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+    ["bold", "italic", "underline"],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["blockquote", "link"],
+    ["clean"],
+  ],
+  clipboard: {
+    matchVisual: false,
+  },
+};
+
+// ============================================================================
 // INTERFACES
 // ============================================================================
 
@@ -92,6 +166,8 @@ interface EnhanceLessonFormProps {
   onClearViewing?: () => void;
   /** Phase 27: Called when reshape succeeds ? updates local lessons array */
   onLessonShapeUpdated?: (lessonId: string, shapedContent: string, shapeId: string) => void;
+  /** Inline editor: called after a successful save so parent can refresh viewingLesson */
+  onLessonContentUpdated?: (lessonId: string, updates: { title?: string; original_text?: string }) => void;
   initialFocusData?: FocusApplicationData;
   lessonCount?: number; // Used to conditionally show welcome banner for new users only
   lessonsLoading?: boolean; // Prevent flicker - don't show welcome banner while loading
@@ -310,14 +386,31 @@ const parseLessonSections = (content: string, freeSections: number[]): ParsedDis
   return sections;
 };
 
+// Convert markdown links [text](url) and italics _text_ / *text* to HTML.
+// Order matters: bold (**) is processed BEFORE single-asterisk italics so we
+// never split a bold marker. Single underscores are matched conservatively to
+// avoid breaking words like file_name. URLs are minimally escaped to prevent
+// attribute-quote breakouts; rel/target are set for safe outbound links.
+const convertInlineMarkdown = (text: string): string => {
+  return text
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_m, label, url) => {
+      const safeUrl = String(url).replace(/"/g, "%22");
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="text-primary underline hover:text-primary/80">${label}</a>`;
+    })
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^\w*])\*(?!\s)([^*\n]+?)\*(?!\w)/g, "$1<em>$2</em>")
+    .replace(/(^|[^\w_])_(?!\s)([^_\n]+?)_(?!\w)/g, "$1<em>$2</em>");
+};
+
 // Format section content for display (remove header line since we display it separately)
 const formatSectionContent = (content: string): string => {
   // First normalize legacy content (## headers ? **bold:**, 1. ? **1.**)
   const normalized = normalizeLegacyContent(content);
-  return normalized
-    // Remove section header line in various formats
-    .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[\.\:\-\s]+[^\n]+\n?/i, '')
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+  return convertInlineMarkdown(
+    normalized
+      // Remove section header line in various formats
+      .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[\.\:\-\s]+[^\n]+\n?/i, '')
+  )
     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
     .replace(/\n\n/g, "<br><br>")
     .replace(/\n/g, "<br>")
@@ -352,6 +445,7 @@ export function EnhanceLessonForm({
   viewingOrigin,
   onClearViewing,
   onLessonShapeUpdated,
+  onLessonContentUpdated,
   initialFocusData,
   lessonCount = 0,
   lessonsLoading = false,
@@ -465,6 +559,24 @@ export function EnhanceLessonForm({
   const [localShapeId, setLocalShapeId] = useState<string | null>(null);
   const [selectedShapeForReshape, setSelectedShapeForReshape] = useState<string>("");
   const [showReshapeSection, setShowReshapeSection] = useState(false);
+
+  // ============================================================================
+  // INLINE EDITOR STATE -- WYSIWYG lesson editing
+  // ============================================================================
+
+  const { updateLessonContent } = useLessons();
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const editTitleRef = useRef<HTMLInputElement>(null);
+
+  // Focus the title input when edit mode opens
+  useEffect(() => {
+    if (editingLessonId && editTitleRef.current) {
+      editTitleRef.current.focus();
+    }
+  }, [editingLessonId]);
 
   // ============================================================================
   // SERIES MANAGER (Phase 24 - replaces manual Lesson X of Y)
@@ -1265,6 +1377,11 @@ export function EnhanceLessonForm({
       setShowReshapeSection(false);
       setSelectedShapeForReshape("");
     }
+    // Always exit edit mode when switching/closing lessons so unsaved edits
+    // can never leak across lessons.
+    setEditingLessonId(null);
+    setEditTitle("");
+    setEditContent("");
   }, [viewingLesson?.id]);
 
   /**
@@ -2345,8 +2462,29 @@ export function EnhanceLessonForm({
                   isPaidUser={isPaidUser}
                   senderName={senderDisplayName}
                 />
-                {/* Phase 27: Reshape Button ? only in viewing mode with content */}
-                {viewingLesson && currentLesson?.original_text && !isReshaping && (
+                {/* Inline editor: Edit Lesson button -- only when viewing a saved lesson */}
+                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingLessonId(currentLesson.id);
+                      // Prefer the title embedded in the body so the input
+                      // matches the title actually displayed at the top of
+                      // the card (extractLessonTitle is the display source).
+                      const bodyTitle = extractLessonTitle(currentLesson.original_text || "");
+                      setEditTitle(bodyTitle || currentLesson.title || "");
+                      setEditContent(markdownToHtml(currentLesson.original_text ?? ""));
+                    }}
+                    aria-label="Edit lesson content"
+                    className="gap-2"
+                  >
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">Edit Lesson</span>
+                  </Button>
+                )}
+                {/* Phase 27: Reshape Button ? only in viewing mode with content (hidden while editing) */}
+                {viewingLesson && currentLesson?.original_text && !isReshaping && editingLessonId !== currentLesson?.id && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -2439,6 +2577,107 @@ export function EnhanceLessonForm({
             )}
           </CardHeader>
           <CardContent>
+            {editingLessonId === currentLesson.id ? (
+              /* ============================================================ */
+              /* INLINE EDITOR -- title input + Quill WYSIWYG editor          */
+              /* Replaces the read-only viewer when the user clicks "Edit     */
+              /* Lesson". Save calls updateLessonContent in useLessons.       */
+              /* ============================================================ */
+              <div className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="edit-lesson-title"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    Lesson Title
+                  </label>
+                  <Input
+                    id="edit-lesson-title"
+                    ref={editTitleRef}
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    aria-label="Edit lesson title"
+                    disabled={isSaving}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="edit-lesson-content"
+                    className="block text-sm font-medium mb-1"
+                  >
+                    Lesson Content
+                  </label>
+                  <div id="edit-lesson-content" aria-label="Edit lesson content">
+                    <ReactQuill
+                      theme="snow"
+                      value={editContent}
+                      onChange={setEditContent}
+                      formats={LESSON_EDITOR_FORMATS}
+                      modules={LESSON_EDITOR_MODULES}
+                      className="bg-white"
+                      readOnly={isSaving}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={async () => {
+                      setIsSaving(true);
+                      // Body markdown is the source of truth for the displayed
+                      // title (extractLessonTitle reads from it). Sync the title
+                      // input into the body's "**Lesson Title:** ..." line so
+                      // both the stored title column and the body line agree.
+                      const bodyMarkdown = htmlToMarkdown(editContent);
+                      const markdownOut = syncTitleInBody(bodyMarkdown, editTitle);
+                      const ok = await updateLessonContent(currentLesson.id, {
+                        title: editTitle,
+                        original_text: markdownOut,
+                      });
+                      setIsSaving(false);
+                      if (ok) {
+                        if (onLessonContentUpdated) {
+                          onLessonContentUpdated(currentLesson.id, {
+                            title: editTitle.trim(),
+                            original_text: markdownOut,
+                          });
+                        }
+                        setEditingLessonId(null);
+                        setEditTitle("");
+                        setEditContent("");
+                      }
+                    }}
+                    aria-label="Save lesson changes"
+                    aria-busy={isSaving}
+                    aria-disabled={isSaving}
+                    disabled={isSaving}
+                    className="gap-2"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    {isSaving ? "Saving..." : "Save Changes"}
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingLessonId(null);
+                      setEditTitle("");
+                      setEditContent("");
+                    }}
+                    aria-label="Cancel editing"
+                    aria-disabled={isSaving}
+                    disabled={isSaving}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
             {/* ============================================================ */}
             {/* PHASE 27: LESSON SHAPES ? Shape Picker */}
             {/* Shows when teacher clicks "Reshape" button */}
@@ -2638,9 +2877,10 @@ export function EnhanceLessonForm({
                       className="whitespace-pre-wrap text-sm bg-muted p-2.5 rounded-lg overflow-auto max-h-[600px]"
                       style={{ lineHeight: "1.3" }}
                       dangerouslySetInnerHTML={{
-                        __html: normalizeLegacyContent(currentLesson.original_text || "")
-                          .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
-                          .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+                        __html: convertInlineMarkdown(
+                          normalizeLegacyContent(currentLesson.original_text || "")
+                            .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
+                        )
                           .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
                           .replace(/\n\n/g, "<br><br>")
                           .replace(/\n/g, "<br>"),
@@ -2785,6 +3025,8 @@ export function EnhanceLessonForm({
                 </p>
               )}
             </div>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
