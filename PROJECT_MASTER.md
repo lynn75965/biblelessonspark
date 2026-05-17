@@ -1,6 +1,30 @@
-# PROJECT MASTER -- Last updated: May 15, 2026
+# PROJECT MASTER -- Last updated: May 17, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 17 Session 1 (Inline WYSIWYG lesson editing):
+- Design the reshape-in-series feature. Today reshape stores `shaped_content`
+  on the parent `lessons` row (not a separate row) and reshape does NOT
+  charge against the user's monthly lesson count (`reshape-lesson` Edge
+  Function writes only to `reshape_metrics`; only `generate-lesson` increments
+  `subscription_lessons_used` / `trial_*_lessons_used`). Lynn flagged she
+  thought reshape was billed -- worth deciding the billing rule first.
+  Recommended approach: add a "Save Reshape as Lesson" button on the reshape
+  view that promotes the shaped content to a first-class `lessons` row with
+  optional `reshape_of` back-link. After promotion the new inline WYSIWYG
+  editor and the existing "Add to Series" / export buttons work without any
+  new code. Open question: keep the parent's `shaped_content` after promotion
+  or clear it. Start the next session with `/create-plan` once Lynn has
+  decided the billing rule.
+- Optional cleanup: the auto-generated `src/integrations/supabase/types.ts`
+  is missing `visibility`, `shaped_content`, `shape_id`, `theology_profile_id`
+  columns that exist on the live `lessons` table. Not blocking, but
+  regenerating via `npx supabase gen types typescript --linked > ...` would
+  re-sync.
+- Optional cleanup: the lessons CREATE TABLE statement is not present in
+  `supabase/migrations/` (table predates the migration directory). If we
+  ever need to recreate from migrations only, we'd be missing baseline.
+  Could be addressed with a `00000000_baseline_lessons.sql` capture.
 
 Carry-forward from May 15 Session 1 (Blog metadata + bot CRUD):
 - Confirm Tertius is sending the metadata payload on POST and that GET/PUT
@@ -30,6 +54,187 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 17, 2026 -- Session 1: Inline WYSIWYG lesson editing
+
+#### Summary
+
+Two-session task. Session 1 was diagnostic + plan; Session 2 was
+implementation. Net result: teachers can now click "Edit Lesson" in the
+viewer, edit the title and body in a Quill rich-text editor, and save
+back to the same `lessons` row. No new route. No new component file.
+No change to LessonLibrary, LessonExportButtons, or routes.ts/App.tsx.
+
+Session 1 surfaced one architectural deviation from the prompt's
+assumption: the prompt directed implementation into `LessonLibrary.tsx`,
+but the actual read-only viewer (with `LessonExportButtons` at L2335)
+lives in `EnhanceLessonForm.tsx`. The card's "View" button delegates to
+`Dashboard.tsx` via `onViewLesson`, which sets `selectedLesson` and
+passes it to `EnhanceLessonForm` as `viewingLesson`. Lynn confirmed the
+file target should follow the Session 1 finding rather than the prompt
+assumption; all other Session 2 rules (Quill module-scope config,
+conversion-layer remedies, accessibility, ASCII guard, BRANDING sweep)
+remained in force.
+
+#### Conversion-layer decisions
+
+- **marked** v18.0.3 (installed this session). `setOptions()` was
+  removed in v5+, so the per-call form is required:
+  `marked.parse(md, { gfm: true, breaks: false })`. The Session 2
+  prompt's alternate-form options (`headerIds`, `mangle`) no longer
+  exist in v18 -- v18 defaults already match the desired behavior.
+- **turndown** v7.2.4 (installed this session), `@types/turndown` v5.0.6
+  dev dep. Default import worked under TS `moduleResolution: bundler`
+  with no fallback to namespace import. Configured at module scope with
+  `headingStyle: 'atx'`, `bulletListMarker: '-'`, `codeBlockStyle: 'fenced'`.
+  Added a custom `blankReplacement` rule that collapses Quill's `<br>`
+  to a single newline -- without it, paragraphs round-trip with double
+  blank lines.
+- **react-quill** already at v2.0.0 (no install). Configured per Quill
+  Rule Q1: `LESSON_EDITOR_FORMATS` and `LESSON_EDITOR_MODULES` declared
+  at module scope (reference-stable across renders, avoids the
+  mount-order trap). `clipboard.matchVisual: false` so paste from
+  Word/Google Docs does not inject inline styles that turndown can't
+  cleanly convert.
+
+#### Two traps fixed during localhost testing
+
+1. **Save appeared to do nothing.** Diagnostic logging confirmed the
+   Supabase write succeeded and the local `lessons` array updated, but
+   the viewer kept showing old content. Root cause: `viewingLesson` is
+   a prop passed from `Dashboard.tsx`'s `selectedLesson` state -- a
+   frozen snapshot that does not auto-sync when the `useLessons` hook
+   in `EnhanceLessonForm` updates its own state. Fix: added an
+   `onLessonContentUpdated` callback prop wired by Dashboard to merge
+   the saved updates into its own `selectedLesson` state. Mirrors the
+   existing `onLessonShapeUpdated` pattern (declared in props but never
+   wired -- separate gap, not addressed this session).
+2. **Title input changes were invisible.** The displayed title at the
+   top of the viewer comes from `extractLessonTitle(original_text)`
+   which reads a "Lesson Title: ..." line embedded in the markdown body,
+   not from `currentLesson.title`. Editing the title input updated the
+   DB column but left the body's embedded title unchanged, so the
+   displayed title did not refresh. Fix: a `syncTitleInBody()` helper
+   rewrites the body's "Lesson Title:" line on save to match the title
+   input; the Edit Lesson button also now pre-fills the title input
+   from the body's extracted title so the input shows what the user
+   actually sees.
+
+#### Link rendering carry-on (third localhost issue)
+
+After save worked, Lynn reported that Quill's link button produced
+markdown like `[_text_](https://...)` but the viewer rendered the raw
+markdown rather than a clickable link. Root cause: neither the
+structured `formatSectionContent()` path nor the non-structured
+fallback path converted `[text](url)` to `<a>` tags, and neither
+converted single-underscore / single-asterisk italics to `<em>`.
+Added a `convertInlineMarkdown()` helper that handles links (with
+`target="_blank"`, `rel="noopener noreferrer"`, quote-escaped URL),
+italics, and bold. Both display paths now run through it. Bold is
+processed before single-asterisk italics so the helper never splits a
+bold marker.
+
+#### Files changed
+
+- `src/constants/contracts.ts` -- added `updated_at?: string | null` to
+  the `Lesson` interface.
+- `src/hooks/useLessons.tsx` -- added `updateLessonContent(lessonId,
+  { title?, original_text? })` with empty-string validation,
+  destructive-toast error paths, and explicit `updated_at` stamping
+  (the lessons table predates supabase/migrations/ so we can't confirm
+  a server-side trigger; the explicit timestamp is harmless either way).
+  Updates local lessons array on success. Exported alongside existing
+  hook returns.
+- `src/components/dashboard/EnhanceLessonForm.tsx` -- module-scope
+  Quill config, marked/turndown helpers, `syncTitleInBody()`,
+  `convertInlineMarkdown()`. Added `useLessons` import; destructured
+  `updateLessonContent`. New state: `editingLessonId`, `editTitle`,
+  `editContent`, `isSaving`, `editTitleRef`. Focus-management
+  `useEffect` moves focus to the title input when edit mode opens.
+  Existing `viewingLesson?.id` `useEffect` also clears edit state when
+  switching/closing lessons. Added Edit Lesson button (Pencil icon)
+  in the action row right after `LessonExportButtons`; Reshape button
+  suppressed while editing. Edit UI is a ternary swap inside
+  `<CardContent>` that replaces the read-only viewer with title `<Input>`
+  + Quill editor + Save/Cancel. Added new prop
+  `onLessonContentUpdated?: (lessonId, updates) => void` (mirrors
+  `onLessonShapeUpdated`). Both display paths
+  (`formatSectionContent` and the inline non-structured fallback) now
+  run content through `convertInlineMarkdown()`.
+- `src/pages/Dashboard.tsx` -- passes `onLessonContentUpdated` to
+  `EnhanceLessonForm`; the callback merges updates into `selectedLesson`
+  (id-matched) so `viewingLesson` refreshes after a save.
+- `supabase/functions/_shared/contracts.ts` -- auto-sync mirror, updated
+  via `npm run sync-constants` (Rule #23). Picked up the `updated_at`
+  field addition.
+- `package.json`, `package-lock.json` -- `marked@^18.0.3`,
+  `turndown@^7.2.4`, `@types/turndown@^5.0.6` (dev).
+
+#### Deploys this session
+
+- Frontend pushed to `origin/main` (Netlify auto-build).
+- No migrations applied this session.
+- No Edge Functions deployed this session.
+
+#### Verified before push
+
+- `npm run build` clean, 3940 modules, ~24s, zero TypeScript errors
+  (final build after all three traps fixed).
+- BRANDING duplicate-import sweep: 4 candidate matches inspected, all
+  false positives (regex matched `TenantBrandingPanel` / comments).
+  Each flagged file has exactly one real `import { BRANDING }` line.
+- ASCII guard: 0 non-ASCII chars on the four modified frontend files.
+- `npm run sync-constants` ran cleanly (14/14 files synced).
+- Lynn verified on `localhost:8080` and approved deploy after all three
+  traps were fixed and link rendering worked end-to-end.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): every edit followed a read of the
+  exact target file first. Session 1 produced a full diagnostic report
+  before any code landed.
+- Rule #2 (complete solutions): all three fixes (snapshot prop refresh,
+  title body sync, link rendering) were complete -- no partial patches.
+- Rule #4 (dependency chain before deploy): all 7 file changes deploy
+  together in one feature commit; the Dashboard callback is wired in
+  the same commit as the EnhanceLessonForm prop it satisfies.
+- Rule #5 (build before deploy): verified clean per above.
+- Rule #14 (never present uncertain options): when the Session 2 prompt
+  contradicted the Session 1 finding on file target, paused for
+  explicit confirmation rather than guessing.
+- Rule #16 (ASCII only): byte-level confirmed.
+- Rule #22 (accessibility): every interactive element has aria-label;
+  Pencil and Loader2 icons aria-hidden; explicit `<label htmlFor>` on
+  title input and content editor; Save button uses `aria-busy` +
+  `aria-disabled`; edit mode shown via conditional rendering (not
+  display:none); focus moves to title input on edit open.
+- Rule #23 (sync-constants after FILES_TO_SYNC change): ran after the
+  `contracts.ts` change.
+- Scope discipline (`feedback_frontend_only_scope`): manually staged
+  only the 7 modified files, bypassing `deploy.ps1`'s `git add .` so
+  the two untracked diagnostic SQL files (`DIAGNOSE_*.sql`) stayed
+  out of the commit per prior carry-forward.
+
+#### Commits
+
+- (FEATURE commit, this session) -- 7 files: contracts.ts,
+  useLessons.tsx, EnhanceLessonForm.tsx, Dashboard.tsx,
+  `_shared/contracts.ts`, package.json, package-lock.json.
+- (DOCS commit, this session) -- PROJECT_MASTER.md.
+
+#### Carry-forward
+
+See WHAT'S NEXT at the top of this file. Primary item: reshape-in-series
+feature design.
+
+#### Memory written this session
+
+- `feedback_session1_findings_precedence` -- In two-session prompts,
+  Session 1 diagnostic findings take precedence over Session 2 prompt
+  file-target assumptions; flag the conflict first, then follow the
+  finding.
 
 ---
 
