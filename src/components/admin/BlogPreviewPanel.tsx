@@ -329,6 +329,63 @@ function BlogPreviewItem({
   );
 }
 
+function PublishedPostItem({
+  post,
+  onDelete,
+  deletingId,
+}: {
+  post: DraftRow;
+  onDelete: (id: string) => void;
+  deletingId: string | null;
+}) {
+  const isDeleting = deletingId === post.id;
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+      {post.featured_image_url ? (
+        <div className="aspect-[16/9] w-full overflow-hidden bg-muted">
+          <img
+            src={post.featured_image_url}
+            alt=""
+            loading="lazy"
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : (
+        <div
+          aria-hidden="true"
+          className="aspect-[16/9] w-full bg-gradient-to-br from-primary/15 to-secondary/15"
+        />
+      )}
+
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="mb-1 text-lg font-bold leading-tight tracking-tight text-foreground">
+          {post.title}
+        </h3>
+        <p className="mb-4 break-all font-mono text-xs text-muted-foreground">
+          {BLOG_CONFIG.admin.slugLabel}: {post.slug}
+        </p>
+
+        <div className="mt-auto flex flex-wrap gap-2 pt-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="destructive"
+            onClick={() => onDelete(post.id)}
+            aria-disabled={isDeleting || undefined}
+            aria-label={`Delete published post: ${post.title}`}
+            className={isDeleting ? "cursor-wait opacity-70" : ""}
+          >
+            <Trash2 aria-hidden="true" className="mr-1 h-4 w-4" />
+            {isDeleting
+              ? BLOG_CONFIG.admin.deletingLabel
+              : BLOG_CONFIG.admin.deleteLabel}
+          </Button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export interface BlogPreviewPanelProps {
   showHeader?: boolean;
 }
@@ -338,6 +395,9 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
 
   const [drafts, setDrafts] = useState<DraftRow[]>([]);
   const [loadingDrafts, setLoadingDrafts] = useState(true);
+
+  const [published, setPublished] = useState<DraftRow[]>([]);
+  const [loadingPublished, setLoadingPublished] = useState(true);
 
   const [mode, setMode] = useState<Mode>("list");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -415,9 +475,30 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
     setLoadingDrafts(false);
   }, [toast]);
 
+  const fetchPublished = useCallback(async () => {
+    setLoadingPublished(true);
+    const { data, error } = await supabase
+      .from(BLOG_CONFIG.table)
+      .select(SELECT_COLUMNS)
+      .eq("published", true)
+      .order("published_at", { ascending: false });
+    if (error) {
+      toast({
+        title: "Could not load published posts",
+        description: error.message,
+        variant: "destructive",
+      });
+      setPublished([]);
+    } else {
+      setPublished(((data ?? []) as unknown) as DraftRow[]);
+    }
+    setLoadingPublished(false);
+  }, [toast]);
+
   useEffect(() => {
     fetchDrafts();
-  }, [fetchDrafts]);
+    fetchPublished();
+  }, [fetchDrafts, fetchPublished]);
 
   useEffect(() => {
     const styleId = "blog-editor-styles";
@@ -483,14 +564,27 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
     setMode("list");
     setSelectedId(null);
     fetchDrafts();
+    fetchPublished();
   }
 
-  async function handleDelete(id: string) {
-    const d = drafts.find((x) => x.id === id);
+  async function handleDelete(
+    id: string,
+    kind: "draft" | "published" = "draft",
+  ) {
+    const source = kind === "published" ? published : drafts;
+    const d = source.find((x) => x.id === id);
     if (!d) return;
+    const confirmTitle =
+      kind === "published"
+        ? BLOG_CONFIG.admin.confirmDeletePublishedTitle
+        : BLOG_CONFIG.admin.confirmDeleteTitle;
+    const confirmBody =
+      kind === "published"
+        ? BLOG_CONFIG.admin.confirmDeletePublishedBody
+        : BLOG_CONFIG.admin.confirmDeleteBody;
     if (
       !window.confirm(
-        `${BLOG_CONFIG.admin.confirmDeleteTitle}\n\n"${d.title}"\n\n${BLOG_CONFIG.admin.confirmDeleteBody}`,
+        `${confirmTitle}\n\n"${d.title}"\n\n${confirmBody}`,
       )
     ) {
       return;
@@ -515,7 +609,11 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
       setSelectedId(null);
       setMode("list");
     }
-    fetchDrafts();
+    if (kind === "published") {
+      fetchPublished();
+    } else {
+      fetchDrafts();
+    }
   }
 
   async function handleSaveEdit() {
@@ -595,36 +693,58 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
 
   function renderList() {
     if (loadingDrafts) return renderLoadingSkeleton();
-    if (drafts.length === 0) {
-      return (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <FileText
-              aria-hidden="true"
-              className="mx-auto mb-3 h-10 w-10 text-muted-foreground/60"
-            />
-            <p className="text-lg text-muted-foreground">
-              {BLOG_CONFIG.admin.emptyState}
-            </p>
-          </CardContent>
-        </Card>
-      );
-    }
     return (
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {drafts.map((draft) => (
-          <BlogPreviewItem
-            key={draft.id}
-            draft={draft}
-            onPreview={handlePreview}
-            onPublish={handlePublish}
-            onEdit={handleStartEdit}
-            onDelete={handleDelete}
-            publishingId={publishingId}
-            deletingId={deletingId}
-          />
-        ))}
-      </div>
+      <>
+        {drafts.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <FileText
+                aria-hidden="true"
+                className="mx-auto mb-3 h-10 w-10 text-muted-foreground/60"
+              />
+              <p className="text-lg text-muted-foreground">
+                {BLOG_CONFIG.admin.emptyState}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {drafts.map((draft) => (
+              <BlogPreviewItem
+                key={draft.id}
+                draft={draft}
+                onPreview={handlePreview}
+                onPublish={handlePublish}
+                onEdit={handleStartEdit}
+                onDelete={handleDelete}
+                publishingId={publishingId}
+                deletingId={deletingId}
+              />
+            ))}
+          </div>
+        )}
+
+        {published.length > 0 && (
+          <section
+            aria-label={BLOG_CONFIG.admin.publishedSectionTitle}
+            className="mt-12 border-t border-border pt-10"
+          >
+            <h2 className="mb-6 text-2xl font-bold tracking-tight">
+              {BLOG_CONFIG.admin.publishedSectionTitle}
+            </h2>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {published.map((post) => (
+                <PublishedPostItem
+                  key={post.id}
+                  post={post}
+                  onDelete={(id) => handleDelete(id, "published")}
+                  deletingId={deletingId}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </>
     );
   }
 
@@ -917,7 +1037,11 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
         </div>
       )}
 
-      <div aria-live="polite" aria-busy={loadingDrafts} className="sr-only">
+      <div
+        aria-live="polite"
+        aria-busy={loadingDrafts || loadingPublished}
+        className="sr-only"
+      >
         {loadingDrafts ? BLOG_CONFIG.admin.loadingLabel : ""}
       </div>
 
