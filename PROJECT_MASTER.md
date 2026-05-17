@@ -2,6 +2,15 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 17 Session 2 (Admin delete for published blog posts):
+- Marketing Panel "Amp Articles," "Newsletter," and "Email Marketing" tabs
+  remain disabled. The published-posts management surface for Blog is now
+  complete; the next Marketing channel to build out is Lynn's call.
+- The two root-level diagnostic SQL files (`DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`,
+  `DIAGNOSE_AUTH_FUNCTIONS.sql`) are still untracked. Deploy this session was
+  intentionally narrow-scoped (manual `git add` of only the two task files)
+  to keep them out of the commit. Still deferred.
+
 Carry-forward from May 17 Session 1 (Inline WYSIWYG lesson editing):
 - Design the reshape-in-series feature. Today reshape stores `shaped_content`
   on the parent `lessons` row (not a separate row) and reshape does NOT
@@ -54,6 +63,97 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 17, 2026 -- Session 2: Admin delete for published blog posts in BlogPreviewPanel
+
+#### Summary
+
+Single-session task. Extended `BlogPreviewPanel` to show published posts
+in a separate section below the existing drafts grid. Each published post
+card renders only a destructive Delete button -- no Preview, Edit, or
+Publish actions. Drafts UI is unchanged. Both the Marketing Panel's Blog
+Preview tab (`/admin/marketing`) and the standalone admin URL
+(`/admin/blog-preview`) get the new section automatically because they
+share the same panel component.
+
+This closes the loop on blog post lifecycle management: drafts could
+already be published or deleted from the admin UI; now published posts
+can also be deleted from the admin UI without dropping into SQL.
+
+Picked up mid-session from a prior interrupted run -- both files
+(`BlogPreviewPanel.tsx`, `blogConfig.ts`) already had the implementation
+in place when this session resumed. Work this session was: verify
+completeness, run the build, hold for Lynn's localhost approval, and
+deploy.
+
+#### Files touched
+
+- `src/constants/blogConfig.ts` -- added three strings to
+  `BLOG_CONFIG.admin`: `publishedSectionTitle` ("Published posts"),
+  `confirmDeletePublishedTitle` ("Delete this published post?"),
+  `confirmDeletePublishedBody` ("This permanently removes the post from
+  the public blog. This cannot be undone.").
+- `src/components/admin/BlogPreviewPanel.tsx` -- added `PublishedPostItem`
+  component (image + title + slug + Delete-only button); added `published`
+  state, `loadingPublished` state, and `fetchPublished()` query
+  (`published = true`, ordered by `published_at` desc); extended
+  `handleDelete(id, kind = "draft")` to switch confirm copy and refetch
+  target by kind; `renderList()` appends a `<section aria-label="Published
+  posts">` below the drafts grid, gated on `published.length > 0` so the
+  section is hidden entirely when empty.
+
+#### Architecture notes
+
+- SSOT respected: all UI strings live in `BLOG_CONFIG.admin`. Zero
+  hardcoded copy in the panel.
+- Frontend-drives-backend respected: delete still goes through the same
+  Supabase RLS gate (`has_role('admin')`) on the `blog_posts` table --
+  no schema change, no policy change.
+- Accessibility: the published-post Delete button uses
+  `aria-disabled` (not `disabled`) while in flight, has an
+  `aria-label="Delete published post: {title}"` for screen readers, and
+  the icon is `aria-hidden="true"`. The section has
+  `aria-label="Published posts"` so screen readers announce it as a
+  named landmark separate from the drafts grid.
+- Conditional rendering: empty published list hides the section
+  completely rather than collapsing via CSS.
+
+#### Verification
+
+- `npm run build` -- clean. Zero errors. 21.13s.
+- ASCII guard -- clean. Both files scanned, zero non-ASCII bytes.
+- Localhost: Lynn verified the section appears below drafts, shows only
+  the Delete button per published card, and the delete confirm dialog
+  shows the new copy. Hold-before-deploy honored.
+
+#### Commits
+
+- `fc01a53` -- FEATURE: Admin delete for published blog posts in
+  BlogPreviewPanel (2 files: `BlogPreviewPanel.tsx`, `blogConfig.ts`;
+  162 insertions, 35 deletions).
+- (DOCS commit, this session) -- PROJECT_MASTER.md.
+
+#### Deploy method
+
+Manual `git add` of only the two task files, then `git commit` and
+`git push origin main`. `deploy.ps1` was intentionally bypassed because
+the two untracked diagnostic SQL files in the repo root
+(`DIAGNOSE_AUTH_FUNCTIONS.sql`, `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`)
+must stay untracked, and `deploy.ps1` does `git add .` which would have
+swept them in. Memory `feedback_deploy_script_stages_all` already
+documents this pattern.
+
+#### Memory written this session
+
+- `feedback_powershell_only` -- Always use the PowerShell tool, never
+  the Bash tool, for terminal commands on Lynn's Windows machine. Bash
+  invocations of PowerShell cmdlets fail and produce noisy errors.
+
+#### Carry-forward
+
+See WHAT'S NEXT at the top of this file.
 
 ---
 
