@@ -49,6 +49,7 @@ import TurndownService from "turndown";
 import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
 import { useLessons } from "@/hooks/useLessons";
 import { useSubscription } from "@/hooks/useSubscription";
+import { RESHAPE_RULE } from "@/constants/featureFlags";
 import { useNavigate } from "react-router-dom";
 import { ROUTES } from "@/constants/routes";
 import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
@@ -564,7 +565,7 @@ export function EnhanceLessonForm({
   // INLINE EDITOR STATE -- WYSIWYG lesson editing
   // ============================================================================
 
-  const { updateLessonContent } = useLessons();
+  const { updateLessonContent, addReshapedLesson } = useLessons();
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -1425,25 +1426,18 @@ export function EnhanceLessonForm({
     });
 
     if (result.success && result.shaped_content) {
-      // Update local state immediately
+      // Update viewer toggle state immediately (Session A -- toggle UI unchanged per Rule R6).
       setLocalShapedContent(result.shaped_content);
       setLocalShapeId(shapeId);
       setReshapeViewMode('shaped');
       setShowReshapeSection(false);
 
-      // Save to database AND update local lessons array (fixes stale state on re-view)
-      if (onLessonShapeUpdated) {
-        onLessonShapeUpdated(currentLesson.id, result.shaped_content, shapeId);
-      } else {
-        // Fallback: direct DB write if no callback (shouldn't happen in normal flow)
-        try {
-          await supabase
-            .from('lessons')
-            .update({ shaped_content: result.shaped_content, shape_id: shapeId })
-            .eq('id', currentLesson.id);
-        } catch (err) {
-          console.error('Error saving shaped content to DB:', err);
-        }
+      // Session A change: reshape now saves as a NEW lessons row server-side.
+      // If the Edge Function returned the row, add it to local state so the
+      // Lesson Library sees it without a refetch. Session B will replace the
+      // viewer toggle with a redirect to the new lesson.
+      if (result.lesson) {
+        addReshapedLesson(result.lesson);
       }
     }
   };
@@ -2483,20 +2477,45 @@ export function EnhanceLessonForm({
                     <span className="hidden sm:inline">Edit Lesson</span>
                   </Button>
                 )}
-                {/* Phase 27: Reshape Button ? only in viewing mode with content (hidden while editing) */}
-                {viewingLesson && currentLesson?.original_text && !isReshaping && editingLessonId !== currentLesson?.id && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowReshapeSection(!showReshapeSection)}
-                    className={`gap-2 ${showReshapeSection ? "bg-primary/10 border-primary/40 text-primary" : ""}`}
-                  >
-                    <Layers className="h-4 w-4" />
-                    <span className="hidden sm:inline">
-                      {localShapedContent ? "Reshape Again" : "Reshape"}
-                    </span>
-                  </Button>
-                )}
+                {/* Phase 27: Reshape Button -- only in viewing mode with content (hidden while editing) */}
+                {/* RESHAPE_RULE gate (SSOT in featureFlags.ts):                                       */}
+                {/*   - Hidden entirely when the lesson IS itself a reshape (reshape_of != null).     */}
+                {/*     A reshape can never be reshaped. There is no valid use case.                  */}
+                {/*   - Disabled (still focusable, Rule #22) when:                                    */}
+                {/*       a) lesson_type === 'short' (not eligible)                                   */}
+                {/*       b) user has no lesson credits remaining                                     */}
+                {viewingLesson && currentLesson?.original_text && !isReshaping && editingLessonId !== currentLesson?.id && !currentLesson?.reshape_of && (() => {
+                  const parentType = currentLesson?.lesson_type ?? 'full';
+                  const isEligibleType = parentType === RESHAPE_RULE.eligibleLessonType;
+                  const hasCredit = canGenerate;
+                  const isLocked = !isEligibleType || !hasCredit;
+                  const lockReason = !isEligibleType
+                    ? 'Reshape is available only for full lessons'
+                    : 'Reshape requires at least one lesson credit remaining';
+                  const ariaLabel = isLocked
+                    ? `Reshape, ${lockReason}`
+                    : (localShapedContent ? 'Reshape again' : 'Reshape lesson');
+                  return (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { if (!isLocked) setShowReshapeSection(!showReshapeSection); }}
+                      aria-disabled={isLocked || undefined}
+                      aria-label={ariaLabel}
+                      title={isLocked ? lockReason : undefined}
+                      className={`gap-2 ${
+                        isLocked
+                          ? 'opacity-60 cursor-not-allowed'
+                          : (showReshapeSection ? 'bg-primary/10 border-primary/40 text-primary' : '')
+                      }`}
+                    >
+                      <Layers className="h-4 w-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">
+                        {localShapedContent ? "Reshape Again" : "Reshape"}
+                      </span>
+                    </Button>
+                  );
+                })()}
                 {isReshaping && (
                   <Button variant="outline" size="sm" disabled className="gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />

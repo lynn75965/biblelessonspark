@@ -21,6 +21,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ShapeId } from "@/constants/lessonShapeProfiles";
+import type { Lesson } from "@/constants/contracts";
 
 // ============================================================================
 // TYPES
@@ -39,8 +40,14 @@ export interface ReshapeLessonRequest {
 
 export interface ReshapeLessonResult {
   success: boolean;
-  /** The reshaped lesson content */
+  /** The reshaped lesson content (kept for the Session A viewer toggle) */
   shaped_content?: string;
+  /**
+   * The new lessons row created by the reshape Edge Function.
+   * Reshape now saves as a first-class lessons row with reshape_of
+   * pointing to the parent. Frontend should add this to local state.
+   */
+  lesson?: Lesson;
   /** Metadata from Edge Function response */
   metadata?: {
     tokens_input?: number;
@@ -145,6 +152,7 @@ export const useReshapeLesson = () => {
       return {
         success: true,
         shaped_content: data.shaped_content,
+        lesson: data.lesson,
         metadata: {
           tokens_input: data.tokens_input,
           tokens_output: data.tokens_output,

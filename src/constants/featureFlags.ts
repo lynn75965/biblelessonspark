@@ -120,3 +120,20 @@ export function getUpgradePrompt(tier: SubscriptionTier, feature: FeatureKey): s
 export function isFeatureEnabled(feature: FeatureKey): boolean {
   return FEATURE_FLAGS[feature].enabled;
 }
+
+// ----------------------------------------------------------------------------
+// RESHAPE RULE -- Single Source of Truth (SSOT)
+//
+// Declared here. Consumed by:
+//   1. Frontend gate -- EnhanceLessonForm.tsx Reshape button
+//   2. Edge Function -- reshape-lesson via _shared/featureFlags.ts mirror
+//
+// If this rule changes, it changes here. The _shared/ mirror is hand-maintained
+// (Rule #24 -- featureFlags.ts is NOT in FILES_TO_SYNC). Update both files
+// in the same commit.
+// ----------------------------------------------------------------------------
+export const RESHAPE_RULE = {
+  eligibleLessonType: 'full',       // only 8-section lessons
+  costInLessonCredits: 1,           // costs exactly 1 credit
+  eligibleForShortLesson: false,    // 3-section lessons never eligible
+} as const;

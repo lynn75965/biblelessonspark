@@ -37,7 +37,7 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, ChevronDown, ChevronUp, Copy, Plus, Loader2 } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, ChevronDown, ChevronUp, Copy, Plus, Loader2, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
@@ -221,10 +221,25 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   // Fetch series list on mount for "Add to Series" dropdown
   useEffect(() => { fetchAllSeries(); }, []);
 
-  // Transform user's own lessons for display
-  const displayLessons: LessonDisplay[] = lessons.map((lesson) =>
-    transformToDisplay(lesson, { isTeamLesson: false })
-  );
+  // Transform user's own lessons for display.
+  // Reshape rows (reshape_of IS NOT NULL) are NOT shown as standalone cards
+  // in the browse grid. They remain in the database and are surfaced inline
+  // on the parent card via the reshapeChildrenByParent map below.
+  const displayLessons: LessonDisplay[] = lessons
+    .filter((lesson) => !lesson.reshape_of)
+    .map((lesson) => transformToDisplay(lesson, { isTeamLesson: false }));
+
+  // Build parent -> reshape children map from the unfiltered lessons array.
+  // Session A surfaces these as "View Reshaped" expanders beneath each parent
+  // card. Session B will replace the inline expander with proper navigation.
+  const reshapeChildrenByParent = new Map<string, Lesson[]>();
+  for (const l of lessons) {
+    if (l.reshape_of) {
+      const existing = reshapeChildrenByParent.get(l.reshape_of) || [];
+      existing.push(l);
+      reshapeChildrenByParent.set(l.reshape_of, existing);
+    }
+  }
 
   // Phase 27: Fetch team lessons when scope switches to "team"
   useEffect(() => {
@@ -610,9 +625,13 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       Draft
                     </Badge>
                   )}
-                  {lesson.shape_id && (
+                  {/* Shape badge: only on actual reshape rows. Original lessons
+                      are not shaped even if the legacy flow wrote shape_id onto
+                      the parent row. The reshape_of guard makes shape identity
+                      a property of reshape children only. */}
+                  {lesson.shape_id && lesson.reshape_of && (
                     <Badge variant="outline" className="text-yellow-700 border-yellow-400 bg-yellow-50 dark:text-yellow-400 dark:border-yellow-600 dark:bg-yellow-950/20 text-xs">
-                      <Shapes className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
+                      <Shapes className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" aria-hidden="true" />
                       {LESSON_SHAPES.find(s => s.id === lesson.shape_id)?.shortName || 'Reshaped'}
                     </Badge>
                   )}
@@ -737,7 +756,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   )}
                 </div>
 
-                {/* Reshaped content expander */}
+                {/* Reshaped content expander (LEGACY -- parent's own shaped_content) */}
                 {lesson.shaped_content && lesson.shape_id && (
                   <div className="mt-3">
                     <button
@@ -790,6 +809,28 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     )}
                   </div>
                 )}
+
+                {/* Reshape children links (Session A reshape-as-lesson rows).
+                    Clicking opens the FULL viewer (EnhanceLessonForm via
+                    onViewLesson) so the reshape has identical access to
+                    Edit, Add to Series, Copy, Download, Email, Publish,
+                    DevotionalSpark, and every other lesson action. */}
+                {(reshapeChildrenByParent.get(lesson.id) || []).map((child) => {
+                  const childShapeName = LESSON_SHAPES.find(s => s.id === child.shape_id)?.shortName || 'Reshaped';
+                  const childShapeFullName = LESSON_SHAPES.find(s => s.id === child.shape_id)?.name || 'Reshaped Version';
+                  return (
+                    <div key={child.id} className="mt-3">
+                      <button
+                        onClick={() => onViewLesson?.(child)}
+                        aria-label={`Open reshaped lesson: ${childShapeFullName}`}
+                        className="flex items-center gap-1.5 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 underline-offset-2 hover:underline transition-colors cursor-pointer"
+                      >
+                        <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                        View Reshaped ({childShapeName})
+                      </button>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           ))}

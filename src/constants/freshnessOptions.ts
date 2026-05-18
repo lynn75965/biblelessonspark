@@ -1050,7 +1050,7 @@ export {
   buildStyleExtractionPrompt,
   parseStyleMetadata,
   removeStyleMetadataFromContent,
-} from './seriesConfig';
+} from './seriesConfig.ts';
 
 // ============================================================================
 // TYPE EXPORTS

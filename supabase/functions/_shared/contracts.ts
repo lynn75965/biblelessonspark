@@ -294,6 +294,10 @@ export interface Lesson {
   shaped_content?: string | null;
   /** ID of the shape used for reshaping (e.g., 'passage_walkthrough') */
   shape_id?: LessonShapeId | null;
+  /** If set, this row is a reshape of the lesson with this id */
+  reshape_of?: string | null;
+  /** full = 8-section lesson. short = 3-section trial lesson. Reshape requires full. */
+  lesson_type?: 'full' | 'short' | null;
   metadata?: {
     teaser?: string | null;
     ageGroup?: string;

@@ -959,6 +959,12 @@ ${styleExtractionPromptAddition}
       // =========================================================================
       // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
       // =========================================================================
+      // lesson_type persisted at generation time -- consumed by RESHAPE_RULE.
+      // Trial short lessons (sections 1, 5, 8 only) -> 'short'. All other
+      // generation paths produce full 8-section lessons -> 'full'.
+      const lessonTypeForRow: 'full' | 'short' =
+        (isTrialLesson && !isFullTrialLesson) ? 'short' : 'full';
+
       const lessonData = {
         user_id: user.id,
         title: extractedTitle || lessonInput,
@@ -967,6 +973,7 @@ ${styleExtractionPromptAddition}
         audience_profile: audience_profile || { role: 'Teacher', assembly: 'Class', participant: 'Student' },
         org_pool_consumed: useOrgPool,
         series_style_metadata: extractedStyleMetadata,
+        lesson_type: lessonTypeForRow,
         filters: {
           bible_passage,
           focused_topic,

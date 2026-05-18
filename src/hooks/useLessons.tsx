@@ -293,6 +293,16 @@ export function useLessons() {
     }
   };
 
+  /**
+   * Append a reshaped lesson row to local state (Session A -- reshape-as-lesson)
+   * Reshape now returns a full lessons row from the Edge Function.
+   * Prepend so the new reshape appears at the top of the library,
+   * matching the createLesson add pattern (line 78).
+   */
+  const addReshapedLesson = (newLesson: Lesson): void => {
+    setLessons(prev => [newLesson, ...prev]);
+  };
+
   return {
     lessons,
     loading,
@@ -302,6 +312,7 @@ export function useLessons() {
     updateLessonContent,
     updateLessonShape,
     clearLessonShape,
+    addReshapedLesson,
     refetch: fetchLessons,
   };
 }
