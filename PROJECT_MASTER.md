@@ -1,6 +1,45 @@
-# PROJECT MASTER -- Last updated: May 17, 2026
+# PROJECT MASTER -- Last updated: May 18, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 18 Session A (Reshape-as-lesson foundation):
+- Session B work (NOT done in Session A): in `EnhanceLessonForm.tsx`,
+  remove the legacy "Original (8 sections) / shape name" viewer toggle
+  and the associated `shaped_content` plumbing (`localShapedContent`,
+  `setLocalShapedContent`, `localShapeId`, `reshapeViewMode`,
+  `setReshapeViewMode`, the `useEffect` at L1366 that initializes from
+  `viewingLesson.shaped_content`). After reshape now opens its own full
+  viewer via the "View Reshaped" link, the inline toggle is dead UI.
+  Also remove `updateLessonShape` / `clearLessonShape` from
+  `useLessons.tsx` after confirming no remaining consumers.
+- Session B work: `LessonLibrary.tsx` still has the LEGACY
+  `shaped_content` expander block (around L744). It only fires for
+  parent rows that have the old-flow `shaped_content` set. Remove it
+  once those legacy rows have been migrated (the new "View Reshaped"
+  link below opens the full viewer for reshape children, which is the
+  intended path going forward).
+- Session B work: pagination + reshape browse/search display in
+  `LessonLibrary.tsx`. Currently reshapes are hidden from the grid and
+  only surfaced via the parent card's "View Reshaped" link.
+- Verify anti-duplicate reshape by running two reshapes of the same
+  shape on the same lesson on the live site once Anthropic API
+  stabilizes. The anti-duplicate suffix is deployed but was not
+  smoke-tested this session due to repeated 529 errors.
+- Optional cleanup: the contracts.ts `Lesson` interface still has
+  `theology_profile_id?: TheologyProfileId | null;` but the live
+  `lessons` table does NOT have that column (confirmed by Lynn's
+  live-schema paste during Session A). The field is dead. Removing it
+  is non-blocking. Theology profile resolution already flows through
+  `filters.theology_profile_id`.
+- Optional cleanup: `src/constants/freshnessOptions.ts` had a bundler
+  bug (re-export from `'./seriesConfig'` without `.ts`). Fixed in
+  Session A so generate-lesson could redeploy. If any other constants
+  files do bare relative re-exports they'd hit the same Deno bundler
+  trip on deploy. A repo-wide audit would be defensive but not urgent.
+- The two root-level diagnostic SQL files (`DIAGNOSE_AUTH_FUNCTIONS.sql`,
+  `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`) remain untracked. Session A
+  bypassed `deploy.ps1` and used manual `git add` of only the 14 task
+  files. Still deferred.
 
 Carry-forward from May 17 Session 2 (Admin delete for published blog posts):
 - Marketing Panel "Amp Articles," "Newsletter," and "Email Marketing" tabs
@@ -63,6 +102,225 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 18, 2026 -- Session A: Reshape-as-lesson foundation
+
+#### Summary
+
+Reshape is now a first-class lessons row. When a user reshapes a full
+8-section lesson, the `reshape-lesson` Edge Function:
+1. Loads the parent lesson row and confirms `lesson_type='full'`
+   (RESHAPE_RULE, SSOT in `featureFlags.ts`).
+2. Looks up any prior reshape of the same (parent, shape) and, if one
+   exists, appends an anti-duplicate instruction to the system prompt
+   so Claude produces a substantively different composition.
+3. Enforces `check_lesson_limit` BEFORE the Anthropic call (so a user
+   at their limit cannot get a free reshape).
+4. Mirrors `generate-lesson`'s trial billing for full credits when
+   `doesTrialApply` returns true.
+5. Saves the reshape as a new lessons row with `reshape_of` back-link,
+   `lesson_type='full'`, `source_type='reshape'`, filters/visibility
+   copied from the parent. Parent row's `shaped_content` is NOT
+   touched (Rule R6 -- preserved for backward compatibility).
+6. Returns the full new lesson row so the frontend appends to local
+   state without a refetch.
+
+Frontend gate: the Reshape button is now hidden entirely on rows where
+`reshape_of != null` (a reshape can't be reshaped). On any other row it
+is disabled (aria-disabled, still focusable per Rule #22) when
+`lesson_type='short'` or the user has no lesson credits.
+
+Lesson Library: reshape children are filtered out of the browse grid.
+Each parent card with one or more reshape children shows a yellow
+"View Reshaped (Shape Name)" link beneath it. Clicking opens the FULL
+viewer (`onViewLesson(child)`) with the reshape as the active lesson,
+giving full access to Edit, Add to Series, Copy, Download, Email,
+Publish, DevotionalSpark. Shape badge now only renders on actual
+reshape rows.
+
+#### RESHAPE_RULE (SSOT)
+
+```ts
+export const RESHAPE_RULE = {
+  eligibleLessonType: 'full',       // only 8-section lessons
+  costInLessonCredits: 1,           // costs exactly 1 credit
+  eligibleForShortLesson: false,    // 3-section lessons never eligible
+} as const;
+```
+Declared at `src/constants/featureFlags.ts`. Hand-maintained mirror at
+`supabase/functions/_shared/featureFlags.ts` (Rule #24 -- not added to
+`FILES_TO_SYNC`; was created from scratch this session).
+
+#### Migration applied
+
+`20260518120000_add_reshape_and_lesson_type_to_lessons.sql`:
+- `reshape_of uuid REFERENCES lessons(id) ON DELETE SET NULL` (nullable)
+- `lesson_type text NOT NULL DEFAULT 'full' CHECK (lesson_type IN ('full','short'))`
+
+Applied via `npx supabase db push --linked`. All existing rows backfill
+to `lesson_type='full'`. Types regenerated via
+`npx supabase gen types typescript --linked`. The regenerated types
+file now also includes the previously-missing `shaped_content`,
+`shape_id`, and `visibility` columns flagged by the May 17 PROJECT_MASTER
+carry-forward.
+
+#### Files touched
+
+1. `src/constants/featureFlags.ts` -- added RESHAPE_RULE.
+2. `src/constants/contracts.ts` -- added `reshape_of` and `lesson_type`
+   to the `Lesson` interface.
+3. `src/constants/freshnessOptions.ts` -- ONE-CHARACTER FIX: re-export
+   from `'./seriesConfig'` -> `'./seriesConfig.ts'` so the Deno bundler
+   used by `supabase functions deploy` can resolve it. Pre-existing
+   latent bug exposed when the new generate-lesson redeploy hit it.
+4. `src/hooks/useLessons.tsx` -- added `addReshapedLesson(lesson)` that
+   prepends to local state (mirrors the `createLesson` add pattern).
+5. `src/hooks/useReshapeLesson.tsx` -- `ReshapeLessonResult.lesson?: Lesson`
+   added; hook returns the new row from the Edge Function response.
+6. `src/components/dashboard/EnhanceLessonForm.tsx` -- destructured
+   `addReshapedLesson` from useLessons; imported `RESHAPE_RULE`; gated
+   the Reshape button by `reshape_of`, `lesson_type`, and `canGenerate`;
+   wired `addReshapedLesson(result.lesson)` into the reshape handler.
+   Existing reshape viewer toggle preserved (Rule R6).
+7. `src/components/dashboard/LessonLibrary.tsx` -- filter reshape
+   children out of the displayLessons map; built
+   `reshapeChildrenByParent` from unfiltered lessons; rendered "View
+   Reshaped (Shape)" link per child that calls `onViewLesson(child)`;
+   added `reshape_of` guard to the shape badge so original lessons no
+   longer display a shape badge sourced from legacy parent-row
+   `shape_id`; imported `Layers` icon.
+8. `src/integrations/supabase/types.ts` -- regenerated post-migration.
+9. `supabase/functions/_shared/featureFlags.ts` -- NEW hand-maintained
+   file (Rule #24). Exports RESHAPE_RULE.
+10. `supabase/functions/_shared/contracts.ts` -- auto-synced via
+    `npm run sync-constants` (Rule #23, contracts.ts is in FILES_TO_SYNC).
+11. `supabase/functions/_shared/freshnessOptions.ts` -- auto-synced.
+12. `supabase/functions/generate-lesson/index.ts` -- added `lesson_type`
+    to the lessons INSERT
+    (`isTrialLesson && !isFullTrialLesson ? 'short' : 'full'`).
+13. `supabase/functions/reshape-lesson/index.ts` -- full rewrite per
+    Rule R3. Anti-duplicate prior-reshape lookup + suffix added at the
+    end of the session. Timeout 90s -> 180s after a smoke-test timeout
+    on a real reshape. (Old 90s constant was pre-existing.)
+14. `supabase/migrations/20260518120000_add_reshape_and_lesson_type_to_lessons.sql`
+    -- new migration.
+
+#### Deploys this session
+
+- Frontend pushed to `origin/main` as commit `8335e19` (Netlify
+  auto-build).
+- Migration applied via `npx supabase db push --linked`.
+- Edge Function `reshape-lesson` deployed three times via
+  `npx supabase functions deploy reshape-lesson --use-api`: initial,
+  after timeout bump, after anti-duplicate logic.
+- Edge Function `generate-lesson` deployed once via
+  `npx supabase functions deploy generate-lesson --use-api` (after the
+  bundler fix to `freshnessOptions.ts`).
+
+#### Smoke test results
+
+- Step 5 SQL verification passed -- new reshape lessons row has
+  `lesson_type='full'`, `reshape_of` set to parent id, `shape_id` set,
+  `source_type='reshape'`, title in `"[Shape Name]: [Original Title]"`
+  format.
+- Two product gaps surfaced during the test and fixed in-session:
+  (a) reshape children showed up as standalone cards in the Lesson
+  Library grid -- filtered out and replaced with the "View Reshaped"
+  link on the parent card;
+  (b) the Reshape button was visible on reshape rows -- now hidden
+  entirely;
+  (c) original lesson cards still showed legacy shape badges -- badge
+  condition now requires `reshape_of` to be set.
+- Anti-duplicate verification deferred to Session B / next opportunity
+  -- Anthropic API was returning 529 errors during the planned second
+  reshape; Lynn instructed to stop API retries and close the session.
+- Steps 6 / 7 / 8 (parent-row unchanged check, billing increment
+  verification, short-lesson gate UI test) were not completed before
+  Lynn stopped retries. The parent-row preservation is enforced by
+  Rule R6 in the Edge Function code (reshape never writes to parent).
+  The short-lesson gate is enforced in the frontend button render
+  block and in the Edge Function pre-AI gate.
+
+#### Verified before push
+
+- `npm run build` clean -- 3940 modules, ~23s, zero TypeScript errors.
+- ASCII guard clean -- 0 non-ASCII bytes across all 11 hand-authored
+  files (plus the 3 auto-synced backend mirrors and the regenerated
+  types.ts).
+- BRANDING duplicate-import sweep: 4 candidate matches by file basename
+  (Header.tsx, Footer.tsx, Admin.tsx, tenantConfig.ts) -- each
+  inspected, each has exactly one BRANDING import per file (false
+  positives from files of the same basename in different folders).
+- `npm run sync-constants` ran cleanly (14/14 files synced).
+- Migration applied to live DB before Edge Function deploys.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): all edits followed targeted reads.
+- Rule #2 (complete solutions): no partial fixes.
+- Rule #4 (dependency chain): migration applied before functions
+  deployed; types regenerated before frontend build.
+- Rule #5 (npm run build clean before deploy): four clean builds this
+  session, last one at session close.
+- Rule #20 (migrations CLI): migration written, applied via
+  `npx supabase db push --linked`. Never used Dashboard SQL editor.
+- Rule #22 (accessibility): Reshape button locked state uses
+  `aria-disabled`, decorative icons `aria-hidden="true"`, locked items
+  stay focusable, lock reason in `aria-label` and tooltip.
+- Rule #23 (sync-constants): `contracts.ts` was edited; sync ran twice
+  this session (after the contracts edit and after the
+  `freshnessOptions.ts` bundler fix).
+- Rule #24 (hand-maintained _shared/): `_shared/featureFlags.ts`
+  created hand-maintained, NOT added to FILES_TO_SYNC.
+- Rule R3 (limit check BEFORE Anthropic call): enforced -- parent
+  load, RESHAPE_RULE gate, admin check, limit check, then trial gate,
+  then prior-reshape lookup, then metrics insert, then Claude call.
+- Rule R6 (no parent-row writes from reshape): enforced -- new lesson
+  row only.
+
+#### Traps encountered
+
+1. **Bundler bug pre-existing in `freshnessOptions.ts`** -- the
+   re-export `from './seriesConfig'` (no `.ts`) broke
+   `supabase functions deploy` for any function transitively importing
+   freshness (generate-lesson). Frontend tsc/vite tolerate bare relative
+   imports; Deno does not. Fix: one-character `.ts` extension.
+2. **Reshape Anthropic call timed out at 90s** on the first smoke test
+   on a real full lesson. Bumped `RESHAPE_TIMEOUT_MS` to 180000 to
+   match the safety envelope of generate-lesson (120s) plus headroom.
+   Pre-existing constant from the old function -- not a regression
+   introduced this session.
+3. **Same-shape duplicate output** -- two Story-Driven reshapes of the
+   same lesson produced word-for-word identical compositions. Fixed by
+   appending an anti-duplicate instruction to the system prompt when a
+   prior `(parent, shape)` reshape is found in the database.
+4. **`theology_profile_id` not on lessons table** -- contracts.ts has
+   it on the `Lesson` interface, and PROJECT_MASTER previously flagged
+   it as missing from `types.ts`. Live schema confirmed it is NOT a
+   column on the lessons table at all. The plan was adjusted to NOT
+   include it in the reshape INSERT (filters carry it instead).
+
+#### Commits
+
+- `8335e19` -- FEATURE: Reshape-as-lesson foundation (14 files; 548
+  insertions, 146 deletions).
+- (DOCS commit, this session) -- PROJECT_MASTER.md.
+
+#### Deploy method
+
+Manual `git add` of the 14 task files explicitly named, then `git commit`
+and `git push origin main`. `deploy.ps1` bypassed because the two
+untracked diagnostic SQL files at repo root
+(`DIAGNOSE_AUTH_FUNCTIONS.sql`, `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`)
+must remain untracked, and `deploy.ps1` does `git add .` which would
+have swept them in. Memory `feedback_deploy_script_stages_all` already
+documents this pattern.
+
+#### Carry-forward
+
+See WHAT'S NEXT at the top of this file.
 
 ---
 
