@@ -37,7 +37,7 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, ChevronDown, ChevronUp, Copy, Plus, Loader2, Layers } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, Plus, Loader2, Layers } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
@@ -86,6 +86,12 @@ interface LessonDisplay extends Lesson {
 // SSOT-DERIVED BADGE COLORS
 // Colors keyed by profile ID - fully SSOT compliant, order-independent
 // ============================================================================
+
+// Session B (May 2026): client-side pagination for the Lesson Library card grid.
+// Architectural choice: useLessons fetches all rows so EnhanceLessonForm,
+// useSeriesManager, and reshapeChildrenByParent retain full visibility into
+// the user's library. Pagination slices filteredLessons for display only.
+const LESSONS_PER_PAGE = 15;
 
 const AGE_GROUP_BADGE_COLOR_MAP: Record<string, string> = {
   "preschool": "bg-pink-100 text-pink-800 border-pink-200",
@@ -180,17 +186,6 @@ const transformToDisplay = (
 // COMPONENT
 // ============================================================================
 
-function renderMarkdown(text: string) {
-  return text.split('\n').map((line, i) => {
-    if (/^### (.+)/.test(line)) return <h3 key={i} className="text-sm font-bold mt-2 mb-0.5">{line.replace(/^### /, '')}</h3>;
-    if (/^## (.+)/.test(line)) return <h2 key={i} className="text-sm font-bold mt-2 mb-0.5">{line.replace(/^## /, '')}</h2>;
-    if (/^# (.+)/.test(line)) return <h1 key={i} className="text-sm font-bold mt-2 mb-1">{line.replace(/^# /, '')}</h1>;
-    const parts = line.split(/\*\*(.+?)\*\*/g);
-    const formatted = parts.map((part, j) => j % 2 === 1 ? <strong key={j}>{part}</strong> : part);
-    return <p key={i} className="text-xs text-muted-foreground mb-0.5">{formatted}</p>;
-  });
-}
-
 export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: LessonLibraryProps) {
   const navigate = useNavigate();
   const [searchPassage, setSearchPassage] = useState("");
@@ -216,10 +211,17 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const [showCreateSeriesModal, setShowCreateSeriesModal] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState("");
   const [newSeriesLessonCount, setNewSeriesLessonCount] = useState(4);
-  const [reshapeExpandedId, setReshapeExpandedId] = useState<string | null>(null);
+
+  // Session B: pagination state -- client-side slice of filteredLessons.
+  const [currentPage, setCurrentPage] = useState(0);
 
   // Fetch series list on mount for "Add to Series" dropdown
   useEffect(() => { fetchAllSeries(); }, []);
+
+  // Session B: any filter or scope change snaps the user back to page 1.
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchPassage, searchTitle, ageFilter, profileFilter, scope]);
 
   // Transform user's own lessons for display.
   // Reshape rows (reshape_of IS NOT NULL) are NOT shown as standalone cards
@@ -295,6 +297,16 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
     return matchesPassage && matchesTitle && matchesAge && matchesProfile;
   });
+
+  // Session B: client-side pagination. safePage guards against the case
+  // where deleting the last card on the final page would otherwise leave
+  // currentPage pointing past the new end.
+  const totalPages = Math.max(1, Math.ceil(filteredLessons.length / LESSONS_PER_PAGE));
+  const safePage = Math.min(currentPage, totalPages - 1);
+  const pagedLessons = filteredLessons.slice(
+    safePage * LESSONS_PER_PAGE,
+    safePage * LESSONS_PER_PAGE + LESSONS_PER_PAGE,
+  );
 
   const getAgeGroupBadgeColor = (ageGroup: string): string => {
     return AGE_GROUP_BADGE_COLOR_MAP[ageGroup] || DEFAULT_BADGE_CLASS;
@@ -564,8 +576,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
 
       {/* Lessons Grid */}
       {!(scope === "team" && teamLessonsLoading) && filteredLessons.length > 0 ? (
+        <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {filteredLessons.map((lesson) => (
+          {pagedLessons.map((lesson) => (
             <Card key={lesson.id} className="group hover:shadow-glow transition-all duration-normal bg-gradient-card">
               <CardHeader className="p-4 sm:p-6">
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -756,85 +769,83 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   )}
                 </div>
 
-                {/* Reshaped content expander (LEGACY -- parent's own shaped_content) */}
-                {lesson.shaped_content && lesson.shape_id && (
-                  <div className="mt-3">
-                    <button
-                      onClick={() => setReshapeExpandedId(reshapeExpandedId === lesson.id ? null : lesson.id)}
-                      className="flex items-center gap-1.5 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 transition-colors cursor-pointer"
-                    >
-                      {reshapeExpandedId === lesson.id ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                      View Reshaped ({LESSON_SHAPES.find(s => s.id === lesson.shape_id)?.shortName || 'Reshaped'})
-                    </button>
-                    {reshapeExpandedId === lesson.id && (
-                      <div className="mt-2 p-3 bg-yellow-50/50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-yellow-800 dark:text-yellow-400">
-                            {LESSON_SHAPES.find(s => s.id === lesson.shape_id)?.name || 'Reshaped Version'}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-950/30"
-                            onClick={async () => {
-                              const raw = lesson.shaped_content || '';
-                              const html = raw
-                                .split('\n')
-                                .map(line => {
-                                  if (/^### (.+)/.test(line)) return `<h3>${line.replace(/^### /, '')}</h3>`;
-                                  if (/^## (.+)/.test(line)) return `<h2>${line.replace(/^## /, '')}</h2>`;
-                                  if (/^# (.+)/.test(line)) return `<h1>${line.replace(/^# /, '')}</h1>`;
-                                  const bolded = line.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-                                  return `<p>${bolded}</p>`;
-                                })
-                                .join('');
-                              const plainText = raw.replace(/^#{1,3} /gm, '').replace(/\*\*(.+?)\*\*/g, '$1');
-                              await navigator.clipboard.write([
-                                new ClipboardItem({
-                                  'text/html': new Blob([html], { type: 'text/html' }),
-                                  'text/plain': new Blob([plainText], { type: 'text/plain' }),
-                                })
-                              ]);
-                              toast({ title: "Copied", description: "Reshaped content copied to clipboard." });
-                            }}
-                          >
-                            <Copy className="h-3.5 w-3.5 mr-1" />
-                            Copy
-                          </Button>
-                        </div>
-                        <div className="text-xs text-muted-foreground max-h-40 overflow-y-auto">
-                          {renderMarkdown(lesson.shaped_content.slice(0, 600))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {/* Reshape children links (Session A reshape-as-lesson rows).
                     Clicking opens the FULL viewer (EnhanceLessonForm via
                     onViewLesson) so the reshape has identical access to
                     Edit, Add to Series, Copy, Download, Email, Publish,
-                    DevotionalSpark, and every other lesson action. */}
-                {(reshapeChildrenByParent.get(lesson.id) || []).map((child) => {
-                  const childShapeName = LESSON_SHAPES.find(s => s.id === child.shape_id)?.shortName || 'Reshaped';
-                  const childShapeFullName = LESSON_SHAPES.find(s => s.id === child.shape_id)?.name || 'Reshaped Version';
-                  return (
-                    <div key={child.id} className="mt-3">
-                      <button
-                        onClick={() => onViewLesson?.(child)}
-                        aria-label={`Open reshaped lesson: ${childShapeFullName}`}
-                        className="flex items-center gap-1.5 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 underline-offset-2 hover:underline transition-colors cursor-pointer"
-                      >
-                        <Layers className="h-3.5 w-3.5" aria-hidden="true" />
-                        View Reshaped ({childShapeName})
-                      </button>
-                    </div>
+                    DevotionalSpark, and every other lesson action.
+                    When the parent has 2+ reshapes of the same shape, labels
+                    are numbered ("Story-Driven 1", "Story-Driven 2") in
+                    created_at-ascending order so the user can distinguish
+                    them. Single reshapes keep the bare shape label. */}
+                {(() => {
+                  const children = reshapeChildrenByParent.get(lesson.id) || [];
+                  const sorted = [...children].sort((a, b) =>
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                   );
-                })}
+                  const shapeTotals = new Map<string, number>();
+                  for (const c of sorted) {
+                    const sid = c.shape_id ?? '';
+                    shapeTotals.set(sid, (shapeTotals.get(sid) || 0) + 1);
+                  }
+                  const shapeRunningIndex = new Map<string, number>();
+                  return sorted.map((child) => {
+                    const sid = child.shape_id ?? '';
+                    const idx = (shapeRunningIndex.get(sid) || 0) + 1;
+                    shapeRunningIndex.set(sid, idx);
+                    const shape = LESSON_SHAPES.find(s => s.id === child.shape_id);
+                    const total = shapeTotals.get(sid) || 1;
+                    const suffix = total > 1 ? ` ${idx}` : '';
+                    const childShapeName = `${shape?.shortName || 'Reshaped'}${suffix}`;
+                    const childShapeFullName = `${shape?.name || 'Reshaped Version'}${suffix}`;
+                    return (
+                      <div key={child.id} className="mt-3">
+                        <button
+                          onClick={() => onViewLesson?.(child)}
+                          aria-label={`Open reshaped lesson: ${childShapeFullName}`}
+                          className="flex items-center gap-1.5 text-xs text-yellow-700 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300 underline-offset-2 hover:underline transition-colors cursor-pointer"
+                        >
+                          <Layers className="h-3.5 w-3.5" aria-hidden="true" />
+                          View Reshaped ({childShapeName})
+                        </button>
+                      </div>
+                    );
+                  });
+                })()}
               </CardContent>
             </Card>
           ))}
         </div>
+
+        {/* Session B: Previous/Next pagination. Hidden when everything
+            fits on one page. aria-disabled keeps buttons focusable at
+            boundaries (Rule #22). aria-live announces page changes. */}
+        {filteredLessons.length > LESSONS_PER_PAGE && (
+          <div className="flex items-center justify-between mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
+              aria-disabled={safePage === 0 || undefined}
+              aria-label="Previous page"
+              className={safePage === 0 ? "opacity-60 cursor-not-allowed" : ""}
+            >
+              Previous
+            </Button>
+            <span aria-live="polite" className="text-sm text-muted-foreground">
+              Page {safePage + 1} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages - 1, p + 1))}
+              aria-disabled={safePage >= totalPages - 1 || undefined}
+              aria-label="Next page"
+              className={safePage >= totalPages - 1 ? "opacity-60 cursor-not-allowed" : ""}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+        </>
       ) : !(scope === "team" && teamLessonsLoading) ? (
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">

@@ -165,8 +165,6 @@ interface EnhanceLessonFormProps {
   viewingLesson?: any;
   viewingOrigin?: string | null;
   onClearViewing?: () => void;
-  /** Phase 27: Called when reshape succeeds ? updates local lessons array */
-  onLessonShapeUpdated?: (lessonId: string, shapedContent: string, shapeId: string) => void;
   /** Inline editor: called after a successful save so parent can refresh viewingLesson */
   onLessonContentUpdated?: (lessonId: string, updates: { title?: string; original_text?: string }) => void;
   initialFocusData?: FocusApplicationData;
@@ -403,16 +401,37 @@ const convertInlineMarkdown = (text: string): string => {
     .replace(/(^|[^\w_])_(?!\s)([^_\n]+?)_(?!\w)/g, "$1<em>$2</em>");
 };
 
+// Convert markdown heading markers (#, ##, ###, ####) to HTML heading tags
+// and strip lone heading markers. Must run BEFORE \n -> <br> replacement so
+// the line anchors (^ / $) still match. Without this, raw "#" characters
+// survive to the user's screen (Bug fix May 18, 2026 -- Session B).
+const convertHeadingsToHtml = (text: string): string => {
+  return text
+    // Strip bare heading markers (lone "#", "##", "###", "####" on their own line)
+    .replace(/^[ \t]*#{1,4}[ \t]*$/gm, '')
+    // Convert heading lines (longest first so #### matches before ###)
+    .replace(/^[ \t]*####[ \t]+(.+?)[ \t]*$/gm, '<h4 class="text-sm font-bold mt-3 mb-1">$1</h4>')
+    .replace(/^[ \t]*###[ \t]+(.+?)[ \t]*$/gm, '<h3 class="text-sm font-bold mt-3 mb-1">$1</h3>')
+    .replace(/^[ \t]*##[ \t]+(.+?)[ \t]*$/gm, '<h2 class="text-base font-bold mt-3 mb-1">$1</h2>')
+    .replace(/^[ \t]*#[ \t]+(.+?)[ \t]*$/gm, '<h1 class="text-lg font-bold mt-3 mb-1">$1</h1>');
+};
+
 // Format section content for display (remove header line since we display it separately)
 const formatSectionContent = (content: string): string => {
   // First normalize legacy content (## headers ? **bold:**, 1. ? **1.**)
   const normalized = normalizeLegacyContent(content);
   return convertInlineMarkdown(
-    normalized
-      // Remove section header line in various formats
-      .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[\.\:\-\s]+[^\n]+\n?/i, '')
+    convertHeadingsToHtml(
+      normalized
+        // Remove section header line in various formats
+        .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[\.\:\-\s]+[^\n]+\n?/i, '')
+    )
   )
     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+    // Collapse \n around block-level headings so we don't emit <br> right
+    // before or after an <h1-h4> (would create extra blank lines).
+    .replace(/(<\/h[1-4]>)[ \t]*\n+/g, '$1')
+    .replace(/\n+[ \t]*(<h[1-4][^>]*>)/g, '$1')
     .replace(/\n\n/g, "<br><br>")
     .replace(/\n/g, "<br>")
     .trim();
@@ -445,7 +464,6 @@ export function EnhanceLessonForm({
   viewingLesson,
   viewingOrigin,
   onClearViewing,
-  onLessonShapeUpdated,
   onLessonContentUpdated,
   initialFocusData,
   lessonCount = 0,
@@ -555,9 +573,6 @@ export function EnhanceLessonForm({
   // PHASE 27: LESSON SHAPES STATE
   // ============================================================================
 
-  const [reshapeViewMode, setReshapeViewMode] = useState<'original' | 'shaped'>('original');
-  const [localShapedContent, setLocalShapedContent] = useState<string | null>(null);
-  const [localShapeId, setLocalShapeId] = useState<string | null>(null);
   const [selectedShapeForReshape, setSelectedShapeForReshape] = useState<string>("");
   const [showReshapeSection, setShowReshapeSection] = useState(false);
 
@@ -1364,22 +1379,11 @@ export function EnhanceLessonForm({
   // PHASE 27: LESSON SHAPES ? INIT & HANDLER
   // ============================================================================
 
-  // Initialize reshape state when viewing a lesson that was previously reshaped
+  // Reset reshape section UI + exit edit mode when switching/closing lessons
+  // so unsaved edits can never leak across lessons.
   useEffect(() => {
-    if (viewingLesson?.shaped_content && viewingLesson?.shape_id) {
-      setLocalShapedContent(viewingLesson.shaped_content);
-      setLocalShapeId(viewingLesson.shape_id);
-      setReshapeViewMode('shaped');
-      setShowReshapeSection(false);
-    } else {
-      setLocalShapedContent(null);
-      setLocalShapeId(null);
-      setReshapeViewMode('original');
-      setShowReshapeSection(false);
-      setSelectedShapeForReshape("");
-    }
-    // Always exit edit mode when switching/closing lessons so unsaved edits
-    // can never leak across lessons.
+    setShowReshapeSection(false);
+    setSelectedShapeForReshape("");
     setEditingLessonId(null);
     setEditTitle("");
     setEditContent("");
@@ -1426,16 +1430,12 @@ export function EnhanceLessonForm({
     });
 
     if (result.success && result.shaped_content) {
-      // Update viewer toggle state immediately (Session A -- toggle UI unchanged per Rule R6).
-      setLocalShapedContent(result.shaped_content);
-      setLocalShapeId(shapeId);
-      setReshapeViewMode('shaped');
       setShowReshapeSection(false);
 
-      // Session A change: reshape now saves as a NEW lessons row server-side.
-      // If the Edge Function returned the row, add it to local state so the
-      // Lesson Library sees it without a refetch. Session B will replace the
-      // viewer toggle with a redirect to the new lesson.
+      // Session A: reshape saves as a NEW lessons row server-side. Add it
+      // to local state so the Lesson Library sees the new "View Reshaped"
+      // link on the parent card without a refetch. Session B: viewer
+      // toggle removed -- user opens the reshape via that link.
       if (result.lesson) {
         addReshapedLesson(result.lesson);
       }
@@ -1461,13 +1461,8 @@ export function EnhanceLessonForm({
   // SSOT: Business rule from pricingConfig.ts
   const isFreeOutputOnly = !isPaidUser && subLessonsUsed > PRICING_DISPLAY.free.complimentaryFullLessons;
   
-  // Compute lesson content for export based on subscription status and reshape view mode
+  // Compute lesson content for export based on subscription status
   const lessonContentForExport = (() => {
-    // Phase 27: Use shaped content when viewing reshaped version
-    if (reshapeViewMode === 'shaped' && localShapedContent) {
-      return localShapedContent;
-    }
-    // Original content path
     if (!currentLesson?.original_text) return "";
     return isFreeOutputOnly
       ? getFreeTierContentForExport(currentLesson.original_text, FREE_SECTIONS)
@@ -2494,7 +2489,7 @@ export function EnhanceLessonForm({
                     : 'Reshape requires at least one lesson credit remaining';
                   const ariaLabel = isLocked
                     ? `Reshape, ${lockReason}`
-                    : (localShapedContent ? 'Reshape again' : 'Reshape lesson');
+                    : 'Reshape lesson';
                   return (
                     <Button
                       variant="outline"
@@ -2511,7 +2506,7 @@ export function EnhanceLessonForm({
                     >
                       <Layers className="h-4 w-4" aria-hidden="true" />
                       <span className="hidden sm:inline">
-                        {localShapedContent ? "Reshape Again" : "Reshape"}
+                        Reshape
                       </span>
                     </Button>
                   );
@@ -2772,45 +2767,6 @@ export function EnhanceLessonForm({
               </div>
             )}
 
-            {/* ============================================================ */}
-            {/* PHASE 27: LESSON SHAPES ? Original / Shaped Toggle */}
-            {/* Shows when shaped content exists (from this session or DB) */}
-            {/* ============================================================ */}
-            {localShapedContent && localShapeId && viewingLesson && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-primary/5 to-blue-50 border border-primary/20 rounded-lg">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Lesson View:</span>
-                  </div>
-                  <div className="flex rounded-lg border border-primary/40 overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setReshapeViewMode('original')}
-                      className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        reshapeViewMode === 'original'
-                          ? "bg-primary text-white"
-                          : "bg-card text-muted-foreground hover:bg-primary/10"
-                      }`}
-                    >
-                      Original (8 Sections)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setReshapeViewMode('shaped')}
-                      className={`px-4 py-2 text-sm font-medium transition-colors ${
-                        reshapeViewMode === 'shaped'
-                          ? "bg-primary text-white"
-                          : "bg-card text-muted-foreground hover:bg-primary/10"
-                      }`}
-                    >
-                      {getShapeById(localShapeId as ShapeId)?.shortName || "Shaped"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Teaser Section - Only show in Full mode */}
             {currentLesson.metadata?.teaser && lessonViewMode === "full" && (
               <div className="mb-3 p-2.5 bg-primary/5 border border-primary/30 rounded-lg">
@@ -2841,52 +2797,7 @@ export function EnhanceLessonForm({
 
             {/* Lesson Content - Section by Section */}
             <div className="prose-sm max-w-none space-y-3">
-              {/* Phase 27: Show shaped content when in shaped view mode */}
-              {reshapeViewMode === 'shaped' && localShapedContent ? (
-                (() => {
-                  // Parse shaped content into visual sections, split on --- dividers
-                  const rawSections = localShapedContent.split(/\n---\n/);
-                  
-                  return rawSections.map((section, idx) => {
-                    const trimmed = section.trim();
-                    if (!trimmed) return null;
-                    
-                    // Format section: convert markdown to HTML
-                    // Uses same approach as formatSectionContent() for original sections
-                    const formatted = normalizeLegacyContent(trimmed)
-                      // Remove bare # on its own line
-                      .replace(/^#\s*$/gm, '')
-                      // Collapse 2+ consecutive newlines to exactly one blank line
-                      .replace(/\n{3,}/g, '\n\n')
-                      // ### sub-sub-headings
-                      .replace(/^### (.*?)$/gm, '<strong>$1</strong>')
-                      // ## sub-headings (Focus, Discover, Respond, etc.)
-                      .replace(/^## (.*?)$/gm, '<strong>$1</strong>')
-                      // # major headings (TEACHER PREPARATION, STUDENT HANDOUT)
-                      .replace(/^# (.*?)$/gm, '<strong>$1</strong>')
-                      // Bold
-                      .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-                      // Match original: \n\n ? <br><br>, \n ? <br>
-                      .replace(/\n\n/g, "<br><br>")
-                      .replace(/\n/g, "<br>");
-                    
-                    return (
-                      <div
-                        key={idx}
-                        className="bg-muted p-3 rounded-lg"
-                      >
-                        <div
-                          className="whitespace-pre-wrap text-sm overflow-auto"
-                          style={{ lineHeight: "1.4" }}
-                          dangerouslySetInnerHTML={{ __html: formatted }}
-                        />
-                      </div>
-                    );
-                  });
-                })()
-              ) : (
-              /* Original content ? existing section-by-section rendering */
-              (() => {
+              {(() => {
                 const sections = parseLessonSections(currentLesson.original_text || "", FREE_SECTIONS);
                 
                 // If no structured sections found, show original content
@@ -2897,10 +2808,13 @@ export function EnhanceLessonForm({
                       style={{ lineHeight: "1.3" }}
                       dangerouslySetInnerHTML={{
                         __html: convertInlineMarkdown(
-                          normalizeLegacyContent(currentLesson.original_text || "")
-                            .replace(/## (.*?)(?=\n|$)/g, '<h2 class="text-base font-bold mt-2 mb-1">$1</h2>')
+                          convertHeadingsToHtml(
+                            normalizeLegacyContent(currentLesson.original_text || "")
+                          )
                         )
                           .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')
+                          .replace(/(<\/h[1-4]>)[ \t]*\n+/g, '$1')
+                          .replace(/\n+[ \t]*(<h[1-4][^>]*>)/g, '$1')
                           .replace(/\n\n/g, "<br><br>")
                           .replace(/\n/g, "<br>"),
                       }}
@@ -2967,8 +2881,7 @@ export function EnhanceLessonForm({
                     );
                   }
                 });
-              })()
-              )}
+              })()}
             </div>
 
             {/* Upgrade CTA - Only show in Free mode for free users */}

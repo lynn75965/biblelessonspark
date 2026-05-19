@@ -14,7 +14,7 @@
  * - Frontend assembles the complete reshape prompt (from lessonShapeProfiles.ts)
  * - Edge Function is a pure relay -- receives prompt, calls Claude, returns content
  * - Edge Function writes metrics to reshape_metrics table (non-blocking)
- * - This hook does NOT write to the lessons table -- caller uses useLessons.updateLessonShape()
+ * - This hook does NOT write to the lessons table -- the reshape-lesson Edge Function does
  */
 
 import { useState } from "react";
