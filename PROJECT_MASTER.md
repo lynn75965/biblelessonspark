@@ -2,20 +2,32 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 19 Session D (LessonLibrary card-level a11y + SSOT constants):
+- Optional: extract a shared `SeriesSelectorPopover` component used
+  by both `LessonLibrary.tsx` (card-level) and `EnhanceLessonForm.tsx`
+  (viewer-level). Both now carry identical full Rule #22 wiring
+  (aria-expanded, aria-haspopup, role="menu", role="menuitem", Escape
+  closes + returns focus, mousedown click-outside). Two callers still
+  does not strictly require abstraction -- the simplify rule applies
+  -- but a third caller would tip the scale. Originally raised as a
+  Session C carry-forward; Session D made the drift risk concrete by
+  duplicating the wiring across both surfaces verbatim.
+- Operational note: a stale `npm run dev` process caused a "site can't
+  be reached" symptom at localhost:8080 mid-session despite the
+  production build being clean. Resolution was to start a fresh dev
+  server. Add to the standard diagnostic sequence: before any code
+  investigation for a localhost-unreachable report, restart
+  `npm run dev` and re-probe. Browser cache + port still bound by a
+  dying Node process is the recurrence pattern.
+
 Carry-forward from May 19 Session C (Smart deletion + Add to Series in viewer):
-- A11y debt on the card-level "Add to Series" popover in
-  `LessonLibrary.tsx` L752-780. The viewer copy in `EnhanceLessonForm.tsx`
-  was built to full Rule #22 (aria-expanded, aria-haspopup, role="menu",
-  role="menuitem", Escape closes + returns focus, mousedown click-outside,
-  focus return on selection). The card copy still has none of those.
-  Recommended next pass: extract a shared `SeriesSelectorPopover`
-  component used by both surfaces so the patterns cannot drift again.
 - Optional: extract a shared `useAddLessonToSeries` hook. Today the
   handler logic is duplicated in `LessonLibrary.handleAddToSeries`
   (L402-442) and `EnhanceLessonForm.handleAddCurrentLessonToSeries`.
   Both follow identical structure: MAX-position query, +1, link, toast,
   refresh. Two callers does not yet justify abstraction -- revisit if
-  a third surface ever needs the same flow.
+  a third surface ever needs the same flow. (A11y debt sub-item from
+  this session's carry-forward closed in Session D commit `eacc9b3`.)
 
 Carry-forward from May 19 Session B (Reshape UI cleanup + Lesson Library pagination):
 - Verify anti-duplicate reshape by running two reshapes of the same
@@ -113,6 +125,174 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 19, 2026 -- Session D: LessonLibrary card-level a11y + SSOT constants
+
+#### Summary
+
+Three surgical edits to `src/components/dashboard/LessonLibrary.tsx`
+plus their backing SSOT constants. Closes the Session C carry-forward
+on card-level Add-to-Series popover accessibility, and replaces four
+magic numbers and one hardcoded table-name string literal with SSOT
+constants. Shipped as commit `eacc9b3`.
+
+#### Tasks
+
+1. **Card-level Add-to-Series popover Rule #22 a11y.** The trigger
+   button gained `id`, `aria-label`, `aria-expanded`, `aria-haspopup`,
+   and an `onKeyDown` handler that closes on Escape and re-focuses the
+   trigger via `document.getElementById(...)?.focus()`. The popover
+   gained `role="menu"`, `aria-label`, `aria-labelledby`, and a `ref`
+   wired to a new click-outside `useEffect`. The descriptive `<p>`
+   inside the popover got `aria-hidden="true"`. Each option button
+   got `role="menuitem"`. The decorative `ListPlus` icon got
+   `aria-hidden="true"`. The `title` attribute was removed in favor
+   of `aria-label`. Mirrors the viewer-level pattern in
+   `EnhanceLessonForm.tsx` from Session C.
+
+2. **`SERIES_LIMITS` replaces three magic numbers in the Create
+   Series modal.** Discovered during diagnostics that the prompt
+   named `seriesExportConfig.ts` as the SSOT home for series limits,
+   but the actual home is `src/constants/seriesConfig.ts` where
+   `SERIES_LIMITS` already had `minLessons: 2`, `maxLessons: 13`, and
+   `maxSeriesNameLength: 100`. Adding new top-level constants
+   (`SERIES_MIN_LESSONS` etc.) would have created duplicate
+   definitions across two files -- a direct SSOT violation. Lynn
+   chose to extend `SERIES_LIMITS` with `defaultLessons: 4` and
+   consume the object's keys in LessonLibrary. Three magic numbers
+   replaced: `useState(4)`, the reset literal `4` in
+   `handleCreateSeries`, `Array.from({ length: 12 }, (_, i) => i + 2)`,
+   and `maxLength={100}`.
+
+3. **`LESSONS_TABLE` replaces the hardcoded `'lessons'` string.**
+   Added `export const LESSONS_TABLE = 'lessons';` to
+   `src/constants/contracts.ts` (a new TIER 1.5 section). Imported in
+   LessonLibrary and used in `handleAddToSeries`'s
+   `supabase.from(LESSONS_TABLE)` call. `npm run sync-constants` ran
+   after the `contracts.ts` edit per Rule #23; the auto-synced
+   `supabase/functions/_shared/contracts.ts` picked up the constant
+   at line 47.
+
+#### Files touched
+
+1. `src/components/dashboard/LessonLibrary.tsx`:
+   - `useRef` added to the React import.
+   - `LESSONS_TABLE` added to the `@/constants/contracts` import.
+   - `SERIES_LIMITS` imported from `@/constants/seriesConfig`.
+   - `seriesPopoverRef = useRef<HTMLDivElement>(null)` declared next
+     to `addToSeriesOpenId` state.
+   - New `useEffect` registers a `mousedown` click-outside listener
+     when the popover is open; cleans up on close.
+   - `useState(SERIES_LIMITS.defaultLessons)` replaces the literal
+     `4` at the initial value and at the reset in
+     `handleCreateSeries`.
+   - `supabase.from(LESSONS_TABLE)` replaces `supabase.from('lessons')`
+     in `handleAddToSeries`.
+   - The Add-to-Series trigger `<Button>` and popover `<div>` (and
+     children) gained the full Rule #22 wiring described above.
+   - The dropdown options use
+     `Array.from({ length: SERIES_LIMITS.maxLessons - SERIES_LIMITS.minLessons + 1 }, (_, i) => i + SERIES_LIMITS.minLessons)`.
+   - The series-name input uses
+     `maxLength={SERIES_LIMITS.maxSeriesNameLength}`.
+2. `src/constants/seriesConfig.ts`:
+   - `SERIES_LIMITS` extended with `defaultLessons: 4`. No new top-
+     level exports; the four values consumed by LessonLibrary all
+     come from the single `SERIES_LIMITS` object.
+3. `src/constants/contracts.ts`:
+   - New "TIER 1.5: Database Table Names (SSOT)" section.
+   - `export const LESSONS_TABLE = 'lessons';` at line 41.
+4. `supabase/functions/_shared/contracts.ts`:
+   - Auto-synced from `src/constants/contracts.ts` by
+     `npm run sync-constants`. No hand edits. `LESSONS_TABLE`
+     mirrored to line 47.
+
+#### Verified before push
+
+- `npm run build` clean: 3941 modules transformed, 22.31s, zero
+  TypeScript errors.
+- ASCII guard: 0 non-ASCII bytes on all four modified files. Verified
+  by byte-level Node check before commit; pre-commit hook ran on
+  commit as well.
+- `npm run sync-constants`: ran successfully after the
+  `contracts.ts` edit. All 14 FILES_TO_SYNC entries synced cleanly.
+- Localhost verification (Lynn): approved at localhost:8080.
+- Dev server health probe mid-session (responding to the "site
+  can't be reached" report): HTTP 200 in 28ms, LessonLibrary.tsx
+  transformed cleanly, all imports resolved. Root cause was a stale
+  prior dev server, not the code.
+
+#### Deploy
+
+Bypassed `deploy.ps1` (which runs `git add .`) to keep the two
+deferred diagnostic SQL files (`DIAGNOSE_AUTH_FUNCTIONS.sql`,
+`DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`) untracked, consistent with
+Sessions A, B, C and earlier sessions. Manual `git add` of the four
+task files only. Commit `eacc9b3`. Pushed to origin/main.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): full reads of LessonLibrary.tsx,
+  `seriesExportConfig.ts`, `contracts.ts`, and `seriesConfig.ts`
+  before any edit. Grep across `src/constants/**` to confirm no
+  existing `LESSONS_TABLE` / `TABLE_NAMES` constant.
+- Rule #2 (complete solutions): no partial fixes; all three tasks
+  shipped in one commit.
+- Rule #4 (dependency chain): all four files in one commit.
+- Rule #5 (clean build before deploy): confirmed.
+- Rule #9 (single branch): commit on `main`. Push to `main`.
+- Rule #14 (state uncertainty plainly): mid-session "site can't be
+  reached" report. Reported diagnostic findings before proposing
+  any fix. Made no code change; root cause was stale dev server,
+  not code.
+- Rule #16 (escape sequences for non-ASCII): no non-ASCII bytes
+  introduced.
+- Rule #22 (a11y): closed the card-level popover debt that Session C
+  carried forward. The new card-level wiring is behaviorally
+  equivalent to the viewer-level pattern.
+- Rule #23 (sync-constants after FILES_TO_SYNC edit): ran after the
+  `contracts.ts` edit. All 14 files synced.
+- Rule #24 (hand-maintained `_shared/` files): no changes needed.
+  `_shared/seriesConfig.ts` already exports `MAX_SERIES_LESSONS` /
+  `MIN_SERIES_LESSONS` for backend use; nothing consumed by an Edge
+  Function changed in Session D so no manual mirror update was
+  required.
+
+#### SSOT conflict resolved
+
+The Session D prompt named `seriesExportConfig.ts` as the SSOT home
+for series limits. Diagnostic reads showed:
+- `seriesExportConfig.ts` had none of the four needed constants.
+- `seriesConfig.ts` (a separate file) already had three of the four
+  inside `SERIES_LIMITS`.
+- `_shared/seriesConfig.ts` already mirrored `MAX_SERIES_LESSONS`
+  and `MIN_SERIES_LESSONS` as separate exports.
+
+Adding the four constants to `seriesExportConfig.ts` as the prompt
+suggested would have duplicated three values already in
+`seriesConfig.ts` -- a direct violation of the "NO duplicate
+definitions anywhere in the codebase" SSOT rule. Per the precedent
+saved in `feedback_session1_findings_precedence.md`, flagged the
+conflict to Lynn before writing code. Lynn chose Option 1: extend
+the existing `SERIES_LIMITS` object with `defaultLessons: 4`. No
+new constants in `seriesExportConfig.ts`.
+
+#### Traps encountered
+
+1. **"Site can't be reached" report not attributable to code.**
+   Mid-session Lynn reported localhost:8080 was unreachable after
+   the last commit. Followed the diagnostic protocol with no fixes
+   proposed: `npm run dev` came up clean (346ms, zero errors), HTTP
+   probe returned 200, LessonLibrary.tsx transformed cleanly, all
+   imports resolved, no duplicate BRANDING imports. Root cause was
+   a stale dev server process from before the session that left the
+   browser-visible error state; a fresh `npm run dev` cleared it.
+   Captured in WHAT'S NEXT as an operational diagnostic note.
+
+#### Carry-forward into next session
+
+Captured in WHAT'S NEXT at the top of this file.
 
 ---
 
