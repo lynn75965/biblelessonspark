@@ -2,6 +2,21 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 19 Session C (Smart deletion + Add to Series in viewer):
+- A11y debt on the card-level "Add to Series" popover in
+  `LessonLibrary.tsx` L752-780. The viewer copy in `EnhanceLessonForm.tsx`
+  was built to full Rule #22 (aria-expanded, aria-haspopup, role="menu",
+  role="menuitem", Escape closes + returns focus, mousedown click-outside,
+  focus return on selection). The card copy still has none of those.
+  Recommended next pass: extract a shared `SeriesSelectorPopover`
+  component used by both surfaces so the patterns cannot drift again.
+- Optional: extract a shared `useAddLessonToSeries` hook. Today the
+  handler logic is duplicated in `LessonLibrary.handleAddToSeries`
+  (L402-442) and `EnhanceLessonForm.handleAddCurrentLessonToSeries`.
+  Both follow identical structure: MAX-position query, +1, link, toast,
+  refresh. Two callers does not yet justify abstraction -- revisit if
+  a third surface ever needs the same flow.
+
 Carry-forward from May 19 Session B (Reshape UI cleanup + Lesson Library pagination):
 - Verify anti-duplicate reshape by running two reshapes of the same
   shape on the same lesson on the live site once Anthropic API
@@ -98,6 +113,308 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 19, 2026 -- Session C: Smart lesson deletion + Add to Series in viewer
+
+#### Summary
+
+Deleting a lesson now warns the teacher about both cascade
+consequences before any row is removed. If the lesson belongs to a
+series the dialog names that series. If the lesson has reshape
+children every child title is listed. A single composed
+`window.confirm` dialog covers all applicable warnings (Rule DEL2).
+On confirm the children are deleted before the parent (Rule DEL3) so
+the FK's `ON DELETE SET NULL` never fires and never orphans rows.
+Local state is updated in a single pass (Rule DEL4). The viewer also
+gained a Delete button so reshape lessons (which have no card-level
+Delete) can be removed from where the user is reading them, and an
+Add to Series button so reshape lessons can be filed into a series.
+
+Same session also captured a production incident: `generate-lesson`
+failed to boot with `module does not provide an export named
+'buildConsistentStyleContext'`. Hotfix patched the hand-maintained
+`_shared/seriesConfig.ts` to add the four runtime symbols
+`_shared/freshnessOptions.ts` and `generate-lesson/index.ts` import
+from it. Shipped to prod as commit `d1a7f41` before Session C
+resumed. Recorded as its own entry below.
+
+#### Files touched
+
+1. `src/utils/lessonDeletion.ts` -- NEW pure helper module. No React,
+   no Supabase. Exports:
+   - `SeriesLite` -- structural type so callers can pass any
+     `{id, series_name}` without dragging the full `LessonSeries`.
+   - `CascadeInfo` -- precomputed snapshot of `{lesson,
+     reshapeChildren, seriesName, isReshape}`.
+   - `buildCascadeInfo(lesson, allLessons, allSeries)` -- derives
+     children from the local lessons array and series name from
+     allSeries. No network. If a lesson belongs to a series outside
+     the `IN_PROGRESS`/`COMPLETED` filter that
+     `useSeriesManager.fetchAllSeries()` applies, `seriesName` falls
+     back to null and the dialog uses the no-series branch
+     (intentional graceful degrade -- the lesson still gets deleted,
+     just without the named-series line in the warning).
+   - `buildDeleteConfirmation(info)` -- composes the
+     `window.confirm` text. Four shapes: reshape-only (with or
+     without series), original with both series and children,
+     original with series only, original with children only, plain
+     original. Title extraction uses a straight-quote-only regex
+     after curly-quote literals tripped the ASCII guard repeatedly --
+     curly quotes in titles pass through into the dialog intact.
+   - `buildDeleteSuccessToast(info)` -- picks "Reshape deleted" /
+     `Lesson and N reshape(s) deleted` / "Lesson deleted" per
+     Rule DEL6.
+2. `src/hooks/useLessons.tsx` -- extended `deleteLesson` from
+   `(lessonId) => Promise<void>` to
+   `(lessonId, options?: { childrenIds?: string[] }) => Promise<{success: boolean}>`.
+   When `childrenIds` is non-empty the hook fires
+   `DELETE FROM lessons WHERE id IN (...children...)` BEFORE
+   `DELETE FROM lessons WHERE id = parent` (Rule DEL3) so
+   `ON DELETE SET NULL` never gets a chance to orphan children.
+   Single `setLessons` call removes the parent and every child in one
+   pass (Rule DEL4). Success-toast ownership moved to the caller
+   (Rule DEL6 wording varies per case). Destructive failure-toast
+   stays in the hook.
+3. `src/components/dashboard/LessonLibrary.tsx`:
+   - Added imports from `@/utils/lessonDeletion`.
+   - `handleDelete` rewritten: takes full `Lesson` instead of just an
+     id, builds cascade info, fires composed `window.confirm`, calls
+     hook with `childrenIds`, picks toast per case.
+   - Card Delete button onClick updated to pass the full row and
+     gained `aria-label` (Rule #22). Decorative `Trash2` carries
+     `aria-hidden="true"`.
+4. `src/components/dashboard/EnhanceLessonForm.tsx`:
+   - Lucide imports: added `Trash2`, `ListPlus`.
+   - shadcn imports: added `Badge` (was missing from this file).
+   - `useLessons` destructure extended with `lessons`, `deleteLesson`,
+     `refetch: refetchLessons`.
+   - `useSeriesManager` destructure extended with `allSeries`,
+     `fetchAllSeries`. (Note: `linkLessonToSeries` was already in the
+     destructure from prior work -- caught and removed a duplicate
+     declaration during the build.)
+   - Mount-time `useEffect(() => { fetchAllSeries(); }, [])`.
+   - State for the Add-to-Series popover: `addToSeriesOpen`,
+     `addingToSeries`, plus `addToSeriesTriggerRef` and
+     `addToSeriesPopoverRef` for a11y.
+   - Popover lifecycle `useEffect` registers document-level
+     `keydown` (Escape closes, returns focus to trigger) and
+     `mousedown` (click-outside closes) when open; cleans up on close.
+   - `handleAddCurrentLessonToSeries(seriesId)` mirrors
+     `LessonLibrary.handleAddToSeries` exactly: MAX-position query,
+     +1, link, toast, `refetchLessons()`, close popover, focus
+     returns to trigger via `requestAnimationFrame` (deferred one
+     frame so the popover unmounts before focus moves).
+   - `handleDeleteCurrentLesson()` uses the same cascade helpers as
+     LessonLibrary, and on success calls `onClearViewing()` to close
+     the viewer and return to the library (Rule DEL5 -- no new prop
+     needed; the existing prop already handles full cleanup including
+     navigation back from the series-origin case).
+   - Action row JSX, between `<LessonExportButtons>` (Publish is its
+     last button) and Edit Lesson:
+     - IIFE that resolves the "live" series state by looking up the
+       row in the refreshed `lessons` array (so the In Series badge
+       appears immediately after a successful add -- the viewingLesson
+       prop is stale until Dashboard reselects).
+     - If `liveSeriesId` is set: render the In Series badge that
+       navigates to Series Library with that series expanded.
+     - If no series exists yet (`allSeries.length === 0`): render
+       nothing (matches the card-level gate).
+     - Otherwise: render the trigger button with
+       `aria-haspopup="menu"`, `aria-expanded={addToSeriesOpen}`, and
+       a context-aware `aria-label` ("Add this reshape to a series"
+       vs "Add this lesson to a series"). When open, render the
+       popover with `role="menu"` and one `role="menuitem"` per
+       series in `allSeries`.
+   - Action row JSX, between the reshape spinner and Back to Library:
+     Delete button. `Trash2 aria-hidden="true"`; `aria-label` varies
+     by `reshape_of`; `tabIndex={0}`; `onKeyDown` activates on Enter
+     and Space. Hidden while editing.
+
+#### Hook signature change (consumer audit)
+
+`deleteLesson` is the only signature change in this session. Grep on
+the new signature in `src/`: two callers --
+`LessonLibrary.handleDelete` and `EnhanceLessonForm.handleDeleteCurrentLesson`.
+Both pass `{childrenIds}` for cascade rows. Both check the returned
+`{success}` boolean before toasting and before any side effect.
+
+#### Verified before push
+
+- ASCII guard: 0 non-ASCII bytes on all 4 source files.
+- BRANDING duplicate-import sweep: same 4 false-positive basenames
+  (Header.tsx, Footer.tsx, Admin.tsx, tenantConfig.ts) Sessions A and
+  B inspected -- none touched this session.
+- `npm run build` clean: 3941 modules (+1 vs Session B baseline of
+  3940 -- new `lessonDeletion.ts` module), 23.69s, zero TypeScript
+  errors. One build error was caught and fixed in the same run --
+  duplicate `linkLessonToSeries` declaration -- before the final
+  clean build.
+- Localhost verification (Lynn): full Delete + Add-to-Series test
+  pass at localhost:8080. Verified.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): targeted reads of every consumer
+  before each edit; full Step 1 diagnostic report before any code.
+- Rule #2 (complete solutions): no partial fixes.
+- Rule #4 (dependency chain): all 4 source files deploy in one
+  commit; no constants/types/Edge-Function changes.
+- Rule #5 (npm run build clean): clean post-fix.
+- Rule #6 (no stale overwrites): Edits applied in place.
+- Rule #22 (accessibility):
+  - Card Delete trigger: aria-label, aria-hidden on icon.
+  - Viewer Delete trigger: tabIndex 0, aria-label varies, aria-hidden
+    on icon, onKeyDown handles Enter and Space.
+  - Viewer Add-to-Series trigger: aria-haspopup="menu",
+    aria-expanded reflects state, aria-label varies for reshape
+    vs original, aria-hidden on icon.
+  - Viewer Add-to-Series popover: role="menu" with aria-label,
+    role="menuitem" on every option, focus-visible styles, focus
+    returns to trigger on every close path (selection, Escape,
+    click-outside).
+  - All buttons remain reachable while in tab order; nothing hidden
+    via display:none.
+- Rule DEL1 (fetch before confirm): cascade info built from already-
+  loaded `lessons` + `allSeries`. No extra Supabase query.
+- Rule DEL2 (one dialog): single composed `window.confirm` per
+  delete; no chained prompts.
+- Rule DEL3 (children first): two-step delete in the hook with the
+  child `.in('id', ...)` running before the parent `.eq('id', ...)`.
+- Rule DEL4 (single state update): one `setLessons` after both server
+  deletes succeed.
+- Rule DEL5 (viewer closes): `handleDeleteCurrentLesson` calls
+  `onClearViewing()` on success -- existing prop, no new wiring.
+- Rule DEL6 (specific toasts): `buildDeleteSuccessToast` returns the
+  right wording; failure toast stays in the hook.
+- Rule DEL7 (Delete button): viewer button uses Trash2 (now imported
+  in EnhanceLessonForm), destructive hover styling, aria-label
+  context-aware on reshape vs original, tabIndex 0, Enter/Space
+  handler, hidden while editing.
+
+#### Traps encountered
+
+1. **Non-ASCII curly quotes in regex literals.** The first draft of
+   `lessonDeletion.ts` matched both straight and curly quotes in the
+   title-extraction regex (`["“”]?`). The Edit tool kept
+   normalizing the `\uXXXX` escapes back into glyphs and PowerShell
+   here-strings carried the glyph bytes through unchanged. Three
+   round-trips of "convert via byte-level replace" failed. Resolution:
+   drop curly-quote matching entirely -- a rare case in lesson
+   titles, and curly quotes still pass through into the dialog
+   message intact. Memory note `feedback_unicode_escape_traps` was
+   the right warning but the simplest fix was to remove the
+   requirement rather than wrestle with the encoding.
+2. **Duplicate `linkLessonToSeries` declaration.** The
+   `useSeriesManager` destructure in EnhanceLessonForm already
+   pulled `linkLessonToSeries` from prior series-creation work.
+   I added it again when wiring the new Add-to-Series handler.
+   esbuild caught it on the first build. Fixed by removing the
+   duplicate from the new addition.
+3. **Stale `currentLesson.series_id` after successful add.**
+   `currentLesson` derives from `viewingLesson` (Dashboard prop)
+   which does not change when the local `lessons` array is
+   refetched. Without a fix, the In Series badge would only appear
+   on the next viewer mount. Resolution: a small IIFE in the JSX
+   does a live lookup against `lessons` keyed by `currentLesson.id`
+   to pick the freshest `series_id`. Cheap, no React state shuffle,
+   pattern can be reused for any future viewer surface that needs
+   live-state.
+
+#### Carry-forward into next session
+
+Captured in WHAT'S NEXT at the top of this file.
+
+---
+
+### May 19, 2026 -- Production hotfix: generate-lesson boot error
+
+#### Summary
+
+User-reported outage. `generate-lesson` Edge Function failed to boot
+with:
+
+  `Uncaught SyntaxError: The requested module './seriesConfig.ts'`
+  `does not provide an export named 'buildConsistentStyleContext'`
+
+Session C was in progress; halted, diagnosed, patched, redeployed.
+Session C resumed afterward and shipped in a separate commit.
+
+#### Diagnosis
+
+`_shared/freshnessOptions.ts:1053-1059` re-exports four runtime
+symbols from `_shared/seriesConfig.ts`:
+- `SeriesStyleMetadata` (type)
+- `buildConsistentStyleContext`
+- `buildStyleExtractionPrompt`
+- `parseStyleMetadata`
+- `removeStyleMetadataFromContent`
+
+`_shared/freshnessOptions.ts` is in `FILES_TO_SYNC` (Rule #23) so the
+re-export line was correctly mirrored from frontend. But
+`_shared/seriesConfig.ts` is hand-maintained (Rule #24) and was a
+10-line stub exporting only `MAX_SERIES_LESSONS` and
+`MIN_SERIES_LESSONS` -- it never received the runtime symbols that
+the frontend `src/constants/seriesConfig.ts` had added. Session A's
+deploy of `generate-lesson` may have predated the sync, or the
+worker boot path is only exercised on a true cold start; either way
+the function was broken on the current production deploy.
+
+Direct second consumer: `generate-lesson/index.ts:20` imports the
+same four symbols directly from `_shared/seriesConfig.ts`. Two
+import paths into the missing symbols.
+
+#### Fix
+
+Patched `_shared/seriesConfig.ts` to add the `SeriesStyleMetadata`
+interface plus the four runtime functions, ported verbatim from
+`src/constants/seriesConfig.ts`. Confirmed via grep that no other
+backend code imports any of the other functions in the frontend
+file (continuity helpers, summary parsing, etc.) -- left out per
+Rule #24 minimal-surface policy.
+
+Two deploys this session:
+1. First deploy added only `SeriesStyleMetadata` +
+   `buildConsistentStyleContext`. Caught the three-more-symbols
+   drift on a proactive grep before declaring victory.
+2. Second deploy added the remaining three. Verified ASCII clean,
+   deploy succeeded, dashboard logs confirmed clean boot.
+
+Shipped to prod as commit `d1a7f41` ahead of Session C resume.
+
+#### Files touched
+
+`supabase/functions/_shared/seriesConfig.ts` -- 10 lines to 134
+lines. Comment header documents that this file is hand-maintained
+and exists in the FILES_TO_SYNC blocklist by design.
+
+#### Rule satisfaction
+
+- Rule #1 (verify): four targeted reads (`_shared/freshnessOptions.ts`
+  L1053-1059, `_shared/seriesConfig.ts`, `src/constants/seriesConfig.ts`,
+  full `supabase/functions/` grep) before any patch.
+- Rule #24 (hand-maintained `_shared/`): four runtime symbols added to
+  match what backend code actually imports. Untouched: the additional
+  prompt-builder and parser functions from the frontend file that no
+  backend code references.
+- Rule #5 (clean build before deploy): no frontend build needed --
+  Edge Function deploy via `npx supabase functions deploy
+  generate-lesson --use-api` succeeded twice.
+
+#### Traps encountered
+
+1. **Incomplete first patch.** Initial fix added only the two symbols
+   named in the error message. Proactive full-tree grep before
+   declaring victory caught three more re-exported symbols that
+   would have thrown the same error on the next cold start. Lesson
+   for future: when adding to a hand-maintained `_shared/` mirror,
+   always grep the full backend tree for ANY import from that file
+   to scope the port, not just the symbol named in the active error.
+2. **CLI `functions logs` subcommand does not exist.** Supabase CLI
+   v2.100.1 exposes only `list`, `delete`, `download`, `deploy`,
+   `new`, `serve` under `functions`. Same blocker as Session A. Log
+   verification has to happen from the dashboard.
 
 ---
 
