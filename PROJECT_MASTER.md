@@ -1,30 +1,25 @@
-# PROJECT MASTER -- Last updated: May 18, 2026
+# PROJECT MASTER -- Last updated: May 19, 2026
 
 ## WHAT'S NEXT
 
-Carry-forward from May 18 Session A (Reshape-as-lesson foundation):
-- Session B work (NOT done in Session A): in `EnhanceLessonForm.tsx`,
-  remove the legacy "Original (8 sections) / shape name" viewer toggle
-  and the associated `shaped_content` plumbing (`localShapedContent`,
-  `setLocalShapedContent`, `localShapeId`, `reshapeViewMode`,
-  `setReshapeViewMode`, the `useEffect` at L1366 that initializes from
-  `viewingLesson.shaped_content`). After reshape now opens its own full
-  viewer via the "View Reshaped" link, the inline toggle is dead UI.
-  Also remove `updateLessonShape` / `clearLessonShape` from
-  `useLessons.tsx` after confirming no remaining consumers.
-- Session B work: `LessonLibrary.tsx` still has the LEGACY
-  `shaped_content` expander block (around L744). It only fires for
-  parent rows that have the old-flow `shaped_content` set. Remove it
-  once those legacy rows have been migrated (the new "View Reshaped"
-  link below opens the full viewer for reshape children, which is the
-  intended path going forward).
-- Session B work: pagination + reshape browse/search display in
-  `LessonLibrary.tsx`. Currently reshapes are hidden from the grid and
-  only surfaced via the parent card's "View Reshaped" link.
+Carry-forward from May 19 Session B (Reshape UI cleanup + Lesson Library pagination):
 - Verify anti-duplicate reshape by running two reshapes of the same
   shape on the same lesson on the live site once Anthropic API
   stabilizes. The anti-duplicate suffix is deployed but was not
-  smoke-tested this session due to repeated 529 errors.
+  smoke-tested in Session A due to repeated 529 errors. The Session B
+  duplicate-shape numbering ("Story-Driven 1", "Story-Driven 2") makes
+  the verification self-evident at the parent card.
+- Future-look: with the reshape-as-lesson foundation complete and the
+  legacy toggle removed, decide whether shape exports (PDF/DOCX) should
+  pull from a reshape child's `original_text` or continue reading the
+  legacy `lesson.shaped_content ?? lesson.original_text` fallback.
+  Pre-Session-A rows still have `shaped_content` on the parent and
+  exports fall back to that today (`buildBookletPdf`, `buildSeriesPdf`,
+  `buildSeriesDocx`, `buildHandoutBooklet`). Once those legacy rows are
+  migrated or retired, the fallback can be cleaned out of the export
+  utilities. Not urgent.
+
+Carry-forward from May 18 Session A (Reshape-as-lesson foundation):
 - Optional cleanup: the contracts.ts `Lesson` interface still has
   `theology_profile_id?: TheologyProfileId | null;` but the live
   `lessons` table does NOT have that column (confirmed by Lynn's
@@ -39,7 +34,8 @@ Carry-forward from May 18 Session A (Reshape-as-lesson foundation):
 - The two root-level diagnostic SQL files (`DIAGNOSE_AUTH_FUNCTIONS.sql`,
   `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`) remain untracked. Session A
   bypassed `deploy.ps1` and used manual `git add` of only the 14 task
-  files. Still deferred.
+  files. Session B did the same (manual `git add` of 4 task files plus
+  PROJECT_MASTER.md). Still deferred.
 
 Carry-forward from May 17 Session 2 (Admin delete for published blog posts):
 - Marketing Panel "Amp Articles," "Newsletter," and "Email Marketing" tabs
@@ -102,6 +98,221 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 19, 2026 -- Session B: Reshape UI cleanup + Lesson Library pagination
+
+#### Summary
+
+The legacy reshape viewer toggle and the legacy parent-row
+`shaped_content` expander in the library are both gone. The Lesson
+Library now paginates at 15 cards per page with Previous/Next controls
+and a live page indicator. Two follow-on fixes shipped in the same
+session: heading markers (`#`, `##`, `###`, `####`) now render as HTML
+headings so raw `#` characters no longer leak to the viewer, and
+duplicate "View Reshaped" link labels are numbered when a parent has
+multiple reshapes of the same shape.
+
+#### Architectural decision -- pagination is client-side, not `range()`
+
+Rule P4 of the session prompt prescribed server-side `range()` +
+`count: 'exact'` pagination mirroring `Blog.tsx`. Two architectural
+realities pushed us to client-side slicing instead, with Lynn's
+explicit approval before any code was written:
+
+1. `useLessons` is shared with `EnhanceLessonForm`, `useSeriesManager`,
+   and the new `reshapeChildrenByParent` map in `LessonLibrary`. A
+   single-page fetch would have hidden reshape children from parents
+   on other pages and broken the map.
+2. All four LessonLibrary filters (passage, title, age group, theology
+   profile) are client-side. Server-side pagination would have scoped
+   them to the current 15 rows -- degraded UX. Fixing that meant
+   moving every filter into the Supabase query plus a parallel search
+   mode for the full filtered set. Disproportionate scope.
+
+Client-side slicing keeps `useLessons` unchanged, keeps every filter
+working, keeps `reshapeChildrenByParent` intact, and matches the
+realistic data volume for a single teacher's library.
+
+#### Files touched
+
+1. `src/components/dashboard/EnhanceLessonForm.tsx` -- removed the
+   legacy toggle in full:
+   - `onLessonShapeUpdated` prop deleted from interface + destructure
+     (zero parent consumers).
+   - `reshapeViewMode`, `localShapedContent`, `localShapeId` useState
+     declarations deleted.
+   - useEffect at the old L1368 restructured -- editor-reset half
+     retained, reshape-init half deleted.
+   - `handleReshapeLesson` no longer writes to the three deleted
+     state setters; still calls `addReshapedLesson(result.lesson)`.
+   - `lessonContentForExport` simplified (no shaped branch).
+   - Reshape button aria-label collapsed to `'Reshape lesson'`;
+     button text collapsed to `"Reshape"`.
+   - "Original (8 Sections) / shape name" toggle JSX deleted.
+   - Conditional shaped/original rendering ternary unwrapped to the
+     original branch only.
+   - Added module-scope `convertHeadingsToHtml(text)` helper that
+     strips bare `#`/`##`/`###`/`####` lines and converts heading
+     lines to `<h1>`-`<h4>` tags. Wired into both `formatSectionContent`
+     and the unstructured-content fallback render path. Order matters:
+     heading conversion runs BEFORE `\n -> <br>` replacement so line
+     anchors still match. After conversion, `\n` adjacent to
+     `</h1-4>` and `<h1-4 ...>` are collapsed to avoid stray
+     `<br><br>` between block-level headings.
+2. `src/components/dashboard/LessonLibrary.tsx`:
+   - Legacy `shaped_content` expander block deleted in full (chevron
+     button + expanded panel + Copy button + 600-char preview).
+   - Dead state `reshapeExpandedId` and helper `renderMarkdown`
+     removed. `ChevronUp`, `ChevronDown`, `Copy` imports pruned.
+   - Module-scope `LESSONS_PER_PAGE = 15`.
+   - Component state `currentPage` added.
+   - useEffect resets `currentPage` to 0 whenever any of
+     `[searchPassage, searchTitle, ageFilter, profileFilter, scope]`
+     changes.
+   - Derived `totalPages`, `safePage`, `pagedLessons` after
+     `filteredLessons`. `safePage` guards against the case where
+     deleting the final card on the last page would otherwise leave
+     `currentPage` past the end.
+   - Grid map switched from `filteredLessons.map` to
+     `pagedLessons.map`.
+   - Previous / Next button row added below the grid (Rule P5).
+     Uses `aria-disabled` (Rule #22 -- focusable at boundaries),
+     `aria-label`, `aria-live="polite"` on the indicator. Hidden when
+     `filteredLessons.length <= LESSONS_PER_PAGE` to avoid showing a
+     useless control on tiny libraries.
+   - Reshape-children render block now sorts children by `created_at`
+     ASC and, when a parent has 2+ reshapes of the same shape,
+     appends a 1-indexed suffix to the label
+     ("Story-Driven 1", "Story-Driven 2"). Single reshapes keep the
+     bare shape label. aria-label updated in parallel.
+3. `src/hooks/useLessons.tsx` -- `updateLessonShape` and
+   `clearLessonShape` deleted in full (definitions + return entries).
+   Zero consumers confirmed via grep before deletion (Rule D4).
+   `addReshapedLesson` retained.
+4. `src/hooks/useReshapeLesson.tsx` -- one-line comment update at L17
+   to reflect that the Edge Function writes to `lessons` now, not the
+   client hook.
+
+#### Pagination shape (final)
+
+```ts
+const LESSONS_PER_PAGE = 15;                                  // module scope
+
+const [currentPage, setCurrentPage] = useState(0);            // component
+useEffect(() => { setCurrentPage(0); },
+  [searchPassage, searchTitle, ageFilter, profileFilter, scope]);
+
+const totalPages = Math.max(1, Math.ceil(filteredLessons.length / LESSONS_PER_PAGE));
+const safePage = Math.min(currentPage, totalPages - 1);
+const pagedLessons = filteredLessons.slice(
+  safePage * LESSONS_PER_PAGE,
+  safePage * LESSONS_PER_PAGE + LESSONS_PER_PAGE,
+);
+```
+
+#### Bug fixes in the same commit
+
+**Raw `#` markers in lesson viewer.** Before this session,
+`convertInlineMarkdown` handled only links/bold/italics. Heading
+markers passed straight through and survived the `\n -> <br>`
+replacement -- the user saw literal `#` and `##` characters in the
+rendered lesson. Added `convertHeadingsToHtml` and wired it into both
+render paths (`formatSectionContent` for the structured branch, and
+the unstructured fallback at the top of the viewer's content block).
+
+**Duplicate reshape labels.** When a parent had two reshapes of the
+same shape, the library showed two identical "View Reshaped
+(Story-Driven)" links. The render block now sorts children by
+`created_at` ASC, counts occurrences per `shape_id`, and appends a
+1-indexed suffix only when more than one exists. Single reshapes
+display the bare label exactly as before.
+
+#### Verified before push
+
+- Targeted grep `reshapeViewMode|localShapedContent|localShapeId|onLessonShapeUpdated`
+  across `src/` -- zero matches.
+- Targeted grep `updateLessonShape|clearLessonShape` across `src/` --
+  zero matches (post-cleanup of stale comment in `useReshapeLesson.tsx`).
+- BRANDING duplicate-import sweep -- the same 4 false-positive
+  candidates as Session A (Header.tsx, Footer.tsx, Admin.tsx,
+  tenantConfig.ts -- duplicate basenames across folders, each with
+  exactly one BRANDING import per file). None of those files were
+  touched this session.
+- ASCII guard on all 4 modified source files -- zero non-ASCII bytes.
+- `npm run build` clean after the toggle/expander/pagination work --
+  3940 modules, ~27.6s, zero TypeScript errors. Module count
+  unchanged because no whole files were added or removed -- only
+  intra-file deletions. Build re-run was rejected by Lynn after the
+  two follow-on fixes (Lynn re-verified locally and approved deploy).
+
+#### Localhost verification (Lynn)
+
+Lynn verified the dev server at localhost:8080 -- pagination, reshape
+gates, viewer rendering. Approved deploy. The two issues Lynn flagged
+in that pass were the raw `#` markers (fixed via
+`convertHeadingsToHtml`) and the duplicate reshape labels (fixed via
+the per-shape counting in the render block).
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): targeted reads before every edit,
+  full Step 1 diagnostic report before any code.
+- Rule #2 (complete solutions): no partial fixes.
+- Rule #4 (dependency chain): all 4 source files + PROJECT_MASTER
+  deploy together; no constants/types/Edge Functions changed.
+- Rule #5 (npm run build clean before deploy): clean build after the
+  Session B deletions and pagination. Post-fix rebuild was Lynn's
+  call.
+- Rule #22 (accessibility): pagination uses `aria-disabled` not the
+  HTML `disabled` attribute, `aria-label` on both buttons,
+  `aria-live="polite"` on the indicator. Buttons remain focusable at
+  boundaries. Decorative icons untouched (`aria-hidden` already in
+  place from prior sessions).
+- Rule D1 (consumer audit before deletion): grep confirmed zero
+  external consumers for `updateLessonShape`, `clearLessonShape`,
+  `onLessonShapeUpdated`, `reshapeViewMode`, `localShapedContent`,
+  `localShapeId`.
+- Rule D2 (toggle removal -- no orphan state): all 8 reference sites
+  removed in one pass (state declarations, useEffect block, handler
+  calls, export-ternary, button aria/text, toggle JSX, conditional
+  rendering branch).
+- Rule D3 (do not remove `shaped_content` from types): `contracts.ts`
+  and `types.ts` untouched. Export utilities continue to read
+  `lesson.shaped_content ?? lesson.original_text`.
+- Rule D4 (useLessons cleanup only if zero consumers): confirmed and
+  applied.
+- Rule P1 (Blog.tsx pattern) -- intentionally deviated to client-side
+  slicing; documented above with full reasoning.
+- Rule P2 (15 per page): `LESSONS_PER_PAGE = 15` at module scope.
+- Rule P3 (reset on filter change): useEffect dependencies include
+  all four filters plus `scope`.
+- Rule P5 (Previous/Next): implemented per spec.
+- Rule P6 (reshape children): no extra query needed -- the in-memory
+  `lessons` array still contains every row.
+
+#### Traps encountered
+
+1. **Heading markers weren't converted to HTML anywhere.** The
+   pre-existing `convertInlineMarkdown` handled only links/bold/italics
+   and the only heading replacement was an inline `## -> <h2>` regex
+   in the unstructured-content fallback. Anything with `# Heading` or
+   `### Subheading` rendered as raw `#` characters. Fixed by adding
+   the dedicated `convertHeadingsToHtml` helper.
+2. **Duplicate same-shape labels.** Once reshape children became
+   first-class library rows, two reshapes of the same shape on the
+   same parent rendered identical "View Reshaped (Shape)" links. Fixed
+   by sorting children by `created_at` ASC and suffixing with a
+   1-indexed number only when the shape count > 1.
+3. **Empty grid + visible pagination bar.** Early draft of the
+   pagination conditional showed Previous/Next on libraries with
+   fewer than 15 lessons. Resolved by gating the bar on
+   `filteredLessons.length > LESSONS_PER_PAGE`.
+
+#### Carry-forward into next session
+
+Captured in WHAT'S NEXT at the top of this file.
 
 ---
 
