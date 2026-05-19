@@ -92,26 +92,52 @@ export function useLessons() {
     }
   };
 
-  const deleteLesson = async (lessonId: string) => {
+  /**
+   * Delete a lesson, optionally cascading reshape children. Session C
+   * (May 19, 2026) -- extended from a single-id delete to support the
+   * smart-deletion flow.
+   *
+   * Rule DEL3: children are deleted BEFORE the parent so the FK's
+   * ON DELETE SET NULL never fires and never orphans rows.
+   * Rule DEL4: a single setLessons call removes all rows at once.
+   * Rule DEL6: success-toast wording is owned by the caller (it knows
+   * whether this was a reshape, an original with children, or a plain
+   * original). The hook keeps the destructive failure toast.
+   *
+   * Returns success boolean so the caller can sequence the success
+   * toast and any side effects (e.g. closing the viewer).
+   */
+  const deleteLesson = async (
+    lessonId: string,
+    options?: { childrenIds?: string[] },
+  ): Promise<{ success: boolean }> => {
+    const childrenIds = options?.childrenIds ?? [];
     try {
+      if (childrenIds.length > 0) {
+        const { error: childErr } = await supabase
+          .from('lessons')
+          .delete()
+          .in('id', childrenIds);
+        if (childErr) throw childErr;
+      }
+
       const { error } = await supabase
         .from('lessons')
         .delete()
         .eq('id', lessonId);
-
       if (error) throw error;
-      setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
-      toast({
-        title: "Lesson deleted",
-        description: "Your lesson has been deleted successfully.",
-      });
+
+      const removeIds = new Set([lessonId, ...childrenIds]);
+      setLessons(prev => prev.filter(l => !removeIds.has(l.id)));
+      return { success: true };
     } catch (error) {
       console.error('Error deleting lesson:', error);
       toast({
-        title: "Error deleting lesson",
-        description: "Failed to delete your lesson. Please try again.",
+        title: "Failed to delete",
+        description: "Please try again.",
         variant: "destructive",
       });
+      return { success: false };
     }
   };
 

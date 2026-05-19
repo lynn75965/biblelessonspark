@@ -53,6 +53,11 @@ import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
 import { AUDIENCE_ROLES } from "@/constants/audienceConfig";
 import { LESSON_SHAPES } from "@/constants/lessonShapeProfiles";
+import {
+  buildCascadeInfo,
+  buildDeleteConfirmation,
+  buildDeleteSuccessToast,
+} from "@/utils/lessonDeletion";
 
 // ============================================================================
 // INTERFACES
@@ -335,10 +340,23 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     });
   };
 
-  const handleDelete = async (lessonId: string) => {
-    if (window.confirm("Are you sure you want to delete this lesson? This action cannot be undone.")) {
-      await deleteLesson(lessonId);
-    }
+  /**
+   * Session C: cascade-aware delete. Builds the dialog from already-
+   * loaded lessons + allSeries (no extra Supabase fetch). Sequence:
+   * 1. Compose CascadeInfo (reshape children + series name).
+   * 2. Single window.confirm with every applicable warning (Rule DEL2).
+   * 3. Hook deletes children first, then parent (Rule DEL3), with one
+   *    state update (Rule DEL4).
+   * 4. Specific success toast per case (Rule DEL6).
+   */
+  const handleDelete = async (lesson: Lesson) => {
+    const info = buildCascadeInfo(lesson, lessons, allSeries);
+    const message = buildDeleteConfirmation(info);
+    if (!window.confirm(message)) return;
+
+    const childrenIds = info.reshapeChildren.map((c) => c.id);
+    const { success } = await deleteLesson(lesson.id, { childrenIds });
+    if (success) toast(buildDeleteSuccessToast(info));
   };
 
   /**
@@ -717,12 +735,17 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   {/* Delete -- only on user's own lessons */}
                   {!lesson.isTeamLesson && (
                     <Button
-                      onClick={() => handleDelete(lesson.id)}
+                      onClick={() => handleDelete(lesson)}
                       variant="outline"
                       size="sm"
+                      aria-label={
+                        lesson.reshape_of
+                          ? "Delete this reshape permanently"
+                          : "Delete this lesson permanently"
+                      }
                       className="hover:bg-destructive hover:text-destructive-foreground"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   )}
                   {/* Add to Series -- only own lessons not already in a series */}

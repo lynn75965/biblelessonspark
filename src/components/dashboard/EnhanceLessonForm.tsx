@@ -35,13 +35,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil, Trash2, ListPlus } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { marked } from "marked";
@@ -74,6 +75,11 @@ import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 import { SeriesStyleMetadata } from "@/constants/seriesConfig";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
 import { useReshapeLesson } from "@/hooks/useReshapeLesson";
+import {
+  buildCascadeInfo,
+  buildDeleteConfirmation,
+  buildDeleteSuccessToast,
+} from "@/utils/lessonDeletion";
 import {
   ShapeId,
   assembleReshapePrompt,
@@ -580,7 +586,13 @@ export function EnhanceLessonForm({
   // INLINE EDITOR STATE -- WYSIWYG lesson editing
   // ============================================================================
 
-  const { updateLessonContent, addReshapedLesson } = useLessons();
+  const {
+    lessons,
+    deleteLesson,
+    updateLessonContent,
+    addReshapedLesson,
+    refetch: refetchLessons,
+  } = useLessons();
   const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
@@ -613,7 +625,49 @@ export function EnhanceLessonForm({
     nextLessonNumber,
     isSeriesFull,
     hasStyleMetadata,
+    allSeries,
+    fetchAllSeries,
   } = useSeriesManager();
+
+  // Session C: load the user's series list once so the cascade-aware
+  // delete dialog can name the affected series, and so the viewer's
+  // "Add to Series" popover has the series list ready.
+  useEffect(() => { fetchAllSeries(); }, []);
+
+  // Session C: viewer "Add to Series" popover state + a11y refs.
+  // Trigger ref used so focus returns to the trigger when the popover
+  // closes (Rule #22). Container ref used for click-outside detection.
+  const [addToSeriesOpen, setAddToSeriesOpen] = useState(false);
+  const [addingToSeries, setAddingToSeries] = useState(false);
+  const addToSeriesTriggerRef = useRef<HTMLButtonElement>(null);
+  const addToSeriesPopoverRef = useRef<HTMLDivElement>(null);
+
+  // Close popover on Escape (return focus to trigger) and on click-outside.
+  useEffect(() => {
+    if (!addToSeriesOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setAddToSeriesOpen(false);
+        addToSeriesTriggerRef.current?.focus();
+      }
+    };
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        addToSeriesPopoverRef.current?.contains(target) ||
+        addToSeriesTriggerRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setAddToSeriesOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("mousedown", onMouseDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [addToSeriesOpen]);
 
   // Series style context ? derived from selectedSeries
   const seriesStyleContext: SeriesStyleMetadata | null = selectedSeries?.style_metadata || null;
@@ -1439,6 +1493,78 @@ export function EnhanceLessonForm({
       if (result.lesson) {
         addReshapedLesson(result.lesson);
       }
+    }
+  };
+
+  /**
+   * Session C: add the lesson currently open in the viewer to a series.
+   * Mirrors LessonLibrary.handleAddToSeries exactly:
+   *   1. Look up MAX(series_lesson_number) for the target series
+   *   2. nextPosition = max + 1
+   *   3. linkLessonToSeries writes series_id + series_lesson_number to
+   *      THIS row (the row matched by currentLesson.id). For reshapes
+   *      that is the reshape's own row, NOT the parent -- correct.
+   *   4. Toast + refetch + close popover + return focus to trigger.
+   */
+  const handleAddCurrentLessonToSeries = async (seriesId: string) => {
+    if (!currentLesson?.id) return;
+    setAddingToSeries(true);
+    try {
+      const { data: maxRow } = await supabase
+        .from('lessons')
+        .select('series_lesson_number')
+        .eq('series_id', seriesId)
+        .order('series_lesson_number', { ascending: false })
+        .limit(1)
+        .single();
+      const nextPosition = (maxRow?.series_lesson_number ?? 0) + 1;
+      const success = await linkLessonToSeries(currentLesson.id, seriesId, nextPosition);
+      if (success) {
+        const series = allSeries.find((s) => s.id === seriesId);
+        toast({
+          title: "Added to series",
+          description: `Lesson added as #${nextPosition} in "${series?.series_name || 'series'}".`,
+        });
+        await refetchLessons();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add lesson to series. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("Error adding lesson to series:", err);
+      toast({
+        title: "Error",
+        description: "Failed to add lesson to series.",
+        variant: "destructive",
+      });
+    } finally {
+      setAddingToSeries(false);
+      setAddToSeriesOpen(false);
+      // Return focus to trigger (Rule #22) -- defer one frame so the
+      // popover unmounts before focus moves.
+      requestAnimationFrame(() => addToSeriesTriggerRef.current?.focus());
+    }
+  };
+
+  /**
+   * Session C: delete the lesson currently open in the viewer with the
+   * same cascade-aware confirmation flow used on library cards. On
+   * success, closes the viewer via onClearViewing so the user lands
+   * back in the library.
+   */
+  const handleDeleteCurrentLesson = async () => {
+    if (!currentLesson?.id) return;
+    const info = buildCascadeInfo(currentLesson, lessons, allSeries);
+    const message = buildDeleteConfirmation(info);
+    if (!window.confirm(message)) return;
+    const childrenIds = info.reshapeChildren.map((c) => c.id);
+    const { success } = await deleteLesson(currentLesson.id, { childrenIds });
+    if (success) {
+      toast(buildDeleteSuccessToast(info));
+      onClearViewing?.();
     }
   };
 
@@ -2451,6 +2577,75 @@ export function EnhanceLessonForm({
                   isPaidUser={isPaidUser}
                   senderName={senderDisplayName}
                 />
+                {/* Session C: Add to Series -- viewer parity with the
+                    library card button. Critical for reshapes since
+                    reshape children have no card-level series button.
+                    Gated on the LIVE row (from refreshed lessons) so
+                    the "In Series" badge appears immediately after a
+                    successful add. linkLessonToSeries writes series_id
+                    to currentLesson.id directly -- correct for both
+                    originals and reshapes. */}
+                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (() => {
+                  const liveLesson = lessons.find((l) => l.id === currentLesson.id);
+                  const liveSeriesId = liveLesson?.series_id ?? currentLesson.series_id ?? null;
+                  if (liveSeriesId) {
+                    const seriesName = allSeries.find((s) => s.id === liveSeriesId)?.series_name || '';
+                    return (
+                      <Badge
+                        variant="outline"
+                        className="text-blue-700 border-blue-300 bg-blue-50 text-xs cursor-pointer hover:bg-blue-100 transition-colors gap-1.5"
+                        title={seriesName}
+                        onClick={() => navigate(ROUTES.DASHBOARD, { state: { tab: 'series-library', expandSeriesId: liveSeriesId } })}
+                      >
+                        <BookOpen className="h-3 w-3" aria-hidden="true" />
+                        In Series
+                      </Badge>
+                    );
+                  }
+                  if (allSeries.length === 0) return null;
+                  const triggerAriaLabel = currentLesson?.reshape_of
+                    ? "Add this reshape to a series"
+                    : "Add this lesson to a series";
+                  return (
+                    <div className="relative">
+                      <Button
+                        ref={addToSeriesTriggerRef}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAddToSeriesOpen((v) => !v)}
+                        disabled={addingToSeries}
+                        aria-haspopup="menu"
+                        aria-expanded={addToSeriesOpen}
+                        aria-label={triggerAriaLabel}
+                        className="gap-2 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                      >
+                        <ListPlus className="h-4 w-4" aria-hidden="true" />
+                        <span className="hidden sm:inline">Add to Series</span>
+                      </Button>
+                      {addToSeriesOpen && (
+                        <div
+                          ref={addToSeriesPopoverRef}
+                          role="menu"
+                          aria-label="Choose a series"
+                          className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border bg-popover p-1 shadow-md"
+                        >
+                          <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Add to series:</p>
+                          {allSeries.map((series) => (
+                            <button
+                              key={series.id}
+                              role="menuitem"
+                              onClick={() => handleAddCurrentLessonToSeries(series.id)}
+                              disabled={addingToSeries}
+                              className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none transition-colors truncate"
+                            >
+                              {series.series_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 {/* Inline editor: Edit Lesson button -- only when viewing a saved lesson */}
                 {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (
                   <Button
@@ -2515,6 +2710,33 @@ export function EnhanceLessonForm({
                   <Button variant="outline" size="sm" disabled className="gap-2">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     <span className="hidden sm:inline">Reshaping?</span>
+                  </Button>
+                )}
+                {/* Session C: Delete -- present for originals AND reshapes.
+                    Hidden while inline editing (matches Edit Lesson and
+                    Reshape gates). Hidden when viewing the just-generated
+                    lesson (no id-from-DB yet to delete). */}
+                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDeleteCurrentLesson}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleDeleteCurrentLesson();
+                      }
+                    }}
+                    tabIndex={0}
+                    aria-label={
+                      currentLesson?.reshape_of
+                        ? "Delete this reshape permanently"
+                        : "Delete this lesson permanently"
+                    }
+                    className="gap-2 hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">Delete</span>
                   </Button>
                 )}
                 <Button
