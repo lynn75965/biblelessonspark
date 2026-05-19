@@ -34,6 +34,13 @@ import type { ShapeId } from './lessonShapeProfiles';
 
 
 // ============================================================================
+// TIER 1.5: Database Table Names (SSOT)
+// ============================================================================
+
+/** SSOT for the lessons table name. Use everywhere instead of the literal 'lessons'. */
+export const LESSONS_TABLE = 'lessons';
+
+// ============================================================================
 // TIER 2: Age Group Contracts
 // ============================================================================
 

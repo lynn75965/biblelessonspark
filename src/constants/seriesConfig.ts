@@ -20,6 +20,7 @@
 export const SERIES_LIMITS = {
   minLessons: 2,
   maxLessons: 13,
+  defaultLessons: 4,
   maxSeriesNameLength: 100,
   maxActiveSeries: 10, // Per user - prevent unbounded growth
 } as const;

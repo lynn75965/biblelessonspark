@@ -28,7 +28,7 @@
  * - Author name displayed on team lesson cards
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,8 @@ import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { ROUTES } from "@/constants/routes";
-import { Lesson } from "@/constants/contracts";
+import { Lesson, LESSONS_TABLE } from "@/constants/contracts";
+import { SERIES_LIMITS } from "@/constants/seriesConfig";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
 import { AUDIENCE_ROLES } from "@/constants/audienceConfig";
@@ -211,17 +212,34 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const canUseDevotional = hasFeatureAccess(tier, 'devotional');
   const { allSeries, fetchAllSeries, linkLessonToSeries, createSeries, isCreating } = useSeriesManager();
   const [addToSeriesOpenId, setAddToSeriesOpenId] = useState<string | null>(null);
+  const seriesPopoverRef = useRef<HTMLDivElement>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [addingToSeries, setAddingToSeries] = useState(false);
   const [showCreateSeriesModal, setShowCreateSeriesModal] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState("");
-  const [newSeriesLessonCount, setNewSeriesLessonCount] = useState(4);
+  const [newSeriesLessonCount, setNewSeriesLessonCount] = useState(SERIES_LIMITS.defaultLessons);
 
   // Session B: pagination state -- client-side slice of filteredLessons.
   const [currentPage, setCurrentPage] = useState(0);
 
   // Fetch series list on mount for "Add to Series" dropdown
   useEffect(() => { fetchAllSeries(); }, []);
+
+  // Rule #22 a11y: dismiss the card-level Add-to-Series popover when the
+  // user clicks anywhere outside it. Mirrors the EnhanceLessonForm pattern.
+  useEffect(() => {
+    if (!addToSeriesOpenId) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (
+        seriesPopoverRef.current &&
+        !seriesPopoverRef.current.contains(e.target as Node)
+      ) {
+        setAddToSeriesOpenId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [addToSeriesOpenId]);
 
   // Session B: any filter or scope change snaps the user back to page 1.
   useEffect(() => {
@@ -404,7 +422,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     try {
       // Query actual max position for this series
       const { data: maxRow } = await supabase
-        .from('lessons')
+        .from(LESSONS_TABLE)
         .select('series_lesson_number')
         .eq('series_id', seriesId)
         .order('series_lesson_number', { ascending: false })
@@ -446,7 +464,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     if (result) {
       setShowCreateSeriesModal(false);
       setNewSeriesName("");
-      setNewSeriesLessonCount(4);
+      setNewSeriesLessonCount(SERIES_LIMITS.defaultLessons);
       fetchAllSeries();
     }
   };
@@ -748,25 +766,45 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   )}
-                  {/* Add to Series -- only own lessons not already in a series */}
+                  {/* Add to Series -- only own lessons not already in a series.
+                      Rule #22 a11y: aria-expanded/haspopup on trigger, role="menu"
+                      on popover, role="menuitem" on each option, Escape closes
+                      and returns focus to the trigger, click-outside dismisses
+                      (see useEffect above). Mirrors EnhanceLessonForm pattern. */}
                   {!lesson.isTeamLesson && !lesson.series_id && allSeries.length > 0 && (
                     <div className="relative">
                       <Button
+                        id={`series-trigger-${lesson.id}`}
                         onClick={() => setAddToSeriesOpenId(addToSeriesOpenId === lesson.id ? null : lesson.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape' && addToSeriesOpenId === lesson.id) {
+                            setAddToSeriesOpenId(null);
+                            document.getElementById(`series-trigger-${lesson.id}`)?.focus();
+                          }
+                        }}
                         variant="outline"
                         size="sm"
                         disabled={addingToSeries}
+                        aria-label="Add to series"
+                        aria-expanded={addToSeriesOpenId === lesson.id}
+                        aria-haspopup="menu"
                         className="hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
-                        title="Add to Series"
                       >
-                        <ListPlus className="h-4 w-4" />
+                        <ListPlus className="h-4 w-4" aria-hidden="true" />
                       </Button>
                       {addToSeriesOpenId === lesson.id && (
-                        <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border bg-popover p-1 shadow-md">
-                          <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Add to series:</p>
+                        <div
+                          ref={seriesPopoverRef}
+                          role="menu"
+                          aria-label="Select a series"
+                          aria-labelledby={`series-trigger-${lesson.id}`}
+                          className="absolute right-0 top-full mt-1 z-50 w-56 rounded-md border bg-popover p-1 shadow-md"
+                        >
+                          <p aria-hidden="true" className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Add to series:</p>
                           {allSeries.map((series) => (
                             <button
                               key={series.id}
+                              role="menuitem"
                               onClick={() => handleAddToSeries(lesson.id, series.id)}
                               disabled={addingToSeries}
                               className="w-full text-left px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground transition-colors truncate"
@@ -907,7 +945,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                 placeholder="e.g. Romans: The Gospel of Grace"
                 value={newSeriesName}
                 onChange={(e) => setNewSeriesName(e.target.value)}
-                maxLength={100}
+                maxLength={SERIES_LIMITS.maxSeriesNameLength}
               />
             </div>
             <div className="space-y-1.5">
@@ -920,7 +958,10 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 12 }, (_, i) => i + 2).map((n) => (
+                  {Array.from(
+                    { length: SERIES_LIMITS.maxLessons - SERIES_LIMITS.minLessons + 1 },
+                    (_, i) => i + SERIES_LIMITS.minLessons,
+                  ).map((n) => (
                     <SelectItem key={n} value={String(n)}>{n} lessons</SelectItem>
                   ))}
                 </SelectContent>
