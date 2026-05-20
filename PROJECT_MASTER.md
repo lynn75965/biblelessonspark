@@ -1,6 +1,26 @@
-# PROJECT MASTER -- Last updated: May 19, 2026
+# PROJECT MASTER -- Last updated: May 20, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 20 Session A (Series publishing fixes):
+- Now that series export and series-card count both include reshape
+  rows (any `lessons` row with a non-null `series_id`), the card's
+  "{completed} of {total} lessons" can exceed `total_lessons`. A
+  4-lesson series with 4 originals plus 2 reshapes shows "6 of 4
+  lessons". `total_lessons` is the planned series size; `completed`
+  is now the live count of all rows in the series. Decision needed:
+  filter the card count to exclude reshapes (`.is('shaped_content',
+  null)`), keep the current behavior and accept the inflated count,
+  or reframe what the count means.
+- Dead-code cleanup in PublishingHub.tsx series-card `renderExtra`:
+  with the status pill removed, `isComplete`, `isInProgress`,
+  `statusLabel`, and `badgeClass` are unused. TypeScript does not
+  flag. Remove if confidence is high that the status badge is gone
+  for good.
+- The two root-level diagnostic SQL files
+  (`DIAGNOSE_AUTH_FUNCTIONS.sql`, `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`)
+  remain untracked. Same as Sessions A-D May 18-19 and earlier
+  sessions. Still deferred.
 
 Carry-forward from May 19 Session D (LessonLibrary card-level a11y + SSOT constants):
 - Optional: extract a shared `SeriesSelectorPopover` component used
@@ -125,6 +145,147 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 20, 2026 -- Session A: Series Publishing -- export by series_id + lesson-count badge
+
+#### Summary
+
+Two commits fix how Publishing Hub identifies the lessons in a series.
+`useSeriesExport` now queries `lessons` directly by `series_id` instead
+of by the JSONB `lesson_summaries[].lessonId` array stored on the
+parent `lesson_series` row. The series-card "X of Y lessons" badge now
+reads a fresh per-series count of `lessons` rows (via a second query
+issued after the initial `lesson_series` fetch) instead of
+`lesson_summaries.length`. The colored status pill ("Complete" /
+"In Progress" / "Empty") next to the count was removed -- only the
+count remains. Shipped as commits `ea1d393` and `b718d1f`.
+
+#### Tasks
+
+1. **Series export fetch by `series_id`.** `src/hooks/useSeriesExport.ts`
+   previously built a `lessonIds` array from `series.lesson_summaries`
+   sorted by `lessonNumber`, then queried
+   `supabase.from('lessons').in('id', lessonIds)`, then re-sorted the
+   result client-side. Replaced with a single direct query:
+   `.eq('series_id', series.id)
+    .order('series_lesson_number', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: true })`.
+   Postgres now orders the result; the hand-built ordered-array
+   reconstruction loop is gone. The "no lessons" empty-state branch now
+   triggers when the DB returns zero rows OR errors, not just when the
+   summaries array was empty. Reshape rows that carry the same
+   `series_id` (created when a user clicks "Save Reshape as Lesson"
+   inside a series) are now included in the export -- intentional,
+   captured in the deploy message.
+
+2. **Series-card count by separate `lessons` query.** Earlier
+   iterations tried `lessons(id)` as a Supabase embed on the FETCH
+   SERIES select. Final approach in `src/pages/PublishingHub.tsx`:
+   after the first `setSeriesList`, issue a second query that selects
+   `series_id` from `lessons` filtered to the just-fetched series ids,
+   builds a count map client-side, and re-renders with a `lessonCount`
+   number set on each row. `SeriesRow` interface gained
+   `lessonCount?: number`. The card render uses `s.lessonCount ?? 0`.
+   `isComplete` tightened to require `completed > 0` so an empty
+   series no longer flashes "Complete".
+
+3. **Status pill removed.** The colored status badge rendered next to
+   the count is gone. Only "{completed} of {total} lessons" remains.
+   `statusLabel`, `badgeClass`, `isComplete`, `isInProgress` locals
+   are still computed but unused (TS does not flag, build is clean).
+   Cleanup deferred to a future session.
+
+#### Files touched
+
+1. `src/hooks/useSeriesExport.ts`:
+   - The `lessonIds` build, the empty-array guard, the
+     `.in('id', lessonIds)` query, the `throw` on fetch error, and
+     the `orderedLessons` reconstruction loop -- all removed (25
+     lines).
+   - Replaced with the direct `.eq('series_id', series.id)` query
+     plus an early-return when zero rows come back. `orderedLessons`
+     is now just `lessons as Lesson[]` because Postgres ordered the
+     rows.
+2. `src/pages/PublishingHub.tsx`:
+   - `SeriesRow`: added `lessonCount?: number` (a transient
+     `lessons?: { id: string }[] | null` field added mid-session was
+     reverted before the final commit).
+   - FETCH SERIES `useEffect`: after
+     `setSeriesList((data || []) as SeriesRow[])`, an inner block
+     gathers `seriesIds`, queries `lessons` for those ids' `series_id`
+     column, builds a `countMap`, and re-renders with `lessonCount`
+     populated.
+   - Series-card `renderExtra`: `completed` now reads
+     `s.lessonCount ?? 0`. `isComplete` tightened to require
+     `completed > 0`. Status pill span removed from the return block.
+
+#### Iterations during session
+
+The series-card count went through three forms before settling:
+- `Array.isArray(s.lesson_summaries) ? s.lesson_summaries.length : 0`
+  -- original. Reads from JSONB array on `lesson_series` row.
+- `Array.isArray(s.lessons) ? s.lessons.length : 0` via a
+  `lessons(id)` embed on the SERIES select. Tried, then reverted
+  because the embed pulls a row array on every series-list load
+  whose only purpose is to be counted -- a separate count query is
+  cleaner and matches what the export does.
+- `s.lessonCount ?? 0` populated from a separate
+  `lessons.select('series_id')` query and a client-side count map
+  -- final form.
+
+A short-lived `.is('shaped_content', null)` filter on
+`fetchSeriesLessons` (the per-series preview fetch) was added and
+reverted in the same session. Decision: include reshape rows in the
+series publishing preview and export. The deploy commit message for
+the first commit reflects this explicitly.
+
+#### Verified before push
+
+- `npm run build` clean for every iteration. Final builds:
+  `ea1d393` 23.47s, `b718d1f` 20.94s. Zero TypeScript errors,
+  3941 modules.
+- ASCII guard passed on both commits.
+- Localhost verification (Lynn): approved between iterations at
+  `http://localhost:8080/publishing-hub`.
+
+#### Deploy
+
+Two separate commits, both pushed via manual `git add` of named
+files only rather than via `deploy.ps1`, to keep the two diagnostic
+SQL files (`DIAGNOSE_AUTH_FUNCTIONS.sql`,
+`DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`) untracked. Same pattern as
+Sessions A-D May 18-19 and earlier sessions.
+
+- `ea1d393` -- "FIX: Series publishing includes all lessons and
+  reshapes by series_id; card count reads from lessons table"
+- `b718d1f` -- "FIX: Remove series status badge -- show lesson
+  count only"
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): full reads of `PublishingHub.tsx`,
+  `useSeriesExport.ts`, `useSeriesManager.ts` (for context) before
+  any edit.
+- Rule #2 (complete solutions): every change cycle ran a clean
+  build before commit.
+- Rule #5 (clean build before deploy): confirmed at each commit.
+- Rule #9 (single branch): both commits on `main`.
+- Rule #14 (state uncertainty plainly): flagged two prompt
+  contradictions before writing code. (a) Step 2 of a multi-step
+  prompt set a `lessons` field on the row while steps 3-4 expected
+  a `lessonCount` field -- asked which form to use; Lynn chose
+  `lessonCount`. (b) A later prompt's description said "show
+  progress percentage" but the literal target code had no
+  percentage span -- asked which to implement; Lynn chose to drop
+  the percentage mention and ship the literal target.
+- Rule #16 (escape sequences for non-ASCII): no non-ASCII bytes
+  introduced. ASCII guard confirmed clean both commits.
+
+#### Carry-forward into next session
+
+Captured in WHAT'S NEXT at the top of this file.
 
 ---
 
