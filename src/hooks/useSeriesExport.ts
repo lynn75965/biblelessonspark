@@ -59,11 +59,14 @@ export function useSeriesExport(): UseSeriesExportReturn {
       try {
         setStep(SERIES_EXPORT_PROGRESS_STEPS.PREPARING);
 
-        const lessonIds: string[] = (series.lesson_summaries ?? [])
-          .sort((a, b) => a.lessonNumber - b.lessonNumber)
-          .map((s) => s.lessonId);
+        const { data: lessons, error: fetchError } = await supabase
+          .from('lessons')
+          .select('*')
+          .eq('series_id', series.id)
+          .order('series_lesson_number', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: true });
 
-        if (lessonIds.length === 0) {
+        if (fetchError || !lessons || lessons.length === 0) {
           setState({
             isExporting: false,
             progressStepId: null,
@@ -72,18 +75,7 @@ export function useSeriesExport(): UseSeriesExportReturn {
           return false;
         }
 
-        const { data: lessons, error: fetchError } = await supabase
-          .from('lessons')
-          .select('*')
-          .in('id', lessonIds);
-
-        if (fetchError || !lessons) {
-          throw new Error(fetchError?.message ?? 'Failed to load lessons.');
-        }
-
-        const orderedLessons: Lesson[] = lessonIds
-          .map((id) => lessons.find((l) => l.id === id))
-          .filter((l): l is Lesson => l !== undefined);
+        const orderedLessons: Lesson[] = lessons as Lesson[];
 
         setStep(SERIES_EXPORT_PROGRESS_STEPS.COVER);
 

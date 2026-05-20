@@ -84,6 +84,7 @@ interface SeriesRow {
   share_token_handout: string | null;
   share_font_id: string | null;
   share_color_scheme_id: string | null;
+  lessons?: { id: string }[] | null;
 }
 
 interface SeriesLessonRow {
@@ -451,7 +452,7 @@ export default function PublishingHub() {
       setLoadingSeries(true);
       const { data, error } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout, share_font_id, share_color_scheme_id')
+        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout, share_font_id, share_color_scheme_id, lessons(id)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -1728,7 +1729,7 @@ export default function PublishingHub() {
               renderSearchInput(searchSeries, setSearchSeries, PUBLISHING_HUB_UI.searchSeriesPlaceholder),
               (s) => {
                 const total = s.total_lessons || 0;
-                const completed = Array.isArray(s.lesson_summaries) ? s.lesson_summaries.length : 0;
+                const completed = Array.isArray(s.lessons) ? s.lessons.length : (Array.isArray(s.lesson_summaries) ? s.lesson_summaries.length : 0);
                 const isComplete = total > 0 && completed >= total;
                 const isInProgress = completed > 0 && completed < total;
                 const statusLabel = isComplete
