@@ -84,7 +84,7 @@ interface SeriesRow {
   share_token_handout: string | null;
   share_font_id: string | null;
   share_color_scheme_id: string | null;
-  lessons?: { id: string }[] | null;
+  lessonCount?: number;
 }
 
 interface SeriesLessonRow {
@@ -452,7 +452,7 @@ export default function PublishingHub() {
       setLoadingSeries(true);
       const { data, error } = await supabase
         .from('lesson_series')
-        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout, share_font_id, share_color_scheme_id, lessons(id)')
+        .select('id, series_name, created_at, total_lessons, lesson_summaries, share_token, share_token_handout, share_font_id, share_color_scheme_id')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -462,6 +462,23 @@ export default function PublishingHub() {
         setSeriesList([]);
       } else {
         setSeriesList((data || []) as SeriesRow[]);
+        const seriesIds = (data || []).map((s: any) => s.id);
+        if (seriesIds.length > 0) {
+          const { data: lessonCounts } = await supabase
+            .from('lessons')
+            .select('series_id')
+            .in('series_id', seriesIds);
+          if (lessonCounts) {
+            const countMap: Record<string, number> = {};
+            lessonCounts.forEach((l: any) => {
+              if (l.series_id) countMap[l.series_id] = (countMap[l.series_id] || 0) + 1;
+            });
+            setSeriesList((data || []).map((s: any) => ({
+              ...s,
+              lessonCount: countMap[s.id] || 0,
+            })) as SeriesRow[]);
+          }
+        }
       }
       setLoadingSeries(false);
     };
@@ -1729,8 +1746,8 @@ export default function PublishingHub() {
               renderSearchInput(searchSeries, setSearchSeries, PUBLISHING_HUB_UI.searchSeriesPlaceholder),
               (s) => {
                 const total = s.total_lessons || 0;
-                const completed = Array.isArray(s.lessons) ? s.lessons.length : (Array.isArray(s.lesson_summaries) ? s.lesson_summaries.length : 0);
-                const isComplete = total > 0 && completed >= total;
+                const completed = s.lessonCount ?? 0;
+                const isComplete = completed > 0 && completed >= total;
                 const isInProgress = completed > 0 && completed < total;
                 const statusLabel = isComplete
                   ? PUBLISHING_HUB_UI.seriesComplete
@@ -1745,7 +1762,6 @@ export default function PublishingHub() {
                 return (
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-muted-foreground">{completed} of {total} lessons</span>
-                    <span className={'text-[10px] font-medium px-1.5 py-0.5 rounded border ' + badgeClass}>{statusLabel}</span>
                   </div>
                 );
               },
