@@ -11,10 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Pencil, UserPlus, RefreshCw, Shield, User, Users, Mail, Loader2, Clock, Send, X, Gift, Calendar, Layers, Download, Filter } from "lucide-react";
+import { Trash2, Pencil, UserPlus, RefreshCw, Shield, User, Users, Mail, Loader2, Clock, Send, X, Gift, Calendar, Layers, Download, Filter, UserCheck } from "lucide-react";
 import { format, isPast, addDays, differenceInDays } from "date-fns";
 import { useAdminOperations } from "@/hooks/useAdminOperations";
 import { useInvites } from "@/hooks/useInvites";
+import { useAuth } from "@/hooks/useAuth";
 import { TRIAL_CONFIG, getDefaultGrantDays, getDefaultGrantMode, getDefaultPresetDate, TrialGrantMode } from "@/constants/trialConfig";
 import { type SubscriptionTier } from "@/constants/pricingConfig";
 
@@ -78,8 +79,12 @@ export function UserManagement() {
   
   // Feature Adoption filter state
   const [adoptionFilter, setAdoptionFilter] = useState<AdoptionFilter>('all');
-  
+
+  // Impersonation state -- tracks which user row is currently generating a link
+  const [impersonatingUserId, setImpersonatingUserId] = useState<string | null>(null);
+
   const { toast } = useToast();
+  const { user: currentUser } = useAuth();
   const { updateUserRole, deleteUser, loading: adminLoading } = useAdminOperations();
   const { sendInvite, loading: inviteLoading } = useInvites();
 
@@ -225,6 +230,30 @@ export function UserManagement() {
       });
     } catch (error) {
       console.error('Error deleting user:', error);
+    }
+  };
+
+  const handleImpersonate = async (userId: string, email: string) => {
+    const label = email || 'this user';
+    if (!window.confirm(`Impersonate ${label}? This will open a new browser tab logged in as this user.`)) {
+      return;
+    }
+    setImpersonatingUserId(userId);
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-impersonate-user', {
+        body: { user_id: userId },
+      });
+      if (error) throw new Error(error.message ?? 'Impersonation failed');
+      if (!data?.url) throw new Error('No impersonation URL returned');
+      window.open(data.url, '_blank');
+    } catch (err: any) {
+      toast({
+        title: "Impersonation Failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setImpersonatingUserId(null);
     }
   };
 
@@ -923,11 +952,36 @@ export function UserManagement() {
                               </AlertDialog>
                             )}
 
+                            {/* Impersonate User Button -- hidden on the logged-in admin's own row */}
+                            {currentUser?.id !== user.id && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleImpersonate(user.id, user.email || '')}
+                                disabled={impersonatingUserId === user.id}
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleImpersonate(user.id, user.email || '');
+                                  }
+                                }}
+                                aria-label={`Impersonate ${user.email || user.full_name || 'user'}`}
+                                title="Impersonate user"
+                              >
+                                {impersonatingUserId === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                                ) : (
+                                  <UserCheck className="h-4 w-4" aria-hidden="true" />
+                                )}
+                              </Button>
+                            )}
+
                             {/* Delete User Dialog */}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
+                                <Button
+                                  variant="ghost"
                                   size="sm"
                                   className="text-destructive hover:text-destructive"
                                   title="Delete User"
