@@ -1,6 +1,32 @@
-# PROJECT MASTER -- Last updated: May 20, 2026
+# PROJECT MASTER -- Last updated: May 25, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 25 Session A (Pricing SSOT lesson-pack fix + diagnostics):
+- Lesson-pack constants are unrendered. Both `STRIPE_LESSON_PACKS`
+  (pricingConfig.ts) and `LESSON_PACKS` (orgPricingConfig.ts) have ZERO
+  consumers in `src/` -- confirmed by grep. The May 25 price correction
+  ($15/$35/$60) fixed the SSOT data but no screen displays it today.
+  `OrgLanding.tsx` mentions "Lesson Pack" in prose with no price. Decision
+  needed: build the lesson-pack purchase UI, or accept these as latent
+  catalog constants kept only for the Stripe webhook / future use.
+- Two lesson-pack sources still co-exist by design (file unification was
+  explicitly out of scope this session): `STRIPE_LESSON_PACKS` (priceCents)
+  and `orgPricingConfig.LESSON_PACKS` (dollars). Same Stripe product/price
+  IDs, now the same prices ($15/$35/$60). If a purchase UI is built, pick
+  ONE as the consumed source to prevent re-drift.
+- Backend mirror `_shared/pricingConfig.ts` carries stale UI-only fields
+  the frontend has since changed: `PRICING_DISPLAY.personal.displayName`
+  is 'Teacher Plan' (frontend: 'Personal Plan') plus an extra
+  `upgradeButton` key; `UPGRADE_PROMPTS.featureTeaser` still holds the old
+  transactional copy ("Unlock Complete Lessons"); header Last Updated is
+  2026-03-02 (frontend 2026-03-24). NONE of these fields are imported by
+  any Edge Function (verified), so runtime is unaffected -- but the file's
+  own "DO NOT EDIT MIRROR DIRECTLY" banner is contradicted. Optional
+  cleanup: align the three fields; the file is hand-maintained (Rule #24).
+- The two root-level diagnostic SQL files (`DIAGNOSE_AUTH_FUNCTIONS.sql`,
+  `DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql`) remain untracked. Same as every
+  session since mid-May. Still deferred.
 
 Carry-forward from May 20 Session A (Series publishing fixes):
 - Now that series export and series-card count both include reshape
@@ -145,6 +171,108 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 25, 2026 -- Session A: Pricing SSOT -- lesson-pack price fix + ORG_TIERS sync guard + diagnostics
+
+#### Summary
+
+Diagnostic-led session on the pricing SSOT layer. Two surgical fixes
+shipped as a single commit (`c1a9e1b`): (1) corrected the three
+`LESSON_PACKS` price fields in `orgPricingConfig.ts` from $12/$25/$45 to
+$15/$35/$60 to match `STRIPE_LESSON_PACKS` and CLAUDE.md, and (2) added a
+4-line SYNC GUARD comment directly above the `ORG_TIERS` array in the
+hand-maintained backend mirror `_shared/pricingConfig.ts`. The
+`create-org-checkout-session` Edge Function was redeployed (it bundles
+`_shared/pricingConfig.ts`). No structural changes; no file unification
+(explicitly out of scope per Lynn).
+
+#### Diagnostics performed (read-only -- no changes)
+
+1. Full reads of `pricingConfig.ts`, `orgPricingConfig.ts`, and
+   `_shared/pricingConfig.ts`.
+2. Edge Functions that depend on `_shared/pricingConfig.ts`:
+   - Direct: `stripe-webhook` (resolveTierFromPriceId, TIER_LESSON_LIMITS,
+     SubscriptionTier), `org-stripe-webhook` (same three),
+     `create-org-checkout-session` (ORG_TIERS, STRIPE_INDIVIDUAL).
+   - Transitive via `_shared/subscriptionCheck.ts` (TIER_SECTIONS,
+     SubscriptionTier): `generate-lesson`, `reshape-lesson`.
+   - `_shared/lessonTiers.ts` imports FREE/FULL_TIER_SECTION_NUMBERS but
+     has NO backend consumer -- dead in the Edge Function tree.
+3. Org lesson limits and Stripe price IDs are consistent between
+   `orgPricingConfig.ts` and the `_shared` mirror's `ORG_TIERS`
+   (20/30/60/100/200, identical IDs).
+4. Confirmed `STRIPE_LESSON_PACKS` and `LESSON_PACKS` both have ZERO
+   `src/` consumers; lesson-pack prices are rendered nowhere in the UI.
+5. Grep sweeps run on request -- all ZERO matches: expandableUser /
+   UserExpand family; fontPicker / colorPicker / exportFont / exportColor
+   family; AmpArticle / NewsletterPreview / EmailMarketing family;
+   uiAudit / gapReport family; `include_student_handouts`. `OrgSetup.tsx`
+   references tiers only dynamically (`tier.tier === 'org_growth'`), no
+   hardcoded per-tier strings. The only `STRIPE_ORG` hit in
+   `pricingConfig.ts` is the comment noting the block was removed
+   (Phase A11).
+
+#### Fixes
+
+1. `src/constants/orgPricingConfig.ts` `LESSON_PACKS`: small price
+   12.00 -> 15.00, medium 25.00 -> 35.00, large 45.00 -> 60.00. Stripe
+   product IDs and price IDs untouched.
+2. `supabase/functions/_shared/pricingConfig.ts`: inserted directly above
+   `export const ORG_TIERS = [` (now line 52) a 4-line SYNC GUARD comment
+   stating the array's tier keys, Stripe price IDs, and lessonsLimit
+   values MUST match `src/constants/orgPricingConfig.ts` `ORG_TIERS`, and
+   that both files must change in the same commit. The prompt supplied an
+   em dash in the last line; written as `--` to satisfy the ASCII guard
+   (Rule #16).
+
+#### Method / verification
+
+- Both edits applied via a temporary Node `.cjs` patch script using
+  explicit `\r\n` joins for CRLF matching; the script asserted each
+  search string occurred exactly once before replacing, guarded against
+  double-insertion of the comment, and ran a byte-level ASCII check.
+  Script deleted after the run.
+- ASCII guard: 0 non-ASCII bytes on both files.
+- `npm run build`: PASS -- 3941 modules, 21.12s, zero TypeScript errors.
+- Edge Function deploy: `create-org-checkout-session` deployed via
+  `npx supabase functions deploy create-org-checkout-session --use-api`
+  (uploaded `index.ts` + `_shared/pricingConfig.ts`).
+- Reported to Lynn before any deploy decision that the price fix has no UI
+  surface to verify on localhost (no consumer renders it).
+
+#### Deploy
+
+Bypassed `deploy.ps1` (which runs `git add .`) and used manual `git add`
+of only the two task files, keeping `DIAGNOSE_AUTH_FUNCTIONS.sql` and
+`DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql` untracked -- same pattern as every
+session since mid-May. Pre-commit ASCII hook passed ("All staged files
+are ASCII-clean").
+- `c1a9e1b` -- "FIX: Correct lesson pack prices 15/35/60 in
+  orgPricingConfig; add ORG_TIERS sync guard to _shared/pricingConfig"
+- Pushed `63c8c0e..c1a9e1b` to `origin/main`. Netlify auto-deploys.
+
+#### Rule satisfaction checklist
+
+- Rule #1 (verify file contents): full reads of all three pricing files
+  before any edit; changed regions re-read after the patch.
+- Rule #2 (complete solutions): both fixes in one commit.
+- Rule #5 (clean build before deploy): confirmed.
+- Rule #9 (single branch): commit on `main`.
+- Rule #14 (state uncertainty plainly): flagged the em dash in the
+  supplied comment before writing; flagged that the price fix has no UI
+  surface to verify; flagged the `deploy.ps1` `git add .` trap before
+  committing and confirmed the narrow-scope manual path with Lynn.
+- Rule #16 (ASCII representation): em dash rendered as `--`.
+- Rule #20 (Supabase CLI): Edge Function deployed via the CLI.
+- Rule #23/#24: `orgPricingConfig.ts` is not in FILES_TO_SYNC;
+  `_shared/pricingConfig.ts` is hand-maintained (Rule #24). No
+  `sync-constants` run -- correct for these two files.
+
+#### Carry-forward into next session
+
+Captured in WHAT'S NEXT at the top of this file.
 
 ---
 
