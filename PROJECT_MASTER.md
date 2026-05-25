@@ -2,19 +2,44 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 25 Session B (Lesson-pack purchase UI + SSOT consolidation):
+- The individual / team-lead lesson-pack purchase is intentionally NOT
+  built yet. It has zero backend: no one-time checkout Edge Function
+  (`create-checkout-session` is subscription-mode only), no `lesson_pack`
+  handling in the individual `stripe-webhook`, and no `bonus_lessons`
+  plumbing in `check_lesson_limit` / `useSubscription`. Building it needs:
+  (1) a one-time-payment checkout fn resolving price from
+  `STRIPE_LESSON_PACKS` in `_shared`, (2) a `lesson_pack` branch in
+  `stripe-webhook` crediting the individual's bonus lessons, and (3)
+  bonus-lesson exposure in the individual subscription RPC + UI. The
+  reusable `LessonPackPurchase` component (`src/components/subscription`)
+  is already built and SSOT-sourced; wiring it into the Dashboard is the
+  only frontend step once that backend lands. Deferred per Lynn (Option 1:
+  no dead buttons, no payment risk this pass).
+- The org lesson-pack checkout still resolves price from the
+  `lesson_pack_config` DB table inside `purchase-lesson-pack` (Lynn's Q2
+  choice: fix the frontend bug now, keep the DB lookup). For true
+  frontend-drives-backend, rewire `purchase-lesson-pack` to resolve price
+  from `STRIPE_LESSON_PACKS` (`_shared`) keyed by `pack_type`, then the
+  `lesson_pack_config` table can be retired. Requires an Edge Function
+  redeploy + Stripe test. Not urgent: the bridge works because the
+  `pack_type` keys (small|medium|large) are shared across `LESSON_PACKS`,
+  the DB table, and `STRIPE_LESSON_PACKS`.
+- Verify on the LIVE site that clicking a pack in Org Manager > Lesson
+  Pool initiates Stripe checkout end-to-end (proves the `pack_type` bridge
+  between the frontend SSOT and the DB `lesson_pack_config` holds).
+  Localhost dialog render was verified this session; full checkout needs
+  an org with an active Stripe customer.
+- The two root-level diagnostic SQL files remain untracked. Still deferred.
+
 Carry-forward from May 25 Session A (Pricing SSOT lesson-pack fix + diagnostics):
-- Lesson-pack constants are unrendered. Both `STRIPE_LESSON_PACKS`
-  (pricingConfig.ts) and `LESSON_PACKS` (orgPricingConfig.ts) have ZERO
-  consumers in `src/` -- confirmed by grep. The May 25 price correction
-  ($15/$35/$60) fixed the SSOT data but no screen displays it today.
-  `OrgLanding.tsx` mentions "Lesson Pack" in prose with no price. Decision
-  needed: build the lesson-pack purchase UI, or accept these as latent
-  catalog constants kept only for the Stripe webhook / future use.
-- Two lesson-pack sources still co-exist by design (file unification was
-  explicitly out of scope this session): `STRIPE_LESSON_PACKS` (priceCents)
-  and `orgPricingConfig.LESSON_PACKS` (dollars). Same Stripe product/price
-  IDs, now the same prices ($15/$35/$60). If a purchase UI is built, pick
-  ONE as the consumed source to prevent re-drift.
+- RESOLVED in Session B: the lesson-pack purchase UI was built and the two
+  frontend constants consolidated. `LESSON_PACKS` (orgPricingConfig.ts) is
+  now the single UI-consumed source (rendered via the new
+  `LessonPackPurchase` component in the Org Manager lesson pool);
+  `STRIPE_LESSON_PACKS` is annotated backend-only. The competing
+  `lesson_pack_config` DB read was removed from `useOrgPoolStatus`. See
+  the Session B carry-forward above for what remains (individual path).
 - Backend mirror `_shared/pricingConfig.ts` carries stale UI-only fields
   the frontend has since changed: `PRICING_DISPLAY.personal.displayName`
   is 'Teacher Plan' (frontend: 'Personal Plan') plus an extra
@@ -171,6 +196,80 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 25, 2026 -- Session B: Lesson-pack purchase UI + lesson-pack SSOT consolidation
+
+#### Summary
+
+Built the lesson-pack purchase UI and consolidated the lesson-pack data
+sources, shipped as commit `7fdf40e` (6 files, +104/-74). Diagnosis-led
+per the task. Lynn chose Option 1: org-only now, fix the org checkout bug,
+defer the individual/team-lead path until its backend exists (no dead
+buttons, no payment risk). Build clean; localhost verified; pushed to main.
+
+#### Diagnosis (before any change)
+
+1. THREE lesson-pack sources existed, not two: `STRIPE_LESSON_PACKS`
+   (pricingConfig.ts, priceCents -- zero `src/` consumers), `LESSON_PACKS`
+   (orgPricingConfig.ts, dollars -- zero `src/` consumers), and the
+   `lesson_pack_config` DB table -- the ONLY one actually consumed, read by
+   both `useOrgPoolStatus` (display) and `purchase-lesson-pack` (backend
+   price). The DB read in the frontend violated frontend-drives-backend.
+2. The three target audiences collapse to TWO surfaces: Dashboard
+   (individual + team lead are the same billing identity) and Org Manager
+   (org admin). "Team lead" = an individual-account user who created a
+   Teaching Team -- not a separate backend path.
+3. Org purchase path was end-to-end built but BROKEN at the frontend:
+   `OrgPoolStatusCard.handlePurchasePack` read `data.checkout_url`, but
+   `purchase-lesson-pack` returns `data.url` -- always threw "No checkout
+   URL returned". (`handleUpgradeSubscription` correctly reads
+   `checkout_url`; `create-org-checkout-session` returns that.)
+4. Individual path has NO backend: no one-time checkout fn
+   (`create-checkout-session` is subscription-only), no `lesson_pack` in
+   `stripe-webhook`, no `bonus_lessons` in the individual RPC/UI. (See
+   WHAT'S NEXT for the deferred build.)
+
+#### Changes (commit 7fdf40e)
+
+1. NEW `src/components/subscription/LessonPackPurchase.tsx` -- reusable,
+   presentational; renders the three packs (name, price, lesson count)
+   from `getActiveLessonPacks()` (LESSON_PACKS SSOT) and fires
+   `onPurchase(packType)`. ARIA labels on buttons, `aria-hidden` on the
+   decorative icon, `role="list"`/`listitem`.
+2. `src/constants/orgPricingConfig.ts` -- comment designating
+   `LESSON_PACKS` the single UI-consumed source.
+3. `src/constants/pricingConfig.ts` + `supabase/functions/_shared/pricingConfig.ts`
+   -- comment marking `STRIPE_LESSON_PACKS` backend-only (Rule #24 mirror
+   updated in the same commit).
+4. `src/components/org/OrgPoolStatusCard.tsx` -- dialog now renders
+   `<LessonPackPurchase>` from the SSOT instead of the DB-sourced map;
+   `handlePurchasePack(packType)`; FIXED `data.checkout_url` -> `data.url`;
+   dropped the `LessonPackConfig` import; `aria-hidden` on dialog icon.
+5. `src/hooks/useOrgPoolStatus.ts` -- removed the `lesson_pack_config` DB
+   read (interface, state, fetch, return field) so the UI has one
+   lesson-pack source; header comment updated.
+
+#### Method / verification
+
+- All edits via the Edit tool; the new file written then normalized to
+  CRLF via PowerShell. Byte-level check: 0 non-ASCII, no BOM on all 6
+  files. The Edit tool normalizes literal Unicode <-> `\uXXXX` on match,
+  so new comment text was kept em-dash-free to avoid writing a real glyph.
+- `npm run build`: PASS -- 3942 modules, 16.58s, zero TypeScript errors.
+- Stale `npm run dev` on port 8080 (prior session) forced Vite to 8081;
+  killed the stale node PID and restarted on the canonical 8080 (the
+  recurring stale-server pattern). Lynn verified the dialog on localhost.
+- Deploy: bypassed `deploy.ps1` (it `git add .`s and would stage the two
+  deferred SQL diagnostics); staged the 6 files manually. ASCII guard
+  pre-commit hook ran and passed. Commit message via `git commit -F` file
+  (PowerShell 5.1 mangled embedded double quotes in `-m` here-string).
+  Pushed `8af1237..7fdf40e` to main.
+
+#### No route changes
+`routes.ts` / `App.tsx` untouched -- the component is embedded in the
+existing Org Manager page, not a new route.
 
 ---
 
