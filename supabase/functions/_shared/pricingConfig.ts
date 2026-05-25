@@ -45,6 +45,10 @@ export const STRIPE_INDIVIDUAL = {
 // This backend mirror must stay in sync manually.
 // ============================================================
 
+// SYNC GUARD: org tier keys, Stripe price IDs, and lessonsLimit values here
+// MUST match src/constants/orgPricingConfig.ts ORG_TIERS exactly.
+// When changing org tier limits, update BOTH files in the same commit.
+// Frontend SSOT: src/constants/orgPricingConfig.ts (Rule #24 -- hand-maintained mirror)
 export const ORG_TIERS = [
   { tier: 'org_single_staff', priceMonthly: 'price_1Swo8cI4GLksxBfVmjDOAPsy', priceAnnual: 'price_1Swo8cI4GLksxBfVKrgbURbQ', lessonsLimit: 20 },
   { tier: 'org_starter',      priceMonthly: 'price_1SvMaWI4GLksxBfVn6FVKKiG', priceAnnual: 'price_1SvMcVI4GLksxBfVLG7k1F12', lessonsLimit: 30 },
