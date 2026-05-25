@@ -41,9 +41,9 @@ import {
   getStatusBadgeVariant,
   getStatusLabel,
   formatCurrency,
-  type LessonPackConfig,
   type OrgTierConfig,
 } from "@/hooks/useOrgPoolStatus";
+import { LessonPackPurchase } from "@/components/subscription/LessonPackPurchase";
 
 // ============================================================================
 // TYPES
@@ -66,7 +66,7 @@ export function OrgPoolStatusCard({
   showPurchaseOptions = false,
 }: OrgPoolStatusCardProps) {
   const { toast } = useToast();
-  const { poolStatus, tierConfigs, lessonPackConfigs, loading, error, refetch } = useOrgPoolStatus(organizationId);
+  const { poolStatus, tierConfigs, loading, error, refetch } = useOrgPoolStatus(organizationId);
   
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   const [upgradeDialogOpen, setUpgradeDialogOpen] = useState(false);
@@ -76,21 +76,22 @@ export function OrgPoolStatusCard({
   // PURCHASE HANDLERS
   // ============================================================================
 
-  const handlePurchasePack = async (pack: LessonPackConfig) => {
+  const handlePurchasePack = async (packType: string) => {
     setPurchaseLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("purchase-lesson-pack", {
         body: {
           organization_id: organizationId,
-          pack_type: pack.packType,
+          pack_type: packType,
         },
       });
 
       if (error) throw error;
 
-      // Redirect to Stripe Checkout
-      if (data?.checkout_url) {
-        window.location.href = data.checkout_url;
+      // Redirect to Stripe Checkout. The purchase-lesson-pack Edge Function
+      // returns { url, session_id } -- read data.url (NOT checkout_url).
+      if (data?.url) {
+        window.location.href = data.url;
       } else {
         throw new Error("No checkout URL returned");
       }
@@ -356,7 +357,6 @@ export function OrgPoolStatusCard({
       <LessonPackDialog
         open={purchaseDialogOpen}
         onOpenChange={setPurchaseDialogOpen}
-        lessonPackConfigs={lessonPackConfigs}
         onPurchase={handlePurchasePack}
         loading={purchaseLoading}
       />
@@ -381,15 +381,13 @@ export function OrgPoolStatusCard({
 interface LessonPackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  lessonPackConfigs: LessonPackConfig[];
-  onPurchase: (pack: LessonPackConfig) => void;
+  onPurchase: (packType: string) => void;
   loading: boolean;
 }
 
 function LessonPackDialog({
   open,
   onOpenChange,
-  lessonPackConfigs,
   onPurchase,
   loading,
 }: LessonPackDialogProps) {
@@ -398,7 +396,7 @@ function LessonPackDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
+            <Package className="h-5 w-5" aria-hidden="true" />
             Purchase Lesson Pack
           </DialogTitle>
           <DialogDescription>
@@ -406,27 +404,9 @@ function LessonPackDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 py-4">
-          {lessonPackConfigs.map((pack) => (
-            <div
-              key={pack.packType}
-              className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <div>
-                <p className="font-medium">{pack.displayName}</p>
-                <p className="text-sm text-muted-foreground">
-                  {pack.lessonsIncluded} lessons * {pack.description}
-                </p>
-              </div>
-              <Button
-                onClick={() => onPurchase(pack)}
-                disabled={loading}
-                size="sm"
-              >
-                {formatCurrency(pack.price)}
-              </Button>
-            </div>
-          ))}
+        {/* Pack list sourced from LESSON_PACKS SSOT (orgPricingConfig.ts) */}
+        <div className="py-4">
+          <LessonPackPurchase onPurchase={onPurchase} loading={loading} />
         </div>
 
         <DialogFooter>

@@ -1,9 +1,12 @@
 /**
  * useOrgPoolStatus Hook
  * 
- * Fetches organization pool status and pricing configuration from database.
- * SSOT: Database tables (org_tier_config, lesson_pack_config) are the source of truth.
- * 
+ * Fetches organization pool status and tier configuration from database.
+ * Pool usage comes from the organizations table; tier configs from
+ * org_tier_config. Lesson-pack display data is NOT fetched here -- it now
+ * comes from the LESSON_PACKS frontend SSOT (src/constants/orgPricingConfig.ts),
+ * consumed via the LessonPackPurchase component.
+ *
  * @location src/hooks/useOrgPoolStatus.ts
  */
 
@@ -55,22 +58,9 @@ export interface OrgTierConfig {
   isActive: boolean;
 }
 
-export interface LessonPackConfig {
-  packType: string;
-  displayName: string;
-  lessonsIncluded: number;
-  price: number;
-  stripeProductId: string;
-  stripePriceId: string;
-  description: string;
-  displayOrder: number;
-  isActive: boolean;
-}
-
 export interface UseOrgPoolStatusReturn {
   poolStatus: OrgPoolStatus | null;
   tierConfigs: OrgTierConfig[];
-  lessonPackConfigs: LessonPackConfig[];
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -83,7 +73,6 @@ export interface UseOrgPoolStatusReturn {
 export function useOrgPoolStatus(organizationId: string | null): UseOrgPoolStatusReturn {
   const [poolStatus, setPoolStatus] = useState<OrgPoolStatus | null>(null);
   const [tierConfigs, setTierConfigs] = useState<OrgTierConfig[]>([]);
-  const [lessonPackConfigs, setLessonPackConfigs] = useState<LessonPackConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -182,29 +171,6 @@ export function useOrgPoolStatus(organizationId: string | null): UseOrgPoolStatu
         }))
       );
 
-      // Fetch lesson pack configurations (SSOT from database)
-      const { data: packData, error: packError } = await supabase
-        .from("lesson_pack_config")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-
-      if (packError) throw packError;
-
-      setLessonPackConfigs(
-        (packData || []).map((p) => ({
-          packType: p.pack_type,
-          displayName: p.display_name,
-          lessonsIncluded: p.lessons_included,
-          price: p.price,
-          stripeProductId: p.stripe_product_id,
-          stripePriceId: p.stripe_price_id,
-          description: p.description,
-          displayOrder: p.display_order,
-          isActive: p.is_active,
-        }))
-      );
-
     } catch (err: any) {
       console.error("Error fetching org pool status:", err);
       setError(err.message || "Failed to load pool status");
@@ -220,7 +186,6 @@ export function useOrgPoolStatus(organizationId: string | null): UseOrgPoolStatu
   return {
     poolStatus,
     tierConfigs,
-    lessonPackConfigs,
     loading,
     error,
     refetch: fetchPoolStatus,

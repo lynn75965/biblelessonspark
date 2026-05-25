@@ -101,6 +101,13 @@ export const ORG_TIERS: OrgTier[] = [
 
 // ============================================
 // LESSON PACKS (ONE-TIME PURCHASES)
+//
+// SINGLE UI-CONSUMED SOURCE for lesson packs. All purchase UI
+// (LessonPackPurchase component, Org Manager lesson pool) reads pack
+// display name, dollar price, and lesson count from here via
+// getActiveLessonPacks(). The backend price-resolution mirror lives in
+// STRIPE_LESSON_PACKS (pricingConfig.ts / _shared). Same pack_type keys
+// (small | medium | large) bridge UI and backend. Keep both in sync.
 // ============================================
 
 export interface LessonPack {

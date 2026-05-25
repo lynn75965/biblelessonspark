@@ -49,6 +49,13 @@ export const STRIPE_INDIVIDUAL = {
 
 // ============================================================
 // STRIPE IDS \u2014 LESSON PACKS (ONE-TIME PURCHASES)
+//
+// BACKEND-ONLY SOURCE. These priceCents/priceId values exist for
+// Stripe webhook resolution and future backend price lookups.
+// The UI does NOT consume this object. The single UI-consumed source
+// for lesson packs (display name, dollar price, lesson count) is
+// LESSON_PACKS in src/constants/orgPricingConfig.ts. Keep both in sync
+// (same pack_type keys: small | medium | large) to prevent re-drift.
 // ============================================================
 
 export const STRIPE_LESSON_PACKS = {

@@ -59,6 +59,12 @@ export const ORG_TIERS = [
 
 // ============================================================
 // STRIPE IDS \u2014 LESSON PACKS (ONE-TIME PURCHASES)
+//
+// BACKEND-ONLY SOURCE. Used for Stripe webhook resolution and future
+// backend price lookups. The UI does NOT consume this object. The single
+// UI-consumed source for lesson packs is LESSON_PACKS in
+// src/constants/orgPricingConfig.ts (same pack_type keys: small | medium
+// | large). Keep both in sync to prevent re-drift.
 // ============================================================
 
 export const STRIPE_LESSON_PACKS = {
