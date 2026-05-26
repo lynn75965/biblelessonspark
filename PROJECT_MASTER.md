@@ -1,6 +1,31 @@
-# PROJECT MASTER -- Last updated: May 25, 2026
+# PROJECT MASTER -- Last updated: May 26, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 26 Session A (Mobile sidebar touch-scroll regression fix):
+- REAPPLIED: mobile sidebar touch scrolling. In
+  src/components/layout/AppShell.tsx the nav wrapper div (inside the shared
+  SidebarContent used by both the desktop <aside> and the mobile
+  <SheetContent> drawer) was missing the `overflow-y-auto` class. The wrapper
+  still carried `flex-1 min-h-0` and the inline
+  `style={{ WebkitOverflowScrolling: 'touch' }}`, but with no `overflow-y-auto`
+  there was no scroll container, so the inline touch-scroll style had nothing
+  to act on and the nav clipped instead of scrolling on iPhone. Fix: added
+  `overflow-y-auto` to that one wrapper div (line 147). Build clean; deployed
+  in commit f02c90f. The <nav aria-label="Sidebar navigation"> and all
+  locked-item a11y wiring (aria-disabled, aria-label, tabIndex, onKeyDown)
+  were left untouched. No file in FILES_TO_SYNC was touched, so
+  npm run sync-constants was not required.
+- Regression source: the `overflow-y-auto` class had been dropped from the
+  wrapper at some prior AppShell edit (commit trace not run this session).
+  Watch for this on any future AppShell sidebar-layout change -- the inline
+  WebkitOverflowScrolling touch-scroll style is inert without the
+  `overflow-y-auto` class beside it.
+- The two root-level diagnostic SQL files (DIAGNOSE_AUTH_FUNCTIONS.sql,
+  DIAGNOSE_DUPLICATE_AUTH_ACCOUNTS.sql) are NO LONGER untracked: deploy.ps1's
+  `git add .` swept them into commit f02c90f and Lynn chose to keep them
+  committed. Prior carry-forward notes calling them "still deferred /
+  untracked" are now obsolete.
 
 Carry-forward from May 25 Session B (Lesson-pack purchase UI + SSOT consolidation):
 - The individual / team-lead lesson-pack purchase is intentionally NOT
