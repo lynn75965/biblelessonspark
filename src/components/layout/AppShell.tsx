@@ -144,7 +144,7 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
         )}
       </div>
 
-      <div className="flex-1 min-h-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
       <nav className="flex flex-col gap-1 py-2" aria-label="Sidebar navigation">
         {sections.map((section) => (
           <div key={section.id}>
