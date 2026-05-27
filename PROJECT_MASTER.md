@@ -2,6 +2,27 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 27 Session C (Ingest-time HTML sanitization in create-blog-post):
+- DONE this session: FIX `fc503ad` -- added `sanitizeInlineStyles(html)` to the
+  `create-blog-post` Edge Function and composed it around the existing
+  `stripLeadingFeaturedImage` in BOTH write paths (POST create + PUT update),
+  immediately before insert/update. It strips ONLY `color`, `background`, and
+  `background-color` declarations from inline `style="..."` attributes
+  (preserving font-size/text-align/etc.) and drops the attribute entirely if it
+  becomes empty. Pure string/regex transform (no DOM, Deno-safe). Deployed via
+  `npx supabase functions deploy create-blog-post --use-api`. This closes the
+  ingest-sanitization item deferred in Sessions A and B.
+- SCOPE: applies to NEW posts and any post re-saved through PUT. Already-stored
+  posts keep their inline colors until re-saved -- the Dark/Dim CSS overrides in
+  `BlogPreviewPanel` (preview) and the published-page render still cover those.
+  If Lynn wants existing posts cleaned proactively, a one-off backfill (GET each
+  slug -> PUT the same content so the sanitizer re-runs, or a direct SQL/script
+  pass) would do it. Not urgent; deferred.
+- DELIBERATELY NARROW per the task: only `color` / `background` /
+  `background-color` are stripped. `background-image`, `border-color`, and other
+  properties are preserved. If a future light-callout uses one of those, widen
+  the `STRIP_PROPS` set in `sanitizeInlineStyles`.
+
 Carry-forward from May 27 Session B (Blog editor: per-image replace/delete + image data-loss fix):
 - DONE this session: (1) FIX `a75f94d` -- added `"image"` to the Quill
   `formats` whitelist in `BlogPreviewPanel.tsx` so inline `<img>` tags survive
@@ -22,11 +43,10 @@ Carry-forward from May 27 Session B (Blog editor: per-image replace/delete + ima
   content, not manual editor insertion. If Lynn ever wants admins to add new
   images in the editor, an image toolbar button + upload/URL handler is the
   next step.
-- STILL OPEN (carried from Session A): sanitize/normalize inline color +
+- RESOLVED in Session C (`fc503ad`): sanitize/normalize inline color +
   background styles in the `create-blog-post` Edge Function so posts never carry
-  hardcoded `style="background: #f5f5f5"` / `color: #2c5282`. Lynn deferred.
-  This and the wrapper-fidelity point above are the same class of fix: clean the
-  HTML at ingest rather than patch at render/edit time.
+  hardcoded `style="background: #f5f5f5"` / `color: #2c5282`. Done at ingest via
+  `sanitizeInlineStyles()` -- see the Session C block above.
 
 Carry-forward from May 27 Session A (Blog/article body text legible in all four themes):
 - RESOLVED this session (carried from May 13 Session 1, the "Quill blockquote
@@ -271,6 +291,61 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 27, 2026 -- Session C: Ingest-time HTML sanitization in create-blog-post
+
+#### Summary
+
+Closed the ingest-sanitization follow-up deferred in Sessions A and B. Added a
+`sanitizeInlineStyles()` pass to the `create-blog-post` Edge Function so incoming
+blog HTML (from Tertius/OpenClaw) is cleaned of hardcoded color/background inline
+styles before it is written to the DB -- the root-cause fix for the unreadable
+Dark/Dim callout boxes. One file, one commit `fc503ad`; Edge Function only (no
+frontend, schema, or dependency changes). Deployed to Supabase via the
+Management API.
+
+#### Diagnosis (Step 1)
+
+- Content is received via `readPayload` -> `toStr(payload.content)` in both the
+  POST (create) and PUT (update) paths.
+- It is written at the POST insert (`insertRow.content`) and the PUT update
+  (`updateRow.content`).
+- `stripLeadingFeaturedImage` (already present) was the model: a pure string
+  transform applied immediately before the write in both paths. The new
+  sanitizer is composed around it at those same two call sites.
+
+#### Changes (commit fc503ad, +35/-2)
+
+1. New `sanitizeInlineStyles(html: string): string` -- regex-matches each
+   ` style="..."` attribute (mandatory leading whitespace avoids matching
+   substrings like `data-mystyle`), splits the body on `;`, drops only
+   declarations whose property is `color` / `background` / `background-color`
+   (exact, case-insensitive), preserves the rest, and removes the whole
+   attribute if nothing remains. Re-emits with the original quote char. Pure --
+   no DOM, no imports (Deno Edge Function).
+2. POST path: `content = sanitizeInlineStyles(stripLeadingFeaturedImage(rawContent, featured_image_url))`.
+3. PUT path: `updateRow.content = sanitizeInlineStyles(stripLeadingFeaturedImage(v, featured))`.
+   GET and DELETE paths untouched (they do not write content).
+
+#### Scope / limits
+
+- Forward-looking: new posts and PUT re-saves are sanitized. Existing stored
+  posts are unchanged until re-saved; the CSS-layer overrides from Sessions A/B
+  still protect those at render/preview time.
+- Intentionally narrow property set (`color` / `background` / `background-color`)
+  per the task. `background-image`, `border-color`, etc. are preserved; widen
+  `STRIP_PROPS` if a future callout needs it.
+
+#### Method / verification
+
+- Edits via the Edit tool; all ASCII (guard clean).
+- Deployed: `npx supabase functions deploy create-blog-post --use-api` -> success
+  (project hphebzdftpjbiudpfcrs; bundled with `_shared/blogConfig.ts` +
+  `corsConfig.ts`). Source committed `fc503ad` and pushed to origin/main so the
+  repo matches the live function. No `npm run build` (Edge Function only). Not in
+  FILES_TO_SYNC; Rules #20 (migrations) and #23/#24 (_shared sync) not triggered.
 
 ---
 
