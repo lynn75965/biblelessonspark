@@ -131,6 +131,35 @@ function stripLeadingFeaturedImage(
   return content;
 }
 
+// Tertius/OpenClaw HTML sometimes carries hardcoded inline color and background
+// styles (e.g. style="background: #f5f5f5; color: #2c5282") on callout boxes.
+// Those literal colors are unreadable in the site's Dark/Dim themes. Strip ONLY
+// the color, background, and background-color declarations from each inline
+// style attribute, preserving any other properties (font-size, text-align,
+// etc.). If a style attribute is left empty, drop the attribute entirely.
+// Pure string transform -- no DOM, no deps (this is a Deno Edge Function).
+function sanitizeInlineStyles(html: string): string {
+  if (!html) return html;
+  const STRIP_PROPS = new Set(["color", "background", "background-color"]);
+  return html.replace(
+    /\s+style\s*=\s*(["'])([\s\S]*?)\1/gi,
+    (_full: string, quote: string, body: string) => {
+      const kept = body
+        .split(";")
+        .map((decl) => decl.trim())
+        .filter((decl) => decl.length > 0)
+        .filter((decl) => {
+          const colon = decl.indexOf(":");
+          if (colon === -1) return true; // malformed declaration -- leave as-is
+          const prop = decl.slice(0, colon).trim().toLowerCase();
+          return !STRIP_PROPS.has(prop);
+        });
+      if (kept.length === 0) return "";
+      return ` style=${quote}${kept.join("; ")}${quote}`;
+    },
+  );
+}
+
 async function readPayload(req: Request): Promise<BlogPostPayload> {
   const contentType = req.headers.get("content-type") || "";
   if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
@@ -296,7 +325,9 @@ serve(async (req) => {
           );
         }
         const featured = toStr(payload.featured_image_url)?.trim() || null;
-        updateRow.content = stripLeadingFeaturedImage(v, featured);
+        updateRow.content = sanitizeInlineStyles(
+          stripLeadingFeaturedImage(v, featured),
+        );
       }
       if (payload.featured_image_url !== undefined) {
         const v = toStr(payload.featured_image_url)?.trim();
@@ -368,7 +399,9 @@ serve(async (req) => {
     const rawContent = toStr(payload.content);
     const featured_image_url = toStr(payload.featured_image_url)?.trim() || null;
     const content = rawContent
-      ? stripLeadingFeaturedImage(rawContent, featured_image_url)
+      ? sanitizeInlineStyles(
+          stripLeadingFeaturedImage(rawContent, featured_image_url),
+        )
       : rawContent;
     const published = toBool(payload.published, true);
     const published_at = toStr(payload.published_at)?.trim() || new Date().toISOString();
