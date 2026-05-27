@@ -1,6 +1,30 @@
-# PROJECT MASTER -- Last updated: May 26, 2026
+# PROJECT MASTER -- Last updated: May 27, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from May 27 Session A (Blog/article body text legible in all four themes):
+- RESOLVED this session (carried from May 13 Session 1, the "Quill blockquote
+  color literal `#3D5C3D` -> CSS variable" item): in `BlogPreviewPanel.tsx` the
+  Quill editor blockquote border `#3D5C3D` became `hsl(var(--primary))` and the
+  blockquote text `#555` became `hsl(var(--muted-foreground))`. That carry-
+  forward is now closed.
+- OPTIONAL FOLLOW-UP (recommended, deferred): sanitize/normalize inline color +
+  background styles in the `create-blog-post` Edge Function (or strip them on
+  render) so posts never carry hardcoded `style="background: #f5f5f5"` /
+  `color: #2c5282`. The shipped preview fix is a CSS-override block scoped to
+  `.bls-blog-preview`, active in Dark/Dim only; it matches light-hex backgrounds
+  beginning with `#f` plus the word `white`. A callout using `#eeeeee` or
+  `rgb(...)` light gray would still slip through. Tertius authors the HTML
+  externally, so the bulletproof fix belongs in the ingest/render path, not the
+  content. Lynn deferred this; raise `/create-plan` if/when she wants it.
+- The public trust page `WhyChurchesCanTrustBibleLessonSpark.tsx` is now theme-
+  aware (was hardcoded `bg-white`/`text-slate-*`); its two callout boxes moved
+  from forced light-blue (`bg-blue-50`) to themed `bg-muted`. This session only
+  touched the files named in the task. `ChurchPlantReport.tsx`,
+  `CurriculumEvaluationPage.tsx`, `LessonShapesGuide.tsx`, and
+  `components/curriculum-eval/*` were checked and were ALREADY theme-aware (no
+  change). Watch for any OTHER standalone marketing/legal pages still using
+  hardcoded `bg-white`/`text-slate-*` if more are discovered later.
 
 Carry-forward from May 26 Session A (Mobile sidebar touch-scroll regression fix):
 - REAPPLIED: mobile sidebar touch scrolling. In
@@ -221,6 +245,88 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 27, 2026 -- Session A: Blog/article body text legible in all four themes
+
+#### Summary
+
+Blog post body content (and any HTML rendered via `dangerouslySetInnerHTML`)
+was unreadable in the Dark and Dim themes: hardcoded light-mode color classes
+(`bg-white`, `text-slate-*`) bypassed the theme system, and the `prose` blocks
+lacked `dark:prose-invert`. Fixed across the public blog post page, the public
+trust page, and the admin blog preview. Shipped as commit `36ae943` (3 files,
++97/-20). Diagnosis-led; build clean each round; Lynn approved on localhost
+across all four themes; pushed to main. The work spanned three prompts (base
+theme fix, an inline-style attribute override, then a class-based + real-markup
+override) all consolidated into the one commit.
+
+#### Theme architecture (confirmed before changing anything)
+
+`ThemeProvider.tsx` adds the `.dark` class to `<html>` whenever the intensity
+slider is < 50 -- so Dark (15) AND Dim (40) both carry `.dark`, while Soft (60)
+and Light (100) do not. `--foreground` / `--muted-foreground` are statically
+defined in `index.css` for `:root` (dark text) and `.dark` (light text); they
+are NOT interpolated by ThemeProvider. So `text-foreground`,
+`text-muted-foreground`, and `dark:prose-invert` resolve correctly in all four
+themes. `body` is already `bg-background text-foreground`. The bug was purely
+the hardcoded `bg-white` / `text-slate-*` overrides bypassing all of this.
+
+#### Changes (commit 36ae943)
+
+1. `src/pages/BlogPost.tsx` (8 replacements): `<main>` `bg-white text-slate-900`
+   -> `bg-background text-foreground`; headings `text-slate-950` ->
+   `text-foreground`; date/secondary `text-slate-500/700` ->
+   `text-muted-foreground`; back-link `text-blue-700` -> `text-primary` (matches
+   the BlogCard link convention); error box `red-*` -> `destructive` tokens
+   (matches Blog.tsx); content div `prose prose-lg max-w-none` ->
+   `prose prose-lg dark:prose-invert max-w-none`.
+2. `src/pages/WhyChurchesCanTrustBibleLessonSpark.tsx` (9 replacements):
+   `bg-white text-slate-900` -> `bg-background text-foreground`; eyebrow
+   `text-blue-700` -> `text-primary`; all `text-slate-700/950` body + headings
+   -> `text-foreground`; the two `bg-blue-50` callouts (blockquote + closing
+   card) -> `bg-muted` with `border-primary` / `border-border` and
+   `text-foreground`. The box backgrounds HAD to convert alongside their text:
+   leaving `bg-blue-50` while changing the text to `text-foreground` would put
+   light text on a light box in dark themes (a regression).
+3. `src/components/admin/BlogPreviewPanel.tsx`: (a) Quill editor blockquote
+   `#3D5C3D` border -> `hsl(var(--primary))`, `#555` text ->
+   `hsl(var(--muted-foreground))` (closes the May 13 carry-forward); (b) the
+   preview `prose` div got `dark:prose-invert` and a `bls-blog-preview` class;
+   (c) a scoped CSS-override block appended to the injected `quillEditorStyles`
+   that forces light-background callouts inside the rendered HTML onto the themed
+   card surface in Dark/Dim.
+
+#### Diagnosis that changed the BlogPreviewPanel fix
+
+The preview renders post HTML from the `blog_posts` table. I read the live
+published rows directly (public anon key, read-only, via a throwaway script) and
+found the callouts use INLINE styles, not Tailwind classes:
+`style="background: #f5f5f5; border-left: 4px solid #2c5282"` with inner
+`style="color: #2c5282"`. So the prompt's assumption of class-based
+(`bg-white` / `bg-gray-50`) backgrounds did not match the real markup, and the
+earlier `[style*="background:#fff"]` / `[style*="color:#"]` (no space) selectors
+missed both the `#f5f5f5` background and the `color: #2c5282` (space after the
+colon). The final CSS adds: the requested class-based overrides (future-proofing,
+harmless no-ops on current content), inline light-hex coverage
+(`[style*="background: #f"]` plus `white`, scoped to `.dark`), a space-aware
+`[style*="color: #"]` override, and a `.dark p/li/span` catch-all. Per the
+Session-1-findings-precedence rule, the finding drove the final fix; the prompt's
+class-based rules were still added as requested.
+
+#### Method / verification
+
+- All source edits via the Edit tool (color class strings only; all ASCII -- no
+  ASCII-guard risk, no Unicode glyphs introduced).
+- The diagnostic helper (`scan_blog.cjs`) was DELETED before deploy so
+  deploy.ps1's `git add .` could not sweep it into the commit.
+- `npm run build`: PASS each round -- 3942 modules, zero TypeScript errors
+  (final 23.53s). Only the pre-existing chunk-size / browserslist warnings.
+- Lynn verified all four themes on localhost:8080, then approved the deploy.
+- Deployed via `deploy.ps1`: ASCII guard clean, commit `36ae943`, pushed
+  `3143566..36ae943` to origin/main. No FILES_TO_SYNC files touched (Rule #23
+  not triggered); no SSOT constant files changed.
 
 ---
 
