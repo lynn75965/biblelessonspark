@@ -2,6 +2,18 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 27 Session D (One-time SQL backfill of inline color/background in blog_posts):
+- DONE this session: a one-time, data-only `UPDATE` in the Supabase Dashboard SQL
+  editor stripped `color` / `background` declarations from the stored `content`
+  of all existing `blog_posts` rows (4 affected). Existing posts now match the
+  Session C `sanitizeInlineStyles()` ingest output byte-for-byte. No code,
+  schema, migration, or deploy -- pure data backfill. Closes the backfill item
+  deferred in the Session C carry-forward below.
+- NOTHING OUTSTANDING from this task. If a future Tertius callout introduces a
+  NEW hardcoded color/background pattern not covered by the current `STRIP_PROPS`
+  set in `sanitizeInlineStyles`, the ingest sanitizer would need widening AND
+  another backfill pass for any rows written before that change.
+
 Carry-forward from May 27 Session C (Ingest-time HTML sanitization in create-blog-post):
 - DONE this session: FIX `fc503ad` -- added `sanitizeInlineStyles(html)` to the
   `create-blog-post` Edge Function and composed it around the existing
@@ -17,7 +29,8 @@ Carry-forward from May 27 Session C (Ingest-time HTML sanitization in create-blo
   `BlogPreviewPanel` (preview) and the published-page render still cover those.
   If Lynn wants existing posts cleaned proactively, a one-off backfill (GET each
   slug -> PUT the same content so the sanitizer re-runs, or a direct SQL/script
-  pass) would do it. Not urgent; deferred.
+  pass) would do it. DONE in Session D (May 27) via a direct SQL backfill of all
+  4 affected rows -- see the Session D block above; this item is now closed.
 - DELIBERATELY NARROW per the task: only `color` / `background` /
   `background-color` are stripped. `background-image`, `border-color`, and other
   properties are preserved. If a future light-callout uses one of those, widen
@@ -291,6 +304,72 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 27, 2026 -- Session D: One-time SQL backfill of inline color/background styles in blog_posts
+
+#### Summary
+
+Closed the existing-posts backfill deferred in the Session C carry-forward. A
+one-time, data-only `UPDATE` in the Supabase Dashboard SQL editor stripped the
+hardcoded `color` / `background` declarations from the stored `content` of every
+existing `blog_posts` row, so old posts now match what the Session C
+`sanitizeInlineStyles()` ingest fix (`fc503ad`) produces for new posts. No
+frontend, Edge Function, migration, or deployment -- data backfill only, per the
+task. No repo code changed; the PROJECT_MASTER.md session log is the only file
+edit.
+
+#### Audit (Steps 1-2)
+
+- 4 rows carried inline styles; all 4 also carried color/background
+  (`rows_with_any_style` = `rows_with_color_or_bg` = 4). Affected slugs:
+  `teaching-lesson-to-making-disciple`,
+  `bivocational-pastor-aligned-bible-study-materials`,
+  `last-minute-substitute-teacher-support`,
+  `one-lesson-five-audiences-same-truth`.
+- The `LEFT(content, 500)` preview did not reach any `style=` (styles live deeper
+  in callout boxes), so an extraction query (`regexp_matches` on `style="..."`)
+  was run to see the real strings before writing any regex (Rule #10). It showed
+  exactly three distinct, double-quoted style strings, repeated 3x per post (12
+  total), no single-quoted variants:
+  1. `style="color: #2c5282; font-weight: 600;"`
+  2. `style="margin-top: 0; color: #2c5282;"`
+  3. `style="background: #f5f5f5; border-left: 4px solid #2c5282; padding: 1.5rem; margin: 2rem 0;"`
+
+#### Decision: Option A (match the ingest sanitizer), literal `replace()`
+
+- Chose Option A (strip only `color`/`background`, keep the rest) over Option B
+  (strip the whole `style=` attribute). Option B would have deleted legitimate
+  `font-weight`/`margin`/`border-left`/`padding` and left old posts inconsistent
+  with how new posts are cleaned; Option A makes them byte-for-byte identical to
+  `sanitizeInlineStyles()` output. Option B was also what the task's literal
+  "zero rows with `style=`" implied -- flagged the conflict and corrected the
+  Step 4 success test to "zero rows with a color/background property" instead.
+- Used literal Postgres `replace()` of the three known strings rather than
+  `regexp_replace`: with the exact strings known from the audit, literal replace
+  is provably exact and avoids the regex trap where a naive `color:` pattern also
+  matches the `color` inside `background-color:` (a hyphen is a word boundary).
+
+#### Result / verification (Steps 3-4)
+
+- Dry-run SELECT confirmed the three cleaned forms before committing:
+  `style="font-weight: 600"`, `style="margin-top: 0"`,
+  `style="border-left: 4px solid #2c5282; padding: 1.5rem; margin: 2rem 0"`.
+- Ran the chained `replace()` `UPDATE ... WHERE content LIKE '%style=%'`.
+- Verification: `rows_with_color_or_bg` went 4 -> `0`, re-confirmed by a second
+  independent count query (also `0`) -- so all 4 affected rows were cleaned.
+  `rows_with_any_style` stays at 4 by design (the preserved benign styles).
+- The `#2c5282` inside `border-left` is intentionally kept: the sanitizer strips
+  the color/background *properties*, not color *values* embedded in `border-left`
+  (the deliberate narrow scope from Session C).
+
+#### Method / notes
+
+- Data backfill only, run in the Supabase Dashboard SQL editor. No migration file
+  (Rule #20 governs schema changes, not data backfills). No `npm run build`, no
+  deploy, no `_shared` sync (Rules #23/#24 not triggered). No source files
+  changed.
 
 ---
 
