@@ -238,6 +238,20 @@ export function UserManagement() {
     if (!window.confirm(`Impersonate ${label}? This will open a new browser tab logged in as this user.`)) {
       return;
     }
+    // Open the new tab SYNCHRONOUSLY, inside the click handler, BEFORE any await.
+    // Browsers only grant window.open() popup permission during a direct user
+    // gesture; calling it after the async invoke below gets the popup blocked.
+    // So we open a blank tab now and point it at the impersonation URL once the
+    // async call resolves.
+    const newTab = window.open('', '_blank');
+    if (!newTab) {
+      toast({
+        title: "Popup Blocked",
+        description: "Allow popups for this site, then click Impersonate again.",
+        variant: "destructive",
+      });
+      return;
+    }
     setImpersonatingUserId(userId);
     try {
       const { data, error } = await supabase.functions.invoke('admin-impersonate-user', {
@@ -245,8 +259,9 @@ export function UserManagement() {
       });
       if (error) throw new Error(error.message ?? 'Impersonation failed');
       if (!data?.url) throw new Error('No impersonation URL returned');
-      window.open(data.url, '_blank');
+      newTab.location.href = data.url;
     } catch (err: any) {
+      newTab.close();
       toast({
         title: "Impersonation Failed",
         description: err.message,
