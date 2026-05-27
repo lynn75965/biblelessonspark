@@ -284,6 +284,66 @@ function stripLeadingFeaturedImage(content: string, featuredUrl: string | null):
   return content;
 }
 
+// --- Inline-image management for the edit-mode image panel (Option A) ---
+// These operate on the post content as an HTML string via DOMParser, so the
+// surrounding markup (a wrapping <p>/<figure>) is preserved. Quill's own embed
+// API would normalize that structure away. The Nth <img> in document order is
+// the stable handle the panel uses to target a specific image.
+
+function extractContentImages(html: string): { src: string }[] {
+  if (!html) return [];
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return Array.from(doc.body.querySelectorAll("img")).map((img) => ({
+    src: img.getAttribute("src") ?? "",
+  }));
+}
+
+function replaceContentImageSrc(
+  html: string,
+  index: number,
+  newSrc: string,
+): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const img = doc.body.querySelectorAll("img")[index];
+  if (!img) return html;
+  img.setAttribute("src", newSrc);
+  return doc.body.innerHTML;
+}
+
+// True when the parent holds only this image (ignoring whitespace text and <br>).
+function pWrapsOnlyImage(parent: HTMLElement, img: Element): boolean {
+  for (const node of Array.from(parent.childNodes)) {
+    if (node === img) continue;
+    if (
+      node.nodeType === Node.TEXT_NODE &&
+      (node.textContent ?? "").trim() === ""
+    ) {
+      continue;
+    }
+    if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      (node as Element).tagName === "BR"
+    ) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+function removeContentImageAt(html: string, index: number): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const img = doc.body.querySelectorAll("img")[index];
+  if (!img) return html;
+  const parent = img.parentElement;
+  if (parent && parent.tagName === "P" && pWrapsOnlyImage(parent, img)) {
+    parent.remove();
+  } else {
+    img.remove();
+  }
+  return doc.body.innerHTML;
+}
+
 function formatCreatedDate(value: string): string {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
@@ -499,7 +559,15 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
   const [publishingId, setPublishingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  // Edit-mode image manager (Option A): operates on editForm.content as a string.
+  const [replacingImageIndex, setReplacingImageIndex] = useState<number | null>(
+    null,
+  );
+  const [replaceImageUrl, setReplaceImageUrl] = useState("");
+  const [imagePanelStatus, setImagePanelStatus] = useState("");
+
   const quillRef = useRef<ReactQuill | null>(null);
+  const replaceImageInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleUppercase = useCallback(() => {
     const editor = quillRef.current?.getEditor();
@@ -536,6 +604,11 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
   const selectedDraft = useMemo(
     () => drafts.find((d) => d.id === selectedId) ?? null,
     [drafts, selectedId],
+  );
+
+  const contentImages = useMemo(
+    () => extractContentImages(editForm.content),
+    [editForm.content],
   );
 
   const fetchDrafts = useCallback(async () => {
@@ -605,6 +678,13 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
     }
   }, [mode]);
 
+  // Move focus into the replace-URL input when a Replace action opens it.
+  useEffect(() => {
+    if (replacingImageIndex !== null) {
+      replaceImageInputRef.current?.focus();
+    }
+  }, [replacingImageIndex]);
+
   function handlePreview(id: string) {
     setSelectedId(id);
     setMode("preview");
@@ -624,6 +704,9 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
     });
     setMetadataError(null);
     setMetadataExpanded(false);
+    setReplacingImageIndex(null);
+    setReplaceImageUrl("");
+    setImagePanelStatus("");
     setMode("edit");
   }
 
@@ -751,6 +834,39 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
     toast({ title: "Changes saved" });
     setMode("preview");
     fetchDrafts();
+  }
+
+  function startReplaceImage(index: number) {
+    setReplacingImageIndex(index);
+    setReplaceImageUrl(contentImages[index]?.src ?? "");
+    setImagePanelStatus("");
+  }
+
+  function cancelReplaceImage() {
+    setReplacingImageIndex(null);
+    setReplaceImageUrl("");
+  }
+
+  function confirmReplaceImage(index: number) {
+    const next = replaceImageUrl.trim();
+    if (!next) return;
+    setEditForm((f) => ({
+      ...f,
+      content: replaceContentImageSrc(f.content, index, next),
+    }));
+    setReplacingImageIndex(null);
+    setReplaceImageUrl("");
+    setImagePanelStatus(`Image ${index + 1} updated.`);
+  }
+
+  function deleteContentImage(index: number) {
+    setEditForm((f) => ({
+      ...f,
+      content: removeContentImageAt(f.content, index),
+    }));
+    setReplacingImageIndex(null);
+    setReplaceImageUrl("");
+    setImagePanelStatus(`Image ${index + 1} deleted.`);
   }
 
   function renderLoadingSkeleton() {
@@ -1036,6 +1152,108 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
                 aria-labelledby="edit-content-label"
               />
             </div>
+          </div>
+
+          <div>
+            <Label id="edit-images-label">Images in this post</Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Replace or remove images embedded in the post body. Changes apply
+              when you Save.
+            </p>
+            <div aria-live="polite" className="sr-only">
+              {imagePanelStatus}
+            </div>
+            {contentImages.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                No images in the post body.
+              </p>
+            ) : (
+              <ul
+                role="list"
+                aria-labelledby="edit-images-label"
+                className="mt-2 space-y-3"
+              >
+                {contentImages.map((img, i) => (
+                  <li
+                    key={`${i}-${img.src}`}
+                    className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-3"
+                  >
+                    <img
+                      src={img.src}
+                      alt=""
+                      className="h-16 w-16 flex-shrink-0 rounded bg-muted object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="truncate font-mono text-xs text-muted-foreground"
+                        title={img.src}
+                      >
+                        {img.src || "(no src)"}
+                      </p>
+                      {replacingImageIndex === i ? (
+                        <div className="mt-2 space-y-2">
+                          <Label
+                            htmlFor={`replace-image-${i}`}
+                            className="sr-only"
+                          >
+                            New URL for image {i + 1}
+                          </Label>
+                          <Input
+                            id={`replace-image-${i}`}
+                            ref={replaceImageInputRef}
+                            type="url"
+                            value={replaceImageUrl}
+                            onChange={(e) => setReplaceImageUrl(e.target.value)}
+                            placeholder="https://..."
+                            className="font-mono text-xs"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => confirmReplaceImage(i)}
+                              aria-label={`Save new URL for image ${i + 1}`}
+                            >
+                              Update
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={cancelReplaceImage}
+                              aria-label={`Cancel replacing image ${i + 1}`}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => startReplaceImage(i)}
+                            aria-label={`Replace image ${i + 1}`}
+                          >
+                            Replace
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => deleteContentImage(i)}
+                            aria-label={`Delete image ${i + 1}`}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <details
