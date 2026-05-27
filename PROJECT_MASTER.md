@@ -2,6 +2,18 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 27 Session F (Impersonate "open in new tab" popup-blocker fix):
+- DONE this session: FIX `954eb30` -- the admin Impersonate button opened its new
+  tab AFTER an `await`, so browsers blocked the popup. `handleImpersonate` in
+  `src/components/admin/UserManagement.tsx` now opens the `_blank` tab
+  synchronously inside the click handler (before the async `admin-impersonate-user`
+  invoke), then sets `newTab.location.href` once the URL resolves; shows a "Popup
+  Blocked" toast if the synchronous open is refused, and closes the blank tab on
+  error. Frontend only; `npm run build` clean; verified on localhost before deploy.
+  (Chronologically this preceded the Session E send-lesson-email work -- commit
+  `954eb30` is before `0b24b97`; it is labeled F only because E was logged first.)
+- NOTHING OUTSTANDING.
+
 Carry-forward from May 27 Session E (send-lesson-email admin tier-resolution fix + ASCII sanitization):
 - DONE this session: FIX `0b24b97` -- `send-lesson-email` now resolves the
   subscriber tier via the canonical `check_lesson_limit` RPC
@@ -324,6 +336,38 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 27, 2026 -- Session F: Impersonate "open in new tab" popup-blocker fix
+
+#### Summary
+
+The admin Impersonate button's new tab was being blocked by the browser.
+`handleImpersonate` (`src/components/admin/UserManagement.tsx`) called
+`window.open(url, "_blank")` AFTER `await supabase.functions.invoke(
+"admin-impersonate-user", ...)`, so it was no longer a direct user gesture and got
+popup-blocked. One commit `954eb30`; frontend only. (Preceded the Session E work
+chronologically; labeled F because E was logged first.)
+
+#### Fix
+
+- Open the `_blank` tab SYNCHRONOUSLY at the top of the handler (after the confirm,
+  before any await): `const newTab = window.open('', '_blank')`.
+- If blocked (`newTab` null), show a "Popup Blocked" toast and bail (no stuck
+  loading state).
+- After the async invoke resolves, navigate the existing tab:
+  `newTab.location.href = data.url`. On error, `newTab.close()` then the existing
+  failure toast.
+
+#### Method / verification
+
+- `npm run build` clean (3942 modules). Verified on localhost (port 8080,
+  `/admin`) before deploy; deployed via `deploy.ps1` (commit `954eb30`, ASCII
+  guard passed). The Impersonate button already met Rule #22 a11y (tabIndex,
+  Enter/Space handler, aria-label, aria-hidden icons); the transient `disabled`
+  attribute used during link generation was noted but left unchanged (out of
+  scope for this fix).
 
 ---
 
