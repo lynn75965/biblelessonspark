@@ -29,6 +29,12 @@ const quillFormats = [
   "bullet",
   "blockquote",
   "link",
+  // "image" must be whitelisted or Quill strips inline <img> tags when a draft
+  // is loaded into the editor -- silently destroying them on the next Save.
+  // (No image toolbar button is added: images arrive via post content, not
+  // manual insertion. Per-image replace/delete is handled by the image manager
+  // panel, which operates on editForm.content as a string.)
+  "image",
 ];
 
 const quillEditorStyles = `
