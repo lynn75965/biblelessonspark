@@ -2,6 +2,26 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 27 Session E (send-lesson-email admin tier-resolution fix + ASCII sanitization):
+- DONE this session: FIX `0b24b97` -- `send-lesson-email` now resolves the
+  subscriber tier via the canonical `check_lesson_limit` RPC
+  (`_shared/subscriptionCheck.ts`) instead of a bespoke raw
+  `user_subscriptions.tier` query. The old query ignored the admin role and
+  treated a missing row as `free`, so admins were blocked with 403 "Email
+  delivery requires a paid subscription" on EVERY send (roster + individual).
+  Now matches the frontend `useSubscription` path. Edge Function only; deployed
+  via the Management API and verified by a real send before commit.
+- ALSO in this commit: sanitized pre-existing non-ASCII in the file to pass the
+  ASCII guard -- comment glyphs to ASCII; three FUNCTIONAL chars to
+  behavior-identical JS unicode escapes (header star U+2726, footer copyright
+  U+00A9, and the en/em dashes U+2013/U+2014 in the `isStudentHandoutHeading`
+  regex character class). The live function (deployed with literal glyphs) is
+  behaviorally identical to the committed source, so NO redeploy was needed.
+- WATCH (not outstanding for this task): other Edge Functions may still gate on a
+  raw `user_subscriptions.tier` query (same admin-blind bug). A grep for
+  `.from("user_subscriptions")` across `supabase/functions/` would surface any
+  others; not audited this session (Lynn declined `/audit-ssot` for now).
+
 Carry-forward from May 27 Session D (One-time SQL backfill of inline color/background in blog_posts):
 - DONE this session: a one-time, data-only `UPDATE` in the Supabase Dashboard SQL
   editor stripped `color` / `background` declarations from the stored `content`
@@ -304,6 +324,64 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 27, 2026 -- Session E: send-lesson-email admin tier-resolution fix + ASCII sanitization
+
+#### Summary
+
+"Send Lesson" email failed with "Send Failed -- Unable to send lesson" for both
+roster and individual sends. Root cause: `send-lesson-email` gated delivery on a
+raw `user_subscriptions.tier` query that ignored the admin role and treated a
+missing row as `free`, returning 403 on every send for admins. Fixed by resolving
+tier through the canonical `check_lesson_limit` RPC. One commit `0b24b97`; Edge
+Function only.
+
+#### Diagnosis (protocol-driven)
+
+- The CLI command in the task prompt (`supabase functions logs ... --use-api`)
+  does not exist in the installed CLI (stable channel has no `logs` subcommand).
+  Flagged rather than fabricated (Rule #14). Got the definitive error from the
+  browser Network response body instead: `{"error":"Email delivery requires a
+  paid subscription"}` = the 403 branch (index.ts section 2).
+- Confirmed the divergence: frontend `useSubscription` and
+  `_shared/subscriptionCheck.ts` resolve tier via the `check_lesson_limit` RPC,
+  which is admin-aware (the dialog opens because that RPC returns a non-free tier
+  for admins). `send-lesson-email` alone rolled its own `user_subscriptions.tier`
+  query with no admin handling and no missing-row handling -> 403. Verified the
+  failure is NOT in the Resend loop (per-recipient failures return success:true,
+  which the UI shows as "Lesson Sent!" with a failed count, not "Send Failed").
+
+#### Changes (commit 0b24b97, +26/-25)
+
+1. Added `import { checkLessonLimit } from "../_shared/subscriptionCheck.ts"`.
+2. Replaced the section-2 raw query with
+   `const { tier } = await checkLessonLimit(supabase, user.id);` ahead of the
+   existing `if (tier === "free") return 403`.
+3. ASCII-sanitized pre-existing non-ASCII that blocked the commit (unrelated
+   debt): comment em-dashes/arrows/bullet to ASCII; functional chars to JS
+   unicode escapes (star U+2726, copyright U+00A9, regex en/em dashes
+   U+2013/U+2014).
+
+#### Method / verification
+
+- Deployed: `supabase functions deploy send-lesson-email --use-api` -> success
+  (bundled `subscriptionCheck.ts` + `pricingConfig.ts`). Lynn verified a real
+  send (single + roster) before commit.
+- First sanitization pass corrupted the regex and missed two glyphs (hit the
+  unicode-escape <-> literal normalization trap in the editing tools). Restored
+  from git (Rule #13/#19) and redid it with escape strings built from character
+  codes; full non-ASCII scan = 0; ASCII guard passed on commit.
+- No `npm run build` (Edge Function only). No migration (Rule #20 = schema only).
+  Not in FILES_TO_SYNC. No redeploy after the ASCII pass (escapes behaviorally
+  identical to glyphs).
+
+#### Carry-forward
+
+- Other Edge Functions may share the admin-blind `user_subscriptions.tier`
+  pattern; a grep for `.from("user_subscriptions")` under `supabase/functions/`
+  would find them. Not audited this session.
 
 ---
 
