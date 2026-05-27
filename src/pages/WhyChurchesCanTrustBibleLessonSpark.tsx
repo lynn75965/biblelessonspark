@@ -2,17 +2,17 @@ import type { ReactNode } from "react";
 
 export default function WhyChurchesCanTrustBibleLessonSpark() {
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen bg-background text-foreground">
       <section className="mx-auto max-w-4xl px-6 py-12 md:py-16">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-blue-700">
+        <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-primary">
           BibleLessonSpark Trust Statement
         </p>
 
-        <h1 className="mb-6 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">
+        <h1 className="mb-6 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
           Why Churches Can Trust BibleLessonSpark
         </h1>
 
-        <div className="space-y-6 text-lg leading-8 text-slate-700">
+        <div className="space-y-6 text-lg leading-8 text-foreground">
           <p>
             Churches do not need Bible lessons that merely sound religious.
           </p>
@@ -68,7 +68,7 @@ export default function WhyChurchesCanTrustBibleLessonSpark() {
             </p>
             <p>The goal is not simply to help a teacher {'\u201C'}get through a lesson.{'\u201D'} The goal is to help the teacher teach with confidence.</p>
             <p>A teacher should be able to walk into class knowing:</p>
-            <blockquote className="border-l-4 border-blue-600 bg-blue-50 px-5 py-4 text-slate-800">
+            <blockquote className="border-l-4 border-primary bg-muted px-5 py-4 text-foreground">
               <p>{'\u201C'}I understand the passage.{'\u201D'}</p>
               <p>{'\u201C'}I know the main truth I am teaching.{'\u201D'}</p>
               <p>{'\u201C'}I have age-appropriate ways to explain it.{'\u201D'}</p>
@@ -203,8 +203,8 @@ export default function WhyChurchesCanTrustBibleLessonSpark() {
           </Section>
         </div>
 
-        <div className="mt-14 rounded-2xl border border-blue-100 bg-blue-50 p-6 md:p-8">
-          <p className="text-xl font-semibold leading-8 text-slate-950">
+        <div className="mt-14 rounded-2xl border border-border bg-muted p-6 md:p-8">
+          <p className="text-xl font-semibold leading-8 text-foreground">
             BibleLessonSpark prepares Scripture-true lessons, aligned with your church{'\u2019'}s doctrinal convictions, so teachers can teach with confidence, students can grow in truth, and churches can faithfully honor God{'\u2019'}s Word across every age group.
           </p>
         </div>
@@ -216,10 +216,10 @@ export default function WhyChurchesCanTrustBibleLessonSpark() {
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="space-y-4">
-      <h2 className="text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+      <h2 className="text-2xl font-bold tracking-tight text-foreground md:text-3xl">
         {title}
       </h2>
-      <div className="space-y-4 text-lg leading-8 text-slate-700">{children}</div>
+      <div className="space-y-4 text-lg leading-8 text-foreground">{children}</div>
     </section>
   );
 }

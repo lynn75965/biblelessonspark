@@ -84,13 +84,13 @@ export default function BlogPost() {
   }, [loading, post, notFound]);
 
   return (
-    <main className="min-h-screen bg-white text-slate-900">
+    <main className="min-h-screen bg-background text-foreground">
       <BlogHeaderNav />
       <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
         <div className="mb-8">
           <Link
             to={BLOG_CONFIG.routes.index}
-            className="text-sm font-medium text-blue-700 hover:text-blue-900 hover:underline focus:underline focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+            className="text-sm font-medium text-primary hover:text-primary/80 hover:underline focus:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             {BLOG_CONFIG.ui.backLabel}
           </Link>
@@ -101,7 +101,7 @@ export default function BlogPost() {
         </div>
 
         {error && (
-          <div role="alert" className="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-red-800">
+          <div role="alert" className="mb-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-destructive">
             {error}
           </div>
         )}
@@ -111,11 +111,11 @@ export default function BlogPost() {
             <h1
               ref={headingRef}
               tabIndex={-1}
-              className="mb-4 text-3xl font-bold tracking-tight text-slate-950 md:text-4xl"
+              className="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl"
             >
               Post not found
             </h1>
-            <p className="text-lg text-slate-700">
+            <p className="text-lg text-muted-foreground">
               This post is unavailable or no longer published.
             </p>
           </div>
@@ -126,12 +126,12 @@ export default function BlogPost() {
             <h1
               ref={headingRef}
               tabIndex={-1}
-              className="mb-4 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl"
+              className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-5xl"
             >
               {post.title}
             </h1>
             {post.published_at && (
-              <p className="mb-8 text-sm text-slate-500">
+              <p className="mb-8 text-sm text-muted-foreground">
                 <time dateTime={post.published_at}>{formatPublishedDate(post.published_at)}</time>
               </p>
             )}
@@ -143,7 +143,7 @@ export default function BlogPost() {
               />
             )}
             <div
-              className="prose prose-lg max-w-none"
+              className="prose prose-lg dark:prose-invert max-w-none"
               dangerouslySetInnerHTML={{
                 __html: stripLeadingFeaturedImage(post.content, post.featured_image_url),
               }}

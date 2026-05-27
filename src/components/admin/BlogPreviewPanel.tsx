@@ -79,9 +79,9 @@ const quillEditorStyles = `
     height: auto !important;
   }
   .blog-editor .ql-editor blockquote {
-    border-left: 3px solid #3D5C3D;
+    border-left: 3px solid hsl(var(--primary));
     padding-left: 1rem !important;
-    color: #555;
+    color: hsl(var(--muted-foreground));
     font-style: italic;
   }
   .blog-editor .ql-editor p:empty,
@@ -97,6 +97,83 @@ const quillEditorStyles = `
     font-weight: 700;
     font-size: 12px;
     letter-spacing: 0.5px;
+  }
+
+  /* Preview theme override: blog HTML rendered via dangerouslySetInnerHTML may
+     embed hardcoded light backgrounds/colors (e.g. style="background: white")
+     that are unreadable in Dark/Dim themes. Force such inline-styled children
+     onto the themed card surface and foreground text. Scoped to
+     .bls-blog-preview so it never affects the Quill editor or other content. */
+  .bls-blog-preview [style*="background: white"],
+  .bls-blog-preview [style*="background:#fff"],
+  .bls-blog-preview [style*="background-color: white"],
+  .bls-blog-preview [style*="background-color:#fff"] {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--card-foreground)) !important;
+  }
+  .bls-blog-preview [style*="color:#"] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Class-based light backgrounds. Covers posts whose callouts use Tailwind
+     utility classes (bg-white / bg-gray-50 / bg-slate-100, etc). Harmless if
+     Tailwind never emitted the class -- the rule simply matches nothing. */
+  .bls-blog-preview .bg-white,
+  .bls-blog-preview .bg-gray-50,
+  .bls-blog-preview .bg-gray-100,
+  .bls-blog-preview .bg-slate-50,
+  .bls-blog-preview .bg-slate-100 {
+    background-color: hsl(var(--card)) !important;
+  }
+  .bls-blog-preview .bg-white *,
+  .bls-blog-preview .bg-gray-50 *,
+  .bls-blog-preview .bg-gray-100 *,
+  .bls-blog-preview .bg-slate-50 *,
+  .bls-blog-preview .bg-slate-100 * {
+    color: hsl(var(--card-foreground)) !important;
+  }
+
+  /* Inline-styled light-hex callouts -- the markup actually used by the blog
+     content. The real Tertius callout is
+     style="background: #f5f5f5; border-left: 4px solid #2c5282" -- a light gray
+     box (NOT white/#fff), so it slipped past the white/#fff selectors above,
+     and its inner text uses "color: #2c5282" (with a space the earlier
+     [style*="color:#"] selector missed). Match any inline background whose hex
+     starts with #f (near-white / light grays) plus the word white. Scoped to
+     .dark so Soft/Light themes keep the author's original callout look, while
+     Dark/Dim force the box and its text onto the themed card surface. */
+  .dark .bls-blog-preview [style*="background: #f"],
+  .dark .bls-blog-preview [style*="background:#f"],
+  .dark .bls-blog-preview [style*="background-color: #f"],
+  .dark .bls-blog-preview [style*="background-color:#f"],
+  .dark .bls-blog-preview [style*="background: white"],
+  .dark .bls-blog-preview [style*="background:white"],
+  .dark .bls-blog-preview [style*="background-color: white"],
+  .dark .bls-blog-preview [style*="background-color:white"] {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--card-foreground)) !important;
+  }
+  .dark .bls-blog-preview [style*="background: #f"] *,
+  .dark .bls-blog-preview [style*="background:#f"] *,
+  .dark .bls-blog-preview [style*="background-color: #f"] *,
+  .dark .bls-blog-preview [style*="background-color:#f"] *,
+  .dark .bls-blog-preview [style*="background: white"] *,
+  .dark .bls-blog-preview [style*="background:white"] * {
+    color: hsl(var(--card-foreground)) !important;
+  }
+
+  /* Inline text colors with a space after the colon (e.g. "color: #2c5282").
+     Dark themes only -- force onto the themed foreground so dark author text
+     never sits on a dark surface. Light/Soft keep the author's color. */
+  .dark .bls-blog-preview [style*="color: #"] {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Catch-all for any remaining hardcoded dark body text (dark themes only). */
+  .dark .bls-blog-preview p,
+  .dark .bls-blog-preview li,
+  .dark .bls-blog-preview span {
+    color: hsl(var(--foreground));
   }
 `;
 
@@ -792,7 +869,7 @@ export function BlogPreviewPanel({ showHeader = true }: BlogPreviewPanelProps) {
         )}
 
         <div
-          className="prose prose-lg max-w-none"
+          className="bls-blog-preview prose prose-lg dark:prose-invert max-w-none"
           dangerouslySetInnerHTML={{
             __html: stripLeadingFeaturedImage(
               selectedDraft.content,
