@@ -2,6 +2,32 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from May 27 Session B (Blog editor: per-image replace/delete + image data-loss fix):
+- DONE this session: (1) FIX `a75f94d` -- added `"image"` to the Quill
+  `formats` whitelist in `BlogPreviewPanel.tsx` so inline `<img>` tags survive
+  the edit round-trip (they were being stripped on load and destroyed on the
+  next Save). (2) FEATURE `ecbfd79` -- an edit-mode "Images in this post" panel
+  with per-image Replace (swap src) and Delete (removes the `<img>`, plus its
+  wrapping `<p>` if the `<p>` holds only the image). Operates on
+  `editForm.content` as an HTML string via DOMParser so wrapping markup is
+  preserved; Save captures it through the normal flow.
+- KNOWN LIMITATION (by design, Option A): the panel preserves whatever wrapper
+  exists AT EDIT TIME, not necessarily Tertius's original. Content round-trips
+  through Quill, which normalizes structure (e.g. a `<figure>` may already be a
+  Quill block by the time the panel sees it). The remove-wrapping-`<p>` logic
+  targets Quill's normalized output. If exact `<figure>` fidelity ever matters,
+  the fix is server-side sanitization (see the still-open item below), not the
+  panel.
+- NO image INSERT control was added (intentional): images arrive via post
+  content, not manual editor insertion. If Lynn ever wants admins to add new
+  images in the editor, an image toolbar button + upload/URL handler is the
+  next step.
+- STILL OPEN (carried from Session A): sanitize/normalize inline color +
+  background styles in the `create-blog-post` Edge Function so posts never carry
+  hardcoded `style="background: #f5f5f5"` / `color: #2c5282`. Lynn deferred.
+  This and the wrapper-fidelity point above are the same class of fix: clean the
+  HTML at ingest rather than patch at render/edit time.
+
 Carry-forward from May 27 Session A (Blog/article body text legible in all four themes):
 - RESOLVED this session (carried from May 13 Session 1, the "Quill blockquote
   color literal `#3D5C3D` -> CSS variable" item): in `BlogPreviewPanel.tsx` the
@@ -245,6 +271,78 @@ Carry-forward from May 13 Session 1 (Build Lesson sidebar fix):
   Session 2).
 - Re-upload `PROJECT_MASTER.md` to the Claude.ai project after this commit
   lands so the next session has current context.
+
+---
+
+### May 27, 2026 -- Session B: Blog editor per-image replace/delete + image data-loss fix
+
+#### Summary
+
+Two commits, shipped separately at Lynn's instruction -- a latent data-loss fix
+first, then the feature on top. (1) `a75f94d`: the Quill editor's `formats`
+whitelist was missing `"image"`, so inline images were silently stripped when a
+draft loaded into Edit mode and destroyed on the next Save. (2) `ecbfd79`: an
+edit-mode image manager (Option A) for per-image Replace / Delete. Both in
+`BlogPreviewPanel.tsx`; no backend, SSOT, schema, or dependency changes. Builds
+clean (3942 modules, zero TS errors); Lynn verified each on localhost before
+deploy.
+
+#### Diagnosis (Step 1, before any code)
+
+- Edit surface is `<ReactQuill>` (react-quill ^2.0.0 -> Quill 1.3.x) with a
+  strict `formats` whitelist that omitted `"image"`. Quill filters
+  non-whitelisted formats on load, so `<img>` embeds were removed -- and
+  `onChange` then wrote the image-stripped HTML into `editForm.content`, which
+  `handleSaveEdit` persisted. Result: editing any image-bearing draft destroyed
+  its inline images. (The existence of `stripLeadingFeaturedImage` confirms
+  content DOES carry `<img>`.) Preview mode was unaffected -- it bypasses Quill
+  via `dangerouslySetInnerHTML`.
+- Direct DOM manipulation of `.ql-editor` is unsafe (Quill owns that subtree via
+  a MutationObserver). Quill's own API is the only safe in-canvas mutation but
+  requires images as first-class embeds AND normalizes wrapping HTML away. That
+  conflict (manipulate images vs. preserve `<figure>`/`<p>`) is why the feature
+  was built OUTSIDE Quill, on the content string.
+
+#### Approach (Step 2, Lynn approved)
+
+Option A: image manager outside Quill, operating on `editForm.content` as a
+string. Prerequisite formats fix shipped first as its own commit, then the panel.
+
+#### Changes
+
+1. `a75f94d` -- `quillFormats` gains `"image"` (+ explanatory comment). No
+   toolbar image button (no manual insertion needed).
+2. `ecbfd79` -- in `BlogPreviewPanel.tsx`:
+   - Module-level string helpers (`extractContentImages`,
+     `replaceContentImageSrc`, `removeContentImageAt`, `pWrapsOnlyImage`) using
+     `DOMParser` -> mutate -> `doc.body.innerHTML`.
+   - State: `replacingImageIndex`, `replaceImageUrl`, `imagePanelStatus`; ref
+     `replaceImageInputRef`; derived `contentImages` (useMemo over
+     `editForm.content`); a focus effect into the replace input on open; reset of
+     panel state in `handleStartEdit`.
+   - Handlers: `startReplaceImage` / `cancelReplaceImage` / `confirmReplaceImage`
+     / `deleteContentImage`, each writing back to `editForm.content`.
+   - UI: an "Images in this post" section in `renderEdit()` (below the editor,
+     above the metadata details) -- thumbnail + src per image, Replace (inline
+     URL input) and Delete buttons. Edit mode only.
+
+#### Accessibility (Rule #22)
+
+Native `<button>`/`<input>` (in tab order, native Enter/Space, visible focus);
+state+purpose `aria-label`s on every control; `sr-only` `<label>` on the replace
+input with focus moved into it on open; decorative thumbnails (`alt=""`);
+`sr-only` `aria-live="polite"` status region ("Image N updated/deleted.");
+`role="list"` + `aria-labelledby`; conditional rendering for hidden states.
+
+#### Method / verification
+
+- All edits via the Edit tool; all ASCII (ASCII guard clean on both commits).
+- `npm run build`: PASS each round -- 3942 modules, zero TS errors.
+- Dev server stayed up on 8080; Lynn verified the edit flow on localhost.
+- Deployed `a75f94d` (formats fix, +6) then `ecbfd79` (panel, +218) to
+  origin/main. Blast radius: `BlogPreviewPanel.tsx` only, which both
+  `/admin/marketing` (Blog Preview tab) and standalone `/admin/blog-preview`
+  render. No FILES_TO_SYNC touched (Rule #23 not triggered).
 
 ---
 
