@@ -19,7 +19,7 @@
  * - Each recipient receives an individual email (privacy)
  *
  * Created: 2026-02-01
- * Updated: 2026-02-10 — Broadened Group Handout detection (Student Experience: Title, etc.)
+ * Updated: 2026-02-10 -- Broadened Group Handout detection (Student Experience: Title, etc.)
  * Version: 1.2.0
  */
 
@@ -38,6 +38,7 @@ import {
   buildEmailSubject,
   isValidEmail,
 } from "../_shared/emailDeliveryConfig.ts";
+import { checkLessonLimit } from "../_shared/subscriptionCheck.ts";
 
 // ============================================================================
 // CORS
@@ -57,7 +58,7 @@ function jsonResponse(body: Record<string, any>, status = 200) {
 }
 
 // ============================================================================
-// LESSON CONTENT FORMATTER (markdown-like → email-safe HTML)
+// LESSON CONTENT FORMATTER (markdown-like -> email-safe HTML)
 // ============================================================================
 
 /**
@@ -74,7 +75,7 @@ function escapeHtml(text: string): string {
  * Convert lesson markdown-style text to email-safe HTML.
  * Uses inline styles only (no CSS classes) for email client compatibility.
  *
- * NOTE: This formats the Section 8 BODY only — the Section 8 header
+ * NOTE: This formats the Section 8 BODY only -- the Section 8 header
  * is intentionally stripped before this function is called.
  * Any remaining sub-headers (### level) within Section 8 are styled.
  */
@@ -83,31 +84,31 @@ function formatLessonForEmail(text: string): string {
   let cleaned = text.replace(/^#{1,3}\s*$/gm, '');
   let html = escapeHtml(cleaned);
 
-  // Single # heading (title-level) → styled major header (must come before ## check)
+  // Single # heading (title-level) -> styled major header (must come before ## check)
   html = html.replace(
     /^#\s+(.+)$/gm,
     '<div style="font-family:Georgia,serif;font-size:19px;font-weight:bold;color:#3D5C3D;margin:24px 0 10px 0;">$1</div>'
   );
 
-  // Major section headers within handout: ## Heading → styled major header
+  // Major section headers within handout: ## Heading -> styled major header
   html = html.replace(
     /^##\s+(.+)$/gm,
     '<div style="font-family:Georgia,serif;font-size:17px;font-weight:bold;color:#3D5C3D;margin:20px 0 8px 0;">$1</div>'
   );
 
-  // Sub-section headers within Section 8: ### Heading → styled subheader
+  // Sub-section headers within Section 8: ### Heading -> styled subheader
   html = html.replace(
     /^###\s+(.+)$/gm,
     '<div style="font-family:Georgia,serif;font-size:15px;font-weight:bold;color:#3D5C3D;margin:16px 0 8px 0;">$1</div>'
   );
 
-  // Bold text: **text** → <strong>
+  // Bold text: **text** -> <strong>
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 
-  // Italic text: *text* → <em>
+  // Italic text: *text* -> <em>
   html = html.replace(/\*([^*]+)\*/g, "<em>$1</em>");
 
-  // Bullet points: lines starting with •, -, or *
+  // Bullet points: lines starting with *, -, or *
   html = html.replace(
     /^[\u2022\-\*]\s+(.+)$/gm,
     '<li style="margin-bottom:4px;font-family:Georgia,serif;font-size:15px;color:#1a1a1a;">$1</li>'
@@ -124,13 +125,13 @@ function formatLessonForEmail(text: string): string {
     '<li style="margin-bottom:4px;font-family:Georgia,serif;font-size:15px;color:#1a1a1a;">$1</li>'
   );
 
-  // Double line breaks → paragraph breaks
+  // Double line breaks -> paragraph breaks
   html = html.replace(
     /\n\n+/g,
     '</p><p style="margin:0 0 10px 0;font-family:Georgia,serif;font-size:15px;line-height:1.6;color:#1a1a1a;">'
   );
 
-  // Single line breaks → <br>
+  // Single line breaks -> <br>
   html = html.replace(/\n/g, "<br>");
 
   // Wrap in opening paragraph tag
@@ -146,7 +147,7 @@ function formatLessonForEmail(text: string): string {
 }
 
 // ============================================================================
-// SECTION 8 EXTRACTOR — MULTI-FORMAT (robust)
+// SECTION 8 EXTRACTOR -- MULTI-FORMAT (robust)
 // ============================================================================
 
 /**
@@ -154,9 +155,9 @@ function formatLessonForEmail(text: string): string {
  * that the lesson generator may produce:
  *
  *   Format A:  ## Section 8: Group Handout
- *   Format B:  ## Section 8 – Group Handout
+ *   Format B:  ## Section 8 - Group Handout
  *   Format C:  **Section 8: Group Handout**
- *   Format D:  **Section 8 – Group Handout**
+ *   Format D:  **Section 8 - Group Handout**
  *   Format E:  Section 8: Group Handout  (plain)
  *
  * Returns the section number if matched, or -1 if not a header.
@@ -188,7 +189,7 @@ function isStudentHandoutHeading(line: string): boolean {
   const trimmed = line.trim();
   let cleaned = trimmed.replace(/^#{1,4}\s*/, "");
   cleaned = cleaned.replace(/^\*\*/, "").replace(/\*\*$/, "");
-  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:–—\-].*)?$/i.test(cleaned);
+  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:\u2013\u2014\-].*)?$/i.test(cleaned);
 }
 
 /**
@@ -285,7 +286,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
   } = params;
 
   // ---------------------------------------------------------------
-  // Extract Group Handout — only if teacher toggled it on
+  // Extract Group Handout -- only if teacher toggled it on
   // ---------------------------------------------------------------
   let formattedSection8: string;
 
@@ -351,7 +352,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
           <!-- ======== HEADER ======== -->
           <tr>
             <td style="background:#3D5C3D;padding:24px 32px;text-align:center;">
-              <p style="margin:0;font-family:Georgia,serif;font-size:20px;color:#C5D9C5;font-weight:bold;">✦ ${escapeHtml(appName)}</p>
+              <p style="margin:0;font-family:Georgia,serif;font-size:20px;color:#C5D9C5;font-weight:bold;">\u2726 ${escapeHtml(appName)}</p>
               <p style="margin:6px 0 0 0;font-family:Georgia,serif;font-size:12px;color:#A3C4A3;">Personalized Bible Studies in Minutes</p>
             </td>
           </tr>
@@ -394,7 +395,7 @@ function buildLessonEmailHtml(params: EmailTemplateParams): string {
                 Sent from <a href="${baseUrl}" style="color:#3D5C3D;text-decoration:underline;">${escapeHtml(appName)}</a>
               </p>
               <p style="margin:0;font-family:Georgia,serif;font-size:11px;color:#999;">
-                © ${year} ${escapeHtml(appName)} | <a href="mailto:support@biblelessonspark.com" style="color:#999;text-decoration:underline;">support@biblelessonspark.com</a>
+                \u00A9 ${year} ${escapeHtml(appName)} | <a href="mailto:support@biblelessonspark.com" style="color:#999;text-decoration:underline;">support@biblelessonspark.com</a>
               </p>
             </td>
           </tr>
@@ -446,13 +447,13 @@ serve(async (req) => {
     // ----------------------------------------------------------------
     // 2. CHECK PAID TIER
     // ----------------------------------------------------------------
-    const { data: subscription } = await supabase
-      .from("user_subscriptions")
-      .select("tier")
-      .eq("user_id", user.id)
-      .single();
-
-    const tier = subscription?.tier || "free";
+    // SSOT: resolve tier via the check_lesson_limit RPC -- the same path used
+    // by the frontend useSubscription hook and _shared/subscriptionCheck.ts.
+    // This recognizes the admin role and handles users with no
+    // user_subscriptions row. The previous raw user_subscriptions.tier query
+    // did neither, so admins (who have no paid subscription row) were wrongly
+    // rejected with 403.
+    const { tier } = await checkLessonLimit(supabase, user.id);
     if (tier === "free") {
       return jsonResponse(
         { error: "Email delivery requires a paid subscription" },
