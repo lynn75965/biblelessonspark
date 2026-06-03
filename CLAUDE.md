@@ -275,15 +275,17 @@ Every interactive element must meet WCAG 2.1 AA minimum. Required on every UI ta
 Added April 4, 2026.
 
 ### Rule #23: Run npm run sync-constants after every change to a file in FILES_TO_SYNC
-The following 14 files auto-sync from src/constants/ to supabase/functions/_shared/
+The following 15 files auto-sync from src/constants/ to supabase/functions/_shared/
 via scripts/sync-constants.cjs:
 ageGroups.ts, bibleVersions.ts, generationMetrics.ts, lessonStructure.ts,
 lessonTiers.ts, systemSettings.ts, teacherPreferences.ts, theologyProfiles.ts,
 routes.ts, contracts.ts, rateLimitConfig.ts, freshnessOptions.ts,
-devotionalConfig.ts, toolbeltConfig.ts
+devotionalConfig.ts, toolbeltConfig.ts, scriptureIntegrityGuardrail.ts
 Run npm run sync-constants immediately after editing any of these. Never hand-edit
 their _shared/ mirrors -- they are auto-generated and will be overwritten on the
-next sync. Added May 5, 2026.
+next sync. Added May 5, 2026. scriptureIntegrityGuardrail.ts (the "Rule 5"
+scripture-integrity SSOT shared by all generators + the reshape prompt) added
+June 3, 2026.
 
 ### Rule #24: These _shared/ files are intentionally hand-maintained -- not in FILES_TO_SYNC
 pricingConfig.ts, trialConfig.ts, validation.ts, lessonShapeProfiles.ts,
@@ -295,6 +297,38 @@ These contain backend-specific logic with no clean frontend counterpart. When th
 frontend SSOT for any of these changes, the corresponding _shared/ file must be
 updated manually in the same commit. Never add these to FILES_TO_SYNC.
 Added May 5, 2026.
+
+### Rule #25: Hardcoded admin UUID in RLS admin_full_access policies -- DO NOT REWRITE
+Eighteen RLS policies named `admin_full_access` carry the hardcoded literal UUID
+`b8708e6b-eeef-4ff5-9f0b-57d808ef8762` in their USING and WITH CHECK clauses.
+That UUID is Lynn's auth.users id. The policies are RESTRICTIVE -- they grant
+full access to exactly one user -- so they are not a data exposure. They are
+brittle (UUID change breaks all 18 at once) and they coexist with three other
+admin-check abstractions in the codebase (`has_role`, `is_admin`, `profiles.role
+= 'admin'`), but that is a documented architectural choice.
+
+Affected tables (18):
+admin_audit, app_settings, beta_feedback, beta_testers, credits_ledger,
+feedback, notifications, organization_contacts, organization_members,
+outputs, rate_limits, refinements, setup_progress, stripe_events,
+subscription_plans, user_roles, user_subscriptions, (and one more identified
+via section C diagnostic).
+
+DO NOT rewrite these policies in any session unless Lynn has explicitly asked
+to add a second admin. When that day comes, the rewrite is a single migration
+that, for every table in the list above, replaces:
+
+  USING  (auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid)
+  WITH CHECK (auth.uid() = 'b8708e6b-eeef-4ff5-9f0b-57d808ef8762'::uuid)
+
+with:
+
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role))
+
+Until then, the Supabase Security Advisor may flag these policies in a generic
+"hardcoded UUID" warning. That warning is intentionally accepted. Do not
+treat it as a fix-it ticket. Added May 31, 2026.
 
 ---
 
