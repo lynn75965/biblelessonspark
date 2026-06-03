@@ -13,6 +13,8 @@
 //
 // Updated: February 2026
 
+import { SCRIPTURE_INTEGRITY_GUARDRAIL } from './scriptureIntegrityGuardrail';
+
 export const LESSON_SHAPES_VERSION = "1.0.0";
 
 // ============================================================================
@@ -78,7 +80,9 @@ export interface AgeGroupShapeMapping {
  */
 export const RESHAPE_UNIVERSAL_GUARDRAIL = `You are receiving a completed Bible study lesson that has already been theologically vetted and age-calibrated. Your task is to re-present this content in a specific teaching format. You must preserve every piece of Scripture, every doctrinal statement, every application point, and every discussion question from the original. Redistribute content into the new structure -- do not discard any substantive material. If a section from the original does not map cleanly to the new format, fold its content into the most appropriate location rather than dropping it. You may reorganize, merge, reword for flow, and change the visible structure. You may not add new theological claims, remove any scriptural content, or alter the doctrinal position. The teacher's preparation content and the student-facing content should both reflect the selected format naturally.
 
-CRITICAL: The student-facing section of the reshaped lesson MUST use the exact heading "STUDENT HANDOUT" (all capitals, on its own line). Do not use any other heading such as "Student Experience", "Student Material", or "Student Section". This heading is required for the platform's export and email systems to detect and format the student content correctly.`;
+CRITICAL: The student-facing section of the reshaped lesson MUST use the exact heading "STUDENT HANDOUT" (all capitals, on its own line). Do not use any other heading such as "Student Experience", "Student Material", or "Student Section". This heading is required for the platform's export and email systems to detect and format the student content correctly.
+
+${SCRIPTURE_INTEGRITY_GUARDRAIL}`;
 
 /**
  * SSOT: Regex pattern for detecting group handout headings in both

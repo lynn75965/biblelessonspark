@@ -34,6 +34,8 @@ import { TRIAL_CONFIG, getTrialStatus, doesTrialApply, TrialStatus } from '../_s
 import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_shared/orgPoolCheck.ts';
 // Output Guardrails: Post-generation truth & integrity verification (SSOT: outputGuardrails.ts)
 import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replaceSections, GuardrailCheckResult, OUTPUT_GUARDRAILS_VERSION, REWRITE_CONFIG } from '../_shared/outputGuardrails.ts';
+// Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
+import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 
 import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } from '../_shared/corsConfig.ts';
 
@@ -140,6 +142,8 @@ RULE 4: WHEN IN DOUBT, USE HYPOTHETICAL FRAMING
 - If you want to illustrate a point with a modern scenario, ALWAYS frame it as hypothetical
 - Say "Imagine a construction foreman..." NOT "A construction foreman recently said..."
 - Say "Think about what it would be like..." NOT "This week in our state..."
+
+${SCRIPTURE_INTEGRITY_GUARDRAIL}
 
 These rules are NON-NEGOTIABLE and override any other instruction to be "current" or "relevant."
 Integrity matters more than engagement. A teacher's credibility depends on it.

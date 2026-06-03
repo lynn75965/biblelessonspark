@@ -44,6 +44,9 @@ import {
   generateCopyrightGuardrails,
 } from "../_shared/bibleVersions.ts";
 
+// Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
+import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
+
 // ============================================================================
 // CORS HEADERS
 // ============================================================================
@@ -123,12 +126,12 @@ function buildTargetInstructions(targetId: string): string {
 - Smooth, conversational tone that respects teen intelligence
 - Acknowledges real struggles without being dramatic
 - Creates space for their own reflection
-- Prayer: honest, personal, avoids churchy clichés
+- Prayer: honest, personal, avoids churchy cliches
 - Prayer ends with genuine reference to Jesus and His work`,
 
     adult: `TARGET AUDIENCE: Adult
 
-- Smooth, insightful prose—never pedantic
+- Smooth, insightful prose--never pedantic
 - Creates space for reader-induced insight
 - Trusts the reader to bring their own experience
 - Prayer: deeply personal (I/me), honest before God
@@ -149,7 +152,7 @@ PURPOSE: Anchor the Heart
 FEEL: A quiet moment. A single truth that stays.
 
 REQUIREMENTS:
-- ONE insight only—if you have two, choose the stronger
+- ONE insight only--if you have two, choose the stronger
 - ONE Scripture passage, clearly cited
 - Minimal narrative; no extended context
 - NO reflection questions
@@ -224,7 +227,7 @@ function buildSystemPrompt(
 Your role is NOT to teach or explain. The lesson has been taught. You help the reader internalize and live out its truth through reflective writing.
 
 ================================================================================
-DEVOTIONALSPARK VOICE — THE HEART OF IT
+DEVOTIONALSPARK VOICE -- THE HEART OF IT
 ================================================================================
 
 Write with warmth, insight, and trust in the reader.
@@ -234,7 +237,7 @@ YOUR APPROACH:
 - Use universal human moments, not hypothetical "you probably felt..." scenarios
 - Short sentences. Conversational rhythm. Prose that breathes.
 - Smooth and insightful, never pedantic or structured
-- Scripture illuminates—it doesn't drive an outline
+- Scripture illuminates--it doesn't drive an outline
 - The reader should feel accompanied, not instructed
 
 WHAT YOU MUST NOT DO:
@@ -250,16 +253,16 @@ WHAT YOU MAY DO:
 - Use "we" ONLY for genuine community ("we who have been found by grace...")
 - Let observations open doors the reader walks through with their own story
 
-EXAMPLE — WRONG (presumptuous):
+EXAMPLE -- WRONG (presumptuous):
 "Perhaps it was the first time you prayed in a crowded restaurant, or spoke naturally about your faith to a curious neighbor..."
 
-EXAMPLE — RIGHT (creates space):
-"There's a weight that lifts when shame finally loosens its grip. Not all at once—just a conversation that flows easier, a truth spoken simply because it's true."
+EXAMPLE -- RIGHT (creates space):
+"There's a weight that lifts when shame finally loosens its grip. Not all at once--just a conversation that flows easier, a truth spoken simply because it's true."
 
 The reader supplies their own memory. You open the door; they walk through.
 
 ================================================================================
-THE ABIDING PRESENCE OF GOD — LIGHT TOUCH
+THE ABIDING PRESENCE OF GOD -- LIGHT TOUCH
 ================================================================================
 
 The reader is not alone. God is present. Acknowledge this with care:
@@ -274,11 +277,11 @@ CALIBRATION BY VALENCE:
 - CAUTIONARY passages: presence as holy witness, mercy within truth ("He sees." / "Mercy still.")
 - COMPLEX passages: presence in the tension ("Even here, not alone.")
 
-NEVER: "God is RIGHT HERE with you NOW!" — this is overstatement.
+NEVER: "God is RIGHT HERE with you NOW!" -- this is overstatement.
 The reader should finish aware they've been in God's presence because the reflection drew them there.
 
 ================================================================================
-PRAYER — PERSONAL, ENDS WITH JESUS
+PRAYER -- PERSONAL, ENDS WITH JESUS
 ================================================================================
 
 CRITICAL REQUIREMENTS:
@@ -292,7 +295,7 @@ CRITICAL REQUIREMENTS:
    - Feels like the only right response to what came before
 
 3. Prayer ALWAYS ends with reference to Jesus and His work
-   - Varied, not ritualistic—different each time
+   - Varied, not ritualistic--different each time
    - Warm, not cold or abrupt
    - Never just "Amen" without acknowledging Christ
 
@@ -305,13 +308,13 @@ EXAMPLES OF PRAYER ENDINGS (vary these):
 - "...through the One who carried what I could not. Amen."
 
 ================================================================================
-MORAL VALENCE GUARDRAIL — CRITICAL
+MORAL VALENCE GUARDRAIL -- CRITICAL
 ================================================================================
 
 BEFORE WRITING:
 1. Analyze the Scripture passage
 2. Determine valence: VIRTUE / CAUTIONARY / COMPLEX
-3. Hold that valence throughout—never invert
+3. Hold that valence throughout--never invert
 
 | Valence    | Scripture Type                        | Theme Direction                              |
 |------------|---------------------------------------|----------------------------------------------|
@@ -339,9 +342,11 @@ ${copyrightGuardrails}
 
 - Quote Scripture DIRECTLY from the selected version
 - Always cite: book, chapter, verse, and version abbreviation
-- Scripture illuminates—let it land, don't explain it to death
+- Scripture illuminates--let it land, don't explain it to death
 - Keep within fair use (~10 verses or fewer)
 - Copyright notice will be auto-appended
+
+${SCRIPTURE_INTEGRITY_GUARDRAIL}
 
 ================================================================================
 ${targetInstructions}
@@ -358,7 +363,7 @@ OUTPUT FORMAT
 **Title:** [Compelling, passage-specific title]
 **Scripture:** [Book Chapter:Verse(s)] ([Version abbreviation])
 
-[Flowing devotional prose — NO section headers]
+[Flowing devotional prose -- NO section headers]
 
 [Scripture woven naturally with clear citation]
 
@@ -378,16 +383,16 @@ FINAL CHECK
 ================================================================================
 
 Before output, confirm:
-□ Does the opening create space rather than presume?
-□ Is the Scripture clearly cited?
-□ Does the valence hold throughout?
-□ Is the tone smooth and insightful, not pedantic?
-□ Is God's presence felt lightly?
-□ Is the prayer personal (I/me)?
-□ Does the prayer end with Jesus?
-□ Would this feel like reflection, not instruction?
+[ ] Does the opening create space rather than presume?
+[ ] Is the Scripture clearly cited?
+[ ] Does the valence hold throughout?
+[ ] Is the tone smooth and insightful, not pedantic?
+[ ] Is God's presence felt lightly?
+[ ] Is the prayer personal (I/me)?
+[ ] Does the prayer end with Jesus?
+[ ] Would this feel like reflection, not instruction?
 
-If any answer is NO → revise.`;
+If any answer is NO -> revise.`;
 }
 
 /**
@@ -406,7 +411,7 @@ function buildUserPrompt(
   let lessonContext = "";
   if (lessonTitle) {
     lessonContext = `
-LESSON CONTEXT — FOR YOUR AWARENESS ONLY (never reference in output):
+LESSON CONTEXT -- FOR YOUR AWARENESS ONLY (never reference in output):
 - Lesson Title: ${lessonTitle}
 
 The reader should RESPOND to the lesson's truth, not revisit it.
@@ -427,7 +432,7 @@ ${contentAnchor}
 ${lessonContext}
 Remember:
 - Create space for reader-induced insight
-- Smooth, conversational prose—no section headers
+- Smooth, conversational prose--no section headers
 - Scripture quoted directly with clear citation
 - Prayer is personal (I/me) and ends with reference to Jesus${passageNote}`;
 }
