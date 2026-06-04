@@ -2,7 +2,7 @@
 
 ## WHAT'S NEXT
 
-Carry-forward from June 3, 2026 Session (Rule 5 SSOT, Security Advisor Migrations 2-3, parable cap fix):
+Carry-forward from June 3, 2026 Session (Rule 5 SSOT; Security Advisor Migrations 2-3 + forensic clearance; parable cap fix, UI wiring, and admin-cap fix):
 
 - DONE: SSOT `8b7f18b` -- added the "Rule 5" scripture-integrity guardrail (instructs the
   model to distinguish what Scripture states explicitly from inference / tradition /
@@ -44,15 +44,40 @@ Carry-forward from June 3, 2026 Session (Rule 5 SSOT, Security Advisor Migration
   (they contain exposure analysis + the admin UUID); gitignoring also stops deploy.ps1's
   `git add .` from ever sweeping them in. The files remain locally for reference / re-running.
 
+- DONE: REFACTOR `4406070` -- dropped the dead `increment_parable_usage(uuid)` RPC (migration
+  20260603140000). It inserted into the non-writable `user_parable_usage` VIEW and had always
+  errored; no active code called it.
+
+- DONE: FEATURE `4b84c2d` -- wired the Modern Parable generator to a single PUBLIC route
+  `/toolbelt/parables` (new page `src/pages/toolbelt/ToolbeltParables.tsx` renders
+  `<ParableGenerator context="standalone" />`). Kept `src/components/ParableGenerator.tsx`
+  (fixed an undefined DEFAULT_THEOLOGY_PROFILE_ID reference), deleted the inferior duplicate
+  `src/constants/ParableGenerator.tsx`, added ROUTES.TOOLBELT_PARABLES (routes.ts + synced
+  _shared). The component handles anonymous (3/day) vs authenticated (7/month) internally.
+  NOTE: `user_parable_usage` is a VIEW over `parable_usage`, not a table; `modern_parables` is
+  the per-parable source of truth.
+
+- DONE: FIX `8a1256e` -- (1) the admin parable-cap bypass was broken: generate-parable checked
+  `user.app_metadata.role`, which this platform does NOT populate, so admins were capped at
+  7/month. Fixed to the platform-standard `user_roles` role='admin' check (matching
+  generate-lesson:314-321). (2) Added the same defensive user_roles admin bypass to
+  generate-devotional (it relied solely on the check_devotional_limit RPC). (3) Added a
+  paid_only "Parable Generator" sidebar item (Build & Prepare -> /toolbelt/parables) with
+  Copy-Governance lockedCopy. generate-parable + generate-devotional redeployed.
+  LESSON: edge-function admin checks MUST query `user_roles` (role='admin'), NOT
+  `user.app_metadata.role`, which is not populated on this platform.
+
 OUTSTANDING (carry-forward):
-- PARABLE UI IS UNWIRED. Two duplicate, unimported `ParableGenerator` components exist:
-  `src/components/ParableGenerator.tsx` (carries an UNCOMMITTED frontend count-fix edit) and
-  `src/constants/ParableGenerator.tsx`. Neither is mounted, and toolbeltConfig.ts has no
-  parable entry despite the intent to wire it through the toolbelt. Needs a separate task:
-  wire ONE copy (likely as a toolbelt tool), delete the duplicate, then commit the held
-  frontend edit. The backend cap is already correct and deployed.
-- DEAD RPC: `public.increment_parable_usage(uuid)` inserts into the non-writable view and has
-  always errored. Drop it in a one-line cleanup migration when convenient.
+- The rest of the PUBLIC TOOLBELT is still unrouted in App.tsx (only ROUTES.ADMIN_TOOLBELT is
+  registered). The landing `/toolbelt` + the 3 existing tools (lesson-fit, left-out-safely,
+  one-truth) exist as components but hit the 404 catch-all. Lynn chose to wire ONLY the parable
+  route this session. Wire the rest if/when the toolbelt is meant to go live.
+- The parable page (`ToolbeltParables.tsx`) uses the public site Header/Footer, NOT the
+  dashboard AppShell -- a signed-in user clicking the sidebar link lands on public-styled
+  chrome. Works fine; make it shell-aware later if a fully in-app feel is wanted.
+- `check_devotional_limit` RPC admin handling was never confirmed (dashboard-created; body
+  unread). A defensive edge-level admin bypass now covers admins regardless; confirm the RPC
+  body if the devotional cap is revisited.
 - Security Advisor follow-ups (deferred; see the local, gitignored DEPLOYMENT_PLAN.md): the
   section-F table/column grant-revoke migration; the `{public}` -> `{authenticated}` role-scope
   sweep on ~50 policies; backfilling Dashboard-created functions into migration files.
