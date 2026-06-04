@@ -28,6 +28,7 @@ export const ROUTES = {
   WHY_CHURCHES_CAN_TRUST: '/why-churches-can-trust-biblelessonspark',
   BLOG: '/blog',
   BLOG_POST: '/blog/:slug',
+  TOOLBELT_PARABLES: '/toolbelt/parables',
 
   // Protected routes
   DASHBOARD: '/dashboard',

@@ -80,7 +80,7 @@ import {
 // ============================================================================
 
 // Standalone context uses Baptist Core Beliefs and WEB silently (not exposed to UI)
-const STANDALONE_THEOLOGY_ID = DEFAULT_THEOLOGY_PROFILE_ID;
+const STANDALONE_THEOLOGY_ID = getDefaultTheologyProfile().id;
 const STANDALONE_BIBLE_VERSION_ID = 'web';
 
 // ============================================================================
@@ -291,16 +291,21 @@ export function ParableGenerator({
         // Set standalone age group from preferences (or default)
         setStandaloneAgeGroupId(prefs.age_group || getDefaultAgeGroup().id);
         
-        // Fetch current parable usage for authenticated users
-        const { data: usageData } = await supabase
-          .from('user_parable_usage')
-          .select('parables_this_month')
+        // Fetch current month's parable usage by counting the user's parables
+        // generated since the first of the month (UTC). modern_parables is the
+        // source of truth (one row per parable); the old user_parable_usage view
+        // was a non-writable aggregate and could not be read by parables_this_month.
+        const now = new Date();
+        const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
+        const { count } = await supabase
+          .from('modern_parables')
+          .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
-          .single();
-        
-        const used = usageData?.parables_this_month || 0;
+          .gte('created_at', monthStart);
+
+        const used = count || 0;
         const limit = 7; // Monthly limit for authenticated users
-        setUsageInfo({ used, limit, remaining: limit - used });
+        setUsageInfo({ used, limit, remaining: Math.max(0, limit - used) });
         
       } catch (err) {
         console.error('Error loading preferences:', err);

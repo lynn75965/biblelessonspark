@@ -47,6 +47,9 @@ import TeachingTeam from "./pages/TeachingTeam";
 // Admin Toolbelt
 import ToolbeltAdmin from "./pages/ToolbeltAdmin";
 
+// Public Toolbelt -- Parable Generator
+import ToolbeltParables from "./pages/toolbelt/ToolbeltParables";
+
 // Admin Blog Preview
 import AdminBlogPreview from "./pages/AdminBlogPreview";
 
@@ -209,6 +212,9 @@ const App = () => (
                 <PublishingHub />
               </ProtectedRoute>
             } />
+
+            {/* Public Toolbelt -- Parable Generator (public; anonymous 3/day, auth 7/month) */}
+            <Route path={ROUTES.TOOLBELT_PARABLES} element={<ToolbeltParables />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
