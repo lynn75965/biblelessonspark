@@ -44,6 +44,7 @@ import {
   Hammer,
   Printer,
   Megaphone,
+  Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
@@ -133,6 +134,15 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     tabValue: DASHBOARD_TAB_VALUES.SERIES_LIBRARY,
     tierGate: 'paid_only',
     lockedCopy: "One lesson teaches a truth. A series builds a disciple. Plan weeks ahead and let your group see where you're taking them.",
+  },
+  parableGenerator: {
+    id: 'parableGenerator',
+    label: 'Parable Generator',
+    icon: Sparkles,
+    description: 'Generate modern parables in the teaching style of Jesus',
+    route: ROUTES.TOOLBELT_PARABLES,
+    tierGate: 'paid_only',
+    lockedCopy: "A lesson explains the truth. A parable makes it unforgettable. Teach the way Jesus did -- in stories your group will still be turning over on Tuesday.",
   },
   publishing: {
     id: 'publishing',
@@ -257,7 +267,7 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
   buildAndPrepare: {
     id: 'buildAndPrepare',
     label: 'Build & Prepare',
-    items: ['buildLesson', 'lessonLibrary', 'devotionalLibrary', 'seriesLibrary', 'publishing'],
+    items: ['buildLesson', 'lessonLibrary', 'devotionalLibrary', 'seriesLibrary', 'parableGenerator', 'publishing'],
   },
   myTeachingTeam: {
     id: 'myTeachingTeam',

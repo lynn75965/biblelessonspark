@@ -503,30 +503,45 @@ serve(async (req: Request) => {
     // 2. USAGE LIMIT CHECK
     // ========================================================================
 
-    console.log("[generate-devotional] Checking usage limit");
-    
-    const { data: limitData, error: limitError } = await supabase
-      .rpc("check_devotional_limit", { p_user_id: user.id });
+    // ADMIN BYPASS -- admins are never capped (matches generate-lesson:314-321).
+    // Uses the platform-wide user_roles check, NOT app_metadata. Defensive: even
+    // if check_devotional_limit already exempts admins, this guarantees it.
+    const { data: devAdminCheck } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    const isAdmin = !!devAdminCheck;
 
-    if (limitError) {
-      console.error("[generate-devotional] Limit check error:", limitError.message);
-      // Fail open - allow generation if limit check fails
-    } else {
-      const limitResult = Array.isArray(limitData) ? limitData[0] : limitData;
-      console.log("[generate-devotional] Limit check result:", limitResult);
-      
-      if (limitResult && !limitResult.can_generate) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: "Monthly devotional limit reached",
-            code: "LIMIT_REACHED",
-            devotionals_used: limitResult.devotionals_used,
-            devotionals_limit: limitResult.devotionals_limit,
-          }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    if (!isAdmin) {
+      console.log("[generate-devotional] Checking usage limit");
+
+      const { data: limitData, error: limitError } = await supabase
+        .rpc("check_devotional_limit", { p_user_id: user.id });
+
+      if (limitError) {
+        console.error("[generate-devotional] Limit check error:", limitError.message);
+        // Fail open - allow generation if limit check fails
+      } else {
+        const limitResult = Array.isArray(limitData) ? limitData[0] : limitData;
+        console.log("[generate-devotional] Limit check result:", limitResult);
+
+        if (limitResult && !limitResult.can_generate) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "Monthly devotional limit reached",
+              code: "LIMIT_REACHED",
+              devotionals_used: limitResult.devotionals_used,
+              devotionals_limit: limitResult.devotionals_limit,
+            }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
+    } else {
+      console.log("[generate-devotional] ADMIN BYPASS: skipping devotional limit");
     }
 
     // ========================================================================

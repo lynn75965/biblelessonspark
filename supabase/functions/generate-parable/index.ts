@@ -1157,8 +1157,17 @@ Deno.serve(async (req: Request) => {
   // AUTHENTICATED FLOW
   // =========================================================================
   
-  const role = (user.app_metadata as any)?.role ?? null;
-  const isAdmin = role === "admin";
+  // ADMIN BYPASS -- use the platform-wide user_roles check (matching
+  // generate-lesson:314-321), NOT user.app_metadata.role, which this platform
+  // does not populate with the role. With the old app_metadata check, admins
+  // were wrongly capped at the 7/month parable limit.
+  const { data: adminCheck } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  const isAdmin = !!adminCheck;
 
   try {
     // ADMIN BYPASS - skip usage limits
