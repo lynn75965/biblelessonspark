@@ -626,58 +626,31 @@ async function checkAuthenticatedLimit(
   userId: string,
   monthlyLimit = 7,
 ): Promise<{ allowed: boolean; used: number; limit: number; remaining: number }> {
+  // Count parables this user has already generated this month. modern_parables
+  // (written by saveParable) is the source of truth -- one row per parable. The
+  // save itself is the "increment", so there is nothing to write here. The old
+  // user_parable_usage target was a non-writable aggregating view.
   const periodStart = billingPeriodStartISO();
 
-  const { data: row, error: selErr } = await supabaseAdmin
-    .from("user_parable_usage")
-    .select("parables_this_month")
+  const { count, error: cntErr } = await supabaseAdmin
+    .from("modern_parables")
+    .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .gte("billing_period_start", periodStart)
-    .maybeSingle();
+    .gte("created_at", periodStart);
 
-  if (selErr) {
-    console.error("Usage select error:", selErr);
-    throw new Error(`usage_select_failed: ${selErr.message}`);
+  if (cntErr) {
+    console.error("Usage count error:", cntErr);
+    throw new Error(`usage_count_failed: ${cntErr.message}`);
   }
 
-  const used = Number(row?.parables_this_month ?? 0);
+  const used = count ?? 0;
 
-  if (used >= monthlyLimit) {
-    return { allowed: false, used, limit: monthlyLimit, remaining: 0 };
-  }
-
-  if (!row) {
-    // First parable this billing period
-    const { error: insErr } = await supabaseAdmin
-      .from("user_parable_usage")
-      .upsert({
-        user_id: userId,
-        billing_period_start: periodStart,
-        parables_this_month: 1,
-      }, { onConflict: "user_id" });
-
-    if (insErr) {
-      console.error("Usage insert error:", insErr);
-      throw new Error(`usage_insert_failed: ${insErr.message}`);
-    }
-
-    return { allowed: true, used: 1, limit: monthlyLimit, remaining: monthlyLimit - 1 };
-  }
-
-  // Increment existing count
-  const nextUsed = used + 1;
-
-  const { error: updErr } = await supabaseAdmin
-    .from("user_parable_usage")
-    .update({ parables_this_month: nextUsed })
-    .eq("user_id", userId);
-
-  if (updErr) {
-    console.error("Usage update error:", updErr);
-    throw new Error(`usage_update_failed: ${updErr.message}`);
-  }
-
-  return { allowed: true, used: nextUsed, limit: monthlyLimit, remaining: Math.max(0, monthlyLimit - nextUsed) };
+  return {
+    allowed: used < monthlyLimit,
+    used,
+    limit: monthlyLimit,
+    remaining: Math.max(0, monthlyLimit - used),
+  };
 }
 
 // =============================================================================
@@ -1250,17 +1223,16 @@ Deno.serve(async (req: Request) => {
       generationTimeMs
     );
 
-    // Get updated usage for response
+    // Get updated usage for response (count includes the parable just saved)
     const periodStart = billingPeriodStartISO();
-    const { data: usageData } = await supabaseAdmin
-      .from("user_parable_usage")
-      .select("parables_this_month")
+    const { count: usedCount } = await supabaseAdmin
+      .from("modern_parables")
+      .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .gte("billing_period_start", periodStart)
-      .maybeSingle();
-    
+      .gte("created_at", periodStart);
+
     const monthlyLimit = Number(Deno.env.get("PARABLE_MONTHLY_LIMIT") ?? "7");
-    const currentUsed = usageData?.parables_this_month ?? 1;
+    const currentUsed = usedCount ?? 1;
 
     return json({
       success: true,
