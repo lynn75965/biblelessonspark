@@ -670,7 +670,7 @@ serve(async (req) => {
 -------------------------------------------------------------------------------
 THEOLOGY PROFILE: ${theologyProfile.name}
 -------------------------------------------------------------------------------
-${theologyProfile.description}
+${theologyProfile.summary}
 
 ${generateTheologicalGuardrails(theologyProfile.id)}
 
