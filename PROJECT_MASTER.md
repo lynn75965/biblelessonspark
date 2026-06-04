@@ -1,6 +1,61 @@
-# PROJECT MASTER -- Last updated: May 27, 2026
+# PROJECT MASTER -- Last updated: June 3, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from June 3, 2026 Session (Rule 5 SSOT, Security Advisor Migrations 2-3, parable cap fix):
+
+- DONE: SSOT `8b7f18b` -- added the "Rule 5" scripture-integrity guardrail (instructs the
+  model to distinguish what Scripture states explicitly from inference / tradition /
+  scholarly interpretation) to ALL content generators from a SINGLE source. New file
+  `src/constants/scriptureIntegrityGuardrail.ts`, registered in scripts/sync-constants.cjs
+  FILES_TO_SYNC (now 15 files; CLAUDE.md Rule #23 updated) so it auto-mirrors to `_shared/`.
+  generate-lesson, generate-devotional, generate-parable import the constant; reshape gets
+  it via the frontend RESHAPE_UNIVERSAL_GUARDRAIL in lessonShapeProfiles.ts (frontend drives
+  backend). Also sanitized pre-existing legacy non-ASCII (em dashes + corrupted bytes) in
+  generate-devotional, generate-parable, and _shared/lessonShapeProfiles to pass the ASCII
+  guard. Deployed generate-lesson, generate-devotional, generate-parable.
+
+- DONE: SECURITY `f2973cf` (Migration 2) + `7b82b59` (Migration 3) -- continued the Supabase
+  Security Advisor remediation (Migration 1 shipped 2026-05-31 as `de4033f`). Migration 2
+  revokes the over-broad anon/PUBLIC EXECUTE grants on SECURITY DEFINER functions -- with
+  explicit service_role grants added first, because the original draft would have broken
+  edge functions that call usage RPCs as service_role. Migration 3 drops no-op service_role
+  RLS policies and closes real anon-readable policy exposures; a pre-apply drift check caught
+  two policies the 2026-05-31 draft missed. Both applied via `npx supabase db push --linked`
+  and verified by re-querying live grants/policies. A DB-state forensic sweep found NO
+  evidence the pre-fix exposure was ever exploited. (db push prompts interactively; answer
+  with `"y" | npx supabase db push --linked`.)
+
+- DONE: DOCS `3786c27` -- committed CLAUDE.md Rule #25 (the 18 hardcoded-admin-UUID RLS
+  `admin_full_access` policies are intentionally retained until a 2nd admin is added) plus
+  the Rule #23 sync-list update.
+
+- DONE: FIX `69ad40d` -- the parable 7/month cap was fully broken for authenticated users.
+  generate-parable gated usage against `user_parable_usage`, which is an aggregating VIEW
+  (over `parable_usage`), NOT a writable table -- so its select/upsert/update threw and the
+  whole authenticated flow failed (admin bypass + anonymous 3/day were unaffected). Rewrote
+  checkAuthenticatedLimit() + the response query to count the user's own `modern_parables`
+  rows for the current month (.gte created_at, first-of-month-UTC). The parable save IS the
+  increment; monthly reset is implicit in the date filter; 7/month preserved (env
+  PARABLE_MONTHLY_LIMIT). Edge function deployed.
+
+- DONE: gitignored the security-audit working docs (DIAGNOSE_*, SECURITY_ADVISOR_*,
+  DEPLOYMENT_PLAN.md, DRAFT_MIGRATION_*). The repo is PUBLIC, so they were never committed
+  (they contain exposure analysis + the admin UUID); gitignoring also stops deploy.ps1's
+  `git add .` from ever sweeping them in. The files remain locally for reference / re-running.
+
+OUTSTANDING (carry-forward):
+- PARABLE UI IS UNWIRED. Two duplicate, unimported `ParableGenerator` components exist:
+  `src/components/ParableGenerator.tsx` (carries an UNCOMMITTED frontend count-fix edit) and
+  `src/constants/ParableGenerator.tsx`. Neither is mounted, and toolbeltConfig.ts has no
+  parable entry despite the intent to wire it through the toolbelt. Needs a separate task:
+  wire ONE copy (likely as a toolbelt tool), delete the duplicate, then commit the held
+  frontend edit. The backend cap is already correct and deployed.
+- DEAD RPC: `public.increment_parable_usage(uuid)` inserts into the non-writable view and has
+  always errored. Drop it in a one-line cleanup migration when convenient.
+- Security Advisor follow-ups (deferred; see the local, gitignored DEPLOYMENT_PLAN.md): the
+  section-F table/column grant-revoke migration; the `{public}` -> `{authenticated}` role-scope
+  sweep on ~50 policies; backfilling Dashboard-created functions into migration files.
 
 Carry-forward from May 27 Session F (Impersonate "open in new tab" popup-blocker fix):
 - DONE this session: FIX `954eb30` -- the admin Impersonate button opened its new

@@ -42,3 +42,12 @@ SSOT-PROJECT-FILES/
 .claude/settings.local.json
 
 supabase/.temp/
+
+# Security-audit working docs (2026-05/06). The repo is PUBLIC; these contain
+# exposure analysis + the admin UUID and must never be committed. Kept locally
+# for reference. Gitignoring also stops deploy.ps1's `git add .` from sweeping
+# them into the public repo.
+DEPLOYMENT_PLAN.md
+DIAGNOSE_*.sql
+SECURITY_ADVISOR_*.md
+DRAFT_MIGRATION_*.sql
