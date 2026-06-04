@@ -1,6 +1,32 @@
-# PROJECT MASTER -- Last updated: June 3, 2026
+# PROJECT MASTER -- Last updated: June 4, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from June 4, 2026 Session (generate-lesson theologyProfile.description -> .summary fix):
+
+- DONE: FIX `5f57292` -- generate-lesson was injecting `${theologyProfile.description}` into the
+  system prompt (line 673, directly under the "THEOLOGY PROFILE: {name}" header). `description`
+  is NOT a field on the `TheologyProfile` interface, so it rendered the literal string `undefined`
+  into the prompt for ALL 11 profiles. Replaced the single token with `${theologyProfile.summary}`
+  -- the user-facing one-line doctrinal summary, populated on all 11 profiles including CBF.
+  Chosen over `filterContent` because the very next line (675) already injects `filterContent`
+  verbatim via `generateTheologicalGuardrails(theologyProfile.id)`, so `summary` is the correct
+  non-redundant fit for that header slot. Single-token Edit; surrounding code untouched.
+  ASCII-clean (verified byte-level: 0 non-ASCII in 51288 bytes). Deployed via
+  `npx supabase functions deploy generate-lesson --use-api`. Committed scope-narrow (that one
+  file only; deploy.ps1's `git add .` bypassed with manual `git add`).
+  DIAGNOSTIC NOTES: (1) The `TheologyProfile` interface is owned by `theologyProfiles.ts`
+  (lines 31-46), NOT `contracts.ts` -- contracts.ts intentionally defines only the
+  `TheologyProfileId` union type. (2) `description` appears nowhere else in generate-lesson re:
+  theology (the other `.description` at line ~882 is an unrelated guardrail-violation object).
+  (3) `_shared/contracts.ts` is byte-identical to `src/constants/contracts.ts` (auto-generated);
+  `_shared/theologyProfiles.ts` mirror carries `summary` on all 11 profiles -- no drift.
+
+- OUTSTANDING: none for this task. NOTE: the same `theologyProfile.description` bug pattern was
+  NOT audited in the OTHER generators (generate-devotional, generate-parable, reshape). If any
+  of them reference a nonexistent profile field, it would silently inject `undefined` the same
+  way -- worth a grep (`theologyProfile\.|profile\.description`) across `supabase/functions/`
+  in a future session.
 
 Carry-forward from June 3, 2026 Session (Rule 5 SSOT; Security Advisor Migrations 2-3 + forensic clearance; parable cap fix, UI wiring, and admin-cap fix):
 
