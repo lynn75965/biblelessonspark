@@ -5903,3 +5903,72 @@ No code changes this session. PROJECT_MASTER.md header date updated.
 Claude.ai project memory synced by Lynn to reflect all March 20, 2026 session work.
 
 Carry-forward items unchanged -- see WHAT'S NEXT section.
+
+---
+
+## SESSION LOG: June 4, 2026 -- CBF Theology Profile (11th profile)
+
+### Work completed
+Added Cooperative Baptist Fellowship (CBF) as the 11th Baptist theology profile.
+Deployed to main as commit da2a2ff.
+
+### Pre-implementation checks (all passed before any code written)
+- CHECK A: profiles.theology_profile_id is TEXT (no enum, no CHECK constraint in
+  any migration). teacher_preference_profiles stores theology only inside a
+  schemaless preferences JSON blob. NO migration needed for CBF.
+- CHECK B: The universal BAPTIST_TERMINOLOGY_GUARDRAILS are appended
+  UNCONDITIONALLY in generateTheologicalGuardrails() (no inclusion/exclusion
+  list exists). CBF receives them automatically. The Reformed-Baptist sacrament
+  exception is handled only at that profile's avoidTerminology level, not by a
+  code branch.
+- CHECK C: generate-lesson resolves the profile by array .find() (line 561) and
+  calls generateTheologicalGuardrails() (line 675). No hardcoded profile-ID list
+  gates anything. validation.ts type-checks theology_profile_id as a string only
+  (no whitelist). No hardcoded exclusion of CBF.
+- CHECK D: getProfileBadgeClass is an array .find() lookup, NOT a switch, so CBF
+  needed no edit there. The task prompt's "label" field does not exist (real
+  field is shortName); the task's "guardrails instruction block" prose was placed
+  in filterContent with a derived guardrails[] string array.
+
+### CBF field values (Lynn-approved)
+- securityDoctrine: 'eternal' (CBF enforces no security position; eternal is the
+  mainstream Baptist baseline and matches Baptist Core)
+- tulipStance: 'anti' (CBF rejects Calvinist creedal uniformity)
+- badgeClass: 'bg-sky-100 text-sky-800 border-sky-200' (sky -- not used by any
+  existing profile)
+- displayOrder: 11, isDefault: false, shortName: "CBF", requiredTerminology: []
+- Sacrament/sacraments/Eucharist trio added to avoidTerminology +
+  preferredTerminology (CBF is not exempt from Baptist ordinance language).
+
+### Four CBF-specific guardrail gaps -- all covered
+gendered ministry, confessional authority, broad mission, cooperative polity --
+covered across avoidTerminology, preferredTerminology, guardrails[], and
+filterContent.
+
+### Files changed (4)
+- src/constants/theologyProfiles.ts (CBF object, frontend SSOT) -- written via a
+  self-deleting Node .cjs script with a <=127-byte self-check
+- src/constants/contracts.ts (TheologyProfileId union: added 'cbf'; "All 10" ->
+  "All 11")
+- supabase/functions/_shared/theologyProfiles.ts (auto-synced mirror)
+- supabase/functions/_shared/contracts.ts (auto-synced mirror)
+npm run sync-constants ran clean (15/15). Mirror diff was purely additive; the
+BAPTIST_TERMINOLOGY_GUARDRAILS block and guardrail functions were untouched.
+
+### Verification
+- npm run build clean: 3947 modules, ~31s, zero TypeScript errors.
+- Byte-level ASCII check clean on all four files (every byte <= 127).
+- Build Lesson Step 2 dropdown (EnhanceLessonForm.tsx line 2235) renders
+  getTheologyProfileOptions(), so CBF appears last (order 11). Verified on
+  localhost:8080 by Lynn before deploy approval.
+
+### CLAUDE.md change
+Architecture Principle #3 updated: "10 supported Baptist traditions" -> "11".
+
+### Carry-forward
+- KNOWN PRE-EXISTING BUG (do NOT fix without its own diagnostic session):
+  generate-lesson/index.ts line 673 injects ${theologyProfile.description}, but
+  the TheologyProfile interface has NO description field (it is summary). This
+  renders "undefined" in the system prompt for ALL 11 profiles and predates the
+  CBF work. Needs a dedicated session to determine the correct field and fix
+  without regression. Left untouched June 4, 2026 per Lynn's instruction.
