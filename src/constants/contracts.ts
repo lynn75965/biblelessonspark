@@ -66,7 +66,7 @@ export interface AgeGroup {
 // ============================================================================
 
 /**
- * All 10 Baptist theology profile IDs.
+ * All 11 Baptist theology profile IDs.
  * Must match theologyProfiles.ts THEOLOGY_PROFILES[].id exactly.
  * 
  * NOTE: The TheologyProfile interface itself lives in theologyProfiles.ts
@@ -83,7 +83,8 @@ export type TheologyProfileId =
   | 'general-baptist'               // 7.  General Baptist
   | 'free-will-baptist'             // 8.  Free Will Baptist
   | 'primitive-baptist'             // 9.  Primitive Baptist
-  | 'reformed-baptist';             // 10. Reformed Baptist
+  | 'reformed-baptist'              // 10. Reformed Baptist
+  | 'cbf';                          // 11. Cooperative Baptist Fellowship
 
 /** The default theology profile ID */
 export const DEFAULT_THEOLOGY_PROFILE_ID: TheologyProfileId = 'baptist-core-beliefs';

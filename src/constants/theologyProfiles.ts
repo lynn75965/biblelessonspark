@@ -962,6 +962,113 @@ Regulative Principle: only what Scripture commands is permitted in corporate wor
 
 ### Tone
 Doctrinally precise, reverent, confessional language. Avoid pragmatism. Focus on God's sovereignty, Christ's work, and transformation through Scripture.`
+  },
+
+  {
+    id: "cbf",
+    name: "Cooperative Baptist Fellowship",
+    shortName: "CBF",
+    displayOrder: 11,
+    isDefault: false,
+    summary: "Affirms Christ's lordship, Scripture's authority, the priesthood of all believers, local church autonomy, women and men in all ministry roles, religious liberty, and cooperative mission through word and deed.",
+    securityDoctrine: 'eternal',
+    tulipStance: 'anti',
+    badgeClass: 'bg-sky-100 text-sky-800 border-sky-200',
+    avoidTerminology: [
+      // CBF rejects binding confessions as doctrinal authority
+      "Baptist Faith and Message",
+      "BF&M",
+      "confession requires",
+      "our confession states",
+      "denominational authority",
+      "convention authority",
+      "convention requires",
+      // CBF affirms women in all ministry roles
+      "the pastor (he)",
+      "the teacher (he)",
+      "he will lead",
+      "his congregation",
+      "male leadership only",
+      "men only may",
+      "restricted to men",
+      // CBF mission is evangelism AND social witness
+      "evangelism only",
+      "souls only",
+      "personal salvation only",
+      "social gospel",
+      // CBF polity is cooperative autonomy
+      "the denomination requires",
+      "denominational mandate",
+      "the convention mandates",
+      "church body authority over local church",
+      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
+      "sacrament",
+      "sacraments",
+      "Eucharist"
+    ],
+    preferredTerminology: {
+      "BF&M requires": "Scripture teaches",
+      "the confession states": "the Bible teaches",
+      "denominational position": "the historic Baptist commitment",
+      "the pastor (he)": "the pastor",
+      "the teacher (he)": "the teacher",
+      "his congregation": "their congregation",
+      "men in ministry": "women and men in ministry",
+      "evangelism alone": "evangelism and embodied witness",
+      "saving souls": "proclaiming good news and serving others",
+      "the denomination requires": "cooperative Baptist churches affirm",
+      "convention authority": "local church discernment",
+      // CRITICAL: Baptist terminology for ordinances
+      "sacrament": "ordinance",
+      "sacraments": "ordinances",
+      "Eucharist": "Lord's Supper"
+    },
+    requiredTerminology: [],
+    guardrails: [
+      "Cites the Baptist Faith and Message or any Baptist confession as binding authority for CBF content",
+      "Assumes creedal or confessional uniformity rather than interpretation under the Holy Spirit",
+      "Restricts ministry or leadership roles to men, or uses male-only language for pastors and teachers",
+      "Frames mission as evangelism only or dismisses social witness as mere social gospel",
+      "Implies denominational or convention authority over the autonomous local church",
+      "Uses TULIP terminology or Calvinist/Reformed language",
+      "Uses sacramental language such as sacrament or Eucharist instead of Baptist ordinance terms"
+    ],
+    filterContent: `## THEOLOGICAL LENS: Cooperative Baptist Fellowship
+
+The Cooperative Baptist Fellowship (CBF) is a community of Baptist Christians shaped by the historic Baptist freedoms. Content must reflect these commitments without imposing creedal uniformity.
+
+### The Four Freedoms
+- Bible Freedom: Scripture is central and authoritative; each believer interprets it responsibly under the guidance of the Holy Spirit, without a binding creed.
+- Soul Freedom: every believer has competency and freedom before God; faith is uncoerced and personal.
+- Church Freedom: each local congregation is autonomous and self-governing under the lordship of Christ.
+- Religious Freedom: full liberty of conscience for all; church and state remain separate.
+
+### Scripture
+The Bible is inspired and authoritative, the trustworthy guide for faith and practice. CBF teachers interpret Scripture under the Holy Spirit's guidance without binding creed or confession. Do not cite the Baptist Faith and Message or any other Baptist confession as authoritative for CBF lesson content.
+
+### God
+There is one God, eternally Father, Son, and Holy Spirit -- holy, loving, sovereign, and present. Jesus Christ is Lord; His lordship is the center of Christian faith and discipleship.
+
+### Salvation
+Salvation is by grace through faith in Jesus Christ. CBF does not enforce a single position on the security of the believer; soul freedom means congregations and individuals hold this conviction without creedal mandate. Frame salvation in warm, biblical, grace-centered terms.
+
+### Holy Spirit
+The Holy Spirit guides interpretation, convicts, comforts, gifts, and empowers believers for ministry and witness. Do not assume creedal or confessional uniformity.
+
+### Church and Ministry
+Affirm local church autonomy; do not imply denominational or convention authority over the local congregation. CBF affirms the priesthood of all believers. Women and men serve equally in all aspects of church leadership and ministry. Use gender-inclusive language for all ministry and leadership roles; never restrict pastoral or teaching roles to men.
+
+### Mission
+Frame mission as both proclamation and embodied witness. Evangelism and justice are not in tension for CBF; both express the Great Commission. Mission is cooperative -- churches partner together for missions and ministry through word and deed.
+
+### Ordinances
+Two ordinances: believer's baptism by immersion and the Lord's Supper as a symbolic memorial. Use Baptist ordinance language: ordinance not sacrament, Lord's Supper not Eucharist.
+
+### Ethics
+Believers are called to faithful, compassionate, Christlike living, marked by love of God and neighbor, justice, mercy, and service to others.
+
+### Tone
+Warm, pastoral, thoughtful, and inclusive. Honor freedom of conscience, cooperative spirit, and the dignity of every believer. Avoid creedal rigidity and partisan denominational language.`
   }
 ];
 
