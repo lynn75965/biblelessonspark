@@ -1,6 +1,52 @@
-# PROJECT MASTER -- Last updated: June 4, 2026
+# PROJECT MASTER -- Last updated: June 5, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from June 5, 2026 Session (frozen reset_date on annual subscribers):
+
+- CONTEXT (diagnostic, prior session): The dashboard "Lesson Usage" card showed
+  "Resets Dec 29" for an annual personal subscriber and never advanced. Root cause:
+  the card renders `user_subscriptions.reset_date` (returned by the `check_lesson_limit`
+  RPC, which lives only in the live DB -- not in any migration). `check_lesson_limit`
+  self-advances reset_date ONLY when `reset_date < NOW()`. For the annual subscriber
+  `13afe118-...`, reset_date had been seeded to the Stripe ANNUAL billing boundary
+  (2026-12-30 00:00:00Z) -- a year out -- so the monthly self-heal branch never fired,
+  and the Stripe webhook never wrote reset_date at all. The displayed "Dec 29" (vs the
+  stored Dec 30) is purely a UTC-midnight -> US-local timezone shift in
+  `UsageDisplay.tsx` `toLocaleDateString` (cosmetic, not a bug).
+
+- DONE: FIX (PART 1) -- `stripe-webhook/index.ts`: added
+  `reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()` to all FOUR
+  `user_subscriptions` write sites that set period/lesson columns, so reset_date now rolls
+  30 days forward on create AND renewal (and check_lesson_limit advances it monthly
+  thereafter): (1) bundled-personal upsert in handleSelfServiceOrgCheckout; (2) the
+  cancellation->free update in handleSubscriptionCanceled; (3) the renewal lessons_used=0
+  update in handlePaymentSucceeded; (4) the main create/update upsert in
+  updateUserSubscription. The payment_failed update sets only `status`, so it was left
+  untouched (no period/lesson columns -> outside the fix criteria).
+  `current_period_start`/`current_period_end` were NOT changed -- they correctly track
+  the Stripe billing period. `org-stripe-webhook/index.ts` was READ and deliberately NOT
+  changed: it writes to the `organizations` table (org pools use `lessons_used_this_period`
+  reset on `invoice.paid`), never to `user_subscriptions`, and has no `reset_date` column
+  -- so the same pattern does not exist there. stripe-webhook deployed via
+  `npx supabase functions deploy stripe-webhook`.
+
+- DONE: FIX (PART 2) -- migration `20260605000000_fix_annual_subscriber_reset_dates.sql`
+  un-froze existing annual rows: `UPDATE user_subscriptions SET reset_date = NOW() +
+  INTERVAL '30 days', lessons_used = 0 WHERE billing_interval = 'year' AND reset_date >
+  NOW() + INTERVAL '30 days'`. Applied via `npx supabase db push --linked` (verified in
+  `migration list`). Effect was surgical: only `13afe118-...` matched (reset_date
+  2026-12-30 -> 2026-07-05, ~30 days out; lessons_used 6 -> 0). The other two annual subs
+  (reset_date already 11 and 17 days out) were correctly skipped, preserving one's
+  lessons_used=8.
+
+- NOTE: This addresses the DISPLAY/paid-tier reset_date system only. Free-tier real gating
+  still runs off `profiles.trial_period_start` + `getTrialStatus` (rolling-30-from-first-
+  full-lesson) -- a separate system from `user_subscriptions.reset_date`. Also still open
+  from the diagnostic: `check_lesson_limit` queries the `tier_config` table (a Rule #17 /
+  Principle #2 concern), and 17 of 25 active FREE rows carry past-due reset_date values
+  that only self-heal on their next `check_lesson_limit` call. Neither was in scope here.
+
 
 Carry-forward from June 4, 2026 Session (generate-lesson theologyProfile.description -> .summary fix):
 

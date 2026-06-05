@@ -340,6 +340,7 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
         current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         lessons_limit: personalLimit,
         lessons_used: 0,
+        reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
 
@@ -484,6 +485,7 @@ async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Su
       status: "canceled",
       lessons_limit: TIER_LESSON_LIMITS.free,
       lessons_used: 0,
+      reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       canceled_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -544,6 +546,7 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
     .update({
       status: "active",
       lessons_used: 0,
+      reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", invoice.subscription);
@@ -622,6 +625,7 @@ async function updateUserSubscription(
     current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     lessons_limit: lessonsLimit,
     lessons_used: 0,
+    reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id" });
 
