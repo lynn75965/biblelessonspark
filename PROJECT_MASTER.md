@@ -2,6 +2,46 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from June 5, 2026 Session (theologyProfile field-injection audit across all generators -- NO FIX NEEDED):
+
+- CONTEXT: Follow-up to the June 4 generate-lesson `.description -> .summary` fix (5f57292),
+  which left OUTSTANDING the question of whether the SAME nonexistent-field-injection bug
+  existed in the OTHER generators. Audited all three: generate-devotional, generate-parable,
+  and reshape (actual file: `reshape-lesson` -- the prompt's `reshape/index.ts` path does
+  not exist; flagged and audited the real file).
+
+- SSOT ground truth: `TheologyProfile` (theologyProfiles.ts lines 31-46) declares 14 fields:
+  id, name, shortName, displayOrder, isDefault, summary, filterContent, avoidTerminology,
+  preferredTerminology, requiredTerminology, guardrails, securityDoctrine, tulipStance,
+  badgeClass. There is NO `description` field; the one-line doctrinal summary is `summary`.
+
+- FINDING: NO functional bug in any of the three. Every theologyProfile field reference maps
+  to a real interface field:
+  - generate-devotional: resolves a real TheologyProfile via getTheologyProfile() and uses
+    only `.id` (578, 588, 720) and `.name` (617, 626); guardrails built through the SSOT
+    `generateTheologicalGuardrails(theologyProfile.id)`. CLEAN.
+  - generate-parable: injects only `.name` (808) and `.guardrails` (809-810) into the prompt
+    -- both valid. CLEAN.
+  - reshape-lesson: ZERO `theologyProfile.<field>` access; receives theology guardrails via
+    lessonShapeProfiles.ts / assembleReshapePrompt (per scriptureIntegrityGuardrail.ts map),
+    not direct field access. CLEAN.
+
+- VESTIGIAL (not a bug, left as-is per Lynn): generate-parable declares a LOCAL payload type
+  with a `description` key (line 42) and defaults it in ANONYMOUS_DEFAULTS (line 538). The
+  frontend (ParableGenerator.tsx:357) packs the CORRECT SSOT value into it
+  (`description: profile.summary`), so unlike generate-lesson the value is right, NOT
+  "undefined". Critically the backend NEVER injects `description` into any prompt -- it is
+  carried-but-unread dead data on both ends. Harmless. Optional cosmetic rename
+  (`description -> summary`, FE lines 109+357 / BE lines 42+538) was offered and DECLINED.
+
+- SSOT / FE-drives-BE: `_shared/theologyProfiles.ts` is byte-identical to
+  `src/constants/theologyProfiles.ts` (Compare-Object minus the 6-line auto-gen header = 0
+  differences). No drift, no `sync-constants` run needed.
+
+- OUTCOME: No edits, no function deploys, no build. Decision: "Accept no fix needed." Only
+  this PROJECT_MASTER.md update committed. Closes the June 4 OUTSTANDING grep-the-other-
+  generators carry-forward.
+
 Carry-forward from June 5, 2026 Session (frozen reset_date on annual subscribers):
 
 - CONTEXT (diagnostic, prior session): The dashboard "Lesson Usage" card showed
