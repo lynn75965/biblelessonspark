@@ -29,6 +29,10 @@ export const ROUTES = {
   BLOG: '/blog',
   BLOG_POST: '/blog/:slug',
   TOOLBELT_PARABLES: '/toolbelt/parables',
+  TOOLBELT: '/toolbelt',
+  TOOLBELT_LESSON_FIT: '/toolbelt/lesson-fit',
+  TOOLBELT_LEFT_OUT_SAFELY: '/toolbelt/left-out-safely',
+  TOOLBELT_ONE_TRUTH: '/toolbelt/one-truth',
 
   // Protected routes
   DASHBOARD: '/dashboard',

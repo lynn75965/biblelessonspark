@@ -49,6 +49,10 @@ import ToolbeltAdmin from "./pages/ToolbeltAdmin";
 
 // Public Toolbelt -- Parable Generator
 import ToolbeltParables from "./pages/toolbelt/ToolbeltParables";
+import ToolbeltLanding from "./pages/toolbelt/ToolbeltLanding";
+import ToolbeltLessonFit from "./pages/toolbelt/ToolbeltLessonFit";
+import ToolbeltLeftOut from "./pages/toolbelt/ToolbeltLeftOut";
+import ToolbeltOneTruth from "./pages/toolbelt/ToolbeltOneTruth";
 
 // Admin Blog Preview
 import AdminBlogPreview from "./pages/AdminBlogPreview";
@@ -215,6 +219,12 @@ const App = () => (
 
             {/* Public Toolbelt -- Parable Generator (public; anonymous 3/day, auth 7/month) */}
             <Route path={ROUTES.TOOLBELT_PARABLES} element={<ToolbeltParables />} />
+
+            {/* Public Toolbelt -- landing + three reflection tools (all public, no auth) */}
+            <Route path={ROUTES.TOOLBELT} element={<ToolbeltLanding />} />
+            <Route path={ROUTES.TOOLBELT_LESSON_FIT} element={<ToolbeltLessonFit />} />
+            <Route path={ROUTES.TOOLBELT_LEFT_OUT_SAFELY} element={<ToolbeltLeftOut />} />
+            <Route path={ROUTES.TOOLBELT_ONE_TRUTH} element={<ToolbeltOneTruth />} />
 
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
