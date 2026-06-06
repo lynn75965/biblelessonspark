@@ -1,6 +1,67 @@
-# PROJECT MASTER -- Last updated: June 5, 2026
+# PROJECT MASTER -- Last updated: June 6, 2026
 
 ## WHAT'S NEXT
+
+Carry-forward from June 6, 2026 Session (Security Advisor follow-up -- item A applied; B and C deferred):
+
+- CONTEXT: Follow-up to the May 31 Migrations 1-3 (body hardening, EXECUTE revoke,
+  RLS cleanup -- timestamps 20260531120000/120100/120200, confirmed applied + in sync
+  local=remote). The May 31 DEPLOYMENT_PLAN.md (gitignored, never committed) listed THREE
+  remaining items in its OUT OF SCOPE table: (A) Section F data-API grant hardening,
+  (B) `{public}`->`{authenticated}` role-scope sweep on ~50 policies, (C) backfilling
+  ~48 Dashboard-created functions into migration files.
+
+- DISCREPANCY FLAGGED: the session prompt assumed exact SQL for A/B/C lived in
+  DEPLOYMENT_PLAN.md. It does not -- the plan deliberately deferred all three. Only item A
+  had ready SQL (in SECURITY_ADVISOR_CLASSIFICATION.md lines 170-226). B has no enumerated
+  SQL (Finding 6 gives examples only); C has no SQL (needs pg_get_functiondef bodies).
+  Lynn chose "A only. Proceed."
+
+- DONE: ITEM A -- new migration `20260605100000_security_section_f_grants.sql` (commit
+  ed1a230). Revokes the overbroad Supabase-default anon/authenticated table grants as
+  defense-in-depth (RLS already protects rows). Drift check before apply: ZERO drift -- all
+  23 targeted tables still held the full default grant set
+  (DELETE,INSERT,REFERENCES,SELECT,TRIGGER,TRUNCATE,UPDATE) for both anon and authenticated.
+  Post-apply verification confirmed exactly the intended end state:
+  - anon removed from ALL 23 tables;
+  - 13 tables fully revoked (both roles): anonymous_parable_usage, email_sequence_tracking,
+    lesson_pack_config, modern_parables, onboarding_config, org_lesson_pack_purchases,
+    org_onboarding_purchases, reshape_metrics, stripe_events, toolbelt_email_tracking,
+    rate_limits, user_roles;
+  - admin_audit fully revoked;
+  - authenticated SELECT-only: app_settings, org_tier_config, guardrail_violations,
+    guardrail_violation_summary;
+  - anon-only revoke (authenticated full grants preserved): events, notifications,
+    feedback_questions, generation_metrics, toolbelt_email_captures, toolbelt_email_templates.
+  npm run build clean. Role names verified (anon/authenticated only). Only the migration
+  file was staged/committed (manual git, NOT deploy.ps1 -- avoids staging untracked audit
+  files and the gitignored DEPLOYMENT_PLAN.md). ASCII pre-commit hook passed.
+
+- CONFLICT FOUND + RESOLVED: the Section F draft (written before Sections C/D) revoked anon
+  on tables Section C later marked "Category 1 -- leave alone (public read/insert)":
+  lesson_pack_config, onboarding_config, org_tier_config, toolbelt_email_captures,
+  feedback_questions. Traced every anon-facing path in src/ and supabase/functions/: ALL run
+  through service_role edge functions (purchase-lesson-pack, purchase-onboarding,
+  send-toolbelt-reflection, generate-parable via supabaseAdmin) or a SECURITY DEFINER RPC
+  (get_feedback_questions) -- all of which bypass RLS + table grants. So the revokes are safe;
+  the anon grants/policies Section C wanted to preserve are unused belt-and-suspenders.
+
+- OUTSTANDING (Lynn action): ANONYMOUS SMOKE TEST still pending. The grant change is LIVE in
+  production. One residual risk could not be discharged by static analysis: the public
+  toolbelt landing pages are NOT in this repo (only admin views are). If they insert into
+  toolbelt_email_captures via the browser anon key instead of the send-toolbelt-reflection
+  edge function, anon INSERT is now revoked and capture would break. Verify on the live site
+  (anonymous browser): submit a real toolbelt email-capture form; load the public pricing and
+  parable pages. Rollback if it fails: re-grant the affected privilege in a follow-up
+  migration (e.g. `GRANT INSERT ON public.toolbelt_email_captures TO anon;`).
+
+- DEFERRED (NOT closed): item B (policy role-scope sweep) -- 55 {public} policies enumerated
+  live; ~10 MUST stay {public} (boot/pricing config + anon toolbelt insert), so it needs a
+  hand-built include/exclude list, not a blind sweep; Section C files it Category 3, zero
+  behavior change today. Item C (backfill ~55 routines) -- pure housekeeping, zero security
+  value, highest risk (re-defining live functions); Section A files it out of scope. Both
+  remain available for a future dedicated session.
+
 
 Carry-forward from June 5, 2026 Session (theologyProfile field-injection audit across all generators -- NO FIX NEEDED):
 
