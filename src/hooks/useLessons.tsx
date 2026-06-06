@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { Lesson } from "@/constants/contracts";
+import { LESSON_LIBRARY_TEXT } from "@/constants/dashboardConfig";
 
 // Re-export for backward compatibility
 export type { Lesson };
@@ -23,7 +24,10 @@ export function useLessons() {
   }, [user]);
 
   const fetchLessons = async () => {
-    try {
+    // Single query attempt. A zero-row result returns data:[] / error:null,
+    // so it never throws -- the empty library renders its empty state and no
+    // toast appears. Only a genuine Supabase error throws here.
+    const attemptFetch = async (): Promise<Lesson[]> => {
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
@@ -31,12 +35,28 @@ export function useLessons() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setLessons(data || []);
+      return data || [];
+    };
+
+    try {
+      let data: Lesson[];
+      try {
+        data = await attemptFetch();
+      } catch (firstError) {
+        // Resilient one-time retry: a brand-new session can briefly fail the
+        // first fetch (e.g. a transient network/auth hiccup). Retry once after
+        // a short delay before surfacing anything to the user. A persistent
+        // failure still reaches the catch below and shows the error toast.
+        console.warn('Lessons fetch failed; retrying once:', firstError);
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        data = await attemptFetch();
+      }
+      setLessons(data);
     } catch (error) {
       console.error('Error fetching lessons:', error);
       toast({
-        title: "Error loading lessons",
-        description: "Failed to load your lessons. Please try again.",
+        title: LESSON_LIBRARY_TEXT.loadError.title,
+        description: LESSON_LIBRARY_TEXT.loadError.description,
         variant: "destructive",
       });
     } finally {

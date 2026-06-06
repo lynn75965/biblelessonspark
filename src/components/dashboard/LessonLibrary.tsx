@@ -48,6 +48,7 @@ import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
 import { useToast } from "@/hooks/use-toast";
 import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { ROUTES } from "@/constants/routes";
+import { LESSON_LIBRARY_TEXT } from "@/constants/dashboardConfig";
 import { Lesson, LESSONS_TABLE } from "@/constants/contracts";
 import { SERIES_LIMITS } from "@/constants/seriesConfig";
 import { AGE_GROUPS } from "@/constants/ageGroups";
@@ -911,22 +912,24 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">
-                {searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all"
-                  ? "No lessons match your filters"
-                  : scope === "team"
-                    ? "No shared lessons from your team"
-                    : "No lessons yet"}
-              </h3>
-              <p className="text-muted-foreground max-w-md">
-                {searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all"
-                  ? "Try adjusting your search terms or filters to find the lessons you're looking for."
-                  : scope === "team"
-                    ? "When your team members share lessons, they will appear here."
-                    : "Create your first Baptist-enhanced Bible study lesson to get started."}
-              </p>
-            </div>
+            {(() => {
+              // SSOT copy (dashboardConfig.ts LESSON_LIBRARY_TEXT). Three zero-
+              // result variants: active filters, empty team scope, or a truly
+              // empty library.
+              const hasFilters =
+                searchPassage || searchTitle || ageFilter !== "all" || profileFilter !== "all";
+              const copy = hasFilters
+                ? LESSON_LIBRARY_TEXT.emptyFiltered
+                : scope === "team"
+                  ? LESSON_LIBRARY_TEXT.emptyTeam
+                  : LESSON_LIBRARY_TEXT.emptyDefault;
+              return (
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold">{copy.heading}</h3>
+                  <p className="text-muted-foreground max-w-md">{copy.subtext}</p>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       ) : null}

@@ -13,6 +13,31 @@ export const DASHBOARD_TEXT = {
   subtitle: "Your Personal Bible Study Workspace",
 } as const;
 
+// SSOT for LessonLibrary copy: the three zero-result empty-state variants plus
+// the lesson-fetch error toast. Moved here June 6, 2026 from inline strings in
+// LessonLibrary.tsx and useLessons.tsx so the copy is editable in one place.
+// loadError mirrors the genuine-fetch-error toast (unchanged wording); it fires
+// only on a real Supabase error after a silent one-time retry, never on a
+// zero-row result.
+export const LESSON_LIBRARY_TEXT = {
+  emptyDefault: {
+    heading: "Your Lesson Library is Empty",
+    subtext: "Build your first lesson using Step 1 above.",
+  },
+  emptyFiltered: {
+    heading: "No lessons match your filters",
+    subtext: "Try adjusting your search terms or filters to find the lessons you're looking for.",
+  },
+  emptyTeam: {
+    heading: "No shared lessons from your team",
+    subtext: "When your team members share lessons, they will appear here.",
+  },
+  loadError: {
+    title: "Error loading lessons",
+    description: "Failed to load your lessons. Please try again.",
+  },
+} as const;
+
 export const DASHBOARD_TABS = {
   enhance: {
     value: "enhance",
