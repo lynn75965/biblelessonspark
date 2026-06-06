@@ -2,6 +2,39 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from June 6, 2026 Session (public Toolbelt routes wired into App.tsx):
+
+- CONTEXT: The public Teacher Toolbelt landing + three reflection tools existed as components
+  (src/pages/toolbelt/) but were unrouted in App.tsx -- only /toolbelt/parables and the admin
+  /admin/toolbelt were wired. This closes the "ENTIRE public toolbelt is still unrouted"
+  carry-forward noted in the 2026-06-03 parable session.
+
+- DONE: FEATURE -- commit `badafdf` on main (deploy.ps1; 3 files changed, 18 insertions;
+  ASCII guard passed). Wired all FOUR remaining public routes:
+  - ROUTES.TOOLBELT '/toolbelt' -> ToolbeltLanding (src/pages/toolbelt/ToolbeltLanding.tsx)
+  - ROUTES.TOOLBELT_LESSON_FIT '/toolbelt/lesson-fit' -> ToolbeltLessonFit
+  - ROUTES.TOOLBELT_LEFT_OUT_SAFELY '/toolbelt/left-out-safely' -> ToolbeltLeftOut
+  - ROUTES.TOOLBELT_ONE_TRUTH '/toolbelt/one-truth' -> ToolbeltOneTruth
+  All mounted as PUBLIC routes (no ProtectedRoute), immediately after TOOLBELT_PARABLES.
+  ROUTES SKIPPED: none -- all four component files exist on disk (verified before wiring).
+
+- FILES CHANGED (3): src/constants/routes.ts (4 new ROUTES keys after TOOLBELT_PARABLES);
+  src/App.tsx (4 default-import lines after ToolbeltParables import + 4 public <Route>s);
+  supabase/functions/_shared/routes.ts (auto-synced via `npm run sync-constants`, Rule #23 --
+  only this _shared file changed, +4 lines, NOT hand-edited).
+
+- SSOT NOTE: path strings are intentionally declared in BOTH routes.ts (ROUTES -- the routing
+  SSOT master mounted by App.tsx per Rule #3) AND toolbeltConfig.ts (TOOLBELT_ROUTES /
+  TOOLBELT_TOOLS[].route -- used by the toolbelt components for internal Link navigation).
+  Values were verified to match EXACTLY, so the landing page "Use this tool" links resolve to
+  the newly-wired routes. This dual-declaration is the pre-existing toolbelt pattern (parables
+  already followed it), not a regression introduced here. Possible future consolidation:
+  have toolbeltConfig import from routes.ts -- deferred, not in scope.
+
+- VERIFIED: npm run build clean; routes.ts + App.tsx 0 non-ASCII bytes; Lynn confirmed all
+  four routes + the /toolbelt/parables regression on localhost:8080 before approving deploy.
+  No backend changes (public static routes).
+
 Carry-forward from June 6, 2026 Session (Rule #17 violation closed -- check_lesson_limit no longer queries tier_config):
 
 - CONTEXT: The `check_lesson_limit` RPC (live-DB only, never in a migration file until now)
