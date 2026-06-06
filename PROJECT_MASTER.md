@@ -2,6 +2,53 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from June 6, 2026 Session ("Error loading lessons" toast -- ROOT CAUSE was a same-day grant regression, now fixed):
+
+- SYMPTOM: authenticated users (incl. zero-lesson users) saw a red "Error loading lessons /
+  Failed to load your lessons" toast; lessons did not load.
+
+- DIAGNOSIS: NOT a zero-row issue. The useLessons fetch was throwing a real Supabase error:
+  "permission denied for table user_roles" (SQLSTATE 42501). Root cause = THIS MORNING's
+  Section F grants migration (20260605100000, commit ed1a230) which did
+  REVOKE ALL ON public.user_roles FROM anon, authenticated. That migration's premise
+  ("user_roles is read only via SECURITY DEFINER helpers") was WRONG: several RLS policies
+  read user_roles via an INLINE subquery -- e.g. lessons "Admins can view all lessons" and
+  profiles "Admins can view all profiles": EXISTS (SELECT 1 FROM user_roles WHERE
+  user_id=auth.uid() AND role='admin'). Inline RLS subqueries run with the CALLER's
+  privileges, so revoking authenticated's SELECT made every authenticated lessons/profiles
+  query fail. Audit also found two direct frontend reads broken by the same migration:
+  Admin.tsx (.from('user_roles')) and ParableGenerator.tsx (.from('modern_parables'),
+  monthly usage count). user_roles + modern_parables were the ONLY two revoked tables
+  reachable by inline RLS subqueries or frontend queries (verified by policy-text audit +
+  frontend grep); the other 11 Section F revokes are safe and left in place.
+
+- FIX (DB): migration 20260606120000_restore_grants_broken_by_section_f.sql --
+  GRANT SELECT ON public.user_roles TO authenticated; GRANT SELECT ON public.modern_parables
+  TO authenticated. Applied to remote via db push, then committed. RLS still row-filters both
+  (user_roles: users_select_own + admin_full_access; modern_parables: own-rows + has_role()
+  admin), so SELECT exposes only the caller's own rows -- no enumeration. anon stays revoked
+  (preserves the original anti-enumeration intent); INSERT/UPDATE/DELETE stay revoked from
+  authenticated. Verified grants restored (authenticated SELECT on both; anon absent).
+
+- FIX (frontend polish, same commit): moved LessonLibrary empty-state copy + the lesson-fetch
+  error toast strings into SSOT (dashboardConfig.ts LESSON_LIBRARY_TEXT); updated the default
+  empty-state wording to "Your Lesson Library is Empty" / "Build your first lesson using Step 1
+  above."; added a silent one-time retry (600ms) in useLessons.fetchLessons before the error
+  toast (genuine persistent errors still toast; zero rows never did). A temporary on-screen
+  DIAG toast was used to capture the 42501 error from Lynn, then removed before deploy.
+
+- DEPLOYED: commit 1755e1f on main (deploy.ps1; 4 files: the migration + dashboardConfig.ts +
+  useLessons.tsx + LessonLibrary.tsx). npm run build clean; ASCII guard passed. Lynn confirmed
+  on localhost: with-lessons users load normally; zero-lesson users sign in cleanly with NO
+  error toast (acceptable). Production outage resolved at db push (before the Netlify deploy).
+
+- LESSON (important): before REVOKING table grants for "defense in depth," audit RLS policies
+  across ALL tables for INLINE subqueries referencing that table (qual/with_check ~ tablename).
+  Inline RLS subqueries execute with the caller's privileges and REQUIRE the table grant --
+  unlike SECURITY DEFINER helpers (has_role/is_admin) which bypass grants. The Section F
+  classification missed this for user_roles. Possible future hardening: rewrite the inline
+  "Admins can view all X" policies to use has_role()/is_admin() so user_roles can be re-locked.
+
 Carry-forward from June 6, 2026 Session (public Toolbelt routes wired into App.tsx):
 
 - CONTEXT: The public Teacher Toolbelt landing + three reflection tools existed as components
