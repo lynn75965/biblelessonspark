@@ -2,6 +2,43 @@
 
 ## WHAT'S NEXT
 
+Carry-forward from June 6, 2026 Session (Rule #17 violation closed -- check_lesson_limit no longer queries tier_config):
+
+- CONTEXT: The `check_lesson_limit` RPC (live-DB only, never in a migration file until now)
+  queried the `tier_config` table in FOUR places -- a direct violation of Rule #17 / Principle
+  #2 (Frontend-Drives-Backend). DONE: replaced every tier_config read with hardcoded constants
+  mirroring `_shared/pricingConfig.ts`.
+
+- DONE: migration `20260606000000_fix_check_lesson_limit_no_tier_config.sql`, commit `c117aff`
+  on main, applied via `"y" | npx supabase db push --linked`. CREATE OR REPLACE; signature +
+  9-field return shape (can_generate, lessons_used, lessons_limit, tier, sections_allowed,
+  includes_teaser, reset_date, upgrade_needed, billing_interval) preserved byte-identical;
+  admin-bypass + free-tier fallback + all gating comparisons unchanged. Only the DATA SOURCE
+  changed: lessons_limit (admin 9999, free 5), sections_allowed (free [1,5,8], all others
+  [1-8]), includes_teaser (free FALSE, all others TRUE), reset interval (now INTERVAL '30 days'
+  everywhere, was tier_config.reset_interval/'1 month' -- consistent with the 2026-06-05
+  stripe-webhook reset_date fix).
+
+- DIAGNOSTIC GROUND TRUTH: live tier_config had only 3 rows (admin/free/personal) -- the
+  hardcoded admin 9999 + sections + teaser values were copied from those rows; the other tiers
+  (starter/growth/full/enterprise) sourced from pricingConfig TIER_LESSON_LIMITS/TIER_SECTIONS.
+  src vs _shared pricingConfig: TIER_LESSON_LIMITS and TIER_SECTIONS byte-identical -- NO drift,
+  so _shared/pricingConfig.ts was NOT modified. Live user_subscriptions has only free (30) +
+  personal (3); no org-tier individuals exist, so the previously-NULL sections_allowed for
+  those tiers was never exercised (org pools gate elsewhere). Callers verified: subscriptionCheck.ts
+  wrapper (generate-lesson, reshape-lesson, send-lesson-email) + src/hooks/useSubscription.tsx
+  (reads ALL 9 fields). No field removed/renamed -> no breaking change.
+
+- VERIFIED: live function body now contains ZERO tier_config references (confirmed via
+  pg_get_functiondef ILIKE -- false-positive comment refs were reworded and re-applied via
+  `supabase migration repair --status reverted` + db push so the live body is truly clean).
+  RPC smoke test (personal + free users) returned all 9 fields with correct values. npm run
+  build clean. Only the migration file committed (manual git; DEPLOYMENT_PLAN.md not staged).
+
+- RULE #17 / PRINCIPLE #2 VIOLATION CLOSED. NOTE for follow-up: tier_config table still exists
+  in the DB but is now queried by nothing in this RPC; its drop-vs-keep decision remains the
+  open "tier_config table future" item (independent of this fix).
+
 Carry-forward from June 6, 2026 Session (Security Advisor follow-up -- item A applied; B and C deferred):
 
 - CONTEXT: Follow-up to the May 31 Migrations 1-3 (body hardening, EXECUTE revoke,
