@@ -6256,12 +6256,10 @@ BAPTIST_TERMINOLOGY_GUARDRAILS block and guardrail functions were untouched.
 Architecture Principle #3 updated: "10 supported Baptist traditions" -> "11".
 
 ### Carry-forward
-- KNOWN PRE-EXISTING BUG (do NOT fix without its own diagnostic session):
-  generate-lesson/index.ts line 673 injects ${theologyProfile.description}, but
-  the TheologyProfile interface has NO description field (it is summary). This
-  renders "undefined" in the system prompt for ALL 11 profiles and predates the
-  CBF work. Needs a dedicated session to determine the correct field and fix
-  without regression. Left untouched June 4, 2026 per Lynn's instruction.
+- KNOWN PRE-EXISTING BUG: generate-lesson/index.ts injected ${theologyProfile.description}
+  (no such field; the real field is summary), rendering "undefined" into the system
+  prompt for all profiles. [RESOLVED June 4 in commit 5f57292 -> .summary; other
+  generators audited clean June 9 -- see the June 9 cleanup session log below.]
 
 ---
 
@@ -6318,6 +6316,46 @@ drift. If residual drift appears, capture the exact phrase and tighten
 prohibitedPhrases.
 
 ### Note
-The pre-existing generate-lesson description-field bug (theologyProfile.description
-injected as "undefined" -- see June 4 carry-forward) was NOT touched. Still needs
-its own diagnostic session.
+The pre-existing generate-lesson description-field bug was NOT touched in this
+guardrail work. It was already fixed June 4 (5f57292); the follow-up audit and
+dead-code cleanup were completed later the same day -- see the next session log.
+
+---
+
+## SESSION LOG: June 9, 2026 -- Cleared the generate-lesson theologyProfile.description carry-forward
+
+### Context
+Closed out the long-standing carry-forward flagged at the bottom of this file
+("generate-lesson injects theologyProfile.description -> undefined; needs its own
+diagnostic session"). On inspection the live bug was already fixed; the remaining
+work was the never-completed audit of the other generators plus stale dead code.
+
+### Findings (verified against current code, not the stale note)
+- LIVE BUG ALREADY FIXED: generate-lesson/index.ts:673 reads ${theologyProfile.summary}
+  (commit 5f57292, June 4). The only other .description in that file (~882) is an
+  unrelated guardrail-violation object (v.description). Nothing to do.
+- OTHER-GENERATOR AUDIT (the open follow-up from the June 4 log) -- CLEAN. No live
+  Edge Function references theologyProfile.description. generate-devotional uses
+  .id/.name; generate-parable uses payload.theology_profile.guardrails; every other
+  .description hit across supabase/functions/ is on a legitimately-typed object
+  (news article, bible version, devotional target, lesson shape, validation violation).
+- src/pages/Docs.tsx:412 renders profile.description from a LOCAL hardcoded array
+  (Docs.tsx:143) that has a real description field -- valid, not the SSOT. (Minor
+  pre-existing SSOT smell: Docs.tsx hardcodes 4 profiles instead of importing
+  THEOLOGY_PROFILES. Not addressed here -- separate concern, out of scope.)
+
+### Change
+- DELETED orphan optimized-generate-lesson-index.ts (repo root). Tracked but dead:
+  added in 619fa5a ("Phase 5"), unreferenced anywhere, its ../_shared/ imports cannot
+  resolve from the root, and it is part of neither the src/ build nor the
+  supabase/functions/ deploy. It still carried the old pre-fix
+  ${theologyProfile.description} line (~150) -- the last tracked code holding the
+  buggy pattern. Lynn approved the deletion. Fully recoverable from git history.
+
+### Verification
+- npm run build clean (the deleted file was not in the build graph; build unaffected).
+- No code imports were touched; zero functional change.
+
+### Carry-forward
+- None for this item. Optional future cleanup: Docs.tsx should import the SSOT
+  THEOLOGY_PROFILES instead of its local 4-profile array (uses summary, not description).
