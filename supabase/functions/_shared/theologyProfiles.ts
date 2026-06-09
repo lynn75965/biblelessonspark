@@ -1216,6 +1216,109 @@ export const BAPTIST_TERMINOLOGY_GUARDRAILS = {
 } as const;
 
 // ============================================================================
+// SOUTHERN BAPTIST SOTERIOLOGICAL GUARDRAILS (SSOT)
+// Anti-Calvinist-drift guardrail for the Southern Baptist profiles (BF&M 1963
+// and BF&M 2000).
+//
+// The base SBC profiles already prohibit a handful of Calvinist TERMS
+// ("sovereign election", "monergism"), but not the broader Reformed-leaning
+// PHRASING the generator tends to default to ("sovereign grace in salvation",
+// "He chooses to save whom He will"). That phrasing is technically compatible
+// with some Southern Baptists but violates the non-Calvinist mainstream
+// represented by the Baptist Faith & Message as a confessional document.
+//
+// This guardrail prohibits that phrasing at the phrase level and supplies the
+// required faith-response framing. It is injected into the AI prompt via
+// generateTheologicalGuardrails(), so it reaches all three generators
+// (generate-lesson, generate-devotional, and generate-parable through
+// ParableGenerator.tsx) -- but only for the profiles in appliesToProfileIds.
+// For every other profile it contributes nothing.
+// ============================================================================
+
+export const SOUTHERN_BAPTIST_SOTERIOLOGICAL_GUARDRAILS = {
+  /**
+   * Profiles this guardrail applies to. Both Southern Baptist profiles share the
+   * same non-Calvinist soteriology, so both are gated here.
+   */
+  appliesToProfileIds: [
+    "southern-baptist-bfm-1963",
+    "southern-baptist-bfm-2000"
+  ],
+
+  /**
+   * PROHIBITED PHRASES -- must never appear in SBC-profile lessons.
+   * Each phrase carries a required replacement. A null replacement means the
+   * phrase is prohibited outright with no substitute (do not use the concept).
+   */
+  prohibitedPhrases: [
+    {
+      phrase: "sovereign grace in salvation",
+      replacement: "God's grace extended to all who respond in faith"
+    },
+    {
+      phrase: "He chooses to save whom He will",
+      replacement: "God graciously offers salvation to all who respond in faith"
+    },
+    {
+      phrase: "God sovereignly elects",
+      replacement: "God calls all people to salvation through faith"
+    },
+    {
+      phrase: "sovereign election",
+      replacement: "God calls all people to salvation through faith"
+    },
+    {
+      phrase: "monergistic",
+      replacement: "salvation is God's gift, received through a genuine faith-response"
+    },
+    {
+      phrase: "irresistible grace",
+      replacement: null
+    },
+    {
+      phrase: "particular redemption",
+      replacement: null
+    },
+    {
+      phrase: "limited atonement",
+      replacement: null
+    }
+  ],
+
+  /**
+   * CONDITIONALLY PERMISSIBLE PHRASES -- allowed only in the stated narrow sense,
+   * never as the explanation of why a particular individual is saved.
+   */
+  conditionalPhrases: [
+    {
+      phrase: "chosen before the foundation of the world",
+      permittedOnly: "as general doxology about God's people in Christ -- never as the explanation of why an individual person was saved"
+    }
+  ],
+
+  /**
+   * REQUIRED FRAMING -- the faith-response framing that must shape any salvation
+   * language in an SBC-profile lesson.
+   */
+  requiredFraming: [
+    "Center salvation language on the human faith-response. Example: \"Rahab's faith, not God's sovereign selection, is what Scripture commends.\"",
+    "Assume or state universal atonement: \"Christ's death is sufficient for all and available to all.\"",
+    "Prefer \"whosoever will\" framing when describing the scope of salvation (cf. John 3:16; Romans 10:13).",
+    "When describing God's purposes for an individual, use volitional/responsive language -- \"God can use anyone who responds to Him in faith\" -- not \"God chose her for His purposes.\"",
+    "Frame a person's inclusion in God's plan (e.g., Rahab in the genealogy of Christ) as the result of their faith response, not as evidence of prior divine election."
+  ],
+
+  /**
+   * CANONICAL REWRITE -- the exact drift pattern to avoid and the exact pattern
+   * to produce in its place, for the Theological Background section.
+   */
+  canonicalRewrite: {
+    avoid: "This passage demonstrates God's sovereign grace in salvation--He chooses to save whom He will, not based on human merit but according to His purposes.",
+    use: "This passage demonstrates God's grace available to all who respond in faith--Rahab's story shows that no background, nationality, or past disqualifies a person from receiving salvation through trust in God."
+  }
+} as const;
+
+// ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
 
@@ -1303,6 +1406,60 @@ Before outputting content, scan for:
 }
 
 /**
+ * Generate the Southern Baptist soteriological guardrail block for AI prompt
+ * injection. Returns an empty string for any profile not listed in
+ * SOUTHERN_BAPTIST_SOTERIOLOGICAL_GUARDRAILS.appliesToProfileIds, so it is safe
+ * to call for every profile. Injected by generateTheologicalGuardrails().
+ */
+export function generateSouthernBaptistSoteriologicalGuardrails(profileId: string): string {
+  const g = SOUTHERN_BAPTIST_SOTERIOLOGICAL_GUARDRAILS;
+
+  if (!(g.appliesToProfileIds as readonly string[]).includes(profileId)) {
+    return '';
+  }
+
+  const prohibited = g.prohibitedPhrases
+    .map(({ phrase, replacement }) =>
+      replacement
+        ? `- "${phrase}" -- instead use: "${replacement}"`
+        : `- "${phrase}" -- PROHIBITED ENTIRELY (do not use the phrase or the concept)`
+    )
+    .join('\n');
+
+  const conditional = g.conditionalPhrases
+    .map(({ phrase, permittedOnly }) => `- "${phrase}" -- permitted ONLY ${permittedOnly}`)
+    .join('\n');
+
+  const framing = g.requiredFraming.map(rule => `- ${rule}`).join('\n');
+
+  return `
+
+## SOUTHERN BAPTIST SOTERIOLOGICAL LANGUAGE RULES -- MANDATORY
+
+The Southern Baptist profiles affirm the non-Calvinist mainstream of the Baptist
+Faith & Message. Salvation must always be framed around the human faith-response,
+never around divine selection of particular individuals. The terminology rules
+above are reinforced here at the phrase level and take precedence on any conflict.
+
+### PROHIBITED PHRASES (must never appear in any section)
+${prohibited}
+
+### CONDITIONALLY PERMISSIBLE PHRASES
+${conditional}
+
+### REQUIRED FRAMING (must shape all salvation language)
+${framing}
+
+### CANONICAL REWRITE -- Theological Background section
+Do NOT write (Calvinist drift):
+"${g.canonicalRewrite.avoid}"
+
+Instead write (faith-response framing):
+"${g.canonicalRewrite.use}"
+`;
+}
+
+/**
  * Generate the theological guardrails block for AI prompt injection
  */
 export function generateTheologicalGuardrails(profileId: string): string {
@@ -1358,6 +1515,10 @@ Before outputting the lesson, verify:
 
   // Append universal Baptist terminology guardrails
   guardrailsBlock += '\n\n' + generateBaptistTerminologyGuardrails();
+
+  // Append Southern Baptist soteriological guardrails.
+  // No-op (empty string) for every profile except the two SBC profiles.
+  guardrailsBlock += generateSouthernBaptistSoteriologicalGuardrails(profile.id);
 
   return guardrailsBlock;
 }
