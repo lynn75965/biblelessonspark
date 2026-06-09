@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: June 6, 2026
+# PROJECT MASTER -- Last updated: June 9, 2026
 
 ## WHAT'S NEXT
 
@@ -6262,3 +6262,62 @@ Architecture Principle #3 updated: "10 supported Baptist traditions" -> "11".
   renders "undefined" in the system prompt for ALL 11 profiles and predates the
   CBF work. Needs a dedicated session to determine the correct field and fix
   without regression. Left untouched June 4, 2026 per Lynn's instruction.
+
+---
+
+## SESSION LOG: June 9, 2026 -- Southern Baptist Anti-Calvinist-Drift Soteriological Guardrail
+
+### Problem
+The Southern Baptist profiles prohibited a few Calvinist TERMS in avoidTerminology
+("sovereign election", "monergism") but nothing stopped the broader Reformed-leaning
+PHRASING the generator defaults to ("sovereign grace in salvation", "He chooses to
+save whom He will"). That phrasing violates the non-Calvinist SBC mainstream of the
+Baptist Faith & Message as a confessional document. Symptom: the Theological
+Background section of a Rahab/Joshua 2 SBC lesson read as Reformed soteriology
+rather than faith-response.
+
+### Solution (single injection point -- verified by fan-out)
+All three content generators derive their per-profile theology block from ONE
+function, generateTheologicalGuardrails(profileId):
+- generate-lesson  -> backend, _shared mirror, index.ts:675
+- generate-devotional -> backend, _shared mirror, index.ts:588
+- generate-parable -> the FRONTEND builds the guardrail string in
+  ParableGenerator.tsx:356 and passes it in the payload (the parable Edge Function
+  does NOT call generateTheologicalGuardrails itself)
+So one profile-gated injection inside generateTheologicalGuardrails() reaches all
+three, exactly mirroring how generateBaptistTerminologyGuardrails() is appended.
+
+### Files changed (2)
+- src/constants/theologyProfiles.ts:
+  * New SSOT constant SOUTHERN_BAPTIST_SOTERIOLOGICAL_GUARDRAILS (prohibited
+    phrases + replacements, conditional "chosen before the foundation of the world"
+    rule, required faith-response framing, canonical avoid->use rewrite).
+  * New generator generateSouthernBaptistSoteriologicalGuardrails(profileId) --
+    returns '' for any profile NOT in appliesToProfileIds.
+  * One line wired into generateTheologicalGuardrails() to append it.
+- supabase/functions/_shared/theologyProfiles.ts (auto-synced mirror).
+npm run sync-constants clean (15/15).
+
+### Scope decision (Lynn-approved)
+Instruction named BF&M 2000 only. Flagged that BF&M 1963 has the identical
+vulnerability (same avoidTerminology, tulipStance 'anti'). Lynn chose BOTH, so
+appliesToProfileIds = ['southern-baptist-bfm-1963', 'southern-baptist-bfm-2000'].
+The guardrail is a no-op for every other profile.
+
+### Verification
+- npm run build clean: 3951 modules, ~27s, zero TypeScript errors.
+- ASCII guard passed at commit (no em dashes/curly quotes).
+- Lynn verified on localhost:8080: Rahab/Joshua 2/SBC lesson Theological Background
+  now reads as faith-response, not sovereign-grace drift.
+- Deployed: commit c886b04 (FIX), pushed to main, Netlify auto-deploy.
+
+### Caveat (carry-forward)
+This is a prompt-level instruction (same mechanism as every other theology
+guardrail), so it strongly discourages but cannot byte-for-byte guarantee zero
+drift. If residual drift appears, capture the exact phrase and tighten
+prohibitedPhrases.
+
+### Note
+The pre-existing generate-lesson description-field bug (theologyProfile.description
+injected as "undefined" -- see June 4 carry-forward) was NOT touched. Still needs
+its own diagnostic session.
