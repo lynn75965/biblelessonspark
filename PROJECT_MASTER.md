@@ -43,7 +43,10 @@
 - VERIFIED: npm run build clean; both migrations applied (db push); Lynn confirmed on
   localhost /auth -- 406 gone, branding loads.
 
-- DEPLOYED: <fill commit on deploy.ps1; 4 files: two migrations + getTenantConfig.ts + this file>
+- DEPLOYED: commit c316d9f on main (deploy.ps1; 4 files: two migrations + getTenantConfig.ts +
+  this file; ASCII guard passed). Both migrations were already applied to remote via db push
+  before the deploy, so production /auth was fixed at db-push time; the deploy shipped the
+  frontend .maybeSingle() hardening + committed the migration files and this log.
 
 - LESSON: a .single() on any anon-reachable bootstrap query is a 406 landmine -- one missing/
   invisible row throws on every public page load. Prefer .maybeSingle() with a safe default for
