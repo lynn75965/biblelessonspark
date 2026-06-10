@@ -41,7 +41,7 @@ export async function getTenantConfig(host: string): Promise<TenantConfig> {
       .from("tenant_config")
       .select("*")
       .eq("tenant_id", tenantId)
-      .single();
+      .maybeSingle();
 
     if (error || !data) {
       console.warn(`No tenant config found for "${tenantId}", using defaults`);

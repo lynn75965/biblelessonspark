@@ -1,4 +1,54 @@
-# PROJECT MASTER -- Last updated: June 9, 2026
+# PROJECT MASTER -- Last updated: June 10, 2026
+
+## JUNE 10, 2026 SESSION (tenant_config 406 on public /auth -- anon RLS read regression)
+
+- SYMPTOM: GET /rest/v1/tenant_config?select=*&tenant_id=eq.biblelessonspark returned
+  406 Not Acceptable on the public /auth page BEFORE sign-in (anon role). Console showed
+  an "Error fetching settings" line near useSystemSettings.ts:30.
+
+- DIAGNOSIS (root cause first, no code touched until confirmed):
+  * The prompt pointed at useSystemSettings.ts, but that file queries the system_settings
+    table and uses NO .single() -- it was a red herring. The real tenant_config caller is
+    src/lib/tenant/getTenantConfig.ts (used by main.tsx bootstrap on EVERY page load,
+    pre-render, as anon). It used .single(), which makes PostgREST return 406 when the
+    query yields zero rows. (useTenantConfig.ts already used .maybeSingle().)
+  * Suspect "rebrand data mismatch" RULED OUT: the single tenant_config row already carries
+    tenant_id='biblelessonspark' (matches frontend SSOT DEFAULT_TENANT_ID). SQL confirmed.
+  * Suspect "RLS role-scope" CONFIRMED via pg_policies: the only SELECT policy
+    tenant_config_read was scoped {authenticated}, with NO anon SELECT policy. RLS enabled.
+    So anon matched no policy -> zero visible rows -> .single() -> 406. Table-level grants
+    showed anon HELD SELECT (and full default set), so it was purely the RLS scope, not a
+    grant gap. No migration touches tenant_config (created via Dashboard pre-Rule-#20), so
+    the {public}->{authenticated} scope was set out-of-band.
+  * SECURITY GATE cleared: audited all 64 columns -- pure branding / UI copy / feature flags /
+    public contact emails. No secrets/keys. Re-opening anon READ undoes no real security gain.
+
+- FIX (DB): migration 20260610120000_tenant_config_anon_read.sql -- DROP+CREATE
+  tenant_config_read FOR SELECT TO anon, authenticated USING (true). Writes stay admin-only
+  via tenant_config_admin_write (untouched). Applied to remote via db push.
+
+- FIX (frontend hardening): src/lib/tenant/getTenantConfig.ts line 44 .single() -> .maybeSingle().
+  The existing if (error || !data) branch already falls back to DEFAULT_TENANT_CONFIG, so zero
+  rows now degrades gracefully (no 406) even if RLS regresses again. Defense-in-depth.
+
+- FOLLOW-UP (DB, Section-F-style, Lynn pre-approved): migration
+  20260610130000_tenant_config_anon_select_only.sql -- REVOKE INSERT,UPDATE,DELETE,TRUNCATE,
+  REFERENCES,TRIGGER ON tenant_config FROM anon; GRANT SELECT ON tenant_config TO anon.
+  RLS already blocked anon writes; this drops the overbroad grants to SELECT-only (the one
+  privilege the public bootstrap needs). authenticated grants untouched. Applied via db push.
+
+- SSOT: DEFAULT_TENANT_ID = "biblelessonspark" (src/config/tenantConfig.ts:185) unchanged;
+  the DB row already agreed with it, so nothing in SSOT moved.
+
+- VERIFIED: npm run build clean; both migrations applied (db push); Lynn confirmed on
+  localhost /auth -- 406 gone, branding loads.
+
+- DEPLOYED: <fill commit on deploy.ps1; 4 files: two migrations + getTenantConfig.ts + this file>
+
+- LESSON: a .single() on any anon-reachable bootstrap query is a 406 landmine -- one missing/
+  invisible row throws on every public page load. Prefer .maybeSingle() with a safe default for
+  app-config reads. And tenant_config remains OUTSIDE migration history except for these two
+  files; future changes to it must go through migrations (Rule #20).
 
 ## WHAT'S NEXT
 
