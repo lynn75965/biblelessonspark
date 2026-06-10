@@ -19,6 +19,7 @@ import Docs from "./pages/Docs";
 import Help from "./pages/Help";
 import LessonShapesGuide from "./pages/LessonShapesGuide";
 import CurriculumEvaluationPage from "./pages/CurriculumEvaluationPage";
+import ComparePage from "./pages/ComparePage";
 import Training from "./pages/Training";
 import Community from "./pages/Community";
 import ChurchPlantReport from "./pages/ChurchPlantReport";
@@ -152,6 +153,7 @@ const App = () => (
             } />
             <Route path={ROUTES.LESSON_SHAPES_GUIDE} element={<LessonShapesGuide />} />
             <Route path={ROUTES.CURRICULUM_EVALUATION} element={<CurriculumEvaluationPage />} />
+            <Route path={ROUTES.COMPARE} element={<ComparePage />} />
             <Route path={ROUTES.TRAINING} element={
               <ProtectedRoute>
                 <Training />

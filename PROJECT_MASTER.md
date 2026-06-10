@@ -1,5 +1,61 @@
 # PROJECT MASTER -- Last updated: June 10, 2026
 
+## JUNE 10, 2026 SESSION (public /compare "BLS vs. The Competition" page from imported package)
+
+- GOAL: Build a public, unauthenticated /compare page from an external prototype export
+  (_import/comparison/: comparison-data.json [canonical], comparison-data.ts [broken enum,
+  discarded], index.html [prototype], ASSETS.md, SOURCES.md). Strict BLS branding; no
+  prototype palette. Plan-first, approved before any code.
+
+- HAZARD RESOLUTIONS:
+  * ASCII guard scope: the guard is the git pre-commit hook (.git/hooks/pre-commit), which
+    scans ONLY staged .ts/.tsx files (excluding node_modules/dist/.netlify). It does NOT scan
+    .md/.json/.html/.css. New .ts/.tsx files made ASCII-only; SOURCES.md ASCII-converted on
+    relocation anyway (good hygiene; repo is public).
+  * _import/ added to .gitignore -- never commits, prototype index.html never ships.
+  * Route placement: /compare registered OUTSIDE ProtectedRoute, mirroring /curriculum-evaluation
+    (App.tsx). NOTE: App.tsx uses STATIC imports, not React.lazy (no lazy-loading anywhere);
+    mirrored the actual static pattern.
+  * Pricing SSOT: all imported BLS price/limit figures verified against pricingConfig.ts /
+    trialConfig.ts and MATCH. pricingBadge + footer.pricingNote are BUILT from PRICING_DISPLAY
+    and TRIAL_CONFIG constants (not hardcoded), so the page cannot drift from the pricing page.
+    Per Lynn's request, free-tier wording uses the precise SSOT (TRIAL_CONFIG: 3 full + 2 short
+    lessons every 30 days), not the simplified "5 lessons/month."
+  * Page chrome: Header + Footer from @/components/layout (the toolbelt public-page pattern).
+
+- COPY: the imported strengthParagraphs read as disparaging in places ("as an afterthought,"
+  "locks...rigid," "rather than Nashville's," "near-complete absence from the digital world").
+  Per Lynn, ALL competitor prose was rewritten in BLS voice (warm, pastoral, factual; honoring
+  each publisher and its teachers) while preserving every sourced claim. Lynn approved the copy.
+
+- DETAIL VIEW: shadcn Dialog (most-used overlay in BLS; Radix gives focus-trap/Esc/aria-modal).
+  Comparison table renders 3 states via lucide icons + sr-only text: Check/success (included),
+  Minus/warning (partial), X/destructive (not included). BLS column always Check.
+
+- FILES (NEW): src/config/comparisonConfig.ts (SSOT: pageConfig + 5 competitors + SEO + footer;
+  imports PRICING_DISPLAY/TRIAL_CONFIG), src/pages/ComparePage.tsx (Header/Footer chrome, hero +
+  pricing badge, card grid, Dialog head-to-head, accuracy + trademark footer, SEO useEffect
+  mirroring ChurchPlantReport.tsx), docs/comparison-sources.md (relocated + ASCII-converted
+  citation record).
+  FILES (MODIFIED): src/constants/routes.ts (ROUTES.COMPARE = '/compare') + App.tsx (import +
+  unwrapped Route) [Rule #3 both files]; .gitignore (_import/); supabase/functions/_shared/
+  routes.ts (auto-synced via npm run sync-constants, Rule #23). No sitemap exists -- none to update.
+
+- ACCESSIBILITY (Rule #22): cards are native <button>s (focusable, aria-label), decorative icons
+  aria-hidden with sr-only state text, table uses th scope + caption, Radix Dialog handles
+  focus/keyboard. Heading hierarchy h1 -> h2 -> h3 logical.
+
+- VERIFIED: npm run build clean (3953 modules); sync-constants 15/15; ASCII guard pre-checked
+  clean on all staged .ts/.tsx; _import/ confirmed gitignored; Lynn approved on localhost.
+
+- DEPLOYED: <fill commit on deploy.ps1; 7 files: config + page + docs + routes.ts + App.tsx +
+  .gitignore + _shared/routes.ts mirror>
+
+- LESSON: external import packages -> gitignore the whole import dir (keeps non-ASCII .ts out of
+  the guard's path AND prototype HTML out of the build); relocate only ASCII-converted docs.
+  When marketing copy makes claims about real third parties, route it through the BLS VOICE
+  STANDARD and get owner sign-off before it ships.
+
 ## JUNE 10, 2026 SESSION (tenant_config 406 on public /auth -- anon RLS read regression)
 
 - SYMPTOM: GET /rest/v1/tenant_config?select=*&tenant_id=eq.biblelessonspark returned

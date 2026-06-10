@@ -33,6 +33,7 @@ export const ROUTES = {
   TOOLBELT_LESSON_FIT: '/toolbelt/lesson-fit',
   TOOLBELT_LEFT_OUT_SAFELY: '/toolbelt/left-out-safely',
   TOOLBELT_ONE_TRUTH: '/toolbelt/one-truth',
+  COMPARE: '/compare',
 
   // Protected routes
   DASHBOARD: '/dashboard',

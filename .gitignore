@@ -43,6 +43,12 @@ SSOT-PROJECT-FILES/
 
 supabase/.temp/
 
+# Imported content packages (external prototypes). Never commit -- these may
+# contain non-ASCII source that would trip the ASCII pre-commit guard, and the
+# prototype HTML must never ship in the build. ASCII-converted citation records
+# are relocated to docs/ before use. Added 2026-06-10 (comparison page import).
+_import/
+
 # Security-audit working docs (2026-05/06). The repo is PUBLIC; these contain
 # exposure analysis + the admin UUID and must never be committed. Kept locally
 # for reference. Gitignoring also stops deploy.ps1's `git add .` from sweeping
