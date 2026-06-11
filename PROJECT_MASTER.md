@@ -1,4 +1,71 @@
-# PROJECT MASTER -- Last updated: June 10, 2026
+# PROJECT MASTER -- Last updated: June 11, 2026
+
+## JUNE 11, 2026 SESSION (Add Regular Baptist (GARBC) as 12th theology profile)
+
+- GOAL: Add Regular Baptist (GARBC) as the 12th Baptist theology profile with full
+  guardrail parity with the existing 11. Source authority: GARBC Articles of Faith.
+
+- IMPLEMENTATION (SSOT, frontend-drives-backend):
+  * src/constants/contracts.ts -- appended 'regular-baptist-garbc' to the
+    TheologyProfileId union (after 'cbf'); header comment 11 -> 12.
+  * src/constants/theologyProfiles.ts -- appended the 12th profile entry after CBF,
+    matching the CBF structural template exactly. Doctrinal distinctives encoded in
+    filterContent (prompt-injected verbatim): verbal-plenary inspiration/inerrancy,
+    Trinity, Holy Spirit + CESSATIONISM, literal creation + historical Adam + fixed
+    gender binary, total depravity, grace-alone substitutionary salvation, eternal
+    security, autonomous congregational church, two ordinances by single immersion,
+    biblical separation (signature distinctive), civil government, Israel distinct
+    from the church (no replacement theology), dispensational premillennial /
+    pretribulational eschatology, everlasting conscious final states.
+  * Deterministic field values: securityDoctrine 'eternal' (Independent Baptist
+    analog); tulipStance 'anti' (union is only anti|pro -- no moderate value exists,
+    so IB fallback per spec); badgeClass 'bg-indigo-100 text-indigo-800
+    border-indigo-200' (indigo unused by the other 11).
+  * avoidTerminology: replacement theology, theistic evolution, speaking in tongues,
+    lose your salvation, sprinkling + the standard CRITICAL sacrament/sacraments/
+    Eucharist ordinance trio. preferredTerminology: communion -> the Lord's Supper,
+    christening -> believer's baptism + the three CRITICAL ordinance substitutions.
+  * guardrails[] array carries the 10 "Never present..." content prohibitions so they
+    surface as CONTENT PROHIBITIONS in the injected block.
+
+- GUARDRAIL WIRING (verified by reading code, zero extra wiring):
+  * generateTheologicalGuardrails() (theologyProfiles.ts:1459) data-drives off the
+    profile array -- new entry picked up automatically. Universal
+    generateBaptistTerminologyGuardrails() appended at :1511. SBC soteriological
+    block is a no-op for GARBC.
+  * generate-lesson/index.ts:673 injects ${theologyProfile.summary} (the June 4
+    .description->.summary fix); the new entry's summary populates it. No lingering
+    .description in the shared mirror.
+
+- SYNC (Rule #23): npm run sync-constants (15/15). _shared/theologyProfiles.ts and
+  _shared/contracts.ts verified BOM-free (byte0=0x2F), zero non-ASCII bytes, GARBC present.
+
+- UI: all selectors consume the SSOT (no hardcoded lists) -- EnhanceLessonForm.tsx:2235
+  getTheologyProfileOptions().map, FeaturesSection.tsx:34/167, PreferencesLens.tsx:21
+  getTheologyProfilesSorted(), plus LessonLibrary / UserProfileModal (x2) /
+  OrganizationSettingsModal / OrganizationSetup / ParableGenerator / DevotionalGenerator.
+  No refactor needed.
+
+- COUNT SWEEP -> 12: src/config/comparisonConfig.ts (5x '12 Baptist theology profiles'),
+  src/pages/PreferencesLens.tsx:20 comment, src/constants/contracts.ts:69 comment,
+  CLAUDE.md Principle #3.
+
+- DATABASE: grep of supabase/migrations/ for theology-profile CHECK/enum constraints
+  returned NONE. No migration needed (frontend-drives-backend; June 2026 audit clean).
+
+- EDGE FUNCTIONS REDEPLOYED (only consumers of the shared SSOT mirror):
+  generate-lesson, generate-devotional (npx supabase functions deploy <name> --use-api).
+  Parable's theology guardrail comes from the frontend; reshape does not import it.
+
+- VERIFIED: npm run build clean (3953 modules); ASCII scan clean on all touched files;
+  Lynn approved on localhost:8080 (selector + doctrinally consistent generation).
+
+- DEPLOYED: commit 6a901d3 (7 files: contracts.ts + theologyProfiles.ts + comparisonConfig.ts
+  + PreferencesLens.tsx + CLAUDE.md + _shared/contracts.ts + _shared/theologyProfiles.ts).
+  Working tree was clean (no DIAGNOSE_*.sql drift), so deploy.ps1 used directly.
+
+- CARRY-FORWARD: none. GARBC is fully wired and live.
+
 
 ## JUNE 10, 2026 SESSION (public /compare "BLS vs. The Competition" page from imported package)
 
