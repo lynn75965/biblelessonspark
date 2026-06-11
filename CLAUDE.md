@@ -161,7 +161,7 @@ All three now import exclusively from _shared/pricingConfig.ts. Zero banned DB q
 ## ARCHITECTURE PRINCIPLE #3: INVISIBLE THEOLOGICAL GUARDRAILS
 
 Theology profiles shape AI-generated content without user awareness.
-11 supported Baptist traditions -- see theologyProfiles.ts.
+12 supported Baptist traditions -- see theologyProfiles.ts.
 Prohibited terminology is logged but never shown to users.
 Users see denomination-appropriate content without knowing guardrails exist.
 

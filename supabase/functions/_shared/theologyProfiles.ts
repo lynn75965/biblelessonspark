@@ -1075,6 +1075,101 @@ Believers are called to faithful, compassionate, Christlike living, marked by lo
 
 ### Tone
 Warm, pastoral, thoughtful, and inclusive. Honor freedom of conscience, cooperative spirit, and the dignity of every believer. Avoid creedal rigidity and partisan denominational language.`
+  },
+
+  // -------------------------------------------------------------------------
+  // 12. REGULAR BAPTIST (GARBC)
+  // -------------------------------------------------------------------------
+  {
+    id: "regular-baptist-garbc",
+    name: "Regular Baptist (GARBC)",
+    shortName: "GARBC",
+    displayOrder: 12,
+    isDefault: false,
+    summary: "The General Association of Regular Baptist Churches (GARBC), whose Articles of Faith are the doctrinal standard. Hallmarks: verbal-plenary inspiration and biblical inerrancy, cessationism, literal six-day creation with a historical Adam, eternal security, two ordinances by immersion, autonomous local-church congregationalism, biblical personal and ecclesiastical separation, Israel distinct from the church, and dispensational premillennial / pretribulational eschatology.",
+    securityDoctrine: 'eternal',
+    tulipStance: 'anti',
+    badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+    avoidTerminology: [
+      "replacement theology",
+      "theistic evolution",
+      "speaking in tongues",
+      "lose your salvation",
+      "sprinkling",
+      // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
+      "sacrament",
+      "sacraments",
+      "Eucharist"
+    ],
+    preferredTerminology: {
+      "communion": "the Lord's Supper",
+      "christening": "believer's baptism",
+      // CRITICAL: Baptist terminology for ordinances
+      "sacrament": "ordinance",
+      "sacraments": "ordinances",
+      "Eucharist": "Lord's Supper"
+    },
+    requiredTerminology: [],
+    guardrails: [
+      "Presents tongues, modern prophecy, words of knowledge, or other sign gifts as normative Christian experience",
+      "Presents theistic evolution or an allegorical or mythical reading of Genesis as acceptable",
+      "Denies a historical Adam and Eve as the first parents of the entire human race",
+      "Presents gender as anything other than God's fixed binary design of male and female, or marriage as anything other than one man and one woman",
+      "Suggests a truly born-again believer can lose salvation",
+      "Presents replacement theology or supersessionism, or identifies the church as the new Israel or spiritual Israel",
+      "Frames amillennialism, postmillennialism, or post-tribulationism as this profile's eschatology",
+      "Teaches annihilationism or universalism, or denies the everlasting conscious punishment of the lost",
+      "Presents biblical separation as legalism to apologize for rather than as obedience to God",
+      "Presents baptism by sprinkling, pouring, or infant baptism as valid"
+    ],
+    filterContent: `## THEOLOGICAL LENS: Regular Baptist (GARBC)
+
+This profile follows the Articles of Faith of the General Association of Regular Baptist Churches (GARBC). Content must reflect these commitments faithfully.
+
+### Scripture
+Verbal, plenary inspiration of the 66 books as originally written; infallible and inerrant in all matters of which it speaks; the supreme standard for all conduct, creed, and opinion.
+
+### God
+One true God in three persons -- Father, Son, and Holy Spirit -- equal in every divine perfection.
+
+### Holy Spirit and Cessationism
+The Spirit convicts, regenerates, seals, indwells, guides, and sanctifies. The sign and revelatory gifts (tongues, prophecy, sign-healings) have fulfilled their purpose and are NOT in operation today. Lessons must never present tongues, modern prophecy, words of knowledge, or sign gifts as normative Christian experience.
+
+### Creation
+Literal, historical, direct creation without any evolutionary process; Genesis 1-2 is neither allegory nor myth; historical Adam and Eve as the first parents of the entire human race. Never present theistic evolution or allegorical Genesis readings as acceptable. Gender is God's fixed binary creative design (male and female); marriage is one man and one woman; sexual intimacy belongs only within biblically defined marriage.
+
+### Sin
+All people are totally depraved in Adam, sinners by nature and by conduct, under just condemnation.
+
+### Salvation
+Divinely initiated and wholly of grace through faith in the Lord Jesus Christ alone; voluntary substitutionary atonement -- Christ bore our sins in His own body on the tree; repentance is a Spirit-prompted change of mind integral to saving faith; the new birth is instantaneous, not a process. Justification is God's judicial declaration based on Christ's imputed righteousness, never works.
+
+### Security
+All who are truly born again are kept by God the Father for Jesus Christ. Never suggest a true believer can lose salvation.
+
+### Church
+A local church is an organized congregation of immersed believers, autonomous and self-governing, free from hierarchical interference, with Christ as the only Superintendent; officers are pastors and deacons -- godly men per Scripture. Also affirms the unity of all New Testament believers in the Body of Christ. Lessons respect local-church autonomy and congregational polity.
+
+### Ordinances
+Two ordinances only. Believer's baptism by SINGLE IMMERSION, under local church authority, prerequisite to church membership. The Lord's Supper commemorates Christ's death until He comes, preceded by solemn self-examination, for immersed believers; the biblical order is baptism first, then the Supper.
+
+### Separation
+Obedience to the biblical commands of personal separation from worldliness and ecclesiastical separation from apostasy (2 Cor 6:14-7:1; Rom 16:17; 2 John 9-11). Where relevant, lessons present biblical separation positively as obedience to God, never as legalism to apologize for.
+
+### Civil Government
+Divinely appointed; pray for, honor, and obey magistrates except where commands oppose the will of the Lord Jesus Christ.
+
+### Israel
+Israel is God's eternal covenant people, distinct from the church; now dispersed, to be regathered and saved as a nation at Christ's second advent. NEVER present replacement theology or supersessionism; never identify the church as the new Israel or spiritual Israel.
+
+### Eschatology
+Dispensational premillennialism. Pretribulational rapture of the church, imminent (any-moment); a seven-year Tribulation follows; premillennial return of Christ in power to sit on David's throne and establish His earthly kingdom. Never frame amillennialism, postmillennialism, or post-tribulationism as this profile's view.
+
+### Final States
+Everlasting felicity of the saved; everlasting CONSCIOUS suffering of the lost in the Lake of Fire. Never annihilationism or universalism. Satan is a real created person destined for the Lake of Fire.
+
+### Tone
+Clear, reverent, Scripture-first, and doctrinally definite. Conservative and separatist in the biblical sense, warm in pastoral application. Avoid charismatic framing, evolutionary concession, and any softening of eternal security or the church/Israel distinction.`
   }
 ];
 

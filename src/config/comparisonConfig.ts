@@ -126,7 +126,7 @@ export const COMPETITORS: Competitor[] = [
     comparisonTable: [
       { capability: 'Instant lesson generation', competitor: false, bls: true },
       { capability: 'Teacher selects any passage, any time', competitor: false, bls: true },
-      { capability: '10 Baptist theology profiles', competitor: false, bls: true },
+      { capability: '12 Baptist theology profiles', competitor: false, bls: true },
       { capability: '14 teacher/class customization descriptors', competitor: false, bls: true },
       { capability: 'Full age range (3 yrs to senior adults)', competitor: true, bls: true },
       { capability: 'Sermon-aligned all-age curriculum', competitor: false, bls: true },
@@ -153,7 +153,7 @@ export const COMPETITORS: Competitor[] = [
     comparisonTable: [
       { capability: 'Instant lesson generation', competitor: false, bls: true },
       { capability: 'Teacher selects any passage, any time', competitor: false, bls: true },
-      { capability: '10 Baptist theology profiles', competitor: false, bls: true },
+      { capability: '12 Baptist theology profiles', competitor: false, bls: true },
       { capability: '14 teacher/class customization descriptors', competitor: false, bls: true },
       { capability: 'Full age range (3 yrs to senior adults)', competitor: true, bls: true },
       { capability: 'Sermon-aligned all-age curriculum', competitor: false, bls: true },
@@ -190,7 +190,7 @@ export const COMPETITORS: Competitor[] = [
       { capability: 'Devotionals generated on-demand (DevotionalSpark)', competitor: false, bls: true },
       { capability: 'Flexibility to deviate from churchwide theme', competitor: false, bls: true },
       { capability: 'Entirely paperless -- zero print cost', competitor: false, bls: true },
-      { capability: '10 Baptist theology profiles', competitor: false, bls: true },
+      { capability: '12 Baptist theology profiles', competitor: false, bls: true },
       { capability: 'Free tier available', competitor: false, bls: true },
     ],
   },
@@ -207,7 +207,7 @@ export const COMPETITORS: Competitor[] = [
     comparisonTable: [
       { capability: 'Instant lesson generation', competitor: false, bls: true },
       { capability: 'Teacher selects any passage, any time', competitor: false, bls: true },
-      { capability: '10 Baptist theology profiles', competitor: false, bls: true },
+      { capability: '12 Baptist theology profiles', competitor: false, bls: true },
       { capability: '14 teacher/class customization descriptors', competitor: false, bls: true },
       { capability: 'All ages study same passage', competitor: true, bls: true },
       { capability: 'Sermon-aligned all-age curriculum', competitor: false, bls: true },
@@ -234,7 +234,7 @@ export const COMPETITORS: Competitor[] = [
     comparisonTable: [
       { capability: 'Instant lesson generation', competitor: false, bls: true },
       { capability: 'Teacher selects any passage, any time', competitor: false, bls: true },
-      { capability: '10 Baptist theology profiles', competitor: false, bls: true },
+      { capability: '12 Baptist theology profiles', competitor: false, bls: true },
       { capability: '14 teacher/class customization descriptors', competitor: false, bls: true },
       { capability: 'Full age range (3 yrs to senior adults)', competitor: true, bls: true },
       { capability: 'Mixed-ages class support', competitor: false, bls: true },

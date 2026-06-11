@@ -17,7 +17,7 @@ export default function PreferencesLens() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Get all 10 theology profiles from SSOT
+  // Get all 12 theology profiles from SSOT
   const theologyProfiles = getTheologyProfilesSorted();
 
   useEffect(() => {
