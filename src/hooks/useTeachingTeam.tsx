@@ -337,14 +337,25 @@ export function useTeachingTeam() {
     }
 
     try {
-      // Look up the invitee by email (SSOT: full_name, email)
-      const { data: inviteeProfile, error: lookupError } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('email', email.trim().toLowerCase())
-        .maybeSingle();
+      // Look up the invitee by email via the SECURITY DEFINER resolver
+      // find_teaching_team_invitee (migration 20260614120000). The email SSOT
+      // is auth.users.email; the resolver reads it directly and bypasses the
+      // profiles RLS SELECT policy (profiles_org_admin_view_all) that hides
+      // other users' rows from a non-admin Lead Teacher's session -- the real
+      // cause of the "No account found" bug. It returns only { id, full_name }.
+      // The RPC is not yet in the generated Supabase types, so the call is cast
+      // and the returned shape is asserted below.
+      const { data: lookupRows, error: lookupError } = await (supabase.rpc as any)(
+        'find_teaching_team_invitee',
+        { p_email: email }
+      );
 
       if (lookupError) throw lookupError;
+
+      const inviteeProfile = (Array.isArray(lookupRows) ? lookupRows[0] : lookupRows) as
+        | { id: string; full_name: string | null }
+        | null
+        | undefined;
 
       if (!inviteeProfile) {
         return {
@@ -430,7 +441,7 @@ export function useTeachingTeam() {
       const enriched: TeachingTeamMemberWithProfile = {
         ...newMember,
         display_name: inviteeProfile.full_name,
-        email: inviteeProfile.email,
+        email: email.trim().toLowerCase(),
       };
       setMembers(prev => [...prev, enriched]);
 
