@@ -1,4 +1,57 @@
-# PROJECT MASTER -- Last updated: June 11, 2026
+# PROJECT MASTER -- Last updated: June 14, 2026
+
+## JUNE 14, 2026 SESSION (FIX: Teaching Team sidebar hidden for paid individuals)
+
+- BUG (live): A confirmed paid Personal-tier individual (badge "Personal", 13/20
+  lessons used) had NO "Teaching Team" item in the sidebar. Teacher Tools showed;
+  Teaching Team did not.
+
+- DIAGNOSIS (STOP->DIAGNOSE->VERIFY->PROPOSE->WAIT->IMPLEMENT, read code first):
+  * NOT a tier-field divergence (the send-lesson-email 403 class was the hypothesis).
+    The dashboard badge and the sidebar gate read the SAME field from the SAME source:
+    useSubscription().tier <- check_lesson_limit RPC (useSubscription.tsx:73/91;
+    AppShell.tsx:281-282). The item-level tierGate: 'paid_only' was functioning.
+  * ROOT CAUSE: the item never reached the tier gate. For the `individual` role the
+    teachingTeam item lived ONLY in section `myTeachingTeamConditional`, which carried
+    `condition: 'hasTeam'` (sidebarConfig.ts:277-282, 342). AppShell drops any section
+    whose condition is unmet (AppShell.tsx:289-292), and hasTeam = !!team
+    (useTeachingTeam.tsx:659). A paid teacher with no team yet -> hasTeam false ->
+    whole section filtered out BEFORE the gate ran. Chicken-and-egg: the link to
+    CREATE a team was hidden until a team already existed.
+  * Aggravating: only Dashboard.tsx:250 and TeachingTeam.tsx:38 pass conditions={{hasTeam}};
+    all other AppShell pages pass none, so the item was hidden there regardless.
+
+- FIX (minimal):
+  * src/constants/sidebarConfig.ts -- `individual` role moved from
+    'myTeachingTeamConditional' to the unconditional 'myTeachingTeam' section.
+    Visibility now governed solely by item-level tierGate: 'paid_only' (free ->
+    grayed/locked with the "Moses had Aaron..." lockedCopy + upgrade modal; paid ->
+    active, routes to /teaching-team). Orphaned myTeachingTeamConditional section
+    removed (dead after the change). Stale doc comments updated.
+  * src/constants/validation.ts -- corrected the two misleading comments in the
+    TEACHING_TEAM_VALIDATION block (comments only; values 3/2 untouched, zero
+    behavior change).
+
+- INVITE FLOW (confirmed intact + reachable once item renders): createTeam
+  (useTeachingTeam.tsx:248), inviteMember caps at activeSlots >= MAX_TEAM_MEMBERS
+  where MAX_TEAM_MEMBERS = 3 (contracts.ts:171) and members[] excludes the lead ->
+  lead + 3 = 4 total, matching spec.
+
+- NOT in FILES_TO_SYNC (sidebarConfig.ts, validation.ts) -> no sync-constants run.
+  No routes/App.tsx change (/teaching-team already wired). No DB/edge changes.
+
+- VERIFIED: npm run build clean (3953 modules); ASCII guard clean; Lynn approved on
+  localhost:8080 (Teaching Team now visible for paid individual, routes to page,
+  persists across pages).
+
+- DEPLOYED: commit f077d7f (2 files: sidebarConfig.ts + validation.ts; +17/-16).
+  Working tree clean; deploy.ps1 used directly.
+
+- CARRY-FORWARD: TEACHING_TEAM_VALIDATION in validation.ts is fully DEAD CODE (never
+  imported) and its VALUES (MAX_TEAM_MEMBERS:3 / MAX_INVITED_MEMBERS:2) encode an
+  older "lead + 2 = 3 total" model contradicting contracts.ts (lead + 3 = 4).
+  Comments now flag this. Candidate for outright deletion in a future cleanup pass.
+
 
 ## JUNE 11, 2026 SESSION (Add Regular Baptist (GARBC) as 12th theology profile)
 
