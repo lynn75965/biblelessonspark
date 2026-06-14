@@ -16,13 +16,20 @@
  * work is ever displaced. Build Lesson is always first.
  *
  * CONDITIONAL SECTIONS:
- * Sections with `condition` set require runtime evaluation.
- * AppShell checks the condition and omits the section if not met.
- * - 'hasTeam': user is a lead teacher or accepted team member
- *   (from useTeachingTeam hook's hasTeam return value)
+ * Sections may carry an optional `condition`. AppShell evaluates it
+ * against a conditions map passed at render time and omits the section
+ * if not met. No section currently uses one -- Teaching Team is shown to
+ * every role via the unconditional `myTeachingTeam` section and gated only
+ * at the item level by `tierGate: 'paid_only'`. The mechanism is retained
+ * for future use.
  *
  * CHANGELOG:
  * - March 22, 2026: Initial creation for ui-sidebar branch
+ * - June 14, 2026: individual role moved from the conditional
+ *   `myTeachingTeamConditional` section (condition: 'hasTeam') to the
+ *   unconditional `myTeachingTeam` section. The condition created a
+ *   chicken-and-egg trap: a paid teacher with no team yet could never
+ *   reach /teaching-team to create one. Orphaned conditional section removed.
  */
 
 import {
@@ -274,12 +281,6 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
     label: 'My Teaching Team',
     items: ['teachingTeam'],
   },
-  myTeachingTeamConditional: {
-    id: 'myTeachingTeamConditional',
-    label: 'My Teaching Team',
-    items: ['teachingTeam'],
-    condition: 'hasTeam',
-  },
   ministryOversight: {
     id: 'ministryOversight',
     label: 'Ministry Oversight',
@@ -310,9 +311,9 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
  * Defines which sidebar sections each role sees, in display order.
  *
  * - Build & Prepare is always first for every role (governing principle)
- * - individual uses myTeachingTeamConditional (condition: 'hasTeam')
- *   so solo teachers without a team do not see the section
- * - orgLeader and orgMember always see myTeachingTeam (unconditional)
+ * - every role uses the unconditional myTeachingTeam section; free users
+ *   see Teaching Team grayed + locked (tierGate: 'paid_only'), paid users
+ *   see it active and can create a team + invite up to MAX_TEAM_MEMBERS
  * - platformAdmin always sees everything
  */
 export const SIDEBAR_BY_ROLE: Record<Role, string[]> = {
@@ -339,7 +340,7 @@ export const SIDEBAR_BY_ROLE: Record<Role, string[]> = {
   ],
   [ROLES.individual]: [
     'buildAndPrepare',
-    'myTeachingTeamConditional',
+    'myTeachingTeam',
     'account',
     'extras',
   ],

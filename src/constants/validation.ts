@@ -99,8 +99,8 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 export const TEACHING_TEAM_VALIDATION = {
   TEAM_NAME_MIN_LENGTH: 3,
   TEAM_NAME_MAX_LENGTH: 60,
-  MAX_TEAM_MEMBERS: 3, // Lead teacher + up to 2 invited = 3 total
-  MAX_INVITED_MEMBERS: 2, // Matches project spec: up to 3 teachers total
+  MAX_TEAM_MEMBERS: 3, // Invited members cap: lead + 3 invited = 4 total. Authoritative SSOT is MAX_TEAM_MEMBERS in contracts.ts (this block is currently unused).
+  MAX_INVITED_MEMBERS: 2, // NOTE: value does not match the lead+3=4 model in contracts.ts; unused dead constant -- do not consume without reconciling.
 } as const;
 
 // =============================================================================
