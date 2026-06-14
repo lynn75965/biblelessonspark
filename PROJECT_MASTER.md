@@ -1,5 +1,59 @@
 # PROJECT MASTER -- Last updated: June 14, 2026
 
+## JUNE 14, 2026 SESSION (FIX: Teaching Team invite "No account found" for non-admin Lead Teachers)
+
+- BUG (live): A signed-up, signed-in, verified user (pastorlynn2024@gmail.com) could not be
+  found when a Lead Teacher invited them by email on /teaching-team. The invite UI returned
+  "No BibleLessonSpark account found for that email" even though the account existed.
+
+- DIAGNOSIS (STOP->DIAGNOSE->VERIFY->PROPOSE->WAIT->IMPLEMENT, read code first):
+  * Lookup site: useTeachingTeam.tsx inviteMember() did
+    .from('profiles').select('id, full_name, email').eq('email', lower(trim)).maybeSingle().
+  * INITIAL THEORY (FALSIFIED): profiles.email is never populated (the handle_new_user /
+    create_profile_on_verification triggers omit email from their INSERTs), so the filter
+    would match nothing. A read-only verification query DISPROVED this: profiles.email WAS
+    populated for the invitee (lowercase, exact match, email_confirmed_at set). The NULL-email
+    lead is dead -- do NOT re-investigate it. Backfill + trigger edits were dropped.
+  * CORRECTED ROOT CAUSE: RLS. The profiles SELECT policy `profiles_org_admin_view_all`
+    (migration ...e84f2db8...) allows reading a profile row only when is_admin()
+    (profiles.role='admin'), id = auth.uid(), or the viewer is admin/owner over the invitee's
+    org. A non-admin Lead Teacher inviting an unrelated individual matches none -> RLS
+    silently filters the row (zero rows, no error) -> maybeSingle() returns null -> "No
+    account found." An admin session (e.g. Lynn) passes is_admin() and never hit the block,
+    which is why it only reproduced on non-admin accounts.
+  * Downstream corroboration: notify-team-invitation also reads profiles.email but uses the
+    service-role client (RLS bypassed), so it was not the blocker here.
+
+- FIX (1 migration + 1 hook, no backfill, no trigger edits):
+  * Migration 20260614120000_add_teaching_team_invitee_lookup.sql -- new SECURITY DEFINER
+    resolver find_teaching_team_invitee(p_email text) RETURNS TABLE(id uuid, full_name text).
+    Reads the email SSOT auth.users.email joined to profiles for full_name, normalized
+    lower(trim()) on both sides, ORDER BY created_at LIMIT 1 (deterministic; auth enforces
+    email uniqueness for verified accounts). Returns ONLY { id, full_name } -- no email/tier/
+    PII leaked. SET search_path = public, auth (non-hijackable) + all objects schema-qualified.
+    REVOKE EXECUTE FROM PUBLIC, anon; GRANT EXECUTE TO authenticated (matches Migrations 2/3
+    security posture). Bypasses RLS by design, fixing the non-admin path.
+  * src/hooks/useTeachingTeam.tsx -- inviteMember() lookup swapped to
+    supabase.rpc('find_teaching_team_invitee', { p_email: email }); "No account found" branch
+    preserved (fires on empty result); enriched member's email now sourced from the invited
+    address (resolver doesn't return email).
+
+- SSOT SOURCE: auth.users.email (Supabase Auth) is the authoritative email source; the
+  resolver reads it directly. profiles.email is a populated mirror but no longer the read path.
+
+- VERIFIED: npm run build clean (3953 modules); db push applied the migration to the live DB
+  BEFORE the frontend shipped (RPC exists before callers); Lynn confirmed on localhost:8080
+  as a NON-admin paid Lead Teacher (invite resolves; bogus address still "No account found").
+
+- DEPLOYED: commit 5a60738 (2 files: useTeachingTeam.tsx + the migration; +70/-7). First push
+  hit a transient "Connection was reset"; retry succeeded (0c59ab3..5a60738). Working tree
+  clean (only the two intended files staged).
+
+- CARRY-FORWARD: regenerate src/integrations/supabase/types.ts after this migration so
+  find_teaching_team_invitee is natively typed, then drop the `as any` cast on the
+  supabase.rpc call in useTeachingTeam.tsx (build is clean today; cosmetic/type-safety only).
+
+
 ## JUNE 14, 2026 SESSION (FEATURE: Remove a lesson from a series without deleting it)
 
 - GOAL: Add a "Remove from Series" control to the saved-lesson viewer that detaches
