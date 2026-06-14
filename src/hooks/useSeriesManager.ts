@@ -47,6 +47,7 @@ interface UseSeriesManagerReturn {
   updateStyleMetadata: (seriesId: string, styleMetadata: SeriesStyleMetadata) => Promise<boolean>;
   addLessonSummary: (seriesId: string, summary: SeriesLessonSummary) => Promise<boolean>;
   linkLessonToSeries: (lessonId: string, seriesId: string, lessonNumber: number) => Promise<boolean>;
+  removeLessonFromSeries: (lessonId: string, seriesId: string) => Promise<boolean>;
   completeSeries: (seriesId: string) => Promise<boolean>;
   abandonSeries: (seriesId: string) => Promise<boolean>;
 
@@ -453,6 +454,69 @@ export function useSeriesManager(): UseSeriesManagerReturn {
   }, []);
 
   // ============================================================================
+  // REMOVE LESSON FROM SERIES (detach only -- lesson survives in the Library)
+  //
+  // Clears series_id + series_lesson_number on the lessons row, then
+  // renumbers the remaining lessons in that series to contiguous 1..n so the
+  // Series Library list shows no gaps. This is NOT deletion: the lesson row,
+  // its title, and its content are untouched -- only the series link is cleared.
+  // Mirrors the pin_order re-sequencing pattern used in SeriesLibrary.
+  // ============================================================================
+
+  const removeLessonFromSeries = useCallback(async (
+    lessonId: string,
+    seriesId: string
+  ): Promise<boolean> => {
+    try {
+      // 1. Detach -- clear the series FK columns on this row only.
+      const { error: detachError } = await supabase
+        .from('lessons')
+        .update({
+          series_id: null,
+          series_lesson_number: null,
+        })
+        .eq('id', lessonId);
+
+      if (detachError) {
+        console.error('Error removing lesson from series:', detachError);
+        return false;
+      }
+
+      // 2. Renumber the remaining lessons to contiguous 1..n (close the gap).
+      const { data: remaining, error: fetchError } = await supabase
+        .from('lessons')
+        .select('id, series_lesson_number')
+        .eq('series_id', seriesId)
+        .order('series_lesson_number', { ascending: true });
+
+      if (fetchError) {
+        // Detach already succeeded; the ordering repair is best-effort.
+        console.error('Error fetching remaining series lessons:', fetchError);
+        return true;
+      }
+
+      for (let i = 0; i < (remaining || []).length; i++) {
+        const row = remaining[i];
+        const desired = i + 1;
+        if (row.series_lesson_number !== desired) {
+          const { error: renumberError } = await supabase
+            .from('lessons')
+            .update({ series_lesson_number: desired })
+            .eq('id', row.id);
+          if (renumberError) {
+            console.error('Error renumbering series lesson:', renumberError);
+          }
+        }
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error in removeLessonFromSeries:', err);
+      return false;
+    }
+  }, []);
+
+  // ============================================================================
   // COMPLETE SERIES (manual)
   // ============================================================================
 
@@ -555,6 +619,7 @@ export function useSeriesManager(): UseSeriesManagerReturn {
     updateStyleMetadata,
     addLessonSummary,
     linkLessonToSeries,
+    removeLessonFromSeries,
     completeSeries,
     abandonSeries,
     nextLessonNumber,

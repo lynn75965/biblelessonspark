@@ -42,7 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil, Trash2, ListPlus } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil, Trash2, ListPlus, ListX } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { marked } from "marked";
@@ -622,6 +622,7 @@ export function EnhanceLessonForm({
     updateStyleMetadata,
     addLessonSummary,
     linkLessonToSeries,
+    removeLessonFromSeries,
     nextLessonNumber,
     isSeriesFull,
     hasStyleMetadata,
@@ -639,6 +640,7 @@ export function EnhanceLessonForm({
   // closes (Rule #22). Container ref used for click-outside detection.
   const [addToSeriesOpen, setAddToSeriesOpen] = useState(false);
   const [addingToSeries, setAddingToSeries] = useState(false);
+  const [removingFromSeries, setRemovingFromSeries] = useState(false);
   const addToSeriesTriggerRef = useRef<HTMLButtonElement>(null);
   const addToSeriesPopoverRef = useRef<HTMLDivElement>(null);
 
@@ -1546,6 +1548,50 @@ export function EnhanceLessonForm({
       // Return focus to trigger (Rule #22) -- defer one frame so the
       // popover unmounts before focus moves.
       requestAnimationFrame(() => addToSeriesTriggerRef.current?.focus());
+    }
+  };
+
+  /**
+   * Remove the lesson currently open in the viewer FROM ITS SERIES only.
+   * This detaches the series<->lesson association (clears series_id +
+   * series_lesson_number on this row) and renumbers the remaining lessons
+   * to contiguous 1..n. The lesson itself stays fully intact in the Lesson
+   * Library -- this is NOT the delete/trash path. refetchLessons() refreshes
+   * the viewer so the "In Series" badge clears and "Add to Series" returns.
+   */
+  const handleRemoveCurrentLessonFromSeries = async (seriesId: string) => {
+    if (!currentLesson?.id) return;
+    const seriesName = allSeries.find((s) => s.id === seriesId)?.series_name || 'this series';
+    const message =
+      `Remove this lesson from the series "${seriesName}"?\n\n` +
+      `The lesson stays in your Lesson Library -- only its place in this ` +
+      `series is removed. This does not delete the lesson.`;
+    if (!window.confirm(message)) return;
+    setRemovingFromSeries(true);
+    try {
+      const success = await removeLessonFromSeries(currentLesson.id, seriesId);
+      if (success) {
+        toast({
+          title: "Removed from series",
+          description: `The lesson was removed from "${seriesName}" and remains in your Lesson Library.`,
+        });
+        await refetchLessons();
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to remove the lesson from the series. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("Error removing lesson from series:", err);
+      toast({
+        title: "Error",
+        description: "Failed to remove the lesson from the series.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemovingFromSeries(false);
     }
   };
 
@@ -2591,15 +2637,35 @@ export function EnhanceLessonForm({
                   if (liveSeriesId) {
                     const seriesName = allSeries.find((s) => s.id === liveSeriesId)?.series_name || '';
                     return (
-                      <Badge
-                        variant="outline"
-                        className="text-blue-700 border-blue-300 bg-blue-50 text-xs cursor-pointer hover:bg-blue-100 transition-colors gap-1.5"
-                        title={seriesName}
-                        onClick={() => navigate(ROUTES.DASHBOARD, { state: { tab: 'series-library', expandSeriesId: liveSeriesId } })}
-                      >
-                        <BookOpen className="h-3 w-3" aria-hidden="true" />
-                        In Series
-                      </Badge>
+                      <>
+                        <Badge
+                          variant="outline"
+                          className="text-blue-700 border-blue-300 bg-blue-50 text-xs cursor-pointer hover:bg-blue-100 transition-colors gap-1.5"
+                          title={seriesName}
+                          onClick={() => navigate(ROUTES.DASHBOARD, { state: { tab: 'series-library', expandSeriesId: liveSeriesId } })}
+                        >
+                          <BookOpen className="h-3 w-3" aria-hidden="true" />
+                          In Series
+                        </Badge>
+                        {/* Remove from Series -- detaches this lesson from its
+                            series only. The lesson stays in the Lesson Library;
+                            this is NOT the Delete/trash path. */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveCurrentLessonFromSeries(liveSeriesId)}
+                          disabled={removingFromSeries}
+                          aria-label={`Remove this lesson from the series${seriesName ? ` ${seriesName}` : ''}. The lesson stays in your Library.`}
+                          className="gap-2 hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
+                        >
+                          {removingFromSeries ? (
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                          ) : (
+                            <ListX className="h-4 w-4" aria-hidden="true" />
+                          )}
+                          <span className="hidden sm:inline">Remove from Series</span>
+                        </Button>
+                      </>
                     );
                   }
                   if (allSeries.length === 0) return null;
