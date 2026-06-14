@@ -91,19 +91,6 @@ export function validatePassword(password: string): { valid: boolean; errors: st
 
 
 // =============================================================================
-// TEACHING TEAM VALIDATION CONSTANTS
-// SSOT Reference: Phase 27A - Teaching Teams
-// Lead teacher + up to 2 invited = 3 total
-// =============================================================================
-
-export const TEACHING_TEAM_VALIDATION = {
-  TEAM_NAME_MIN_LENGTH: 3,
-  TEAM_NAME_MAX_LENGTH: 60,
-  MAX_TEAM_MEMBERS: 3, // Invited members cap: lead + 3 invited = 4 total. Authoritative SSOT is MAX_TEAM_MEMBERS in contracts.ts (this block is currently unused).
-  MAX_INVITED_MEMBERS: 2, // NOTE: value does not match the lead+3=4 model in contracts.ts; unused dead constant -- do not consume without reconciling.
-} as const;
-
-// =============================================================================
 // USER PROFILE VALIDATION CONSTANTS
 // SSOT Reference: UserProfileModal, Auth forms
 // =============================================================================
