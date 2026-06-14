@@ -1,5 +1,61 @@
 # PROJECT MASTER -- Last updated: June 14, 2026
 
+## JUNE 14, 2026 SESSION (FEATURE: Remove a lesson from a series without deleting it)
+
+- GOAL: Add a "Remove from Series" control to the saved-lesson viewer that detaches
+  a lesson from its parent series ONLY. The lesson must remain fully intact in the
+  Lesson Library. Distinct from the existing Delete/trash path (which destroys the row).
+
+- DIAGNOSIS (STOP->DIAGNOSE->VERIFY->PROPOSE->WAIT->IMPLEMENT, read code first):
+  * Link model: FK columns series_id + series_lesson_number ON THE lessons ROW (not a
+    join table). Attach = linkLessonToSeries (useSeriesManager.ts:435-441).
+    Detach = UPDATE lessons SET series_id=null, series_lesson_number=null WHERE id.
+  * No detach path existed -- only attach. Added one (frontend-drives-backend).
+  * Series count derives from counting lessons by series_id (SeriesLibrary.tsx:62-73);
+    lesson_summaries.length is only a display fallback (:327,329) -- detach does not
+    touch it. The expanded list renders the RAW series_lesson_number (:445), so detach
+    must renumber remaining lessons to contiguous 1..n to avoid a visible gap.
+  * Delete path (UNTOUCHED): handleDeleteCurrentLesson (EnhanceLessonForm.tsx:1558) ->
+    deleteLesson (useLessons) + lessonDeletion.ts cascade helpers. Reuses none of it.
+  * Viewer knows its parent series via liveLesson.series_id (EnhanceLessonForm.tsx:
+    2589-2590), already used for the "In Series" badge. New control gates on the same
+    liveSeriesId, so it shows ONLY when the lesson is in a series.
+
+- IMPLEMENTATION (2 files):
+  * src/hooks/useSeriesManager.ts -- new removeLessonFromSeries(lessonId, seriesId):
+    (1) clears series_id + series_lesson_number on that row only; (2) refetches the
+    remaining lessons ordered by series_lesson_number and renumbers them contiguous
+    1..n (writes only rows whose number changed); ordering repair is best-effort if
+    the post-detach fetch fails (detach already committed). Added to interface + return.
+    Mirrors the pin_order re-sequencing precedent in SeriesLibrary.
+  * src/components/dashboard/EnhanceLessonForm.tsx -- destructure removeLessonFromSeries;
+    add removingFromSeries state; handleRemoveCurrentLessonFromSeries uses window.confirm
+    (copy explicitly states the lesson stays in the Library), then refetchLessons() so
+    the "In Series" badge clears and "Add to Series" returns without reload. New
+    "Remove from Series" button rendered beside the "In Series" badge (liveSeriesId
+    branch), amber hover, ListX icon, aria-label naming purpose + that the lesson stays
+    in the Library; spinner while in flight.
+
+- NOT NEEDED: routes/App.tsx (viewer is a dashboard tab + viewing state, VIEW_LESSON
+  is a tab value not a path -- routes.ts:77); sync-constants (neither file in
+  FILES_TO_SYNC, Rule #23); edge function; DB migration (FK columns already exist;
+  detach is an owner-scoped UPDATE on the same RLS path attach already uses).
+
+- ALSO THIS SESSION (earlier): deleted the dead TEACHING_TEAM_VALIDATION block from
+  src/constants/validation.ts (commit 1ad6597) -- resolves the carry-forward from the
+  Teaching Team sidebar entry below. Authoritative team cap remains MAX_TEAM_MEMBERS in
+  contracts.ts (lead + 3 = 4).
+
+- VERIFIED: npm run build clean (3953 modules); ASCII guard clean; Lynn approved on
+  localhost:8080 (detach leaves lesson in Library, count -1, ordering renumbered
+  contiguous, control hidden when not in a series, Delete path unchanged).
+
+- DEPLOYED: commit 1601248 (2 files: useSeriesManager.ts + EnhanceLessonForm.tsx;
+  +141/-10). Working tree clean; deploy.ps1 used directly.
+
+- CARRY-FORWARD: none.
+
+
 ## JUNE 14, 2026 SESSION (FIX: Teaching Team sidebar hidden for paid individuals)
 
 - BUG (live): A confirmed paid Personal-tier individual (badge "Personal", 13/20
