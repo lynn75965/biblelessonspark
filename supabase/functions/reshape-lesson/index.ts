@@ -35,10 +35,11 @@ import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
 const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
 // Reshape takes a full 2000-3500 word source lesson as input and produces
 // a similar-length output. 90s was too tight under real Anthropic latency
-// (timeout hit during 2026-05-18 smoke test). 180s matches the safety
-// envelope of generate-lesson (120s) plus headroom, and stays well below
-// the Supabase Edge Function 400s execution ceiling.
-const RESHAPE_TIMEOUT_MS = 180000;
+// (timeout hit during 2026-05-18 smoke test). Held at 140s to fire BELOW the
+// Supabase 150s gateway idle timeout (504 ceiling) -- the prior 180s was above
+// it and could never fire (the gateway 504'd first), giving users a raw 504
+// instead of a graceful timeout body. Matches generate-lesson's 140s envelope.
+const RESHAPE_TIMEOUT_MS = 140000;
 const RESHAPE_MAX_TOKENS = 6000;
 const RESHAPE_TEMPERATURE = 0.5;
 

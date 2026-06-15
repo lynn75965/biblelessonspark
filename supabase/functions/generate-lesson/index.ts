@@ -49,6 +49,17 @@ const corsHeaders = {
 // Anthropic model constant for tracking
 const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
+// Main generation fetch timeout. Held below Supabase's 150s gateway idle timeout
+// (504 ceiling) with ~10s headroom for the response to be sent. Raised from 120s
+// after claude-sonnet-4-6 was observed running 119-121s for a full lesson + teaser.
+const GENERATION_TIMEOUT_MS = 140000;
+
+// Time budget for the conditional guardrail-rewrite call. The rewrite has its own
+// REWRITE_CONFIG.timeoutMs budget and runs AFTER the main call; if the main call has
+// already consumed most of the 150s window, running the rewrite would push the
+// response past 150s (raw 504). Derived so it stays correct if timeoutMs changes.
+const REWRITE_TIME_BUDGET_MS = 150000 - REWRITE_CONFIG.timeoutMs - 10000; // 80000ms
+
 function logTiming(label: string, startTime: number): number {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
   console.log(`[TIMING] ${label}: ${elapsed}s`);
@@ -767,9 +778,9 @@ ${styleExtractionPromptAddition}
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log('[TIMEOUT] Aborting Anthropic request after 120 seconds');
+      console.log(`[TIMEOUT] Aborting Anthropic request after ${GENERATION_TIMEOUT_MS / 1000} seconds`);
       controller.abort();
-    }, 120000);
+    }, GENERATION_TIMEOUT_MS);
 
     try {
       const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -884,9 +895,22 @@ ${styleExtractionPromptAddition}
           }
         }
 
+        // Skip the guardrail rewrite when too little of the 150s gateway window
+        // remains -- the rewrite needs up to REWRITE_CONFIG.timeoutMs and runs AFTER
+        // the main call, so running it past the budget would push the response past
+        // 150s (raw 504). Deliver unrewritten content; guardrailCheckPassed stays
+        // false and the violations are logged to guardrail_violations below. NOTE:
+        // at current ~120s main-call latency this skips on essentially every
+        // violation -- an acknowledged, reviewable tradeoff until latency improves.
+        const rewriteElapsedMs = Date.now() - functionStartTime;
+        const skipRewriteForBudget = rewriteElapsedMs > REWRITE_TIME_BUDGET_MS;
+        if (skipRewriteForBudget) {
+          console.log(`[REWRITE_SKIPPED_TIME_BUDGET] Elapsed ${(rewriteElapsedMs / 1000).toFixed(1)}s exceeds budget ${REWRITE_TIME_BUDGET_MS / 1000}s -- delivering unrewritten content`);
+        }
+
         const rewritePrompt = buildRewritePrompt(violatedSections);
 
-        try {
+        if (!skipRewriteForBudget) try {
           const rewriteController = new AbortController();
           const rewriteTimeoutId = setTimeout(() => rewriteController.abort(), REWRITE_CONFIG.timeoutMs);
 

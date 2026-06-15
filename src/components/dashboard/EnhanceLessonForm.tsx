@@ -2529,7 +2529,7 @@ export function EnhanceLessonForm({
             {/* Mobile Warning - Only visible on small screens */}
             <div className="block sm:hidden p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-800 text-center">
-                <span className="font-semibold">Mobile users:</span> Keep your screen on during generation (60-90 seconds). For best results, use desktop.
+                <span className="font-semibold">Mobile users:</span> Keep your screen on during generation -- this can take up to two minutes. For best results, use desktop.
               </p>
             </div>
 
