@@ -90,91 +90,93 @@ export function useTeachingTeam() {
     setLoading(true);
 
     try {
-      // 1. Check if user is a lead teacher
-      const { data: leadTeam, error: leadError } = await supabase
-        .from('teaching_teams')
-        .select('*')
-        .eq('lead_teacher_id', user.id)
-        .maybeSingle();
+      // Resolve the caller's team past RLS. teaching_teams SELECT is restricted
+      // to the lead teacher, so a non-lead member/invitee cannot read their team
+      // row directly -- a raw .from('teaching_teams').single() zero-filters under
+      // RLS and throws PGRST116, which previously surfaced as the page-level
+      // "Error loading team data" toast. get_my_teaching_team (SECURITY DEFINER,
+      // migration 20260615130000) returns the single team the caller leads or is
+      // a pending/accepted member of, with the lead's name.
+      const { data: myTeamRows, error: myTeamError } = await supabase.rpc(
+        'get_my_teaching_team'
+      );
 
-      if (leadError) throw leadError;
+      if (myTeamError) throw myTeamError;
 
-      if (leadTeam) {
-        setTeam(leadTeam);
+      const my = (Array.isArray(myTeamRows) ? myTeamRows[0] : myTeamRows) as
+        | {
+            team_id: string;
+            team_name: string;
+            lead_teacher_id: string;
+            lead_full_name: string | null;
+            my_status: string;
+          }
+        | null
+        | undefined;
+
+      // No team involvement -- clean slate, NOT an error (no toast).
+      if (!my) {
+        resetState();
+        return;
+      }
+
+      // teaching_teams timestamps are not surfaced by the resolver and are not
+      // read by any consumer; placeholders keep the TeachingTeam shape complete.
+      const teamObj: TeachingTeam = {
+        id: my.team_id,
+        name: my.team_name,
+        lead_teacher_id: my.lead_teacher_id,
+        created_at: '',
+        updated_at: '',
+      };
+
+      // LEAD TEACHER
+      if (my.my_status === 'lead') {
+        setTeam(teamObj);
         setIsLeadTeacher(true);
         setIsMember(false);
         setPendingInvitation(null);
-        await fetchMembers(leadTeam.id);
-        setLoading(false);
+        await fetchMembers(my.team_id);
         return;
       }
 
-      // 2. Check if user is an accepted member of a team
-      const { data: membership, error: memberError } = await supabase
-        .from('teaching_team_members')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('status', 'accepted')
-        .maybeSingle();
-
-      if (memberError) throw memberError;
-
-      if (membership) {
-        const { data: memberTeam, error: teamError } = await supabase
-          .from('teaching_teams')
-          .select('*')
-          .eq('id', membership.team_id)
-          .single();
-
-        if (teamError) throw teamError;
-
-        setTeam(memberTeam);
+      // ACCEPTED MEMBER
+      if (my.my_status === 'accepted') {
+        setTeam(teamObj);
         setIsLeadTeacher(false);
         setIsMember(true);
         setPendingInvitation(null);
-        await fetchMembers(memberTeam.id);
-        setLoading(false);
+        await fetchMembers(my.team_id);
         return;
       }
 
-      // 3. Check for a pending invitation that has not expired
+      // PENDING INVITEE -- the resolver gives team + lead name past RLS, but the
+      // membership id / invited_at / expires_at come from the invitee's OWN
+      // teaching_team_members row, which RLS DOES allow (user_id = auth.uid()).
       const { data: pendingMembership, error: pendingError } = await supabase
         .from('teaching_team_members')
         .select('*')
         .eq('user_id', user.id)
+        .eq('team_id', my.team_id)
         .eq('status', 'pending')
         .maybeSingle();
 
       if (pendingError) throw pendingError;
 
-      // Ignore if expired -- treat as if no invitation exists
+      // Ignore if expired -- treat as if no invitation exists.
       if (pendingMembership && !isInviteExpired(pendingMembership.expires_at)) {
-        const { data: inviteTeam, error: inviteTeamError } = await supabase
-          .from('teaching_teams')
-          .select('*')
-          .eq('id', pendingMembership.team_id)
-          .single();
-
-        if (inviteTeamError) throw inviteTeamError;
-
-        const { data: leadProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', inviteTeam.lead_teacher_id)
-          .single();
-
         setPendingInvitation({
           membership_id: pendingMembership.id,
-          team_id: inviteTeam.id,
-          team_name: inviteTeam.name,
-          lead_teacher_name: leadProfile?.full_name || 'A fellow teacher',
+          team_id: my.team_id,
+          team_name: my.team_name,
+          lead_teacher_name: my.lead_full_name || 'A fellow teacher',
           invited_at: pendingMembership.invited_at,
         });
         setTeam(null);
         setIsLeadTeacher(false);
         setIsMember(false);
       } else {
-        // No team involvement, or only an expired invite
+        // No team involvement, or only an expired invite.
         resetState();
       }
     } catch (error) {
@@ -222,9 +224,8 @@ export function useTeachingTeam() {
         // every pending/accepted row render as "Unknown". The resolver reads the
         // roster past RLS (profiles full_name + auth.users email SSOT) and is
         // authorized to the team's lead teacher / accepted members only. Same RLS
-        // class as the 2026-06-14 invite fix, on the list-render path. The RPC is
-        // not yet in the generated Supabase types, so the call is cast.
-        const { data: roster, error: rosterError } = await (supabase.rpc as any)(
+        // class as the 2026-06-14 invite fix, on the list-render path.
+        const { data: roster, error: rosterError } = await supabase.rpc(
           'get_teaching_team_members',
           { p_team_id: teamId }
         );
@@ -358,9 +359,7 @@ export function useTeachingTeam() {
       // profiles RLS SELECT policy (profiles_org_admin_view_all) that hides
       // other users' rows from a non-admin Lead Teacher's session -- the real
       // cause of the "No account found" bug. It returns only { id, full_name }.
-      // The RPC is not yet in the generated Supabase types, so the call is cast
-      // and the returned shape is asserted below.
-      const { data: lookupRows, error: lookupError } = await (supabase.rpc as any)(
+      const { data: lookupRows, error: lookupError } = await supabase.rpc(
         'find_teaching_team_invitee',
         { p_email: email }
       );
@@ -540,22 +539,36 @@ export function useTeachingTeam() {
   // -- Invitee / Member Actions ------------------------------------------
 
   /**
-   * Accept a pending invitation
+   * Accept a pending invitation.
+   * Returns true on a confirmed accept so the caller can navigate the new
+   * member to /teaching-team (which remounts AppShell and unlocks the sidebar).
+   *
+   * The write goes through the SECURITY DEFINER resolver respond_to_team_invitation
+   * (migration 20260615140000), NOT a client UPDATE: a non-lead invitee has no
+   * verified RLS UPDATE policy on teaching_team_members, so a raw UPDATE could
+   * silently affect zero rows. The resolver enforces (own row AND still pending)
+   * internally and returns the affected team_id, or null when nothing matched.
    */
-  const acceptInvitation = async () => {
-    if (!user || !pendingInvitation) return;
+  const acceptInvitation = async (): Promise<boolean> => {
+    if (!user || !pendingInvitation) return false;
 
     try {
-      const { error } = await supabase
-        .from('teaching_team_members')
-        .update({
-          status: 'accepted',
-          responded_at: new Date().toISOString(),
-        })
-        .eq('id', pendingInvitation.membership_id)
-        .eq('user_id', user.id);
+      const { data: teamId, error } = await supabase.rpc(
+        'respond_to_team_invitation',
+        { p_membership_id: pendingInvitation.membership_id, p_accept: true }
+      );
 
       if (error) throw error;
+
+      // Null return = nothing updated (already responded, expired, or not theirs).
+      if (!teamId) {
+        toast({
+          title: 'Invitation no longer pending',
+          description: 'This invitation has already been responded to or is no longer available.',
+        });
+        await fetchTeamData();
+        return false;
+      }
 
       toast({
         title: `You joined ${pendingInvitation.team_name}`,
@@ -563,6 +576,7 @@ export function useTeachingTeam() {
       });
 
       await fetchTeamData();
+      return true;
     } catch (error) {
       console.error('Error accepting invitation:', error);
       toast({
@@ -570,32 +584,39 @@ export function useTeachingTeam() {
         description: 'Failed to accept the invitation. Please try again.',
         variant: 'destructive',
       });
+      return false;
     }
   };
 
   /**
-   * Decline a pending invitation
+   * Decline a pending invitation. Returns true on a confirmed decline.
+   * Uses the same SECURITY DEFINER resolver (p_accept = false).
    */
-  const declineInvitation = async () => {
-    if (!user || !pendingInvitation) return;
+  const declineInvitation = async (): Promise<boolean> => {
+    if (!user || !pendingInvitation) return false;
 
     try {
-      const { error } = await supabase
-        .from('teaching_team_members')
-        .update({
-          status: 'declined',
-          responded_at: new Date().toISOString(),
-        })
-        .eq('id', pendingInvitation.membership_id)
-        .eq('user_id', user.id);
+      const { data: teamId, error } = await supabase.rpc(
+        'respond_to_team_invitation',
+        { p_membership_id: pendingInvitation.membership_id, p_accept: false }
+      );
 
       if (error) throw error;
 
+      // Clear the banner either way -- the invitation is no longer actionable.
       setPendingInvitation(null);
+
+      if (!teamId) {
+        // Already responded / not theirs: benign no-op, no hard error.
+        await fetchTeamData();
+        return false;
+      }
+
       toast({
         title: 'Invitation declined',
         description: 'The team invitation has been declined.',
       });
+      return true;
     } catch (error) {
       console.error('Error declining invitation:', error);
       toast({
@@ -603,6 +624,7 @@ export function useTeachingTeam() {
         description: 'Failed to decline the invitation. Please try again.',
         variant: 'destructive',
       });
+      return false;
     }
   };
 

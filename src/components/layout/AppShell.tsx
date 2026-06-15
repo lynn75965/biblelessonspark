@@ -57,6 +57,7 @@ import {
   type ResolvedSidebarSection,
 } from "@/constants/sidebarConfig";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { isPaidTier } from "@/constants/pricingConfig";
 import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { BRANDING } from "@/config/branding";
@@ -87,12 +88,14 @@ interface SidebarContentProps {
   currentTab: string | null;
   onItemClick: (item: SidebarItem) => void;
   isFreeTier: boolean;
+  /** Accepted member of a Teaching Team -- unlocks the teachingTeam item on any tier */
+  isAcceptedTeamMember: boolean;
   onLockedItemClick: (item: SidebarItem) => void;
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
-function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, onLockedItemClick, collapsed = false, onToggleCollapse, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
+function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFreeTier, isAcceptedTeamMember, onLockedItemClick, collapsed = false, onToggleCollapse, intensity, setIntensity }: SidebarContentProps & { intensity: number; setIntensity: (v: number) => void }) {
   return (
     <>
       {/* Collapse toggle -- desktop only */}
@@ -155,8 +158,13 @@ function SidebarContent({ sections, currentPath, currentTab, onItemClick, isFree
             // hidden_free items are not rendered at all for free users
             if (isFreeTier && tierGate === 'hidden_free') return null;
 
-            // paid_only items are grayed + locked for free users
-            const isLocked = isFreeTier && tierGate === 'paid_only';
+            // paid_only items are grayed + locked for free users -- EXCEPT the
+            // Teaching Team item for an accepted team member, who may view the
+            // team page and team-shared lessons on any tier. Lead-creation stays
+            // paid_only: a free NON-member still sees Teaching Team locked, and a
+            // pending invitee acts via the dashboard banner, not the sidebar.
+            const isLocked = isFreeTier && tierGate === 'paid_only'
+              && !(item.id === 'teachingTeam' && isAcceptedTeamMember);
 
             const IconComponent = item.icon;
             const isActive = !isLocked && (isSidebarTabItem(item)
@@ -280,6 +288,10 @@ export function AppShell({
   const { userRole, hasOrganization } = useOrganization();
   const { tier } = useSubscription();
   const isFreeTier = !isPaidTier(tier);
+  // Accepted Teaching Team members unlock the teachingTeam sidebar item on any
+  // tier (membership view must not require a paid plan). isMember is true only
+  // for an accepted member, not a pending invitee.
+  const { isMember: isAcceptedTeamMember } = useTeachingTeam();
 
   // Resolve role and get sidebar sections (same chain as Header.tsx)
   const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
@@ -339,6 +351,7 @@ export function AppShell({
     currentTab,
     onItemClick: handleItemClick,
     isFreeTier,
+    isAcceptedTeamMember,
     onLockedItemClick: handleLockedItemClick,
   };
 

@@ -10,6 +10,7 @@ import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
 import { SeriesLibrary } from "@/components/dashboard/SeriesLibrary";
 import { PublicBetaPromptBanner } from "@/components/dashboard/PublicBetaPromptBanner";
+import { TeamInvitationBanner } from "@/components/dashboard/TeamInvitationBanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,7 +84,19 @@ export default function Dashboard() {
   const { lessons, loading: lessonsLoading } = useLessons();
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
-  const { hasTeam } = useTeachingTeam();
+  const { hasTeam, pendingInvitation, acceptInvitation, declineInvitation } = useTeachingTeam();
+
+  // Teaching Team invitation banner handlers. A confirmed Accept navigates the
+  // new member to /teaching-team -- this remounts AppShell so its useTeachingTeam
+  // instance refetches, the sidebar unlocks, and the page shows team-shared
+  // lessons. Decline just clears the banner and stays on the dashboard.
+  const handleAcceptInvite = async () => {
+    const joined = await acceptInvitation();
+    if (joined) navigate(ROUTES.TEACHING_TEAM);
+  };
+  const handleDeclineInvite = async () => {
+    await declineInvitation();
+  };
 
   // Help Video Hook - respects BRANDING.helpVideos.enabled
   const { 
@@ -249,6 +262,16 @@ export default function Dashboard() {
     <AppShell
       conditions={{ hasTeam }}
     >
+        {/* Teaching Team invitation -- shown at the very top when the logged-in
+            user has a pending invite (resolved past RLS by get_my_teaching_team). */}
+        {pendingInvitation && (
+          <TeamInvitationBanner
+            invitation={pendingInvitation}
+            onAccept={handleAcceptInvite}
+            onDecline={handleDeclineInvite}
+          />
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
           <div className="md:col-span-2">
             <div className="flex items-center gap-3 mb-2">

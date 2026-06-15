@@ -1,5 +1,89 @@
 # PROJECT MASTER -- Last updated: June 15, 2026
 
+## JUNE 15, 2026 SESSION (FIX: Teaching Team member experience -- toast on load, missing invite banner, accept, sidebar lock)
+
+Three sequenced fixes for the non-lead / invitee side of Teaching Team, all shipped together
+in one deploy. The "Unknown" lead-side fix below (commit b8bd22e) preceded these.
+
+ROOT CAUSE 1 -- "Error loading team data" toast for any non-lead member/invitee:
+  * teaching_teams SELECT is RLS-restricted to the lead teacher. fetchTeamData resolved a
+    non-lead's team via raw .from('teaching_teams').single() (accepted + pending paths),
+    which RLS zero-filtered -> PGRST116 -> fetchTeamData catch -> toast. (The
+    get_teaching_team_members RPC was NOT the source; fetchMembers swallows its own errors.)
+  * FIX: migration 20260615130000 -- get_my_teaching_team() SECURITY DEFINER returns the
+    caller's single team (lead OR pending/accepted member) past RLS, with lead_full_name +
+    my_status. Same migration WIDENED get_teaching_team_members' guard to ANY membership row
+    (pending OR accepted), not just accepted, so a pending invitee can load the roster.
+  * fetchTeamData rewritten: one get_my_teaching_team call, branch on my_status
+    (lead/accepted/pending); no row -> resetState (no toast); only a genuine RPC throw
+    toasts. Pending branch still reads the invitee's OWN membership row (RLS-allowed) for
+    membership_id/invited_at/expires_at.
+
+ROOT CAUSE 2 -- invitee never saw an accept/decline banner (could not accept):
+  * TeamInvitationBanner.tsx existed but was ORPHANED -- nothing rendered it. Dashboard.tsx
+    only destructured { hasTeam }, never pendingInvitation/accept/decline. Independent of RLS.
+  * acceptInvitation/declineInvitation did a client-side UPDATE of teaching_team_members.
+    A non-lead invitee has NO verified RLS UPDATE policy (tables built in dashboard, Phase 27;
+    no CREATE POLICY in repo). Because the banner never rendered, the accept path had NEVER
+    run -- a missing UPDATE policy would have silently affected 0 rows (RLS filters UPDATEs
+    without error), leaving the lead stuck on "Pending".
+  * FIX: migration 20260615140000 -- respond_to_team_invitation(p_membership_id, p_accept)
+    SECURITY DEFINER (plpgsql) updates the invitee's own row past RLS; security boundary is
+    WHERE id = p_membership_id AND user_id = auth.uid() AND status = 'pending'; returns the
+    affected team_id or NULL (no-op). IF/ELSE branches so the status literal coerces whether
+    the column is enum or text. acceptInvitation/declineInvitation now call this RPC and
+    return a success boolean; NULL return is a benign "no longer pending" no-op.
+  * Dashboard.tsx now renders TeamInvitationBanner when pendingInvitation is set; Accept
+    navigates to /teaching-team (remounts AppShell -> sidebar refetches), Decline clears it.
+
+ROOT CAUSE 3 -- Teaching Team sidebar item stayed locked for a free ACCEPTED member:
+  * sidebarConfig teachingTeam is tierGate 'paid_only'; AppShell gated isLocked on tier only
+    -> a free accepted member saw it grayed -> upgrade modal, could never reach the page.
+  * FIX (no migration): AppShell reads isMember from useTeachingTeam(); gate is now
+    isLocked = isFreeTier && tierGate === 'paid_only'
+      && !(item.id === 'teachingTeam' && isAcceptedTeamMember).
+    Lead-creation stays paid_only (free non-member still locked -> upgrade); pending invitees
+    stay locked (they act via the banner); only an accepted member unlocks the item.
+
+WHY A SECURITY DEFINER RESOLVER, NOT A teaching_teams RLS SELECT POLICY: a teaching_teams
+  policy that EXISTS-checks teaching_team_members, whose own policies reference
+  teaching_teams.lead_teacher_id, risks 42P17 mutual recursion. The resolver sidesteps it and
+  matches the pattern (now 4 Teaching Team resolvers total).
+
+FILES (this deploy):
+  * supabase/migrations/20260615130000_add_my_teaching_team_resolver.sql (new)
+  * supabase/migrations/20260615140000_add_respond_to_team_invitation.sql (new)
+  * src/hooks/useTeachingTeam.tsx (fetchTeamData rewrite; accept/decline -> RPC)
+  * src/pages/Dashboard.tsx (TeamInvitationBanner wiring + post-accept navigate)
+  * src/components/layout/AppShell.tsx (sidebar gate unlock for accepted members)
+  * src/integrations/supabase/types.ts (REGENERATED for all 4 Teaching Team RPCs; `as any`
+    casts dropped. NOTE: the prior committed types.ts was UTF-16 LE + BOM -- generated long
+    ago via a PowerShell `>` redirect, the CLAUDE.md trap. Regenerated via
+    `npx supabase gen types typescript --linked` piped to a temp file in Git Bash, then copied
+    in as UTF-8/ASCII no-BOM. The whole-file diff is that encoding flip plus the 4 functions;
+    this is an improvement -- the file is now ASCII-clean.)
+
+VERIFIED (Lynn, localhost:8080): invitee sees banner; Accept -> status flips to accepted (no
+  toast, no silent no-op), /teaching-team reads "You are a team member | 2 members";
+  auto-navigates to /teaching-team with the item UNLOCKED (active green) for the free accepted
+  member; Decline clears cleanly; lead view unchanged; free NON-member still sees it locked.
+  Other free-tier items (Devotional/Series/Parable) remain correctly locked. npm run build
+  clean; ASCII guard clean. All 3 resolver migrations (1120000/1130000/1140000) applied to the
+  live DB BEFORE the frontend shipped.
+
+CARRY-FORWARD:
+  * getBaseUrl/_shared/branding.ts hardcodes https://biblelessonspark.com, so the invite-email
+    "Log In to Respond" link always points at prod and cannot be tested on localhost. Future:
+    have getBaseUrl prefer an env var (SITE_URL/APP_URL), falling back to the branding literal.
+    (Report only -- no prod change made.)
+  * AppShell now calls useTeachingTeam() -> one extra get_my_teaching_team RPC per page load
+    (second instance on Dashboard/TeachingTeam pages). Functionally fine; optional future
+    optimization is to lift team state to context to dedupe.
+  * contracts.ts is missing the PendingTeamInvitation and TeachingTeamMemberWithProfile
+    interface definitions (imported but undefined; vite/esbuild erases types so the build
+    never caught it -- there is no tsc gate). Add them in a future cleanup for real type safety.
+
+
 ## JUNE 15, 2026 SESSION (FIX: Teaching Team pending/accepted rows render "Unknown" for non-admin Lead Teachers)
 
 - BUG (live, /teaching-team, paid NON-admin Lead Teacher): every member row in the team list
