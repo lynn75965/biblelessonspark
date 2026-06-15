@@ -1410,7 +1410,7 @@ export function EnhanceLessonForm({
       setFocusedTopic("");
       setAgeGroup("");
       setNotes("");
-      setUploadedFile(null);
+      setUploadedFiles([]);
       setExtractedContent(null);
       setPastedContent("");
       setGenerateTeaser(false);

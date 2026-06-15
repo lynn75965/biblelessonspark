@@ -47,7 +47,7 @@ const corsHeaders = {
 };
 
 // Anthropic model constant for tracking
-const ANTHROPIC_MODEL = 'claude-sonnet-4-20250514';
+const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
 
 function logTiming(label: string, startTime: number): number {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
