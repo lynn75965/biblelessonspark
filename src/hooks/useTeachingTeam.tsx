@@ -215,16 +215,31 @@ export function useTeachingTeam() {
       let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
 
       if (memberIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', memberIds);
+        // Resolve member names/emails via the SECURITY DEFINER resolver
+        // get_teaching_team_members (migration 20260615120000). A client-side
+        // profiles read here is filtered to ZERO rows by the profiles RLS policy
+        // profiles_org_admin_view_all for a non-admin Lead Teacher, which made
+        // every pending/accepted row render as "Unknown". The resolver reads the
+        // roster past RLS (profiles full_name + auth.users email SSOT) and is
+        // authorized to the team's lead teacher / accepted members only. Same RLS
+        // class as the 2026-06-14 invite fix, on the list-render path. The RPC is
+        // not yet in the generated Supabase types, so the call is cast.
+        const { data: roster, error: rosterError } = await (supabase.rpc as any)(
+          'get_teaching_team_members',
+          { p_team_id: teamId }
+        );
 
-        if (profiles) {
-          profiles.forEach(p => {
-            profileMap[p.id] = { full_name: p.full_name, email: p.email };
-          });
-        }
+        if (rosterError) throw rosterError;
+
+        const rosterRows = (Array.isArray(roster) ? roster : []) as Array<{
+          user_id: string;
+          full_name: string | null;
+          email: string | null;
+        }>;
+
+        rosterRows.forEach(r => {
+          profileMap[r.user_id] = { full_name: r.full_name, email: r.email };
+        });
       }
 
       // Map full_name -> display_name for frontend interface

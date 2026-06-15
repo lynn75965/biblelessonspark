@@ -1,4 +1,69 @@
-# PROJECT MASTER -- Last updated: June 14, 2026
+# PROJECT MASTER -- Last updated: June 15, 2026
+
+## JUNE 15, 2026 SESSION (FIX: Teaching Team pending/accepted rows render "Unknown" for non-admin Lead Teachers)
+
+- BUG (live, /teaching-team, paid NON-admin Lead Teacher): every member row in the team list
+  showed "Unknown" + Pending instead of the invitee's profile name (or invited email when name
+  is null). All invitees were registered, verified free accounts with a populated
+  profiles.full_name.
+
+- DIAGNOSIS (STOP->DIAGNOSE->VERIFY->PROPOSE->WAIT->IMPLEMENT, read code first):
+  * Render fallback: TeachingTeamCard.tsx:309 -> {member.display_name || member.email ||
+    "Unknown"}. For pending rows both fields were null.
+  * Source of those fields: useTeachingTeam.tsx fetchMembers() resolved names via a client-side
+    read .from('profiles').select('id, full_name, email').in('id', memberIds).
+  * ROOT CAUSE: same RLS class as the 2026-06-14 invite fix, but on the LIST-RENDER path. The
+    profiles SELECT policy `profiles_org_admin_view_all` (verified in migration ...e8a4fb73...)
+    allows reading a profile row only when has_role(admin), id = auth.uid(), or the viewer is
+    admin/owner over the invitee's org. A non-admin Lead Teacher viewing an unaffiliated invitee
+    matches none -> profiles returns zero rows (silent, no error) -> display_name/email null ->
+    "Unknown". Admin sessions pass has_role(admin) and never reproduce it.
+  * Why it looked fine right after inviting then broke: inviteMember() pushes the invitee into
+    local state already enriched (full_name from the resolver + the typed email), so the name
+    showed in-memory; on any reload/refetch, fetchMembers ran the RLS-blocked profiles read and
+    overwrote it back to "Unknown". The reload is the real test.
+  * Schema: teaching_team_members has NO name/email column (contracts.ts:191-200; insert writes
+    only team_id/user_id/status/expires_at). Display name was ONLY ever derived at runtime via
+    the RLS-blocked profiles read -- no persisted copy.
+
+- FIX CHOSEN: option (b) SECURITY DEFINER resolver (NOT persist-columns). Persisting would need
+  a schema migration + backfill (backfill itself needs a SECURITY DEFINER path anyway),
+  duplicate email PII (the 2026-06-14 resolver deliberately avoided returning email), go stale on
+  name change, and leave existing pending rows stuck. The resolver fixes pending AND accepted in
+  one place, no schema change, no backfill, always current -- consistent with the 2026-06-14
+  precedent.
+
+- IMPLEMENTATION (1 migration + 1 hook):
+  * Migration 20260615120000_add_teaching_team_member_resolver.sql -- new SECURITY DEFINER
+    resolver get_teaching_team_members(p_team_id uuid) RETURNS TABLE(user_id uuid, full_name
+    text, email text, status text, invited_at timestamptz, responded_at timestamptz, expires_at
+    timestamptz). Joins teaching_team_members -> profiles (full_name) -> auth.users (email SSOT),
+    all schema-qualified. Authorization gate inside the function: returns rows ONLY if auth.uid()
+    is the team's lead_teacher_id OR an accepted member of p_team_id (two EXISTS, OR'd);
+    unauthorized callers get zero rows (no error, no leak). LANGUAGE sql STABLE SECURITY DEFINER
+    SET search_path = public, auth. REVOKE EXECUTE FROM PUBLIC, anon; GRANT EXECUTE TO
+    authenticated -- mirrors find_teaching_team_invitee posture exactly. Returns email (the Lead
+    Teacher supplied it at invite time; scoped to the team's own roster -- not a leak).
+  * src/hooks/useTeachingTeam.tsx fetchMembers() -- replaced the RLS-blocked profiles
+    .in('id', memberIds) read with a single (supabase.rpc as any)('get_teaching_team_members',
+    { p_team_id: teamId }). Builds the same profileMap; enrichment mapping (display_name/email
+    over ...m), membership id, member shape, and invited_at ordering all preserved.
+    inviteMember()'s in-memory enrichment left as-is.
+
+- UNCHANGED (as approved): TeachingTeamCard.tsx:309 (fallback already correct); no schema change
+  to teaching_team_members; no FILES_TO_SYNC entries; no routes/App.tsx change.
+
+- VERIFIED: two-step check (function name absent from all migrations; not previously applied);
+  db push applied the migration to the live DB BEFORE the frontend shipped (RPC exists before
+  callers); npm run build clean (3953 modules); migration + hook both ASCII-only, no BOM; Lynn
+  confirmed on localhost:8080 as a NON-admin paid Lead Teacher (pending rows show name/email +
+  Pending; accepted members resolve by name; invite survives reload).
+
+- CARRY-FORWARD: regenerate src/integrations/supabase/types.ts so get_teaching_team_members is
+  natively typed, then drop the `as any` cast on the supabase.rpc call in useTeachingTeam.tsx
+  (cosmetic/type-safety only; build is clean). NOTE: this is now the SECOND Teaching Team RPC
+  (with find_teaching_team_invitee) still untyped -- regenerate once and clear both casts.
+
 
 ## JUNE 14, 2026 SESSION (FIX: Teaching Team invite "No account found" for non-admin Lead Teachers)
 
