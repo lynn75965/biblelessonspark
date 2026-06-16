@@ -109,6 +109,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, [updateActivity]);
 
+  // Refresh the auth session whenever the tab regains focus.
+  //
+  // autoRefreshToken relies on a background timer that browsers throttle while a
+  // tab is backgrounded. On a long idle/backgrounded session the access token
+  // can expire without being refreshed, leaving the PostgREST client holding a
+  // stale Authorization header -- every .rpc()/REST call then 401s in a wave,
+  // while functions.invoke calls self-heal because they fetch a fresh token via
+  // getSession() at call time. Calling getSession() here forces a refresh on
+  // wake (it auto-refreshes an expired token), which fires TOKEN_REFRESHED and
+  // updates the cached REST header so the first post-return query batch uses a
+  // valid token instead of 401ing.
+  useEffect(() => {
+    const refreshOnFocus = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const { data: { session: refreshed } } = await supabase.auth.getSession();
+      setSession(refreshed);
+      setUser(refreshed?.user ?? null);
+    };
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshOnFocus);
+
+    return () => {
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshOnFocus);
+    };
+  }, []);
+
   const signIn = async (email: string, password: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
