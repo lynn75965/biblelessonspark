@@ -1,4 +1,47 @@
-# PROJECT MASTER -- Last updated: June 15, 2026
+# PROJECT MASTER -- Last updated: June 16, 2026
+
+## JUNE 16, 2026 SESSION (FIX: reshape-lesson retired-model 404 -- final piece of the model-retirement outage)
+
+Resumed the June 15 model-retirement work that was HELD mid-deploy. Lynn confirmed on return
+that a LIVE full-lesson generation succeeded (lesson reached 99%/completed; the 140s timeout
+envelope is holding). With the main outage confirmed resolved, cleared the one remaining active
+outage and recorded the session.
+
+ROOT CAUSE -- reshape-lesson 404'd on every reshape attempt:
+  * Anthropic retired claude-sonnet-4-20250514 with no grace period on June 15. generate-lesson
+    was swapped to claude-sonnet-4-6 during the June 15 session, but reshape-lesson/index.ts:35
+    still carried the retired literal in ANTHROPIC_MODEL. Every reshape call hit a 404 from the
+    Anthropic API. (The June 15 reshape redeploy only changed the timeout at :41, not the model.)
+  * FIX (commit b3992bb): ANTHROPIC_MODEL 'claude-sonnet-4-20250514' -> 'claude-sonnet-4-6' at
+    reshape-lesson/index.ts:35. Redeployed the live edge function via
+    `npx supabase functions deploy reshape-lesson` (deploy.ps1 does NOT touch edge functions).
+    Grep-confirmed zero remaining retired-model literals in the file. ASCII guard clean.
+
+FILES (this deploy):
+  * supabase/functions/reshape-lesson/index.ts (model literal at :35; narrow-scope commit --
+    manual `git add` of the single file, NOT deploy.ps1)
+
+STATE OF THE MODEL-RETIREMENT OUTAGE (now fully closed across the live functions):
+  * generate-lesson -- claude-sonnet-4-6, 140s envelope. LIVE + confirmed generating (June 16).
+  * reshape-lesson  -- claude-sonnet-4-6 (this session), 140s envelope. LIVE.
+  * All other generators still on literals -- swept under STEP 2 below (not an active outage:
+    they were never on the two retired IDs, OR retirement did not affect them).
+
+CARRY-FORWARD (queued, in order -- not started this session):
+  1. 401-wave investigation: after a long session, all authenticated REST / .rpc calls 401 while
+     functions.invoke auth still works. Needs a Network-tab header/body comparison between a
+     working invoke and a failing .rpc. Separate hardening item: generate-lesson returns 500 (not
+     401) on bad auth via the :1214 catch-all.
+  2. STEP 2 -- model-ID SSOT: new src/constants/modelConfig.ts
+     (ANTHROPIC_MODELS = {default:'claude-sonnet-4-6', fast:'claude-haiku-4-5-20251001',
+     parable:'claude-sonnet-4-5-20250929'}); add to FILES_TO_SYNC (Rule #23) + CLAUDE.md;
+     refactor ALL generators off literals (generate-lesson, reshape-lesson, generate-devotional,
+     extract-lesson 3x default/2x fast, generate-parable, toolbelt-reflect); remove claudeModel
+     from toolbeltConfig; redeploy each; fix MASTER-PLAN.md:224 doc line.
+  3. generate-devotional / generate-parable have NO AbortController -- rely on the 150s gateway,
+     so a raw 504 (not a graceful body) if they exceed it. Add AbortController envelopes.
+  4. events 403 on analytics writes (RLS on the events table) -- non-blocking console noise seen
+     during the confirmed generation; harmless but worth a clean-up.
 
 ## JUNE 15, 2026 SESSION (FIX: Teaching Team member experience -- toast on load, missing invite banner, accept, sidebar lock)
 
