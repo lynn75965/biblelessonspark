@@ -15,10 +15,15 @@ LIVE RLS POLICIES (read 2026-06-16, authoritative for this diagnosis):
     - "Users can read own membership"        SELECT {public} USING (user_id = auth.uid())
     - "Users can update own membership"      UPDATE {public} USING (user_id = auth.uid())
   lessons:
-    - users_select_own  SELECT (user_id = auth.uid())   [+ admin policies]
+    - "Admin full access to lessons"  ALL    USING (is_admin())
+    - "Admins can view all lessons"   SELECT USING (EXISTS (user_roles WHERE role = 'admin'))
+    - users_select_own  SELECT (user_id = auth.uid())
     - users_insert_own  INSERT (user_id = auth.uid())
     - users_update_own  UPDATE (user_id = auth.uid())
     - users_delete_own  DELETE (user_id = auth.uid())
+  (Full policy set now enumerated -- the two admin policies above were confirmed by the
+   2026-06-16 SQL Editor re-read; FACT A holds: none of these lets a non-admin SELECT
+   another user's lesson row.)
 
 THREE LOAD-BEARING FACTS:
   A. lessons has NO policy allowing any user to SELECT another user's row. Any client
