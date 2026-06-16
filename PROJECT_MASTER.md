@@ -1,5 +1,109 @@
 # PROJECT MASTER -- Last updated: June 16, 2026
 
+## JUNE 16, 2026 SESSION (Teaching Team full-feature lock-down -- SESSION 1 of 3: DIAGNOSIS ONLY)
+
+DIAGNOSIS ONLY. No code, no migrations, no db push this session. Live RLS policies
+were read from the Supabase SQL Editor (teaching_teams, teaching_team_members, and
+lessons were all dashboard-created -- no repo migration captures their policies).
+
+LIVE RLS POLICIES (read 2026-06-16, authoritative for this diagnosis):
+  teaching_teams:
+    - "Lead teacher can manage own team"  ALL  {public}  USING (lead_teacher_id = auth.uid())
+    - "Members can read their team"       SELECT {public} USING (is_team_member_of(id))
+  teaching_team_members:
+    - "Lead teacher can manage team members" ALL  {public} USING (is_team_lead_of(team_id))
+    - "Users can read own membership"        SELECT {public} USING (user_id = auth.uid())
+    - "Users can update own membership"      UPDATE {public} USING (user_id = auth.uid())
+  lessons:
+    - users_select_own  SELECT (user_id = auth.uid())   [+ admin policies]
+    - users_insert_own  INSERT (user_id = auth.uid())
+    - users_update_own  UPDATE (user_id = auth.uid())
+    - users_delete_own  DELETE (user_id = auth.uid())
+
+THREE LOAD-BEARING FACTS:
+  A. lessons has NO policy allowing any user to SELECT another user's row. Any client
+     read of a teammate's lesson (shared or not) zero-filters to 0 rows for BOTH lead
+     and member. This blocks the entire "Team Lessons" view AND single team-lesson read.
+  B. teaching_team_members has UPDATE-own and SELECT-own for members, but NO DELETE for
+     members. "Leave team" is a client DELETE (useTeachingTeam.tsx:638-642) -> it matches
+     no policy -> silent 0-row no-op. The UI shows "Left team" and clears local state, but
+     the DB row survives; on refetch the member is still on the team.
+  C. A member's client read of teaching_team_members returns ONLY their own row (SELECT is
+     user_id = auth.uid(); there is no co-member read policy). So for a member, fetchMembers
+     yields just themselves -> the roster count is wrong AND fetchTeamLessons cannot even
+     build the peer user_id list. The lead is unaffected (the lead ALL policy lets the lead
+     read every member row).
+
+### FINDINGS TABLE (paths 1-7)
+
+| # | Path | Lead works? | Member works? | Root cause | file:line | Minimal fix |
+|---|------|-------------|---------------|------------|-----------|-------------|
+| 1 | Share a lesson (visibility Private/Shared) | YES | YES | Owner writes own row; field is lessons.visibility ('private'/'shared'). users_update_own (user_id=auth.uid()) permits it for every owner. | useLessons.tsx:168-197 (update :170-174) | None. Working. (Copy nit only: toast says "Share with Org Leaders" -- not Teaching-Team worded; cosmetic, defer.) |
+| 2 | View team-shared lessons (My/Team toggle -> fetchTeamLessons) | NO | NO | FACT A: client SELECT of other users' lessons zero-filters to 0 rows (no cross-user SELECT policy). For members also FACT C: peer user_id list is empty. (a) lead->members 0 rows; (b) member->lead 0 rows; (c) memberA->memberB 0 rows. Filters to visibility='shared' correctly, but never reaches a row. | useTeachingTeam.tsx:668-697 (query :684-689); peer list :672-682 | SECURITY DEFINER resolver get_team_lessons() that returns visibility='shared' lessons whose owner is in the caller's team (lead + accepted members), excluding the caller -- computes peers server-side, bypasses lessons RLS. Repoint fetchTeamLessons to the RPC. |
+| 3 | View a single team lesson (full content) | NO | NO | Same FACT A: a full-row read of a teammate's lesson is owner-only RLS -> 0 rows. Latent today only because path 2 surfaces no cards to click. ALSO must confirm the full viewer (EnhanceLessonForm via onViewLesson) renders read-only for a teammate's lesson -- LessonLibrary correctly hides edit/delete/visibility/devotional/series on isTeamLesson cards (:644-769), but the opened viewer's owner-only controls are not yet verified. | LessonLibrary.tsx:700 (onViewLesson); viewer EnhanceLessonForm (read-only guard UNVERIFIED) | get_team_lesson(p_lesson_id) resolver (single shared+same-team row) OR reuse the row already returned by get_team_lessons(); plus add an isTeamLesson/read-only guard in the viewer so no owner mutation renders. |
+| 4a | Lead: Remove member | YES | n/a | Lead ALL policy is_team_lead_of(team_id) permits DELETE of member rows. | useTeachingTeam.tsx:481-506 (delete :485-489) | None. Working. |
+| 4b | Lead: Rename team | YES | n/a | Lead ALL policy permits UPDATE of own team row. | useTeachingTeam.tsx:308-333 (update :312-316) | None. Working. |
+| 4c | Lead: Disband team | YES (delete) | n/a | Lead ALL policy permits DELETE of own team. Member-row cleanup depends on a teaching_team_members.team_id FK ON DELETE CASCADE -- code asserts CASCADE (comment :510) but the FK delete-rule was NOT confirmed live this session (FK query not returned). If not CASCADE: either errors (RESTRICT) or orphans rows (SET NULL). | useTeachingTeam.tsx:512-537 (delete :516-520) | None for the delete itself. Session 3: confirm confdeltype='c' on the FK; if absent, add ON DELETE CASCADE. |
+| 4d | Member: Leave team | n/a | NO | FACT B: client DELETE matches no member policy (only UPDATE-own / SELECT-own exist) -> silent 0-row no-op. resetState() lies until refetch, then the team reappears. | useTeachingTeam.tsx:634-659 (delete :638-642) | leave_teaching_team() SECURITY DEFINER (delete own accepted row) OR a self-scoped DELETE policy on teaching_team_members (user_id=auth.uid()). Repoint leaveTeam off the raw DELETE. |
+| 5 | Roster count + accepted/pending state | YES | NO | Lead reads full roster (ALL policy) -> count/state correct. Member reads only own row (FACT C) -> sees just themselves; TeachingTeamCard shows "accepted+1" = always "2 members" and lists only self, regardless of true size. Post-mutation truth holds for lead actions; for leave it is wrong (see 4d). | fetchMembers useTeachingTeam.tsx:200-257 (client read :202-207); count TeachingTeamCard.tsx:289 | Source the member-side roster from the existing get_teaching_team_members resolver (already authorized to any membership) instead of the RLS-filtered client read. Same read-path family as path 2 (do together in Session 2). |
+| 6a | Edge: invite expiry not rendering dead banner / not holding a slot | YES | YES | isInviteExpired() consistently excludes expired pendings from slot count (:347-353), member list (:212-214), and the invitee banner (:167). Expired invites do not hold a slot or show a dead banner. | useTeachingTeam.tsx:46-49, 167, 212-214, 347-353 | None for the visible behavior. (But see 6b -- the expired row still physically exists.) |
+| 6b | Edge: re-invite after decline/leave/expiry (duplicate-row / unique constraint) | UNCONFIRMED | UNCONFIRMED | Re-invite always INSERTs a NEW teaching_team_members row (:427-438). The existingMembership guard (:401-420) only blocks active accepted / non-expired pending. If a UNIQUE(team_id,user_id) or UNIQUE(user_id) constraint exists AND old declined/expired rows are not removed, the INSERT hits 23505 -> generic "Error sending invitation". Decline's row disposition (delete vs status='declined') and the unique constraint were NOT read live this session. | useTeachingTeam.tsx:401-438; respond_to_team_invitation (decline branch, unread) | Session 3: read the unique constraint + respond_to_team_invitation decline behavior; then either have decline/leave DELETE the row, or have inviteMember reuse/UPDATE an existing declined/expired row instead of INSERT. |
+| 6c | Edge: team-full cap (lead + 3 = MAX_TEAM_MEMBERS) | YES | n/a | inviteMember caps activeSlots >= MAX_TEAM_MEMBERS(3) (:351); TeachingTeamCard teamFull >= maxMembers (:153). Both exclude the lead -> lead + 3 = 4 total. | useTeachingTeam.tsx:351; TeachingTeamCard.tsx:153; contracts.ts:171 | None. Working. |
+| 7 | Email base URL flows through getBaseUrl/branding | YES (invite) | n/a | notify-team-invitation builds loginUrl from getBaseUrl(branding) (index.ts:155-157); getBaseUrl returns branding.urls.baseUrl, fallback https://biblelessonspark.com (branding.ts:245-247). Confirmed call site. The "dissolution email" referenced in the task DOES NOT EXIST -- disbandTeam is client-only with no email; no notify-team-dissolution function in supabase/functions. | notify-team-invitation/index.ts:155-157; _shared/branding.ts:245-247; disbandTeam useTeachingTeam.tsx:512-537 (no email) | Invite email: none (working). Dissolution email: Session 3 -- if released members should be notified, build a new notify-team-dissolution edge function and route its links through getBaseUrl. (Hardcode fix itself is Session 3.) |
+
+CROSS-CUTTING SECURITY FINDING (not a single path):
+  All five teaching_teams / teaching_team_members policies are granted to {public}, not
+  {authenticated}. The auth.uid()-based quals neutralize anon in practice (auth.uid() is
+  null for anon), but the role grant should be tightened to {authenticated}. Bundle into
+  the Session 3 migration.
+
+### BUNDLED FIX PLAN (fewest migrations)
+
+NEW SECURITY DEFINER RESOLVERS NEEDED (5th and 6th Teaching Team resolvers; existing 4
+are find_teaching_team_invitee, get_teaching_team_members, get_my_teaching_team,
+respond_to_team_invitation):
+  - get_team_lessons()                  -- returns shared lessons of the caller's team
+                                           peers (lead + accepted members), excl. caller.
+                                           Bypasses lessons RLS; computes peers server-side.
+  - get_team_lesson(p_lesson_id uuid)   -- single shared+same-team lesson row (path 3);
+                                           optional if the viewer reuses get_team_lessons rows.
+  - leave_teaching_team()               -- member deletes own accepted membership (path 4d).
+                                           Alternative: a self-DELETE RLS policy on
+                                           teaching_team_members (user_id=auth.uid()).
+
+SESSION 2 (items 1-3, the VIEW path -- read-only, lowest risk):
+  Migration (ONE file, e.g. 20260617120000_add_team_lessons_resolvers.sql):
+    - get_team_lessons()  [+ get_team_lesson() if the viewer re-fetches by id]
+  Frontend:
+    - src/hooks/useTeachingTeam.tsx        -- fetchTeamLessons -> rpc('get_team_lessons');
+                                              member roster sourced from get_teaching_team_members
+                                              (fixes path 5 undercount, same read family).
+    - src/components/dashboard/LessonLibrary.tsx -- no change if hook signature preserved.
+    - EnhanceLessonForm (viewer)           -- add isTeamLesson/read-only guard (path 3).
+    - src/integrations/supabase/types.ts   -- regenerate for the new RPC(s) (also clears the
+                                              two still-untyped Teaching Team RPC casts).
+
+SESSION 3 (items 4-7, mutations + edges + security + email):
+  Migration (ONE file, e.g. 20260618120000_team_lifecycle_and_security.sql):
+    - leave_teaching_team() resolver  OR  self-DELETE policy on teaching_team_members.
+    - Re-grant the 5 teaching_teams/teaching_team_members policies {public} -> {authenticated}.
+    - Confirm/repair teaching_team_members.team_id FK ON DELETE CASCADE (path 4c).
+    - Re-invite fix (path 6b): once the unique constraint + decline disposition are read live,
+      either DELETE rows on decline/leave or UPDATE-reuse an existing declined/expired row.
+  Frontend:
+    - src/hooks/useTeachingTeam.tsx -- leaveTeam -> rpc/policy; inviteMember re-invite reuse.
+  Edge function (NOT a migration), optional, only if Lynn wants released members emailed:
+    - supabase/functions/notify-team-dissolution/ -- new; links via getBaseUrl.
+  Pre-Session-3 live reads still required (could not be confirmed this session):
+    - teaching_team_members FK delete-rule (confdeltype).
+    - unique constraint(s) on teaching_team_members.
+    - respond_to_team_invitation decline branch (delete vs status='declined').
+
+CARRY-FORWARD / STILL-OPEN from prior sessions (unchanged this session):
+  - generate-lesson curriculum 140s timeout -> dedicated STREAMING REFACTOR session.
+  - generate-devotional / generate-parable have no AbortController (raw 504 risk).
+  - events 403 on analytics writes (RLS on events) -- non-blocking console noise.
+
 ## JUNE 16, 2026 SESSION (FIX: reshape-lesson retired-model 404 -- final piece of the model-retirement outage)
 
 Resumed the June 15 model-retirement work that was HELD mid-deploy. Lynn confirmed on return
