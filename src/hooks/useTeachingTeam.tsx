@@ -421,19 +421,51 @@ export function useTeachingTeam() {
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + INVITATION_EXPIRY_DAYS);
 
-      // All checks passed -- create invitation with expiry
-      const { data: newMember, error: insertError } = await supabase
+      // Re-invite handling (path 6b): declining an invite SETs status='declined'
+      // -- it does NOT delete the row (live read 2026-06-16) -- and the table
+      // enforces unique_member_per_team (team_id, user_id). So a fresh INSERT for
+      // a previously declined/expired invitee collides (23505 -> the generic
+      // "Error sending invitation"). Reuse the surviving row when one exists for
+      // this (team, user); otherwise INSERT a new one. Both writes run under the
+      // lead's is_team_lead_of(team_id) ALL policy.
+      const { data: priorRow } = await supabase
         .from('teaching_team_members')
-        .insert([{
-          team_id: team.id,
-          user_id: inviteeProfile.id,
-          status: 'pending',
-          expires_at: expiresAt.toISOString(),
-        }])
-        .select()
-        .single();
+        .select('id')
+        .eq('team_id', team.id)
+        .eq('user_id', inviteeProfile.id)
+        .maybeSingle();
 
-      if (insertError) throw insertError;
+      let newMember;
+      if (priorRow) {
+        const { data: updated, error: updateError } = await supabase
+          .from('teaching_team_members')
+          .update({
+            status: 'pending',
+            invited_at: new Date().toISOString(),
+            responded_at: null,
+            expires_at: expiresAt.toISOString(),
+          })
+          .eq('id', priorRow.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        newMember = updated;
+      } else {
+        const { data: inserted, error: insertError } = await supabase
+          .from('teaching_team_members')
+          .insert([{
+            team_id: team.id,
+            user_id: inviteeProfile.id,
+            status: 'pending',
+            expires_at: expiresAt.toISOString(),
+          }])
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        newMember = inserted;
+      }
 
       // Fire-and-forget: email notification via Edge Function
       supabase.functions
@@ -632,19 +664,32 @@ export function useTeachingTeam() {
   const leaveTeam = async () => {
     if (!user || !team || !isMember) return;
 
+    // FACT B (Session 1 diagnosis): teaching_team_members has SELECT-own and
+    // UPDATE-own member policies but NO DELETE-own policy, so the previous raw
+    // client DELETE matched no policy -> silent 0-row no-op (the row survived and
+    // the team reappeared on refetch). leave_teaching_team() (SECURITY DEFINER,
+    // migration 20260616170000) deletes the caller's own accepted row past RLS and
+    // returns the affected team_id, or null when nothing matched.
+    const teamName = team.name;
     try {
-      const { error } = await supabase
-        .from('teaching_team_members')
-        .delete()
-        .eq('team_id', team.id)
-        .eq('user_id', user.id);
+      const { data: teamId, error } = await supabase.rpc('leave_teaching_team');
 
       if (error) throw error;
+
+      if (!teamId) {
+        // Nothing matched (already left, or not an accepted member): benign no-op.
+        await fetchTeamData();
+        toast({
+          title: 'Not on a team',
+          description: 'Your membership was already removed.',
+        });
+        return;
+      }
 
       resetState();
       toast({
         title: 'Left team',
-        description: `You have left "${team.name}".`,
+        description: `You have left "${teamName}".`,
       });
     } catch (error) {
       console.error('Error leaving team:', error);

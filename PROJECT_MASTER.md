@@ -1,5 +1,76 @@
 # PROJECT MASTER -- Last updated: June 16, 2026
 
+## JUNE 16, 2026 SESSION (Teaching Team full-feature lock-down -- SESSION 3 of 3: LIFECYCLE + SECURITY)
+
+Implemented and SHIPPED the lifecycle-mutation + security-hardening path (the final session of
+the arc). Lynn verified the full matrix on localhost:8080 before deploy; matrix passed; deployed.
+
+PRE-WORK -- live reads (Supabase SQL Editor, 2026-06-16; authoritative):
+  * FK teaching_team_members_team_id_fkey -> teaching_teams(id): confdeltype 'c' = CASCADE.
+  * FK teaching_team_members_user_id_fkey -> auth.users(id):      confdeltype 'c' = CASCADE.
+      => Disband already cascade-deletes member rows. Path 4c: NO DDL (logged confirmation only).
+  * UNIQUE unique_member_per_team (team_id, user_id) EXISTS on teaching_team_members.
+  * respond_to_team_invitation decline branch SETs status='declined' (does NOT delete the row).
+      => Combined with the unique constraint, a fresh INSERT on re-invite collides (23505).
+         Path 6b fixed in the frontend (UPDATE-reuse), not via DDL.
+  * Plus exact pg_policies defs (USING/WITH CHECK/roles) for both tables + the
+    teaching_team_members column list (status text; invited_at NOT NULL default now();
+    responded_at nullable; expires_at nullable) -- read so the policy rewrite + reuse UPDATE
+    were exact, not blind.
+
+MIGRATION (applied via npx supabase db push --linked; two-step check first -- function absent +
+policies still {public} before push; migration list confirms 20260616170000 on local AND remote):
+  * supabase/migrations/20260616170000_team_lifecycle_and_security.sql (NEW):
+      - 4a leave_teaching_team() -- SECURITY DEFINER, VOLATILE, SET search_path = public, auth,
+        schema-qualified. DELETEs the caller's OWN accepted row (user_id = auth.uid() AND
+        status='accepted') RETURNING team_id (NULL when nothing matched). REVOKE PUBLIC/anon +
+        GRANT authenticated. Fixes FACT B (member Leave was a raw client DELETE matching no
+        member policy -> silent 0-row no-op; row survived and team reappeared on refetch).
+      - 4c FK CASCADE: confirmed live, no DDL emitted.
+      - 4d {public} -> {authenticated} on all 5 team policies (DROP + CREATE, quals unchanged):
+        teaching_team_members: "Lead teacher can manage team members" (ALL, USING
+        is_team_lead_of(team_id)); "Users can read own membership" (SELECT, user_id=auth.uid());
+        "Users can update own membership" (UPDATE, USING + WITH CHECK user_id=auth.uid()).
+        teaching_teams: "Lead teacher can manage own team" (ALL, USING lead_teacher_id=auth.uid());
+        "Members can read their team" (SELECT, USING is_team_member_of(id)). The two ALL policies
+        had WITH CHECK null (Postgres defaults the check to USING for FOR ALL) -- recreated
+        USING-only to preserve exact behavior. SECURITY DEFINER resolvers + service_role bypass
+        RLS, so resolvers are unaffected; anon can no longer reach these tables directly.
+
+FRONTEND (npm run build clean; deployed via deploy.ps1):
+  * src/hooks/useTeachingTeam.tsx:
+      - leaveTeam now calls rpc('leave_teaching_team'); null return = benign no-op (refetch +
+        "Not on a team" toast); success path resetState + "Left team" toast (team name captured
+        before resetState). Raw client DELETE removed.
+      - inviteMember re-invite fix (path 6b): before writing, look up any existing (team_id,
+        user_id) row; if present UPDATE-reuse it (status='pending', invited_at=now(),
+        responded_at=null, fresh expires_at); else INSERT as before. Both writes run under the
+        lead's is_team_lead_of(team_id) ALL policy.
+  * src/integrations/supabase/types.ts -- REGENERATED via npx supabase gen types typescript
+    --linked, written BOM-free. leave_teaching_team now typed ({ Args: never; Returns: string }).
+
+EDGE FUNCTION (deployed via supabase functions deploy notify-team-invitation):
+  * supabase/functions/_shared/branding.ts -- getBaseUrl() now prefers Deno.env.get('SITE_URL')
+    || Deno.env.get('APP_URL') (guarded by typeof Deno + try/catch), strips a trailing slash,
+    falls back to the branding literal (https://biblelessonspark.com). No prod behavior change;
+    non-prod email links become testable. notify-team-invitation already calls getBaseUrl
+    (index.ts:155). Also ASCII-escaped a pre-existing welcome-subject emoji (U+1F389 ->
+    🎉) so the ASCII pre-commit guard passes when the file is re-staged; rendered
+    output is unchanged.
+
+DEFERRED (Lynn's call, 2026-06-16): dissolution email (notify-team-dissolution) NOT built.
+Disband already toasts "All members have been released" and CASCADE cleans member rows; there is
+no existing dissolution-email path. Revisit only if released members should be emailed.
+
+MATRIX (verified on localhost:8080 before deploy): member Leave actually leaves (DB row gone,
+sidebar relocks on refresh, lead roster count drops); lead Disband cleans all member rows
+(CASCADE); re-invite after decline succeeds with no duplicate-row error; Teaching Team pages load
+with no new console errors; Session 2 regression (Team Lessons view, share, read-only viewer) all
+still work.
+
+TEACHING TEAM LOCK-DOWN ARC COMPLETE: Session 1 (diagnosis), Session 2 (view path), Session 3
+(lifecycle + security). All seven diagnosed paths resolved or confirmed-working.
+
 ## JUNE 16, 2026 SESSION (Teaching Team full-feature lock-down -- SESSION 2 of 3: THE VIEW PATH)
 
 Implemented and SHIPPED the read-only VIEW path from the Session 1 plan: paths 2, 3, 5.

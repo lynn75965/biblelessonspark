@@ -101,7 +101,7 @@ const FALLBACK_BRANDING: BrandingConfig = {
     fromName: "BibleLessonSpark",
     replyTo: "support@biblelessonspark.com",
     subjects: {
-      welcome: "Welcome to BibleLessonSpark! 🎉",
+      welcome: "Welcome to BibleLessonSpark! \uD83C\uDF89",
       emailVerification: "Verify your BibleLessonSpark email address",
       signup: "Welcome to BibleLessonSpark - Confirm Your Email",
       magiclink: "Your BibleLessonSpark Login Link",
@@ -240,10 +240,28 @@ export function getReplyTo(branding: BrandingConfig): string {
 }
 
 /**
- * Get base URL for building links
+ * Get base URL for building links.
+ *
+ * Prefers an explicit deployment URL from the environment (SITE_URL, then
+ * APP_URL) so non-production environments produce testable email links, and
+ * falls back to the branding literal so production behavior is unchanged.
+ * The resolved value is stripped of any trailing slash so callers can safely
+ * append paths like `${baseUrl}/dashboard`.
  */
 export function getBaseUrl(branding: BrandingConfig): string {
-  return branding.urls?.baseUrl || FALLBACK_BRANDING.urls.baseUrl;
+  let envUrl: string | undefined;
+  try {
+    // Deno.env is available in the Supabase edge runtime; guard so this helper
+    // never throws if evaluated outside that context.
+    if (typeof Deno !== 'undefined' && Deno.env?.get) {
+      envUrl = Deno.env.get('SITE_URL') || Deno.env.get('APP_URL') || undefined;
+    }
+  } catch (_e) {
+    envUrl = undefined;
+  }
+
+  const resolved = envUrl || branding.urls?.baseUrl || FALLBACK_BRANDING.urls.baseUrl;
+  return resolved.replace(/\/+$/, '');
 }
 
 /**

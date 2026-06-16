@@ -3327,6 +3327,7 @@ export type Database = {
       is_org_member: { Args: { check_org_id: string }; Returns: boolean }
       is_team_lead_of: { Args: { team_uuid: string }; Returns: boolean }
       is_team_member_of: { Args: { team_uuid: string }; Returns: boolean }
+      leave_teaching_team: { Args: never; Returns: string }
       log_security_event: {
         Args: { event_type: string; metadata?: Json; user_id?: string }
         Returns: undefined
