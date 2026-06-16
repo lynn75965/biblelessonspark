@@ -3235,10 +3235,43 @@ export type Database = {
           email: string
           expires_at: string
           full_name: string
+          id: string
           invited_at: string
           responded_at: string
           status: string
+          team_id: string
           user_id: string
+        }[]
+      }
+      get_team_lesson: {
+        Args: { p_lesson_id: string }
+        Returns: {
+          age_group: string
+          author_name: string
+          bible_passage: string
+          created_at: string
+          filters: Json
+          lesson_id: string
+          metadata: Json
+          original_text: string
+          theology_profile: string
+          title: string
+          user_id: string
+          visibility: string
+        }[]
+      }
+      get_team_lessons: {
+        Args: never
+        Returns: {
+          age_group: string
+          author_name: string
+          bible_passage: string
+          created_at: string
+          lesson_id: string
+          theology_profile: string
+          title: string
+          user_id: string
+          visibility: string
         }[]
       }
       get_trial_stats: {

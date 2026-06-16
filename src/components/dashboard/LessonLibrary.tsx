@@ -295,10 +295,14 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
         });
       }
 
+      // Prefer the author name resolved server-side by get_team_lessons
+      // (author_name). The local nameMap cannot resolve the LEAD's name for a
+      // member viewer (members[] holds only non-lead rows), so the resolver value
+      // is authoritative; nameMap and a generic label remain as fallbacks.
       const transformed = (data || []).map((lesson: any) =>
         transformToDisplay(lesson, {
           isTeamLesson: true,
-          authorName: nameMap[lesson.user_id] || "Team Member",
+          authorName: lesson.author_name || nameMap[lesson.user_id] || "Team Member",
         })
       );
       setTeamLessons(transformed);

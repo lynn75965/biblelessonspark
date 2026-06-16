@@ -197,10 +197,48 @@ export default function Dashboard() {
     setActiveTab("enhance");
   };
 
-  const handleViewLesson = (lesson: any) => {
+  const handleViewLesson = async (lesson: any) => {
     trackLessonViewed(lesson.id);
-    setSelectedLesson(lesson);
     setActiveTab("enhance");
+
+    // Team lessons arrive from get_team_lessons WITHOUT their body (original_text
+    // is null in the list payload -- FACT A blocks a client read of a teammate's
+    // row). Fetch the full content past lessons RLS via get_team_lesson
+    // (SECURITY DEFINER, migration 20260616160000) before opening the read-only
+    // viewer. Owner lessons already carry their own content.
+    if (lesson?.isTeamLesson) {
+      const { data, error } = await supabase.rpc('get_team_lesson', {
+        p_lesson_id: lesson.id,
+      });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) {
+        toast({
+          title: "Unable to open lesson",
+          description: "This shared lesson is no longer available.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedLesson({
+        id: row.lesson_id,
+        user_id: row.user_id,
+        title: row.title,
+        original_text: row.original_text,
+        filters: row.filters,
+        metadata: row.metadata,
+        visibility: row.visibility,
+        created_at: row.created_at,
+        isTeamLesson: true,
+        authorName: row.author_name,
+      });
+      toast({
+        title: "Opening lesson",
+        description: `Opening "${row.title || "lesson"}" for viewing.`,
+      });
+      return;
+    }
+
+    setSelectedLesson(lesson);
     toast({
       title: "Opening lesson",
       description: `Opening "${lesson.ai_lesson_title || lesson.title}" for viewing.`,

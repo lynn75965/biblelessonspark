@@ -1619,6 +1619,12 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const currentLesson = viewingLesson || generatedLesson?.lesson;
+
+  // Team lessons opened from the "Team Lessons" scope are READ-ONLY (path 3,
+  // Session 2). A teammate's shared lesson must expose no owner-mutation control:
+  // no Edit, Delete, Reshape, Add-to-Series, or visibility change. Export
+  // (Copy/Download/Email) stays available -- the lesson is shared TO this teacher.
+  const isTeamLessonView = !!viewingLesson?.isTeamLesson;
   // SSOT: Display mode - single source of truth for what view to show
   const displayMode: 'form' | 'generated' | 'viewing' = 
     viewingLesson ? 'viewing' : 
@@ -2631,7 +2637,7 @@ export function EnhanceLessonForm({
                     successful add. linkLessonToSeries writes series_id
                     to currentLesson.id directly -- correct for both
                     originals and reshapes. */}
-                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (() => {
+                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && !isTeamLessonView && (() => {
                   const liveLesson = lessons.find((l) => l.id === currentLesson.id);
                   const liveSeriesId = liveLesson?.series_id ?? currentLesson.series_id ?? null;
                   if (liveSeriesId) {
@@ -2713,7 +2719,7 @@ export function EnhanceLessonForm({
                   );
                 })()}
                 {/* Inline editor: Edit Lesson button -- only when viewing a saved lesson */}
-                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (
+                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && !isTeamLessonView && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -2740,7 +2746,7 @@ export function EnhanceLessonForm({
                 {/*   - Disabled (still focusable, Rule #22) when:                                    */}
                 {/*       a) lesson_type === 'short' (not eligible)                                   */}
                 {/*       b) user has no lesson credits remaining                                     */}
-                {viewingLesson && currentLesson?.original_text && !isReshaping && editingLessonId !== currentLesson?.id && !currentLesson?.reshape_of && (() => {
+                {viewingLesson && currentLesson?.original_text && !isReshaping && editingLessonId !== currentLesson?.id && !currentLesson?.reshape_of && !isTeamLessonView && (() => {
                   const parentType = currentLesson?.lesson_type ?? 'full';
                   const isEligibleType = parentType === RESHAPE_RULE.eligibleLessonType;
                   const hasCredit = canGenerate;
@@ -2781,8 +2787,9 @@ export function EnhanceLessonForm({
                 {/* Session C: Delete -- present for originals AND reshapes.
                     Hidden while inline editing (matches Edit Lesson and
                     Reshape gates). Hidden when viewing the just-generated
-                    lesson (no id-from-DB yet to delete). */}
-                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && (
+                    lesson (no id-from-DB yet to delete). Hidden for team
+                    lessons (read-only -- not this teacher's to delete). */}
+                {viewingLesson && currentLesson?.id && editingLessonId !== currentLesson.id && !isTeamLessonView && (
                   <Button
                     variant="outline"
                     size="sm"
@@ -2984,7 +2991,7 @@ export function EnhanceLessonForm({
             {/* PHASE 27: LESSON SHAPES ? Shape Picker */}
             {/* Shows when teacher clicks "Reshape" button */}
             {/* ============================================================ */}
-            {showReshapeSection && viewingLesson && (
+            {showReshapeSection && viewingLesson && !isTeamLessonView && (
               <div className="mb-4 p-4 bg-gradient-to-r from-primary/5 to-blue-50 dark:from-primary/10 dark:to-[#1e3a1e] border border-primary/20 rounded-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <Layers className="h-4 w-4 text-primary" />

@@ -6,6 +6,7 @@ import {
   TeachingTeam,
   TeachingTeamMember,
   TeachingTeamMemberWithProfile,
+  TeachingTeamMemberStatus,
   PendingTeamInvitation,
   MAX_TEAM_MEMBERS,
   INVITATION_EXPIRY_DAYS,
@@ -199,55 +200,52 @@ export function useTeachingTeam() {
    */
   const fetchMembers = async (teamId: string) => {
     try {
-      const { data: memberRows, error } = await supabase
-        .from('teaching_team_members')
-        .select('*')
-        .eq('team_id', teamId)
-        .in('status', ['pending', 'accepted'])
-        .order('invited_at', { ascending: true });
+      // FACT C (live RLS read 2026-06-16): a member's client read of
+      // teaching_team_members returns ONLY their own row -- SELECT is
+      // user_id = auth.uid() and there is no co-member read policy -- so the
+      // member-side roster undercounted to just themselves (count showed
+      // "2 members" regardless of true size). Source the FULL roster from the
+      // get_teaching_team_members resolver (SECURITY DEFINER, migration
+      // 20260616160000 now returns id + team_id alongside name/email/status),
+      // which is authorized to the team's lead teacher AND any member. One read,
+      // correct for lead and member alike -- no raw teaching_team_members client
+      // read remains on this path. This also supplies full_name/email past the
+      // profiles RLS that previously rendered rows as "Unknown".
+      const { data: roster, error } = await supabase.rpc(
+        'get_teaching_team_members',
+        { p_team_id: teamId }
+      );
 
       if (error) throw error;
 
-      // Exclude expired pending invites -- accepted members always included
-      const activeRows = (memberRows || []).filter(m =>
+      const rosterRows = (Array.isArray(roster) ? roster : []) as Array<{
+        id: string;
+        team_id: string;
+        user_id: string;
+        full_name: string | null;
+        email: string | null;
+        status: string;
+        invited_at: string;
+        responded_at: string | null;
+        expires_at: string | null;
+      }>;
+
+      // Exclude expired pending invites -- accepted members always included.
+      const activeRows = rosterRows.filter(m =>
         m.status === 'accepted' || !isInviteExpired(m.expires_at)
       );
 
-      const memberIds = activeRows.map(m => m.user_id);
-      let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
-
-      if (memberIds.length > 0) {
-        // Resolve member names/emails via the SECURITY DEFINER resolver
-        // get_teaching_team_members (migration 20260615120000). A client-side
-        // profiles read here is filtered to ZERO rows by the profiles RLS policy
-        // profiles_org_admin_view_all for a non-admin Lead Teacher, which made
-        // every pending/accepted row render as "Unknown". The resolver reads the
-        // roster past RLS (profiles full_name + auth.users email SSOT) and is
-        // authorized to the team's lead teacher / accepted members only. Same RLS
-        // class as the 2026-06-14 invite fix, on the list-render path.
-        const { data: roster, error: rosterError } = await supabase.rpc(
-          'get_teaching_team_members',
-          { p_team_id: teamId }
-        );
-
-        if (rosterError) throw rosterError;
-
-        const rosterRows = (Array.isArray(roster) ? roster : []) as Array<{
-          user_id: string;
-          full_name: string | null;
-          email: string | null;
-        }>;
-
-        rosterRows.forEach(r => {
-          profileMap[r.user_id] = { full_name: r.full_name, email: r.email };
-        });
-      }
-
-      // Map full_name -> display_name for frontend interface
+      // Map full_name -> display_name for the frontend interface.
       const enrichedMembers: TeachingTeamMemberWithProfile[] = activeRows.map(m => ({
-        ...m,
-        display_name: profileMap[m.user_id]?.full_name || null,
-        email: profileMap[m.user_id]?.email || null,
+        id: m.id,
+        team_id: m.team_id,
+        user_id: m.user_id,
+        status: m.status as TeachingTeamMemberStatus,
+        invited_at: m.invited_at,
+        responded_at: m.responded_at,
+        expires_at: m.expires_at,
+        display_name: m.full_name,
+        email: m.email,
       }));
 
       setMembers(enrichedMembers);
@@ -669,27 +667,50 @@ export function useTeachingTeam() {
     if (!user || !team) return { data: [], error: null };
 
     try {
-      const teamUserIds: string[] = [];
-
-      if (team.lead_teacher_id !== user.id) {
-        teamUserIds.push(team.lead_teacher_id);
-      }
-
-      members
-        .filter(m => m.status === 'accepted' && m.user_id !== user.id)
-        .forEach(m => teamUserIds.push(m.user_id));
-
-      if (teamUserIds.length === 0) return { data: [], error: null };
-
-      const { data, error } = await supabase
-        .from('lessons')
-        .select('*')
-        .in('user_id', teamUserIds)
-        .eq('visibility', 'shared')
-        .order('created_at', { ascending: false });
+      // FACT A (live RLS read 2026-06-16): the lessons table has NO policy that
+      // lets any user SELECT another user's row, so a client read of teammates'
+      // shared lessons zero-filtered to 0 rows for BOTH lead and member. The
+      // get_team_lessons resolver (SECURITY DEFINER, migration 20260616160000)
+      // computes the caller's team peers (lead + accepted members) server-side
+      // and returns their visibility='shared' lessons, excluding the caller.
+      const { data, error } = await supabase.rpc('get_team_lessons');
 
       if (error) throw error;
-      return { data: data || [], error: null };
+
+      const rows = (Array.isArray(data) ? data : []) as Array<{
+        lesson_id: string;
+        user_id: string;
+        title: string | null;
+        bible_passage: string | null;
+        age_group: string | null;
+        theology_profile: string | null;
+        visibility: string | null;
+        created_at: string | null;
+        author_name: string | null;
+      }>;
+
+      // Reshape the flat resolver rows into the lesson-shaped objects that
+      // LessonLibrary's transformToDisplay expects. The flat passage/age/theology
+      // columns are folded back into a synthesized `filters` object; the full body
+      // (original_text) is intentionally omitted here and fetched on demand by the
+      // viewer via get_team_lesson (path 3).
+      const shaped = rows.map(r => ({
+        id: r.lesson_id,
+        user_id: r.user_id,
+        title: r.title,
+        original_text: null as string | null,
+        visibility: r.visibility,
+        created_at: r.created_at,
+        filters: {
+          bible_passage: r.bible_passage,
+          age_group: r.age_group,
+          theology_profile_id: r.theology_profile,
+        },
+        author_name: r.author_name,
+        isTeamLesson: true,
+      }));
+
+      return { data: shaped, error: null };
     } catch (error) {
       console.error('Error fetching team lessons:', error);
       return { data: [], error };

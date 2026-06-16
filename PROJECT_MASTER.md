@@ -1,5 +1,68 @@
 # PROJECT MASTER -- Last updated: June 16, 2026
 
+## JUNE 16, 2026 SESSION (Teaching Team full-feature lock-down -- SESSION 2 of 3: THE VIEW PATH)
+
+Implemented and SHIPPED the read-only VIEW path from the Session 1 plan: paths 2, 3, 5.
+Lynn verified the full matrix on localhost:8080 before deploy; matrix passed; deployed.
+
+WHAT WAS BROKEN (Session 1 findings, confirmed by the live RLS read):
+  * FACT A -- lessons has NO cross-user SELECT policy. fetchTeamLessons' client read of
+    teammates' shared lessons zero-filtered to 0 rows for BOTH lead and member -> the
+    entire "Team Lessons" view (path 2) and the single team-lesson read (path 3) returned
+    nothing.
+  * FACT C -- a member's client read of teaching_team_members returns ONLY their own row
+    (SELECT is user_id = auth.uid(); no co-member read policy) -> the member-side roster
+    undercounted to just themselves (always "2 members"); path 5.
+
+MIGRATION (applied via npx supabase db push --linked; two-step check first -- local-only,
+not yet on remote; all prior migrations in sync):
+  * supabase/migrations/20260616160000_add_team_lessons_resolvers.sql (NEW) -- three
+    SECURITY DEFINER resolvers, STABLE, SET search_path = public, auth, all objects
+    schema-qualified, REVOKE PUBLIC/anon + GRANT authenticated (5th/6th Teaching Team
+    resolvers, matching the existing four):
+      - get_team_lessons() -- returns the caller's team peers' (lead + accepted members)
+        visibility='shared', reshape_of IS NULL lessons, EXCLUDING the caller. Lightweight
+        list shape (flat passage/age/theology from filters->>; author from profiles.full_name).
+        Peers computed server-side; empty peer set -> 0 rows = the authorization boundary.
+      - get_team_lesson(p_lesson_id) -- same shape PLUS original_text/filters/metadata
+        (the only content fields the viewer renders; the read-only guard suppresses every
+        control that would read the others). Returns the row only if its owner is an accepted
+        peer of the caller and visibility='shared'.
+      - get_teaching_team_members(p_team_id) -- DROP + CREATE to ADD id + team_id to the
+        return shape (changing RETURNS TABLE columns requires a drop). Body/auth gate otherwise
+        identical to migration 20260615130000 (caller is lead OR holds any membership row).
+        With id + team_id present, fetchMembers builds the full roster from this resolver alone.
+
+FRONTEND (npm run build clean; deployed via deploy.ps1):
+  * src/hooks/useTeachingTeam.tsx -- fetchTeamLessons now calls rpc('get_team_lessons') and
+    reshapes the flat rows into lesson-shaped objects (synthesized filters; original_text null,
+    loaded on view); fetchMembers now sources the FULL roster from get_teaching_team_members
+    (id/team_id/name/email/status), dropping the RLS-filtered raw client read entirely. Added
+    TeachingTeamMemberStatus import.
+  * src/pages/Dashboard.tsx -- handleViewLesson is async; for isTeamLesson it fetches full
+    content via rpc('get_team_lesson') before opening the viewer (owner lessons unchanged).
+  * src/components/dashboard/EnhanceLessonForm.tsx -- added isTeamLessonView (= viewingLesson
+    .isTeamLesson). Appended && !isTeamLessonView to the Add-to-Series, Edit, Reshape, and
+    Delete gates and the reshape section. Export (Copy/Download/Email) intentionally remains --
+    the lesson is shared TO this teacher.
+  * src/components/dashboard/LessonLibrary.tsx -- team-lesson author badge now prefers the
+    resolver's author_name (the local nameMap cannot resolve the LEAD's name for a member viewer).
+  * src/integrations/supabase/types.ts -- REGENERATED via npx supabase gen types typescript
+    --linked, written BOM-free via [System.IO.File]::WriteAllText UTF8Encoding($false). All six
+    Teaching Team RPCs are now typed; NO `as any` rpc casts remain in the new code.
+
+CARRY-FORWARD -> SESSION 3 (mutations + edges + security + email; unchanged from Session 1 plan):
+  * leave_teaching_team() resolver OR self-DELETE policy on teaching_team_members (path 4d --
+    member "Leave team" is a client DELETE that matches no policy -> silent 0-row no-op).
+  * Re-grant the 5 teaching_teams/teaching_team_members policies {public} -> {authenticated}.
+  * Confirm/repair teaching_team_members.team_id FK ON DELETE CASCADE (path 4c).
+  * Re-invite-after-decline/leave/expiry (path 6b): read the unique constraint + the decline
+    branch of respond_to_team_invitation, then DELETE-on-decline or UPDATE-reuse.
+  * Dissolution email (path 7): does NOT exist today; build notify-team-dissolution only if
+    Lynn wants released members emailed.
+  Pre-Session-3 live reads still required: teaching_team_members FK delete-rule (confdeltype);
+  unique constraint(s) on teaching_team_members; respond_to_team_invitation decline disposition.
+
 ## JUNE 16, 2026 SESSION (Teaching Team full-feature lock-down -- SESSION 1 of 3: DIAGNOSIS ONLY)
 
 DIAGNOSIS ONLY. No code, no migrations, no db push this session. Live RLS policies
