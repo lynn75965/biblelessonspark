@@ -1411,7 +1411,7 @@ export function EnhanceLessonForm({
       setAgeGroup("");
       setNotes("");
       setUploadedFiles([]);
-      setExtractedContent(null);
+      setExtractedPages([]);
       setPastedContent("");
       setGenerateTeaser(false);
       
