@@ -43,6 +43,7 @@ const FILES_TO_SYNC = [
   'devotionalConfig.ts',
   'toolbeltConfig.ts',
   'scriptureIntegrityGuardrail.ts',
+  'modelConfig.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,7 +67,7 @@ serve(async (req) => {
               "anthropic-version": "2023-06-01",
             },
             body: JSON.stringify({
-              model: "claude-haiku-4-5-20251001",
+              model: ANTHROPIC_MODELS.fast,
               max_tokens: 200,
               messages: [
                 {
@@ -161,7 +162,7 @@ serve(async (req) => {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODELS.default,
           max_tokens: 8000,
           messages: [
             {
@@ -233,7 +234,7 @@ serve(async (req) => {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODELS.default,
           max_tokens: 8000,
           messages: [
             {
@@ -308,7 +309,7 @@ serve(async (req) => {
           "anthropic-version": "2023-06-01",
         },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: ANTHROPIC_MODELS.default,
           max_tokens: 4000,
           messages: [
             {
@@ -376,7 +377,7 @@ serve(async (req) => {
             "anthropic-version": "2023-06-01",
           },
           body: JSON.stringify({
-            model: "claude-haiku-4-5-20251001",
+            model: ANTHROPIC_MODELS.fast,
             max_tokens: 200,
             messages: [
               {

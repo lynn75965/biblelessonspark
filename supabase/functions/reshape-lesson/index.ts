@@ -6,6 +6,7 @@ import { checkLessonLimit } from '../_shared/subscriptionCheck.ts';
 import { getTrialStatus, doesTrialApply } from '../_shared/trialConfig.ts';
 import { getShapeById } from '../_shared/lessonShapeProfiles.ts';
 import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
+import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
 
 /**
  * reshape-lesson Edge Function (Session A -- reshape-as-lesson)
@@ -32,7 +33,7 @@ import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
  *   { error, code? } with status 400 / 403 / 429.
  */
 
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+const ANTHROPIC_MODEL = ANTHROPIC_MODELS.default;
 // Reshape takes a full 2000-3500 word source lesson as input and produces
 // a similar-length output. 90s was too tight under real Anthropic latency
 // (timeout hit during 2026-05-18 smoke test). Held at 140s to fire BELOW the

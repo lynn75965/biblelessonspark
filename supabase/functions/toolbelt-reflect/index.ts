@@ -37,6 +37,7 @@ import {
   TOOLBELT_THRESHOLDS,
   type ToolbeltToolId,
 } from "../_shared/toolbeltConfig.ts";
+import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -160,7 +161,7 @@ Generate a pastoral reflection that:
 3. Offers 2-3 concrete, practical approaches they could consider for addressing the mismatch
 4. Closes with affirmation of their attentiveness
 
-Remember: They are not failing. They are paying attention. The mismatch they sense is real and worth honoring. Do NOT include a headline—the interface displays one separately.`;
+Remember: They are not failing. They are paying attention. The mismatch they sense is real and worth honoring. Do NOT include a headline -- the interface displays one separately.`;
 }
 
 /**
@@ -198,7 +199,7 @@ Generate a pastoral reflection that:
 3. Offers 2-3 concrete suggestions for what could safely be set aside or simplified
 4. Closes with affirmation that clarity serves faithfulness
 
-Remember: The weight they feel is real. Their instinct to simplify is not carelessness—it is care. Do NOT include a headline—the interface displays one separately.`;
+Remember: The weight they feel is real. Their instinct to simplify is not carelessness -- it is care. Do NOT include a headline -- the interface displays one separately.`;
 }
 
 /**
@@ -234,7 +235,7 @@ Generate a pastoral reflection that:
 3. Offers 2-3 ways to frame or articulate that central truth more clearly
 4. Closes with affirmation that focused teaching honors Scripture
 
-Remember: They have already found the anchor. Your role is to help them see what they've named. Do NOT include a headline—the interface displays one separately.`;
+Remember: They have already found the anchor. Your role is to help them see what they've named. Do NOT include a headline -- the interface displays one separately.`;
 }
 
 /**
@@ -342,7 +343,7 @@ serve(async (req) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: TOOLBELT_THRESHOLDS.claudeModel,
+        model: ANTHROPIC_MODELS.default,
         max_tokens: TOOLBELT_THRESHOLDS.maxTokensPerCall,
         messages: [
           { role: "user", content: userPrompt }

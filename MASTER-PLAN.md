@@ -221,7 +221,7 @@ Baptist Bible study lesson generator serving volunteer teachers in Southern Bapt
    - Lesson structure (from LESSON_SECTIONS)
    - Customization context (all 16 optional fields)
 6. Call Anthropic API (Claude Sonnet 4)
-   - Model: claude-sonnet-4-20250514
+   - Model: ANTHROPIC_MODELS.default (src/constants/modelConfig.ts SSOT; currently claude-sonnet-4-6)
    - Max tokens: 16000
    - Temperature: 0.7
 7. Save to database (lessons table)

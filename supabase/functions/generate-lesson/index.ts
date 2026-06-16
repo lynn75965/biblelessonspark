@@ -36,6 +36,7 @@ import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_
 import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replaceSections, GuardrailCheckResult, OUTPUT_GUARDRAILS_VERSION, REWRITE_CONFIG } from '../_shared/outputGuardrails.ts';
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
+import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
 
 import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } from '../_shared/corsConfig.ts';
 
@@ -46,8 +47,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
-// Anthropic model constant for tracking
-const ANTHROPIC_MODEL = 'claude-sonnet-4-6';
+// Anthropic model constant for tracking (value sourced from model-ID SSOT)
+const ANTHROPIC_MODEL = ANTHROPIC_MODELS.default;
 
 // Main generation fetch timeout. Held below Supabase's 150s gateway idle timeout
 // (504 ceiling) with ~10s headroom for the response to be sent. Raised from 120s

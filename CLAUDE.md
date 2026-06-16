@@ -275,17 +275,20 @@ Every interactive element must meet WCAG 2.1 AA minimum. Required on every UI ta
 Added April 4, 2026.
 
 ### Rule #23: Run npm run sync-constants after every change to a file in FILES_TO_SYNC
-The following 15 files auto-sync from src/constants/ to supabase/functions/_shared/
+The following 16 files auto-sync from src/constants/ to supabase/functions/_shared/
 via scripts/sync-constants.cjs:
 ageGroups.ts, bibleVersions.ts, generationMetrics.ts, lessonStructure.ts,
 lessonTiers.ts, systemSettings.ts, teacherPreferences.ts, theologyProfiles.ts,
 routes.ts, contracts.ts, rateLimitConfig.ts, freshnessOptions.ts,
-devotionalConfig.ts, toolbeltConfig.ts, scriptureIntegrityGuardrail.ts
+devotionalConfig.ts, toolbeltConfig.ts, scriptureIntegrityGuardrail.ts,
+modelConfig.ts
 Run npm run sync-constants immediately after editing any of these. Never hand-edit
 their _shared/ mirrors -- they are auto-generated and will be overwritten on the
 next sync. Added May 5, 2026. scriptureIntegrityGuardrail.ts (the "Rule 5"
 scripture-integrity SSOT shared by all generators + the reshape prompt) added
-June 3, 2026.
+June 3, 2026. modelConfig.ts (ANTHROPIC_MODELS -- the model-ID SSOT imported by
+all six generators: generate-lesson, reshape-lesson, extract-lesson,
+generate-devotional, generate-parable, toolbelt-reflect) added June 16, 2026.
 
 ### Rule #24: These _shared/ files are intentionally hand-maintained -- not in FILES_TO_SYNC
 pricingConfig.ts, trialConfig.ts, validation.ts, lessonShapeProfiles.ts,

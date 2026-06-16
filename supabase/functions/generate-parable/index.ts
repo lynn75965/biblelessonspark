@@ -22,6 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
+import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 
 // =============================================================================
 // TYPES
@@ -875,7 +876,7 @@ async function generateParableWithProvider(
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
   if (anthropicKey) {
-    const model = "claude-sonnet-4-5-20250929";
+    const model = ANTHROPIC_MODELS.parable;
     
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

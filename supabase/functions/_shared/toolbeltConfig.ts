@@ -464,9 +464,9 @@ export const TOOLBELT_THRESHOLDS = {
     yellow: 90,  // 70-90% = yellow
     // 90-100% = red
   },
-  
-  /** Model to use for reflections */
-  claudeModel: 'claude-sonnet-4-20250514',
+  // NOTE: the reflection model id is NOT stored here. It lives in the model-ID
+  // SSOT (src/constants/modelConfig.ts -> ANTHROPIC_MODELS.default); toolbelt-reflect
+  // imports it directly so a model migration is a single edit in one place.
 } as const;
 
 // ============================================================================

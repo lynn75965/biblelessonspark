@@ -46,6 +46,7 @@ import {
 
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
+import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -642,7 +643,7 @@ serve(async (req: Request) => {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: ANTHROPIC_MODELS.default,
         max_tokens: 4096,
         messages: [
           { role: "user", content: userPrompt }
@@ -724,7 +725,7 @@ serve(async (req: Request) => {
         content: generatedContent,
         word_count: wordCount,
         generation_duration_ms: generationDuration,
-        anthropic_model: "claude-sonnet-4-20250514",
+        anthropic_model: ANTHROPIC_MODELS.default,
         tokens_input: tokensInput,
         tokens_output: tokensOutput,
         detected_valence: detectedValence,

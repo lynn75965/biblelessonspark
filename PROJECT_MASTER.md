@@ -21,27 +21,68 @@ FILES (this deploy):
   * supabase/functions/reshape-lesson/index.ts (model literal at :35; narrow-scope commit --
     manual `git add` of the single file, NOT deploy.ps1)
 
-STATE OF THE MODEL-RETIREMENT OUTAGE (now fully closed across the live functions):
-  * generate-lesson -- claude-sonnet-4-6, 140s envelope. LIVE + confirmed generating (June 16).
-  * reshape-lesson  -- claude-sonnet-4-6 (this session), 140s envelope. LIVE.
-  * All other generators still on literals -- swept under STEP 2 below (not an active outage:
-    they were never on the two retired IDs, OR retirement did not affect them).
+## JUNE 16, 2026 SESSION (FIX: 401-wave on long/backgrounded sessions -- refresh-on-refocus)
 
-CARRY-FORWARD (queued, in order -- not started this session):
-  1. 401-wave investigation: after a long session, all authenticated REST / .rpc calls 401 while
-     functions.invoke auth still works. Needs a Network-tab header/body comparison between a
-     working invoke and a failing .rpc. Separate hardening item: generate-lesson returns 500 (not
-     401) on bad auth via the :1214 catch-all.
-  2. STEP 2 -- model-ID SSOT: new src/constants/modelConfig.ts
-     (ANTHROPIC_MODELS = {default:'claude-sonnet-4-6', fast:'claude-haiku-4-5-20251001',
-     parable:'claude-sonnet-4-5-20250929'}); add to FILES_TO_SYNC (Rule #23) + CLAUDE.md;
-     refactor ALL generators off literals (generate-lesson, reshape-lesson, generate-devotional,
-     extract-lesson 3x default/2x fast, generate-parable, toolbelt-reflect); remove claudeModel
-     from toolbeltConfig; redeploy each; fix MASTER-PLAN.md:224 doc line.
-  3. generate-devotional / generate-parable have NO AbortController -- rely on the 150s gateway,
+ROOT CAUSE -- after a long/backgrounded session, every authenticated REST/.rpc call 401'd in a
+wave while functions.invoke kept working:
+  * The asymmetry is the app's OWN code, not a library quirk. Every functions.invoke call is
+    preceded by `supabase.auth.getSession()` (useAdminOperations.tsx, Admin.tsx:200,
+    OrgManager.tsx:170, etc.) and passes the token manually -- getSession() auto-refreshes an
+    expired token, so invoke self-heals. Bare .rpc()/.from() rely on the PostgREST sub-client's
+    CACHED Authorization header, which only updates on an auth state-change event.
+  * Trigger: when a tab is backgrounded/idle a long time, the browser throttles
+    autoRefreshToken's timer, so the scheduled refresh is missed and the 1h access token expires.
+    On return the PostgREST client still holds the stale header -> 401 wave; invoke refreshes via
+    its getSession() call. Confirmed by config.toml (only 3 webhook/blog funcs are verify_jwt
+    false; generators verify JWT -> the tokens genuinely differ, fresh vs stale).
+  * FIX (commit 6036bbe): useAuth.tsx -- added a visibilitychange/focus listener that calls
+    supabase.auth.getSession() on tab refocus. The forced refresh fires TOKEN_REFRESHED, which
+    updates the cached PostgREST header, so the first post-return query batch uses a valid token.
+    ~28 lines, no API/UI surface change. Build clean; Lynn verified localhost; shipped via
+    deploy.ps1. NOTE: the separate custom 30-min inactivity signOut() in useAuth.tsx was left
+    untouched (out of scope; flagged as worth revisiting -- it duplicates Supabase session mgmt).
+
+## JUNE 16, 2026 SESSION (STEP 2: model-ID SSOT -- and 3 MORE live retired-model outages found+fixed)
+
+The model-ID audit revealed the June 15 fire was wider than known: besides reshape-lesson, THREE
+more live functions were still 404ing on the retired claude-sonnet-4-20250514 --
+extract-lesson (3 paths), generate-devotional (1 call + its metrics log), and toolbelt-reflect
+(via toolbeltConfig.claudeModel). STEP 2 fixed those outages AND removed the duplicated literals
+that caused the whole episode.
+
+WHAT SHIPPED:
+  * NEW SSOT src/constants/modelConfig.ts -- ANTHROPIC_MODELS = {default:'claude-sonnet-4-6',
+    fast:'claude-haiku-4-5-20251001', parable:'claude-sonnet-4-5-20250929'}. Created via
+    WriteAllText UTF8Encoding($false) -- no BOM, ASCII-clean.
+  * Added 'modelConfig.ts' to FILES_TO_SYNC (scripts/sync-constants.cjs) + CLAUDE.md Rule #23
+    (now 16 synced files). npm run sync-constants -> 16/16; _shared/modelConfig.ts generated.
+  * Removed claudeModel from toolbeltConfig.ts (grep-confirmed toolbelt-reflect:345 was the ONLY
+    reader); re-sync dropped it from the _shared mirror too.
+  * All 6 generators repointed off literals and redeployed via `supabase functions deploy`:
+      - generate-lesson:50, reshape-lesson:35 -> ANTHROPIC_MODELS.default (same value, now SSOT)
+      - extract-lesson -> .default (3 retired paths: 164/236/311) + .fast (2 haiku paths: 69/379)
+      - generate-devotional -> .default (645 call + 727 metrics log; both were retired)
+      - generate-parable:878 -> .parable (INTENTIONALLY kept on 4.5 -- do NOT collapse to default)
+      - toolbelt-reflect:345 -> ANTHROPIC_MODELS.default (imports modelConfig directly now)
+  * Doc fix MASTER-PLAN.md:224 (retired literal -> SSOT reference).
+  * Grep-verified ZERO retired literals remain in live code (only the rationale comment in
+    modelConfig.ts mentions the old id). Frontend build clean.
+
+DEPLOY ORDER (per Lynn's RPC-before-frontend rule): 6 functions deployed FIRST (all OK, each
+  bundled _shared/modelConfig.ts -> import resolves), THEN deploy.ps1 for the frontend payload
+  (modelConfig.ts + toolbeltConfig + sync-constants.cjs + CLAUDE.md + MASTER-PLAN + this file).
+
+SMOKE TESTS (Lynn, on live, after all 6 deployed) -- PENDING at time of writing:
+  generate a devotional / a parable / Extract-Enhance with a curriculum upload / Toolbelt Reflect
+  / a full lesson (regression). [Update this line with the result after Lynn runs them.]
+
+CARRY-FORWARD:
+  1. generate-devotional / generate-parable have NO AbortController -- rely on the 150s gateway,
      so a raw 504 (not a graceful body) if they exceed it. Add AbortController envelopes.
-  4. events 403 on analytics writes (RLS on the events table) -- non-blocking console noise seen
-     during the confirmed generation; harmless but worth a clean-up.
+  2. events 403 on analytics writes (RLS on the events table) -- non-blocking console noise.
+  3. Hardening: generate-lesson returns 500 (not 401) on bad auth via the :1214 catch-all.
+  4. useAuth.tsx 30-min inactivity signOut() duplicates Supabase session mgmt -- revisit.
+  5. NEXT UP: Teaching Team Session 1 diagnosis.
 
 ## JUNE 15, 2026 SESSION (FIX: Teaching Team member experience -- toast on load, missing invite banner, accept, sidebar lock)
 
