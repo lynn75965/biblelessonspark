@@ -72,17 +72,137 @@ DEPLOY ORDER (per Lynn's RPC-before-frontend rule): 6 functions deployed FIRST (
   bundled _shared/modelConfig.ts -> import resolves), THEN deploy.ps1 for the frontend payload
   (modelConfig.ts + toolbeltConfig + sync-constants.cjs + CLAUDE.md + MASTER-PLAN + this file).
 
-SMOKE TESTS (Lynn, on live, after all 6 deployed) -- PENDING at time of writing:
-  generate a devotional / a parable / Extract-Enhance with a curriculum upload / Toolbelt Reflect
-  / a full lesson (regression). [Update this line with the result after Lynn runs them.]
+SMOKE TESTS (Lynn, on live, after all 6 deployed) -- RESULTS:
+  * #1 full lesson (regression) ......... PASS
+  * #3 devotional ....................... PASS (generate-devotional off the retired model)
+  * #4 parable .......................... PASS (generate-parable correctly still on 4.5)
+  * #5 toolbelt reflect ................. PASS (toolbelt-reflect off the retired model)
+  * #2 extract/enhance (curriculum) ..... FAIL -> surfaced TWO separate bugs, see next session.
 
-CARRY-FORWARD:
-  1. generate-devotional / generate-parable have NO AbortController -- rely on the 150s gateway,
-     so a raw 504 (not a graceful body) if they exceed it. Add AbortController envelopes.
+## JUNE 16, 2026 SESSION (FIX: EnhanceLessonForm curriculum reset ReferenceError; DIAGNOSE curriculum-path generate-lesson timeout)
+
+Smoke test #2 (5 JPEGs -> extract -> generate) failed. Investigation separated it into TWO
+distinct problems; one fixed today, one scoped as a dedicated future session (no band-aids).
+
+PROBLEM 1 (FIXED, shipped commit 61852ef) -- client ReferenceError in the post-generation reset:
+  * EnhanceLessonForm.tsx:1414 called setExtractedContent(null), but the 348a904 multi-page
+    refactor turned extractedContent into a DERIVED const (:526, joined from extractedPages
+    state at :516) -- so setExtractedContent no longer exists. Grep confirmed :1414 was the
+    only stale reference. Same class as the setUploadedFile->setUploadedFiles fix two lines up.
+  * FIX: setExtractedContent(null) -> setExtractedPages([]) (matches existing resets at :1095,
+    :1187). Build clean, ASCII/no-BOM verified, shipped via deploy.ps1.
+  * This ReferenceError fired in the success/cleanup path and was MASKING the real result --
+    it is independent of Problem 2 (a client cleanup error cannot cause a server 500).
+
+PROBLEM 2 (DIAGNOSED, NOT band-aided -- streaming refactor scoped below) -- generate-lesson
+  500 on the curriculum path:
+  * Confirmed timeline POST-STEP2 from code: extract-lesson's JPEG OCR call uses
+    ANTHROPIC_MODELS.default (extract-lesson:312) which was the RETIRED sonnet pre-STEP2; a
+    pre-STEP2 JPEG upload hard-500s at :336-342 with zero chars extracted, so generate-lesson
+    is never reached. "12,211 chars extracted" + the generate-lesson 500 were only possible
+    AFTER STEP2 fixed extraction. So Problem 2 is a real, current, open issue.
+  * Root cause = the 140s abort. The live 500 response body was exactly
+    {"error":"Lesson generation timed out. Please try again."} which is produced ONLY by the
+    AbortError branch (generate-lesson:1220 -> :1234), i.e. controller.abort() at 140s.
+  * WHY: claude-sonnet-4-6 already runs ~119-121s for a plain full lesson -- only ~20s under
+    the 140s abort, which is itself pinned just under the 150s Supabase gateway 504 ceiling.
+    The curriculum path adds ~3K input tokens AND a longer output (richer source) -> tips past
+    140s. CANNOT raise the timeout (150s gateway is hard). Token/context limit is NOT the cause
+    (12K chars ~= 3K tokens; total ~17K vs the 200K window).
+  * DECISION (Lynn): do NOT band-aid with max_tokens reduction + curriculum truncation. The
+    proper fix is to STREAM generate-lesson's Anthropic response so the gateway's IDLE timeout
+    never fires regardless of duration. Scoped as its own session below.
+
+CARRY-FORWARD (smaller items, still open):
+  1. generate-devotional / generate-parable have NO AbortController -- raw 504 if they exceed
+     150s. (Streaming would also be the proper fix for these eventually.)
   2. events 403 on analytics writes (RLS on the events table) -- non-blocking console noise.
   3. Hardening: generate-lesson returns 500 (not 401) on bad auth via the :1214 catch-all.
   4. useAuth.tsx 30-min inactivity signOut() duplicates Supabase session mgmt -- revisit.
-  5. NEXT UP: Teaching Team Session 1 diagnosis.
+  5. Teaching Team Session 1 diagnosis (still queued).
+
+================================================================================
+## UPCOMING SESSION (PLANNED, SCOPED): STREAMING REFACTOR -- generate-lesson
+================================================================================
+Status: NOT STARTED. This is a first-class planned session, fully scoped here so it can be
+executed directly. Goal: eliminate the curriculum-path (and any long) lesson-generation 504/
+timeout by streaming the Anthropic response, so the Supabase 150s IDLE gateway timeout never
+fires -- generation may take as long as it needs while bytes keep flowing to the client.
+
+WHY STREAMING IS THE CORRECT FIX
+  The 150s gateway limit is an IDLE timeout: it fires when the function sends the client nothing
+  for ~150s. Today generate-lesson awaits the FULL Anthropic response (up to the 140s abort) and
+  sends the client nothing until it returns -> the connection looks idle. If instead the function
+  streams tokens (or even heartbeats) to the client as they arrive, the connection is never idle
+  and the timeout cannot fire -- duration stops mattering. This removes the ceiling rather than
+  shaving milliseconds under it.
+
+END-TO-END ARCHITECTURE (target: true token streaming + final authoritative payload)
+  1. Pre-flight UNCHANGED: auth, limit/trial checks, validation, prompt build all run first
+     (fast, before any Anthropic call) exactly as today.
+  2. Anthropic call switches to stream:true (SSE). The function returns a streaming Response
+     (ReadableStream, content-type text/event-stream) instead of awaiting the whole body.
+  3. As deltas arrive, the function (a) forwards them to the client as `token` SSE events for
+     live display, and (b) accumulates the full text server-side.
+  4. On stream end, server-side and INSIDE the same streamed response: run the EXISTING
+     post-processing unchanged -- checkOutputGuardrails, optional rewrite (still time-budget
+     gated), parseLessonSections -- then INSERT into lessons + UPDATE generation_metrics.
+  5. Emit a final `done` SSE event carrying the saved lesson row + metadata + style_metadata,
+     then close the stream. Emit an `error` SSE event instead if anything throws after streaming
+     began (so the client never shows a half-saved lesson).
+  6. The streamed text is a live PREVIEW; the `done` payload (the saved row) is AUTHORITATIVE.
+     If a guardrail rewrite changed sections, the client replaces the preview with the `done`
+     content. (Rewrite is already skipped under the 80s budget at current latency, so in
+     practice preview == saved today -- but the contract must handle divergence.)
+  7. The 140s AbortController is removed/relaxed to just a stall guard (abort only if the stream
+     goes silent for N seconds), NOT a total-duration cap.
+
+FILES THAT CHANGE
+  * supabase/functions/generate-lesson/index.ts -- CORE, largest change. Switch to stream:true,
+    return a ReadableStream Response, move post-processing + DB save into the stream-end handler,
+    emit token/done/error SSE events, replace the 140s total-duration abort with a stall guard.
+  * src/hooks/useEnhanceLesson.tsx -- switch from supabase.functions.invoke (buffers, no
+    streaming) to a raw fetch() to the function URL, with the Authorization bearer from a FRESH
+    getSession() (see the 401 refocus fix -- same fresh-token requirement) + apikey header.
+    Parse the SSE stream; expose token progress; resolve with the `done` lesson. New return
+    contract (callback or async-iterator for tokens; final lesson on done).
+  * src/components/dashboard/EnhanceLessonForm.tsx -- consume the new hook contract. Optionally
+    render a live streaming preview + drive the real progress bar from token flow instead of the
+    fake timer. Ensure incrementUsage fires EXACTLY ONCE on `done` (never on partial/failed
+    streams) and the reset/cleanup (the Problem 1 area) still runs on done. Series-mode handoff
+    (linkLessonToSeries, addLessonSummary, style_metadata capture) moves to the done handler.
+  * src/hooks/useLessons.tsx (or wherever generated lessons are stored/refreshed) -- VERIFY the
+    saved-lesson handoff still works with the streamed `done` payload (likely small/none).
+  * supabase/functions/_shared/corsConfig.ts -- VERIFY headers allow the raw fetch (Authorization)
+    and a text/event-stream response (small/none, but confirm before relying on it).
+  NOT in scope this session: reshape-lesson (same timeout class -- stream it in a follow-up once
+  the generate-lesson pattern is proven), generate-devotional/parable AbortController items.
+
+RISK SURFACE / CAREFUL TESTING
+  * Auth: raw fetch must attach a FRESH token (getSession) + apikey -- highest 401 risk; test a
+    long/backgrounded session too (ties to today's 401 fix).
+  * Exactly-once billing: incrementUsage / trial+limit consumption must fire only on `done`, not
+    on partial or errored streams -- risk of double-charge or charge-on-failure.
+  * Mid-stream failures: Anthropic error after tokens started, OR DB save failure at stream end
+    -- must surface as a clean `error` event, never a half-lesson or a silent success.
+  * SSE robustness: partial chunks / event framing / proxy buffering (confirm Netlify + Supabase
+    pass text/event-stream through unbuffered).
+  * Preview-vs-saved divergence on guardrail rewrite -- client must swap to the `done` content.
+  * Coordinated deploy: a streaming function with the OLD client (or vice-versa) is broken --
+    deploy generate-lesson + the frontend together; no partial rollout.
+  * Regression parity: a plain (non-curriculum) lesson must produce an IDENTICAL saved lesson +
+    generation_metrics row to pre-refactor.
+  TEST MATRIX: plain lesson; curriculum lesson (the 12K-char case that timed out -> must now
+  finish); a deliberately >150s generation (the core proof); guardrail-violation/rewrite path;
+  mid-stream error; limit-reached (modal, no usage charged); series mode; teaser on; auth on a
+  stale/backgrounded session; mobile.
+
+ESTIMATED SESSION SIZE: LARGE -- a major-feature-sized session. It changes the app's most
+  critical function plus two client files and the client/server transport protocol, with a wide
+  test surface. Recommend Lynn block a dedicated, uninterrupted window and NOT combine it with
+  other work. De-risking option: split into TWO sessions -- (A) generate-lesson streaming +
+  minimal client wiring (resolve-on-done, no live-token UI) to kill the timeout; (B) live-token
+  preview UX + real progress bar + edge-case hardening. Session A alone fixes the outage.
 
 ## JUNE 15, 2026 SESSION (FIX: Teaching Team member experience -- toast on load, missing invite banner, accept, sidebar lock)
 
