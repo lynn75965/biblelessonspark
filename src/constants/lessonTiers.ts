@@ -4,15 +4,23 @@
 // Location: src/constants/lessonTiers.ts (MASTER)
 // Mirror: supabase/functions/_shared/lessonTiers.ts
 // DO NOT EDIT MIRROR DIRECTLY - Run: npm run sync-constants
-// Last Updated: 2026-01-15
+// Last Updated: 2026-06-17
 // =====================================================
-// SSOT COMPLIANCE: Section arrays imported from pricingConfig.ts
+// SSOT: This file is the CANONICAL source for lesson section shapes.
+// FULL_SECTIONS / SHORT_SECTIONS are defined here and imported by
+// pricingConfig.ts (which derives FREE_TIER_SECTION_NUMBERS,
+// FULL_TIER_SECTION_NUMBERS, and TIER_SECTIONS from them). This file is
+// SELF-CONTAINED (no imports) so its _shared mirror is Deno-valid.
 // =====================================================
 
-import { 
-  FREE_TIER_SECTION_NUMBERS, 
-  FULL_TIER_SECTION_NUMBERS 
-} from './pricingConfig';
+// ---------------------------------------------------------------------
+// CANONICAL SECTION SHAPES (SSOT)
+// Full lesson  = all 8 sections, teaser permitted (includesTeaser: true)
+// Short lesson = sections 1, 5, 8, NO teaser      (includesTeaser: false)
+// Never hardcode section numbers anywhere else -- import these.
+// ---------------------------------------------------------------------
+export const FULL_SECTIONS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+export const SHORT_SECTIONS = [1, 5, 8] as const;
 
 export interface LessonTier {
   id: string;
@@ -33,7 +41,7 @@ export const LESSON_TIERS: LessonTier[] = [
     name: 'basic',
     displayName: 'Quick Lesson',
     description: 'Essential framework (3 sections) - faster generation',
-    sections: [...FREE_TIER_SECTION_NUMBERS],  // SSOT: [1, 5, 8]
+    sections: [...SHORT_SECTIONS],  // SSOT: [1, 5, 8]
     includesTeaser: false,
     wordCountTarget: { min: 1030, max: 1490 },
     estimatedMinutes: { min: 0.5, max: 1 },
@@ -45,7 +53,7 @@ export const LESSON_TIERS: LessonTier[] = [
     name: 'full',
     displayName: 'Complete Lesson',
     description: 'Full framework (8 sections + optional teaser)',
-    sections: [...FULL_TIER_SECTION_NUMBERS],  // SSOT: [1, 2, 3, 4, 5, 6, 7, 8]
+    sections: [...FULL_SECTIONS],  // SSOT: [1, 2, 3, 4, 5, 6, 7, 8]
     includesTeaser: true,
     wordCountTarget: { min: 2100, max: 2790 },
     estimatedMinutes: { min: 1, max: 1.5 },

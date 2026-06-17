@@ -24,6 +24,9 @@
 // ============================================================
 
 import { getOrgTierByStripePriceId } from './orgPricingConfig';
+// Section-shape SSOT lives in lessonTiers.ts. The section-number constants
+// below are DERIVED from it -- the literal numbers live in exactly one place.
+import { FULL_SECTIONS, SHORT_SECTIONS } from './lessonTiers';
 
 // ============================================================
 // STRIPE IDS \u2014 INDIVIDUAL SUBSCRIPTION
@@ -148,20 +151,24 @@ export const TIER_LESSON_LIMITS: Record<SubscriptionTier, number> = {
 // ALL PAID TIERS: all 8 sections
 // ============================================================
 
+// DERIVED FROM lessonTiers.ts (canonical section-shape SSOT).
+// Re-exported under the SAME names and shapes that every consumer already
+// imports -- only the source of the numbers moved. Free -> SHORT shape,
+// all paid tiers -> FULL shape.
+export const FREE_TIER_SECTION_NUMBERS = SHORT_SECTIONS;
+export const FULL_TIER_SECTION_NUMBERS = FULL_SECTIONS;
+
+const FULL_SECTION_STRINGS  = FULL_SECTIONS.map(String);
+const SHORT_SECTION_STRINGS = SHORT_SECTIONS.map(String);
+
 export const TIER_SECTIONS: Record<SubscriptionTier, string[]> = {
-  free:       ['1', '5', '8'],
-  personal:   ['1', '2', '3', '4', '5', '6', '7', '8'],
-  starter:    ['1', '2', '3', '4', '5', '6', '7', '8'],
-  growth:     ['1', '2', '3', '4', '5', '6', '7', '8'],
-  full:       ['1', '2', '3', '4', '5', '6', '7', '8'],
-  enterprise: ['1', '2', '3', '4', '5', '6', '7', '8'],
-} as const;
-
-// Free tier sections as numbers (for comparison/display logic)
-export const FREE_TIER_SECTION_NUMBERS = [1, 5, 8] as const;
-
-// Full tier sections as numbers (for lessonTiers.ts and other imports)
-export const FULL_TIER_SECTION_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+  free:       SHORT_SECTION_STRINGS,
+  personal:   FULL_SECTION_STRINGS,
+  starter:    FULL_SECTION_STRINGS,
+  growth:     FULL_SECTION_STRINGS,
+  full:       FULL_SECTION_STRINGS,
+  enterprise: FULL_SECTION_STRINGS,
+};
 
 // ============================================================
 // SECTION NAMES (SSOT for display)
