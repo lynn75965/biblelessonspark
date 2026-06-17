@@ -1,5 +1,26 @@
 # PROJECT MASTER -- Last updated: June 17, 2026
 
+## JUNE 17, 2026 SESSION (Security cleanup -- setup-lynn-admin removed)
+
+Deleted the setup-lynn-admin edge function -- a live exposure. It used the service-role
+key to reset the live admin account's password to a HARDCODED plaintext value and force
+profiles.role='admin', with NO admin-role gate on the caller, and was reachable via the
+public anon JWT (not in config.toml verify_jwt list; the public anon key is a valid
+project-signed JWT). SQL confirmed the function was redundant: the admin account
+(eckeberger@gmail.com = UUID b8708e6b) already holds admin via THREE independent
+mechanisms -- profiles.role, user_roles, and the 18 b8708e6b RLS admin_full_access
+policies -- none of which depend on this function. No live caller existed (the
+useAdminOperations.setupLynnAdmin hook method was defined-but-unused; no component
+destructured it).
+
+Removed in one commit: (1) undeployed the live function --
+  npx supabase functions delete setup-lynn-admin --project-ref hphebzdftpjbiudpfcrs --yes
+  (reported "Deleted Edge Function."; confirmed absent from functions list);
+(2) deleted source dir supabase/functions/setup-lynn-admin/;
+(3) removed the dead setupLynnAdmin method + export from src/hooks/useAdminOperations.tsx
+  (grep of src/ for setupLynnAdmin / setup-lynn-admin = ZERO references);
+(4) npm run build clean. CLAUDE.md needed no change (it never named this function).
+
 ## JUNE 17, 2026 SESSION (Edge-function xhr polyfill cleanup -- deploy unblock)
 
 Fully separate follow-up to the counter-unification deploy. During that deploy, the
@@ -32,16 +53,16 @@ STAGE 2 -- REMOVE + DEPLOY.
   * xhr import is now gone from ALL live edge functions; the deploy-timeout landmine
     is fully cleared.
 
-CARRY-FORWARD (out of scope; flagged, not acted on): setup-lynn-admin/index.ts contains
-a HARDCODED email + plaintext password and resets that account to role='admin' with no
-in-function admin-role gate. It is an orphaned bootstrap (no UI trigger anywhere) and
-must NOT be invoked casually (it would reset that account's password to the hardcoded
-value). Worth a dedicated security session. DO NOT trigger as a smoke test.
+CARRY-FORWARD RESOLVED (June 17, 2026, security cleanup): setup-lynn-admin was DELETED
+(see Security cleanup session entry at top of file). It was a public-callable admin-reset
+exposure; admin role is provisioned independently via profiles.role + user_roles + RLS
+(b8708e6b), so the bootstrap was redundant.
 
 SMOKE-TEST TRIGGERS (live UI): reshape-lesson = the Reshape button on a saved lesson
 (safe); admin-management = Admin Panel -> User Management -> change a user's Role
 (updateUserRole is the only wired path; createUser/resetPassword exist in the hook but
-are not currently wired to UI); setup-lynn-admin = NO UI trigger, do not run.
+are not currently wired to UI). [setup-lynn-admin removed June 17, 2026 -- see Security
+cleanup entry at top of file.]
 
 ## JUNE 17, 2026 SESSION (Free-tier counter unification + tier-bound teaser)
 

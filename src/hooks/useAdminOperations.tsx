@@ -156,31 +156,11 @@ export function useAdminOperations() {
     }
   };
 
-  const setupLynnAdmin = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('setup-lynn-admin');
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      toast.success('Lynn Eckeberger admin account set up successfully');
-      return data;
-    } catch (error: any) {
-      toast.error(`Failed to setup admin: ${error.message}`);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return {
     createUser,
     updateUserRole,
     deleteUser,
     resetPassword,
-    setupLynnAdmin,
     loading
   };
 }
