@@ -320,7 +320,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   // Filter lessons
   const filteredLessons = activeLessons.filter((lesson) => {
     const matchesPassage = !searchPassage || lesson.bible_passage?.toLowerCase().includes(searchPassage.toLowerCase());
-    const matchesTitle = !searchTitle || lesson.ai_lesson_title?.toLowerCase().includes(searchTitle.toLowerCase());
+    const matchesTitle = !searchTitle || lesson.title?.toLowerCase().includes(searchTitle.toLowerCase());
     const matchesAge = ageFilter === "all" || lesson.age_group === ageFilter;
     const matchesProfile = profileFilter === "all" || lesson.theology_profile_id === profileFilter;
     return matchesPassage && matchesTitle && matchesAge && matchesProfile;
@@ -625,7 +625,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1 min-w-0">
                     <CardTitle className="text-base sm:text-lg mb-1 line-clamp-2 text-foreground dark:text-[#e8f0e8] group-hover:text-primary transition-colors">
-                      {lesson.ai_lesson_title || lesson.title || lesson.bible_passage || lesson.focused_topic || 'Untitled Lesson'}
+                      {lesson.title || lesson.bible_passage || lesson.focused_topic || 'Untitled Lesson'}
                     </CardTitle>
                     {(lesson.extracted_passage || lesson.bible_passage || lesson.focused_topic) && (
                       <CardDescription className="text-xs sm:text-sm line-clamp-1 text-muted-foreground dark:text-[#a8c0a8]">
