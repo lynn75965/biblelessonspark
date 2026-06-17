@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { STRIPE_INDIVIDUAL, SubscriptionTier, getTierSections, isPaidTier, TIER_LESSON_LIMITS } from '@/constants/pricingConfig';
-import { TRIAL_CONFIG } from '@/constants/trialConfig';
+import { TRIAL_CONFIG, getTrialStatus } from '@/constants/trialConfig';
 
 interface SubscriptionState {
   tier: SubscriptionTier;
@@ -24,6 +24,11 @@ interface SubscriptionState {
   error: string | null;
   trialFullUsed: number;
   trialShortUsed: number;
+  // Free-tier trial-derived fields (Phase 3). For paid tiers: fullRemaining /
+  // shortRemaining are 0 and nextLessonType is 'full'.
+  fullRemaining: number;
+  shortRemaining: number;
+  nextLessonType: 'full' | 'short' | null;
 }
 
 interface CheckoutOptions {
@@ -50,6 +55,9 @@ export function useSubscription() {
     error: null,
     trialFullUsed: 0,
     trialShortUsed: 0,
+    fullRemaining: TRIAL_CONFIG.fullLessonsPerPeriod,
+    shortRemaining: TRIAL_CONFIG.shortLessonsPerPeriod,
+    nextLessonType: 'full',
   });
 
   const fetchSubscription = useCallback(async () => {
@@ -72,37 +80,79 @@ export function useSubscription() {
         const result = data[0];
         const resolvedTier: SubscriptionTier = result.tier || 'free';
 
-        // Fetch trial counters from profiles for free-tier users.
-        // These are stored separately from the RPC's lessons_used and are
-        // used ONLY for the progress bar display -- not for exhausted state.
-        let trialFull = 0;
-        let trialShort = 0;
+        const fullLimit  = TRIAL_CONFIG.fullLessonsPerPeriod;   // 3
+        const shortLimit = TRIAL_CONFIG.shortLessonsPerPeriod;  // 2
+
         if (resolvedTier === 'free') {
+          // FREE-TIER SSOT: gating, remaining counts, reset date, and the
+          // next-lesson type are ALL derived from the profiles trial counters
+          // via getTrialStatus -- never from the flat RPC lessons_used counter.
+          // (Phase 3 / Decisions 1 + 5: one authoritative free counter. The
+          // backend is the only writer of those counters.)
           const { data: profile } = await supabase
             .from('profiles')
-            .select('trial_full_lessons_used, trial_short_lessons_used')
+            .select('trial_full_lessons_used, trial_short_lessons_used, trial_period_start, trial_full_lesson_granted_until')
             .eq('id', user.id)
             .single();
-          trialFull = profile?.trial_full_lessons_used ?? 0;
-          trialShort = profile?.trial_short_lessons_used ?? 0;
-        }
 
-        setState({
-          tier: resolvedTier,
-          status: 'active',
-          lessonsUsed: result.lessons_used || 0,
-          lessonsLimit: result.lessons_limit || TIER_LESSON_LIMITS.free,
-          canGenerate: result.can_generate ?? true,
-          sectionsAllowed: result.sections_allowed || getTierSections('free'),
-          includesTeaser: result.includes_teaser ?? false,
-          resetDate: result.reset_date ? new Date(result.reset_date) : null,
-          billingInterval: result.billing_interval || null,
-          upgradeNeeded: result.upgrade_needed ?? false,
-          isLoading: false,
-          error: null,
-          trialFullUsed: trialFull,
-          trialShortUsed: trialShort,
-        });
+          const trialFull  = profile?.trial_full_lessons_used ?? 0;
+          const trialShort = profile?.trial_short_lessons_used ?? 0;
+
+          const ts = getTrialStatus(
+            profile?.trial_period_start ?? null,
+            trialFull,
+            trialShort,
+            profile?.trial_full_lesson_granted_until ?? null
+          );
+
+          const nextLessonType: 'full' | 'short' | null =
+            ts.fullAvailable ? 'full' : (ts.shortAvailable ? 'short' : null);
+
+          setState({
+            tier: resolvedTier,
+            status: 'active',
+            lessonsUsed: trialFull + trialShort,
+            lessonsLimit: fullLimit + shortLimit,
+            canGenerate: ts.canGenerateAny,
+            sectionsAllowed: nextLessonType === 'full'
+              ? getTierSections('personal')
+              : getTierSections('free'),
+            includesTeaser: nextLessonType === 'full',
+            resetDate: ts.periodEnd,
+            billingInterval: null,
+            upgradeNeeded: !ts.canGenerateAny,
+            isLoading: false,
+            error: null,
+            trialFullUsed: trialFull,
+            trialShortUsed: trialShort,
+            fullRemaining: ts.fullLessonsRemaining,
+            shortRemaining: ts.shortLessonsRemaining,
+            nextLessonType,
+          });
+        } else {
+          // PAID TIERS: gating + reset date come from check_lesson_limit
+          // (user_subscriptions), which the backend now increments server-side.
+          // Paid lessons are always full; the short tier does not apply.
+          setState({
+            tier: resolvedTier,
+            status: 'active',
+            lessonsUsed: result.lessons_used || 0,
+            lessonsLimit: result.lessons_limit || TIER_LESSON_LIMITS.free,
+            canGenerate: result.can_generate ?? true,
+            sectionsAllowed: result.sections_allowed || getTierSections(resolvedTier),
+            includesTeaser: result.includes_teaser ?? true,
+            resetDate: result.reset_date ? new Date(result.reset_date) : null,
+            billingInterval: result.billing_interval || null,
+            upgradeNeeded: result.upgrade_needed ?? false,
+            isLoading: false,
+            error: null,
+            trialFullUsed: 0,
+            trialShortUsed: 0,
+            fullRemaining: 0,
+            shortRemaining: 0,
+            nextLessonType: 'full',
+          });
+        }
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
       }
@@ -120,25 +170,11 @@ export function useSubscription() {
     fetchSubscription();
   }, [fetchSubscription]);
 
-  const incrementUsage = useCallback(async (): Promise<boolean> => {
-    if (!user) return false;
-
-    try {
-      const { error } = await supabase
-        .rpc('increment_lesson_usage', { p_user_id: user.id });
-
-      if (error) {
-        console.error('Error incrementing usage:', error);
-        return false;
-      }
-
-      await fetchSubscription();
-      return true;
-    } catch (err) {
-      console.error('Increment usage error:', err);
-      return false;
-    }
-  }, [user, fetchSubscription]);
+  // NOTE: There is intentionally NO client-side usage increment. Usage is
+  // written server-side ONLY (generate-lesson edge function): free tier ->
+  // profiles.trial_* counters, paid tier -> increment_lesson_usage, org ->
+  // pool consumption. The client only READS via refreshSubscription.
+  // (Phase 3 / Decision 2: one writer, server-side.)
 
   const startCheckout = useCallback(async (options: CheckoutOptions): Promise<string | null> => {
     if (!user) {
@@ -232,7 +268,6 @@ export function useSubscription() {
   return {
     ...state,
     refreshSubscription: fetchSubscription,
-    incrementUsage,
     startCheckout,
     openCustomerPortal,
     checkCanGenerate,

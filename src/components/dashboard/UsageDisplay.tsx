@@ -27,6 +27,8 @@ export function UsageDisplay() {
     isFreeTier,
     trialFullUsed,
     trialShortUsed,
+    fullRemaining,
+    shortRemaining,
   } = useSubscription();
 
   if (isLoading) {
@@ -50,30 +52,25 @@ export function UsageDisplay() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // Free-tier split: fullRemaining/shortRemaining drive the exhausted banner
-  // condition and MUST stay derived from lessonsUsed (the RPC value).
+  // Free-tier split. fullRemaining / shortRemaining come straight from the
+  // hook, which derives them from the profiles trial counters via
+  // getTrialStatus (the single authoritative free counter -- written only by
+  // the backend). The exhausted banner and the summary both read these.
   const fullLimit  = TRIAL_CONFIG.fullLessonsPerPeriod;   // 3
   const shortLimit = TRIAL_CONFIG.shortLessonsPerPeriod;  // 2
-  const fullUsed   = Math.min(lessonsUsed, fullLimit);
-  const shortUsed  = Math.max(0, lessonsUsed - fullLimit);
-  const fullRemaining  = fullLimit  - fullUsed;
-  const shortRemaining = shortLimit - shortUsed;
 
-  // Display values: read from profiles (where the Edge Function writes).
-  // These are used ONLY for progress bar numbers -- not for exhausted gating.
+  // Progress-bar "used" values derive from the same counters.
   const displayFullUsed  = Math.min(trialFullUsed, fullLimit);
   const displayShortUsed = Math.min(trialShortUsed, shortLimit);
 
   const renderFreeSummary = () => {
-    if (fullRemaining === 0 && shortRemaining === 0) {
+    if (fullRemaining <= 0 && shortRemaining <= 0) {
       return 'No lessons remaining';
     }
-    const displayFullRemaining  = fullLimit  - displayFullUsed;
-    const displayShortRemaining = shortLimit - displayShortUsed;
     const parts: string[] = [];
-    parts.push(`${displayFullRemaining} of ${fullLimit} full`);
-    parts.push(`${displayShortRemaining} of ${shortLimit} short`);
-    return parts.join(' and ') + ' lessons remaining';
+    parts.push(`${fullRemaining} of ${fullLimit} Full`);
+    parts.push(`${shortRemaining} of ${shortLimit} Short`);
+    return parts.join(', ') + ' remaining';
   };
 
   const renderPaidSummary = () => {

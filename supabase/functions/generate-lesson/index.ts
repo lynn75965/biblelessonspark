@@ -8,7 +8,7 @@ import { BIBLE_VERSIONS, generateCopyrightGuardrails, getDefaultBibleVersion } f
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
 import { validateLessonRequest } from '../_shared/validation.ts';
 import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
-import { checkLessonLimit, getSectionsForTier } from '../_shared/subscriptionCheck.ts';
+import { checkLessonLimit, incrementLessonUsage } from '../_shared/subscriptionCheck.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
 import { 
   buildFreshnessContext, 
@@ -37,6 +37,9 @@ import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replace
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
+// Section-shape SSOT (Phase 1). Full = [1..8], Short = [1,5,8]. This is the
+// first edge function to import the _shared mirror at runtime.
+import { FULL_SECTIONS, SHORT_SECTIONS } from '../_shared/lessonTiers.ts';
 
 import { getCorsHeadersFromRequest, PRODUCTION_ORIGINS, DEVELOPMENT_ORIGINS } from '../_shared/corsConfig.ts';
 
@@ -371,20 +374,24 @@ serve(async (req) => {
     // SUBSCRIPTION & LIMIT CHECK (skipped for admins, modified for org pool)
     // =========================================================================
     let userTier = isAdmin ? 'admin' : 'free';
-    let allowedSections: number[] = [];
-    
+
     if (!isAdmin) {
       if (useOrgPool) {
         // User is using org pool - they get full tier access
         userTier = 'personal';
-        allowedSections = getSectionsForTier('personal');
         console.log('Org pool user gets full tier access');
       } else {
-        // Check individual subscription tier and lesson limit
+        // check_lesson_limit is used here ONLY for tier resolution and
+        // PAID-tier gating. Free users are gated by the trial counters
+        // (TRIAL_EXHAUSTED) in the platform-mode block below -- NOT by the flat
+        // RPC lessons_used counter. One authoritative free counter lives in
+        // profiles.trial_full/short_lessons_used. (Decision 5)
         const limitCheck = await checkLessonLimit(supabase, user.id);
         console.log('Subscription check:', limitCheck);
-        
-        if (!limitCheck.can_generate) {
+
+        userTier = limitCheck.tier;
+
+        if (userTier !== 'free' && !limitCheck.can_generate) {
           return new Response(JSON.stringify({
             error: 'Lesson limit reached',
             code: 'LIMIT_REACHED',
@@ -397,9 +404,6 @@ serve(async (req) => {
             headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
           });
         }
-        
-        userTier = limitCheck.tier;
-        allowedSections = limitCheck.sections_allowed;
       }
     }
 
@@ -467,11 +471,12 @@ serve(async (req) => {
           isFullTrialLesson = true;
           console.log('Trial: Free user gets full 8 sections');
         } else if (trialStatus.shortAvailable) {
-          // Full lessons exhausted \u2014 short (3-section) lesson available
-          sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
+          // Full lessons exhausted -- short (3-section) lesson available.
+          // SSOT: short section set comes from lessonTiers SHORT_SECTIONS.
+          sectionsToGenerate = [...SHORT_SECTIONS];
           isTrialLesson = true;
           isFullTrialLesson = false;
-          console.log('Trial: Full lessons exhausted \u2014 generating short 3-section lesson');
+          console.log('Trial: Full lessons exhausted -- generating short 3-section lesson');
         } else {
           // Both full and short exhausted for this period
           return new Response(JSON.stringify({
@@ -487,7 +492,9 @@ serve(async (req) => {
           });
         }
       } else {
-        sectionsToGenerate = allowedSections || getSectionsForTier(userTier);
+        // Paid individual tiers get the full 8-section lesson.
+        // SSOT: full section set comes from lessonTiers FULL_SECTIONS.
+        sectionsToGenerate = [...FULL_SECTIONS];
         console.log('Production mode: User tier', userTier, 'gets sections:', sectionsToGenerate);
       }
     }
@@ -558,6 +565,20 @@ serve(async (req) => {
       audience_profile = null
     } = validatedData;
 
+    // ---------------------------------------------------------------------
+    // TEASER BINDING (server-enforced -- Decision 4)
+    // The teaser is a FULL-lesson feature only. Short lessons NEVER include a
+    // teaser, regardless of what the request body asked for. isFullLesson is
+    // true for every generation path except the free-trial short lesson
+    // (the only path that sets isTrialLesson && !isFullTrialLesson). All
+    // downstream teaser logic uses effectiveTeaser, never raw generate_teaser.
+    // ---------------------------------------------------------------------
+    const isFullLesson = !(isTrialLesson && !isFullTrialLesson);
+    const effectiveTeaser = isFullLesson ? generate_teaser : false;
+    if (generate_teaser && !effectiveTeaser) {
+      console.log('Teaser requested but suppressed: short lessons never include a teaser');
+    }
+
     if (!bible_passage && !focused_topic && !extracted_content) {
       throw new Error('Either bible_passage, focused_topic, or extracted_content is required');
     }
@@ -612,7 +633,7 @@ serve(async (req) => {
         console.log('Elements skipped (teacher specified in Step 3):', selectedFreshness.skippedDueToCustomization);
       }
       
-      if (generate_teaser) {
+      if (effectiveTeaser) {
         selectedTeaserFreshness = selectFreshTeaserElements([], 5);
         console.log('Teaser freshness suggestions selected:', selectedTeaserFreshness);
       }
@@ -649,8 +670,8 @@ serve(async (req) => {
       extractedContentLength: extracted_content?.length || 0,
       extractedContentPreview: extracted_content?.substring(0, 500) || 'NONE',
       sectionCount: totalSections,
-      includeTeaser: generate_teaser,
-      wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${generate_teaser ? ' (+50-100 for teaser)' : ''}`,
+      includeTeaser: effectiveTeaser,
+      wordTarget: `${getTotalMinWords()}-${getTotalMaxWords()}${effectiveTeaser ? ' (+50-100 for teaser)' : ''}`,
       extractStyleMetadata: extract_style_metadata,
       hasSeriesStyleContext: !!series_style_context,
       usingOrgPool: useOrgPool,
@@ -703,7 +724,7 @@ to the leader, the group, and the people in it. Do NOT use alternate terms like
 "class" when the gathering is "Congregation", or "teacher" when the role is "Pastor".
 Never mention Sunday School unless the content specifically requires it.
 
-${buildCompressionRules(generate_teaser)}
+${buildCompressionRules(effectiveTeaser)}
 
 ${buildTruthGuardrails()}
 
@@ -718,7 +739,7 @@ ${copyrightGuardrails}
 ${customizationDirectives}
 
 
-${buildTeaserInstructions(generate_teaser, selectedTeaserFreshness)}
+${buildTeaserInstructions(effectiveTeaser, selectedTeaserFreshness)}
 
 ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
 
@@ -729,7 +750,7 @@ ${consistentStylePromptAddition}
 -------------------------------------------------------------------------------
 LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
 -------------------------------------------------------------------------------
-${buildSectionsPrompt(filteredSections, generate_teaser)}
+${buildSectionsPrompt(filteredSections, effectiveTeaser)}
 
 -------------------------------------------------------------------------------
 OUTPUT REQUIREMENTS
@@ -756,7 +777,7 @@ ${styleExtractionPromptAddition}
     let bibleVersionInstruction = `\n\nIMPORTANT: Use the ${bibleVersion.name} (${bibleVersion.abbreviation}) for ALL Scripture quotations and references.`;
 
     let teaserInstruction = '';
-    if (generate_teaser) {
+    if (effectiveTeaser) {
       teaserInstruction = '\n\nINCLUDE STUDENT TEASER: Generate the student teaser section at the beginning, before Section 1.';
     }
 
@@ -859,7 +880,7 @@ ${styleExtractionPromptAddition}
       }
 
       let teaserContent: string | null = null;
-      if (generate_teaser) {
+      if (effectiveTeaser) {
         const teaserMatch = generatedLesson.match(/\*\*STUDENT TEASER\*\*\s*([\s\S]*?)---/i);
         if (teaserMatch) {
           teaserContent = teaserMatch[1].trim();
@@ -1026,7 +1047,7 @@ ${styleExtractionPromptAddition}
           emotional_entry,
           theological_lens,
           additional_notes: additional_notes || null,
-          generate_teaser,
+          generate_teaser: effectiveTeaser,
           freshness_mode,
           extract_style_metadata,
           has_series_style_context: !!series_style_context
@@ -1041,7 +1062,7 @@ ${styleExtractionPromptAddition}
           ageGroup: ageGroupData.label,
           wordCount: wordCount,
           sectionCount: totalSections,
-          includesTeaser: generate_teaser && teaserContent !== null,
+          includesTeaser: effectiveTeaser && teaserContent !== null,
           teaser: teaserContent,
           generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
           anthropicUsage: anthropicData.usage,
@@ -1186,6 +1207,20 @@ ${styleExtractionPromptAddition}
             isFullTrialLesson ? 'full (8-section)' : 'short (3-section)',
             'for user:', user.id);
         }
+      }
+
+      // =========================================================================
+      // PAID-TIER USAGE INCREMENT (server-side -- single writer, Decision 2)
+      // Individual paid tiers are counted in user_subscriptions.lessons_used via
+      // increment_lesson_usage. Free uses the trial counters above; org uses the
+      // pool consumption above; admin is unmetered. This is the server half of
+      // the atomic pair: it replaces the former CLIENT-side incrementUsage()
+      // call (removed in EnhanceLessonForm in Phase 3) so the backend is the
+      // ONLY writer of usage. Server + client-removal ship in the same commit.
+      // =========================================================================
+      if (!isAdmin && !useOrgPool && userTier !== 'free') {
+        await incrementLessonUsage(supabase, user.id);
+        console.log('Paid-tier usage incremented for user:', user.id, 'tier:', userTier);
       }
 
       if (metricId) {

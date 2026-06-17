@@ -490,7 +490,8 @@ export function EnhanceLessonForm({
     canGenerate,
     resetDate,
     checkCanGenerate,
-    incrementUsage,
+    refreshSubscription,
+    nextLessonType,
     isLoading: subscriptionLoading,
   } = useSubscription();
 
@@ -567,7 +568,8 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   const [notes, setNotes] = useState("");
-  const [generateTeaser, setGenerateTeaser] = useState(false);
+  // Teaser defaults ON for Full lessons (the checkbox only renders on Full).
+  const [generateTeaser, setGenerateTeaser] = useState(true);
   const [includeLiturgical, setIncludeLiturgical] = useState(false);
   const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1267,6 +1269,14 @@ export function EnhanceLessonForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Block when this period's lessons are exhausted (free: 3 Full + 2 Short =
+    // 5; paid: tier limit). canGenerate is the authoritative gate -- free reads
+    // it from the trial counters, paid from check_lesson_limit.
+    if (!canGenerate) {
+      setShowUpgradeModal(true);
+      return;
+    }
+
     const effectiveContent = getEffectiveContent();
     const effectivePassage = biblePassage;
     const effectiveTopic = focusedTopic;
@@ -1346,7 +1356,9 @@ export function EnhanceLessonForm({
         // Phase 2 fields
         emotional_entry: emotionalEntry,
         theological_lens: theologicalLens,
-        generate_teaser: generateTeaser,
+        // Teaser is a Full-lesson feature only. The server enforces this too,
+        // but never send a stale `true` when the next lesson is a Short.
+        generate_teaser: nextLessonType === 'full' ? generateTeaser : false,
         include_liturgical: includeLiturgical,
         include_cultural: includeCultural,
         freshness_mode: freshnessMode,
@@ -1371,7 +1383,9 @@ export function EnhanceLessonForm({
         if (onLessonGenerated) {
           onLessonGenerated(result.data);
         }
-        await incrementUsage();
+        // Usage is incremented SERVER-SIDE by the generate-lesson edge function
+        // (one writer). The client only refreshes its view of the counters.
+        await refreshSubscription();
 
         // SERIES MODE: If style was extracted from Lesson 1, store in series
         if (result.data.style_metadata && isConsistentSeriesLesson1 && selectedSeries) {
@@ -2457,26 +2471,51 @@ export function EnhanceLessonForm({
                 </div>
               </div>
 
-              {/* Generate Lesson Teaser */}
-              <div className="flex items-start space-x-2">
-                <Checkbox
-                  id="generate-teaser"
-                  checked={generateTeaser}
-                  onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
-                  disabled={isSubmitting}
-                />
-                <div className="space-y-1">
-                  <label
-                    htmlFor="generate-teaser"
-                    className="text-sm font-medium leading-none cursor-pointer"
-                  >
-                    Generate Lesson Teaser
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    Build anticipation before you teach (perfect for emails, texts, or social media)
-                  </p>
+              {/* Lesson-type notice (free tier): Full = 8 sections / Short = 3, no teaser */}
+              {tier === 'free' && nextLessonType && (
+                <div
+                  className="rounded-md border border-border bg-muted/40 p-3 text-xs"
+                  role="status"
+                  aria-live="polite"
+                >
+                  {nextLessonType === 'short' ? (
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Short lesson (3 sections).</span>{' '}
+                      Your full lessons for this period are used. This lesson includes the Lesson
+                      Overview, Main Teaching Content, and the Group Handout, with no teaser.
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      <span className="font-medium text-foreground">Full lesson (8 sections).</span>{' '}
+                      All eight sections of the complete framework.
+                    </p>
+                  )}
                 </div>
-              </div>
+              )}
+
+              {/* Generate Lesson Teaser -- Full lessons only. Short lessons never
+                  show this control and never include a teaser. */}
+              {nextLessonType === 'full' && (
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="generate-teaser"
+                    checked={generateTeaser}
+                    onCheckedChange={(checked) => setGenerateTeaser(checked as boolean)}
+                    disabled={isSubmitting}
+                  />
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="generate-teaser"
+                      className="text-sm font-medium leading-none cursor-pointer"
+                    >
+                      Generate Lesson Teaser
+                    </label>
+                    <p className="text-xs text-muted-foreground">
+                      Build anticipation before you teach (perfect for emails, texts, or social media)
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Seasonal Theme Options - Hidden for now
               <div className="pt-3 border-t space-y-3">
@@ -2562,7 +2601,7 @@ export function EnhanceLessonForm({
               type="submit"
               className="w-full bg-primary hover:bg-primary-hover"
               size="lg"
-              disabled={isSubmitting || isEnhancing || subLessonsUsed >= subLessonsLimit || isExtracting || !step1Complete || !step2Complete || isCreatingSeries || (lessonSequence === 'part_of_series' && !selectedSeries)}
+              disabled={isSubmitting || isEnhancing || !canGenerate || isExtracting || !step1Complete || !step2Complete || isCreatingSeries || (lessonSequence === 'part_of_series' && !selectedSeries)}
             >
               {isSubmitting || isEnhancing ? (
                 <div className="flex items-center gap-2">
