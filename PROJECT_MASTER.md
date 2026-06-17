@@ -1,5 +1,48 @@
 # PROJECT MASTER -- Last updated: June 17, 2026
 
+## JUNE 17, 2026 SESSION (Edge-function xhr polyfill cleanup -- deploy unblock)
+
+Fully separate follow-up to the counter-unification deploy. During that deploy, the
+generate-lesson edge function repeatedly failed to bundle: the Supabase server-side
+bundler timed out (10s) fetching the line-1 dependency
+`import "https://deno.land/x/xhr@0.1.0/mod.ts";`. That xhr import is an XMLHttpRequest
+polyfill required by supabase-js v1; this codebase uses supabase-js v2 (native fetch),
+so it is dead code. Removed it to unblock the deploy, then swept the rest.
+
+STAGE 1 -- DIAGNOSE (read-only). Grep of supabase/functions for `deno.land/x/xhr`:
+5 hits, but 2 are generate-lesson backup files (.backup-*, never deploy). 3 LIVE
+functions carried it: admin-management, reshape-lesson, setup-lynn-admin.
+  * Corrected a wrong earlier assumption: it was NOT "the other 5 generators." Only
+    reshape-lesson is a generator; the other generators (generate-devotional,
+    generate-parable, extract-lesson, toolbelt-reflect) never had the import.
+  * Verified safe-remove for all three: repo-wide grep for XMLHttpRequest/XHR across
+    every function AND every _shared file = ZERO matches; all three import supabase-js
+    v2 (admin-management/setup-lynn-admin @2.58.0, reshape-lesson @2.57.4); no other
+    third-party import needs a global XHR. reshape-lesson's _shared graph is identical
+    to generate-lesson's, already proven running in prod without the polyfill.
+
+STAGE 2 -- REMOVE + DEPLOY.
+  * generate-lesson: line 1 removed earlier, commit e94fb09 (during the counter deploy).
+  * admin-management, reshape-lesson, setup-lynn-admin: line 1 removed, commit 434c8d6
+    ("Remove obsolete xhr polyfill from remaining edge functions"). Build clean; all
+    three ASCII-clean; re-grep confirmed no dangling xhr/XHR.
+  * Deployed one at a time via
+    `npx supabase functions deploy <name> --project-ref hphebzdftpjbiudpfcrs --use-api`
+    -- all three CLEAN, no retries. Pushed main once (e94fb09..434c8d6, exit 0).
+  * xhr import is now gone from ALL live edge functions; the deploy-timeout landmine
+    is fully cleared.
+
+CARRY-FORWARD (out of scope; flagged, not acted on): setup-lynn-admin/index.ts contains
+a HARDCODED email + plaintext password and resets that account to role='admin' with no
+in-function admin-role gate. It is an orphaned bootstrap (no UI trigger anywhere) and
+must NOT be invoked casually (it would reset that account's password to the hardcoded
+value). Worth a dedicated security session. DO NOT trigger as a smoke test.
+
+SMOKE-TEST TRIGGERS (live UI): reshape-lesson = the Reshape button on a saved lesson
+(safe); admin-management = Admin Panel -> User Management -> change a user's Role
+(updateUserRole is the only wired path; createUser/resetPassword exist in the hook but
+are not currently wired to UI); setup-lynn-admin = NO UI trigger, do not run.
+
 ## JUNE 17, 2026 SESSION (Free-tier counter unification + tier-bound teaser)
 
 Diagnosed read-only first, then implemented in four phases. NOT YET DEPLOYED at

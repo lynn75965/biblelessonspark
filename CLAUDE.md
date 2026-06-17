@@ -254,6 +254,18 @@ Migration history was fully reconciled March 20, 2026 (45 migrations, zero drift
 Before running db push: verify the SQL is correct AND the change is not already
 applied to the live database. The two-step check prevents duplicate migrations.
 
+EDGE FUNCTION DEPLOYS (added June 17, 2026): deploy a single function with
+  npx supabase functions deploy <name> --project-ref hphebzdftpjbiudpfcrs --use-api
+The `--linked` flag is REJECTED by `functions deploy` (it is valid only on `db push`).
+`--use-api` bundles server-side, so no local Docker or Deno is required (neither is
+installed on this box). `npx supabase` is authenticated; project hphebzdftpjbiudpfcrs
+(LessonSparkUSA) is linked. Deploy edge functions ONE AT A TIME and confirm each is
+clean. A 502/transient bundler error is retryable (the live function is unchanged on
+failure -- never half-deployed). NOTE: a function whose first import is the legacy
+`https://deno.land/x/xhr@0.1.0/mod.ts` polyfill will fail to bundle (CDN fetch
+timeout); that dead import was removed from all live functions June 17, 2026 -- do not
+reintroduce it (supabase-js v2 uses native fetch).
+
 ### Rule #21: Run /audit-ssot before touching constants, configs, or backend
 At the start of any session that touches constants, pricing, tier names, routes,
 or backend functions -- run the /audit-ssot slash command first.
