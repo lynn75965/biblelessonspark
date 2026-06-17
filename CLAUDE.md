@@ -333,6 +333,38 @@ Until then, the Supabase Security Advisor may flag these policies in a generic
 "hardcoded UUID" warning. That warning is intentionally accepted. Do not
 treat it as a fix-it ticket. Added May 31, 2026.
 
+### Rule #26: Lesson usage -- one server-side writer; teaser is tier-bound
+Added June 17, 2026 (free-tier counter unification).
+
+(1) CLIENT NEVER WRITES USAGE. Lesson usage is incremented SERVER-SIDE ONLY, in
+the generate-lesson Edge Function, after a successful save:
+  - free tier  -> profiles.trial_full_lessons_used / trial_short_lessons_used
+  - paid tier  -> incrementLessonUsage() (user_subscriptions.lessons_used)
+  - org member -> org pool consumption
+Do NOT reintroduce any client-side increment (the old
+useSubscription.incrementUsage() + EnhanceLessonForm call were removed). The
+client only READS via refreshSubscription().
+
+(2) FREE-TIER GATING SSOT = the profiles trial counters, read through
+getTrialStatus (trialConfig.ts). canGenerate, fullRemaining, shortRemaining,
+resetDate, and nextLessonType for free users derive from those counters -- NOT
+from the flat check_lesson_limit RPC counter. check_lesson_limit is used only
+for tier resolution and PAID-tier gating. One authoritative free "5" = 3 Full +
+2 Short. (Free model: 3 Full [sections 1..8] + 2 Short [1,5,8] per rolling 30
+days; block after 5. See PROJECT_MASTER June 17, 2026 entry.)
+
+(3) TEASER IS TIER-BOUND AND SERVER-ENFORCED. The teaser is a FULL-lesson
+feature only. generate-lesson computes effectiveTeaser = isFullLesson &&
+generate_teaser and FORCES it false on every Short lesson regardless of the
+request body. The frontend hides the teaser checkbox on Short and defaults it ON
+for Full. Never treat generate_teaser from the request as authoritative on its
+own.
+
+(4) SECTION-SHAPE SSOT = src/constants/lessonTiers.ts (FULL_SECTIONS [1..8],
+SHORT_SECTIONS [1,5,8], self-contained). pricingConfig.ts derives from it. The
+check_lesson_limit SQL arrays [1,5,8]/[1..8] are an INTENTIONAL documented mirror
+(SQL cannot import TS) -- keep in sync by hand; not an SSOT violation.
+
 ---
 
 ## DEBUGGING PROTOCOL

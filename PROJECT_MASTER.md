@@ -1,5 +1,83 @@
 # PROJECT MASTER -- Last updated: June 17, 2026
 
+## JUNE 17, 2026 SESSION (Free-tier counter unification + tier-bound teaser)
+
+Diagnosed read-only first, then implemented in four phases. NOT YET DEPLOYED at
+the time of this entry -- three local commits (54adefc, e96df82, and this docs
+commit). Deploy is Lynn's to run (frontend push -> Netlify + supabase functions
+deploy generate-lesson). Live phase confirmed = production (trial 3+2 model active).
+
+AUTHORITATIVE FREE-TIER MODEL (per rolling 30-day period). This SUPERSEDES every
+earlier description, including the April 6 Bug #33/#34 note that left the exhausted
+banner reading the flat RPC counter:
+  * 3 Full lessons  = sections [1..8]; teaser checkbox shown, DEFAULT ON.
+  * 2 Short lessons = sections [1,5,8]; NO teaser, and the teaser control is not
+    even rendered.
+  * Block generation after 5 total (3 Full, then 2 Short, then hard stop).
+  * Period clock starts on the FIRST Full lesson; resets 30 days later.
+  * Admin grant (trial_full_lesson_granted_until in the future) overrides: Full
+    available, reset date = grant date.
+
+ARCHITECTURE NOW (the desync this session removed):
+  * ONE COUNTER (free): profiles.trial_full_lessons_used /
+    trial_short_lessons_used is the single source of truth for free-tier gating,
+    remaining counts, reset date, and next-lesson type. The flat
+    user_subscriptions.lessons_used RPC counter is NO LONGER a free-tier gating
+    authority. Paid tiers still count in user_subscriptions.lessons_used.
+  * ONE WRITER (all tiers, server-side only): the generate-lesson Edge Function
+    is the sole writer of usage. Free -> profiles.trial_* update; paid ->
+    incrementLessonUsage() (restored; was dropped from the Jan backup); org ->
+    pool consumption. The CLIENT no longer writes usage at all -- the
+    useSubscription.incrementUsage() path and the EnhanceLessonForm call to it
+    were REMOVED. Verified repo-wide: the only live usage-writes are server-side.
+  * TEASER tier-bound and SERVER-ENFORCED: generate-lesson computes
+    effectiveTeaser = isFullLesson && generate_teaser and forces it FALSE on
+    every Short, regardless of the request body. A Short request that sets
+    generate_teaser=true still produces no teaser. The frontend hides the
+    checkbox on Short and defaults it ON for Full.
+  * ONE SECTION SSOT: src/constants/lessonTiers.ts is canonical and
+    self-contained -- it defines FULL_SECTIONS [1..8] and SHORT_SECTIONS [1,5,8]
+    and couples includesTeaser (full=true, basic=false). pricingConfig.ts DERIVES
+    FREE_TIER_SECTION_NUMBERS / FULL_TIER_SECTION_NUMBERS / TIER_SECTIONS from it
+    (same export names/shapes -- no consumer changed). generate-lesson imports the
+    _shared/lessonTiers.ts mirror at runtime for the Full/Short section sets.
+
+INTENTIONAL MIRROR (NOT an SSOT violation): the check_lesson_limit RPC
+(migration 20260606000000) hardcodes the section arrays [1,5,8] (free) and
+[1..8] (paid) in SQL. SQL cannot import the TypeScript lessonTiers SSOT, so this
+is a deliberate, documented mirror of the lessonTiers shapes -- keep it in sync
+by hand if the shapes ever change. Per this session's decision the RPC is left
+AS-IS (no migration): free gating moved entirely to the trial counters, so the
+RPC's free can_generate is no longer consulted; it is used only for tier
+resolution and PAID gating. There is one authoritative free "5" = the trial
+counters (3 + 2).
+
+FILES CHANGED:
+  Phase 1 (commit 54adefc -- SSOT inversion, no behavior change):
+    - src/constants/lessonTiers.ts (canonical, self-contained)
+    - src/constants/pricingConfig.ts (derives from lessonTiers)
+    - supabase/functions/_shared/lessonTiers.ts (regenerated via sync-constants)
+    - supabase/functions/_shared/pricingConfig.ts (hand-mirror; imports
+      ./lessonTiers.ts WITH .ts extension for Deno)
+  Phases 2 + 3 (commit e96df82 -- atomic: server increment + client removal):
+    - supabase/functions/generate-lesson/index.ts (section sets from lessonTiers;
+      teaser server-enforced; server-side paid increment; free gate = trial
+      counters)
+    - src/hooks/useSubscription.tsx (free fields from getTrialStatus; resetDate
+      from trial period; incrementUsage removed; refreshSubscription kept)
+    - src/components/dashboard/EnhanceLessonForm.tsx (refreshSubscription instead
+      of incrementUsage; teaser Full-only, default ON; lesson-type notice; submit
+      gated on canGenerate)
+    - src/components/dashboard/UsageDisplay.tsx (split summary, banner, reset date
+      from trial counters: "X of 3 Full, Y of 2 Short remaining -- Resets [date]")
+  Phase 4 (this commit -- docs only): PROJECT_MASTER.md + CLAUDE.md.
+
+VERIFICATION DONE LOCALLY: frontend build clean (3955 modules) after each phase;
+all touched files ASCII-clean (no BOM, zero non-ASCII); one-writer invariant
+grep-verified. NOT verified locally: Deno type-check of the edge function (no
+deno/supabase CLI on PATH -- import verified structurally only) and the
+paid-account end-to-end increment (needs deploy + a paid login).
+
 ## JUNE 17, 2026 SESSION (Team Lessons: caller-inclusion + lesson-title SSOT)
 
 Two related Team Lessons fixes, each diagnosed read-only first, verified on localhost:8080 before
