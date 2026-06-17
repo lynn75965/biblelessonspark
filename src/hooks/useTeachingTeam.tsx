@@ -706,7 +706,9 @@ export function useTeachingTeam() {
   /**
    * Fetch shared lessons from all team members (including lead teacher).
    * Returns lessons where visibility = 'shared' for all team participants
-   * EXCEPT the current user (their own lessons are already in their library).
+   * INCLUDING the current user -- the caller's own shared lessons appear in the
+   * Team Lessons view alongside everyone else's (changed 2026-06-17, migration
+   * 20260617120000; previously the caller's own rows were excluded).
    */
   const fetchTeamLessons = async (): Promise<{ data: any[]; error: any }> => {
     if (!user || !team) return { data: [], error: null };
@@ -715,9 +717,10 @@ export function useTeachingTeam() {
       // FACT A (live RLS read 2026-06-16): the lessons table has NO policy that
       // lets any user SELECT another user's row, so a client read of teammates'
       // shared lessons zero-filtered to 0 rows for BOTH lead and member. The
-      // get_team_lessons resolver (SECURITY DEFINER, migration 20260616160000)
-      // computes the caller's team peers (lead + accepted members) server-side
-      // and returns their visibility='shared' lessons, excluding the caller.
+      // get_team_lessons resolver (SECURITY DEFINER, migrations 20260616160000
+      // + 20260617120000) computes the caller's team peers (lead + accepted
+      // members, a set that already includes the caller) server-side and returns
+      // their visibility='shared' lessons, the caller's own rows included.
       const { data, error } = await supabase.rpc('get_team_lessons');
 
       if (error) throw error;
