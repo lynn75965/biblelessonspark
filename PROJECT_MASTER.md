@@ -1,4 +1,56 @@
-# PROJECT MASTER -- Last updated: June 16, 2026
+# PROJECT MASTER -- Last updated: June 17, 2026
+
+## JUNE 17, 2026 SESSION (Team Lessons: caller-inclusion + lesson-title SSOT)
+
+Two related Team Lessons fixes, each diagnosed read-only first, verified on localhost:8080 before
+deploy, then shipped. Both arose from the same feature surface (LessonLibrary "My Lessons" /
+"Team Lessons" toggle).
+
+FIX 1 -- Team Lessons now includes the caller's OWN shared lessons (commit 5b6248b).
+  * Symptom: a teacher's own shared lessons did NOT appear in the Team Lessons view (only peers').
+  * Root cause (live trace): get_team_lessons() (migration 20260616160000) ended its WHERE with
+    `AND l.user_id <> auth.uid()`, deliberately excluding the caller. The peers CTE ALREADY
+    included the caller in both roles (as lead: peers selects lead_teacher_id = auth.uid(); as
+    accepted member: caller is in the status='accepted' union) -- so only the WHERE exclusion
+    suppressed their rows.
+  * MIGRATION (applied via npx supabase db push --linked):
+    supabase/migrations/20260617120000_team_lessons_include_caller.sql (NEW) --
+    CREATE OR REPLACE FUNCTION public.get_team_lessons(); the ONLY change vs 20260616160000 is the
+    removal of `AND l.user_id <> auth.uid()`. Everything else byte-for-byte preserved: my_team +
+    peers CTEs, JOIN peers ON pe.peer_id = l.user_id, l.visibility='shared', l.reshape_of IS NULL,
+    RETURNS TABLE shape, SECURITY DEFINER / STABLE / SET search_path = public, auth, and the
+    REVOKE PUBLIC/anon + GRANT authenticated grants. No peer-set change was needed. Authorization
+    boundary unchanged (caller's own single team; no-team caller -> 0 rows).
+  * FRONTEND (comments only): src/hooks/useTeachingTeam.tsx -- fetchTeamLessons header (was lines
+    708-710) and the FACT A comment block updated to say the caller's own rows are now INCLUDED.
+    No executable change; still just supabase.rpc('get_team_lessons').
+
+FIX 2 -- Lesson title SSOT: DB `title` column is now authoritative in BOTH views (commit 2643d0a).
+  * Symptom (reported as the "inverse" bug): Cornerstone's lessons appeared in Team Lessons but
+    seemed MISSING from My Lessons. Live diagnosis (supabase db query --linked) proved they were
+    NOT missing -- Cornerstone (13afe118..., lead of team "Kids") owns exactly 4 lessons, all
+    visibility='shared', reshape_of=NULL, has content; all 4 render in My Lessons. The rows were
+    just displayed under DIFFERENT titles in each view.
+  * Root cause: two different title sources for the same row.
+      - My Lessons showed ai_lesson_title = extractLessonTitle(original_text) -- the AI-generated
+        "Lesson Title:" embedded in the body (e.g. "Meeting the One God in Three Persons").
+      - Team Lessons showed the DB `title` column (e.g. "Introduction to the triune God"),
+        because get_team_lessons returns original_text=null -> extraction yields null -> the card
+        falls back to lesson.title.
+    NOT a reshape parent/child difference (all 4 rows reshape_of=NULL), NOT a filter/visibility/
+    draft exclusion (lessons has no status column; "Draft" badge = original_text IS NULL).
+  * FRONTEND (src/components/dashboard/LessonLibrary.tsx, 2 lines; build clean; deployed):
+      - Card title render (line 628): now `lesson.title || lesson.bible_passage ||
+        lesson.focused_topic || 'Untitled Lesson'` (was led by lesson.ai_lesson_title).
+      - Title search filter (line 323): now matches lesson.title (was ai_lesson_title), keeping
+        search consistent with what the card shows.
+    Team Lessons display output is unchanged (its rows already resolved to lesson.title). The
+    get_team_lessons RPC, reshape logic, and all other filters were untouched. ai_lesson_title is
+    still computed in transformToDisplay and still feeds the DevotionalSpark title default
+    (LessonLibrary line 404); it is no longer used for card display or title search.
+
+VERIFICATION: Lynn confirmed on localhost:8080 for both fixes -- (1) the shared card appears in
+both My Lessons and Team Lessons; (2) the three named titles now match across both views.
 
 ## JUNE 16, 2026 SESSION (Teaching Team full-feature lock-down -- SESSION 3 of 3: LIFECYCLE + SECURITY)
 
