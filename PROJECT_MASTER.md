@@ -66,10 +66,20 @@ cleanup entry at top of file.]
 
 ## JUNE 17, 2026 SESSION (Free-tier counter unification + tier-bound teaser)
 
-Diagnosed read-only first, then implemented in four phases. NOT YET DEPLOYED at
-the time of this entry -- three local commits (54adefc, e96df82, and this docs
-commit). Deploy is Lynn's to run (frontend push -> Netlify + supabase functions
-deploy generate-lesson). Live phase confirmed = production (trial 3+2 model active).
+Diagnosed read-only first, then implemented in four phases. DEPLOYED AND VERIFIED
+IN PRODUCTION this session (June 17, 2026):
+  * Deployed: generate-lesson edge function via
+    `npx supabase functions deploy generate-lesson ... --use-api`, and the frontend
+    pushed to main (Netlify auto-deploy published). Deploy required first removing an
+    obsolete xhr polyfill import that was timing out the Supabase bundler -- see the
+    "Edge-function xhr polyfill cleanup" entry below; the unblocking commit was e94fb09.
+  * Verified in production -- paid account: an end-to-end test showed
+    user_subscriptions.lessons_used increment by EXACTLY +1 (single server-side writer
+    confirmed; no double-count from a client increment).
+  * Verified in production -- free tier (Ed Hale, trial_full=2 / trial_short=0): the
+    Usage card correctly read "1 of 3 Full, 2 of 2 Short remaining -- Resets Jul 9",
+    and the teaser checkbox was shown on his next (Full) lesson.
+  * Live phase confirmed = production (trial 3+2 model active).
 
 AUTHORITATIVE FREE-TIER MODEL (per rolling 30-day period). This SUPERSEDES every
 earlier description, including the April 6 Bug #33/#34 note that left the exhausted
