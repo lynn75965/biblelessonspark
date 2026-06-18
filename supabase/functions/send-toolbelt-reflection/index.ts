@@ -20,6 +20,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,26 +39,6 @@ const CAP_IP_PER_HOUR = 10;
 const CAP_EMAIL_PER_DAY = 3;
 const CAP_GLOBAL_PER_DAY = 500;
 
-/**
- * Best-effort client IP. x-forwarded-for is client-spoofable in Supabase Edge
- * Functions; the real client IP is the RIGHTMOST entry (proxies append it), so
- * the leftmost value is never trusted. cf-connecting-ip (if Cloudflare-fronted)
- * is preferred. IP is a secondary control only -- the per-email and global caps
- * are the spoof-proof primary defenses.
- */
-function getClientIP(req: Request): string {
-  const cf = req.headers.get("cf-connecting-ip");
-  if (cf) return cf.trim();
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) {
-    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
-    if (parts.length > 0) return parts[parts.length - 1];
-  }
-  const real = req.headers.get("x-real-ip");
-  if (real) return real.trim();
-  return "unknown";
-}
-
 function escapeHtml(input: string): string {
   return input
     .replace(/&/g, "&amp;")
@@ -65,52 +46,6 @@ function escapeHtml(input: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function windowStartsISO(): { hour: string; day: string } {
-  const now = new Date();
-  const hour = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours()
-  )).toISOString();
-  const day = new Date(Date.UTC(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()
-  )).toISOString();
-  return { hour, day };
-}
-
-/**
- * Fail-CLOSED multi-scope rate limit. Increments each scope atomically via the
- * service_role-only increment_rate_limit RPC and rejects if any returned count
- * exceeds its cap. Any RPC error => blocked (fail closed).
- */
-async function enforceRateLimits(
-  supabase: any,
-  ip: string,
-  email: string,
-): Promise<{ blocked: boolean; scope?: string }> {
-  const { hour, day } = windowStartsISO();
-  const checks = [
-    { endpoint: "toolbelt-reflection:ip", identifier: ip, window: hour, cap: CAP_IP_PER_HOUR },
-    { endpoint: "toolbelt-reflection:email", identifier: email, window: day, cap: CAP_EMAIL_PER_DAY },
-    { endpoint: "toolbelt-reflection:global", identifier: "GLOBAL", window: day, cap: CAP_GLOBAL_PER_DAY },
-  ];
-
-  for (const c of checks) {
-    const { data, error } = await supabase.rpc("increment_rate_limit", {
-      p_endpoint: c.endpoint,
-      p_identifier: c.identifier,
-      p_window_start: c.window,
-    });
-    if (error) {
-      console.error("[send-toolbelt-reflection] rate-limit RPC error (fail closed):", c.endpoint, error.message);
-      return { blocked: true, scope: c.endpoint };
-    }
-    const count = Array.isArray(data) ? data[0] : data;
-    if (typeof count !== "number" || count > c.cap) {
-      return { blocked: true, scope: c.endpoint };
-    }
-  }
-  return { blocked: false };
 }
 
 serve(async (req) => {
@@ -168,7 +103,12 @@ serve(async (req) => {
 
     // Fail-CLOSED rate limiting, before any send.
     const ip = getClientIP(req);
-    const rl = await enforceRateLimits(supabase, ip, recipient);
+    const { hour, day } = windowStartsISO();
+    const rl = await checkRateLimits(supabase, [
+      { endpoint: "toolbelt-reflection:ip", identifier: ip, windowStart: hour, cap: CAP_IP_PER_HOUR },
+      { endpoint: "toolbelt-reflection:email", identifier: recipient, windowStart: day, cap: CAP_EMAIL_PER_DAY },
+      { endpoint: "toolbelt-reflection:global", identifier: "GLOBAL", windowStart: day, cap: CAP_GLOBAL_PER_DAY },
+    ]);
     if (rl.blocked) {
       console.warn("[send-toolbelt-reflection] rate limited:", rl.scope, "ip:", ip, "email:", recipient);
       return new Response(

@@ -38,6 +38,7 @@ import {
   type ToolbeltToolId,
 } from "../_shared/toolbeltConfig.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
+import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -321,6 +322,25 @@ serve(async (req) => {
     }
 
     const tool = TOOLBELT_TOOLS[body.tool_id];
+
+    // ========================================================================
+    // 2b. FAIL-CLOSED RATE LIMITING (before any paid Anthropic call)
+    // ========================================================================
+
+    const ip = getClientIP(req);
+    const { hour, day } = windowStartsISO();
+    const rl = await checkRateLimits(supabase, [
+      { endpoint: "toolbelt-reflect:ip", identifier: ip, windowStart: hour, cap: 8 },
+      { endpoint: "toolbelt-reflect:session", identifier: body.session_id, windowStart: day, cap: 10 },
+      { endpoint: "toolbelt-reflect:global", identifier: "GLOBAL", windowStart: day, cap: 750 },
+    ]);
+    if (rl.blocked) {
+      console.warn("[toolbelt-reflect] rate limited:", rl.scope, "ip:", ip);
+      return new Response(
+        JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again later.", code: "RATE_LIMITED" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // ========================================================================
     // 3. BUILD PROMPTS
