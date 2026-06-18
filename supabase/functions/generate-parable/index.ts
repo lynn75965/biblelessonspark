@@ -23,6 +23,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
+import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
 
 // =============================================================================
 // TYPES
@@ -130,19 +131,9 @@ function getBearerToken(req: Request): string | null {
   return m ? m[1] : null;
 }
 
-function getClientIP(req: Request): string {
-  // Try various headers that might contain the real IP
-  const forwarded = req.headers.get("x-forwarded-for");
-  if (forwarded) {
-    return forwarded.split(",")[0].trim();
-  }
-  const realIP = req.headers.get("x-real-ip");
-  if (realIP) {
-    return realIP.trim();
-  }
-  // Fallback - this may be the proxy IP
-  return "unknown";
-}
+// getClientIP is imported from _shared/edgeRateLimit.ts (trusted-IP order:
+// cf-connecting-ip -> rightmost x-forwarded-for hop -> x-real-ip -> "unknown").
+// The old local version trusted the spoofable leftmost x-forwarded-for entry.
 
 function billingPeriodStartISO(): string {
   const now = new Date();
@@ -551,6 +542,9 @@ const ANONYMOUS_DEFAULTS = {
 // ANONYMOUS USAGE TRACKING (IP-based, 3/day limit)
 // =============================================================================
 
+// DEPRECATED / UNUSED: anonymous limiting now uses the shared fail-CLOSED
+// checkRateLimits (parable:anon-ip + parable:global). Retained as dead code
+// pending a separate cleanup; anonymous_parable_usage is no longer written.
 async function checkAnonymousLimit(
   supabaseAdmin: ReturnType<typeof createClient>,
   ipAddress: string,
@@ -1081,23 +1075,22 @@ Deno.serve(async (req: Request) => {
     const ipAddress = getClientIP(req);
     console.log("Anonymous request from IP:", ipAddress);
     
-    // Check daily limit (3/day)
-    let anonUsage: { allowed: boolean; used: number; remaining: number };
-    try {
-      console.log("Checking anonymous limit...");
-      anonUsage = await checkAnonymousLimit(supabaseAdmin, ipAddress, 3);
-      console.log("Anonymous limit check result:", JSON.stringify(anonUsage));
-    } catch (limitErr) {
-      console.error("CRITICAL: checkAnonymousLimit threw:", limitErr);
-      // Fail open - allow the request
-      anonUsage = { allowed: true, used: 0, remaining: 3 };
-    }
+    // Fail-CLOSED rate limit BEFORE any paid call: 3/day per TRUSTED IP, plus a
+    // global/day spend backstop. Replaces the old fail-open, spoofable-leftmost-
+    // x-forwarded-for checkAnonymousLimit.
+    const { day } = windowStartsISO();
+    const rl = await checkRateLimits(supabaseAdmin, [
+      { endpoint: "parable:anon-ip", identifier: ipAddress, windowStart: day, cap: 3 },
+      { endpoint: "parable:global", identifier: "GLOBAL", windowStart: day, cap: 500 },
+    ]);
+    const anonUsed = rl.counts["parable:anon-ip"] ?? 0;
+    const anonRemaining = Math.max(0, 3 - anonUsed);
     
-    if (!anonUsage.allowed) {
-      return json({
-        success: false,
-        error: "Daily limit reached. You can generate more parables tomorrow, or create a free account for additional access.",
-      }, 429);
+    if (rl.blocked) {
+      const blockMsg = rl.scope === "parable:global"
+        ? "We've hit today's capacity for free parables. Please try again tomorrow, or create a free account."
+        : "Daily limit reached. You can generate more parables tomorrow, or create a free account for additional access.";
+      return json({ success: false, error: blockMsg }, 429);
     }
 
     try {
@@ -1140,9 +1133,9 @@ Deno.serve(async (req: Request) => {
         },
         anonymous: true,
         usage: { 
-          used: anonUsage.used, 
+          used: anonUsed,
           limit: 3,
-          remaining: anonUsage.remaining,
+          remaining: anonRemaining,
           limit_type: "daily"
         },
       });
@@ -1173,8 +1166,29 @@ Deno.serve(async (req: Request) => {
   try {
     // ADMIN BYPASS - skip usage limits
     if (!isAdmin) {
+      // Global/day spend backstop (fail-CLOSED) -- applies to all non-admin users.
+      const { day } = windowStartsISO();
+      const globalRl = await checkRateLimits(supabaseAdmin, [
+        { endpoint: "parable:global", identifier: "GLOBAL", windowStart: day, cap: 500 },
+      ]);
+      if (globalRl.blocked) {
+        return json({
+          success: false,
+          error: "We've hit today's capacity for parable generation. Please try again tomorrow.",
+        }, 429);
+      }
+
       const monthlyLimit = Number(Deno.env.get("PARABLE_MONTHLY_LIMIT") ?? "7");
-      const usage = await checkAuthenticatedLimit(supabaseAdmin, user.id, monthlyLimit);
+      let usage: { allowed: boolean; used: number; limit: number; remaining: number };
+      try {
+        usage = await checkAuthenticatedLimit(supabaseAdmin, user.id, monthlyLimit);
+      } catch (limitErr) {
+        console.error("Authenticated rate-check failed (fail closed):", limitErr);
+        return json({
+          success: false,
+          error: "Unable to verify your usage right now. Please try again shortly.",
+        }, 429);
+      }
 
       if (!usage.allowed) {
         return json({
