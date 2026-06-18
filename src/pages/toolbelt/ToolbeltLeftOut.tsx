@@ -54,6 +54,7 @@ export default function ToolbeltLeftOut() {
   // UI state
   const [isGenerating, setIsGenerating] = useState(false);
   const [reflection, setReflection] = useState<string | null>(null);
+  const [reflectionId, setReflectionId] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -100,6 +101,7 @@ export default function ToolbeltLeftOut() {
 
     setIsGenerating(true);
     setReflection(null);
+    setReflectionId(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('toolbelt-reflect', {
@@ -114,6 +116,7 @@ export default function ToolbeltLeftOut() {
 
       if (data?.success && data?.reflection) {
         setReflection(data.reflection);
+        setReflectionId(data.reflection_id ?? null);
       } else {
         throw new Error(data?.error || 'Failed to generate reflection');
       }
@@ -130,7 +133,16 @@ export default function ToolbeltLeftOut() {
   };
 
   const handleSendEmail = async () => {
-    if (!email || !reflection) return;
+    if (isSendingEmail) return;
+    if (!email) return;
+    if (!reflectionId) {
+      toast({
+        title: "Reflection not ready",
+        description: "Please regenerate your reflection, then send.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -148,8 +160,7 @@ export default function ToolbeltLeftOut() {
       const { data, error } = await supabase.functions.invoke('send-toolbelt-reflection', {
         body: {
           email,
-          tool_id: 'left-out',
-          reflection,
+          reflection_id: reflectionId,
         },
       });
 
@@ -178,6 +189,7 @@ export default function ToolbeltLeftOut() {
 
   const handleStartOver = () => {
     setReflection(null);
+    setReflectionId(null);
     setEmail('');
     setEmailSent(false);
     setFormData({
@@ -379,19 +391,21 @@ export default function ToolbeltLeftOut() {
                       />
                       <Button
                         onClick={handleSendEmail}
-                        disabled={!email || isSendingEmail}
+                        aria-disabled={!email || isSendingEmail}
+                        aria-label={isSendingEmail ? "Sending reflection to your email" : "Send reflection to my email"}
+                        className={!email || isSendingEmail ? "opacity-50" : undefined}
                         variant="secondary"
                       >
                         {isSendingEmail ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                         ) : (
                           'Send to me'
                         )}
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center text-sm text-primary">
-                      <Check className="h-4 w-4 mr-2" />
+                    <div className="flex items-center text-sm text-primary" role="status" aria-live="polite">
+                      <Check className="h-4 w-4 mr-2" aria-hidden="true" />
                       Sent! Check your inbox.
                     </div>
                   )}
