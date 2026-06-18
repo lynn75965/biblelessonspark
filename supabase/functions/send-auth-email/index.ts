@@ -36,13 +36,26 @@ serve(async (req) => {
     
     console.log('Received auth email webhook request')
 
-    // Verify webhook signature if secret is configured
+    // Webhook signature is MANDATORY (fail CLOSED). Refuse if the secret is not
+    // configured; reject any payload whose signature does not verify. There is
+    // no unsigned fallback -- this endpoint only accepts the Supabase auth hook.
+    if (!hookSecret) {
+      console.error('SEND_EMAIL_HOOK_SECRET not configured -- refusing auth email webhook')
+      return new Response(
+        JSON.stringify({ error: { message: 'Server not configured' } }),
+        { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
+    }
     let webhookData: any
-    if (hookSecret) {
+    try {
       const wh = new Webhook(hookSecret)
       webhookData = wh.verify(payload, headers)
-    } else {
-      webhookData = JSON.parse(payload)
+    } catch (verifyErr: any) {
+      console.error('Webhook signature verification failed:', verifyErr?.message)
+      return new Response(
+        JSON.stringify({ error: { message: 'Invalid signature' } }),
+        { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
+      )
     }
 
     const {
