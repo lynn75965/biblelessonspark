@@ -371,17 +371,24 @@ serve(async (req) => {
     // 5. LOG USAGE
     // ========================================================================
 
-    const { error: usageError } = await supabase
+    // Persist the generated reflection as the server source-of-truth so that
+    // send-toolbelt-reflection can render the email from the stored row by id
+    // (content lock) instead of trusting caller-supplied body text. The row id
+    // is returned to the client as reflection_id.
+    const { data: usageRow, error: usageError } = await supabase
       .from("toolbelt_usage")
       .insert({
         tool_id: body.tool_id,
         session_id: body.session_id,
         tokens_used: tokensUsed,
-      });
+        reflection_text: reflection,
+      })
+      .select("id")
+      .single();
 
     if (usageError) {
       console.error("[toolbelt-reflect] Usage logging error:", usageError.message);
-      // Non-fatal - reflection was generated successfully
+      // Non-fatal - reflection was generated successfully (reflection_id will be null)
     }
 
     const duration = Date.now() - startTime;
@@ -395,6 +402,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         reflection: reflection,
+        reflection_id: usageRow?.id ?? null,
         tool_name: tool.name,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
