@@ -83,8 +83,8 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
       enforcementNote = `
 
 \u26A0\uFE0F CRITICAL ENFORCEMENT FOR THIS SECTION:
-1. MANDATORY MINIMUM: ${section.minWords} words (COUNT CAREFULLY)
-2. Every sentence must ADD NEW INSIGHT or DEPTH
+1. REQUIRED RANGE: ${section.minWords}-${section.maxWords} words -- stay at or above ${section.minWords}; do NOT exceed ${section.maxWords}
+2. Achieve depth through DENSITY, not length -- pack insight into each sentence
 3. If explaining a concept, give the WHY and HOW, not just the WHAT
 4. Anticipate follow-up questions and answer them preemptively
 5. Connect abstract theology to concrete life application
@@ -107,12 +107,13 @@ function buildSectionsPrompt(sections: ReturnType<typeof getRequiredSections>, i
 
 \u26A0\uFE0F QUALITY CHECK: Before finishing this section, ask yourself:
 "Could a volunteer teacher use this to answer student questions with confidence?"
-If no, add more depth and explanation.`;
+If not, tighten and clarify -- do NOT add length. When the teaching is complete within the range, STOP.`;
     }
 
     return `
 ## Section ${section.id}: ${section.name}
 **Purpose:** ${section.purpose}${optionalNote}${enforcementNote}
+**WORD COUNT:** ${section.minWords}-${section.maxWords} words -- HARD MAXIMUM ${section.maxWords}; do NOT exceed it.
 
 **MUST INCLUDE:**
 ${rules}
@@ -178,10 +179,12 @@ RULE 1: REDUNDANCY PREVENTION BY ARCHITECTURE
 - Sections 4, 5, 6, 7, 8 must REFERENCE Section 3, never REPEAT it
 - If you explained a concept in Section 3, do NOT explain it again
 
-RULE 2: WORD BUDGET ENFORCEMENT
-- Each section has MANDATORY min/max word limits - RESPECT THEM
+RULE 2: WORD BUDGET ENFORCEMENT (HARD CAP)
+- Each section has MANDATORY min/max word limits - RESPECT BOTH THE MIN AND THE MAX
 - Total lesson target: ${baseWordMin}-${baseWordMax} words
-- Going over budget causes timeouts and failures
+- HARD CAP: do NOT exceed ~3,200 words total across all sections. Stop when the
+  lesson is complete -- do not pad, do not over-explain, do not exceed any section maximum.
+- Going over budget causes timeouts and truncation failures
 
 RULE 3: SECTION PURPOSE INTEGRITY
 - Each section has ONE purpose - fulfill it, nothing more
@@ -697,9 +700,45 @@ serve(async (req) => {
 
     const copyrightGuardrails = generateCopyrightGuardrails(bibleVersion.id);
 
-    const systemPrompt = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
+    // =========================================================================
+    // PROMPT ASSEMBLY (Phase 2: cacheable static prefix + dynamic suffix)
+    // The system prompt is split so the large, request-invariant guardrails and
+    // lesson-structure block sit FIRST as a cacheable prefix (cache_control on
+    // the first block caches everything up to and including it). The dynamic,
+    // per-request content (theology, age, bible version, customization,
+    // freshness, style) follows the breakpoint and is never cached. The static
+    // prefix varies only by section-shape (full vs short) -- so just a couple of
+    // cache variants -- which keeps the cache hit-rate high. Prompt caching is GA
+    // (no anthropic-beta header needed); min cacheable prefix on sonnet-4-6 is
+    // 2048 tokens, which this static block comfortably exceeds.
+    // =========================================================================
+    const staticSystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
+
+${buildCompressionRules(effectiveTeaser)}
+
+${buildTruthGuardrails()}
 
 -------------------------------------------------------------------------------
+LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
+-------------------------------------------------------------------------------
+${buildSectionsPrompt(filteredSections, effectiveTeaser)}
+
+-------------------------------------------------------------------------------
+OUTPUT REQUIREMENTS
+-------------------------------------------------------------------------------
+Generate all ${totalSections} sections in order. Follow EXACT formatting:
+
+## Section N: [Section Name]
+
+[Section content following rules above]
+
+---
+
+Each section separated by "---" on its own line.
+Meet ALL word minimums. Respect ALL word maximums. Do NOT exceed any section maximum.
+`;
+
+    const dynamicSystemSuffix = `-------------------------------------------------------------------------------
 THEOLOGY PROFILE: ${theologyProfile.name}
 -------------------------------------------------------------------------------
 ${theologyProfile.summary}
@@ -723,10 +762,6 @@ to the leader, the group, and the people in it. Do NOT use alternate terms like
 "class" when the gathering is "Congregation", or "teacher" when the role is "Pastor".
 Never mention Sunday School unless the content specifically requires it.
 
-${buildCompressionRules(effectiveTeaser)}
-
-${buildTruthGuardrails()}
-
 -------------------------------------------------------------------------------
 BIBLE VERSION: ${bibleVersion.name} (${bibleVersion.abbreviation})
 -------------------------------------------------------------------------------
@@ -737,7 +772,6 @@ ${copyrightGuardrails}
 
 ${customizationDirectives}
 
-
 ${buildTeaserInstructions(effectiveTeaser, selectedTeaserFreshness)}
 
 ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
@@ -745,25 +779,6 @@ ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_
 ${freshnessPromptAddition}
 
 ${consistentStylePromptAddition}
-
--------------------------------------------------------------------------------
-LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
--------------------------------------------------------------------------------
-${buildSectionsPrompt(filteredSections, effectiveTeaser)}
-
--------------------------------------------------------------------------------
-OUTPUT REQUIREMENTS
--------------------------------------------------------------------------------
-Generate all ${totalSections} sections in order. Follow EXACT formatting:
-
-## Section N: [Section Name]
-
-[Section content following rules above]
-
----
-
-Each section separated by "---" on its own line.
-Meet ALL word minimums. Respect ALL word maximums.
 
 ${styleExtractionPromptAddition}
 `;
@@ -794,7 +809,8 @@ ${styleExtractionPromptAddition}
 
     checkpoint = logTiming('Prompt built', checkpoint);
 
-    console.log(`System prompt: ${systemPrompt.length} chars (~${Math.round(systemPrompt.length / 4)} tokens)`);
+    console.log(`System prompt static prefix (cached): ${staticSystemPrefix.length} chars (~${Math.round(staticSystemPrefix.length / 4)} tokens)`);
+    console.log(`System prompt dynamic suffix: ${dynamicSystemSuffix.length} chars (~${Math.round(dynamicSystemSuffix.length / 4)} tokens)`);
     console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);
 
     const controller = new AbortController();
@@ -816,7 +832,10 @@ ${styleExtractionPromptAddition}
           model: ANTHROPIC_MODEL,
           max_tokens: 8000,
           temperature: 0.6,
-          system: systemPrompt,
+          system: [
+            { type: 'text', text: staticSystemPrefix, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: dynamicSystemSuffix }
+          ],
           messages: [{ role: 'user', content: userPrompt }]
         })
       });
