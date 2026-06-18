@@ -1,4 +1,49 @@
-# PROJECT MASTER -- Last updated: June 17, 2026
+# PROJECT MASTER -- Last updated: June 18, 2026
+
+## JUNE 18, 2026 SESSION (Edge-function security audit -- 8 findings closed)
+
+Full authorization/exposure audit of all 44 edge functions, triggered by the June 17
+setup-lynn-admin removal (same class: a service-role privileged action reachable via the
+public anon JWT). Every finding below is FIXED, deployed to project hphebzdftpjbiudpfcrs,
+and pushed to main. All fixes use a fail-CLOSED posture.
+
+| # | Function | Severity | Hole | Fix | Commit | Verification |
+|---|---|---|---|---|---|---|
+| 1 | send-sequence-email | CRITICAL | Service-role bulk mailer, NO auth -- anon key could blast the whole email sequence to every user + corrupt tracking | Fail-closed x-cron-secret gate + verify_jwt=false; secret set; pg_cron jobid 3 updated to send it (zero-gap cutover) | 0802752 | cron jobid 3 sends secret, old job removed; gate rejects without header |
+| 2 | send-toolbelt-reflection | HIGH | Unauth open-relay: branded email to any address w/ caller-authored HTML body, unbounded | id-based content lock (server-rendered, HTML-escaped) + fail-closed 3-scope limit (10/IP-hr, 3/email-day, 500/day) | 20260618120000 migration, 1a2d03b, ad6cd1e, c58f930, c29ed93 | live curl: raw-HTML escaped; 4th send/recipient -> 429 |
+| 3 | toolbelt-reflect | HIGH | "Public tools" -- paid Anthropic every POST, no limit | Shared fail-closed limiter (8/IP-hr, 10/session-day, 750/day) before paid call | 97c8660, 8142e2d | live curl: 200x4 -> 429; thrown-RPC fail-closed fix verified |
+| 4 | generate-parable | HIGH | Anon path: paid Anthropic + NewsData behind fail-open, spoofable-leftmost-XFF limiter | Trusted-IP (rightmost / cf-connecting-ip) + fail-closed parable:anon-ip 3/day + parable:global 500/day; authed error -> 429 | 952f600 | live curl: 4 distinct spoofed XFFs shared one bucket -> 200x3 -> 429 |
+| 5 | purchase-onboarding | MED (authz bypass) | self_service branch inserted an onboarding row for ANY org_id with no ownership check | Hoisted org creator/manager check above self_service (gates both paths); unauthorized -> 403 | c1b846c | anon probe -> 401 (auth gate); 403/200 test snippet provided (needs user JWT) |
+| 6 | send-auth-email | MED | Signature verify CONDITIONAL -- if SEND_EMAIL_HOOK_SECRET unset, parsed unsigned payloads (branded-auth-email relay) | Mandatory verify: unset -> 500, bad/missing sig -> 401; removed unsigned fallback | 01f45f1 | live curl: unsigned crafted payload -> 401, no email; secret confirmed set in prod |
+| 7 | extract-lesson | MED | getUser but NO usage limit -- any (incl. free) account ran unbounded paid Sonnet vision/doc extraction | Dedicated extraction cap (25/user-day, 15/IP-hr, 300/day) before form parse + paid call; admin bypass | f89e786 | gate ordering proven (L59 limit / L67 429 < L73 parse < L91+ Anthropic) |
+| 8 | generate-devotional | MED | Limit RPC error swallowed -> fail-open to the paid call (cap bypass on RPC hiccup) | Fail-closed: error/thrown/null result -> 503; keep 403 LIMIT_REACHED + RPC; + devotional:global 500/day backstop | 2bc6721 | gate ordering proven (backstop/limit/503/403 all before L671 Anthropic) |
+
+SHARED INFRASTRUCTURE BUILT THIS PASS:
+  * _shared/edgeRateLimit.ts -- getClientIP (trusted order: cf-connecting-ip ->
+    rightmost x-forwarded-for hop -> x-real-ip -> "unknown"), windowStartsISO, and
+    fail-CLOSED checkRateLimits (returns per-scope counts). SSOT limiter now imported by
+    findings 2, 3, 4, 7, 8. Hand-maintained _shared file (Rule #24); not in FILES_TO_SYNC.
+  * Migration 20260618120000_toolbelt_email_hardening.sql -- rate_limits unique index on
+    (endpoint, identifier, window_start) + increment_rate_limit(text,text,timestamptz)
+    SECURITY DEFINER RPC (service_role only) + toolbelt_usage.reflection_text column +
+    REVOKE ALL on toolbelt_usage FROM anon, authenticated. Applied via db push --linked.
+
+CROSS-CUTTING LESSON -- verify_jwt IS NOT A SECURITY BOUNDARY: the public anon key is a
+valid project-signed JWT shipped in the frontend bundle, so verify_jwt=true is satisfied by
+anyone. Every real gate must be IN-FUNCTION (webhook signature, caller ownership/role, or
+rate limit) or a trusted-IP / shared-secret check -- never verify_jwt alone. Corollary:
+functions that call getUser cannot be exercised past their gate with the anon key (it
+resolves to no user -> 401 before the gate), so those fixes were proven by gate-ordering
+plus the shared limiter's already-verified behavior, not by burning paid API calls.
+
+OPEN AT-LEISURE VERIFICATIONS (non-blocking -- everything is shipped; these only confirm
+the legitimate happy-paths, which require a real user session):
+  1. #5 purchase-onboarding: logged in, self_service for YOUR OWN org -> 200, and for an
+     org you do NOT own/manage -> 403. (Needs your session token.)
+  2. #6 send-auth-email: confirm a real signup/recovery email still sends via the
+     legitimate Supabase auth-hook path.
+  3. #7 extract-lesson: non-admin no-file burst -> 25x 400 then 429 (zero paid calls;
+     needs a non-admin user token).
 
 ## JUNE 17, 2026 SESSION (Security cleanup -- setup-lynn-admin removed)
 
