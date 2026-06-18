@@ -42,7 +42,7 @@ function textToHtml(text: string): string {
       .replace(/>/g, "&gt;");
     
     // Check if this is a bullet point
-    const bulletMatch = line.match(/^[•\-]\s+(.+)$/);
+    const bulletMatch = line.match(/^[\u2022\-]\s+(.+)$/);
     if (bulletMatch) {
       if (!inList) {
         htmlLines.push(`<ul style="margin: 12px 0; padding-left: 24px;">`);
@@ -104,11 +104,11 @@ function textToHtml(text: string): string {
 
 // Get appropriate button text based on URL
 function getButtonText(url: string): string {
-  if (url.includes("/pricing")) return "View Pricing Plans →";
-  if (url.includes("/lesson-generator")) return "Create Your Lesson →";
-  if (url.includes("/preferences")) return "Set Up Your Profile →";
-  if (url.includes("/help")) return "Get Help →";
-  return "Get Started →";
+  if (url.includes("/pricing")) return "View Pricing Plans \u2192";
+  if (url.includes("/lesson-generator")) return "Create Your Lesson \u2192";
+  if (url.includes("/preferences")) return "Set Up Your Profile \u2192";
+  if (url.includes("/help")) return "Get Help \u2192";
+  return "Get Started \u2192";
 }
 
 // Generate branded HTML email template
@@ -131,7 +131,7 @@ function generateHtmlEmail(subject: string, bodyHtml: string): string {
           <tr>
             <td style="background: linear-gradient(135deg, ${BRAND.primaryGreen} 0%, ${BRAND.primaryGreenLight} 100%); padding: 24px 32px; text-align: center;">
               <h1 style="margin: 0; font-family: Georgia, serif; font-size: 24px; font-weight: bold; color: #ffffff;">
-                ✦ BibleLessonSpark
+                \u2726 BibleLessonSpark
               </h1>
               <p style="margin: 6px 0 0 0; font-family: Georgia, serif; font-size: 13px; color: rgba(255,255,255,0.9); font-style: italic;">
                 Personalized Bible Studies in Minutes
@@ -150,10 +150,10 @@ function generateHtmlEmail(subject: string, bodyHtml: string): string {
           <tr>
             <td style="background-color: #f8f8f6; padding: 20px 32px; border-top: 1px solid ${BRAND.borderColor};">
               <p style="margin: 0 0 8px 0; font-family: Georgia, serif; font-size: 13px; color: ${BRAND.mutedText}; text-align: center;">
-                <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> — AI-powered lesson preparation for Baptist teachers
+                <strong style="color: ${BRAND.primaryGreen};">BibleLessonSpark</strong> \u2014 AI-powered lesson preparation for Baptist teachers
               </p>
               <p style="margin: 0; font-family: Georgia, serif; font-size: 11px; color: #999999; text-align: center;">
-                © ${new Date().getFullYear()} BibleLessonSpark • <a href="https://biblelessonspark.com" style="color: #999999;">biblelessonspark.com</a>
+                \u00A9 ${new Date().getFullYear()} BibleLessonSpark \u2022 <a href="https://biblelessonspark.com" style="color: #999999;">biblelessonspark.com</a>
               </p>
             </td>
           </tr>
@@ -169,6 +169,18 @@ function generateHtmlEmail(subject: string, bodyHtml: string): string {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Cron-secret gate -- fails CLOSED. This is a server-side batch job, never
+  // a user endpoint. Reject if the secret is unset, the header is absent,
+  // or the value does not match.
+  const CRON_SECRET = Deno.env.get("SEQUENCE_CRON_SECRET");
+  const providedSecret = req.headers.get("x-cron-secret");
+  if (!CRON_SECRET || !providedSecret || providedSecret !== CRON_SECRET) {
+    return new Response(
+      JSON.stringify({ success: false, error: "Unauthorized" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+    );
   }
 
   try {
