@@ -12,13 +12,10 @@
  *  - Fail-CLOSED rate limiting via the increment_rate_limit RPC, three scopes:
  *    per-IP/hour (10), per-recipient-email/day (3), global/day (500). Any cap
  *    exceeded OR any RPC error => 429, before the Resend call.
- *  - Dual-mode: a legacy { tool_id, reflection } body is still accepted during
- *    the frontend transition, but the text is HTML-escaped and rate-limited
- *    exactly like the locked path -- so raw-HTML phishing and the no-limit hole
- *    close the moment this deploys. Removed in a follow-up once the frontend
- *    sends reflection_id only.
+ *  - Id-only: the caller supplies { email, reflection_id }. The legacy
+ *    { tool_id, reflection } body is no longer accepted.
  *
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -144,38 +141,30 @@ serve(async (req) => {
     }
     const recipient = email.toLowerCase().trim();
 
-    // Resolve content server-side (content lock).
-    let reflectionText = "";
-    let toolId = "";
-
-    if (reflectionId) {
-      // Locked path: render only from the stored, server-generated reflection.
-      const { data: row, error: rowError } = await supabase
-        .from("toolbelt_usage")
-        .select("reflection_text, tool_id")
-        .eq("id", reflectionId)
-        .single();
-
-      if (rowError || !row || !row.reflection_text) {
-        return new Response(
-          JSON.stringify({ success: false, error: "Reflection not found" }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
-        );
-      }
-      reflectionText = row.reflection_text;
-      toolId = row.tool_id || "";
-    } else if (typeof body?.reflection === "string" && body.reflection.trim()) {
-      // Legacy transition path: caller text is accepted but HTML-escaped and
-      // rate-limited exactly like the locked path. Removed once the frontend
-      // sends reflection_id only.
-      reflectionText = body.reflection;
-      toolId = typeof body?.tool_id === "string" ? body.tool_id : "";
-    } else {
+    // Content lock: a reflection_id is required and the email body is rendered
+    // ONLY from the stored, server-generated reflection. The caller never
+    // supplies body text.
+    if (!reflectionId) {
       return new Response(
-        JSON.stringify({ success: false, error: "Missing required fields" }),
+        JSON.stringify({ success: false, error: "Missing reflection_id" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
+
+    const { data: row, error: rowError } = await supabase
+      .from("toolbelt_usage")
+      .select("reflection_text, tool_id")
+      .eq("id", reflectionId)
+      .single();
+
+    if (rowError || !row || !row.reflection_text) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Reflection not found" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404 }
+      );
+    }
+    const reflectionText: string = row.reflection_text;
+    const toolId: string = row.tool_id || "";
 
     // Fail-CLOSED rate limiting, before any send.
     const ip = getClientIP(req);
