@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
+import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,34 @@ serve(async (req) => {
         JSON.stringify({ success: false, error: "Invalid authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // ADMIN BYPASS -- admins are unlimited (matches generate-lesson/generate-parable)
+    const { data: adminCheck } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+    const isAdmin = !!adminCheck;
+
+    // Fail-CLOSED extraction rate limit -- a DEDICATED cap, NOT the lesson quota --
+    // enforced BEFORE form parsing and any paid Anthropic call.
+    // 25/user/day, 15/IP/hour, 300/day global spend backstop.
+    if (!isAdmin) {
+      const ip = getClientIP(req);
+      const { hour, day } = windowStartsISO();
+      const rl = await checkRateLimits(supabase, [
+        { endpoint: "extract-lesson:user", identifier: user.id, windowStart: day, cap: 25 },
+        { endpoint: "extract-lesson:ip", identifier: ip, windowStart: hour, cap: 15 },
+        { endpoint: "extract-lesson:global", identifier: "GLOBAL", windowStart: day, cap: 300 },
+      ]);
+      if (rl.blocked) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Extraction limit reached. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Parse form data
