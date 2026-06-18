@@ -47,6 +47,7 @@ import {
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
+import { windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -516,30 +517,62 @@ serve(async (req: Request) => {
     const isAdmin = !!devAdminCheck;
 
     if (!isAdmin) {
+      // Global/day spend backstop (fail-CLOSED), consistent with the other
+      // generators -- aggregate ceiling on top of the per-user monthly cap.
+      const { day } = windowStartsISO();
+      const globalRl = await checkRateLimits(supabase, [
+        { endpoint: "devotional:global", identifier: "GLOBAL", windowStart: day, cap: 500 },
+      ]);
+      if (globalRl.blocked) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Daily devotional capacity reached. Please try again tomorrow.", code: "RATE_LIMITED" }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       console.log("[generate-devotional] Checking usage limit");
 
-      const { data: limitData, error: limitError } = await supabase
-        .rpc("check_devotional_limit", { p_user_id: user.id });
+      // Per-user monthly limit -- FAIL CLOSED: any error, thrown rejection, or
+      // missing result rejects (503) and never reaches the paid Anthropic call.
+      let limitData: any;
+      let limitError: any;
+      try {
+        ({ data: limitData, error: limitError } = await supabase
+          .rpc("check_devotional_limit", { p_user_id: user.id }));
+      } catch (rpcErr) {
+        limitError = rpcErr;
+      }
 
       if (limitError) {
-        console.error("[generate-devotional] Limit check error:", limitError.message);
-        // Fail open - allow generation if limit check fails
-      } else {
-        const limitResult = Array.isArray(limitData) ? limitData[0] : limitData;
-        console.log("[generate-devotional] Limit check result:", limitResult);
+        console.error("[generate-devotional] Limit check failed (fail closed):", (limitError as Error)?.message ?? limitError);
+        return new Response(
+          JSON.stringify({ success: false, error: "Unable to verify your usage right now. Please try again shortly.", code: "LIMIT_CHECK_FAILED" }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-        if (limitResult && !limitResult.can_generate) {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              error: "Monthly devotional limit reached",
-              code: "LIMIT_REACHED",
-              devotionals_used: limitResult.devotionals_used,
-              devotionals_limit: limitResult.devotionals_limit,
-            }),
-            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
+      const limitResult = Array.isArray(limitData) ? limitData[0] : limitData;
+      console.log("[generate-devotional] Limit check result:", limitResult);
+
+      if (!limitResult) {
+        console.error("[generate-devotional] Limit check returned no result (fail closed)");
+        return new Response(
+          JSON.stringify({ success: false, error: "Unable to verify your usage right now. Please try again shortly.", code: "LIMIT_CHECK_FAILED" }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!limitResult.can_generate) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Monthly devotional limit reached",
+            code: "LIMIT_REACHED",
+            devotionals_used: limitResult.devotionals_used,
+            devotionals_limit: limitResult.devotionals_limit,
+          }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     } else {
       console.log("[generate-devotional] ADMIN BYPASS: skipping devotional limit");
