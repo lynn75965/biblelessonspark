@@ -64,17 +64,24 @@ export async function checkRateLimits(
   scopes: RateLimitScope[],
 ): Promise<RateLimitResult> {
   for (const s of scopes) {
-    const { data, error } = await supabase.rpc("increment_rate_limit", {
-      p_endpoint: s.endpoint,
-      p_identifier: s.identifier,
-      p_window_start: s.windowStart,
-    });
-    if (error) {
-      console.error("[edgeRateLimit] increment_rate_limit error (fail closed):", s.endpoint, error.message);
-      return { blocked: true, scope: s.endpoint };
-    }
-    const count = Array.isArray(data) ? data[0] : data;
-    if (typeof count !== "number" || count > s.cap) {
+    try {
+      const { data, error } = await supabase.rpc("increment_rate_limit", {
+        p_endpoint: s.endpoint,
+        p_identifier: s.identifier,
+        p_window_start: s.windowStart,
+      });
+      if (error) {
+        console.error("[edgeRateLimit] increment_rate_limit error (fail closed):", s.endpoint, error.message);
+        return { blocked: true, scope: s.endpoint };
+      }
+      const count = Array.isArray(data) ? data[0] : data;
+      if (typeof count !== "number" || count > s.cap) {
+        return { blocked: true, scope: s.endpoint };
+      }
+    } catch (e) {
+      // A THROWN rejection (network blip, PostgREST unavailable, timeout) must
+      // fail CLOSED -- same as a returned error -- never propagate as a 500.
+      console.error("[edgeRateLimit] increment_rate_limit threw (fail closed):", s.endpoint, (e as Error)?.message ?? e);
       return { blocked: true, scope: s.endpoint };
     }
   }
