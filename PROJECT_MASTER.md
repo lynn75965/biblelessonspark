@@ -1,5 +1,83 @@
 # PROJECT MASTER -- Last updated: June 18, 2026
 
+## JUNE 18, 2026 SESSION (generate-lesson latency -- diagnosed + fixed)
+
+Reported symptom: generate-lesson response time had crept up. Diagnosed first
+(no changes), using the generation_metrics table, then fixed. Two distinct
+problems surfaced; the second one masked the first.
+
+ROOT CAUSE (two layers):
+  1. STALE DEPLOYS MASKED BY THE xhr BUNDLER BUG. The June 15/16 commits that
+     fixed the model + raised the abort (178122f model->sonnet-4-6, aeee72a
+     120s->140s abort, 3073aa7 model-ID SSOT) never actually LANDED on the live
+     function: generate-lesson's first import was the legacy
+     https://deno.land/x/xhr@0.1.0 polyfill, which fails to bundle (CDN fetch
+     timeout), so every `functions deploy` silently kept the OLD version live
+     (Rule #20: a failed bundler deploy leaves the prior version running). The
+     live build therefore still called the RETIRED model claude-sonnet-4-20250514
+     (instant 404s) AND aborted at 120s. e94fb09 (June 17 14:32 CDT) removed the
+     xhr import -- "unblocks deploy" -- and the deploy ~90s later (v168, June 17
+     19:33 UTC) was the FIRST successful landing of current source. The error
+     spike (14% prior-30d -> 46% last-7d, 0 timeouts) was historical, all on the
+     pre-v168 stale builds; a boundary-split query confirmed v168 = 0 errors,
+     0 retired-404s, sonnet-4-6 only. Bookkeeping note worth remembering: the
+     outer catch overwrites the inner AbortError's status='timeout' with
+     status='error' (msg "Lesson generation timed out"), so real 140s aborts are
+     recorded as status='error', not 'timeout' -- "0 timeouts" did NOT mean no
+     timeouts. The 120s (not 140s) abort duration on those error rows is what
+     proved the live build was stale.
+  2. sonnet-4-6 OVERRAN AN UNENFORCED WORD MAX. Once v168 was confirmed current,
+     the remaining issue was pure latency: sonnet-4-6 emits ~46% more output than
+     the retired model for the same 8-section lesson (median 5,906 vs 4,049
+     output tokens), because the prompt SHOUTED minimums (esp. Section 5's
+     "MANDATORY MINIMUM ... add more depth") and never enforced the documented
+     3,090-word maximum. buildSectionsPrompt printed only minWords; the only max
+     was a single total line. Output is the latency bottleneck (~44 tok/s), so
+     46% more tokens = full-lesson median 119s desktop / 132s mobile -- right at
+     the 140s abort cliff (mobile only ~8s of headroom). The latent 8,000-token
+     max_tokens truncation risk rode along (5,906 median is 74% of the cap).
+
+FIX (commit ba5a929, deployed v169 June 18 21:23 UTC, --use-api, clean):
+  (a) Verbosity enforcement -- PROMPT-SHAPE ONLY; SSOT word numbers in
+      lessonStructure.ts UNCHANGED (no sync-constants needed):
+      - buildSectionsPrompt injects a per-section WORD COUNT line with a HARD
+        MAXIMUM (was minimums-only).
+      - buildCompressionRules RULE 2 adds a hard total cap (~3,200 words; stop
+        when complete; do not exceed any section maximum).
+      - Section 5: 630 floor KEPT; the "add more depth / every sentence must add
+        depth" ceiling-push replaced with depth-through-density + explicit STOP.
+  (b) Prompt caching (GA; no anthropic-beta header; sonnet-4-6 min 2048 tok):
+      system prompt split into a cacheable STATIC prefix (compression rules,
+      truth + scripture-integrity guardrails, lesson structure, output format)
+      with cache_control:{type:'ephemeral'}, and a DYNAMIC suffix after the
+      breakpoint (theology, age, ministry, bible version, customization,
+      freshness, style). Static prefix varies only by full/short section shape
+      -> high cross-lesson hit-rate. Cuts time-to-first-token; no output change.
+  No model, max_tokens (8000), temperature, or abort-timeout change. Note:
+  on cache hits the recorded tokens_input is only the uncached remainder, so
+  input-token figures legitimately drop -- judge by tokens_output + duration.
+
+BEFORE -> AFTER (verified in production on v169):
+  - median output tokens: 5,906 -> 4,315 (back to old shipped behavior)
+  - median duration:      137s  -> 98s   (p90 99.6s; ~40s margin under 140s)
+  - truncation:           latent risk -> zero
+  - quality in spec, NOT thinner: Section 5 transcript 831/908/878 words (above
+    630 floor), Section 3 502/594/567 (in the 450-600 band), theology/voice and
+    Baptist terminology intact despite the prefix reorder.
+
+STREAMING: still deferred to its own scoped session as future UX polish (removes
+the felt wait, not total time). No longer urgent now that the cliff has ~40s of
+headroom and the error rate is back to baseline.
+
+REUSABLE LESSON FOR THE NEXT LATENCY CREEP: check two things first, in order --
+(1) did the latest fix actually LAND? (`npx supabase functions list ... | the
+function's version + updated_at`, compare against the fix commit dates; a failed
+bundler deploy silently keeps the old build); and (2) output-token DRIFT in
+generation_metrics (a model swap can change verbosity for the same prompt).
+generation_metrics is the SSOT for this: duration p50/p90 and tokens_output,
+split by sections_generated (8=full, 3=short -- NOT tier_requested, which is
+hardcoded 'full') and by anthropic_model, with a deploy-timestamp boundary.
+
 ## JUNE 18, 2026 SESSION (Edge-function security audit -- 8 findings closed)
 
 Full authorization/exposure audit of all 44 edge functions, triggered by the June 17
