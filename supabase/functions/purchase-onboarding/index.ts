@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -26,13 +26,10 @@ serve(async (req) => {
     const { organization_id, onboarding_type } = await req.json();
     if (!organization_id || !onboarding_type) throw new Error("Missing required fields: organization_id, onboarding_type");
 
-    if (onboarding_type === "self_service") {
-      await supabase.from("org_onboarding_purchases").insert({
-        organization_id, onboarding_type, amount_paid: 0, purchased_by: user.id, status: "completed", completed_date: new Date().toISOString(),
-      });
-      return new Response(JSON.stringify({ success: true, message: "Self-service onboarding selected" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
-    }
-
+    // Authorization -- gates BOTH the self_service and paid paths. The caller
+    // must be the org creator or a manager of THIS org. Previously this check
+    // ran only in the paid branch, so any authenticated user could write a
+    // self_service onboarding row for an arbitrary organization_id.
     const { data: org, error: orgError } = await supabase
       .from("organizations")
       .select("id, name, created_by, stripe_customer_id")
@@ -48,7 +45,19 @@ serve(async (req) => {
 
     const isOrgCreator = org.created_by === user.id;
     const isOrgManager = profile?.organization_id === organization_id && profile?.organization_role === "manager";
-    if (!isOrgCreator && !isOrgManager) throw new Error("Only organization managers can purchase onboarding");
+    if (!isOrgCreator && !isOrgManager) {
+      return new Response(
+        JSON.stringify({ error: "Only organization managers can purchase onboarding" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 403 }
+      );
+    }
+
+    if (onboarding_type === "self_service") {
+      await supabase.from("org_onboarding_purchases").insert({
+        organization_id, onboarding_type, amount_paid: 0, purchased_by: user.id, status: "completed", completed_date: new Date().toISOString(),
+      });
+      return new Response(JSON.stringify({ success: true, message: "Self-service onboarding selected" }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 });
+    }
 
     const { data: onboardingConfig, error: onboardingError } = await supabase
       .from("onboarding_config")
