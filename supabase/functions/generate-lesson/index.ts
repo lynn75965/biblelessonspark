@@ -6,7 +6,6 @@ import { THEOLOGY_PROFILES, generateTheologicalGuardrails } from '../_shared/the
 import { BIBLE_VERSIONS, generateCopyrightGuardrails, getDefaultBibleVersion } from '../_shared/bibleVersions.ts';
 import { buildCustomizationDirectives } from '../_shared/customizationDirectives.ts';
 import { validateLessonRequest } from '../_shared/validation.ts';
-import { checkRateLimit, logUsage } from '../_shared/rateLimit.ts';
 import { checkLessonLimit, incrementLessonUsage } from '../_shared/subscriptionCheck.ts';
 import { parseDeviceType, parseBrowser, parseOS } from '../_shared/generationMetrics.ts';
 import { 

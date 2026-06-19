@@ -1,3 +1,9 @@
+/**
+ * WARNING: DEPRECATED / DEAD -- imported only by a backup file, not the live app.
+ * Applies a beta limit to ALL non-admin users with NO tier check, and uses a hardcoded
+ * admin UUID instead of has_role. If re-mounted it would cap PAID users at the beta number.
+ * Do NOT re-import. Live limits live in check_lesson_limit RPC + trialConfig.ts.
+ */
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TIER_LESSON_LIMITS } from "@/constants/pricingConfig";

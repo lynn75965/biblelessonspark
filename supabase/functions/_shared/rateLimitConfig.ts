@@ -1,4 +1,11 @@
 /**
+ * WARNING: DEPRECATED -- DO NOT ACTIVATE AS-IS.
+ * This module is NOT wired into generate-lesson and has NO tier/paid/admin awareness.
+ * Activating it would cap PAID users regardless of tier (e.g. throttle a 120- or 250-lesson
+ * plan at a flat limit). The LIVE limit system is the check_lesson_limit RPC plus the free
+ * trial counters in trialConfig.ts -- modify those, not this file.
+ */
+/**
  * AUTO-GENERATED FILE - DO NOT EDIT DIRECTLY
  *
  * Source: src/constants/rateLimitConfig.ts
