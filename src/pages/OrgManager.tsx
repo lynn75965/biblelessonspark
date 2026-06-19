@@ -203,7 +203,7 @@ export default function OrgManager() {
               </div>
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold">
-                  <span className="gradient-text">Organization Manager</span>
+                  <span className="gradient-text">Shepherding</span>
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {organization?.name || "No organization"}
@@ -213,7 +213,7 @@ export default function OrgManager() {
           </div>
           <div className="flex items-center justify-end">
             <Badge variant="outline" className="text-sm">
-              {isAdmin ? 'Manager' : 'Organization Manager'}
+              {isAdmin ? 'Manager' : 'Shepherding'}
             </Badge>
           </div>
         </div>

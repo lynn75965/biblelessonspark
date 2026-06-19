@@ -98,7 +98,7 @@ export function UserProfileModal({
 
       const roleMap: Record<string, string> = {
         'platform_admin': 'Administrator',
-        'org_leader': 'Organization Manager',
+        'org_leader': 'Shepherd',
         'org_member': 'Organization Member',
         'individual': 'Individual',
       };

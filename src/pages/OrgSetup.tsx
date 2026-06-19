@@ -413,7 +413,7 @@ const OrgSetup = () => {
                 </div>
                 <div>
                   <h3 className="font-medium">Organization Leader</h3>
-                  <p className="text-sm text-muted-foreground">You'll be the Org Manager</p>
+                  <p className="text-sm text-muted-foreground">You'll be the Shepherd</p>
                 </div>
               </div>
 

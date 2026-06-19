@@ -67,10 +67,10 @@ export const NAVIGATION_ITEMS: Record<string, NavigationItem> = {
   },
   orgManager: {
     id: 'orgManager',
-    label: 'Organization Manager',
+    label: 'Shepherding',
     route: NAV_ROUTES.org,
     icon: Building2,
-    description: 'Manage your organization',
+    description: 'Manage your shepherding group',
     dividerAfter: false,
   },
   teachingTeam: {

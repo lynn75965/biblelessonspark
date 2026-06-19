@@ -170,9 +170,9 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
   },
   orgManager: {
     id: 'orgManager',
-    label: 'Organization Manager',
+    label: 'Shepherding',
     icon: Building2,
-    description: 'Manage your organization',
+    description: 'Manage your shepherding group',
     route: ROUTES.ORG_MANAGER,
     tierGate: 'hidden_free',
   },
