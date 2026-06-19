@@ -20,6 +20,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import {
   resolveTierFromPriceId,
   TIER_LESSON_LIMITS,
+  getLessonLimitForPriceId,
   type SubscriptionTier,
 } from '../_shared/pricingConfig.ts';
 
@@ -247,7 +248,7 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
   // Resolve org tier from price ID using SSOT
   const priceId = subscription.items.data[0]?.price.id;
   const orgTier = resolveTierFromPriceId(priceId || '') || 'starter';
-  const lessonsLimit = TIER_LESSON_LIMITS[orgTier as SubscriptionTier] || 25;
+  const lessonsLimit = getLessonLimitForPriceId(priceId || '');
 
   // 1. Create the organization
   const { data: newOrg, error: orgError } = await supabase
@@ -259,12 +260,15 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
       email: orgEmail || leaderEmail,
       created_by: userId,
       stripe_customer_id: session.customer as string,
+      stripe_subscription_id: subscriptionId,
+      stripe_price_id: priceId,
       subscription_tier: orgTier,
       subscription_status: "active",
       billing_interval: billingInterval,
-      lessons_remaining: lessonsLimit,
       lessons_limit: lessonsLimit,
-      is_active: true,
+      lessons_used_this_period: 0,
+      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
     })
     .select("id")
     .single();
@@ -294,29 +298,6 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
     console.error("Error adding org member:", memberError);
   } else {
     console.log(`User ${userId} added as owner of org ${orgId}`);
-  }
-
-  // 3. Create org_subscriptions record
-  const { error: orgSubError } = await supabase
-    .from("org_subscriptions")
-    .insert({
-      organization_id: orgId,
-      stripe_customer_id: session.customer as string,
-      stripe_subscription_id: subscriptionId,
-      stripe_price_id: priceId,
-      tier: orgTier,
-      status: "active",
-      billing_interval: billingInterval === "annual" ? "year" : "month",
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      lessons_limit: lessonsLimit,
-      lessons_used_this_period: 0,
-    });
-
-  if (orgSubError) {
-    console.error("Error creating org subscription:", orgSubError);
-  } else {
-    console.log(`Org subscription created for org ${orgId}`);
   }
 
   // 4. If personal subscription was included, handle it
@@ -349,10 +330,10 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
     }
   }
 
-  // 5. Update user's profile with primary_organization_id
+  // 5. Update user's profile with organization_id
   await supabase
     .from("profiles")
-    .update({ primary_organization_id: orgId })
+    .update({ organization_id: orgId })
     .eq("id", userId);
 
   console.log(`Self-service org creation complete: org=${orgId}, user=${userId}, tier=${orgTier}`);
@@ -384,7 +365,7 @@ async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout
 
   // Use SSOT for lesson limit
   const resolvedTier = resolveTierFromPriceId(priceId || '') || tier || 'starter';
-  const lessonsLimit = TIER_LESSON_LIMITS[resolvedTier as SubscriptionTier] || 25;
+  const lessonsLimit = getLessonLimitForPriceId(priceId || '');
 
   // Update organization
   await supabase
@@ -394,26 +375,15 @@ async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout
       subscription_status: "active",
       billing_interval: billingInterval,
       stripe_customer_id: session.customer as string,
+      stripe_subscription_id: subscriptionId,
+      stripe_price_id: priceId,
       lessons_limit: lessonsLimit,
-      lessons_remaining: lessonsLimit,
+      lessons_used_this_period: 0,
+      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
       updated_at: new Date().toISOString(),
     })
     .eq("id", orgId);
-
-  // Upsert org_subscriptions
-  await supabase.from("org_subscriptions").upsert({
-    organization_id: orgId,
-    stripe_customer_id: session.customer as string,
-    stripe_subscription_id: subscriptionId,
-    stripe_price_id: priceId,
-    tier: resolvedTier,
-    status: "active",
-    billing_interval: billingInterval === "annual" ? "year" : "month",
-    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-    lessons_limit: lessonsLimit,
-    lessons_used_this_period: 0,
-  }, { onConflict: "organization_id" });
 
   console.log(`Existing org subscription updated: org=${orgId}, tier=${resolvedTier}`);
 }
@@ -449,31 +419,22 @@ async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Su
   console.log("Subscription canceled:", subscription.id);
   
   // Check if org subscription
-  const { data: orgSub } = await supabase
-    .from("org_subscriptions")
-    .select("organization_id")
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("id")
     .eq("stripe_subscription_id", subscription.id)
     .single();
 
-  if (orgSub?.organization_id) {
-    // Handle org subscription cancellation
-    await supabase
-      .from("org_subscriptions")
-      .update({
-        status: "canceled",
-        canceled_at: new Date().toISOString(),
-      })
-      .eq("stripe_subscription_id", subscription.id);
-
+  if (orgRow?.id) {
     await supabase
       .from("organizations")
       .update({
         subscription_status: "canceled",
         updated_at: new Date().toISOString(),
       })
-      .eq("id", orgSub.organization_id);
+      .eq("id", orgRow.id);
 
-    console.log(`Org subscription canceled: org=${orgSub.organization_id}`);
+    console.log(`Org subscription canceled: org=${orgRow.id}`);
     return;
   }
 
@@ -512,31 +473,23 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
   if (!invoice.subscription) return;
 
   // Check if org subscription
-  const { data: orgSub } = await supabase
-    .from("org_subscriptions")
-    .select("organization_id, lessons_limit")
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("id")
     .eq("stripe_subscription_id", invoice.subscription)
     .single();
 
-  if (orgSub?.organization_id) {
+  if (orgRow?.id) {
     // Reset org lesson pool
-    await supabase
-      .from("org_subscriptions")
-      .update({
-        status: "active",
-        lessons_used_this_period: 0,
-      })
-      .eq("stripe_subscription_id", invoice.subscription);
-
     await supabase
       .from("organizations")
       .update({
-        lessons_remaining: orgSub.lessons_limit,
         subscription_status: "active",
+        lessons_used_this_period: 0,
       })
-      .eq("id", orgSub.organization_id);
+      .eq("id", orgRow.id);
 
-    console.log(`Org lesson pool reset: org=${orgSub.organization_id}`);
+    console.log(`Org lesson pool reset: org=${orgRow.id}`);
     return;
   }
 
@@ -560,24 +513,19 @@ async function handlePaymentFailed(supabase: any, invoice: Stripe.Invoice) {
   if (!invoice.subscription) return;
 
   // Check if org subscription
-  const { data: orgSub } = await supabase
-    .from("org_subscriptions")
-    .select("organization_id")
+  const { data: orgRow } = await supabase
+    .from("organizations")
+    .select("id")
     .eq("stripe_subscription_id", invoice.subscription)
     .single();
 
-  if (orgSub?.organization_id) {
-    await supabase
-      .from("org_subscriptions")
-      .update({ status: "past_due" })
-      .eq("stripe_subscription_id", invoice.subscription);
-
+  if (orgRow?.id) {
     await supabase
       .from("organizations")
       .update({ subscription_status: "past_due" })
-      .eq("id", orgSub.organization_id);
+      .eq("id", orgRow.id);
 
-    console.log(`Org payment failed: org=${orgSub.organization_id}`);
+    console.log(`Org payment failed: org=${orgRow.id}`);
     return;
   }
 
