@@ -288,9 +288,6 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
       organization_id: orgId,
       user_id: userId,
       role: "owner",
-      email: leaderEmail,
-      display_name: leaderName,
-      status: "active",
       joined_at: new Date().toISOString(),
     });
 
