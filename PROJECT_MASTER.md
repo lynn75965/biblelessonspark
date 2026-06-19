@@ -1,4 +1,109 @@
-# PROJECT MASTER -- Last updated: June 18, 2026
+# PROJECT MASTER -- Last updated: June 19, 2026
+
+## JUNE 19, 2026 SESSION (Platform-mode clarification + dead rate-limit code neutralized + Private Beta org dissolved)
+
+Three distinct pieces of work, all verified live this session. The DB writes in
+item 3 were executed and their row counts verified; everything else is code +
+deploy already on main.
+
+1. PLATFORM MODE CLARIFICATION (we were NOT in beta).
+   - system_settings.current_phase has read 'production' since 2026-03-10
+     (verified via Table Editor; the row updated_at = 2026-03-10 19:33:42). The
+     session opened with a beta-vs-production framing that was incorrect -- the
+     platform has been in PRODUCTION mode for ~3 months.
+   - current_phase is the authoritative SSOT for platform mode. generate-lesson
+     reads it LIVE from the system_settings table (index.ts ~417-424) on every
+     request. The missing-row fallback is 'private_beta' in BOTH the UI
+     (useSystemSettings) and the edge function, so the UI and the backend CANNOT
+     disagree about a missing row -- they degrade identically.
+   - FUTURE-DEBUGGING RULE: confirm platform mode by reading the
+     system_settings.current_phase ROW directly (Table Editor / SQL), NOT by
+     trusting the admin Platform-Mode dropdown. The dropdown binds to the merged
+     settings value, which renders the 'private_beta' DEFAULT on a missing row --
+     so a dropdown reading is ambiguous; the row is ground truth.
+
+2. DEAD RATE-LIMIT CODE NEUTRALIZED (commit 998e214; generate-lesson redeployed).
+   Pre-production-flip hardening. These modules are orphaned traps: they have NO
+   tier/paid/admin awareness, so if anyone "activated" them they would cap PAID
+   users regardless of tier (e.g. throttle a 120- or 250-lesson plan at a flat
+   number). The LIVE limit system is the check_lesson_limit RPC + the free trial
+   counters (trialConfig.ts) -- NOT these files.
+
+   | File | Change |
+   |---|---|
+   | generate-lesson/index.ts | Removed uncalled import of checkRateLimit/logUsage (was imported, never called -- only the import line matched) |
+   | _shared/rateLimit.ts | DEPRECATED banner prepended |
+   | src/constants/rateLimitConfig.ts | DEPRECATED banner prepended |
+   | _shared/rateLimitConfig.ts | DEPRECATED banner prepended |
+   | src/hooks/useRateLimit.ts | DEPRECATED banner prepended; hook is DEAD (imported only by an .accordion-backup file, never the live app) |
+
+   - Banners are ASCII-safe ("WARNING:" / "--") on purpose: the literal emoji +
+     em dashes in the original banner text would trip the ASCII pre-commit guard
+     and block the commit (and any production-flip commit).
+   - generate-lesson redeployed via --use-api; the dead _shared/rateLimit.ts was
+     confirmed ABSENT from the deployed asset bundle. npm run build passed clean.
+     Committed (998e214) and pushed to main.
+
+3. PRIVATE BETA ORG DISSOLVED (members detached, org renamed NOT deleted).
+   Org "LessonSparkUSA Private Beta" (id 00cf6e5e-fa0d-4077-b64d-bce5ee822ff9)
+   was closed. All members converted to individual production FREE-tier users
+   (3 full + 2 short lessons / rolling 30 days). NOTHING deleted: no accounts,
+   no subscriptions, no lessons.
+
+   At closure (counts verified before the writes):
+   - 19 organization_members rows (includes the leader)
+   - 18 profiles.organization_id affiliations (the one-row drift is EXPECTED --
+     the two affiliation stores are independent; see learnings below)
+   - 67 lessons tagged with the org id
+
+   | Step | Statement | Rows |
+   |---|---|---|
+   | a | UPDATE lessons SET organization_id = NULL WHERE organization_id = '<id>' | 67 |
+   | b | DELETE FROM organization_members WHERE organization_id = '<id>' | 19 |
+   | c | UPDATE profiles SET organization_id = NULL, organization_role = NULL WHERE organization_id = '<id>' | 18 |
+   | d | UPDATE organizations SET name = '...(CLOSED - members detached to individual)', description = '<reasoning>' WHERE id = '<id>' | 1 |
+
+   - Org RENAMED, not deleted. Reason: org_lesson_pack_purchases and
+     org_onboarding_purchases reference organizations(id) ON DELETE CASCADE, so
+     deleting the org would destroy purchase/onboarding history. There were 0
+     such rows at closure, but the CASCADE trap remains for any future org, so
+     the org is kept as an empty, inert shell for audit continuity. Full
+     reasoning is recorded in the org description column.
+
+4. KEY ARCHITECTURE FACTS LEARNED (reference).
+   - ORG AFFILIATION IS STORED IN TWO INDEPENDENT PLACES:
+       * organization_members -- drives lesson generation (read by orgPoolCheck.ts
+         getOrgMembership, .maybeSingle on this table only).
+       * profiles.organization_id -- drives RLS visibility + get_user_organization().
+     They CAN drift (this org: 19 vs 18). Any clean membership change MUST clear
+     BOTH. Generation behavior follows organization_members; RLS follows profiles.
+   - LESSON OWNERSHIP IS BY user_id (owner RLS: USING user_id = auth.uid()).
+     lessons.organization_id is ONLY a co-visibility tag for org co-members.
+     Untagging a lesson (organization_id -> NULL) NEVER hides it from its author.
+   - LIVE FK RULES referencing organizations(id), verified via pg_constraint this
+     session:
+
+   | ON DELETE | Tables (.organization_id unless noted) |
+   |---|---|
+   | SET NULL | profiles, lessons, generation_metrics |
+   | CASCADE | organization_members, organization_contacts, organization_focus, org_shared_focus, branding_config, transfer_requests.from_organization_id, org_lesson_pack_purchases, org_onboarding_purchases |
+   | NO ACTION | invites |
+
+   - TECH DEBT: several org-related tables (org_lesson_pack_purchases,
+     org_onboarding_purchases, organization_contacts, organization_focus,
+     generation_metrics, invites, branding_config) exist only in the LIVE DB with
+     NO CREATE TABLE migration on file -- created via the Dashboard. Their FK
+     rules above were confirmed live via pg_constraint, not from the repo.
+     Reconcile into migrations in a future cleanup.
+
+5. STILL UNBUILT -- CARRY FORWARD (next session objective).
+   The ORG-PURCHASE PATH IS NOT BUILT (Phase 13/14 deferred). There are:
+   - no org plan / pricing definitions,
+   - no org checkout session flow,
+   - no Stripe webhook provisioning for orgs,
+   - no confirmed org-pool quota tracking.
+   Net: an org manager CANNOT currently pay for a plan and bring an org online.
+   Building this is the next session's objective.
 
 ## JUNE 18, 2026 SESSION (generate-lesson latency -- diagnosed + fixed)
 
