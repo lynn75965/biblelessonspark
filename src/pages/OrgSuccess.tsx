@@ -44,7 +44,7 @@ import { getOrgTierByTierKey } from '@/constants/orgPricingConfig';
 const TOUR_STEPS = [
   {
     icon: LayoutDashboard,
-    title: "Your Org Manager Dashboard",
+    title: "Your Shepherding Dashboard",
     description:
       "This is your central hub for shepherding your teaching ministry. " +
       "From here you can see your lesson pool usage, manage your team, " +
@@ -83,7 +83,7 @@ const TOUR_STEPS = [
     title: "You're All Set!",
     description:
       "Your organization is live, your subscription is active, and your " +
-      "lesson pool is ready. Head to your Org Manager Dashboard to invite " +
+      "lesson pool is ready. Head to your Shepherding Dashboard to invite " +
       "your first teacher and set your first Shared Focus.",
     tip: "Questions? Reach us anytime at support@biblelessonspark.com.",
   },
@@ -94,7 +94,7 @@ interface OrgData {
   name: string;
   subscription_tier: string;
   lessons_limit: number;
-  lessons_remaining: number;
+  lessons_used_this_period: number;
 }
 
 const OrgSuccess = () => {
@@ -125,15 +125,15 @@ const OrgSuccess = () => {
       // Get user's primary organization (set by webhook)
       const { data: profile } = await supabase
         .from('profiles')
-        .select('primary_organization_id')
+        .select('organization_id')
         .eq('id', user.id)
         .single();
 
-      if (profile?.primary_organization_id) {
+      if (profile?.organization_id) {
         const { data: org, error: orgError } = await supabase
           .from('organizations')
-          .select('id, name, subscription_tier, lessons_limit, lessons_remaining')
-          .eq('id', profile.primary_organization_id)
+          .select('id, name, subscription_tier, lessons_limit, lessons_used_this_period')
+          .eq('id', profile.organization_id)
           .single();
 
         if (orgError) {
@@ -156,7 +156,7 @@ const OrgSuccess = () => {
         if (membership?.organization_id) {
           const { data: org } = await supabase
             .from('organizations')
-            .select('id, name, subscription_tier, lessons_limit, lessons_remaining')
+            .select('id, name, subscription_tier, lessons_limit, lessons_used_this_period')
             .eq('id', membership.organization_id)
             .single();
 
@@ -288,7 +288,7 @@ const OrgSuccess = () => {
                   <p className="text-sm text-muted-foreground">Lessons/Month</p>
                 </div>
                 <div className="p-4 rounded-lg bg-muted/50">
-                  <p className="text-2xl font-bold text-primary">{orgData.lessons_remaining}</p>
+                  <p className="text-2xl font-bold text-primary">{orgData.lessons_limit - orgData.lessons_used_this_period}</p>
                   <p className="text-sm text-muted-foreground">Available Now</p>
                 </div>
               </div>
@@ -308,7 +308,7 @@ const OrgSuccess = () => {
                   Take a Quick Tour
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  See what your Org Manager Dashboard can do -- takes about 60 seconds.
+                  See what your Shepherding Dashboard can do -- takes about 60 seconds.
                 </p>
               </div>
               <Button onClick={() => { setTourStep(0); setShowTour(true); }} size="sm">
@@ -371,7 +371,7 @@ const OrgSuccess = () => {
             className="flex-1"
             onClick={() => navigate(ROUTES.ORG_MANAGER)}
           >
-            Go to Org Manager Dashboard
+            Go to Shepherding Dashboard
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           <Button 
@@ -404,7 +404,7 @@ const OrgSuccess = () => {
               <span>{currentStep.title}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Org Manager tour step {tourStep + 1} of {TOUR_STEPS.length}
+              Shepherding tour step {tourStep + 1} of {TOUR_STEPS.length}
             </DialogDescription>
           </DialogHeader>
 

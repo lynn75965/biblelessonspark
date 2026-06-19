@@ -327,10 +327,10 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
     }
   }
 
-  // 5. Update user's profile with organization_id
+  // 5. Update user's profile with organization_id and leader role
   await supabase
     .from("profiles")
-    .update({ organization_id: orgId })
+    .update({ organization_id: orgId, organization_role: "leader" })
     .eq("id", userId);
 
   console.log(`Self-service org creation complete: org=${orgId}, user=${userId}, tier=${orgTier}`);
