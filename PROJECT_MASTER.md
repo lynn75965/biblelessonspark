@@ -1,5 +1,96 @@
 # PROJECT MASTER -- Last updated: June 19, 2026
 
+## JUNE 19, 2026 SESSION (Org self-service purchase path repaired + "Organization Manager" -> "Shepherding" rename)
+
+Separate arc, same day. Began as a read-only org-purchase readiness audit; found the
+self-service org provisioning path was writing to columns/tables that do not exist in
+the live schema (so a paid org would never be created), plus a role mismatch that hid
+the org dashboard from the very person who paid. Fixed the webhook, fixed the success
+page, renamed the surface, deployed, committed, pushed. Test purchase is Lynn's to run.
+
+BACKGROUND -- two webhooks handle org events (documented divergence):
+  * stripe-webhook (main) -- has the self-service org CREATE path (metadata.mode =
+    "self_service" in checkout.session.completed). THIS is the one we fixed + deploy.
+  * org-stripe-webhook (secret STRIPE_ORG_WEBHOOK_SECRET) -- existing-org + renewals
+    only; cannot create orgs; STILL carries the old patterns. UNTOUCHED -- open item.
+
+ROOT CAUSES FOUND (verified vs types.ts; live schema confirmed by Lynn via Table Editor):
+  1. SELF-SERVICE ORG CREATE WROTE DEAD COLUMNS/TABLE. handleSelfServiceOrgCreation
+     inserted organizations.lessons_remaining + is_active (neither column exists),
+     inserted/queried an org_subscriptions table (does not exist), and updated
+     profiles.primary_organization_id (not a column; live profiles uses organization_id).
+     The organizations INSERT failed on the first dead column -> org never created ->
+     "an org manager cannot pay and come online."
+  2. WRONG LESSON LIMIT. Used TIER_LESSON_LIMITS[resolveTierFromPriceId(orgPrice)], which
+     maps org tiers onto INDIVIDUAL tiers (org_single_staff/org_starter -> 'starter' = 25),
+     sizing pools 25/25/60/120/250 instead of the real 20/30/60/100/200. The correct
+     helper getLessonLimitForPriceId (returns ORG_TIERS.lessonsLimit) existed but unused.
+  3. ROLE MISMATCH HID THE DASHBOARD. getEffectiveRole grants ROLES.orgLeader only when
+     profiles.organization_role is 'leader' or 'co-leader' (ORG_ROLES). The webhook set
+     organization_members.role=owner and never set profiles.organization_role, so a paid
+     creator resolved to ROLES.individual and never saw the org sidebar link.
+  4. members insert wrote nonexistent organization_members columns (email, display_name,
+     status) -- same bug class that broke an earlier diagnostic query.
+  5. OrgSuccess.tsx read dead columns (profiles.primary_organization_id,
+     organizations.lessons_remaining).
+
+FIX -- stripe-webhook/index.ts (deployed --use-api, clean; commits c171307 + 5a8ea46):
+  - Self-service + existing-org writes now use ONLY live organizations columns:
+    stripe_subscription_id, stripe_price_id, subscription_tier, subscription_status,
+    billing_interval, lessons_limit, lessons_used_this_period, current_period_start/end.
+    Dropped lessons_remaining, is_active, and the entire org_subscriptions insert/upsert.
+  - Limit now from getLessonLimitForPriceId(priceId) (correct org limits).
+  - profiles update writes organization_id (was primary_organization_id) AND
+    organization_role: "leader" (creator resolves to orgLeader -> Shepherding link).
+  - organization_members insert reduced to live columns: organization_id, user_id, role,
+    joined_at (dropped email, display_name, status).
+  - Lifecycle handlers (cancel / invoice.payment_succeeded / payment_failed) re-anchored
+    to organizations via .select("id").eq("stripe_subscription_id", ...) (was the missing
+    org_subscriptions table). Renewal reset = lessons_used_this_period -> 0 on
+    invoice.payment_succeeded.
+  NOTE: this endpoint routes invoice.payment_succeeded (NOT invoice.paid). Which invoice
+  event Stripe is configured to send governs whether renewals reset -- confirm in Stripe.
+
+FIX -- OrgSuccess.tsx (commit 5a8ea46):
+  - Reads profiles.organization_id + organizations.lessons_used_this_period.
+  - "Available Now" tile computes lessons_limit - lessons_used_this_period.
+
+RENAME -- "Organization Manager" -> "Shepherding" (label) / "Shepherd" (role) (af25552):
+  sidebarConfig.ts, navigationConfig.ts, OrgManager.tsx (header + badge), OrgSetup.ts,
+  UserProfileModal.tsx + dashboard/UserProfileModal.tsx (org_leader -> 'Shepherd'),
+  OrgSuccess.tsx (5 "Shepherding Dashboard"/tour strings). Route paths (/org-manager) and
+  config keys (orgManager) unchanged -- label-only.
+
+SSOT / ARCHITECTURE NOTES (reference):
+  - Org role surfacing: getEffectiveRole(isAdmin, hasOrganization, orgRole) in
+    accessControl.ts. hasOrganization + orgRole come from profiles.organization_id +
+    profiles.organization_role (useOrganization). ORG_ROLES = leader/'leader',
+    coLeader/'co-leader', member/'member'. 'owner' is NOT a recognized profiles role.
+  - Sidebar "Shepherding" (sidebarConfig orgManager item, tierGate hidden_free) lives in
+    the ministryOversight section, granted only to platformAdmin + orgLeader roles.
+  - Correct org lesson-limit helper = getLessonLimitForPriceId (NOT
+    TIER_LESSON_LIMITS[resolveTierFromPriceId]).
+
+DEPLOY / COMMITS THIS ARC:
+  - stripe-webhook deployed 3x via --use-api (each clean); final live = the
+    organization_role "leader" version.
+  - c171307 FIX org member insert (dead columns)
+  - 5a8ea46 FIX webhook organization_role=leader + OrgSuccess live columns
+  - af25552 REFACTOR rename to Shepherding/Shepherd
+  All pushed to main; tree clean. Frontend auto-deploys via Netlify.
+
+CARRY FORWARD / OPEN:
+  - LYNN TO RUN: clean self-service test purchase (brand-new org). Success = auto-land in
+    Shepherding as Leader, sidebar link visible, ZERO manual SQL.
+  - RUNTIME UNVERIFIED: profiles.organization_role must accept 'leader' (no CHECK/enum
+    rejecting it). Build cannot prove it; the test purchase will.
+  - org-stripe-webhook still carries old org_subscriptions/lessons_remaining patterns --
+    decide whether to retire or align it; confirm which endpoint Stripe sends org events
+    to, and whether it sends invoice.paid vs invoice.payment_succeeded.
+  - Cosmetic: unused leaderName var remains in handleSelfServiceOrgCreation.
+  - This box cannot run live SQL (no service-role key / psql / Docker); schema + runtime
+    verification is via the Supabase Dashboard or the test purchase.
+
 ## JUNE 19, 2026 SESSION (Platform-mode clarification + dead rate-limit code neutralized + Private Beta org dissolved)
 
 Three distinct pieces of work, all verified live this session. The DB writes in
