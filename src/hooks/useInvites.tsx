@@ -2,9 +2,6 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-// SSOT Import
-import { ORG_ROLES } from '@/constants/accessControl';
-
 interface Invite {
   id: string;
   email: string;
@@ -125,61 +122,44 @@ export function useInvites() {
         return false;
       }
 
-      // Get the invite details first
-      const { data: invite, error: fetchError } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .is('claimed_at', null)
-        .single();
+      // Server-side accept: the accept-org-invite Edge Function runs under service
+      // role and performs every privileged write -- stamp the invite claimed, set
+      // profiles.organization_id + organization_role = ORG_ROLES.member, and insert
+      // the organization_members row. RLS forbids that member insert from the client,
+      // so it MUST happen server-side.
+      const { data, error } = await supabase.functions.invoke('accept-org-invite', {
+        body: { token },
+      });
 
-      if (fetchError || !invite) {
-        console.error('Error fetching invite to claim:', fetchError);
-        return false;
-      }
-
-      // Mark invite as claimed
-      const { error: claimError } = await supabase
-        .from('invites')
-        .update({
-          claimed_at: new Date().toISOString(),
-          claimed_by: user.id,
-        })
-        .eq('id', invite.id);
-
-      if (claimError) {
-        console.error('Error claiming invite:', claimError);
-        return false;
-      }
-
-      // If invite has organization_id, add user to organization
-      if (invite.organization_id) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            organization_id: invite.organization_id,
-            organization_role: ORG_ROLES.member, // New members join as 'member'
-          })
-          .eq('id', user.id);
-
-        if (profileError) {
-          console.error('Error joining organization:', profileError);
-          toast({
-            title: 'Partial success',
-            description: 'Account created but failed to join organization. Contact your organization leader.',
-            variant: 'destructive',
-          });
-        } else {
-          // Use organization_name from invite if available
-          const orgName = invite.organization_name || 'the organization';
-
-          toast({
-            title: 'Welcome to the team!',
-            description: `You've joined ${orgName}.`,
-          });
+      if (error || data?.error) {
+        let errorMessage = 'Failed to accept the invitation. Please try again.';
+        if (error?.context) {
+          try {
+            // error.context is the Response object for non-2xx status codes.
+            const responseBody = await error.context.json();
+            errorMessage = responseBody.error || responseBody.message || errorMessage;
+          } catch {
+            errorMessage = error.message || errorMessage;
+          }
+        } else if (data?.error) {
+          errorMessage = data.error;
+        } else if (error?.message) {
+          errorMessage = error.message;
         }
+
+        console.error('Error accepting invite:', error || data?.error);
+        toast({
+          title: 'Could not join organization',
+          description: errorMessage,
+          variant: 'destructive',
+        });
+        return false;
       }
 
+      toast({
+        title: 'Welcome to the team!',
+        description: "You've joined the organization.",
+      });
       return true;
     } catch (error) {
       console.error('Error claiming invite:', error);
