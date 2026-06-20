@@ -1,4 +1,153 @@
-# PROJECT MASTER -- Last updated: June 19, 2026
+# PROJECT MASTER -- Last updated: June 20, 2026
+
+## JUNE 20, 2026 SESSION (Org self-service purchase VERIFIED working end-to-end; 3 follow-up bugs found in member-invite + lesson-count surfaces)
+
+Continuation of the June 19 org-purchase repair. Lynn ran the clean test purchase
+that was the open item. RESULT: it works. A brand-new self-service org purchase now
+auto-provisions and the buyer lands in "Shepherding" as Leader with ZERO manual SQL.
+Three NEW bugs surfaced while exploring the now-working org dashboard -- all in
+adjacent flows we did NOT touch in the June 19 fix. Captured here; none fixed yet.
+
+CONFIRMED WORKING (closes the June 19 carry-forward items):
+  - Self-service org purchase end-to-end: org "FBC ECK" (growth tier) provisioned,
+    lessons_limit = 60 (correct -- the corrected getLessonLimitForPriceId limit, NOT
+    the old buggy 25), subscription_status active, owner membership row present.
+  - Owner auto-resolves to Leader: profiles.organization_role = 'leader' is now set by
+    the webhook automatically (no manual backfill). Cornerstone (cornerstoneproducts2911
+    @gmail.com) sees the "Shepherding" sidebar link and the Shepherding dashboard, badge
+    reads "Leader". This RESOLVES the June 19 "RUNTIME UNVERIFIED" flag -- the live
+    profiles.organization_role column DOES accept 'leader' (no CHECK/enum rejects it).
+  - Rename live everywhere on core surfaces: sidebar, page header, header badge, role
+    label all read "Shepherding"/"Shepherd".
+  - FINANCIALS CLEARED: Lynn confirms both live test charges ($290 receipt #2193-0233
+    and $490 receipt #2002-0865) refunded and their subscriptions canceled.
+
+THREE NEW BUGS FOUND (none fixed -- diagnosis pending; do read-before-write each):
+
+  BUG A -- RESOLVED AS TEST ARTIFACT (not a code bug). Four read-only diagnostic
+  queries run live in the Supabase SQL editor (logged in as EckBros Media LLC /
+  LessonSparkUSA, project hphebzdftpjbiudpfcrs) on June 20, 2026 prove the invite
+  was never accepted because the invited email has no app account at all.
+
+  CONFIRMED FACTS (all four queries run against the live production DB):
+
+    1. Invitations table is named `invites` (NOT organization_invitations /
+       org_invitations / pending_invitations). Confirmed via information_schema.
+
+    2. `invites` schema -- ACTUAL columns (the note's assumed `status` and `role`
+       columns DO NOT EXIST):
+         id (uuid), email (text), token (text), created_by (uuid),
+         claimed_by (uuid), claimed_at (timestamptz), created_at (timestamptz),
+         expires_at (timestamptz), organization_id (uuid), inviter_name (text),
+         organization_name (text)
+       Acceptance is tracked by claimed_by / claimed_at being non-null -- there is
+       NO status string column, and NO role column on the invite row. The member's
+       org role therefore cannot come from the invite; it must be written by the
+       accept handler to profiles and/or organization_members.
+
+    3. The invite row for eckbrosmediallc@gmail.com in org
+       b298aa1e-a1a1-4101-b1bf-67785ca968cf EXISTS but is UNCLAIMED:
+         claimed_by = null, claimed_at = null,
+         created_at = 2026-06-20 11:29:04 UTC, expires_at = 2026-07-04 11:29:04 UTC.
+
+    4. organization_members JOIN profiles for that email: ZERO rows.
+
+    5. profiles WHERE email = 'eckbrosmediallc@gmail.com': ZERO rows.
+       profiles WHERE email ILIKE '%eckbrosmediallc%': ZERO rows.
+       => eckbrosmediallc@gmail.com has NO profile / NO end-user account in the
+       BibleLessonSpark database under any casing. It is the Supabase/Stripe
+       BILLING identity only; it was never registered + logged in as an app user.
+
+    6. All invites for org b298aa1e (FBC ECK): exactly ONE row -- the unclaimed
+       test invite above. No other invite, claimed or unclaimed.
+
+  ROOT CAUSE (correct): The invite shows "Pending" because it genuinely was never
+  accepted, and it COULD NOT have been. An invite is claimed only when a logged-in
+  user goes through the accept flow, which links/creates their profiles row, writes
+  the organization_members row, and stamps claimed_by/claimed_at. The invited email
+  (eckbrosmediallc@gmail.com) has never signed up and signed into the app, so there
+  was no authenticated account to claim it. Three nulls (no claim, no member row,
+  no profile) are the CORRECT outcome for an invite to an unregistered email that
+  nobody logged in to accept.
+
+  WHY THE ORIGINAL HYPOTHESIS WAS WRONG: The note assumed this was the member-side
+  mirror of the June 19 owner bug -- i.e. a real member whose
+  profiles.organization_role failed to get set. But you cannot fail to set a column
+  on a row that does not exist. profiles has ZERO rows for this email, so there was
+  no partial-success accept to mirror. The accept handler was NOT demonstrated to be
+  broken and was correctly NOT edited.
+
+  ALSO NOTE: the app's actual org Leader account is cornerstoneproducts2911@gmail.com
+  (the account that sees Shepherding per the June 20 owner-fix verification), NOT
+  eckbrosmediallc@gmail.com. The test invited the billing email, not a real teacher
+  account -- which is why nothing linked.
+
+  STILL UNPROVEN (the real open question): whether the accept-invite flow works
+  correctly for a GENUINELY accepted invite. This was never actually tested. To test
+  it properly next session:
+    - Invite an email you can receive AND log into the app with, that is NOT your
+      owner identity (a Gmail +alias like eckbrosmediallc+teacher@gmail.com lands in
+      the same inbox but MUST still complete full app signup + login to create a
+      profiles row).
+    - While logged into the app AS that invited account, click the accept link and
+      complete the flow.
+    - Re-run the same diagnostics. Expected on success: claimed_by + claimed_at
+      populated on the invite; an organization_members row present;
+      profiles.organization_role = 'member' (ORG_ROLES.member).
+    - ONLY IF one of those is missing after a genuine accept is there a real handler
+      bug -- and THAT is when to read the accept-invite handler (edge function or RPC;
+      confirm which via repo grep) before editing.
+
+  PRIORITY DOWNGRADE: Bug A is no longer a confirmed blocker. It is "not reproduced --
+  test artifact." The genuine member-invite end-to-end test is still worth doing
+  before any real church onboards, but no code is known to be broken today.
+
+  BUG B -- "ORGANIZATION LESSONS" COUNT MISMATCH (cosmetic-to-moderate; likely a
+    definition mismatch, NOT corrupt data).
+    Symptom: the Shepherding top stat card shows "3 Organization Lessons", but the
+    Org Lessons tab filtered to "All Lessons" shows "0 lessons have been created yet"
+    (and the four sub-tiles Visible / Org Pool / Personal Account / Override all 0).
+    Hypothesis: the "3" counts lessons AUTHORED BY org members (Cornerstone has exactly
+    3 lessons in their PERSONAL library), while the Org Lessons tab counts lessons
+    SHARED TO / CREATED UNDER the org pool (0, since none were org-funded). Two different
+    measures of "org lessons" -> they disagree. Likely both technically correct but the
+    top-card label is misleading. Next session: read the data source for the top stat
+    card vs the Org Lessons tab in OrgManager.tsx (and any useOrg* hook) and reconcile
+    the definition before changing either number.
+
+  BUG C -- ORG LEADER'S OWN PERSONAL LESSONS SHOW LOCKED (product-logic question, NOT
+    obviously a bug).
+    Symptom: in Cornerstone's PERSONAL Lesson Library, the 3 lessons display a lock icon.
+    Context: the personal account is on the Personal tier (4/20 used) and the org pool
+    (60) is separate. Open question for Lynn: SHOULD an org Leader's previously-created
+    personal lessons unlock under their org's subscription, or do personal-tier lessons
+    stay gated independent of org membership? This is a product decision first, code
+    second. Do not change lock logic until Lynn defines the intended rule.
+
+ARCHITECTURE NOTE REINFORCED:
+  - The June 19 owner-role bug and BUG A (member-invite) are the SAME pattern: a flow
+    that creates org affiliation but fails to set profiles.organization_role, so
+    getEffectiveRole falls through to ROLES.individual and the org UI never appears.
+    When auditing any org-join path, ALWAYS check that profiles.organization_role is
+    set to the correct ORG_ROLES value (leader / co-leader / member).
+
+CARRY FORWARD / OPEN (cumulative):
+  - BUG A -- NOT REPRODUCED (test artifact, diagnosed June 20 via live SQL). Real
+    member-invite end-to-end test still pending with a genuine second account. No code
+    known broken.
+  - BUG B (org lessons count mismatch) -- reconcile the two "org lessons" definitions.
+  - BUG C (locked personal lessons) -- Lynn to define intended product rule first.
+  - org-stripe-webhook STILL carries old org_subscriptions/lessons_remaining patterns;
+    disabled in Stripe but NOT deleted. Decide retire vs align. Also still open: confirm
+    which endpoint Stripe sends org events to, and invoice.paid vs invoice.payment_succeeded.
+  - Orphan org "FBC HERE" (id 0f12e5a5-73ff-4f15-bf7d-cb3979efd245) from the first failed
+    test attempt -- delete (rename-not-delete only applies to orgs with FK purchase
+    history; this one's purchase was refunded). Test org "FBC ECK"
+    (b298aa1e-a1a1-4101-b1bf-67785ca968cf) -- decide keep-as-verified vs delete.
+  - Cosmetic: unused leaderName var remains in handleSelfServiceOrgCreation.
+  - This box cannot run live SQL (no service-role key / psql / Docker); schema + runtime
+    verification is via the Supabase Dashboard / Table Editor.
+
 
 ## JUNE 19, 2026 SESSION (Org self-service purchase path repaired + "Organization Manager" -> "Shepherding" rename)
 
