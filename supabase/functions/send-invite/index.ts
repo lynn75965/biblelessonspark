@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { Resend } from "npm:resend@2.0.0";
 import React from "npm:react@18.3.1";
@@ -117,15 +117,26 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check for existing user
+    // Block ONLY when the invitee is already a member of the TARGET org.
+    // An existing account with no membership in this org is a VALID invitee
+    // (this lets a church invite its own existing teachers not yet in the org).
     const { data: existingUsers } = await supabaseClient.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({ error: "User with this email already exists" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (existingUser && finalOrgId) {
+      const { data: existingMembership } = await supabaseClient
+        .from("organization_members")
+        .select("id")
+        .eq("user_id", existingUser.id)
+        .eq("organization_id", finalOrgId)
+        .maybeSingle();
+
+      if (existingMembership) {
+        return new Response(
+          JSON.stringify({ error: "User is already a member of this organization" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Check for existing unclaimed invite
