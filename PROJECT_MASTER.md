@@ -1,4 +1,108 @@
-# PROJECT MASTER -- Last updated: June 20, 2026
+# PROJECT MASTER -- Last updated: June 20, 2026 (Phase 1 member-invite fix)
+
+## JUNE 20, 2026 SESSION (LATER) -- Org member-invite PHASE 1 SHIPPED: invite-block fix + new service-role accept-org-invite; Bug A reframed (real code defects found behind the "test artifact")
+
+Follow-on to the earlier June 20 entry. Bug A was first downgraded to "test artifact"
+(the eckbrosmediallc "Pending" invite was an unclaimed invite to a BILLING email with no
+app account -- correct behavior; see the earlier entry below). But a deeper READ-ONLY
+diagnosis of the invite/accept CODE (not just the data) then found THREE real, coupled
+defects in org member onboarding. Phase 1 fixed the first two and built the server-side
+machinery; DEFECT 3 is deferred to Phase 2.
+
+THREE COUPLED DEFECTS (diagnosed live, read-only, June 20):
+  DEFECT 1 (invite block) -- send-invite/index.ts rejected an invite whenever ANY account
+    existed in auth.users for that email (auth.admin.listUsers()), never checking org
+    membership. Existing BLS users (a church's own teachers) could not be invited. UI
+    error: "User with this email already exists". Live repro: inviting pastorlynn2024
+    @gmail.com (account exists, organization_id NULL, in no org) to FBC ECK failed.
+  DEFECT 2 (invisible member on accept) -- useInvites.tsx claimInvite() set
+    profiles.organization_id + organization_role='member' but NEVER inserted an
+    organization_members row. The org-creation path DOES create that row for the leader
+    (stripe-webhook/index.ts:286-292, role 'owner'). So accepted members would join
+    INVISIBLY -- not in the Shepherding Members list/count, which read organization_members.
+  DEFECT 3 (existing-user accept path missing) -- PHASE 2, NOT fixed. Auth.tsx forces the
+    invite link onto the signup tab; an EXISTING user bounces to sign-in, and handleSignIn
+    has ZERO invite logic, so claimInvite never runs for them. The only org-invite accept
+    path that exists today is the NEW-USER signup branch (Auth.tsx ~324-361). Dashboard's
+    handleAcceptInvite is the unrelated Teaching Team feature, not org invites. Fixing
+    DEFECT 3 needs an Auth.tsx auth-flow change; deliberately deferred.
+
+CRITICAL RLS FACT (confirmed live via pg_policy/pg_policies, June 20):
+  organization_members has ONLY two policies -- admin_full_access (ALL, hardcoded admin
+  UID; see CLAUDE Rule #25) and users_select_own (SELECT, user_id=auth.uid()). There is
+  NO INSERT policy for regular authenticated users. The migration-history policy "Users
+  can join organizations" (INSERT, user_id=auth.uid()) is NOT live -- it was dropped.
+  Therefore a FRONTEND member insert under the user's RLS context is REJECTED; the
+  member-row insert MUST run server-side under service role. (Side effect: the beta
+  self-enroll frontend insert at Auth.tsx:228-259 silently fails today -- noted, NOT
+  fixed, out of Phase 1 scope.)
+
+WHAT PHASE 1 SHIPPED (deployed + committed):
+  1. send-invite/index.ts -- existence guard REPLACED. Now blocks ONLY when the invitee
+     is already a member of the TARGET org: resolves invitee user_id via listUsers, then
+     queries organization_members ANDing user_id AND organization_id=finalOrgId
+     (.maybeSingle()). A member of a DIFFERENT org, or no org, is a VALID invitee. New
+     message: "User is already a member of this organization". All other guards (auth
+     header, JWT, admin/leader authz, org-scope lock, email regex, unclaimed-invite #7)
+     unchanged. BOM stripped on rewrite (file had a UTF-8 BOM; now ASCII-clean no BOM).
+  2. NEW supabase/functions/accept-org-invite/index.ts (service role) -- single
+     authoritative server-side accept step. Validates: token present; invite exists;
+     unclaimed (claimed_at null); not expired; EMAIL-MATCH guard (caller email must equal
+     invite email else 403). Retry-safe ORDER -- affiliation FIRST, claim-stamp LAST:
+     updates profiles (organization_id + organization_role='member'), upserts
+     organization_members {user_id, organization_id, role, joined_at, invited_by} ON
+     CONFLICT (organization_id, user_id) DO NOTHING (idempotent), THEN stamps
+     invites.claimed_by/claimed_at. Any failure before the stamp leaves the invite
+     UNCLAIMED and re-acceptable (avoids the "claimed but no membership" trap).
+  3. useInvites.tsx claimInvite() -- rewired to a single
+     supabase.functions.invoke('accept-org-invite', {body:{token}}). No frontend
+     invites/profiles/members writes remain. Promise<boolean> contract preserved (false on
+     error, true on success) so the Auth.tsx new-user signup path behaves identically.
+     Removed the now-unused ORG_ROLES import (its only consumer moved server-side; the
+     name now appears only in a descriptive comment).
+
+DESIGN DECISIONS (deliberate, Lynn-approved):
+  - Edge-fn member role literal: local const ORG_ROLE_MEMBER = "member" with a comment
+    that it mirrors ORG_ROLES.member. accessControl.ts has NO backend mirror and is in no
+    sync list (CLAUDE Rules #23/#24), so edge functions cannot import it. Frontend still
+    sources ORG_ROLES SSOT.
+  - Affiliation-first / claim-last ordering chosen over the literal spec numbering for
+    retry safety.
+  - No new RLS INSERT policy (chose service role); no seat/tier checks; org-creation path
+    and leader/owner rows untouched; owner-vs-leader vocabulary mismatch left as-is.
+
+BUILD / DEPLOY / COMMITS:
+  - npm run build clean (3955 modules, ~30-33s, zero TS errors). All three files ASCII
+    clean, no BOM.
+  - Edge functions deployed via `npx supabase functions deploy <name> --use-api` to
+    project hphebzdftpjbiudpfcrs: accept-org-invite (clean) and send-invite (clean;
+    bundled _shared/branding.ts, _shared/routes.ts, _templates/invite-email.tsx).
+  - Commits (all pushed to main; working tree clean afterward):
+      3cb607f  DOCS: Bug A diagnosis correction (test artifact)
+      e42ed0e  FIX: useInvites.tsx -> accept-org-invite (frontend; Netlify auto-deploy)
+      9bf4af3  FIX: edge functions send-invite membership check + new accept-org-invite
+
+PHASE 1 RESULT: the NEW-USER invite path is sound end-to-end (invite an existing-or-new
+email -> sign up through the link -> claimInvite -> accept-org-invite writes the profile
+affiliation + organization_members row + claim stamp). Existing-user accept (DEFECT 3)
+still does nothing until Phase 2.
+
+CARRY FORWARD / OPEN (current authoritative list; supersedes the earlier June 20 invite items):
+  - STEP 7 LIVE VERIFICATION (Lynn to run; NEW-USER path only): invite a brand-NEW email
+    to FBC ECK (b298aa1e-a1a1-4101-b1bf-67785ca968cf), sign up THROUGH the invite link,
+    then confirm invites.claimed_*, profiles.organization_role='member', and
+    organization_members shows BOTH leader + new member (Shepherding "2 Organization Members").
+  - PHASE 2 (DEFECT 3): Auth.tsx existing-user accept routing -- make an existing logged-in
+    user who clicks an invite actually claim it. The machinery (claimInvite ->
+    accept-org-invite) already exists and is reusable; only Auth.tsx flow work remains.
+  - BETA SELF-ENROLL latent bug: Auth.tsx:228-259 inserts organization_members from the
+    frontend; with no live INSERT policy it silently fails. Noted, NOT fixed.
+  - BUG B (org lessons count mismatch) -- still open; reconcile the two "org lessons"
+    definitions (top stat card vs Org Lessons tab) in OrgManager.tsx.
+  - BUG C (locked personal lessons) -- still open; Lynn to define the intended product rule.
+  - Still open from the earlier June 20 entry: org-stripe-webhook legacy patterns
+    (retire vs align); orphan org "FBC HERE" (0f12e5a5-73ff-4f15-bf7d-cb3979efd245) delete;
+    FBC ECK keep-as-verified vs delete; unused leaderName var in handleSelfServiceOrgCreation.
 
 ## JUNE 20, 2026 SESSION (Org self-service purchase VERIFIED working end-to-end; 3 follow-up bugs found in member-invite + lesson-count surfaces)
 
@@ -132,9 +236,10 @@ ARCHITECTURE NOTE REINFORCED:
     set to the correct ORG_ROLES value (leader / co-leader / member).
 
 CARRY FORWARD / OPEN (cumulative):
-  - BUG A -- NOT REPRODUCED (test artifact, diagnosed June 20 via live SQL). Real
-    member-invite end-to-end test still pending with a genuine second account. No code
-    known broken.
+  - BUG A -- SUPERSEDED by Phase 1 (see the LATER June 20 entry at top of file). The
+    "test artifact / no code broken" call held only for the eckbrosmediallc symptom; a
+    deeper code diagnosis then found 3 real defects (invite block, invisible member,
+    existing-user accept). DEFECTs 1+2 fixed + deployed; DEFECT 3 = Phase 2.
   - BUG B (org lessons count mismatch) -- reconcile the two "org lessons" definitions.
   - BUG C (locked personal lessons) -- Lynn to define intended product rule first.
   - org-stripe-webhook STILL carries old org_subscriptions/lessons_remaining patterns;
