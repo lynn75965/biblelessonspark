@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useInvites } from '@/hooks/useInvites';
 import { logAuthEvent, logSecurityEvent } from '@/lib/auditLogger';
 import { ROUTES } from "@/constants/routes";
 
@@ -25,6 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const { toast } = useToast();
+  const { claimInvite } = useInvites();
+  // Guards the pending-invite consumer so it fires at most once per mount.
+  const pendingInviteHandledRef = useRef(false);
 
   // Session timeout (30 minutes of inactivity)
   const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -108,6 +112,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, [updateActivity]);
+
+  // Consume a pending org invite on authenticated entry.
+  //
+  // The invited new-user path cannot complete the join inline: with email
+  // confirmation ON, the post-signup sign-in fails and the ?invite= token is lost
+  // across the email-confirmation redirect (the link lands on
+  // emailRedirectTo=/dashboard with no token in the URL). Auth.tsx persists the
+  // token to localStorage('bls_pending_invite') instead; this effect claims it the
+  // moment a session exists. Hosting it here at the auth layer makes "finish the
+  // join" a property of signing in rather than of viewing any one page.
+  useEffect(() => {
+    if (!user) return;
+    // Synchronous guard BEFORE any await, so a re-render mid-claim cannot start a
+    // second accept.
+    if (pendingInviteHandledRef.current) return;
+
+    let token: string | null = null;
+    try { token = localStorage.getItem('bls_pending_invite'); } catch {}
+    if (!token) return;
+
+    pendingInviteHandledRef.current = true;
+
+    (async () => {
+      const { ok, retryable } = await claimInvite(token);
+      if (ok) {
+        try { localStorage.removeItem('bls_pending_invite'); } catch {}
+        // Hard reload into an org-aware dashboard so every context (org,
+        // subscription, sidebar gating) re-initializes from the updated DB.
+        // AuthProvider is mounted above the Router, so useNavigate is unavailable
+        // here. The short delay lets the success toast render before the reload.
+        setTimeout(() => { window.location.assign(ROUTES.DASHBOARD); }, 1200);
+      } else if (!retryable) {
+        // Definitive failure (already-claimed / invalid / expired). Clear the
+        // token so it cannot recur on every future authenticated entry.
+        try { localStorage.removeItem('bls_pending_invite'); } catch {}
+      }
+      // Transient failure: leave the token in place. accept-org-invite is
+      // retry-safe (claim stamp written last), so the next authenticated entry
+      // (a fresh mount resets the ref) re-attempts the join.
+    })();
+  }, [user, claimInvite]);
 
   // Refresh the auth session whenever the tab regains focus.
   //

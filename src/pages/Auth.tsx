@@ -107,6 +107,12 @@ export default function Auth() {
         if (!isMounted) return;
         
         if (invite) {
+          // Persist the token so it survives the email-confirmation round-trip
+          // (the confirmation link lands on emailRedirectTo=/dashboard with no
+          // token in the URL). The AuthProvider consumer claims it on the next
+          // authenticated entry. Persisted only for a valid, unclaimed invite.
+          try { localStorage.setItem('bls_pending_invite', inviteToken); } catch {}
+
           setFormData(prev => ({ ...prev, email: invite.email }));
           setActiveTab('signup');
 
@@ -323,6 +329,12 @@ export default function Auth() {
 
         // INVITED USERS: Special flow - sign in immediately and go to dashboard
         if (inviteToken) {
+          // Persist the token before anything else can fail. With email
+          // confirmation ON the inline sign-in below fails (email not yet
+          // confirmed) and this handler returns early -- the persisted token lets
+          // the AuthProvider consumer finish the join after the user confirms.
+          try { localStorage.setItem('bls_pending_invite', inviteToken); } catch {}
+
           // Sign in the user to establish an active session
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: sanitizedEmail,
@@ -339,8 +351,13 @@ export default function Auth() {
             return;
           }
 
-          // Now we have an active session - claim the invite
-          await claimInvite(inviteToken);
+          // Now we have an active session - claim the invite inline.
+          const claimResult = await claimInvite(inviteToken);
+          if (claimResult.ok) {
+            // Inline success: clear the persisted token so the AuthProvider
+            // consumer does not attempt a redundant (already-claimed) accept.
+            try { localStorage.removeItem('bls_pending_invite'); } catch {}
+          }
           
           // Confirm email automatically (they proved ownership via invite link)
           try {

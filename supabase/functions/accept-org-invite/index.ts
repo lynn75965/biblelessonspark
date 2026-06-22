@@ -104,16 +104,33 @@ const handler = async (req: Request): Promise<Response> => {
     // The claim stamp is written LAST, only after affiliation succeeds.
     if (invite.organization_id) {
       // Profile affiliation (role literal mirrors ORG_ROLES.member). Idempotent.
-      const { error: profileError } = await supabaseClient
+      // .select("id") returns the affected rows so a missing profile (zero rows,
+      // which Postgres reports WITHOUT an error) is caught here and stops the flow
+      // BEFORE the organization_members insert -- preventing a split state where a
+      // member row exists but profiles.organization_id was never set.
+      const { data: affiliatedRows, error: profileError } = await supabaseClient
         .from("profiles")
         .update({
           organization_id: invite.organization_id,
           organization_role: ORG_ROLE_MEMBER,
         })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select("id");
 
       if (profileError) {
         console.error("Error updating profile affiliation:", profileError);
+        return new Response(
+          JSON.stringify({ error: "Failed to join organization." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Zero rows matched -> no profile row exists for this user. Fail closed
+      // BEFORE the member insert. Retry-safe: the claim stamp is still written
+      // last, so the invite stays unclaimed and re-acceptable once a profile
+      // exists.
+      if (!affiliatedRows || affiliatedRows.length === 0) {
+        console.error("Profile affiliation matched zero rows (missing profile) for user:", user.id);
         return new Response(
           JSON.stringify({ error: "Failed to join organization." }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

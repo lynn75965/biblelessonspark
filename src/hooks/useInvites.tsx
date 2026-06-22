@@ -114,12 +114,18 @@ export function useInvites() {
     }
   }, []);
 
-  const claimInvite = useCallback(async (token: string): Promise<boolean> => {
+  // Returns { ok, retryable }. retryable distinguishes a transient failure (no
+  // HTTP response or 5xx -- keep the pending token and retry on the next
+  // authenticated entry) from a definitive one (4xx already-claimed/invalid/
+  // expired, or a 200 body that still carries data.error -- clear the token so it
+  // cannot recur). The AuthProvider consumer relies on this distinction.
+  const claimInvite = useCallback(async (token: string): Promise<{ ok: boolean; retryable: boolean }> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.error('No authenticated user');
-        return false;
+        // No session yet -- transient: keep the token and retry once signed in.
+        return { ok: false, retryable: true };
       }
 
       // Server-side accept: the accept-org-invite Edge Function runs under service
@@ -133,18 +139,28 @@ export function useInvites() {
 
       if (error || data?.error) {
         let errorMessage = 'Failed to accept the invitation. Please try again.';
+        let retryable = false;
         if (error?.context) {
+          // error.context is the Response object for non-2xx status codes. Its
+          // status classifies the failure: 5xx (or missing) is transient; 4xx is
+          // definitive.
+          const status = error.context.status;
+          retryable = !status || status >= 500;
           try {
-            // error.context is the Response object for non-2xx status codes.
             const responseBody = await error.context.json();
             errorMessage = responseBody.error || responseBody.message || errorMessage;
           } catch {
             errorMessage = error.message || errorMessage;
           }
         } else if (data?.error) {
+          // 200 response carrying an error -> the function ran and rejected the
+          // request. Definitive, never retryable.
           errorMessage = data.error;
-        } else if (error?.message) {
-          errorMessage = error.message;
+          retryable = false;
+        } else if (error) {
+          // Transport/network error with no HTTP response -> transient.
+          errorMessage = error.message || errorMessage;
+          retryable = true;
         }
 
         console.error('Error accepting invite:', error || data?.error);
@@ -153,17 +169,18 @@ export function useInvites() {
           description: errorMessage,
           variant: 'destructive',
         });
-        return false;
+        return { ok: false, retryable };
       }
 
       toast({
         title: 'Welcome to the team!',
         description: "You've joined the organization.",
       });
-      return true;
+      return { ok: true, retryable: false };
     } catch (error) {
       console.error('Error claiming invite:', error);
-      return false;
+      // Thrown/network failure -> transient.
+      return { ok: false, retryable: true };
     }
   }, [toast]);
 
