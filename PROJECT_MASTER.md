@@ -1,4 +1,91 @@
-# PROJECT MASTER -- Last updated: June 22, 2026 (new-user invite-claim flow shipped)
+# PROJECT MASTER -- Last updated: June 22, 2026 (Bug A Phase 2 SHIPPED -- existing-user invite claim works)
+
+## JUNE 22, 2026 SESSION (LATER) -- Bug A Phase 2 SHIPPED & VERIFIED: existing-confirmed-user invite claim now works end-to-end (commit da73222 + migration 20260622120000)
+
+The DEFECT 3 / Phase 2 gap (an already-confirmed user clicking an invite link could not
+join) is CLOSED. Existing user clicks invite link -> sees the card -> signs in -> joins the
+org as a visible member. Localhost-verified by Lynn (all 3 DB checks passed) before deploy.
+
+ROOT CAUSE (confirmed across a multi-step diagnosis this session):
+  The logged-out invite page (/auth?invite=...) reads the invite via getInviteByToken
+  (useInvites.tsx) under the ANON PostgREST role. Anon had NO working SELECT path that
+  returned the row, so getInviteByToken returned null -> Auth.tsx gate `if (invite)`
+  (line 109) was false -> the else ("Invalid invite") branch ran -> localStorage.setItem(
+  'bls_pending_invite', ...) at line 114 was NEVER reached -> token never persisted -> the
+  useAuth consumer effect had nothing to claim after sign-in. The NEW-USER signup path was
+  immune because it persists+claims INLINE (Auth.tsx:336/355); only the existing-user
+  sign-in path depended on the anon read, which is why Phase 1 passed and Phase 2 failed.
+  Visually confirmed earlier: logged-out card showed blank "Invitation from", no email
+  pre-fill, "Invalid invite" toast (the null-read signature).
+
+  Diagnosis also surfaced a LIVE SECURITY HOLE: an `anon_claim_by_token` SELECT policy on
+  invites gated only by (token IS NOT NULL AND claimed_at IS NULL) -- it did NOT require a
+  token to be supplied, so an anon caller could `from('invites').select('email')` and list
+  every unclaimed invitee's email/org (PII enumeration). Closed in the same migration.
+
+WHAT SHIPPED:
+  1. Migration supabase/migrations/20260622120000_invites_get_by_token_rpc.sql (APPLIED via
+     `npx supabase db push --linked`; migration list showed zero drift, only this one
+     applied):
+       - DROP POLICY anon_claim_by_token ON public.invites  (closes the enumeration hole;
+         with no anon SELECT policy remaining, RLS denies anon every row).
+       - NEW SECURITY DEFINER function get_invite_by_token(p_token text) RETURNS TABLE
+         (email, inviter_name, organization_name), WHERE token = p_token AND claimed_at IS
+         NULL AND (expires_at IS NULL OR expires_at > now()) LIMIT 1. REVOKE ALL FROM public,
+         GRANT EXECUTE TO anon, authenticated. Token-gated, minimal-disclosure, NOT
+         enumerable (no token arg -> no call; wrong token -> 0 rows; only 3 safe columns).
+         Matches the codebase's existing anon-definer pattern.
+  2. src/hooks/useInvites.tsx -- getInviteByToken switched from the anon table select('*')
+     to supabase.rpc('get_invite_by_token', { p_token: token }).maybeSingle(); added a named
+     InviteCardInfo return type { email, inviter_name, organization_name }. No cast.
+  3. src/integrations/supabase/types.ts -- registered get_invite_by_token in the generated
+     Functions block (array return, inviter_name/organization_name nullable) so the rpc call
+     is fully typed with NO `as any`/`as never` cast. (Typing option A, Lynn-approved.)
+  4. src/pages/Auth.tsx -- the 3 tab edits from the earlier Phase 2 STEP 2 (value={activeTab},
+     unconditional TabsList, removed the line-117 setActiveTab('signup') override) shipped
+     here; they make Sign In reachable on the invite link, which this fix depends on.
+
+  Frontend commit da73222 (4 files, 55 insertions / 15 deletions) pushed to main; Netlify
+  auto-deploy. Migration applied to remote DB hphebzdftpjbiudpfcrs. No edge-function redeploy
+  (no function change). Build clean throughout. ASCII-clean.
+
+LOCALHOST VERIFICATION (Lynn, PASS):
+  Invite 858aef57 (token 769561d3..., email cornerstoneproducts2911+invite1@gmail.com,
+  account dc1792ba). Confirmed unclaimed first (claimed_by/claimed_at NULL). Logged-out card
+  rendered "Invitation from Cornerstone", email pre-filled, no "Invalid invite". Signed in via
+  the Sign In tab -> green "Welcome to the team!" + "You've joined the organization" toasts.
+  DB checks all PASS: invite claimed_by=dc1792ba + claimed_at set; profiles organization_id=
+  b298aa1e + organization_role='member'; organization_members shows Cornerstone owner + the
+  new member row. NOTE: this consumed invite 858aef57 -- reset it (claimed_by/claimed_at NULL,
+  null the dc1792ba profile org fields, remove the FBC ECK/Cornerstone member row) before any
+  re-test.
+
+KEY MECHANICS LEARNED (carry forward):
+  - Frontend changes do NOT reach Lynn's browser until SHE restarts `npm run dev` in her own
+    PowerShell window (Vite HMR is not reliable in her env; the CC sandbox dev server is
+    separate). Always remind her to restart dev before localhost testing.
+  - A new RPC not yet in the generated Supabase types fails typecheck under the typed client
+    (createClient<Database>). Cast-free fix = register the function in
+    src/integrations/supabase/types.ts (it survives a later `gen types` once the function
+    exists in the DB). Did this rather than an `as any`/`as never` cast.
+
+CARRY FORWARD / OPEN:
+  - NEW open item (separate task, NOT a Phase 2 regression): an org MEMBER who joins via
+    invite still sees the "free / personal" dashboard -- the dashboard tier badge reads the
+    user's own user_subscriptions (still free), not the org pool. Decide the intended product
+    rule: should a member automatically draw lessons from the org's pool? Our changes did not
+    cause this; we only just got far enough to see the member dashboard. Needs its own session.
+  - SECURITY (log-only, do NOT bundle with feature fixes): the `anon` role holds
+    INSERT/UPDATE/DELETE/TRUNCATE grants on ALL public-schema tables (Supabase default
+    posture; gated by RLS today). Needs a dedicated audit: enumerate every public table's
+    RLS-enabled status + anon-applicable policies, then decide whether to REVOKE the unused
+    anon DML grants. High-risk to do casually; its own session.
+  - Reusable test assets after reset: orgless confirmed accounts +invite1 (dc1792ba) /
+    +invite3; invites 858aef57 (token 769561d3) and 72ec72ee. FBC ECK baseline = Cornerstone
+    owner only (13afe118). Cornerstone org id b298aa1e.
+  - Still open from prior entries: BUG B (org lessons count mismatch in OrgManager.tsx);
+    BUG C (locked personal lessons -- product rule TBD); org-stripe-webhook legacy patterns;
+    orphan org "FBC HERE" (0f12e5a5) delete decision.
 
 ## JUNE 22, 2026 SESSION -- New-user org invite-claim flow SHIPPED end-to-end (commit 7f5ea32); localhost-verified, deployed, pushed
 
