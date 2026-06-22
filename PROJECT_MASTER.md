@@ -1,3 +1,104 @@
+# PROJECT MASTER -- Last updated: June 22, 2026 (PAUSED mid-planning -- Shepherding org feature audit complete, Stage A next)
+
+## >>> RESUME HERE <<< (paused 2026-06-22 for ~16h) -- Shepherding org + lesson-sharing build
+
+NEXT SESSION: read this whole block first, then ask Lynn the ONE open decision below
+and start Stage A. Nothing is half-broken in the repo; the only uncommitted change is a
+deliberately-held dashboard card (see "ON HOLD" below).
+
+WHERE WE ARE: Bug A Phase 2 is DONE and live (existing-user org invite claim works --
+see the session entry below). That work uncovered a much larger, deliberately-scoped
+build: making the "Shepherding" ORGANIZATION feature fully functional to Lynn's spec.
+A read-only audit of 9 requirements is COMPLETE. Findings below are authoritative.
+
+LYNN'S SPEC (authoritative -- confirmed across several messages):
+  - Org ("Shepherding") subscription is ANNUAL only. Each tier grants a pooled lesson
+    count (e.g. growth = 60). The pool is a 30-DAY allowance: it REFILLS to full every 30
+    days regardless of the annual billing date; NO carryover. It can be exhausted inside a
+    30-day window while the annual sub is far from expiring.
+  - Every generated lesson AND every reshape subtracts exactly 1 from the pool (reshape ==
+    generation).
+  - Personal allowance is SEPARATE and ADDITIVE to the pool: paid personal = 20/30 days
+    (no carryover, while active); free personal = 3 full + 2 short / 30 days. Org
+    membership is IN ADDITION to the personal allowance, not a replacement.
+  - TWO distinct collaboration features layered on a personal (free/paid) account:
+      * TEACHING TEAM: max 4 teachers. Lead (paid) + every accepted member get a "Teaching
+        Team" sidebar tab; Lesson Library shows "My Lessons" + "Team Lessons".
+      * SHEPHERDING org: unlimited teachers, pool-based. Every active member gets a
+        "Shepherding" sidebar tab; Lesson Library shows "My Lessons" + "Shepherd Lessons".
+      * A user can be in BOTH at once.
+  - LESSON SHARING (lock/share): every generated lesson is permanently retained + EDITABLE
+    in the author's "My Lessons" (sharing is non-destructive). In the "View Lesson" screen
+    each lesson has a LOCK icon (default = personal). Tapping it opens a POPUP with a
+    CHECKBOX per group the user has active status in (Team / Shepherd / both). User checks
+    which group(s) to share into; lesson then ALSO appears in that group's shared view, in
+    addition to staying in My Lessons. Share state is INDEPENDENT per group.
+
+AUDIT SCORECARD (9 pieces; file:line evidence captured in this session's transcript):
+  5  Teaching Team tab for members ............. WORKS (sidebarConfig.ts:279-283,319-347;
+       AppShell.tsx:166-167,294; useTeachingTeam.tsx:144-152)
+  9d Sharing is non-destructive (editable original) WORKS (useLessons.tsx:168-188)
+  7  Lesson Library My/Team buttons ............ PARTIAL -- My/Team works (LessonLibrary.tsx
+       :205,503-524 keyed on hasTeam); SHEPHERD grouping entirely MISSING (org lessons live
+       only on /org-manager via OrgLessonsPanel)
+  8  Teaching Team max 4 ....................... PARTIAL -- frontend guard only
+       (MAX_TEAM_MEMBERS=3 -> 4 total, useTeachingTeam.tsx:344-351); NO DB enforcement
+  9a Lock icon in "View Lesson" ............... PARTIAL -- toggle exists on the library CARD
+       (LessonLibrary.tsx:708-727), NOT in the View Lesson screen (EnhanceLessonForm has none)
+  4  Dashboard shows pool + correct reset ...... CARD BUILT but shows wrong (annual) reset;
+       ON HOLD (see below)
+  1  Org pool refills every 30 days ............ BROKEN -- pool only resets at Stripe billing
+       (annual = ~365d). No pg_cron / 30-day reset anywhere. Resets at stripe-webhook
+       :269-271,378-380,485 and org-stripe-webhook:54-55,110-114; period dates sourced from
+       the annual Stripe boundary. (Personal reset IS 30-day: stripe-webhook:499.)
+  2  Reshape subtracts 1 from pool ............. BROKEN -- reshape-lesson never imports/calls
+       checkOrgPoolAccess/consumeFromOrgPool (vs generate-lesson:32,352,1184-1191)
+  3  Personal allowance additive ............... BROKEN -- mutually exclusive pool-first-then-
+       fallback switch (generate-lesson:380-408); personal/trial gating skipped while pool
+       has balance
+  6  Shepherding tab for org members ........... BROKEN -- orgMember role lacks the
+       ministryOversight section (sidebarConfig.ts:335-340; only orgLeader/platformAdmin get
+       it at 320-334). SECONDARY BUG: useOrganization.createOrganization writes
+       organization_role='owner' (tsx:113,130) but accessControl getEffectiveRole only knows
+       leader/co-leader/member (accessControl.ts:208-218), so 'owner' falls through to
+       individual and ALSO loses the tab. (Self-service purchase path sets 'leader', which
+       does work -- so this mainly bites the createOrganization path.)
+  9b/9c Share popup + per-group data model ...... BROKEN/MISSING -- single lessons.visibility
+       'private'|'shared' flag (types.ts:1171) drives BOTH the team resolver
+       (get_team_lessons WHERE visibility='shared', migration 20260616160000:103,182) AND the
+       org/Shepherd panel (OrgLessonsPanel.tsx:234). One toggle shares to both at once; no
+       popup, no Team/Shepherd checkboxes, no multi-target structure. Needs a schema change.
+
+PROPOSED 4-STAGE PLAN (each separately build+test+deploy):
+  STAGE A (backend, FOUNDATION, recommended first) -- pieces 1,2,3. Org pool refills every
+    30 days independent of annual billing; reshape consumes 1 from pool; personal allowance
+    becomes truly additive. Unblocks the dashboard card.
+  STAGE B (frontend) -- pieces 6,7 + the dashboard card (4) + the owner/leader role-naming
+    bug. Org members get the "Shepherding" tab and a "My / Shepherd Lessons" view; card
+    ships with a correct 30-day reset.
+  STAGE C (frontend + backend, BIGGEST) -- piece 9. Replace the single visibility flag with
+    per-group sharing; build the share popup with Team/Shepherd checkboxes; put the lock
+    control on the "View Lesson" screen. Schema change + rewire team & org lesson reads.
+  STAGE D (hardening) -- piece 8. Enforce the 4-teacher max at the DB, not just the UI.
+  (Piece 5 already works -- no action.)
+
+>>> ONE OPEN DECISION needed before Stage A starts <<<
+  When an org member generates a lesson and has BOTH buckets available (personal allowance
+  AND org pool), which is consumed FIRST? Option (a) org pool first, then personal fallback;
+  Option (b) personal first, then org pool. Lynn must answer before Stage A coding.
+
+ON HOLD -- uncommitted working-tree change (DO NOT DEPLOY as-is):
+  src/pages/Dashboard.tsx -- shows MemberPoolStatusBanner (org pool) instead of the personal
+  "Free" UsageDisplay for org-affiliated users. Built + builds clean, but it surfaces the
+  WRONG "Resets in 363 days" line (because piece 1 is broken). HELD until Stage A fixes the
+  30-day reset, then it ships in Stage B. It is intentionally UNCOMMITTED. Do NOT run
+  deploy.ps1 (which `git add .`s everything) until this is ready; commit docs narrowly.
+
+TEST DATA STATE: invite 858aef57 (token 769561d3) was CONSUMED -- reset (claimed_by/
+  claimed_at NULL, null dc1792ba profile org fields, remove the FBC ECK member row) before
+  any re-test. Org FBC ECK = b298aa1e (annual, growth, lessons_limit 60), owner account
+  "Cornerstone" 13afe118. Member test account +invite1 = dc1792ba.
+
 # PROJECT MASTER -- Last updated: June 22, 2026 (Bug A Phase 2 SHIPPED -- existing-user invite claim works)
 
 ## JUNE 22, 2026 SESSION (LATER) -- Bug A Phase 2 SHIPPED & VERIFIED: existing-confirmed-user invite claim now works end-to-end (commit da73222 + migration 20260622120000)
