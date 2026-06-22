@@ -15,6 +15,15 @@ interface Invite {
   organization_name: string | null;
 }
 
+// Minimal-disclosure shape returned by the token-gated get_invite_by_token RPC.
+// The logged-out invite page reads ONLY these three fields (Auth.tsx handleInvite),
+// so the RPC never exposes id/token/created_by/claimed_* to the anon caller.
+export interface InviteCardInfo {
+  email: string;
+  inviter_name: string | null;
+  organization_name: string | null;
+}
+
 interface SendInviteOptions {
   email: string;
   role?: string;
@@ -93,14 +102,14 @@ export function useInvites() {
     return sendInvite({ email, role });
   }, [sendInvite]);
 
-  const getInviteByToken = useCallback(async (token: string): Promise<Invite | null> => {
+  const getInviteByToken = useCallback(async (token: string): Promise<InviteCardInfo | null> => {
     try {
+      // Token-gated SECURITY DEFINER RPC: returns a single actionable invite
+      // (unclaimed + unexpired) with only the three card fields. Anon has no
+      // direct SELECT on invites, so this is the only logged-out read path.
       const { data, error } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .is('claimed_at', null)
-        .single();
+        .rpc('get_invite_by_token', { p_token: token })
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching invite:', error);

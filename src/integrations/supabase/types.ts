@@ -3199,6 +3199,14 @@ export type Database = {
           has_adopted: boolean
         }[]
       }
+      get_invite_by_token: {
+        Args: { p_token: string }
+        Returns: {
+          email: string
+          inviter_name: string | null
+          organization_name: string | null
+        }[]
+      }
       get_managed_org_ids: { Args: never; Returns: string[] }
       get_my_teaching_team: {
         Args: never

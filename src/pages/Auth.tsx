@@ -114,7 +114,9 @@ export default function Auth() {
           try { localStorage.setItem('bls_pending_invite', inviteToken); } catch {}
 
           setFormData(prev => ({ ...prev, email: invite.email }));
-          setActiveTab('signup');
+          // Default tab is left to getDefaultTab() (the bls_has_account hint),
+          // so an already-confirmed user who clicks an invite link lands on the
+          // Sign In tab. Both tabs are always reachable below.
 
           // Read inviter and org names directly from invite record
           if (invite.inviter_name) {
@@ -822,14 +824,12 @@ export default function Auth() {
             </CardDescription>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
-            <Tabs value={inviteToken ? 'signup' : activeTab} onValueChange={setActiveTab}>
-              {/* Hide tabs when invite token present - invited users must sign up */}
-              {!inviteToken && (
-                <TabsList className="grid w-full grid-cols-2 text-sm">
-                  <TabsTrigger value="signin">{FORM_TEXT.signInLink}</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
-              )}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              {/* Both tabs always available; an invited existing user can switch to Sign In to accept */}
+              <TabsList className="grid w-full grid-cols-2 text-sm">
+                <TabsTrigger value="signin">{FORM_TEXT.signInLink}</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
 
               <TabsContent value="signin" className="space-y-3 sm:space-y-4">
                 <form onSubmit={handleSignIn} className="space-y-3 sm:space-y-4">
