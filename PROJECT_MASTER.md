@@ -1,4 +1,51 @@
-# PROJECT MASTER -- Last updated: June 20, 2026 (Phase 1 member-invite fix)
+# PROJECT MASTER -- Last updated: June 22, 2026 (new-user invite-claim flow shipped)
+
+## JUNE 22, 2026 SESSION -- New-user org invite-claim flow SHIPPED end-to-end (commit 7f5ea32); localhost-verified, deployed, pushed
+
+Follow-on to the June 20 Phase 1 work. This session built and shipped the NEW-USER
+invite-claim flow so a brand-new email invited to an org can sign up through the invite
+link and land as a visible member. Localhost verification PASSED (V1/V2/V3 below) before
+deploy, so this is live, not just built.
+
+WHAT SHIPPED (commit 7f5ea32, pushed to main; 4 files, 109 insertions / 13 deletions):
+  - Auth.tsx -- new-user signup branch routes the invite token through the claim flow.
+  - useAuth (src/hooks/useAuth.tsx) -- session/auth wiring to carry the invite through
+    signup so claimInvite runs at the right point in the new-user flow.
+  - useInvites (src/hooks/useInvites.tsx) -- claim path invoking accept-org-invite.
+  - supabase/functions/accept-org-invite/index.ts -- service-role accept step; deployed
+    independently via `npx supabase functions deploy accept-org-invite --use-api` to
+    project hphebzdftpjbiudpfcrs (clean) BEFORE the Netlify deploy.
+  - A.2 PERSIST groundwork: the invite token is now persisted across the auth flow. This
+    is the reusable machinery Phase 2 (existing-user routing) needs -- groundwork is now
+    in place; only the existing-user Auth.tsx routing remains.
+
+LOCALHOST VERIFICATION (PASS -- ran before deploy):
+  - V1: invite claimed (invites row consumed -- claimed_*).
+  - V2: profiles.organization_role = 'member' on the new user.
+  - V3: organization_members shows Cornerstone owner + the new member, invited_by =
+    Cornerstone. No split-state ("claimed but no membership") observed.
+  - TEST DATA CONSUMED during this verification: invite 858aef57 / user dc1792ba were
+    used up claiming into Cornerstone. They are now spent -- do not reuse for re-testing;
+    issue a fresh invite to a fresh email for any further test.
+
+STILL DEFERRED -- Bug A Phase 2 (DEFECT 3, existing-confirmed-user invite routing):
+  An EXISTING confirmed user who clicks an invite link still bounces to sign-in, and the
+  sign-in path does not claim the invite. NOT fixed this session. BUT the A.2 token-persist
+  groundwork shipped here makes the remaining work a focused Auth.tsx sign-in-routing
+  change -- the claimInvite -> accept-org-invite machinery is done and reusable.
+
+OUT OF SCOPE (noted, NOT touched this session):
+  - enrollInPublicBeta client-side organization_members INSERT vs the absence of a live
+    INSERT policy -- the frontend beta self-enroll insert silently fails under user RLS
+    context (same root cause documented June 20: no authenticated INSERT policy on
+    organization_members; member writes must run server-side under service role). Left as
+    a separate latent item, deliberately out of this session's scope.
+
+BUILD / DEPLOY:
+  - npm run build clean (3955 modules, ~17.6s, zero TS errors); ASCII guard passed.
+  - accept-org-invite edge function deployed first (--use-api), then deploy.ps1 committed
+    + pushed (7f5ea32), then the four CC_FIX_PROMPT_INVITE_ACCEPT* prompt files removed
+    from Downloads.
 
 ## JUNE 20, 2026 SESSION (LATER) -- Org member-invite PHASE 1 SHIPPED: invite-block fix + new service-role accept-org-invite; Bug A reframed (real code defects found behind the "test artifact")
 
