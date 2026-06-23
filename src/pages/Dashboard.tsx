@@ -5,6 +5,7 @@ import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { DASHBOARD_TABS, DASHBOARD_TEXT } from "@/constants/dashboardConfig";
 import { ROUTES, DASHBOARD_QUERY_PARAMS, DASHBOARD_TAB_VALUES } from "@/constants/routes";
 import { UsageDisplay } from "@/components/dashboard/UsageDisplay";
+import { MemberPoolStatusBanner } from "@/components/org/MemberPoolStatusBanner";
 import { EnhanceLessonForm } from "@/components/dashboard/EnhanceLessonForm";
 import { LessonLibrary } from "@/components/dashboard/LessonLibrary";
 import { DevotionalLibrary } from "@/components/dashboard/DevotionalLibrary";
@@ -32,6 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useOrgSharedFocus } from "@/hooks/useOrgSharedFocus";
+import { useOrganization } from "@/hooks/useOrganization";
 import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/ActiveFocusBanner";
 import { useHelpVideo } from "@/hooks/useHelpVideo";
 import { VideoModal } from "@/components/help/VideoModal";
@@ -85,6 +87,11 @@ export default function Dashboard() {
   const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
   const { hasTeam, pendingInvitation, acceptInvitation, declineInvitation } = useTeachingTeam();
+  // Org members draw lessons from their organization's pool (the generate-lesson
+  // backend grants any org member 'personal' tier access from the pool). Surface
+  // that pool here instead of the personal "Free" usage card, which only reads the
+  // member's own (still-free) subscription and misrepresents their real access.
+  const { organization, hasOrganization, loading: orgLoading } = useOrganization();
 
   // Teaching Team invitation banner handlers. A confirmed Accept navigates the
   // new member to /teaching-team -- this remounts AppShell so its useTeachingTeam
@@ -310,23 +317,42 @@ export default function Dashboard() {
           />
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
-                <UserCircle className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">
-                  {DASHBOARD_TEXT.greeting} <span className="gradient-text">{userName}!</span>
-                </h1>
-                <p className="text-sm sm:text-base text-muted-foreground">
-                  {DASHBOARD_TEXT.subtitle}
-                </p>
-              </div>
+        <div className="flex flex-col gap-4 mb-6 sm:mb-8 lg:flex-row lg:items-start lg:justify-between">
+          {/* Greeting (left) */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-primary">
+              <UserCircle className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">
+                {DASHBOARD_TEXT.greeting} <span className="gradient-text">{userName}!</span>
+              </h1>
+              <p className="text-sm sm:text-base text-muted-foreground">
+                {DASHBOARD_TEXT.subtitle}
+              </p>
             </div>
           </div>
-          <UsageDisplay />
+
+          {/* Lesson usage -- responsive by design:
+              - mobile (<640): full-width, stacked (cards can't sit side by side
+                legibly on a phone; stacking is the most usable layout there)
+              - tablet/sm+ : side by side, right-aligned (cards shrink to fit)
+              - laptop/desktop/lg+: the pair sits to the RIGHT of the greeting
+              Personal usage is RIGHTMOST for everyone (unaffiliated = right
+              margin); the additive Shepherd pool sits to its LEFT. */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:justify-end lg:shrink-0">
+            {!orgLoading && hasOrganization && organization && (
+              <div className="w-full sm:flex-1 sm:max-w-xs">
+                <MemberPoolStatusBanner
+                  organizationId={organization.id}
+                  organizationName={organization.name}
+                />
+              </div>
+            )}
+            <div className="w-full sm:flex-1 sm:max-w-xs">
+              <UsageDisplay />
+            </div>
+          </div>
         </div>
 
         {/* Public Beta Prompt Banner - shows for orphan users in public_beta mode */}

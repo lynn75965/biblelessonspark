@@ -189,6 +189,16 @@ const transformToDisplay = (
   };
 };
 
+/**
+ * A lesson reads as "shared" when its visibility flag is 'shared' OR it was
+ * funded by the org pool -- pool-funded lessons are automatically group-visible
+ * (Option B), so My Lessons shows them as Shared, never Private/locked.
+ */
+const lessonIsShared = (l: {
+  visibility?: string | null;
+  org_pool_consumed?: boolean | null;
+}): boolean => l.visibility === "shared" || !!l.org_pool_consumed;
+
 // ============================================================================
 // COMPONENT
 // ============================================================================
@@ -649,12 +659,12 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     <Badge
                       variant="outline"
                       className={
-                        lesson.visibility === 'shared'
+                        lessonIsShared(lesson)
                           ? "text-emerald-700 border-emerald-300 bg-emerald-50"
                           : "text-muted-foreground border-border bg-muted/50"
                       }
                     >
-                      {lesson.visibility === 'shared' ? (
+                      {lessonIsShared(lesson) ? (
                         <>
                           <Share2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 mr-1" />
                           Shared
@@ -705,25 +715,47 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     <Eye className="h-4 w-4 mr-1.5" />
                     View
                   </Button>
-                  {/* Visibility Toggle (Phase 26) -- only on user's own lessons */}
+                  {/* Visibility Toggle (Phase 26) -- only on user's own lessons.
+                      Pool-funded lessons are group-visible automatically (Option
+                      B): their status is Shared and not user-togglable. */}
                   {!lesson.isTeamLesson && (
-                    <Button
-                      onClick={() => handleToggleVisibility(lesson)}
-                      variant="outline"
-                      size="sm"
-                      className={
-                        lesson.visibility === 'shared'
-                          ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                          : "hover:bg-muted hover:text-foreground"
-                      }
-                      title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
-                    >
-                      {lesson.visibility === 'shared' ? (
+                    lesson.org_pool_consumed ? (
+                      <Button
+                        onClick={() =>
+                          toast({
+                            title: "Shared with your group",
+                            description:
+                              "Pool-funded lessons are automatically visible to your Shepherd Group.",
+                          })
+                        }
+                        variant="outline"
+                        size="sm"
+                        aria-disabled="true"
+                        className="hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                        title="Shared with your Shepherd Group pool (automatic)"
+                        aria-label="Shared with your Shepherd Group pool"
+                      >
                         <Share2 className="h-4 w-4" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
-                      )}
-                    </Button>
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleToggleVisibility(lesson)}
+                        variant="outline"
+                        size="sm"
+                        className={
+                          lesson.visibility === 'shared'
+                            ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                            : "hover:bg-muted hover:text-foreground"
+                        }
+                        title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
+                      >
+                        {lesson.visibility === 'shared' ? (
+                          <Share2 className="h-4 w-4" />
+                        ) : (
+                          <Lock className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )
                   )}
                   {/* Devotional button -- only on user's own lessons with content */}
                   {!lesson.isTeamLesson && lesson.has_content && (

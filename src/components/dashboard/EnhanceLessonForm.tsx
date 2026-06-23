@@ -773,12 +773,12 @@ export function EnhanceLessonForm({
   const { organization, hasOrganization } = useOrganization();
   const { poolStatus: orgPoolStatus } = useOrgPoolStatus(organization?.id ?? null);
 
-  // The Shepherd pool is offerable only to an active org with lessons remaining.
+  // Canonical pool-usability gate -- matches the backend (orgPoolCheck.ts) and
+  // the dashboard surfaces (useOrgPoolStatus): totalAvailable already encodes the
+  // active-status gate (the subscription portion is 0 when the sub is inactive)
+  // plus any always-usable bonus lessons. One rule everywhere.
   const orgPoolUsable =
-    hasOrganization &&
-    !!orgPoolStatus &&
-    (orgPoolStatus.subscriptionStatus === 'active' || orgPoolStatus.subscriptionStatus === 'trialing') &&
-    orgPoolStatus.totalAvailable > 0;
+    hasOrganization && !!orgPoolStatus && orgPoolStatus.totalAvailable > 0;
 
   // Never leave a stale 'shepherd' selection when the pool is not usable
   // (e.g. it emptied since mount, or the user is unaffiliated) -- fall back to

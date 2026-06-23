@@ -314,6 +314,12 @@ export interface Lesson {
   } | null;
   series_id?: string | null;
   series_lesson_number?: number | null;
+  /** Lesson Visibility Status (Phase 26): 'private' (default) or 'shared'. */
+  visibility?: 'private' | 'shared' | null;
+  /** True when this lesson was funded by the org (Shepherd) pool. Pool-funded
+   *  lessons are group-visible (Option B), so the Library displays them as
+   *  Shared even when the visibility flag is still 'private'. */
+  org_pool_consumed?: boolean | null;
 }
 
 /**

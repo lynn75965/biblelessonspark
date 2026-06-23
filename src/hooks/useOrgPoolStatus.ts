@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { ORG_POOL } from "@/constants/organizationConfig";
 
 // ============================================================================
 // TYPES
@@ -22,22 +23,36 @@ export interface OrgPoolStatus {
   subscriptionTier: string | null;
   subscriptionStatus: string | null;
   billingInterval: 'month' | 'year' | null;
-  
+  /**
+   * Canonical pool-usability gate -- mirrors the backend (orgPoolCheck.ts):
+   * the SUBSCRIPTION portion of the pool is only available when the org sub is
+   * active/trialing. Consumers should treat the pool as usable when
+   * totalAvailable > 0 (which already encodes this gate) and use this flag only
+   * to distinguish an INACTIVE subscription from a merely EXHAUSTED pool.
+   */
+  hasActiveSubscription: boolean;
+
   // Pool limits and usage
   lessonsLimit: number;
   lessonsUsedThisPeriod: number;
   bonusLessons: number;
-  
-  // Calculated values
+
+  // Calculated values (subscriptionRemaining is 0 when the sub is inactive)
   subscriptionRemaining: number;
   totalAvailable: number;
   usagePercentage: number;
-  
-  // Period info
+
+  // Period info -- the pool window is a 30-day ROLLING window anchored on
+  // pool_period_start, INDEPENDENT of the annual Stripe boundary below.
+  poolPeriodStart: string | null;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   daysUntilReset: number | null;
-  
+  /** Actual calendar date the 30-day pool window resets (ISO). Shown as
+   *  "Resets Mon D" -- matches the personal usage display. NEVER the annual
+   *  Stripe renewal date (too confusing for multi-member pools). */
+  resetDate: string | null;
+
   // Stripe IDs for checkout
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
@@ -97,6 +112,7 @@ export function useOrgPoolStatus(organizationId: string | null): UseOrgPoolStatu
           lessons_limit,
           lessons_used_this_period,
           bonus_lessons,
+          pool_period_start,
           current_period_start,
           current_period_end,
           stripe_customer_id,
@@ -107,40 +123,58 @@ export function useOrgPoolStatus(organizationId: string | null): UseOrgPoolStatu
 
       if (orgError) throw orgError;
 
+      // Canonical usability gate -- mirror the backend (orgPoolCheck.ts): the
+      // subscription pool is only available when the sub is active/trialing.
+      const hasActiveSubscription =
+        orgData.subscription_status === "active" ||
+        orgData.subscription_status === "trialing";
+
       // Calculate derived values
       const lessonsLimit = orgData.lessons_limit || 0;
       const lessonsUsed = orgData.lessons_used_this_period || 0;
       const bonusLessons = orgData.bonus_lessons || 0;
-      const subscriptionRemaining = Math.max(0, lessonsLimit - lessonsUsed);
+      // Subscription portion is gated on active status; bonus is always usable.
+      const subscriptionRemaining = hasActiveSubscription
+        ? Math.max(0, lessonsLimit - lessonsUsed)
+        : 0;
       const totalAvailable = subscriptionRemaining + bonusLessons;
-      
+
       // Calculate usage percentage (of subscription pool only)
-      const usagePercentage = lessonsLimit > 0 
-        ? Math.round((lessonsUsed / lessonsLimit) * 100) 
+      const usagePercentage = lessonsLimit > 0
+        ? Math.round((lessonsUsed / lessonsLimit) * 100)
         : 0;
 
-      // Calculate days until reset
-      let daysUntilReset: number | null = null;
-      if (orgData.current_period_end) {
-        const endDate = new Date(orgData.current_period_end);
-        const now = new Date();
-        const diffTime = endDate.getTime() - now.getTime();
-        daysUntilReset = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-      }
+      // Days until reset -- the pool is a 30-day ROLLING window anchored on
+      // pool_period_start (NOT the annual Stripe boundary). When the anchor is
+      // null the window has not started yet, so the next generation resets it;
+      // treat that as a full window from now.
+      const now = new Date();
+      const periodStartMs = orgData.pool_period_start
+        ? new Date(orgData.pool_period_start).getTime()
+        : now.getTime();
+      const resetMs = periodStartMs + ORG_POOL.periodDays * 24 * 60 * 60 * 1000;
+      const daysUntilReset = Math.max(
+        0,
+        Math.ceil((resetMs - now.getTime()) / (1000 * 60 * 60 * 24))
+      );
+      const resetDate = new Date(resetMs).toISOString();
 
       setPoolStatus({
         subscriptionTier: orgData.subscription_tier,
         subscriptionStatus: orgData.subscription_status,
         billingInterval: orgData.billing_interval,
+        hasActiveSubscription,
         lessonsLimit,
         lessonsUsedThisPeriod: lessonsUsed,
         bonusLessons,
         subscriptionRemaining,
         totalAvailable,
         usagePercentage,
+        poolPeriodStart: orgData.pool_period_start,
         currentPeriodStart: orgData.current_period_start,
         currentPeriodEnd: orgData.current_period_end,
         daysUntilReset,
+        resetDate,
         stripeCustomerId: orgData.stripe_customer_id,
         stripeSubscriptionId: orgData.stripe_subscription_id,
       });

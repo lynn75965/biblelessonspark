@@ -27,6 +27,12 @@ import {
 } from "lucide-react";
 import { useOrgPoolStatus, getTierDisplayName } from "@/hooks/useOrgPoolStatus";
 
+// Pool reset date shown as "Mon D" (e.g. "Jul 23") -- same format as the
+// personal usage display. This is the 30-day ROLLING window reset, never the
+// annual Stripe renewal date (which would confuse multi-member pools).
+const formatPoolResetDate = (iso: string): string =>
+  new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -87,6 +93,29 @@ export function MemberPoolStatusBanner({
         <AlertDescription className="text-xs text-muted-foreground">
           Your organization doesn't have an active lesson pool subscription. 
           Lessons use your personal account allocation.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // ============================================================================
+  // INACTIVE SUBSCRIPTION STATE
+  // The org has a tier but the subscription is not active (e.g. canceled /
+  // past_due) and nothing is usable. This is DISTINCT from an exhausted pool:
+  // the pool is not "0 of N used", it simply is not available. Members fall back
+  // to their personal allowance. (Matches the backend gate in orgPoolCheck.ts.)
+  // ============================================================================
+
+  if (!poolStatus.hasActiveSubscription && poolStatus.totalAvailable === 0) {
+    return (
+      <Alert className="border-muted bg-muted/30">
+        <Info className="h-4 w-4" />
+        <AlertTitle className="text-sm font-medium">
+          {organizationName} Lesson Pool
+        </AlertTitle>
+        <AlertDescription className="text-xs text-muted-foreground">
+          Your organization's lesson pool subscription isn't active right now.
+          Lessons use your personal account allocation until it's renewed.
         </AlertDescription>
       </Alert>
     );
@@ -193,10 +222,10 @@ export function MemberPoolStatusBanner({
                     <span className="ml-1">(+{poolStatus.bonusLessons} bonus)</span>
                   )}
                 </span>
-                {poolStatus.daysUntilReset !== null && (
+                {poolStatus.resetDate && (
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    Resets in {poolStatus.daysUntilReset} days
+                    Resets {formatPoolResetDate(poolStatus.resetDate)}
                   </span>
                 )}
               </div>
