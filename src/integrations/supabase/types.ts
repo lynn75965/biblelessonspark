@@ -3287,6 +3287,16 @@ export type Database = {
           visibility: string
         }[]
       }
+      get_org_pool_usage: {
+        Args: never
+        Returns: {
+          full_name: string
+          last_pool_lesson_at: string
+          pool_lessons_this_period: number
+          pool_lessons_total: number
+          user_id: string
+        }[]
+      }
       get_team_lessons: {
         Args: never
         Returns: {

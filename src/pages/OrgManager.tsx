@@ -27,6 +27,7 @@ import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
 import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
 import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { OrgPoolStatusCard } from "@/components/org/OrgPoolStatusCard";
+import { OrgPoolUsagePanel } from "@/components/org/OrgPoolUsagePanel";
 import { ChildOrgDashboard } from "@/components/org/ChildOrgDashboard";
 import { CreateChildOrgDialog } from "@/components/org/CreateChildOrgDialog";
 import { ParentFocusBanner } from "@/components/org/ParentFocusBanner";
@@ -317,11 +318,17 @@ export default function OrgManager() {
           {/* Lesson Pool Tab - Phase 13.7 */}
           <TabsContent value="pool" className="mt-6">
             {organization?.id ? (
-              <OrgPoolStatusCard
-                organizationId={organization.id}
-                organizationName={organization.name || "Organization"}
-                showPurchaseOptions={true}
-              />
+              <div className="space-y-6">
+                <OrgPoolStatusCard
+                  organizationId={organization.id}
+                  organizationName={organization.name || "Organization"}
+                  showPurchaseOptions={true}
+                />
+                {/* Shepherding B5: leader pool-monitoring -- per-member draws */}
+                <OrgPoolUsagePanel
+                  organizationName={organization.name || "Organization"}
+                />
+              </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
                 No organization found.
