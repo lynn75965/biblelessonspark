@@ -137,59 +137,44 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
     setLoading(true);
     setError(null);
     try {
-      // Step 1: Get all member user_ids for this organization
-      const { data: membersData, error: membersError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .eq('organization_id', organizationId);
+      // Read via the SECURITY DEFINER resolver (past RLS). A direct client query
+      // on lessons only returns the caller's OWN rows, so a non-admin leader saw
+      // 0 of the members' lessons (B6 fix). get_org_pool_lessons returns the org's
+      // shared + pool-funded lessons -- exactly the org-manager-visible set --
+      // with author_name and org_pool_consumed for the funding badges / override.
+      const { data, error: rpcError } = await supabase.rpc('get_org_pool_lessons');
 
-      if (membersError) {
-        console.error('Members query error:', membersError);
-        setError(membersError.message);
+      if (rpcError) {
+        console.error('Org lessons query error:', rpcError);
+        setError(rpcError.message);
         return;
       }
 
-      const memberIds = membersData?.map(m => m.id) || [];
-      
-      // Build profile map from members query
+      const rows = (data ?? []) as any[];
       const map: ProfileMap = {};
-      membersData?.forEach(p => { map[p.id] = { full_name: p.full_name }; });
+      const mapped: OrgLesson[] = rows.map((row) => {
+        if (row.author_name) map[row.user_id] = { full_name: row.author_name };
+        return {
+          id: row.lesson_id,
+          title: row.title,
+          original_text: row.original_text,
+          source_type: null,
+          filters: {
+            bible_passage: row.bible_passage ?? undefined,
+            age_group: row.age_group ?? undefined,
+            theology_profile_id: row.theology_profile ?? undefined,
+          },
+          metadata: row.metadata ?? null,
+          created_at: row.created_at,
+          user_id: row.user_id,
+          organization_id: organizationId,
+          org_pool_consumed: row.org_pool_consumed === true,
+          visibility: row.visibility === 'shared' ? 'shared' : 'private',
+        };
+      });
+
       setProfileMap(map);
-
-      if (memberIds.length === 0) {
-        setLessons([]);
-        setLoading(false);
-        return;
-      }
-
-      // Step 2: Query lessons with organization_id set (org members' lessons)
-      // Phase 26: Now includes visibility column for override logic
-      const { data: lessonsData, error: lessonsError } = await supabase
-        .from('lessons')
-        .select(`
-          id, 
-          title, 
-          original_text, 
-          source_type, 
-          filters, 
-          metadata, 
-          created_at, 
-          user_id,
-          organization_id,
-          org_pool_consumed,
-          visibility
-        `)
-        .eq('organization_id', organizationId)
-        .order('created_at', { ascending: false });
-
-      if (lessonsError) {
-        console.error('Lessons query error:', lessonsError);
-        setError(lessonsError.message);
-        return;
-      }
-
-      const fetchedLessons = (lessonsData as OrgLesson[]) || [];
-      setLessons(fetchedLessons);
+      setLessons(mapped);
     } catch (err) {
       console.error('Error fetching org lessons:', err);
       setError('Failed to load lessons');

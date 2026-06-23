@@ -3280,6 +3280,7 @@ export type Database = {
           created_at: string
           lesson_id: string
           metadata: Json
+          org_pool_consumed: boolean
           original_text: string
           theology_profile: string
           title: string
