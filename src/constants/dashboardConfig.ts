@@ -32,6 +32,10 @@ export const LESSON_LIBRARY_TEXT = {
     heading: "No shared lessons from your team",
     subtext: "When your team members share lessons, they will appear here.",
   },
+  emptyShepherd: {
+    heading: "No shared lessons in your group yet",
+    subtext: "Pool-funded lessons, and lessons your group shares, will appear here.",
+  },
   loadError: {
     title: "Error loading lessons",
     description: "Failed to load your lessons. Please try again.",

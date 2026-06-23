@@ -208,6 +208,30 @@ export default function Dashboard() {
     trackLessonViewed(lesson.id);
     setActiveTab("enhance");
 
+    // Shepherd (org pool / shared) lessons arrive from get_org_pool_lessons WITH
+    // their full body (original_text + metadata), so -- unlike team lessons --
+    // no resolver round-trip is needed. Open them in the same read-only viewer
+    // (isTeamLesson:true drives read-only; export stays available).
+    if (lesson?.isShepherdLesson) {
+      setSelectedLesson({
+        id: lesson.id,
+        user_id: lesson.user_id,
+        title: lesson.title,
+        original_text: lesson.original_text,
+        filters: lesson.filters,
+        metadata: lesson.metadata,
+        visibility: lesson.visibility,
+        created_at: lesson.created_at,
+        isTeamLesson: true,
+        authorName: lesson.authorName,
+      });
+      toast({
+        title: "Opening lesson",
+        description: `Opening "${lesson.title || "lesson"}" for viewing.`,
+      });
+      return;
+    }
+
     // Team lessons arrive from get_team_lessons WITHOUT their body (original_text
     // is null in the list payload -- FACT A blocks a client read of a teammate's
     // row). Fetch the full content past lessons RLS via get_team_lesson

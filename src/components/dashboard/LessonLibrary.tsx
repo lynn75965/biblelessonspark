@@ -37,12 +37,13 @@ import { findMatchingBooks } from "@/constants/bibleBooks";
 import { FORM_STYLING } from "@/constants/formConfig";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, Plus, Loader2, Layers } from "lucide-react";
+import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, Plus, Loader2, Layers, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLessons } from "@/hooks/useLessons";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
 import { supabase } from "@/integrations/supabase/client";
+import { useOrganization } from "@/hooks/useOrganization";
 import { useSubscription } from "@/hooks/useSubscription";
 import { hasFeatureAccess, getUpgradePrompt } from "@/constants/featureFlags";
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +86,10 @@ interface LessonDisplay extends Lesson {
   updated_at?: string;
   /** Phase 27: true if this lesson belongs to a team member (read-only) */
   isTeamLesson?: boolean;
+  /** Shepherding B3: true if this is a group (org pool / shared) lesson shown
+   *  read-only in the Shepherd scope. Carries isTeamLesson:true as well so it
+   *  reuses the existing read-only treatment. */
+  isShepherdLesson?: boolean;
   /** Phase 27: display name of the lesson author (for team lessons) */
   authorName?: string;
 }
@@ -155,7 +160,7 @@ const extractPrimaryScripture = (content: string): string | null => {
  */
 const transformToDisplay = (
   lesson: any,
-  options?: { isTeamLesson?: boolean; authorName?: string }
+  options?: { isTeamLesson?: boolean; isShepherdLesson?: boolean; authorName?: string }
 ): LessonDisplay => {
   const filters = lesson.filters as Record<string, any> | null;
   const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
@@ -185,6 +190,7 @@ const transformToDisplay = (
     has_content: !!lesson.original_text,
     updated_at: lesson.created_at,
     isTeamLesson: options?.isTeamLesson || false,
+    isShepherdLesson: options?.isShepherdLesson || false,
     authorName: options?.authorName || undefined,
   };
 };
@@ -212,12 +218,16 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const [profileFilter, setProfileFilter] = useState<string>("all");
 
   // Phase 27: Scope toggle and team lessons state
-  const [scope, setScope] = useState<"my" | "team">("my");
+  const [scope, setScope] = useState<"my" | "team" | "shepherd">("my");
   const [teamLessons, setTeamLessons] = useState<LessonDisplay[]>([]);
   const [teamLessonsLoading, setTeamLessonsLoading] = useState(false);
+  // Shepherding B3: the group's lessons (pool-funded + shared), read-only.
+  const [shepherdLessons, setShepherdLessons] = useState<LessonDisplay[]>([]);
+  const [shepherdLessonsLoading, setShepherdLessonsLoading] = useState(false);
 
   const { lessons, loading, deleteLesson, updateLessonVisibility, refetch: refreshLessons } = useLessons();
   const { hasTeam, team, members, fetchTeamLessons } = useTeachingTeam();
+  const { hasOrganization } = useOrganization();
   const { tier } = useSubscription();
   const { toast } = useToast();
   const canUseDevotional = hasFeatureAccess(tier, 'devotional');
@@ -284,6 +294,13 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     }
   }, [scope, hasTeam]);
 
+  // Shepherding B3: fetch the group's lessons when scope switches to "shepherd".
+  useEffect(() => {
+    if (scope === "shepherd" && hasOrganization) {
+      loadShepherdLessons();
+    }
+  }, [scope, hasOrganization]);
+
   const loadTeamLessons = async () => {
     setTeamLessonsLoading(true);
     try {
@@ -324,8 +341,59 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
     }
   };
 
+  // Shepherding B3: load the group's pool-funded + shared lessons. The resolver
+  // (get_org_pool_lessons) already returns original_text + metadata, so the
+  // read-only viewer needs no extra round-trip. Rows are mapped to the lesson
+  // shape so transformToDisplay resolves id / passage / age / content correctly.
+  const loadShepherdLessons = async () => {
+    setShepherdLessonsLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("get_org_pool_lessons");
+      if (error) {
+        console.error("Error loading shepherd lessons:", error);
+        setShepherdLessons([]);
+        return;
+      }
+      const transformed = (data || []).map((row: any) =>
+        transformToDisplay(
+          {
+            id: row.lesson_id,
+            user_id: row.user_id,
+            title: row.title,
+            original_text: row.original_text,
+            created_at: row.created_at,
+            visibility: row.visibility,
+            filters: {
+              bible_passage: row.bible_passage,
+              age_group: row.age_group,
+              theology_profile_id: row.theology_profile,
+            },
+            metadata: row.metadata,
+          },
+          {
+            isTeamLesson: true,
+            isShepherdLesson: true,
+            authorName: row.author_name || "Group Member",
+          }
+        )
+      );
+      setShepherdLessons(transformed);
+    } catch (err) {
+      console.error("Error loading shepherd lessons:", err);
+      setShepherdLessons([]);
+    } finally {
+      setShepherdLessonsLoading(false);
+    }
+  };
+
   // Choose which lessons to display based on scope
-  const activeLessons = scope === "team" ? teamLessons : displayLessons;
+  const activeLessons =
+    scope === "team" ? teamLessons : scope === "shepherd" ? shepherdLessons : displayLessons;
+
+  // Unified scope-loading flag for the loading/grid/empty guards.
+  const scopeLoading =
+    (scope === "team" && teamLessonsLoading) ||
+    (scope === "shepherd" && shepherdLessonsLoading);
 
   // Filter lessons
   const filteredLessons = activeLessons.filter((lesson) => {
@@ -500,17 +568,25 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-xl">
-                {scope === "team" ? `${team?.name || "Team"} Lessons` : "My Lesson Library"}
+                {scope === "team"
+                  ? `${team?.name || "Team"} Lessons`
+                  : scope === "shepherd"
+                    ? "Shepherd Lessons"
+                    : "My Lesson Library"}
               </CardTitle>
               <CardDescription>
                 {scope === "team"
                   ? "Shared lessons from your teaching team members"
-                  : "Browse and manage your Baptist Bible study lessons"}
+                  : scope === "shepherd"
+                    ? "Pool-funded and shared lessons from your Shepherding group"
+                    : "Browse and manage your Baptist Bible study lessons"}
               </CardDescription>
             </div>
 
-            {/* Phase 27: Scope Toggle -- only visible when user has a team */}
-            {hasTeam && (
+            {/* Scope Toggle -- shown when the user has a team and/or a
+                Shepherding org. My Lessons always; Team gated on hasTeam;
+                Shepherd Lessons gated on org membership (B3). */}
+            {(hasTeam || hasOrganization) && (
               <div className="flex bg-muted rounded-lg p-1 shrink-0 ml-4">
                 <Button
                   variant={scope === "my" ? "default" : "ghost"}
@@ -521,15 +597,28 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                   <BookOpen className="h-3.5 w-3.5 mr-1.5" />
                   My Lessons
                 </Button>
-                <Button
-                  variant={scope === "team" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setScope("team")}
-                  className={`text-xs px-3 ${scope === "team" ? "" : "text-muted-foreground"}`}
-                >
-                  <Users className="h-3.5 w-3.5 mr-1.5" />
-                  Team Lessons
-                </Button>
+                {hasTeam && (
+                  <Button
+                    variant={scope === "team" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setScope("team")}
+                    className={`text-xs px-3 ${scope === "team" ? "" : "text-muted-foreground"}`}
+                  >
+                    <Users className="h-3.5 w-3.5 mr-1.5" />
+                    Team Lessons
+                  </Button>
+                )}
+                {hasOrganization && (
+                  <Button
+                    variant={scope === "shepherd" ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setScope("shepherd")}
+                    className={`text-xs px-3 ${scope === "shepherd" ? "" : "text-muted-foreground"}`}
+                  >
+                    <Building2 className="h-3.5 w-3.5 mr-1.5" />
+                    Shepherd Lessons
+                  </Button>
+                )}
               </div>
             )}
 
@@ -618,15 +707,15 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
         </CardContent>
       </Card>
 
-      {/* Team Lessons Loading State */}
-      {scope === "team" && teamLessonsLoading && (
+      {/* Scope Lessons Loading State (team or shepherd) */}
+      {scopeLoading && (
         <div className="flex items-center justify-center p-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       )}
 
       {/* Lessons Grid */}
-      {!(scope === "team" && teamLessonsLoading) && filteredLessons.length > 0 ? (
+      {!scopeLoading && filteredLessons.length > 0 ? (
         <>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {pagedLessons.map((lesson) => (
@@ -944,7 +1033,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
           </div>
         )}
         </>
-      ) : !(scope === "team" && teamLessonsLoading) ? (
+      ) : !scopeLoading ? (
         <Card className="bg-gradient-card border-border/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <BookOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
@@ -958,7 +1047,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                 ? LESSON_LIBRARY_TEXT.emptyFiltered
                 : scope === "team"
                   ? LESSON_LIBRARY_TEXT.emptyTeam
-                  : LESSON_LIBRARY_TEXT.emptyDefault;
+                  : scope === "shepherd"
+                    ? LESSON_LIBRARY_TEXT.emptyShepherd
+                    : LESSON_LIBRARY_TEXT.emptyDefault;
               return (
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">{copy.heading}</h3>
