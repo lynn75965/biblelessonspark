@@ -1770,6 +1770,7 @@ export type Database = {
           organization_type: string | null
           parent_org_id: string | null
           phone: string | null
+          pool_period_start: string | null
           requested_by: string | null
           status: string | null
           stripe_customer_id: string | null
@@ -1812,6 +1813,7 @@ export type Database = {
           organization_type?: string | null
           parent_org_id?: string | null
           phone?: string | null
+          pool_period_start?: string | null
           requested_by?: string | null
           status?: string | null
           stripe_customer_id?: string | null
@@ -1854,6 +1856,7 @@ export type Database = {
           organization_type?: string | null
           parent_org_id?: string | null
           phone?: string | null
+          pool_period_start?: string | null
           requested_by?: string | null
           status?: string | null
           stripe_customer_id?: string | null

@@ -416,3 +416,48 @@ export const ORG_DELETION_REQUEST = {
 } as const;
 
 export type OrgDeletionStatus = typeof ORG_DELETION_REQUEST.statuses[keyof typeof ORG_DELETION_REQUEST.statuses];
+
+// ----------------------------------------------------------------------------
+// ORG LESSON POOL -- 30-DAY ROLLING ALLOWANCE (SSOT)
+// ----------------------------------------------------------------------------
+// The Shepherding org pool is a 30-DAY allowance. It REFILLS to full every
+// periodDays, INDEPENDENT of the annual Stripe billing boundary. No carryover.
+// The edge functions (generate-lesson, reshape-lesson) roll the window lazily
+// on read -- there is no pg_cron and no DB trigger (Architecture Principle #2:
+// the edge function is the only writer). periodDays is the ONE source of the
+// window length; never hardcode a day count inside an edge function.
+// ----------------------------------------------------------------------------
+
+export const ORG_POOL = {
+  /** Length of the rolling pool window, in days. On refill, usage resets to 0. */
+  periodDays: 30,
+} as const;
+
+// ----------------------------------------------------------------------------
+// LESSON FUNDING DECLARATION (SSOT) -- which bucket a generation/reshape charges
+// ----------------------------------------------------------------------------
+// FRONTEND DRIVES BACKEND: an affiliated (Shepherd group) member DECLARES the
+// funding bucket at lesson initiation. The backend VALIDATES against these
+// values and never invents the target. The charge is LOCKED to this declaration
+// at generation time; the post-generation View checkbox only changes sharing
+// visibility, never the bucket that was charged.
+//   personal -> the member's personal allowance (free trial or paid)
+//   shepherd -> the organization (Shepherding) pool
+// ----------------------------------------------------------------------------
+
+export const LESSON_FUNDING = {
+  personal: 'personal',
+  shepherd: 'shepherd',
+} as const;
+
+export type LessonFunding = typeof LESSON_FUNDING[keyof typeof LESSON_FUNDING];
+
+/**
+ * Safe default when a request omits a funding declaration: charge PERSONAL,
+ * so the shared Shepherd pool is never drawn unintentionally. An unaffiliated
+ * user never sends a declaration and always lands here.
+ */
+export const DEFAULT_LESSON_FUNDING: LessonFunding = LESSON_FUNDING.personal;
+
+export const isValidLessonFunding = (value: unknown): value is LessonFunding =>
+  value === LESSON_FUNDING.personal || value === LESSON_FUNDING.shepherd;

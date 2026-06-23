@@ -6,6 +6,7 @@ import { getTrialStatus, doesTrialApply } from '../_shared/trialConfig.ts';
 import { getShapeById } from '../_shared/lessonShapeProfiles.ts';
 import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
+import { checkOrgPoolAccess, consumeFromOrgPool } from '../_shared/orgPoolCheck.ts';
 
 /**
  * reshape-lesson Edge Function (Session A -- reshape-as-lesson)
@@ -129,7 +130,7 @@ serve(async (req) => {
     // =========================================================================
     const { data: parentLesson, error: parentError } = await supabase
       .from('lessons')
-      .select('id, title, lesson_type, filters, visibility, organization_id, audience_profile')
+      .select('id, title, lesson_type, filters, visibility, organization_id, org_pool_consumed, audience_profile')
       .eq('id', lesson_id)
       .eq('user_id', user.id)
       .maybeSingle();
@@ -203,13 +204,59 @@ serve(async (req) => {
 
     // =========================================================================
     // BILLING / LIMIT CHECK -- BEFORE Anthropic call (Rule R3)
+    // Reshape == generation: it consumes exactly 1 from the SAME bucket the
+    // parent lesson was charged to (Shepherding Stage A). A parent that was
+    // pool-funded (org_pool_consumed) draws the org pool; any other parent draws
+    // the author's personal allowance (paid row-count or free trial credit).
+    // There is no fresh funding declaration on reshape -- the bucket is inherited.
     // =========================================================================
     let userTier: string = 'free';
     let isTrialLesson = false;
     let trialProfileData: any = null;
     let trialStatus: any = null;
 
-    if (!isAdmin) {
+    // Inherit the parent lesson's funding bucket.
+    const parentUsedPool = parentLesson.org_pool_consumed === true && !!parentLesson.organization_id;
+    let useOrgPoolForReshape = false;
+    let orgPoolOrgId: string | null = null;
+
+    if (!isAdmin && parentUsedPool) {
+      // Shepherd lesson -> reshape draws the org pool (checkOrgPoolAccess also
+      // rolls the 30-day window forward if it has elapsed).
+      const poolCheck = await checkOrgPoolAccess(supabase, user.id);
+
+      if (!poolCheck.is_org_member || poolCheck.organization_id !== parentLesson.organization_id) {
+        // Author has left the Shepherding group that funded the original lesson.
+        return new Response(
+          JSON.stringify({
+            error: 'You are no longer a member of the Shepherding group that owns this lesson.',
+            code: 'NOT_ORG_MEMBER',
+          }),
+          { status: 403, headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!poolCheck.can_use_org_pool) {
+        // Pool exhausted for the current 30-day window. Charge is locked to the
+        // inherited bucket -- no fallback to the personal allowance.
+        return new Response(
+          JSON.stringify({
+            error: 'Your Shepherding group lesson pool is empty for this period.',
+            code: 'POOL_EXHAUSTED',
+            organization_name: poolCheck.organization_name,
+            pool_available: poolCheck.pool_status?.total_available ?? 0,
+            lessons_limit: poolCheck.pool_status?.lessons_limit ?? 0,
+            pool_period_start: poolCheck.pool_status?.pool_period_start ?? null,
+          }),
+          { status: 403, headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      useOrgPoolForReshape = true;
+      orgPoolOrgId = poolCheck.organization_id;
+      userTier = 'personal';
+      console.log('RESHAPE ORG POOL: parent was pool-funded; will consume from org pool', orgPoolOrgId);
+    } else if (!isAdmin) {
       const limitCheck = await checkLessonLimit(supabase, user.id);
       console.log('Reshape limit check:', limitCheck);
       userTier = limitCheck.tier;
@@ -442,6 +489,8 @@ serve(async (req) => {
       lesson_type: 'full',
       reshape_of: parentLesson.id,
       shape_id: shape_id,
+      // Inherit the parent's funding bucket; pool consumption happens below.
+      org_pool_consumed: useOrgPoolForReshape,
       // shaped_content intentionally NULL: the reshape IS the shaped content.
     };
 
@@ -471,6 +520,21 @@ serve(async (req) => {
     }
 
     checkpoint = logTiming('New lesson row inserted', checkpoint);
+
+    // =========================================================================
+    // ORG POOL CONSUMPTION (Shepherding Stage A) -- reshape == generation
+    // Parent was pool-funded -> draw exactly 1 from the org pool now that the
+    // new row is safely persisted. Mutually exclusive with trial consumption
+    // (the pool path sets isTrialLesson = false).
+    // =========================================================================
+    if (useOrgPoolForReshape && orgPoolOrgId) {
+      const consumed = await consumeFromOrgPool(supabase, orgPoolOrgId);
+      if (consumed) {
+        console.log('Reshape org pool consumption successful for org:', orgPoolOrgId);
+      } else {
+        console.error('Reshape org pool consumption failed - this should not happen');
+      }
+    }
 
     // =========================================================================
     // TRIAL CONSUMPTION -- mirror generate-lesson L1124-1153

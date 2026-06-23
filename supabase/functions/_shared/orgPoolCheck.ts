@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BIBLELESSONSPARK - ORGANIZATION POOL CHECK (SHARED)
 // Location: supabase/functions/_shared/orgPoolCheck.ts
 //
@@ -7,7 +7,14 @@
 // - Consumption order: subscription pool first, then bonus pool
 // - Org members always get organization_id on lessons
 // - org_pool_consumed = true only when pool was actually used
+// - pool window is a 30-day ROLLING allowance (ORG_POOL.periodDays), rolled
+//   lazily on read -- independent of the annual Stripe billing boundary
 // ============================================================
+
+import { ORG_POOL } from './organizationConfig.ts';
+
+/** Rolling pool window length in ms, sourced from the frontend SSOT. */
+const POOL_PERIOD_MS = ORG_POOL.periodDays * 24 * 60 * 60 * 1000;
 
 export interface OrgMembership {
   organization_id: string;
@@ -26,6 +33,8 @@ export interface OrgPoolStatus {
   lessons_used_this_period: number;
   bonus_lessons: number;
   current_period_end: string | null;
+  /** Anchor of the current 30-day rolling pool window (re-anchored on refill). */
+  pool_period_start: string | null;
 }
 
 export interface OrgPoolCheckResult {
@@ -92,7 +101,8 @@ export async function getOrgPoolBalance(
       lessons_limit,
       lessons_used_this_period,
       bonus_lessons,
-      current_period_end
+      current_period_end,
+      pool_period_start
     `)
     .eq('id', organizationId)
     .single();
@@ -124,7 +134,73 @@ export async function getOrgPoolBalance(
     lessons_used_this_period: org.lessons_used_this_period || 0,
     bonus_lessons: bonusRemaining,
     current_period_end: org.current_period_end,
+    pool_period_start: org.pool_period_start ?? null,
   };
+}
+
+/**
+ * Roll the 30-day pool window forward LAZILY if it has elapsed.
+ *
+ * The Shepherding pool is a 30-day rolling allowance that refills to full every
+ * ORG_POOL.periodDays, INDEPENDENT of the annual Stripe billing boundary. There
+ * is no pg_cron and no DB trigger (Architecture Principle #2) -- this function,
+ * called on every pool check, is the only writer.
+ *
+ *  - pool_period_start NULL  -> initialize the window to now() (no reset; the
+ *    org has simply never been checked under the rolling model yet).
+ *  - window elapsed          -> reset lessons_used_this_period to 0 and
+ *    re-anchor pool_period_start to now(). No carryover.
+ *  - window still open       -> no-op.
+ *
+ * Must run BEFORE getOrgPoolBalance so the balance reflects any refill.
+ */
+export async function rollOrgPoolPeriodIfElapsed(
+  supabase: any,
+  organizationId: string
+): Promise<void> {
+  const { data: org, error } = await supabase
+    .from('organizations')
+    .select('pool_period_start')
+    .eq('id', organizationId)
+    .single();
+
+  if (error || !org) {
+    console.error('Pool period roll: could not read organization', organizationId, error);
+    return;
+  }
+
+  const now = new Date();
+
+  // Not yet initialized -> anchor the window now. No reset (fresh window).
+  if (!org.pool_period_start) {
+    const { error: initError } = await supabase
+      .from('organizations')
+      .update({ pool_period_start: now.toISOString() })
+      .eq('id', organizationId);
+    if (initError) {
+      console.error('Pool period init failed for org', organizationId, initError);
+    } else {
+      console.log(`Pool window initialized for org ${organizationId} (anchored to now).`);
+    }
+    return;
+  }
+
+  const periodStart = new Date(org.pool_period_start);
+  if (now.getTime() - periodStart.getTime() >= POOL_PERIOD_MS) {
+    // 30-day window elapsed -> refill: reset usage and re-anchor. No carryover.
+    const { error: rollError } = await supabase
+      .from('organizations')
+      .update({
+        lessons_used_this_period: 0,
+        pool_period_start: now.toISOString(),
+      })
+      .eq('id', organizationId);
+    if (rollError) {
+      console.error('Pool period roll failed for org', organizationId, rollError);
+    } else {
+      console.log(`Org pool refilled (${ORG_POOL.periodDays}-day window elapsed). Org ${organizationId}: usage reset to 0, window re-anchored.`);
+    }
+  }
 }
 
 /**
@@ -148,7 +224,9 @@ export async function checkOrgPoolAccess(
     };
   }
 
-  // Step 2: Get org pool balance
+  // Step 2: Roll the 30-day pool window forward if it has elapsed (lazy refill),
+  // THEN read the balance so it reflects any refill.
+  await rollOrgPoolPeriodIfElapsed(supabase, membership.organization_id);
   const poolStatus = await getOrgPoolBalance(supabase, membership.organization_id);
 
   if (!poolStatus) {

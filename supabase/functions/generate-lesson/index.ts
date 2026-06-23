@@ -23,7 +23,7 @@ import {
   TeaserFreshnessSuggestions,
   SeriesStyleMetadata
 } from '../_shared/freshnessOptions.ts';
-import { PLATFORM_MODE_ACCESS, ORG_TYPES } from '../_shared/organizationConfig.ts';
+import { PLATFORM_MODE_ACCESS, ORG_TYPES, LESSON_FUNDING, DEFAULT_LESSON_FUNDING, isValidLessonFunding, LessonFunding } from '../_shared/organizationConfig.ts';
 // ============================================================
 // TRIAL: Updated to rolling 30-day period (3 full + 2 short)
 // ============================================================
@@ -325,6 +325,22 @@ serve(async (req) => {
     checkpoint = logTiming('Auth completed', checkpoint);
 
     // =========================================================================
+    // PARSE REQUEST BODY EARLY (funding declaration gates the org-pool path)
+    // The body is parsed here (not later) because the lesson_funding declaration
+    // decides whether the Shepherding pool is drawn. requestData is reused by
+    // validateLessonRequest further down -- req.json() must run exactly once.
+    // =========================================================================
+    const requestData = await req.json();
+
+    // Funding declaration (FE drives BE). Default PERSONAL so the shared pool is
+    // never drawn unintentionally; unaffiliated users never send a declaration.
+    const rawFunding = (requestData?.lesson_funding ?? '').toString();
+    const lessonFunding: LessonFunding = isValidLessonFunding(rawFunding)
+      ? rawFunding
+      : DEFAULT_LESSON_FUNDING;
+    console.log('Lesson funding declaration:', lessonFunding, '(raw:', rawFunding || '<none>', ')');
+
+    // =========================================================================
     // ADMIN BYPASS CHECK
     // =========================================================================
     const { data: adminCheck } = await supabase
@@ -341,34 +357,58 @@ serve(async (req) => {
     }
 
     // =========================================================================
-    // PHASE 13.6: ORGANIZATION POOL CHECK
-    // Check if user is org member and if org pool is available
-    // Org pool is checked BEFORE individual subscription
+    // ORGANIZATION POOL CHECK -- DECLARATION-KEYED (Shepherding Stage A)
+    // The org pool is drawn ONLY when the member explicitly declared 'shepherd'
+    // at lesson initiation. A 'personal' declaration -- and every unaffiliated
+    // user, who never sends one -- falls through to the personal/trial gating
+    // below. The two buckets are ADDITIVE, never mutually exclusive. The charge
+    // is locked to the declaration: a 'shepherd' declaration with an empty pool
+    // is refused (no silent fallback to the personal allowance).
     // =========================================================================
     let orgPoolResult: OrgPoolCheckResult | null = null;
     let useOrgPool = false;
-    
-    if (!isAdmin) {
+
+    if (!isAdmin && lessonFunding === LESSON_FUNDING.shepherd) {
       orgPoolResult = await checkOrgPoolAccess(supabase, user.id);
-      
-      if (orgPoolResult.is_org_member) {
-        console.log('Org membership found:', {
-          organization_id: orgPoolResult.organization_id,
-          organization_name: orgPoolResult.organization_name,
-          role: orgPoolResult.role,
-          can_use_org_pool: orgPoolResult.can_use_org_pool,
-          pool_available: orgPoolResult.pool_status?.total_available || 0
+
+      if (!orgPoolResult.is_org_member) {
+        // Declared the pool but is not in a Shepherding group. Defensive guard:
+        // the frontend never offers 'shepherd' to a non-member.
+        console.log('Shepherd funding declared by a non-member; refusing.');
+        return new Response(JSON.stringify({
+          error: 'You are not a member of a Shepherding group.',
+          code: 'NOT_ORG_MEMBER',
+        }), {
+          status: 403,
+          headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
         });
-        
-        if (orgPoolResult.can_use_org_pool) {
-          useOrgPool = true;
-          console.log('ORG POOL: Will consume from organization pool');
-        } else {
-          console.log('ORG POOL: Empty or no subscription, falling back to individual tier');
-        }
       }
+
+      if (!orgPoolResult.can_use_org_pool) {
+        // Pool exhausted for the current 30-day window. Charge is locked to the
+        // declaration -- do NOT fall back to the personal allowance.
+        console.log('Shepherd pool empty for org:', orgPoolResult.organization_id);
+        return new Response(JSON.stringify({
+          error: 'Your Shepherding group lesson pool is empty for this period.',
+          code: 'POOL_EXHAUSTED',
+          organization_name: orgPoolResult.organization_name,
+          pool_available: orgPoolResult.pool_status?.total_available ?? 0,
+          lessons_limit: orgPoolResult.pool_status?.lessons_limit ?? 0,
+          pool_period_start: orgPoolResult.pool_status?.pool_period_start ?? null,
+        }), {
+          status: 403,
+          headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      useOrgPool = true;
+      console.log('ORG POOL: shepherd declaration accepted; will consume from organization pool', {
+        organization_id: orgPoolResult.organization_id,
+        organization_name: orgPoolResult.organization_name,
+        pool_available: orgPoolResult.pool_status?.total_available ?? 0,
+      });
     }
-    
+
     checkpoint = logTiming('Org pool check completed', checkpoint);
 
     // =========================================================================
@@ -530,8 +570,7 @@ serve(async (req) => {
     
     metricId = metricRecord?.id;
 
-    const requestData = await req.json();
-
+    // requestData was parsed earlier (funding declaration gate). Validate it now.
     const validatedData = validateLessonRequest(requestData);
     const {
       bible_passage,
