@@ -1,6 +1,100 @@
+# PROJECT MASTER -- Last updated: June 23, 2026 (Shepherding Stage A + B1 + B2 SHIPPED & VERIFIED in production)
+
+## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build (Stage B in progress)
+
+NEXT SESSION: read this block. Stage A (backend foundation) and Stage B pieces B1 + B2 are
+SHIPPED, deployed, and verified in production. Recommended next piece is B4 (dashboard shows
+BOTH personal + pool). The only uncommitted change is the deliberately-held
+src/pages/Dashboard.tsx (it ships in B4).
+
+LYNN'S SPEC: unchanged -- the full text is in the prior (now superseded) planning RESUME below.
+Key clarifications LOCKED this session:
+  - FUNDING DECLARATION MODEL: an affiliated (Shepherd) member DECLARES the bucket at lesson
+    INITIATION (Personal vs Shepherd Group). The charge is LOCKED to that declaration at
+    generation time. The post-generation View lock/share checkbox (Stage C) changes only
+    sharing VISIBILITY, never the bucket charged. NO silent fallback: a Shepherd declaration
+    with an empty pool is REFUSED (403 POOL_EXHAUSTED), never redirected to personal.
+  - DEFAULT = PERSONAL. Unaffiliated users never see the choice (uncluttered). Buckets are
+    additive: personal-declared draws the personal allowance; Shepherd-declared draws the pool.
+  - LEADER MONITORING (new requirement -> B5): the Shepherd leader must monitor per-member pool
+    usage. Data already exists on lessons rows (user_id + organization_id + org_pool_consumed +
+    created_at) -- a query + panel, no schema change.
+  - OPTION B (B2): pool-funded lessons are GROUP-VISIBLE automatically (the group paid for them).
+    Explicit lock/share of PERSONAL lessons still comes in Stage C.
+
+SHIPPED THIS SESSION (2026-06-23) -- all live + verified against FBC ECK test org:
+  STAGE A (commit 65ea240; migration 20260623120000; edge fns generate-lesson + reshape-lesson
+    redeployed via `functions deploy ... --use-api`) -- pieces 1,2,3:
+      * 30-day pool refill independent of annual billing. LAZY on-read roll in
+        _shared/orgPoolCheck.ts rollOrgPoolPeriodIfElapsed() (resets lessons_used_this_period to
+        0, re-anchors organizations.pool_period_start). NO pg_cron / NO trigger (Principle #2).
+      * Reshape consumes 1 from the SAME bucket the parent used (inherits; pool parent -> pool).
+      * Declaration-keyed additive consumption in generate-lesson (lesson_funding from request).
+      * SSOT: ORG_POOL.periodDays + LESSON_FUNDING in src/constants/organizationConfig.ts (+
+        hand-maintained _shared mirror, Rule #24).
+  B1 (commit 2e91e36) -- funding declaration UI in EnhanceLessonForm.tsx (radio Personal
+    [default] / Shepherd pool; active org members only; sends lesson_funding; pool fetched on
+    MOUNT only -> zero generation latency; teaser available on Shepherd full lessons).
+  B2 (commit 1f8e76c; migrations 20260623130000 + 20260623140000) -- member "Shepherding"
+    sidebar tab (orgMember) -> NEW read-only page src/pages/Shepherding.tsx (ROUTES.SHEPHERDING
+    = /shepherding). Pool status + the group's pool-funded lessons (Option B), searchable
+    (title/scripture/author). Card = View only; the opened view carries Copy/Download/Email at
+    the top (LessonExportButtons, no id -> no Publish). NO Edit.
+      * Backend: get_org_pool_lessons() SECURITY DEFINER resolver, scoped to caller's own org
+        (no cross-org leakage), returns original_text + metadata. Same posture as
+        get_team_lessons. (130000 created list+single resolvers; 140000 folded content into the
+        list and dropped the single resolver.)
+      * getEffectiveRole now treats legacy org role 'owner' as a leader (accessControl.ts).
+
+CARRY-FORWARD (remaining):
+  B4 (RECOMMENDED NEXT) -- dashboard shows BOTH personal AND pool usage (additive), correct
+    30-day reset (now derivable: pool_period_start + ORG_POOL.periodDays), ships the held
+    Dashboard.tsx. FIX the inconsistency folded in here: useOrgPoolStatus.ts +
+    MemberPoolStatusBanner.tsx gate availability ONLY on subscription_tier presence, IGNORING
+    subscription_status -- they overstate (showed "60 available" while the backend, which needs
+    status active/trialing, refuses). Make banner + card + B1 control + backend orgPoolCheck all
+    compute "usable" identically (active/trialing AND remaining>0) with a distinct "inactive"
+    state. NOTE B1's funding control ALREADY gates correctly (it surfaced this bug).
+  B3 -- Lesson Library "My Lessons" + "Shepherd Lessons" split (piece 7). LessonLibrary.tsx does
+    My/Team keyed on hasTeam; add a Shepherd scope using get_org_pool_lessons.
+  B5 -- leader per-member pool-monitoring panel in /org-manager (data already on lessons rows).
+  STAGE C -- piece 9: per-group lock/share popup for PERSONAL lessons (Team/Shepherd checkboxes),
+    lock control on the View Lesson screen, replace single visibility flag with per-group model
+    (schema change). Option B already made POOL lessons group-visible without this.
+  STAGE D -- piece 8: DB-enforce Teaching Team 4-max.
+
+ON HOLD -- uncommitted: src/pages/Dashboard.tsx (pool-banner-instead-of-personal card). Held for
+  B4 (which shows BOTH + fixes the reset). Do NOT let deploy.ps1 (git add .) sweep it; commit
+  narrowly with manual git.
+
+TEST DATA STATE: Org FBC ECK = b298aa1e-a1a1-4101-b1bf-67785ca968cf (annual, growth,
+  lessons_limit 60). subscription_status was 'canceled'; SET to 'active' this session (Lynn
+  approved) so the pool is usable for testing. Members: leader "Cornerstone" 13afe118 (role
+  'leader'); member "Invite1" dc1792ba (role 'member'). Pool lessons_used_this_period = 2;
+  pool_period_start initialized 2026-06-23 ~10:37 UTC.
+
+OPERATIONAL NOTE: `npx supabase db query --linked "<SQL>"` runs ad-hoc SQL against the linked
+  remote DB via the Management API (CLI v2.107.0) -- used for read diagnostics AND the test-org
+  data fix this session. `npx supabase db push --linked` applies pending migrations. Migration
+  20260623120000 was found already-applied before any explicit push this session; mechanism
+  unconfirmed (no CI; Netlify build = `npm run build` only; no db push in pipeline) -- most
+  likely a manual db push. Always verify applied state (information_schema / schema_migrations)
+  before pushing.
+
+## JUNE 23, 2026 SESSION -- Stage A + B1 + B2 shipped & verified
+
+Lynn directed the 4-stage plan piece by piece. Resolved the open consumption decision (the
+declaration model, above), then shipped Stage A (backend foundation), B1 (funding declaration
+UI), and B2 (member Shepherding tab + read-only group lessons) to production, each localhost/
+DB-verified against FBC ECK. Surfaced + folded a pre-existing pool-availability inconsistency
+into B4. Full detail in the RESUME block above. Held Dashboard.tsx remains uncommitted for B4.
+
+---
+### (SUPERSEDED 2026-06-23) Prior planning RESUME -- kept for history
+
 # PROJECT MASTER -- Last updated: June 22, 2026 (PAUSED mid-planning -- Shepherding org feature audit complete, Stage A next)
 
-## >>> RESUME HERE <<< (paused 2026-06-22 for ~16h) -- Shepherding org + lesson-sharing build
+## (HISTORY) 2026-06-22 planning block -- Shepherding org + lesson-sharing build [SUPERSEDED by the RESUME block at top]
 
 NEXT SESSION: read this whole block first, then ask Lynn the ONE open decision below
 and start Stage A. Nothing is half-broken in the repo; the only uncommitted change is a

@@ -254,6 +254,14 @@ Migration history was fully reconciled March 20, 2026 (45 migrations, zero drift
 Before running db push: verify the SQL is correct AND the change is not already
 applied to the live database. The two-step check prevents duplicate migrations.
 
+AD-HOC SQL (added June 23, 2026): `npx supabase db query --linked "<SQL>"` runs a
+one-off query against the linked remote DB via the Management API (CLI v2.107.0).
+Use it for READ-ONLY diagnostics (information_schema, pg_policies,
+supabase_migrations.schema_migrations, spot-checking a row) and -- sparingly, with
+Lynn's OK -- deliberate test-data fixes. It is NOT a substitute for migrations:
+every SCHEMA change still goes through a migration file + `db push` (never via
+db query or the Dashboard SQL editor). `--output table|json|csv` formats results.
+
 EDGE FUNCTION DEPLOYS (added June 17, 2026): deploy a single function with
   npx supabase functions deploy <name> --project-ref hphebzdftpjbiudpfcrs --use-api
 The `--linked` flag is REJECTED by `functions deploy` (it is valid only on `db push`).
