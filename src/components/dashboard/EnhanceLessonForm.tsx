@@ -75,6 +75,9 @@ import { normalizeLegacyContent } from "@/utils/formatLessonContent";
 import { SeriesStyleMetadata } from "@/constants/seriesConfig";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
 import { useReshapeLesson } from "@/hooks/useReshapeLesson";
+import { useOrganization } from "@/hooks/useOrganization";
+import { useOrgPoolStatus } from "@/hooks/useOrgPoolStatus";
+import { LESSON_FUNDING, DEFAULT_LESSON_FUNDING, LessonFunding } from "@/constants/organizationConfig";
 import {
   buildCascadeInfo,
   buildDeleteConfirmation,
@@ -570,6 +573,10 @@ export function EnhanceLessonForm({
   const [notes, setNotes] = useState("");
   // Teaser defaults ON for Full lessons (the checkbox only renders on Full).
   const [generateTeaser, setGenerateTeaser] = useState(true);
+  // Per-lesson funding declaration (Shepherding). Default PERSONAL so the shared
+  // pool is never drawn unintentionally; the control only renders for active
+  // org members. The charge is locked to this choice at generation time.
+  const [lessonFunding, setLessonFunding] = useState<LessonFunding>(DEFAULT_LESSON_FUNDING);
   const [includeLiturgical, setIncludeLiturgical] = useState(false);
   const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -756,6 +763,31 @@ export function EnhanceLessonForm({
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [senderDisplayName, setSenderDisplayName] = useState("");
   const { toast } = useToast();
+
+  // ============================================================================
+  // SHEPHERDING FUNDING DECLARATION (org members only)
+  // Drives the per-lesson Personal vs Shepherd-pool choice. Both hooks fetch on
+  // MOUNT only -- never in the generate path -- so they add zero latency to
+  // lesson generation. unaffiliated users get null org and no extra fetch.
+  // ============================================================================
+  const { organization, hasOrganization } = useOrganization();
+  const { poolStatus: orgPoolStatus } = useOrgPoolStatus(organization?.id ?? null);
+
+  // The Shepherd pool is offerable only to an active org with lessons remaining.
+  const orgPoolUsable =
+    hasOrganization &&
+    !!orgPoolStatus &&
+    (orgPoolStatus.subscriptionStatus === 'active' || orgPoolStatus.subscriptionStatus === 'trialing') &&
+    orgPoolStatus.totalAvailable > 0;
+
+  // Never leave a stale 'shepherd' selection when the pool is not usable
+  // (e.g. it emptied since mount, or the user is unaffiliated) -- fall back to
+  // personal so a generation can never target an unavailable bucket.
+  useEffect(() => {
+    if (lessonFunding === LESSON_FUNDING.shepherd && !orgPoolUsable) {
+      setLessonFunding(LESSON_FUNDING.personal);
+    }
+  }, [orgPoolUsable, lessonFunding]);
 
   // ============================================================================
   // PAID USER DETECTION (PHASE 21)
@@ -1356,9 +1388,15 @@ export function EnhanceLessonForm({
         // Phase 2 fields
         emotional_entry: emotionalEntry,
         theological_lens: theologicalLens,
-        // Teaser is a Full-lesson feature only. The server enforces this too,
-        // but never send a stale `true` when the next lesson is a Short.
-        generate_teaser: nextLessonType === 'full' ? generateTeaser : false,
+        // Shepherding funding declaration (FE drives BE). 'personal' for everyone
+        // except an active org member who explicitly chose the Shepherd pool. The
+        // backend validates this and locks the charge to it at generation time.
+        lesson_funding: lessonFunding,
+        // Teaser is a Full-lesson feature only. A Shepherd-funded lesson is always
+        // full (the pool grants full access), so the teaser is available for it
+        // too. The server enforces this; never send a stale `true` on a Short.
+        generate_teaser:
+          (nextLessonType === 'full' || lessonFunding === LESSON_FUNDING.shepherd) ? generateTeaser : false,
         include_liturgical: includeLiturgical,
         include_cultural: includeCultural,
         freshness_mode: freshnessMode,
@@ -1428,7 +1466,8 @@ export function EnhanceLessonForm({
       setExtractedPages([]);
       setPastedContent("");
       setGenerateTeaser(false);
-      
+      setLessonFunding(DEFAULT_LESSON_FUNDING);
+
       // DON'T reset freshnessMode if user was in series mode - they may want to continue
       // Only reset if this was a single lesson generation
       if (lessonSequence !== 'part_of_series') {
@@ -2471,8 +2510,10 @@ export function EnhanceLessonForm({
                 </div>
               </div>
 
-              {/* Lesson-type notice (free tier): Full = 8 sections / Short = 3, no teaser */}
-              {tier === 'free' && nextLessonType && (
+              {/* Lesson-type notice (free tier): Full = 8 sections / Short = 3, no teaser.
+                  Only applies to the PERSONAL allowance -- a Shepherd-funded lesson is
+                  always full, so this notice is hidden when Shepherd is selected. */}
+              {tier === 'free' && nextLessonType && lessonFunding === LESSON_FUNDING.personal && (
                 <div
                   className="rounded-md border border-border bg-muted/40 p-3 text-xs"
                   role="status"
@@ -2493,9 +2534,83 @@ export function EnhanceLessonForm({
                 </div>
               )}
 
-              {/* Generate Lesson Teaser -- Full lessons only. Short lessons never
-                  show this control and never include a teaser. */}
-              {nextLessonType === 'full' && (
+              {/* Shepherding funding declaration -- active org members only.
+                  Personal is the default; the shared pool is drawn only on an
+                  explicit choice. Unaffiliated users never see this control, so
+                  their form stays uncluttered. The charge is locked to this
+                  choice at generation time (the View screen later changes only
+                  sharing visibility, never the bucket). */}
+              {hasOrganization && (
+                <fieldset
+                  className="space-y-3 rounded-md border border-border p-3"
+                  disabled={isSubmitting}
+                >
+                  <legend className="px-1 text-sm font-medium">
+                    Where should this lesson come from?
+                  </legend>
+
+                  <div className="flex items-start space-x-2">
+                    <input
+                      type="radio"
+                      id="funding-personal"
+                      name="lesson-funding"
+                      className="mt-1"
+                      value={LESSON_FUNDING.personal}
+                      checked={lessonFunding === LESSON_FUNDING.personal}
+                      onChange={() => setLessonFunding(LESSON_FUNDING.personal)}
+                    />
+                    <div className="space-y-1">
+                      <label
+                        htmlFor="funding-personal"
+                        className="text-sm font-medium leading-none cursor-pointer"
+                      >
+                        My personal lessons
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        Counts toward your own monthly allowance.
+                      </p>
+                    </div>
+                  </div>
+
+                  {orgPoolUsable ? (
+                    <div className="flex items-start space-x-2">
+                      <input
+                        type="radio"
+                        id="funding-shepherd"
+                        name="lesson-funding"
+                        className="mt-1"
+                        value={LESSON_FUNDING.shepherd}
+                        checked={lessonFunding === LESSON_FUNDING.shepherd}
+                        onChange={() => setLessonFunding(LESSON_FUNDING.shepherd)}
+                      />
+                      <div className="space-y-1">
+                        <label
+                          htmlFor="funding-shepherd"
+                          className="text-sm font-medium leading-none cursor-pointer"
+                        >
+                          Our Shepherd Group pool
+                        </label>
+                        <p className="text-xs text-muted-foreground">
+                          {`Counts toward ${organization?.name ?? 'your group'}'s shared pool -- ${orgPoolStatus?.totalAvailable ?? 0} left this period.`}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p
+                      className="px-1 text-xs text-muted-foreground"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      Your Shepherd Group pool is empty for this period -- this lesson
+                      will use your personal allowance.
+                    </p>
+                  )}
+                </fieldset>
+              )}
+
+              {/* Generate Lesson Teaser -- Full lessons only (incl. Shepherd-funded,
+                  which is always full). Short personal lessons never show this. */}
+              {(nextLessonType === 'full' || lessonFunding === LESSON_FUNDING.shepherd) && (
                 <div className="flex items-start space-x-2">
                   <Checkbox
                     id="generate-teaser"
