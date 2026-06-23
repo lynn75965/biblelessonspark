@@ -3271,6 +3271,22 @@ export type Database = {
           visibility: string
         }[]
       }
+      get_org_pool_lessons: {
+        Args: never
+        Returns: {
+          age_group: string
+          author_name: string
+          bible_passage: string
+          created_at: string
+          lesson_id: string
+          metadata: Json
+          original_text: string
+          theology_profile: string
+          title: string
+          user_id: string
+          visibility: string
+        }[]
+      }
       get_team_lessons: {
         Args: never
         Returns: {

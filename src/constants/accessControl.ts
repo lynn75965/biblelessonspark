@@ -206,7 +206,10 @@ export const getEffectiveRole = (
   
   // Check organization context
   if (hasOrganization && orgRole) {
-    if (orgRole === ORG_ROLES.leader || orgRole === ORG_ROLES.coLeader) {
+    // 'owner' is a legacy synonym for 'leader' written by the createOrganization
+    // path; treat it as a leader so those orgs don't fall through to individual
+    // and lose the Shepherding tab.
+    if (orgRole === ORG_ROLES.leader || orgRole === ORG_ROLES.coLeader || orgRole === 'owner') {
       return ROLES.orgLeader;
     }
     if (orgRole === ORG_ROLES.member) {

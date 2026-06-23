@@ -176,6 +176,18 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     route: ROUTES.ORG_MANAGER,
     tierGate: 'hidden_free',
   },
+  shepherding: {
+    // Member-facing Shepherding entry. Routes to the read-only member page
+    // (ROUTES.SHEPHERDING), NOT the leader-only /org-manager. tierGate 'always'
+    // because org membership -- not personal tier -- gates this; it is only
+    // placed in the orgMember sidebar.
+    id: 'shepherding',
+    label: 'Shepherding',
+    icon: Building2,
+    description: 'Your shepherding group and its shared lessons',
+    route: ROUTES.SHEPHERDING,
+    tierGate: 'always',
+  },
   adminPanel: {
     id: 'adminPanel',
     label: 'Administrator Panel',
@@ -286,6 +298,13 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
     label: 'Ministry Oversight',
     items: ['orgManager'],
   },
+  // Member-facing counterpart of ministryOversight: same header, but the
+  // read-only member Shepherding page instead of the leader management console.
+  shepherdingMember: {
+    id: 'shepherdingMember',
+    label: 'Ministry Oversight',
+    items: ['shepherding'],
+  },
   platformAdmin: {
     id: 'platformAdmin',
     label: 'Platform Admin',
@@ -335,6 +354,7 @@ export const SIDEBAR_BY_ROLE: Record<Role, string[]> = {
   [ROLES.orgMember]: [
     'buildAndPrepare',
     'myTeachingTeam',
+    'shepherdingMember',
     'account',
     'extras',
   ],

@@ -45,6 +45,8 @@ export const ROUTES = {
   ORG_SETUP: '/org/setup',
   ORG_SUCCESS: '/org/success',
   ORG_MANAGER: '/org-manager',
+  // Member-facing Shepherding group page (read-only; leaders use ORG_MANAGER)
+  SHEPHERDING: '/shepherding',
   // Teaching Team
   TEACHING_TEAM: '/teaching-team',
   PUBLISH: '/publish',

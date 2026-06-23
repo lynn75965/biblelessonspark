@@ -41,6 +41,7 @@ import OrgLanding from "./pages/OrgLanding";
 import OrgSetup from "./pages/OrgSetup";
 import OrgSuccess from "./pages/OrgSuccess";
 import OrgManager from "./pages/OrgManager";
+import Shepherding from "./pages/Shepherding";
 
 // Phase 27: Teaching Team
 import TeachingTeam from "./pages/TeachingTeam";
@@ -183,6 +184,13 @@ const App = () => (
             <Route path={ROUTES.ORG_MANAGER} element={
               <ProtectedRoute>
                 <OrgManager />
+              </ProtectedRoute>
+            } />
+
+            {/* Shepherding B2: member-facing read-only group page */}
+            <Route path={ROUTES.SHEPHERDING} element={
+              <ProtectedRoute>
+                <Shepherding />
               </ProtectedRoute>
             } />
 
