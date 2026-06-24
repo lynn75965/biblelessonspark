@@ -1,6 +1,25 @@
-# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; only two small cleanup follow-ups remain)
+# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; reshape team-sharing parity shipped; only two small cleanup follow-ups remain)
 
 ## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build COMPLETE (A/B/C/D shipped)
+
+RESHAPE TEAM-SHARING PARITY (2026-06-24, shipped commit 2320b82; migration
+20260624160000_share_reshapes_with_team.sql): closed a Stage C gap -- a reshaped lesson could be
+shared to the Shepherd group (get_org_pool_lessons had no reshape guard) but NOT to the Teaching
+Team (get_team_lessons carried `AND l.reshape_of IS NULL`). Lynn's call: an affiliated user must be
+able to share a reshape to EITHER group equally, by their own per-reshape choice. Fix = two parts:
+  (1) migration removes the one reshape_of predicate from get_team_lessons (RETURNS shape unchanged,
+      no types.ts edit; get_team_lesson singular + get_org_pool_lessons already allowed reshapes, so
+      both VIEW paths already worked -- Dashboard.handleViewLesson fetches team bodies by id).
+  (2) LessonLibrary.tsx: each inline "View Reshaped" row now has its OWN Share button + Shared/
+      Private indicator, opening the same LessonShareDialog with the reshape as target (shareDialog
+      state widened LessonDisplay->Lesson so a reshape child fits). updateLessonShares already keys
+      by id, so no hook change. Rule #22 a11y on the new control.
+  Behavior kept (Lynn-approved): a reshape still INHERITS its parent's two flags at creation (the
+  reshape-lesson edge fn was NOT touched); the author can now override per reshape. No "Reshaped"
+  badge added (reshape titles already read "{Shape}: {parent title}" so they self-disambiguate).
+  Existing reshapes whose parent was already team-shared now appear under Team Lessons (intended
+  parity). Verified on remote: get_team_lessons still_has_reshape_guard=false, gates on
+  shared_with_team. Build clean; localhost-approved; deployed.
 
 NEXT SESSION: the entire Shepherding build is DONE -- Stage A, ALL Stage B (B1-B6), Stage C
 (per-group sharing), and Stage D (DB-enforced team cap) are SHIPPED, deployed, and verified in
