@@ -1556,6 +1556,14 @@ WHY STREAMING IS THE CORRECT FIX
   and the timeout cannot fire -- duration stops mattering. This removes the ceiling rather than
   shaving milliseconds under it.
 
+URGENCY EVIDENCE (generation_metrics, measured 2026-06-24) -- the margin is already gone:
+  - Slowest COMPLETED Full lessons (last 30d): 139.5s, 138.6s, 137.6s, 137.1s, 132.9s, 131.9s,
+    130.0s. The slowest finished just 0.5s under the 140s abort.
+  - The one failure (2026-06-17, mobile) ran 141.3s -- over the abort by ~1s.
+  - Total headroom is ~10s and CANNOT be tuned past the 150s gateway. Tuning is exhausted;
+    streaming is the only remaining lever. Not urgent week-to-week (no lesson timeouts since
+    2026-06-17) but the setup is one slightly-slow lesson away from failing again.
+
 END-TO-END ARCHITECTURE (target: true token streaming + final authoritative payload)
   1. Pre-flight UNCHANGED: auth, limit/trial checks, validation, prompt build all run first
      (fast, before any Anthropic call) exactly as today.
@@ -1587,9 +1595,16 @@ FILES THAT CHANGE
     contract (callback or async-iterator for tokens; final lesson on done).
   * src/components/dashboard/EnhanceLessonForm.tsx -- consume the new hook contract. Optionally
     render a live streaming preview + drive the real progress bar from token flow instead of the
-    fake timer. Ensure incrementUsage fires EXACTLY ONCE on `done` (never on partial/failed
-    streams) and the reset/cleanup (the Problem 1 area) still runs on done. Series-mode handoff
+    fake timer. The reset/cleanup (the Problem 1 area) still runs on done. Series-mode handoff
     (linkLessonToSeries, addLessonSummary, style_metadata capture) moves to the done handler.
+    *** RULE #26 CORRECTION (this line supersedes the earlier "incrementUsage fires once in
+    EnhanceLessonForm" guidance, which predated Rule #26): the CLIENT NEVER WRITES USAGE. Lesson
+    usage is incremented SERVER-SIDE in generate-lesson after a successful save (free -> profiles
+    trial counters; paid -> incrementLessonUsage(); org -> pool). The refactor keeps that on the
+    server: increment EXACTLY ONCE in the stream-end handler, ONLY after the stream completed AND
+    the lessons row saved -- NEVER on a mid-stream abort/error. The client only calls
+    refreshSubscription() on `done` to re-read the new count. Do NOT reintroduce any client-side
+    increment. Exactly-once billing is therefore a SERVER-side concern, not a frontend one. ***
   * src/hooks/useLessons.tsx (or wherever generated lessons are stored/refreshed) -- VERIFY the
     saved-lesson handoff still works with the streamed `done` payload (likely small/none).
   * supabase/functions/_shared/corsConfig.ts -- VERIFY headers allow the raw fetch (Authorization)
@@ -1600,8 +1615,9 @@ FILES THAT CHANGE
 RISK SURFACE / CAREFUL TESTING
   * Auth: raw fetch must attach a FRESH token (getSession) + apikey -- highest 401 risk; test a
     long/backgrounded session too (ties to today's 401 fix).
-  * Exactly-once billing: incrementUsage / trial+limit consumption must fire only on `done`, not
-    on partial or errored streams -- risk of double-charge or charge-on-failure.
+  * Exactly-once billing (SERVER-SIDE per Rule #26): the server-side usage increment + trial/limit
+    consumption in generate-lesson must run only after a successful save at stream end, never on a
+    partial or errored stream -- risk of double-charge or charge-on-failure. NOT a client concern.
   * Mid-stream failures: Anthropic error after tokens started, OR DB save failure at stream end
     -- must surface as a clean `error` event, never a half-lesson or a silent success.
   * SSE robustness: partial chunks / event framing / proxy buffering (confirm Netlify + Supabase
