@@ -26,7 +26,7 @@
  * @lastUpdated 2025-12-30
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,25 @@ export function DevotionalGenerator() {
   const [progress, setProgress] = useState(0);
   const [devotional, setDevotional] = useState<GeneratedDevotional | null>(null);
   const [copied, setCopied] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
+
+  // Accessibility: focus targets for error (on failure) and result (on success)
+  const errorRef = useRef<HTMLDivElement>(null);
+  const resultHeadingRef = useRef<HTMLParagraphElement>(null);
+
+  // Move focus to the error message when a generation failure occurs
+  useEffect(() => {
+    if (generationError && errorRef.current) {
+      errorRef.current.focus();
+    }
+  }, [generationError]);
+
+  // Move focus to the result heading once a devotional finishes generating
+  useEffect(() => {
+    if (devotional && resultHeadingRef.current) {
+      resultHeadingRef.current.focus();
+    }
+  }, [devotional]);
 
   // Usage State
   const [devotionalsUsed, setDevotionalsUsed] = useState(0);
@@ -227,6 +246,7 @@ export function DevotionalGenerator() {
 
     setIsGenerating(true);
     setDevotional(null);
+    setGenerationError(null);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -258,8 +278,24 @@ export function DevotionalGenerator() {
         },
       });
 
+      // A non-2xx response (timeout, AI error, etc.) arrives as response.error.
+      // supabase-js puts the function's JSON body on error.context (a Response),
+      // so read it to recover our { error, code } instead of the opaque
+      // "Edge Function returned a non-2xx status code" message.
       if (response.error) {
-        throw new Error(response.error.message || "Generation failed");
+        const { code, message } = await readEdgeError(response.error);
+        const friendly =
+          code === "TIMEOUT"
+            ? "This devotional took a little too long to generate. Please wait a moment and tap Generate again -- it usually works the second time."
+            : message || "We could not generate your devotional just now. Please try again in a moment.";
+        setGenerationError(friendly);
+        toast({
+          title: code === "TIMEOUT" ? "That Took Too Long" : "Generation Failed",
+          description: friendly,
+          variant: "destructive",
+        });
+        setIsGenerating(false);
+        return;
       }
 
       const result = response.data;
@@ -275,7 +311,16 @@ export function DevotionalGenerator() {
             variant: "destructive",
           });
         } else {
-          throw new Error(result.error || "Generation failed");
+          const friendly =
+            result.code === "TIMEOUT"
+              ? "This devotional took a little too long to generate. Please wait a moment and tap Generate again -- it usually works the second time."
+              : result.error || "We could not generate your devotional just now. Please try again in a moment.";
+          setGenerationError(friendly);
+          toast({
+            title: result.code === "TIMEOUT" ? "That Took Too Long" : "Generation Failed",
+            description: friendly,
+            variant: "destructive",
+          });
         }
         setIsGenerating(false);
         return;
@@ -296,14 +341,31 @@ export function DevotionalGenerator() {
 
     } catch (error: any) {
       console.error("Devotional generation error:", error);
+      const friendly = error?.message || "An unexpected error occurred. Please try again in a moment.";
+      setGenerationError(friendly);
       toast({
         title: "Generation Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: friendly,
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // Recover the Edge Function's JSON error body ({ error, code }) from a
+  // supabase.functions.invoke failure. For a non-2xx response, supabase-js
+  // exposes the original Response on error.context.
+  const readEdgeError = async (err: any): Promise<{ code?: string; message?: string }> => {
+    try {
+      if (err?.context && typeof err.context.json === "function") {
+        const body = await err.context.json();
+        return { code: body?.code, message: body?.error || body?.message };
+      }
+    } catch {
+      // Body was not JSON -- fall through to defaults.
+    }
+    return {};
   };
 
   const handleCopy = async () => {
@@ -513,6 +575,18 @@ export function DevotionalGenerator() {
               )}
             </div>
 
+            {/* Generation Error (accessible: announced + receives focus) */}
+            {generationError && (
+              <div
+                ref={errorRef}
+                role="alert"
+                tabIndex={-1}
+                className="p-3 bg-destructive/10 text-destructive rounded-md text-sm outline-none"
+              >
+                {generationError}
+              </div>
+            )}
+
             {/* Generate Button */}
             <Button
               onClick={handleGenerate}
@@ -542,7 +616,9 @@ export function DevotionalGenerator() {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-xl">{devotional.title}</CardTitle>
+                <CardTitle ref={resultHeadingRef} tabIndex={-1} className="text-xl outline-none">
+                  {devotional.title}
+                </CardTitle>
                 <CardDescription className="mt-1">
                   {devotional.bible_passage} {UI_SYMBOLS.BULLET} {devotional.word_count} words
                 </CardDescription>

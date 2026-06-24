@@ -358,6 +358,75 @@ export type Database = {
         }
         Relationships: []
       }
+      devotional_metrics: {
+        Row: {
+          anthropic_model: string | null
+          browser: string | null
+          created_at: string | null
+          device_type: string
+          error_message: string | null
+          generation_duration_ms: number | null
+          generation_end: string | null
+          generation_start: string
+          id: string
+          length_id: string | null
+          organization_id: string | null
+          os: string | null
+          rate_limited: boolean | null
+          source_lesson_id: string | null
+          status: string
+          target_id: string | null
+          tokens_input: number | null
+          tokens_output: number | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          anthropic_model?: string | null
+          browser?: string | null
+          created_at?: string | null
+          device_type?: string
+          error_message?: string | null
+          generation_duration_ms?: number | null
+          generation_end?: string | null
+          generation_start?: string
+          id?: string
+          length_id?: string | null
+          organization_id?: string | null
+          os?: string | null
+          rate_limited?: boolean | null
+          source_lesson_id?: string | null
+          status: string
+          target_id?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          anthropic_model?: string | null
+          browser?: string | null
+          created_at?: string | null
+          device_type?: string
+          error_message?: string | null
+          generation_duration_ms?: number | null
+          generation_end?: string | null
+          generation_start?: string
+          id?: string
+          length_id?: string | null
+          organization_id?: string | null
+          os?: string | null
+          rate_limited?: boolean | null
+          source_lesson_id?: string | null
+          status?: string
+          target_id?: string | null
+          tokens_input?: number | null
+          tokens_output?: number | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       devotional_series: {
         Row: {
           created_at: string | null

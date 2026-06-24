@@ -48,6 +48,7 @@ import {
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
+import { parseDeviceType, parseBrowser, parseOS } from "../_shared/generationMetrics.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -57,6 +58,13 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Anthropic fetch timeout for devotional generation. Held below Supabase's 150s
+// gateway idle timeout (the raw-504 ceiling) with headroom to send a clean JSON
+// response back. Mirrors generate-lesson's GENERATION_TIMEOUT_MS pattern. A
+// devotional is a single ~4k-token call, so 120s is generous; the guard exists
+// so a hung upstream returns a friendly TIMEOUT instead of an opaque gateway 504.
+const DEVOTIONAL_TIMEOUT_MS = 120000;
 
 // ============================================================================
 // TYPES
@@ -452,6 +460,11 @@ serve(async (req: Request) => {
   const startTime = Date.now();
   console.log("[generate-devotional] Request received");
 
+  // Telemetry handles. Declared outside the try so the outer catch can stamp a
+  // failed attempt even if an unexpected error escapes after the row is created.
+  let metricId: string | null = null;
+  let metricsClient: any = null;
+
   try {
     // ========================================================================
     // 1. AUTHENTICATION
@@ -616,6 +629,39 @@ serve(async (req: Request) => {
     });
 
     // ========================================================================
+    // 3b. LOG ATTEMPT (telemetry)
+    // ------------------------------------------------------------------------
+    // Insert a 'started' row before the paid AI call so failures (timeout / AI
+    // error / DB error) are no longer invisible -- mirrors generate-lesson. The
+    // service-role client bypasses RLS. Best-effort: a metrics failure must
+    // never block generation, so the insert is wrapped and swallowed.
+    // ========================================================================
+
+    metricsClient = supabase;
+    const userAgent = req.headers.get("user-agent") || "";
+    try {
+      const { data: metricRecord } = await supabase
+        .from("devotional_metrics")
+        .insert({
+          user_id: user.id,
+          source_lesson_id: body.source_lesson_id || null,
+          user_agent: userAgent,
+          device_type: parseDeviceType(userAgent),
+          browser: parseBrowser(userAgent),
+          os: parseOS(userAgent),
+          generation_start: new Date().toISOString(),
+          target_id: target.id,
+          length_id: length.id,
+          status: "started",
+        })
+        .select("id")
+        .single();
+      metricId = metricRecord?.id ?? null;
+    } catch (metricErr) {
+      console.error("[generate-devotional] Metric insert failed (non-fatal):", metricErr);
+    }
+
+    // ========================================================================
     // 4. BUILD GUARDRAILS
     // ========================================================================
 
@@ -668,26 +714,82 @@ serve(async (req: Request) => {
     // 6. CALL ANTHROPIC API
     // ========================================================================
 
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODELS.default,
-        max_tokens: 4096,
-        messages: [
-          { role: "user", content: userPrompt }
-        ],
-        system: systemPrompt,
-      }),
-    });
+    // Timeout guard: abort the call below the 150s gateway ceiling so a hung
+    // upstream returns a controlled TIMEOUT response (and a logged 'timeout'
+    // metric) instead of an opaque raw 504 the frontend can't explain.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`[generate-devotional] [TIMEOUT] Aborting Anthropic request after ${DEVOTIONAL_TIMEOUT_MS / 1000}s`);
+      controller.abort();
+    }, DEVOTIONAL_TIMEOUT_MS);
+
+    let anthropicResponse: Response;
+    try {
+      anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": anthropicApiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: ANTHROPIC_MODELS.default,
+          max_tokens: 4096,
+          messages: [
+            { role: "user", content: userPrompt }
+          ],
+          system: systemPrompt,
+        }),
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchErr: any) {
+      clearTimeout(timeoutId);
+      const isTimeout = fetchErr?.name === "AbortError";
+      console.error(
+        `[generate-devotional] Anthropic fetch ${isTimeout ? "timed out" : "failed"}:`,
+        fetchErr?.message ?? fetchErr
+      );
+      if (metricId) {
+        await supabase
+          .from("devotional_metrics")
+          .update({
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - startTime,
+            anthropic_model: ANTHROPIC_MODELS.default,
+            status: isTimeout ? "timeout" : "error",
+            error_message: isTimeout
+              ? `Devotional generation timed out after ${DEVOTIONAL_TIMEOUT_MS / 1000}s`
+              : `Anthropic fetch failed: ${fetchErr?.message ?? "unknown"}`,
+          })
+          .eq("id", metricId);
+      }
+      return new Response(
+        JSON.stringify(
+          isTimeout
+            ? { success: false, error: "The devotional took too long to generate. Please try again.", code: "TIMEOUT" }
+            : { success: false, error: "AI generation failed", code: "AI_ERROR" }
+        ),
+        { status: isTimeout ? 504 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!anthropicResponse.ok) {
       const errorText = await anthropicResponse.text();
       console.error("[generate-devotional] Anthropic API error:", errorText);
+      if (metricId) {
+        await supabase
+          .from("devotional_metrics")
+          .update({
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - startTime,
+            anthropic_model: ANTHROPIC_MODELS.default,
+            status: "error",
+            rate_limited: anthropicResponse.status === 429,
+            error_message: `Anthropic API error ${anthropicResponse.status}`,
+          })
+          .eq("id", metricId);
+      }
       return new Response(
         JSON.stringify({ success: false, error: "AI generation failed", code: "AI_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -769,10 +871,39 @@ serve(async (req: Request) => {
 
     if (insertError) {
       console.error("[generate-devotional] Database insert error:", insertError.message);
+      if (metricId) {
+        await supabase
+          .from("devotional_metrics")
+          .update({
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - startTime,
+            anthropic_model: ANTHROPIC_MODELS.default,
+            tokens_input: tokensInput,
+            tokens_output: tokensOutput,
+            status: "error",
+            error_message: `DB insert failed: ${insertError.message}`,
+          })
+          .eq("id", metricId);
+      }
       return new Response(
         JSON.stringify({ success: false, error: "Failed to save devotional", code: "DB_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Success: stamp the attempt 'completed' with duration + token usage.
+    if (metricId) {
+      await supabase
+        .from("devotional_metrics")
+        .update({
+          generation_end: new Date().toISOString(),
+          generation_duration_ms: generationDuration,
+          anthropic_model: ANTHROPIC_MODELS.default,
+          tokens_input: tokensInput,
+          tokens_output: tokensOutput,
+          status: "completed",
+        })
+        .eq("id", metricId);
     }
 
     // ========================================================================
@@ -812,8 +943,23 @@ serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("[generate-devotional] Unexpected error:", error);
+    if (metricsClient && metricId) {
+      try {
+        await metricsClient
+          .from("devotional_metrics")
+          .update({
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - startTime,
+            status: "error",
+            error_message: `Unexpected: ${error?.message ?? "unknown"}`,
+          })
+          .eq("id", metricId);
+      } catch (_) {
+        // Swallow -- never mask the original error with a telemetry failure.
+      }
+    }
     return new Response(
       JSON.stringify({ success: false, error: "Internal server error", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
