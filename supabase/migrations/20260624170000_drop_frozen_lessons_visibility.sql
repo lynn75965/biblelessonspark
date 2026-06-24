@@ -1,0 +1,26 @@
+-- ============================================================================
+-- Drop the frozen lessons.visibility column
+-- ----------------------------------------------------------------------------
+-- Stage C (migration 20260624140000) replaced the single conflated
+-- lessons.visibility ('private'|'shared') flag with two independent booleans
+-- (shared_with_team / shared_with_org) and KEPT visibility as a frozen,
+-- graceful-degradation safety net -- no code reads or writes it any longer.
+--
+-- Pre-drop verification (2026-06-24): a full grep of src/ and supabase/ plus a
+-- live-DB dependency check confirmed the column is unreferenced:
+--   * No RLS policy on lessons references visibility.
+--   * No view references visibility.
+--   * The only functions mentioning "visibility" are get_team_lessons,
+--     get_team_lesson, and get_org_pool_lessons -- all of which DERIVE it as the
+--     constant 'shared'::text and gate their WHERE clauses on the new flags;
+--     none read the column. Dropping it does not affect them.
+--   * Frontend reads of `.visibility` are all of the resolvers' DERIVED return
+--     value, not the column.
+--   * The column's only dependency was its own DEFAULT 'private'::text, which is
+--     dropped along with the column.
+--
+-- The Stage C backfill already migrated the column's information into
+-- shared_with_team / shared_with_org, so no in-use data is lost.
+-- ============================================================================
+
+ALTER TABLE public.lessons DROP COLUMN IF EXISTS visibility;

@@ -1239,7 +1239,6 @@ export type Database = {
           updated_at: string | null
           upload_path: string | null
           user_id: string
-          visibility: string
         }
         Insert: {
           audience_profile?: Json | null
@@ -1268,7 +1267,6 @@ export type Database = {
           updated_at?: string | null
           upload_path?: string | null
           user_id: string
-          visibility?: string
         }
         Update: {
           audience_profile?: Json | null
@@ -1297,7 +1295,6 @@ export type Database = {
           updated_at?: string | null
           upload_path?: string | null
           user_id?: string
-          visibility?: string
         }
         Relationships: [
           {
