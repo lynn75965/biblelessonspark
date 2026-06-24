@@ -1,11 +1,14 @@
-# PROJECT MASTER -- Last updated: June 24, 2026 (Devotional XX2 hotfix SHIPPED; Shepherding Stage C + D still the main carry-forward)
+# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding Stage C SHIPPED; only Stage D + a visibility-column DROP follow-up remain)
 
-## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build (Stage B COMPLETE; Stage C/D remain)
+## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build (Stage A/B/C COMPLETE; only Stage D remains)
 
-NEXT SESSION: read this block. Stage A (backend foundation) and ALL Stage B pieces (B1, B2, B3,
-B4, B5, B6) are SHIPPED, deployed, and verified in production. Working tree is CLEAN (no held
-files). Only STAGE C (per-group sharing + lock/share popup, schema-touching) and STAGE D
-(4-teacher DB cap) remain -- see CARRY-FORWARD and the STAGE C CONTEXT note before starting C.
+NEXT SESSION: read this block. Stage A, ALL Stage B pieces (B1-B6), and STAGE C are SHIPPED,
+deployed, and verified in production. Working tree is CLEAN (no held files). Only STAGE D
+(DB-enforce Teaching Team 4-max, MAX_TEAM_MEMBERS -- currently frontend-only) remains, plus a
+small FOLLOW-UP from Stage C: DROP the now-frozen lessons.visibility column once the per-group
+sharing model is confirmed stable in production (it was kept as a safety net -- see the JUNE 24
+Stage C session log). Stage C retired visibility as the source of truth but did NOT drop the
+column.
 
 INTERRUPT FIX (2026-06-24, shipped 5c447c4, NOT Shepherding): devotional generation was broken
 for ALL non-admin users -- check_devotional_limit had an ambiguous `period_start` (OUT-param name
@@ -65,25 +68,17 @@ SHIPPED THIS SESSION (2026-06-23) -- all live + verified against FBC ECK test or
     return for the funding badges / override stat.
 
 CARRY-FORWARD (remaining):
-  STAGE C (BIG, schema-touching) -- piece 9: replace the single lessons.visibility 'private'|
-    'shared' flag with a PER-GROUP sharing model (share to Team and/or Shepherd independently via
-    a lock/share POPUP with checkboxes), and put the lock control on the "View Lesson" screen
-    (EnhanceLessonForm has none today). Rewire get_team_lessons + get_org_pool_lessons +
-    OrgLessonsPanel onto the new model, and retire the "Override Access" framing -- see below.
+  STAGE C -- DONE 2026-06-24 (commit 0933f78). See the JUNE 24 Stage C session log below.
+  STAGE C FOLLOW-UP (small) -- DROP the frozen lessons.visibility column once the per-group model
+    is confirmed stable in production. It was intentionally kept this session as a graceful-
+    degradation safety net (a missed reader degrades instead of crashing). Nothing writes or reads
+    it anymore: reshape-lesson writes the two flags; the 3 resolvers gate on the flags; the
+    frontend type dropped it. A one-line `ALTER TABLE public.lessons DROP COLUMN visibility;`
+    migration retires it. Before dropping: grep src + supabase for any lingering `.visibility`
+    read on a lessons row (the harmless `any`-typed passthroughs in Dashboard.tsx handleViewLesson
+    can be cleaned at the same time).
   STAGE D (hardening) -- piece 8: DB-enforce Teaching Team 4-max (currently frontend-only,
     MAX_TEAM_MEMBERS).
-
-STAGE C CONTEXT (read before starting Stage C):
-  - The single visibility flag conflates Team + Shepherd sharing. Today visibility='shared' makes
-    a personal lesson appear in EVERY group the author belongs to (Team via get_team_lessons,
-    Shepherd via get_org_pool_lessons). Stage C makes share targets PER-GROUP (independent
-    checkboxes) -- needs a schema change (e.g. a lesson_shares join table or per-group flags).
-  - OPTION B vs the flag: pool-funded lessons are GROUP-VISIBLE by design (org_pool_consumed) but
-    their visibility flag stays 'private', so OrgLessonsPanel shows them under "Override Access"
-    (private-but-org-funded, Phase 26 framing). Stage C should retire that framing -- pool lessons
-    are group content, not an override.
-  - B4 already DISPLAYS pool lessons as Shared in My Lessons (visual only; flag untouched). Stage C
-    makes the underlying model match the display.
 
 TEST DATA STATE: Org FBC ECK = b298aa1e-a1a1-4101-b1bf-67785ca968cf (annual, growth, limit 60).
   subscription_status was 'canceled' -> SET to 'active' this session (Lynn approved) so the pool
@@ -99,6 +94,52 @@ OPERATIONAL NOTE: `npx supabase db query --linked "<SQL>"` runs ad-hoc SQL vs th
   reshape-lesson. NOTE 20260623120000 was found already-applied before any explicit push
   (mechanism unconfirmed; no CI; Netlify build = `npm run build` only) -- always verify applied
   state (information_schema / schema_migrations) before pushing. Also captured in CLAUDE.md Rule #20.
+
+## JUNE 24, 2026 SESSION (LATER) -- Shepherding STAGE C: per-group lesson sharing SHIPPED & VERIFIED
+
+GOAL: replace the single conflated lessons.visibility ('private'|'shared') flag -- which made a
+"shared" lesson appear to BOTH the author's Team AND Shepherd org at once -- with independent
+per-group sharing. Approved decisions (all Lynn's): (1) existing 11 'shared' lessons -> shared to
+BOTH groups; (2) pool-funded lessons -> Shepherd checkbox checked AND locked on; (3) new lessons
+default private; (4) only the author changes sharing; (5) share control = a "Share" button on each
+My-Lessons card opening a Team/Shepherd checkbox popup (kept on the card, not buried in the viewer).
+
+SHIPPED (commit 0933f78; localhost-verified by Lynn before deploy):
+  - migration 20260624140000_stage_c_per_group_sharing.sql -- ADD lessons.shared_with_team +
+    shared_with_org (boolean NOT NULL DEFAULT false). Backfill: visibility='shared' -> both true;
+    org_pool_consumed=true -> shared_with_org true. Verified distribution: 315 unshared, 10
+    team+org (old non-pool shared), 1 team+org+pool, 1 org-only+pool. Rewrote 3 resolvers
+    (get_team_lessons, get_team_lesson, get_org_pool_lessons) via CREATE OR REPLACE -- WHERE
+    predicates move off visibility onto the new flags; return SHAPES unchanged with `visibility`
+    DERIVED as constant 'shared' (every returned row is shared-to-that-group), so types.ts RPC
+    shapes + read-only team/shepherd views needed no change. get_org_pool_lesson (singular) was
+    already dropped in a prior B migration -- only 3 resolvers exist.
+  - supabase/functions/reshape-lesson/index.ts (redeployed --use-api) -- a reshaped variant now
+    inherits the parent's shared_with_team/shared_with_org instead of visibility.
+  - src/constants/contracts.ts -- Lesson type: visibility replaced by shared_with_team/
+    shared_with_org. Ran `npm run sync-constants` (Rule #23) -> _shared/contracts.ts mirror.
+  - src/integrations/supabase/types.ts -- added the two columns to lessons Row/Insert/Update
+    (kept `visibility: string` since the DB column still exists).
+  - src/hooks/useLessons.tsx -- updateLessonVisibility -> updateLessonShares({team,org}),
+    author-only (.eq user_id). fetchLessons uses select('*') so the new columns flow through.
+  - NEW src/components/dashboard/LessonShareDialog.tsx -- accessible (Rule #22) Radix-Dialog popup
+    with Team/Shepherd checkboxes; a checkbox shows only for a group the author belongs to; pool
+    lessons force the Shepherd box checked + aria-disabled (locked on).
+  - src/components/dashboard/LessonLibrary.tsx -- the per-card on/off toggle replaced by a Share
+    button opening LessonShareDialog; lessonIsShared() now keys on the two flags + org_pool_consumed;
+    shepherd-row mapping no longer references visibility.
+  - src/components/org/OrgLessonsPanel.tsx -- RETIRED the "Override Access" framing entirely (the
+    isOverrideAccess/isVisibleToOrgManager helpers, the Override stat card, the amber row highlight,
+    the Visibility table column + badges, the modal shield notice). Rows are now simply GROUP
+    CONTENT (the resolver already returns only pool-funded OR org-shared); funding badge stays.
+
+KEPT AS SAFETY NET (deferred): the lessons.visibility column is FROZEN (nothing reads/writes it)
+but NOT dropped -- a missed reader degrades gracefully. DROP is the Stage C follow-up above.
+
+FILES: 9 changed (481 insertions, 184 deletions). Build clean. ASCII guard passed. Note: the
+mandatory sync-constants run also normalized an unrelated comment-header position in
+_shared/rateLimitConfig.ts -- reverted to keep the commit scoped (it will re-appear on the next
+legitimate rate-limit sync).
 
 ## JUNE 24, 2026 SESSION -- Devotional "Edge Function XX2" RCA + fix (RPC bug + reliability) SHIPPED & VERIFIED
 
