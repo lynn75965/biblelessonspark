@@ -227,7 +227,10 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   const [shepherdLessons, setShepherdLessons] = useState<LessonDisplay[]>([]);
   const [shepherdLessonsLoading, setShepherdLessonsLoading] = useState(false);
   // Stage C: the lesson whose per-group sharing popup is open (null = closed).
-  const [shareDialogLesson, setShareDialogLesson] = useState<LessonDisplay | null>(null);
+  // Typed as Lesson (not LessonDisplay) so a reshape CHILD -- which is a plain
+  // Lesson row from reshapeChildrenByParent -- can be shared independently of
+  // its parent. LessonDisplay extends Lesson, so the parent-card calls still fit.
+  const [shareDialogLesson, setShareDialogLesson] = useState<Lesson | null>(null);
 
   const { lessons, loading, deleteLesson, updateLessonShares, refetch: refreshLessons } = useLessons();
   const { hasTeam, team, members, fetchTeamLessons } = useTeachingTeam();
@@ -977,8 +980,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     const suffix = total > 1 ? ` ${idx}` : '';
                     const childShapeName = `${shape?.shortName || 'Reshaped'}${suffix}`;
                     const childShapeFullName = `${shape?.name || 'Reshaped Version'}${suffix}`;
+                    const childShared = lessonIsShared(child);
                     return (
-                      <div key={child.id} className="mt-3">
+                      <div key={child.id} className="mt-3 flex items-center justify-between gap-2">
                         <button
                           onClick={() => onViewLesson?.(child)}
                           aria-label={`Open reshaped lesson: ${childShapeFullName}`}
@@ -987,6 +991,36 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                           <Layers className="h-3.5 w-3.5" aria-hidden="true" />
                           View Reshaped ({childShapeName})
                         </button>
+                        {/* Stage C parity: each reshape carries its own per-group
+                            sharing, chosen independently of its parent. The author
+                            opens the same LessonShareDialog with the reshape as
+                            target. Only on the author's own cards (inline children
+                            only exist in the My-Lessons scope, but guard anyway). */}
+                        {!lesson.isTeamLesson && (
+                          <Button
+                            onClick={() => setShareDialogLesson(child)}
+                            variant="ghost"
+                            size="sm"
+                            className={
+                              childShared
+                                ? "h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+                                : "h-7 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                            }
+                            title="Sharing settings for this reshaped lesson"
+                            aria-label={
+                              childShared
+                                ? `Sharing settings for reshaped lesson ${childShapeFullName} -- shared`
+                                : `Sharing settings for reshaped lesson ${childShapeFullName} -- private`
+                            }
+                          >
+                            {childShared ? (
+                              <Share2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                            ) : (
+                              <Lock className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                            )}
+                            {childShared ? "Shared" : "Private"}
+                          </Button>
+                        )}
                       </div>
                     );
                   });
