@@ -126,11 +126,11 @@ serve(async (req) => {
     console.log(`Reshape request: shape_id="${shape_id}", lesson_id="${lesson_id}", user="${user.id}"`);
 
     // =========================================================================
-    // LOAD PARENT LESSON (for lesson_type, filters, visibility, org, title)
+    // LOAD PARENT LESSON (for lesson_type, filters, share flags, org, title)
     // =========================================================================
     const { data: parentLesson, error: parentError } = await supabase
       .from('lessons')
-      .select('id, title, lesson_type, filters, visibility, organization_id, org_pool_consumed, audience_profile')
+      .select('id, title, lesson_type, filters, shared_with_team, shared_with_org, organization_id, org_pool_consumed, audience_profile')
       .eq('id', lesson_id)
       .eq('user_id', user.id)
       .maybeSingle();
@@ -485,7 +485,9 @@ serve(async (req) => {
       source_type: 'reshape',
       filters: parentLesson.filters ?? null,
       audience_profile: parentLesson.audience_profile ?? null,
-      visibility: parentLesson.visibility ?? 'private',
+      // Stage C: a reshaped variant inherits the parent's per-group sharing.
+      shared_with_team: parentLesson.shared_with_team ?? false,
+      shared_with_org: parentLesson.shared_with_org ?? false,
       lesson_type: 'full',
       reshape_of: parentLesson.id,
       shape_id: shape_id,

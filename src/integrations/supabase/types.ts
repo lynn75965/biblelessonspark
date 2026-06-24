@@ -1232,6 +1232,8 @@ export type Database = {
           share_font_id: string | null
           share_token: string | null
           share_token_handout: string | null
+          shared_with_org: boolean
+          shared_with_team: boolean
           source_type: string | null
           title: string
           updated_at: string | null
@@ -1259,6 +1261,8 @@ export type Database = {
           share_font_id?: string | null
           share_token?: string | null
           share_token_handout?: string | null
+          shared_with_org?: boolean
+          shared_with_team?: boolean
           source_type?: string | null
           title: string
           updated_at?: string | null
@@ -1286,6 +1290,8 @@ export type Database = {
           share_font_id?: string | null
           share_token?: string | null
           share_token_handout?: string | null
+          shared_with_org?: boolean
+          shared_with_team?: boolean
           source_type?: string | null
           title?: string
           updated_at?: string | null

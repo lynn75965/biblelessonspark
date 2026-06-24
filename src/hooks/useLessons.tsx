@@ -162,14 +162,22 @@ export function useLessons() {
   };
 
   /**
-   * Update lesson visibility (Phase 26 -- Lesson Visibility Status)
-   * Private is permanent default. Teacher must explicitly share.
+   * Stage C -- update a lesson's per-group sharing (Team and/or Shepherd,
+   * independently). Replaces the old single-flag updateLessonVisibility.
+   * Author-only (the .eq('user_id') guard). Both-false is private (the default);
+   * the teacher explicitly opts into each group.
    */
-  const updateLessonVisibility = async (lessonId: string, visibility: 'private' | 'shared') => {
+  const updateLessonShares = async (
+    lessonId: string,
+    shares: { shared_with_team: boolean; shared_with_org: boolean }
+  ) => {
     try {
       const { error } = await supabase
         .from('lessons')
-        .update({ visibility })
+        .update({
+          shared_with_team: shares.shared_with_team,
+          shared_with_org: shares.shared_with_org,
+        })
         .eq('id', lessonId)
         .eq('user_id', user.id);
 
@@ -177,20 +185,25 @@ export function useLessons() {
 
       // Update local state
       setLessons(prev => prev.map(lesson =>
-        lesson.id === lessonId ? { ...lesson, visibility } : lesson
+        lesson.id === lessonId ? { ...lesson, ...shares } : lesson
       ));
 
+      const targets = [
+        shares.shared_with_team ? "your Team" : null,
+        shares.shared_with_org ? "your Shepherd group" : null,
+      ].filter(Boolean);
+
       toast({
-        title: visibility === 'shared' ? "Lesson shared" : "Lesson set to private",
-        description: visibility === 'shared'
-          ? "Share with Org Leaders"
+        title: targets.length > 0 ? "Sharing updated" : "Lesson set to private",
+        description: targets.length > 0
+          ? `Now shared with ${targets.join(" and ")}.`
           : "This lesson is now visible only to you.",
       });
     } catch (error) {
-      console.error('Error updating lesson visibility:', error);
+      console.error('Error updating lesson sharing:', error);
       toast({
-        title: "Error updating visibility",
-        description: "Failed to update lesson visibility. Please try again.",
+        title: "Error updating sharing",
+        description: "Failed to update lesson sharing. Please try again.",
         variant: "destructive",
       });
     }
@@ -284,7 +297,7 @@ export function useLessons() {
     loading,
     createLesson,
     deleteLesson,
-    updateLessonVisibility,
+    updateLessonShares,
     updateLessonContent,
     addReshapedLesson,
     refetch: fetchLessons,

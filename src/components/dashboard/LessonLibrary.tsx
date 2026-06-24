@@ -40,6 +40,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Eye, Trash2, Search, BookOpen, Users, Heart, Lock, Share2, User, ListPlus, Shapes, Plus, Loader2, Layers, Building2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useLessons } from "@/hooks/useLessons";
+import { LessonShareDialog } from "@/components/dashboard/LessonShareDialog";
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
 import { useSeriesManager } from "@/hooks/useSeriesManager";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,14 +197,15 @@ const transformToDisplay = (
 };
 
 /**
- * A lesson reads as "shared" when its visibility flag is 'shared' OR it was
- * funded by the org pool -- pool-funded lessons are automatically group-visible
- * (Option B), so My Lessons shows them as Shared, never Private/locked.
+ * Stage C: a lesson reads as "shared" when it is shared to the author's Team
+ * OR their Shepherd group OR it was funded by the org pool (pool-funded lessons
+ * are group content automatically, Option B).
  */
 const lessonIsShared = (l: {
-  visibility?: string | null;
+  shared_with_team?: boolean | null;
+  shared_with_org?: boolean | null;
   org_pool_consumed?: boolean | null;
-}): boolean => l.visibility === "shared" || !!l.org_pool_consumed;
+}): boolean => !!l.shared_with_team || !!l.shared_with_org || !!l.org_pool_consumed;
 
 // ============================================================================
 // COMPONENT
@@ -224,8 +226,10 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   // Shepherding B3: the group's lessons (pool-funded + shared), read-only.
   const [shepherdLessons, setShepherdLessons] = useState<LessonDisplay[]>([]);
   const [shepherdLessonsLoading, setShepherdLessonsLoading] = useState(false);
+  // Stage C: the lesson whose per-group sharing popup is open (null = closed).
+  const [shareDialogLesson, setShareDialogLesson] = useState<LessonDisplay | null>(null);
 
-  const { lessons, loading, deleteLesson, updateLessonVisibility, refetch: refreshLessons } = useLessons();
+  const { lessons, loading, deleteLesson, updateLessonShares, refetch: refreshLessons } = useLessons();
   const { hasTeam, team, members, fetchTeamLessons } = useTeachingTeam();
   const { hasOrganization } = useOrganization();
   const { tier } = useSubscription();
@@ -362,7 +366,8 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
             title: row.title,
             original_text: row.original_text,
             created_at: row.created_at,
-            visibility: row.visibility,
+            shared_with_org: true,
+            org_pool_consumed: row.org_pool_consumed,
             filters: {
               bible_passage: row.bible_passage,
               age_group: row.age_group,
@@ -461,12 +466,14 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
   };
 
   /**
-   * Toggle lesson visibility between Private and Shared (Phase 26)
-   * Private is permanent default. Teacher must explicitly share.
+   * Stage C: persist the per-group sharing choices from the share popup.
+   * Private is the default; the teacher opts into each group explicitly.
    */
-  const handleToggleVisibility = async (lesson: LessonDisplay) => {
-    const newVisibility = lesson.visibility === 'shared' ? 'private' : 'shared';
-    await updateLessonVisibility(lesson.id, newVisibility);
+  const handleSaveShares = async (
+    shares: { shared_with_team: boolean; shared_with_org: boolean }
+  ) => {
+    if (!shareDialogLesson) return;
+    await updateLessonShares(shareDialogLesson.id, shares);
   };
 
   /**
@@ -804,47 +811,32 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     <Eye className="h-4 w-4 mr-1.5" />
                     View
                   </Button>
-                  {/* Visibility Toggle (Phase 26) -- only on user's own lessons.
-                      Pool-funded lessons are group-visible automatically (Option
-                      B): their status is Shared and not user-togglable. */}
+                  {/* Stage C: per-group sharing popup -- only on the user's own
+                      lessons. The icon reflects current state (shared vs private);
+                      the popup lets the author choose Team and/or Shepherd. */}
                   {!lesson.isTeamLesson && (
-                    lesson.org_pool_consumed ? (
-                      <Button
-                        onClick={() =>
-                          toast({
-                            title: "Shared with your group",
-                            description:
-                              "Pool-funded lessons are automatically visible to your Shepherd Group.",
-                          })
-                        }
-                        variant="outline"
-                        size="sm"
-                        aria-disabled="true"
-                        className="hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                        title="Shared with your Shepherd Group pool (automatic)"
-                        aria-label="Shared with your Shepherd Group pool"
-                      >
-                        <Share2 className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleToggleVisibility(lesson)}
-                        variant="outline"
-                        size="sm"
-                        className={
-                          lesson.visibility === 'shared'
-                            ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                            : "hover:bg-muted hover:text-foreground"
-                        }
-                        title={lesson.visibility === 'shared' ? "Set to Private" : "Share with Org Leaders"}
-                      >
-                        {lesson.visibility === 'shared' ? (
-                          <Share2 className="h-4 w-4" />
-                        ) : (
-                          <Lock className="h-4 w-4" />
-                        )}
-                      </Button>
-                    )
+                    <Button
+                      onClick={() => setShareDialogLesson(lesson)}
+                      variant="outline"
+                      size="sm"
+                      className={
+                        lessonIsShared(lesson)
+                          ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                          : "hover:bg-muted hover:text-foreground"
+                      }
+                      title="Sharing settings"
+                      aria-label={
+                        lessonIsShared(lesson)
+                          ? "Sharing settings -- this lesson is shared"
+                          : "Sharing settings -- this lesson is private"
+                      }
+                    >
+                      {lessonIsShared(lesson) ? (
+                        <Share2 className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Lock className="h-4 w-4" aria-hidden="true" />
+                      )}
+                    </Button>
                   )}
                   {/* Devotional button -- only on user's own lessons with content */}
                   {!lesson.isTeamLesson && lesson.has_content && (
@@ -1112,6 +1104,13 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
         trigger="feature_teaser"
+      />
+      <LessonShareDialog
+        lesson={shareDialogLesson}
+        hasTeam={hasTeam}
+        hasOrganization={hasOrganization}
+        onClose={() => setShareDialogLesson(null)}
+        onSave={handleSaveShares}
       />
     </div>
   );

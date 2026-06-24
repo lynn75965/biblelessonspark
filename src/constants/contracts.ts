@@ -308,11 +308,14 @@ export interface Lesson {
   } | null;
   series_id?: string | null;
   series_lesson_number?: number | null;
-  /** Lesson Visibility Status (Phase 26): 'private' (default) or 'shared'. */
-  visibility?: 'private' | 'shared' | null;
+  /** Stage C per-group sharing (replaces the old single `visibility` flag).
+   *  A lesson can be shared to the author's Team and/or Shepherd group
+   *  independently. Both default false (private). */
+  shared_with_team?: boolean | null;
+  shared_with_org?: boolean | null;
   /** True when this lesson was funded by the org (Shepherd) pool. Pool-funded
-   *  lessons are group-visible (Option B), so the Library displays them as
-   *  Shared even when the visibility flag is still 'private'. */
+   *  lessons are group content (Option B) and are visible to the Shepherd group
+   *  regardless of shared_with_org. */
   org_pool_consumed?: boolean | null;
 }
 
