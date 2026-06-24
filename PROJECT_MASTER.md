@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; reshape team-sharing parity shipped; visibility-column DROP done; only ONE small cleanup follow-up remains)
+# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; reshape team-sharing parity shipped; visibility-column DROP done; check_lesson_limit OUT-name audit done CLEAN; ZERO cleanup follow-ups remain)
 
 ## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build COMPLETE (A/B/C/D shipped)
 
@@ -33,12 +33,24 @@ types.ts (the RPC-return shapes that carry the derived value were left intact). 
 backfilled the column's info into shared_with_team/shared_with_org, so no in-use data was lost. Build
 clean; verified remote post-drop: visibility_col_remaining=0, both resolvers still valid.
 
+CHECK_LESSON_LIMIT OUT-NAME AUDIT (2026-06-24): DONE -- CLEAN, no fix needed. Read-only audit (no
+migration, no deploy). check_lesson_limit(uuid) is plpgsql RETURNS TABLE with OUT names that DO match
+user_subscriptions columns (tier, lessons_used, lessons_limit, reset_date), BUT those names appear
+only in INSERT-target lists and UPDATE SET targets (always columns there), and its single
+ON CONFLICT infers on user_id -- which is NOT an OUT name -- so no 42702 ambiguity. Also swept ALL 8
+public plpgsql functions using ON CONFLICT (add_user_to_email_sequence, allocate_monthly_credits,
+check_devotional_limit [already fixed via ON CONSTRAINT], check_lesson_limit, create_profile_on_
+verification, handle_new_user, increment_devotional_usage, increment_rate_limit): NONE has a conflict-
+target column colliding with an OUT name OR a DECLARE local. Root reason it's safe codebase-wide: the
+naming convention is params p_*, locals v_*, so they never shadow bare column names; the devotional
+bug was a true one-off because RETURNS TABLE OUT names can't take a prefix and period_start matched a
+conflict column. The devotional log's "WATCH FOR THE SAME PATTERN" note is now resolved.
+
 NEXT SESSION: the entire Shepherding build is DONE -- Stage A, ALL Stage B (B1-B6), Stage C
 (per-group sharing), and Stage D (DB-enforced team cap) are SHIPPED, deployed, and verified in
-production. Working tree is CLEAN. No remaining feature work. ONE small CLEANUP follow-up only,
-optional / low-priority:
-  1. Audit check_lesson_limit (and other RETURNS TABLE RPCs) for the same OUT-name/column collision
-     that broke check_devotional_limit (see the JUNE 24 devotional session log).
+production. Working tree is CLEAN. No remaining feature work, and ZERO cleanup follow-ups -- all
+prior carry-forwards (reshape team-sharing parity, visibility-column DROP, check_lesson_limit audit)
+are now closed.
 
 INTERRUPT FIX (2026-06-24, shipped 5c447c4, NOT Shepherding): devotional generation was broken
 for ALL non-admin users -- check_devotional_limit had an ambiguous `period_start` (OUT-param name
