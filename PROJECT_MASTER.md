@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: June 23, 2026 (Shepherding Stage A + B1-B6 SHIPPED & VERIFIED; only Stage C + D remain)
+# PROJECT MASTER -- Last updated: June 24, 2026 (Devotional XX2 hotfix SHIPPED; Shepherding Stage C + D still the main carry-forward)
 
 ## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build (Stage B COMPLETE; Stage C/D remain)
 
@@ -6,6 +6,13 @@ NEXT SESSION: read this block. Stage A (backend foundation) and ALL Stage B piec
 B4, B5, B6) are SHIPPED, deployed, and verified in production. Working tree is CLEAN (no held
 files). Only STAGE C (per-group sharing + lock/share popup, schema-touching) and STAGE D
 (4-teacher DB cap) remain -- see CARRY-FORWARD and the STAGE C CONTEXT note before starting C.
+
+INTERRUPT FIX (2026-06-24, shipped 5c447c4, NOT Shepherding): devotional generation was broken
+for ALL non-admin users -- check_devotional_limit had an ambiguous `period_start` (OUT-param name
+shadowing the devotional_usage column in ON CONFLICT) -> 503 -> the "Edge Function XX2" a user
+reported. Fixed via migration 20260624130000 (ON CONFLICT ON CONSTRAINT by name). Also shipped the
+devotional_metrics table + a 120s timeout guard + friendly frontend error. See the JUNE 24 session
+log below. Optional follow-up: audit check_lesson_limit for the same OUT-name/column collision.
 
 LYNN'S SPEC: unchanged -- the full text is in the prior (now superseded) planning RESUME below.
 Key clarifications LOCKED this session:
@@ -92,6 +99,56 @@ OPERATIONAL NOTE: `npx supabase db query --linked "<SQL>"` runs ad-hoc SQL vs th
   reshape-lesson. NOTE 20260623120000 was found already-applied before any explicit push
   (mechanism unconfirmed; no CI; Netlify build = `npm run build` only) -- always verify applied
   state (information_schema / schema_migrations) before pushing. Also captured in CLAUDE.md Rule #20.
+
+## JUNE 24, 2026 SESSION -- Devotional "Edge Function XX2" RCA + fix (RPC bug + reliability) SHIPPED & VERIFIED
+
+TRIGGER: a user (culpeppers1025@gmail.com = 2ac5e78e-..., on mobile, ~9:40am CDT) reported error
+"Edge Function XX2" while converting a lesson to a devotional. "XX2" = the user mis-reading
+Supabase's generic "Edge Function returned a non-2xx status code" (ANY non-2xx yields it -- could be
+a 504 timeout OR a fail-closed 503; do not assume timeout).
+
+DIAGNOSIS PATH (logs via `npx supabase db query --linked`): generation_metrics confirmed real
+generate-LESSON timeouts exist (status='timeout', Full lessons only) but the latest was June 17, so
+that was a red herring for THIS report. generate-DEVOTIONAL writes the devotionals row ONLY on
+success and had NO failure logging + NO internal timeout -> failures were invisible. Scoped a
+devotional logging+timeout fix (Option 1: dedicated metrics table). DURING localhost testing the
+real bug surfaced: "Generation Failed -- Unable to verify your usage right now" = the LIMIT_CHECK_
+FAILED 503. Root cause: public.check_devotional_limit RETURNS TABLE(... period_start, period_end);
+those OUT names became PL/pgSQL variables, so `ON CONFLICT (user_id, period_start) DO NOTHING` threw
+42702 "ambiguous column reference". Admins RETURN early (9999) so never hit it; EVERY non-admin
+crashed -> 503 -> the XX2. Devotional generation was broken for all non-admin (paying) users. (The
+503 path itself came from the MED-4 fail-closed wrapper added 2026-06-18.)
+
+SHIPPED (commit 5c447c4, pushed to main; localhost-verified before deploy):
+  - migration 20260624130000_fix_check_devotional_limit_ambiguous_period_start.sql -- CREATE OR
+    REPLACE the function; upsert now `ON CONFLICT ON CONSTRAINT
+    devotional_usage_user_id_period_start_key DO NOTHING` (unambiguous, same idempotent upsert).
+    The function had NO prior migration (Dashboard-created pre-Rule #20); this is now its SSOT.
+    Verified: RPC returns cleanly for a non-admin and for admin.
+  - migration 20260624120000_create_devotional_metrics.sql -- new public.devotional_metrics table
+    mirroring generation_metrics; admin-only SELECT via has_role; service-role writes bypass RLS.
+  - supabase/functions/generate-devotional/index.ts (redeployed --use-api) -- (1) AbortController +
+    DEVOTIONAL_TIMEOUT_MS=120000 on the Anthropic fetch (below the 150s gateway) returning a clean
+    code:"TIMEOUT" 504 instead of a raw gateway 504; (2) logs every attempt started -> completed/
+    timeout/error with device_type (imports parseDeviceType/Browser/OS from _shared/
+    generationMetrics.ts). Verified: a real generation logged status=completed, desktop/Chrome/
+    Windows, ~30s, 4092/1086 tokens.
+  - src/components/DevotionalGenerator.tsx -- reads the edge error body via
+    response.error.context.json() to show a friendly TIMEOUT message instead of the raw "non-2xx"
+    text; added role="alert" inline error region + focus-to-error + focus-to-result-heading (Rule
+    #22). src/integrations/supabase/types.ts -- hand-added devotional_metrics types.
+
+FILES: 5 changed (434 insertions, 22 deletions). Build clean. ASCII guard passed.
+
+NOTES / CARRY-FORWARD:
+  - The reporting user (culpeppers) is legitimately OVER her June limit (8 used / 7; devotional
+    period is calendar-month via date_trunc('month')) -- her XX2 is fixed but she now correctly sees
+    "Monthly Limit Reached" until July 1. Lynn's call whether to grant more.
+  - GAP (deferred): the 'started' metric row is inserted AFTER the usage check, so a limit-check 503
+    is still NOT logged in devotional_metrics. Move the insert earlier if that visibility is wanted.
+  - OPTIONAL FOLLOW-UP: audit check_lesson_limit (and other RETURNS TABLE RPCs) for the same
+    OUT-name/column collision in any ON CONFLICT.
+  - Dev server (npm run dev, port 8080) was left running at session end.
 
 ## JUNE 23, 2026 SESSION -- Stage A through B6 shipped & verified (Shepherding org feature)
 
