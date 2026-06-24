@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; reshape team-sharing parity shipped; only two small cleanup follow-ups remain)
+# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; reshape team-sharing parity shipped; visibility-column DROP done; only ONE small cleanup follow-up remains)
 
 ## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build COMPLETE (A/B/C/D shipped)
 
@@ -21,14 +21,23 @@ able to share a reshape to EITHER group equally, by their own per-reshape choice
   parity). Verified on remote: get_team_lessons still_has_reshape_guard=false, gates on
   shared_with_team. Build clean; localhost-approved; deployed.
 
+VISIBILITY-COLUMN DROP (2026-06-24, shipped commit 69bcd76; migration
+20260624170000_drop_frozen_lessons_visibility.sql): DONE. The frozen lessons.visibility column (the
+Stage C graceful-degradation safety net) is dropped. Pre-drop verification: full grep of src/ +
+supabase/ AND a live-DB dependency check (information_schema.columns / pg_policies /
+view_column_usage / pg_proc) confirmed zero references except the column's own DEFAULT 'private'::text
+-- no RLS policy, no view, and the only functions mentioning "visibility" (get_team_lessons,
+get_team_lesson, get_org_pool_lessons) DERIVE it as constant 'shared'::text and never read the
+column. Also removed visibility from the lessons Row/Insert/Update in src/integrations/supabase/
+types.ts (the RPC-return shapes that carry the derived value were left intact). Stage C had already
+backfilled the column's info into shared_with_team/shared_with_org, so no in-use data was lost. Build
+clean; verified remote post-drop: visibility_col_remaining=0, both resolvers still valid.
+
 NEXT SESSION: the entire Shepherding build is DONE -- Stage A, ALL Stage B (B1-B6), Stage C
 (per-group sharing), and Stage D (DB-enforced team cap) are SHIPPED, deployed, and verified in
-production. Working tree is CLEAN. No remaining feature work. Two small CLEANUP follow-ups only,
-both optional / low-priority:
-  1. DROP the now-frozen lessons.visibility column (Stage C left it as a graceful-degradation
-     safety net; nothing reads/writes it). One-line ALTER TABLE migration after a grep confirms no
-     lingering `.visibility` reads. See the JUNE 24 Stage C session log.
-  2. Audit check_lesson_limit (and other RETURNS TABLE RPCs) for the same OUT-name/column collision
+production. Working tree is CLEAN. No remaining feature work. ONE small CLEANUP follow-up only,
+optional / low-priority:
+  1. Audit check_lesson_limit (and other RETURNS TABLE RPCs) for the same OUT-name/column collision
      that broke check_devotional_limit (see the JUNE 24 devotional session log).
 
 INTERRUPT FIX (2026-06-24, shipped 5c447c4, NOT Shepherding): devotional generation was broken
