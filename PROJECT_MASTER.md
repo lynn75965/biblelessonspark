@@ -1,14 +1,16 @@
-# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding Stage C SHIPPED; only Stage D + a visibility-column DROP follow-up remain)
+# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; only two small cleanup follow-ups remain)
 
-## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build (Stage A/B/C COMPLETE; only Stage D remains)
+## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build COMPLETE (A/B/C/D shipped)
 
-NEXT SESSION: read this block. Stage A, ALL Stage B pieces (B1-B6), and STAGE C are SHIPPED,
-deployed, and verified in production. Working tree is CLEAN (no held files). Only STAGE D
-(DB-enforce Teaching Team 4-max, MAX_TEAM_MEMBERS -- currently frontend-only) remains, plus a
-small FOLLOW-UP from Stage C: DROP the now-frozen lessons.visibility column once the per-group
-sharing model is confirmed stable in production (it was kept as a safety net -- see the JUNE 24
-Stage C session log). Stage C retired visibility as the source of truth but did NOT drop the
-column.
+NEXT SESSION: the entire Shepherding build is DONE -- Stage A, ALL Stage B (B1-B6), Stage C
+(per-group sharing), and Stage D (DB-enforced team cap) are SHIPPED, deployed, and verified in
+production. Working tree is CLEAN. No remaining feature work. Two small CLEANUP follow-ups only,
+both optional / low-priority:
+  1. DROP the now-frozen lessons.visibility column (Stage C left it as a graceful-degradation
+     safety net; nothing reads/writes it). One-line ALTER TABLE migration after a grep confirms no
+     lingering `.visibility` reads. See the JUNE 24 Stage C session log.
+  2. Audit check_lesson_limit (and other RETURNS TABLE RPCs) for the same OUT-name/column collision
+     that broke check_devotional_limit (see the JUNE 24 devotional session log).
 
 INTERRUPT FIX (2026-06-24, shipped 5c447c4, NOT Shepherding): devotional generation was broken
 for ALL non-admin users -- check_devotional_limit had an ambiguous `period_start` (OUT-param name
@@ -67,18 +69,17 @@ SHIPPED THIS SESSION (2026-06-23) -- all live + verified against FBC ECK test or
     via get_org_pool_lessons (past RLS); migration added org_pool_consumed to that resolver's
     return for the funding badges / override stat.
 
-CARRY-FORWARD (remaining):
+CARRY-FORWARD (cleanup only -- NO remaining feature work):
   STAGE C -- DONE 2026-06-24 (commit 0933f78). See the JUNE 24 Stage C session log below.
-  STAGE C FOLLOW-UP (small) -- DROP the frozen lessons.visibility column once the per-group model
-    is confirmed stable in production. It was intentionally kept this session as a graceful-
-    degradation safety net (a missed reader degrades instead of crashing). Nothing writes or reads
-    it anymore: reshape-lesson writes the two flags; the 3 resolvers gate on the flags; the
-    frontend type dropped it. A one-line `ALTER TABLE public.lessons DROP COLUMN visibility;`
-    migration retires it. Before dropping: grep src + supabase for any lingering `.visibility`
-    read on a lessons row (the harmless `any`-typed passthroughs in Dashboard.tsx handleViewLesson
-    can be cleaned at the same time).
-  STAGE D (hardening) -- piece 8: DB-enforce Teaching Team 4-max (currently frontend-only,
-    MAX_TEAM_MEMBERS).
+  STAGE D -- DONE 2026-06-24 (commit 0ab57b3). See the JUNE 24 Stage D session log below.
+  FOLLOW-UP 1 (small, optional) -- DROP the frozen lessons.visibility column once the per-group
+    model is confirmed stable in production. Kept as a graceful-degradation safety net; nothing
+    writes/reads it (reshape-lesson writes the two flags; the 3 resolvers gate on the flags; the
+    frontend type dropped it). One-line `ALTER TABLE public.lessons DROP COLUMN visibility;` after a
+    grep confirms no lingering `.visibility` read on a lessons row (the harmless any-typed
+    passthroughs in Dashboard.tsx handleViewLesson can be cleaned at the same time).
+  FOLLOW-UP 2 (small, optional) -- audit check_lesson_limit + other RETURNS TABLE RPCs for the same
+    OUT-name/column collision that broke check_devotional_limit (JUNE 24 devotional log).
 
 TEST DATA STATE: Org FBC ECK = b298aa1e-a1a1-4101-b1bf-67785ca968cf (annual, growth, limit 60).
   subscription_status was 'canceled' -> SET to 'active' this session (Lynn approved) so the pool
@@ -94,6 +95,49 @@ OPERATIONAL NOTE: `npx supabase db query --linked "<SQL>"` runs ad-hoc SQL vs th
   reshape-lesson. NOTE 20260623120000 was found already-applied before any explicit push
   (mechanism unconfirmed; no CI; Netlify build = `npm run build` only) -- always verify applied
   state (information_schema / schema_migrations) before pushing. Also captured in CLAUDE.md Rule #20.
+
+## JUNE 24, 2026 SESSION (LATEST) -- Shepherding STAGE D: DB-enforced Teaching Team cap SHIPPED & VERIFIED
+
+GOAL: the 4-member team cap (lead + MAX_TEAM_MEMBERS=3) was enforced ONLY in the frontend
+(useTeachingTeam.tsx:349). Stage D makes it a true DB invariant. Lynn chose Option B (FULL
+lockdown) over Option A (RPC-only): close the table so the cap-checking RPCs are the ONLY write
+path, not just "enforced if you use the app".
+
+ROOT GAPS FOUND: (1) invite was a DIRECT client INSERT/UPDATE (RLS only checked is_team_lead_of,
+not the count); (2) respond_to_team_invitation flipped pending->accepted with NO cap/expiry check
+(an expired invite -- which does not count toward the cap -- could be accepted past the limit);
+(3) a "Users can update own membership" UPDATE policy let a member self-set status='accepted'
+directly, bypassing the RPC entirely.
+
+SHIPPED (commit 0ab57b3; migration 20260624150000_stage_d_team_cap_lockdown.sql; Lynn localhost-
+verified the 4th invite is blocked):
+  - NEW invite_team_member(p_team_id, p_invitee_id) SECURITY DEFINER RPC -- the ONLY path that
+    creates a pending invite. Enforces: caller is lead; not self; invitee not already leading/on a
+    team; and THE CAP (accepted + non-expired pending < 3). Reuses a declined/expired row
+    (unique_member_per_team) or inserts. Raises coded exceptions (TEAM_FULL / ALREADY_ON_TEAM /
+    CANNOT_INVITE_SELF / NOT_TEAM_LEAD) the frontend maps to friendly messages. GRANT EXECUTE to
+    authenticated. Cap (3) + expiry (30d) are hardcoded SQL MIRRORS of MAX_TEAM_MEMBERS /
+    INVITATION_EXPIRY_DAYS (contracts.ts) -- documented mirror pattern (SQL cannot import TS).
+  - HARDENED respond_to_team_invitation -- accept now rejects EXPIRED invites (expires_at > now())
+    and re-checks accepted_count < 3 as a backstop. Decline unchanged. (Frontend already handled a
+    null return as "Invitation no longer pending", so no accept-side frontend change needed.)
+  - RLS LOCKDOWN on teaching_team_members: dropped the broad "Lead teacher can manage team members"
+    (ALL) and the "Users can update own membership" (UPDATE) hole. Now only: "Lead teacher can read
+    team members" (SELECT), "Lead teacher can remove team members" (DELETE), "Users can read own
+    membership" (SELECT). NO INSERT/UPDATE policy exists -> direct client writes are refused; the
+    two SECURITY DEFINER RPCs (which bypass RLS + enforce the cap) are the only way in. removeMember
+    (lead DELETE), leave_teaching_team, and disbandTeam (cascade) all still work.
+  - src/hooks/useTeachingTeam.tsx inviteMember -- replaced the direct INSERT/UPDATE block with a
+    single invite_team_member RPC call + error-code mapping; builds the optimistic local row from
+    the returned id. src/integrations/supabase/types.ts -- added invite_team_member to Functions.
+
+VERIFIED at DB level: final policy set correct (no INSERT/UPDATE); invite_team_member SECURITY
+DEFINER + authenticated execute; respond checks expiry + cap. Build clean, ASCII-clean.
+FILES: 3 changed (218 insertions, 44 deletions). No edge-function deploy (all SQL + RLS).
+
+>>> THE ENTIRE SHEPHERDING BUILD (A / B1-B6 / C / D) IS NOW COMPLETE. <<< Only two optional
+cleanup follow-ups remain (see CARRY-FORWARD): drop the frozen lessons.visibility column; audit
+check_lesson_limit for the OUT-name/column collision pattern.
 
 ## JUNE 24, 2026 SESSION (LATER) -- Shepherding STAGE C: per-group lesson sharing SHIPPED & VERIFIED
 
