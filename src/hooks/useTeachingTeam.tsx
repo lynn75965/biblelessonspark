@@ -417,55 +417,44 @@ export function useTeachingTeam() {
         }
       }
 
-      // Compute expiry date (SSOT: INVITATION_EXPIRY_DAYS from contracts.ts)
+      // Compute expiry for the OPTIMISTIC local row. The authoritative value is
+      // set server-side by invite_team_member to the same now + INVITATION_EXPIRY_DAYS.
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + INVITATION_EXPIRY_DAYS);
 
-      // Re-invite handling (path 6b): declining an invite SETs status='declined'
-      // -- it does NOT delete the row (live read 2026-06-16) -- and the table
-      // enforces unique_member_per_team (team_id, user_id). So a fresh INSERT for
-      // a previously declined/expired invitee collides (23505 -> the generic
-      // "Error sending invitation"). Reuse the surviving row when one exists for
-      // this (team, user); otherwise INSERT a new one. Both writes run under the
-      // lead's is_team_lead_of(team_id) ALL policy.
-      const { data: priorRow } = await supabase
-        .from('teaching_team_members')
-        .select('id')
-        .eq('team_id', team.id)
-        .eq('user_id', inviteeProfile.id)
-        .maybeSingle();
+      // Stage D: the pending invite is created ONLY through invite_team_member
+      // (SECURITY DEFINER), which DB-ENFORCES the team cap + all invite checks and
+      // handles declined/expired-row reuse (unique_member_per_team). Direct client
+      // INSERT/UPDATE on teaching_team_members is no longer permitted by RLS.
+      const { data: newMemberId, error: rpcError } = await supabase.rpc('invite_team_member', {
+        p_team_id: team.id,
+        p_invitee_id: inviteeProfile.id,
+      });
 
-      let newMember;
-      if (priorRow) {
-        const { data: updated, error: updateError } = await supabase
-          .from('teaching_team_members')
-          .update({
-            status: 'pending',
-            invited_at: new Date().toISOString(),
-            responded_at: null,
-            expires_at: expiresAt.toISOString(),
-          })
-          .eq('id', priorRow.id)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-        newMember = updated;
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from('teaching_team_members')
-          .insert([{
-            team_id: team.id,
-            user_id: inviteeProfile.id,
-            status: 'pending',
-            expires_at: expiresAt.toISOString(),
-          }])
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        newMember = inserted;
+      if (rpcError) {
+        const code = rpcError.message || '';
+        let message = 'Failed to send the invitation. Please try again.';
+        if (code.includes('TEAM_FULL')) {
+          message = `Team is full (${MAX_TEAM_MEMBERS} members maximum).`;
+        } else if (code.includes('ALREADY_ON_TEAM')) {
+          message = `${inviteeProfile.full_name || 'That teacher'} is already on a teaching team.`;
+        } else if (code.includes('CANNOT_INVITE_SELF')) {
+          message = 'You cannot invite yourself to your own team.';
+        } else if (code.includes('NOT_TEAM_LEAD')) {
+          message = 'Only the lead teacher can invite members.';
+        }
+        return { error: true, message };
       }
+
+      const newMember = {
+        id: newMemberId as string,
+        team_id: team.id,
+        user_id: inviteeProfile.id,
+        status: 'pending' as const,
+        invited_at: new Date().toISOString(),
+        responded_at: null,
+        expires_at: expiresAt.toISOString(),
+      };
 
       // Fire-and-forget: email notification via Edge Function
       supabase.functions
