@@ -815,31 +815,44 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                     View
                   </Button>
                   {/* Stage C: per-group sharing popup -- only on the user's own
-                      lessons. The icon reflects current state (shared vs private);
-                      the popup lets the author choose Team and/or Shepherd. */}
+                      lessons. When the user has no team and no Shepherd org,
+                      sharing is unavailable -- render a disabled Lock indicator
+                      (aria-disabled keeps it focusable per Rule #22). */}
                   {!lesson.isTeamLesson && (
-                    <Button
-                      onClick={() => setShareDialogLesson(lesson)}
-                      variant="outline"
-                      size="sm"
-                      className={
-                        lessonIsShared(lesson)
-                          ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
-                          : "hover:bg-muted hover:text-foreground"
-                      }
-                      title="Sharing settings"
-                      aria-label={
-                        lessonIsShared(lesson)
-                          ? "Sharing settings -- this lesson is shared"
-                          : "Sharing settings -- this lesson is private"
-                      }
-                    >
-                      {lessonIsShared(lesson) ? (
-                        <Share2 className="h-4 w-4" aria-hidden="true" />
-                      ) : (
+                    (hasTeam || hasOrganization) ? (
+                      <Button
+                        onClick={() => setShareDialogLesson(lesson)}
+                        variant="outline"
+                        size="sm"
+                        className={
+                          lessonIsShared(lesson)
+                            ? "hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300"
+                            : "hover:bg-muted hover:text-foreground"
+                        }
+                        aria-label={
+                          lessonIsShared(lesson)
+                            ? "Sharing settings -- this lesson is shared"
+                            : "Sharing settings -- this lesson is private"
+                        }
+                      >
+                        {lessonIsShared(lesson) ? (
+                          <Share2 className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <Lock className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-disabled="true"
+                        aria-label="Sharing unavailable -- no team or group connected"
+                        className="opacity-40 cursor-default"
+                        onClick={(e) => e.preventDefault()}
+                      >
                         <Lock className="h-4 w-4" aria-hidden="true" />
-                      )}
-                    </Button>
+                      </Button>
+                    )
                   )}
                   {/* Devotional button -- only on user's own lessons with content */}
                   {!lesson.isTeamLesson && lesson.has_content && (
@@ -849,9 +862,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                         variant="outline"
                         size="sm"
                         className="hover:bg-amber-50 hover:text-amber-700 hover:border-amber-300"
-                        title="Generate a devotional from this lesson"
+                        aria-label="Generate a devotional from this lesson"
                       >
-                        <Heart className="h-4 w-4" />
+                        <Heart className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     ) : (
                       <Button
@@ -865,9 +878,9 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                         variant="outline"
                         size="sm"
                         className="opacity-50 hover:opacity-75"
-                        title={getUpgradePrompt(tier, 'devotional')}
+                        aria-label="Generate devotional -- Personal Plan required"
                       >
-                        <Lock className="h-4 w-4" />
+                        <Heart className="h-4 w-4" aria-hidden="true" />
                       </Button>
                     )
                   )}
@@ -992,34 +1005,46 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
                           View Reshaped ({childShapeName})
                         </button>
                         {/* Stage C parity: each reshape carries its own per-group
-                            sharing, chosen independently of its parent. The author
-                            opens the same LessonShareDialog with the reshape as
-                            target. Only on the author's own cards (inline children
-                            only exist in the My-Lessons scope, but guard anyway). */}
+                            sharing, chosen independently of its parent. Disabled
+                            when the user has no team or Shepherd org (same guard
+                            as the parent-card share button). */}
                         {!lesson.isTeamLesson && (
-                          <Button
-                            onClick={() => setShareDialogLesson(child)}
-                            variant="ghost"
-                            size="sm"
-                            className={
-                              childShared
-                                ? "h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
-                                : "h-7 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
-                            }
-                            title="Sharing settings for this reshaped lesson"
-                            aria-label={
-                              childShared
-                                ? `Sharing settings for reshaped lesson ${childShapeFullName} -- shared`
-                                : `Sharing settings for reshaped lesson ${childShapeFullName} -- private`
-                            }
-                          >
-                            {childShared ? (
-                              <Share2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                            ) : (
+                          (hasTeam || hasOrganization) ? (
+                            <Button
+                              onClick={() => setShareDialogLesson(child)}
+                              variant="ghost"
+                              size="sm"
+                              className={
+                                childShared
+                                  ? "h-7 px-2 text-xs text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700"
+                                  : "h-7 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                              }
+                              aria-label={
+                                childShared
+                                  ? `Sharing settings for reshaped lesson ${childShapeFullName} -- shared`
+                                  : `Sharing settings for reshaped lesson ${childShapeFullName} -- private`
+                              }
+                            >
+                              {childShared ? (
+                                <Share2 className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                              ) : (
+                                <Lock className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                              )}
+                              {childShared ? "Shared" : "Private"}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-disabled="true"
+                              aria-label={`Sharing unavailable for ${childShapeFullName} -- no team or group connected`}
+                              className="h-7 px-2 text-xs opacity-40 cursor-default"
+                              onClick={(e) => e.preventDefault()}
+                            >
                               <Lock className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                            )}
-                            {childShared ? "Shared" : "Private"}
-                          </Button>
+                              Private
+                            </Button>
+                          )
                         )}
                       </div>
                     );
