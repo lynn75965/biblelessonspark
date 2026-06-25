@@ -1,6 +1,35 @@
-# PROJECT MASTER -- Last updated: June 24, 2026 (Shepherding build COMPLETE -- A/B/C/D all SHIPPED; reshape team-sharing parity shipped; visibility-column DROP done; check_lesson_limit OUT-name audit done CLEAN; ZERO cleanup follow-ups remain)
+# PROJECT MASTER -- Last updated: June 25, 2026 (LessonLibrary card action row -- 3 icon bugs fixed + deployed; working tree CLEAN)
 
-## >>> RESUME HERE <<< -- Shepherding org + lesson-sharing build COMPLETE (A/B/C/D shipped)
+## >>> RESUME HERE <<< -- LessonLibrary card icon bugs fixed (June 25); Shepherding build COMPLETE (A/B/C/D shipped)
+
+LESSONLIBRARY CARD ACTION ROW -- 3 ICON BUGS (2026-06-25, shipped commit a4e092f):
+Three coupled icon bugs in src/components/dashboard/LessonLibrary.tsx only. No other
+files touched. No new imports. Build clean; deployed.
+
+  BUG 1 (Share button default state): The share button (parent card + reshape-child rows)
+  rendered as an ACTIVE control even when the user has no Teaching Team and no Shepherd org --
+  opening LessonShareDialog with nobody to share with. Fix: wrapped both share button sites in
+  a (hasTeam || hasOrganization) ternary. Affiliated users get the existing active Share2/Lock
+  button; unaffiliated users get a disabled Lock button (aria-disabled="true", opacity-40,
+  onClick swallowed) that stays focusable per Rule #22.
+  Sites fixed: parent-card share button (~line 820) and reshape-child share button (~line 999).
+
+  BUG 2 (Lock icon overloaded): Lock was serving two unrelated semantics -- "Private" visibility
+  (correct) AND "Devotional feature gated/upgrade required" (wrong). Resolved entirely as a
+  side-effect of Bug 3. Lock now means one thing only: Private/not-shared.
+
+  BUG 3 (Devotional should use Heart): The locked-tier devotional button rendered Lock instead
+  of Heart. Both active (canUseDevotional=true) and locked (canUseDevotional=false) branches
+  now show Heart, keeping the Devotional slot visually consistent regardless of tier. The
+  opacity-50 + upgrade toast/modal treatment on the locked branch is unchanged.
+  Also fixed: both devotional button branches now carry proper aria-label (was title-only on
+  the active branch, missing entirely on the locked branch -- Rule #22).
+
+NEXT SESSION: working tree is CLEAN. No carry-forwards from this session.
+
+---
+
+## >>> PRIOR RESUME <<< -- Shepherding org + lesson-sharing build COMPLETE (A/B/C/D shipped)
 
 RESHAPE TEAM-SHARING PARITY (2026-06-24, shipped commit 2320b82; migration
 20260624160000_share_reshapes_with_team.sql): closed a Stage C gap -- a reshaped lesson could be
@@ -8611,3 +8640,52 @@ work was the never-completed audit of the other generators plus stale dead code.
 ### Carry-forward
 - None for this item. Optional future cleanup: Docs.tsx should import the SSOT
   THEOLOGY_PROFILES instead of its local 4-profile array (uses summary, not description).
+
+---
+
+## SESSION LOG: June 25, 2026 -- LessonLibrary card action row icon bugs
+
+### Context
+Three coupled icon bugs reported by Lynn in the lesson card action row. All three
+were in a single component (src/components/dashboard/LessonLibrary.tsx). Diagnosis
+was done read-only first; fix was approved before any code was written.
+
+### Files Changed
+- src/components/dashboard/LessonLibrary.tsx (only file)
+
+### Bugs Fixed
+
+BUG 1 -- Share button active for unaffiliated users (two sites):
+  Root cause: the share button guard was `{!lesson.isTeamLesson && (` with no check
+  for whether the user has any Teaching Team or Shepherd org. An unaffiliated user
+  saw an active Share2 or Lock button that opened LessonShareDialog with nobody to
+  share with.
+  Fix: added `(hasTeam || hasOrganization)` ternary at both share button sites:
+    - Parent-card share button (~line 820)
+    - Reshape-child share button (~line 999)
+  Affiliated users: existing active Share2/Lock behavior unchanged.
+  Unaffiliated users: disabled Lock button (aria-disabled="true", opacity-40,
+  onClick swallowed via e.preventDefault()); stays focusable per Rule #22.
+
+BUG 2 -- Lock icon overloaded (two semantics):
+  Lock was used for both "Private" visibility AND "Devotional feature gated."
+  Resolved entirely as a side-effect of Bug 3. No independent change needed.
+  Lock now appears only in: visibility badge (Private), parent-card share button
+  (private state), reshape-child share button (private/disabled state).
+
+BUG 3 -- Devotional locked state used Lock instead of Heart:
+  Root cause: the canUseDevotional=false branch rendered `<Lock className="h-4 w-4" />`
+  instead of Heart. The canUseDevotional=true branch correctly showed Heart.
+  Fix: locked branch changed to `<Heart className="h-4 w-4" aria-hidden="true" />`.
+  Also fixed accessibility on both devotional button branches: added aria-label to
+  active branch (was title-only); added aria-label to locked branch (was missing).
+
+### Verification
+- npm run build: clean, zero errors.
+- Dev server started; deployed to biblelessonspark.com via deploy.ps1.
+
+### Commit
+- a4e092f  FIX: LessonLibrary card action row -- 3 icon bugs
+
+### Carry-forward
+- None.
