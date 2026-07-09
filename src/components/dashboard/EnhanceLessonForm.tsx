@@ -758,7 +758,7 @@ export function EnhanceLessonForm({
   // HOOKS
   // ============================================================================
 
-  const { enhanceLesson, isEnhancing } = useEnhanceLesson();
+  const { enhanceLesson, isEnhancing, streamingContent, streamingTokenCount } = useEnhanceLesson();
   const { reshapeLesson, isReshaping } = useReshapeLesson();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [senderDisplayName, setSenderDisplayName] = useState("");
@@ -997,22 +997,15 @@ export function EnhanceLessonForm({
   // ============================================================================
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isSubmitting || isEnhancing) {
+    if (!isSubmitting && !isEnhancing) {
       setGenerationProgress(0);
-      interval = setInterval(() => {
-        setGenerationProgress((prev) => {
-          if (prev >= 99) return 99;
-          if (prev >= 96) return prev + 0.3;
-          if (prev >= 90) return prev + 0.8;
-          return prev + 1.2;
-        });
-      }, 1000);
-    } else {
-      setGenerationProgress(0);
+      return;
     }
-    return () => clearInterval(interval);
-  }, [isSubmitting, isEnhancing]);
+    // Drive progress from real token count. 4500 = typical full-lesson output tokens.
+    const ESTIMATED_OUTPUT_TOKENS = 4500;
+    const pct = Math.min(99, Math.round((streamingTokenCount / ESTIMATED_OUTPUT_TOKENS) * 100));
+    setGenerationProgress(pct);
+  }, [isSubmitting, isEnhancing, streamingTokenCount]);
 
   // ============================================================================
   // SERIES STYLE - Derived from selectedSeries (Phase 24)
@@ -2745,6 +2738,25 @@ export function EnhanceLessonForm({
         </form>
         )}
       </div>
+
+      {/* ================================================================ */}
+      {/* STREAMING PREVIEW -- visible while generation is in progress     */}
+      {/* ================================================================ */}
+      {(isSubmitting || isEnhancing) && streamingContent && (
+        <Card className="mt-6" aria-live="polite" aria-label="Lesson being generated">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+              <span>Generating your lesson...</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
+              {streamingContent}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}

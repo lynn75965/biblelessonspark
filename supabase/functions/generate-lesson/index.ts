@@ -51,16 +51,7 @@ const corsHeaders = {
 // Anthropic model constant for tracking (value sourced from model-ID SSOT)
 const ANTHROPIC_MODEL = ANTHROPIC_MODELS.default;
 
-// Main generation fetch timeout. Held below Supabase's 150s gateway idle timeout
-// (504 ceiling) with ~10s headroom for the response to be sent. Raised from 120s
-// after claude-sonnet-4-6 was observed running 119-121s for a full lesson + teaser.
-const GENERATION_TIMEOUT_MS = 140000;
 
-// Time budget for the conditional guardrail-rewrite call. The rewrite has its own
-// REWRITE_CONFIG.timeoutMs budget and runs AFTER the main call; if the main call has
-// already consumed most of the 150s window, running the rewrite would push the
-// response past 150s (raw 504). Derived so it stays correct if timeoutMs changes.
-const REWRITE_TIME_BUDGET_MS = 150000 - REWRITE_CONFIG.timeoutMs - 10000; // 80000ms
 
 function logTiming(label: string, startTime: number): number {
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -872,486 +863,548 @@ ${styleExtractionPromptAddition}
     console.log(`System block 3 (dynamic, uncached): ${dynamicRemainder.length} chars (~${Math.round(dynamicRemainder.length / 4)} tokens)`);
     console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log(`[TIMEOUT] Aborting Anthropic request after ${GENERATION_TIMEOUT_MS / 1000} seconds`);
-      controller.abort();
-    }, GENERATION_TIMEOUT_MS);
-
-    try {
-      const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: ANTHROPIC_MODEL,
-          max_tokens: 8000,
-          temperature: 0.6,
-          system: [
-            { type: 'text', text: staticSystemPrefix },
-            { type: 'text', text: theologyBlock, cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: dynamicRemainder }
-          ],
-          messages: [{ role: 'user', content: userPrompt }]
-        })
-      });
-
-      clearTimeout(timeoutId);
-      checkpoint = logTiming('Anthropic API returned', checkpoint);
-
-      if (anthropicResponse.status === 429) {
-        const errorData = await anthropicResponse.text();
-        console.error('Anthropic API rate limited:', errorData);
-        
-        if (metricId) {
-          await supabase
-            .from('generation_metrics')
-            .update({
-              generation_end: new Date().toISOString(),
-              generation_duration_ms: Date.now() - functionStartTime,
-              status: 'error',
-              rate_limited: true,
-              anthropic_model: ANTHROPIC_MODEL,
-              error_message: 'Anthropic API rate limit exceeded (429)'
-            })
-            .eq('id', metricId);
-        }
-        
-        throw new Error('Service temporarily busy. Please try again in a few minutes.');
+    // STALL GUARD -- replaces the 140s AbortController.
+    // Aborts only if Anthropic sends NO bytes for >30 s (genuine silence, not slow generation).
+    const STALL_TIMEOUT_MS = 30_000;
+    const stallController = new AbortController();
+    let lastByteTime = Date.now();
+    const stallTimer = setInterval(() => {
+      if (Date.now() - lastByteTime > STALL_TIMEOUT_MS) {
+        console.error(`[STALL] No bytes from Anthropic for ${STALL_TIMEOUT_MS / 1000}s -- aborting`);
+        stallController.abort();
+        clearInterval(stallTimer);
       }
+    }, 5_000);
 
-      if (!anthropicResponse.ok) {
-        const errorData = await anthropicResponse.text();
-        console.error('Anthropic API error:', errorData);
-        throw new Error(`Anthropic API error: ${anthropicResponse.status} - ${errorData}`);
-      }
+    // =========================================================================
+    // SSE STREAMING RESPONSE
+    // Returns immediately; background IIFE drives the Anthropic stream,
+    // runs post-processing, writes DB rows, and emits token/done/error events.
+    // =========================================================================
+    const encoder = new TextEncoder();
+    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+    const writer = writable.getWriter();
 
-      const anthropicData = await anthropicResponse.json();
-      let generatedLesson = anthropicData.content[0].text;
-      let wordCount = generatedLesson.split(/\s+/).length;
+    const sendEvent = async (type: string, payload: Record<string, unknown>): Promise<void> => {
+      const data = JSON.stringify({ type, ...payload });
+      await writer.write(encoder.encode(`data: ${data}\n\n`));
+    };
 
-      const tokensInput = anthropicData.usage?.input_tokens || null;
-      const tokensOutput = anthropicData.usage?.output_tokens || null;
-      const cacheCreationTokens = anthropicData.usage?.cache_creation_input_tokens ?? null;
-      const cacheReadTokens = anthropicData.usage?.cache_read_input_tokens ?? null;
-
-      console.log(`Lesson generated: ${generatedLesson.length} chars, ${wordCount} words`);
-      console.log(`Anthropic usage: ${JSON.stringify(anthropicData.usage)}`);
-      console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}, Cache Write: ${cacheCreationTokens}, Cache Read: ${cacheReadTokens}`);
-
-      // =========================================================================
-      // STYLE METADATA EXTRACTION
-      // =========================================================================
-      let extractedStyleMetadata: SeriesStyleMetadata | null = null;
-      
-      if (extract_style_metadata) {
-        extractedStyleMetadata = parseStyleMetadata(generatedLesson, 'pending');
-        
-        if (extractedStyleMetadata) {
-          console.log('Style metadata extracted:', extractedStyleMetadata);
-          generatedLesson = removeStyleMetadataFromContent(generatedLesson);
-        } else {
-          console.log('Warning: Style extraction was requested but metadata block not found in output');
-        }
-      }
-
-      let teaserContent: string | null = null;
-      if (effectiveTeaser) {
-        const teaserMatch = generatedLesson.match(/\*\*STUDENT TEASER\*\*\s*([\s\S]*?)---/i);
-        if (teaserMatch) {
-          teaserContent = teaserMatch[1].trim();
-          console.log(`Teaser extracted: ${teaserContent.split(/\s+/).length} words`);
-          generatedLesson = generatedLesson.replace(/\*\*STUDENT TEASER\*\*\s*[\s\S]*?---\s*/, '');
-        } else {
-          console.log('Warning: Teaser was requested but not found in output');
-        }
-      }
-
-      checkpoint = logTiming('Response parsed', checkpoint);
-
-      // =========================================================================
-      // POST-GENERATION GUARDRAIL CHECK (SSOT: outputGuardrails.ts)
-      // =========================================================================
-      let guardrailCheckPassed = true;
-      let wasRewritten = false;
-      let rewrittenSectionIds: number[] = [];
-      let rewriteTokensInput = 0;
-      let rewriteTokensOutput = 0;
-
-      const guardrailResult = checkOutputGuardrails(generatedLesson);
-
-      if (!guardrailResult.passed) {
-        guardrailCheckPassed = false;
-        console.log(`GUARDRAIL VIOLATION: ${guardrailResult.totalViolations} violation(s) in ${guardrailResult.sectionsWithViolations} section(s)`);
-
-        const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
-
-        for (const section of violatedSections) {
-          for (const v of section.violations) {
-            console.log(`  [${v.patternId}] Section ${section.sectionId}: ${v.description}`);
-            console.log(`    Context: "${v.matchedText}"`);
-          }
-        }
-
-        // Skip the guardrail rewrite when too little of the 150s gateway window
-        // remains -- the rewrite needs up to REWRITE_CONFIG.timeoutMs and runs AFTER
-        // the main call, so running it past the budget would push the response past
-        // 150s (raw 504). Deliver unrewritten content; guardrailCheckPassed stays
-        // false and the violations are logged to guardrail_violations below. NOTE:
-        // at current ~120s main-call latency this skips on essentially every
-        // violation -- an acknowledged, reviewable tradeoff until latency improves.
-        const rewriteElapsedMs = Date.now() - functionStartTime;
-        const skipRewriteForBudget = rewriteElapsedMs > REWRITE_TIME_BUDGET_MS;
-        if (skipRewriteForBudget) {
-          console.log(`[REWRITE_SKIPPED_TIME_BUDGET] Elapsed ${(rewriteElapsedMs / 1000).toFixed(1)}s exceeds budget ${REWRITE_TIME_BUDGET_MS / 1000}s -- delivering unrewritten content`);
-        }
-
-        const rewritePrompt = buildRewritePrompt(violatedSections);
-
-        if (!skipRewriteForBudget) try {
-          const rewriteController = new AbortController();
-          const rewriteTimeoutId = setTimeout(() => rewriteController.abort(), REWRITE_CONFIG.timeoutMs);
-
-          const rewriteResponse = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': anthropicApiKey,
-              'anthropic-version': '2023-06-01'
-            },
-            signal: rewriteController.signal,
-            body: JSON.stringify({
-              model: ANTHROPIC_MODEL,
-              max_tokens: REWRITE_CONFIG.maxTokens,
-              temperature: REWRITE_CONFIG.temperature,
-              system: rewritePrompt.system,
-              messages: [{ role: 'user', content: rewritePrompt.user }]
-            })
-          });
-
-          clearTimeout(rewriteTimeoutId);
-
-          if (rewriteResponse.ok) {
-            const rewriteData = await rewriteResponse.json();
-            const rewrittenContent = rewriteData.content[0].text;
-
-            const rewrittenParsed = parseLessonSections(rewrittenContent);
-
-            if (rewrittenParsed.length > 0) {
-              generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
-              rewrittenSectionIds = rewrittenParsed.map(s => s.id);
-              wasRewritten = true;
-
-              wordCount = generatedLesson.split(/\s+/).length;
-
-              rewriteTokensInput = rewriteData.usage?.input_tokens || 0;
-              rewriteTokensOutput = rewriteData.usage?.output_tokens || 0;
-
-              console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully`);
-              console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
-
-              const postRewriteCheck = checkOutputGuardrails(generatedLesson);
-              if (!postRewriteCheck.passed) {
-                console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
-              } else {
-                guardrailCheckPassed = true;
-                console.log('GUARDRAIL: All violations resolved after rewrite');
-              }
-            } else {
-              console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
-            }
-          } else {
-            console.error('GUARDRAIL REWRITE FAILED: API returned', rewriteResponse.status);
-          }
-        } catch (rewriteError) {
-          if (rewriteError.name === 'AbortError') {
-            console.error('GUARDRAIL REWRITE: Timed out after', REWRITE_CONFIG.timeoutMs / 1000, 'seconds');
-          } else {
-            console.error('GUARDRAIL REWRITE ERROR:', rewriteError);
-          }
-        }
-      } else {
-        console.log('GUARDRAIL: Passed \u2014 no violations detected');
-      }
-
-      checkpoint = logTiming('Guardrail check', checkpoint);
-
-      // =========================================================================
-      // EXTRACT AI-GENERATED TITLE FROM SECTION 1
-      // =========================================================================
-      const titleMatch = generatedLesson.match(/\*\*Lesson Title:\*\*\s*(.+)/i);
-      const extractedTitle = titleMatch ? titleMatch[1].replace(/["\u201C\u201D*]/g, '').trim() : null;
-
-      // =========================================================================
-      // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
-      // =========================================================================
-      // lesson_type persisted at generation time -- consumed by RESHAPE_RULE.
-      // Trial short lessons (sections 1, 5, 8 only) -> 'short'. All other
-      // generation paths produce full 8-section lessons -> 'full'.
-      const lessonTypeForRow: 'full' | 'short' =
-        (isTrialLesson && !isFullTrialLesson) ? 'short' : 'full';
-
-      const lessonData = {
-        user_id: user.id,
-        title: extractedTitle || lessonInput,
-        original_text: generatedLesson,
-        organization_id: orgPoolResult?.organization_id || null,
-        audience_profile: audience_profile || { role: 'Teacher', assembly: 'Class', participant: 'Student' },
-        org_pool_consumed: useOrgPool,
-        series_style_metadata: extractedStyleMetadata,
-        lesson_type: lessonTypeForRow,
-        filters: {
-          bible_passage,
-          focused_topic,
-          extracted_content: extracted_content ? `[${extracted_content.length} chars]` : null,
-          age_group,
-          theology_profile_id,
-          bible_version_id: bibleVersion.id,
-          teaching_style,
-          lesson_length,
-          activity_types,
-          language,
-          class_setting,
-          learning_environment,
-          student_experience,
-          cultural_context,
-          special_needs,
-          lesson_sequence,
-          assessment_style,
-          learning_style,
-          education_experience,
-          emotional_entry,
-          theological_lens,
-          additional_notes: additional_notes || null,
-          generate_teaser: effectiveTeaser,
-          freshness_mode,
-          extract_style_metadata,
-          has_series_style_context: !!series_style_context
-        },
-        metadata: {
-          lessonStructureVersion: LESSON_STRUCTURE_VERSION,
-          generatedAt: new Date().toISOString(),
-          theologyProfile: theologyProfile.name,
-          bibleVersion: bibleVersion.name,
-          bibleVersionAbbreviation: bibleVersion.abbreviation,
-          copyrightStatus: bibleVersion.copyrightStatus,
-          ageGroup: ageGroupData.label,
-          wordCount: wordCount,
-          sectionCount: totalSections,
-          includesTeaser: effectiveTeaser && teaserContent !== null,
-          teaser: teaserContent,
-          generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
-          anthropicUsage: anthropicData.usage,
-          wasEnhancement: !!extracted_content,
-          extractedContentLength: extracted_content?.length || 0,
-          freshnessMode: freshness_mode,
-          freshnessSuggestions: selectedFreshness,
-          teaserFreshnessSuggestions: selectedTeaserFreshness,
-          platformMode: platformMode,
-          isTrialLesson: isTrialLesson,
-          isFullTrialLesson: isFullTrialLesson,
-          sectionsGenerated: filteredSections.map(s => s.id),
-          extractedStyleMetadata: extract_style_metadata,
-          usedSeriesStyleContext: !!series_style_context,
-          usedOrgPool: useOrgPool,
-          organizationId: orgPoolResult?.organization_id || null,
-          organizationName: orgPoolResult?.organization_name || null,
-          outputGuardrailsVersion: OUTPUT_GUARDRAILS_VERSION,
-          guardrailCheckPassed: guardrailCheckPassed,
-          guardrailRewritten: wasRewritten,
-          guardrailRewrittenSections: rewrittenSectionIds,
-          guardrailRewriteTokensInput: rewriteTokensInput,
-          guardrailRewriteTokensOutput: rewriteTokensOutput
-        }
-      };
-
-      const { data: lesson, error: insertError } = await supabase
-        .from('lessons')
-        .insert(lessonData)
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Database insert error:', insertError);
-        throw new Error(`Failed to save lesson: ${insertError.message}`);
-      }
-
-      if (extractedStyleMetadata && lesson) {
-        extractedStyleMetadata.capturedFromLessonId = lesson.id;
-        
-        await supabase
-          .from('lessons')
-          .update({ 
-            series_style_metadata: {
-              ...extractedStyleMetadata,
-              capturedFromLessonId: lesson.id
-            }
+    (async () => {
+      try {
+        const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': anthropicApiKey,
+            'anthropic-version': '2023-06-01'
+          },
+          signal: stallController.signal,
+          body: JSON.stringify({
+            model: ANTHROPIC_MODEL,
+            max_tokens: 8000,
+            temperature: 0.6,
+            stream: true,
+            system: [
+              { type: 'text', text: staticSystemPrefix },
+              { type: 'text', text: theologyBlock, cache_control: { type: 'ephemeral' } },
+              { type: 'text', text: dynamicRemainder }
+            ],
+            messages: [{ role: 'user', content: userPrompt }]
           })
-          .eq('id', lesson.id);
-      }
+        });
 
-      checkpoint = logTiming('Database insert', checkpoint);
-      logTiming('TOTAL FUNCTION TIME', functionStartTime);
+        checkpoint = logTiming('Anthropic stream opened', checkpoint);
 
-      console.log('Lesson saved:', lesson.id);
+        if (anthropicResponse.status === 429) {
+          const errorData = await anthropicResponse.text();
+          console.error('Anthropic API rate limited:', errorData);
+          if (metricId) {
+            await supabase
+              .from('generation_metrics')
+              .update({
+                generation_end: new Date().toISOString(),
+                generation_duration_ms: Date.now() - functionStartTime,
+                status: 'error',
+                rate_limited: true,
+                anthropic_model: ANTHROPIC_MODEL,
+                error_message: 'Anthropic API rate limit exceeded (429)'
+              })
+              .eq('id', metricId);
+          }
+          await sendEvent('error', { error: 'Service temporarily busy. Please try again in a few minutes.', code: 'RATE_LIMITED' });
+          return;
+        }
 
-      // =========================================================================
-      // LOG GUARDRAIL VIOLATIONS TO DATABASE (if any were detected)
-      // =========================================================================
-      if (!guardrailCheckPassed && guardrailResult && guardrailResult.totalViolations > 0) {
-        try {
+        if (!anthropicResponse.ok) {
+          const errorData = await anthropicResponse.text();
+          console.error('Anthropic API error:', errorData);
+          await sendEvent('error', { error: `Generation failed (${anthropicResponse.status})` });
+          return;
+        }
+
+        // Parse Anthropic SSE stream -- collect tokens + usage metadata
+        let fullText = '';
+        let tokensInput: number | null = null;
+        let tokensOutput: number | null = null;
+        let cacheCreationTokens: number | null = null;
+        let cacheReadTokens: number | null = null;
+
+        const streamReader = anthropicResponse.body!.getReader();
+        const streamDecoder = new TextDecoder();
+        let sseBuffer = '';
+
+        while (true) {
+          const { done, value } = await streamReader.read();
+          if (done) break;
+
+          lastByteTime = Date.now(); // reset stall guard on every chunk
+
+          sseBuffer += streamDecoder.decode(value, { stream: true });
+          const messages = sseBuffer.split('\n\n');
+          sseBuffer = messages.pop() ?? '';
+
+          for (const message of messages) {
+            const dataLine = message.split('\n').find((l: string) => l.startsWith('data: '));
+            if (!dataLine) continue;
+            const jsonStr = dataLine.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+
+            try {
+              const event = JSON.parse(jsonStr);
+
+              if (event.type === 'message_start') {
+                tokensInput = event.message?.usage?.input_tokens ?? null;
+                cacheCreationTokens = event.message?.usage?.cache_creation_input_tokens ?? null;
+                cacheReadTokens = event.message?.usage?.cache_read_input_tokens ?? null;
+                console.log(`Cache tokens -- write: ${cacheCreationTokens}, read: ${cacheReadTokens}`);
+              }
+
+              if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+                const token = event.delta.text as string;
+                fullText += token;
+                await sendEvent('token', { token });
+              }
+
+              if (event.type === 'message_delta') {
+                tokensOutput = event.usage?.output_tokens ?? null;
+              }
+            } catch {
+              // Skip unparseable SSE events
+            }
+          }
+        }
+
+        clearInterval(stallTimer);
+        checkpoint = logTiming('Anthropic stream complete', checkpoint);
+
+        let generatedLesson = fullText;
+        let wordCount = generatedLesson.split(/\s+/).length;
+
+        console.log(`Lesson generated: ${generatedLesson.length} chars, ${wordCount} words`);
+        console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}, Cache Write: ${cacheCreationTokens}, Cache Read: ${cacheReadTokens}`);
+
+        // =====================================================================
+        // STYLE METADATA EXTRACTION
+        // =====================================================================
+        let extractedStyleMetadata: SeriesStyleMetadata | null = null;
+
+        if (extract_style_metadata) {
+          extractedStyleMetadata = parseStyleMetadata(generatedLesson, 'pending');
+
+          if (extractedStyleMetadata) {
+            console.log('Style metadata extracted:', extractedStyleMetadata);
+            generatedLesson = removeStyleMetadataFromContent(generatedLesson);
+          } else {
+            console.log('Warning: Style extraction was requested but metadata block not found in output');
+          }
+        }
+
+        let teaserContent: string | null = null;
+        if (effectiveTeaser) {
+          const teaserMatch = generatedLesson.match(/\*\*STUDENT TEASER\*\*\s*([\s\S]*?)---/i);
+          if (teaserMatch) {
+            teaserContent = teaserMatch[1].trim();
+            console.log(`Teaser extracted: ${teaserContent.split(/\s+/).length} words`);
+            generatedLesson = generatedLesson.replace(/\*\*STUDENT TEASER\*\*\s*[\s\S]*?---\s*/, '');
+          } else {
+            console.log('Warning: Teaser was requested but not found in output');
+          }
+        }
+
+        checkpoint = logTiming('Response parsed', checkpoint);
+
+        // =====================================================================
+        // POST-GENERATION GUARDRAIL CHECK (SSOT: outputGuardrails.ts)
+        // =====================================================================
+        let guardrailCheckPassed = true;
+        let wasRewritten = false;
+        let rewrittenSectionIds: number[] = [];
+        let rewriteTokensInput = 0;
+        let rewriteTokensOutput = 0;
+
+        const guardrailResult = checkOutputGuardrails(generatedLesson);
+
+        if (!guardrailResult.passed) {
+          guardrailCheckPassed = false;
+          console.log(`GUARDRAIL VIOLATION: ${guardrailResult.totalViolations} violation(s) in ${guardrailResult.sectionsWithViolations} section(s)`);
+
           const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
-          const allViolatedTerms = violatedSections.flatMap(s =>
-            s.violations.map(v => v.patternId)
-          );
-          const violationContexts = violatedSections.flatMap(s =>
-            s.violations.map(v => ({
-              term: v.patternId,
-              occurrences: 1,
-              samples: [v.matchedText],
-            }))
-          );
 
-          const { error: violationInsertError } = await supabase
-            .from('guardrail_violations')
-            .insert({
-              lesson_id: lesson.id,
-              user_id: user.id,
-              theology_profile_id: theology_profile_id,
-              theology_profile_name: theologyProfile.name,
-              violated_terms: allViolatedTerms,
-              violation_count: guardrailResult.totalViolations,
-              violation_contexts: violationContexts,
-              lesson_title: lessonInput,
-              age_group: age_group,
-              bible_passage: bible_passage || null,
+          for (const section of violatedSections) {
+            for (const v of section.violations) {
+              console.log(`  [${v.patternId}] Section ${section.sectionId}: ${v.description}`);
+              console.log(`    Context: "${v.matchedText}"`);
+            }
+          }
+
+          const rewritePrompt = buildRewritePrompt(violatedSections);
+
+          try {
+            const rewriteController = new AbortController();
+            const rewriteTimeoutId = setTimeout(() => rewriteController.abort(), REWRITE_CONFIG.timeoutMs);
+
+            const rewriteResponse = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': anthropicApiKey,
+                'anthropic-version': '2023-06-01'
+              },
+              signal: rewriteController.signal,
+              body: JSON.stringify({
+                model: ANTHROPIC_MODEL,
+                max_tokens: REWRITE_CONFIG.maxTokens,
+                temperature: REWRITE_CONFIG.temperature,
+                system: rewritePrompt.system,
+                messages: [{ role: 'user', content: rewritePrompt.user }]
+              })
             });
 
-          if (violationInsertError) {
-            console.error('Failed to log guardrail violation:', violationInsertError.message);
+            clearTimeout(rewriteTimeoutId);
+
+            if (rewriteResponse.ok) {
+              const rewriteData = await rewriteResponse.json();
+              const rewrittenContent = rewriteData.content[0].text;
+
+              const rewrittenParsed = parseLessonSections(rewrittenContent);
+
+              if (rewrittenParsed.length > 0) {
+                generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
+                rewrittenSectionIds = rewrittenParsed.map(s => s.id);
+                wasRewritten = true;
+
+                wordCount = generatedLesson.split(/\s+/).length;
+
+                rewriteTokensInput = rewriteData.usage?.input_tokens || 0;
+                rewriteTokensOutput = rewriteData.usage?.output_tokens || 0;
+
+                console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully`);
+                console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
+
+                const postRewriteCheck = checkOutputGuardrails(generatedLesson);
+                if (!postRewriteCheck.passed) {
+                  console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
+                } else {
+                  guardrailCheckPassed = true;
+                  console.log('GUARDRAIL: All violations resolved after rewrite');
+                }
+              } else {
+                console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
+              }
+            } else {
+              console.error('GUARDRAIL REWRITE FAILED: API returned', rewriteResponse.status);
+            }
+          } catch (rewriteError: any) {
+            if (rewriteError.name === 'AbortError') {
+              console.error('GUARDRAIL REWRITE: Timed out after', REWRITE_CONFIG.timeoutMs / 1000, 'seconds');
+            } else {
+              console.error('GUARDRAIL REWRITE ERROR:', rewriteError);
+            }
+          }
+        } else {
+          console.log('GUARDRAIL: Passed \u2014 no violations detected');
+        }
+
+        checkpoint = logTiming('Guardrail check', checkpoint);
+
+        // =====================================================================
+        // EXTRACT AI-GENERATED TITLE FROM SECTION 1
+        // =====================================================================
+        const titleMatch = generatedLesson.match(/\*\*Lesson Title:\*\*\s*(.+)/i);
+        const extractedTitle = titleMatch ? titleMatch[1].replace(/["\u201C\u201D*]/g, '').trim() : null;
+
+        // =====================================================================
+        // PHASE 13.6: LESSON DATA WITH ORG CONTEXT
+        // =====================================================================
+        const lessonTypeForRow: 'full' | 'short' =
+          (isTrialLesson && !isFullTrialLesson) ? 'short' : 'full';
+
+        const lessonData = {
+          user_id: user.id,
+          title: extractedTitle || lessonInput,
+          original_text: generatedLesson,
+          organization_id: orgPoolResult?.organization_id || null,
+          audience_profile: audience_profile || { role: 'Teacher', assembly: 'Class', participant: 'Student' },
+          org_pool_consumed: useOrgPool,
+          series_style_metadata: extractedStyleMetadata,
+          lesson_type: lessonTypeForRow,
+          filters: {
+            bible_passage,
+            focused_topic,
+            extracted_content: extracted_content ? `[${extracted_content.length} chars]` : null,
+            age_group,
+            theology_profile_id,
+            bible_version_id: bibleVersion.id,
+            teaching_style,
+            lesson_length,
+            activity_types,
+            language,
+            class_setting,
+            learning_environment,
+            student_experience,
+            cultural_context,
+            special_needs,
+            lesson_sequence,
+            assessment_style,
+            learning_style,
+            education_experience,
+            emotional_entry,
+            theological_lens,
+            additional_notes: additional_notes || null,
+            generate_teaser: effectiveTeaser,
+            freshness_mode,
+            extract_style_metadata,
+            has_series_style_context: !!series_style_context
+          },
+          metadata: {
+            lessonStructureVersion: LESSON_STRUCTURE_VERSION,
+            generatedAt: new Date().toISOString(),
+            theologyProfile: theologyProfile.name,
+            bibleVersion: bibleVersion.name,
+            bibleVersionAbbreviation: bibleVersion.abbreviation,
+            copyrightStatus: bibleVersion.copyrightStatus,
+            ageGroup: ageGroupData.label,
+            wordCount: wordCount,
+            sectionCount: totalSections,
+            includesTeaser: effectiveTeaser && teaserContent !== null,
+            teaser: teaserContent,
+            generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
+            anthropicUsage: {
+              input_tokens: tokensInput,
+              output_tokens: tokensOutput,
+              cache_creation_input_tokens: cacheCreationTokens,
+              cache_read_input_tokens: cacheReadTokens
+            },
+            wasEnhancement: !!extracted_content,
+            extractedContentLength: extracted_content?.length || 0,
+            freshnessMode: freshness_mode,
+            freshnessSuggestions: selectedFreshness,
+            teaserFreshnessSuggestions: selectedTeaserFreshness,
+            platformMode: platformMode,
+            isTrialLesson: isTrialLesson,
+            isFullTrialLesson: isFullTrialLesson,
+            sectionsGenerated: filteredSections.map(s => s.id),
+            extractedStyleMetadata: extract_style_metadata,
+            usedSeriesStyleContext: !!series_style_context,
+            usedOrgPool: useOrgPool,
+            organizationId: orgPoolResult?.organization_id || null,
+            organizationName: orgPoolResult?.organization_name || null,
+            outputGuardrailsVersion: OUTPUT_GUARDRAILS_VERSION,
+            guardrailCheckPassed: guardrailCheckPassed,
+            guardrailRewritten: wasRewritten,
+            guardrailRewrittenSections: rewrittenSectionIds,
+            guardrailRewriteTokensInput: rewriteTokensInput,
+            guardrailRewriteTokensOutput: rewriteTokensOutput
+          }
+        };
+
+        const { data: lesson, error: insertError } = await supabase
+          .from('lessons')
+          .insert(lessonData)
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Database insert error:', insertError);
+          throw new Error(`Failed to save lesson: ${insertError.message}`);
+        }
+
+        if (extractedStyleMetadata && lesson) {
+          extractedStyleMetadata.capturedFromLessonId = lesson.id;
+
+          await supabase
+            .from('lessons')
+            .update({
+              series_style_metadata: {
+                ...extractedStyleMetadata,
+                capturedFromLessonId: lesson.id
+              }
+            })
+            .eq('id', lesson.id);
+        }
+
+        checkpoint = logTiming('Database insert', checkpoint);
+        logTiming('TOTAL FUNCTION TIME', functionStartTime);
+
+        console.log('Lesson saved:', lesson.id);
+
+        // =====================================================================
+        // LOG GUARDRAIL VIOLATIONS TO DATABASE (if any were detected)
+        // =====================================================================
+        if (!guardrailCheckPassed && guardrailResult && guardrailResult.totalViolations > 0) {
+          try {
+            const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
+            const allViolatedTerms = violatedSections.flatMap(s =>
+              s.violations.map(v => v.patternId)
+            );
+            const violationContexts = violatedSections.flatMap(s =>
+              s.violations.map(v => ({
+                term: v.patternId,
+                occurrences: 1,
+                samples: [v.matchedText],
+              }))
+            );
+
+            const { error: violationInsertError } = await supabase
+              .from('guardrail_violations')
+              .insert({
+                lesson_id: lesson.id,
+                user_id: user.id,
+                theology_profile_id: theology_profile_id,
+                theology_profile_name: theologyProfile.name,
+                violated_terms: allViolatedTerms,
+                violation_count: guardrailResult.totalViolations,
+                violation_contexts: violationContexts,
+                lesson_title: lessonInput,
+                age_group: age_group,
+                bible_passage: bible_passage || null,
+              });
+
+            if (violationInsertError) {
+              console.error('Failed to log guardrail violation:', violationInsertError.message);
+            } else {
+              console.log(`GUARDRAIL: Logged ${guardrailResult.totalViolations} violation(s) to guardrail_violations table`);
+            }
+          } catch (violationLogError) {
+            console.error('GUARDRAIL LOGGING ERROR:', violationLogError);
+          }
+        }
+
+        // =====================================================================
+        // PHASE 13.6: CONSUME FROM ORG POOL (if applicable)
+        // =====================================================================
+        if (useOrgPool && orgPoolResult?.organization_id) {
+          const consumed = await consumeFromOrgPool(supabase, orgPoolResult.organization_id);
+          if (consumed) {
+            console.log('Org pool consumption successful for org:', orgPoolResult.organization_id);
           } else {
-            console.log(`GUARDRAIL: Logged ${guardrailResult.totalViolations} violation(s) to guardrail_violations table`);
+            console.error('Org pool consumption failed - this should not happen');
           }
-        } catch (violationLogError) {
-          console.error('GUARDRAIL LOGGING ERROR:', violationLogError);
         }
-      }
 
-      // =========================================================================
-      // PHASE 13.6: CONSUME FROM ORG POOL (if applicable)
-      // =========================================================================
-      if (useOrgPool && orgPoolResult?.organization_id) {
-        const consumed = await consumeFromOrgPool(supabase, orgPoolResult.organization_id);
-        if (consumed) {
-          console.log('Org pool consumption successful for org:', orgPoolResult.organization_id);
-        } else {
-          console.error('Org pool consumption failed - this should not happen');
-        }
-      }
+        // =====================================================================
+        // TRIAL CONSUMPTION: Update rolling period counters (Rule #26)
+        // =====================================================================
+        if (isTrialLesson && trialProfileData !== null) {
+          const now = new Date().toISOString();
+          const updateData: Record<string, unknown> = {};
 
-      // =========================================================================
-      // TRIAL CONSUMPTION: Update rolling period counters
-      // Full lesson: increments full count + sets period_start on first lesson
-      // Short lesson: increments short count only (no effect on period clock)
-      // =========================================================================
-      if (isTrialLesson && trialProfileData !== null) {
-        const now = new Date().toISOString();
-        const updateData: Record<string, unknown> = {};
-
-        if (isFullTrialLesson) {
-          // Increment full lesson count; set period start on first full lesson of period
-          const currentFull = trialStatus?.periodExpired ? 0 : (trialProfileData.trial_full_lessons_used ?? 0);
-          updateData.trial_full_lessons_used = currentFull + 1;
-          if (!trialProfileData.trial_period_start || trialStatus?.periodExpired) {
-            updateData.trial_period_start = now;
+          if (isFullTrialLesson) {
+            const currentFull = trialStatus?.periodExpired ? 0 : (trialProfileData.trial_full_lessons_used ?? 0);
+            updateData.trial_full_lessons_used = currentFull + 1;
+            if (!trialProfileData.trial_period_start || trialStatus?.periodExpired) {
+              updateData.trial_period_start = now;
+            }
+          } else {
+            const currentShort = trialStatus?.periodExpired ? 0 : (trialProfileData.trial_short_lessons_used ?? 0);
+            updateData.trial_short_lessons_used = currentShort + 1;
           }
-        } else {
-          // Increment short lesson count only
-          const currentShort = trialStatus?.periodExpired ? 0 : (trialProfileData.trial_short_lessons_used ?? 0);
-          updateData.trial_short_lessons_used = currentShort + 1;
+
+          const { error: trialUpdateError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', user.id);
+          if (trialUpdateError) {
+            console.error('CRITICAL: Trial counter increment failed for user:',
+              user.id, 'error:', trialUpdateError.message);
+          } else {
+            console.log('Trial consumed:',
+              isFullTrialLesson ? 'full (8-section)' : 'short (3-section)',
+              'for user:', user.id);
+          }
         }
 
-        const { error: trialUpdateError } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', user.id);
-        if (trialUpdateError) {
-          console.error('CRITICAL: Trial counter increment failed for user:',
-            user.id, 'error:', trialUpdateError.message);
-        } else {
-          console.log('Trial consumed:',
-            isFullTrialLesson ? 'full (8-section)' : 'short (3-section)',
-            'for user:', user.id);
+        // =====================================================================
+        // PAID-TIER USAGE INCREMENT (server-side only -- Rule #26)
+        // =====================================================================
+        if (!isAdmin && !useOrgPool && userTier !== 'free') {
+          await incrementLessonUsage(supabase, user.id);
+          console.log('Paid-tier usage incremented for user:', user.id, 'tier:', userTier);
         }
-      }
 
-      // =========================================================================
-      // PAID-TIER USAGE INCREMENT (server-side -- single writer, Decision 2)
-      // Individual paid tiers are counted in user_subscriptions.lessons_used via
-      // increment_lesson_usage. Free uses the trial counters above; org uses the
-      // pool consumption above; admin is unmetered. This is the server half of
-      // the atomic pair: it replaces the former CLIENT-side incrementUsage()
-      // call (removed in EnhanceLessonForm in Phase 3) so the backend is the
-      // ONLY writer of usage. Server + client-removal ship in the same commit.
-      // =========================================================================
-      if (!isAdmin && !useOrgPool && userTier !== 'free') {
-        await incrementLessonUsage(supabase, user.id);
-        console.log('Paid-tier usage incremented for user:', user.id, 'tier:', userTier);
-      }
+        if (metricId) {
+          await supabase
+            .from('generation_metrics')
+            .update({
+              lesson_id: lesson.id,
+              organization_id: lesson.organization_id,
+              generation_end: new Date().toISOString(),
+              generation_duration_ms: Date.now() - functionStartTime,
+              sections_generated: totalSections,
+              status: 'completed',
+              tokens_input: tokensInput,
+              tokens_output: tokensOutput,
+              anthropic_model: ANTHROPIC_MODEL,
+              cache_creation_input_tokens: cacheCreationTokens,
+              cache_read_input_tokens: cacheReadTokens
+            })
+            .eq('id', metricId);
+        }
 
-      if (metricId) {
-        await supabase
-          .from('generation_metrics')
-          .update({
-            lesson_id: lesson.id,
-            organization_id: lesson.organization_id,
-            generation_end: new Date().toISOString(),
-            generation_duration_ms: Date.now() - functionStartTime,
-            sections_generated: totalSections,
-            status: 'completed',
-            tokens_input: tokensInput,
-            tokens_output: tokensOutput,
-            anthropic_model: ANTHROPIC_MODEL,
-            cache_creation_input_tokens: cacheCreationTokens,
-            cache_read_input_tokens: cacheReadTokens
-          })
-          .eq('id', metricId);
-      }
+        await sendEvent('done', {
+          lesson,
+          metadata: lessonData.metadata,
+          style_metadata: extractedStyleMetadata
+        });
 
-      return new Response(JSON.stringify({
-        success: true,
-        lesson,
-        metadata: lessonData.metadata,
-        style_metadata: extractedStyleMetadata
-      }), {
-        status: 200,
-        headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
-      });
-
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError.name === 'AbortError') {
-        console.error('Anthropic API timeout after 120 seconds');
+      } catch (streamError: any) {
+        clearInterval(stallTimer);
+        logTiming('ERROR occurred at', functionStartTime);
+        console.error('Error in generate-lesson stream:', streamError);
         if (metricId) {
           await supabase
             .from('generation_metrics')
             .update({
               generation_end: new Date().toISOString(),
               generation_duration_ms: Date.now() - functionStartTime,
-              status: 'timeout',
+              status: streamError.name === 'AbortError' ? 'timeout' : 'error',
               anthropic_model: ANTHROPIC_MODEL,
-              error_message: 'Anthropic API timeout after 120 seconds'
+              error_message: streamError.name === 'AbortError'
+                ? `Stream stalled for >${STALL_TIMEOUT_MS / 1000}s`
+                : (streamError.message || 'Unknown error')
             })
             .eq('id', metricId);
         }
-        throw new Error('Lesson generation timed out. Please try again.');
+        const errMsg = streamError.name === 'AbortError'
+          ? 'Generation timed out. Please try again.'
+          : (streamError.message || 'An unexpected error occurred');
+        await sendEvent('error', { error: errMsg }).catch(() => {});
+      } finally {
+        clearInterval(stallTimer);
+        try { writer.close(); } catch { /* already closed */ }
       }
-      throw fetchError;
-    }
+    })();
+
+    return new Response(readable, {
+      headers: {
+        ...dynamicCorsHeaders,
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+        'Connection': 'keep-alive'
+      }
+    });
 
   } catch (error) {
     logTiming('ERROR occurred at', functionStartTime);
