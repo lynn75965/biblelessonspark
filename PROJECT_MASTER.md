@@ -1,6 +1,81 @@
-# PROJECT MASTER -- Last updated: July 9, 2026 (Session 2: Prompt Caching -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 9, 2026 (Session 3: Streaming Refactor -- SHIPPED)
 
-## >>> RESUME HERE <<< -- Session 2 complete. generate-lesson + generate-parable caching LIVE (commit 3bfbebc). VERIFY: generate two same-profile lessons within 5 minutes; second should show cache_read_input_tokens > 0 in generation_metrics. Next steps: (A) verify cache hits in production; (B) fix 5-minute TTL if API adds 1h option; (C) streaming refactor (Session 4 -- safety fix for p95 cliff).
+## >>> RESUME HERE <<< -- Streaming refactor LIVE (commit 0aaae98). Lessons now stream via SSE; progress bar uses real token count; live preview shows words appearing during generation. VERIFY on localhost:8080 -- generate a lesson and confirm words appear in the streaming preview card. THEN run the full test matrix before deploying to production.
+
+## JULY 9, 2026 SESSION -- Streaming Refactor (Session 3)
+
+GOAL: Eliminate the 140s/150s timeout cliff on generate-lesson by streaming the Anthropic
+response as SSE events so the Supabase idle gateway timeout can never fire.
+BOTH halves delivered (Lynn declined the Session-A-only de-risking option):
+  A. True token streaming in the edge function
+  B. Live token preview and real progress bar in the UI
+
+CHANGES SHIPPED (commit 0aaae98, pushed to main 2026-07-09):
+
+1. supabase/functions/generate-lesson/index.ts
+   REMOVED: 140s hard AbortController + GENERATION_TIMEOUT_MS constant.
+   REMOVED: REWRITE_TIME_BUDGET_MS gate (guardrail rewrite now always attempted; streaming
+     makes the 150s deadline irrelevant, so skipping rewrites for budget is no longer needed).
+   ADDED: 30s stall guard (stallController + setInterval). Aborts only if Anthropic sends
+     NO bytes for >30 s -- genuine silence, not slow generation. Fires clearInterval on abort.
+   CHANGED: Anthropic fetch now uses stream:true.
+   CHANGED: Response is now a TransformStream (readable/writable pair). Edge function returns
+     new Response(readable, {Content-Type: text/event-stream, ...}) IMMEDIATELY.
+   ADDED: Background IIFE runs async: reads Anthropic SSE events, emits 'token' events to
+     the client stream as they arrive, accumulates full text server-side, then runs the FULL
+     post-processing pipeline (style extraction, teaser, guardrail check, optional rewrite,
+     DB insert, guardrail violation log, org pool consume, trial/paid usage increment,
+     generation_metrics update), then emits 'done' with the saved lesson row.
+   Rule #26 preserved exactly: usage incremented server-side only, exactly once, after
+     successful DB save. Client refreshSubscription() only on 'done'.
+   Prompt caching preserved: cache_control block array kept on the Anthropic system param.
+   Cache fields still log: cache_creation_input_tokens + cache_read_input_tokens are
+     extracted from message_start SSE event and written to generation_metrics.
+   SSE event protocol:
+     data: {"type":"token","token":"..."}\n\n  -- one per Anthropic token
+     data: {"type":"done","lesson":{...},"metadata":{...},"style_metadata":...}\n\n
+     data: {"type":"error","error":"..."}\n\n
+
+2. src/hooks/useEnhanceLesson.tsx -- COMPLETE REWRITE (113 -> 148 lines)
+   OLD: supabase.functions.invoke() buffers full response -- incompatible with streaming.
+   NEW: raw fetch() to ${VITE_SUPABASE_URL}/functions/v1/generate-lesson with:
+     Authorization: Bearer <fresh getSession() token> (fixes 401s on stale sessions)
+     apikey: <VITE_SUPABASE_ANON_KEY>
+   SSE parser: reads chunks via ReadableStreamDefaultReader, splits on \n\n, extracts
+     data: lines, dispatches token/done/error events.
+   New exports: streamingContent (string), streamingTokenCount (number).
+   LIMIT_REACHED still handled: non-ok JSON response is parsed for code field.
+   Interface unchanged: EnhanceLessonResult still has success/data/error/code fields.
+   result.data shape preserved: {lesson, style_metadata, metadata, success:true}.
+
+3. src/components/dashboard/EnhanceLessonForm.tsx -- targeted edits
+   Line 761: added streamingContent + streamingTokenCount to useEnhanceLesson destructure.
+   Lines 999-1015: REPLACED fake progress timer with token-based effect.
+     Progress = Math.min(99, Math.round((streamingTokenCount / 4500) * 100)).
+     4500 = estimated output tokens for a full lesson (real median ~4,247 from Session 1 data).
+   ADDED: streaming preview Card below the form, above the lesson display.
+     Renders when (isSubmitting || isEnhancing) && streamingContent.
+     Shows raw streaming text in a scrollable monospace container (max-h-96).
+     aria-live="polite" for accessibility. Disappears once generation completes.
+
+EDGE FUNCTION DEPLOY (this session):
+   npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs --use-api
+
+CARRY-FORWARD (NOT done this session, explicitly deferred):
+  reshape-lesson streaming: same timeout class. Can now be scoped as a follow-up session
+    with generate-lesson as the proven template. Low urgency (reshape lessons are shorter).
+
+FULL TEST MATRIX (run on localhost before production deploy):
+  [ ] Plain lesson (passage or topic) -- words appear live, progress bar moves, lesson saves
+  [ ] Curriculum lesson (the 12K-char case that triggered original timeout) -- must now finish
+  [ ] >150s generation if achievable -- the core proof (SSE keeps connection alive)
+  [ ] Guardrail-violation/rewrite path -- rewrite adds delay before 'done'; UI must wait
+  [ ] Mid-stream error -- 'error' SSE event appears; UI shows toast; no lesson row saved
+  [ ] Limit-reached -- pre-streaming JSON 403 with code:LIMIT_REACHED -> upgrade modal
+  [ ] Series mode -- style_metadata and lesson link still work from 'done' payload
+  [ ] Teaser on -- teaser still extracted server-side; appears in lesson metadata.teaser
+  [ ] Stale/backgrounded session -- getSession() refreshes token; no 401
+  [ ] Mobile -- SSE stream works; preview scrolls; progress bar visible
 
 ## JULY 9, 2026 SESSION -- Prompt Caching (Session 2)
 
@@ -1826,10 +1901,10 @@ CARRY-FORWARD (smaller items, still open):
   5. Teaching Team Session 1 diagnosis (still queued).
 
 ================================================================================
-## UPCOMING SESSION (PLANNED, SCOPED): STREAMING REFACTOR -- generate-lesson
+## STREAMING REFACTOR -- generate-lesson [SHIPPED 2026-07-09, commit 0aaae98]
 ================================================================================
-Status: NOT STARTED. This is a first-class planned session, fully scoped here so it can be
-executed directly. Goal: eliminate the curriculum-path (and any long) lesson-generation 504/
+Status: DONE. Session 3 (July 9, 2026) delivered both halves. See session log above.
+Original scope block preserved below for reference. Goal: eliminate the curriculum-path (and any long) lesson-generation 504/
 timeout by streaming the Anthropic response, so the Supabase 150s IDLE gateway timeout never
 fires -- generation may take as long as it needs while bytes keep flowing to the client.
 
