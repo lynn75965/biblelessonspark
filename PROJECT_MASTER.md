@@ -1,6 +1,78 @@
-# PROJECT MASTER -- Last updated: July 9, 2026 (Session 1: Generation Metrics & Output Analysis -- READ-ONLY)
+# PROJECT MASTER -- Last updated: July 9, 2026 (Session 2: Prompt Caching -- SHIPPED)
 
-## >>> RESUME HERE <<< -- Generation analysis complete (GENERATION_ANALYSIS.md local). Next: Session 4 design uses these numbers. LessonLibrary icon bugs remain the last shipped feature (June 25).
+## >>> RESUME HERE <<< -- Session 2 complete. generate-lesson + generate-parable caching LIVE (commit 3bfbebc). VERIFY: generate two same-profile lessons within 5 minutes; second should show cache_read_input_tokens > 0 in generation_metrics. Next steps: (A) verify cache hits in production; (B) fix 5-minute TTL if API adds 1h option; (C) streaming refactor (Session 4 -- safety fix for p95 cliff).
+
+## JULY 9, 2026 SESSION -- Prompt Caching (Session 2)
+
+GOAL: Extend Anthropic prompt cache boundary in generate-lesson to include theology guardrails.
+Log cache_creation_input_tokens + cache_read_input_tokens to generation_metrics.
+Apply caching to other generators where structurally viable.
+
+PRE-IMPLEMENTATION FINDING (key conflict with Session 1):
+Session 1 identified the ROOT CAUSE of cache failures as the 5-minute ephemeral TTL (teachers
+generate lessons days apart, so every call is a cache miss). Session 2 task restructures the
+cached block to include theology guardrails (making the cache key per-profile), increasing the
+cached prefix from 3,803 to ~5,150 tokens. This changes WHAT is cached but does NOT fix the
+TTL problem. Cache hit rate improvement from this session is modest. The TTL fix (5m -> 1h) is
+the real fix; it requires an Anthropic API update that may already be available.
+
+CHANGES SHIPPED (commit 3bfbebc, pushed to main 2026-07-09):
+
+1. generate-lesson/index.ts -- 3-block system prompt:
+   Block 1 (staticSystemPrefix): framework guardrails + lesson structure + output format.
+     No cache_control. ~3,803 tokens per shape (full vs short).
+   Block 2 (theologyBlock): theology profile name + summary + generateTheologicalGuardrails().
+     cache_control: ephemeral HERE. Anthropic caches blocks 1+2 together.
+     Cache key = shape x theology-profile (24 variants). ~1,350 tok added to cached prefix.
+   Block 3 (dynamicRemainder): age group, ministry context, bible version, copyright,
+     customization, freshness, style. Never cached.
+   Byte-identity guarantee: block1+block2+block3 == prior two-block assembled string exactly.
+   No prompt wording changed; only the cache boundary moved.
+
+2. supabase/migrations/20260709000000_add_cache_token_columns_to_generation_metrics.sql
+   APPLIED: adds cache_creation_input_tokens (integer) + cache_read_input_tokens (integer)
+   to generation_metrics. Both nullable. Populated by generate-lesson after every Anthropic call.
+
+3. generate-lesson/index.ts -- cache token logging:
+   Extracts cacheCreationTokens + cacheReadTokens from anthropicData.usage.
+   Logs both to generation_metrics in the completion update.
+   Console log updated: now shows Cache Write + Cache Read alongside Input + Output.
+
+4. generate-parable/index.ts -- simple cache_control on system instructions:
+   STANDALONE_DIRECTIVE (~2,109 tok) and TEACHING_DIRECTIVE (~2,414 tok) are pure constants
+   with zero per-request template variables. Changed system: systemInstruction (string) to
+   system: [{ type:'text', text:systemInstruction, cache_control:{type:'ephemeral'} }].
+   Both directives exceed the 2,048-token cache minimum on claude-sonnet-4-5-20250929.
+   Cache key = context (teaching vs standalone) -- only 2 variants.
+
+GENERATORS DEFERRED (caching would INCREASE cost, not decrease it):
+   generate-devotional: system prompt static prefix before first variable is ~825 tok
+     (below 2,048-token cache floor). Adding cache_control would charge 1.25x write
+     cost on every call with near-zero hits. Deferred until prompt is restructured.
+   reshape-lesson: reshape_prompt is sent in the request body from the frontend --
+     100% dynamic, changes every call. No static prefix exists. Caching not applicable.
+
+EDGE FUNCTION DEPLOYS (this session):
+   npx supabase functions deploy generate-lesson --project-ref hphebzdftpjbiudpfcrs --use-api
+   npx supabase functions deploy generate-parable --project-ref hphebzdftpjbiudpfcrs --use-api
+
+VERIFICATION NEEDED (Lynn):
+   1. Go to https://biblelessonspark.com/dashboard (or localhost:8080 with dev server running)
+   2. Generate a full lesson with any theology profile (note which one).
+   3. Immediately generate ANOTHER full lesson with the SAME theology profile.
+   4. Run: npx supabase db query --linked --output table
+      "SELECT generation_end, tokens_input, cache_creation_input_tokens, cache_read_input_tokens
+       FROM generation_metrics ORDER BY created_at DESC LIMIT 3"
+   5. Expected: 1st lesson: cache_creation > 0, cache_read = 0.
+      2nd lesson (within 5 minutes): cache_read > 0 (cache hit confirmed).
+   NOTE: If 5 minutes elapse between lessons, both will show cache_read = 0 (TTL expired).
+
+KNOWN ISSUE -- TTL IS STILL THE ROOT PROBLEM:
+   The 5-minute ephemeral TTL means cache hits only occur when two same-profile lessons are
+   generated within 5 minutes. At current usage patterns (~480 lessons/year, single user),
+   hits are rare. Session 1 recommended switching to 1-hour TTL; Anthropic may already
+   support this (check API docs). That fix is a 1-line change in generate-lesson and a
+   matching change in generate-parable.
 
 ## JULY 9, 2026 SESSION -- Generation Metrics & Output Analysis (Session 1, READ-ONLY)
 
