@@ -883,7 +883,7 @@ async function generateParableWithProvider(
         model,
         max_tokens: maxTokens,
         temperature,
-        system: systemInstruction,
+        system: [{ type: 'text', text: systemInstruction, cache_control: { type: 'ephemeral' } }],
         messages: [{ role: "user", content: userPrompt }],
       }),
     });

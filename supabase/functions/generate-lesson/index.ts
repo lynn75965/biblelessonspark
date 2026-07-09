@@ -739,16 +739,31 @@ serve(async (req) => {
     const copyrightGuardrails = generateCopyrightGuardrails(bibleVersion.id);
 
     // =========================================================================
-    // PROMPT ASSEMBLY (Phase 2: cacheable static prefix + dynamic suffix)
-    // The system prompt is split so the large, request-invariant guardrails and
-    // lesson-structure block sit FIRST as a cacheable prefix (cache_control on
-    // the first block caches everything up to and including it). The dynamic,
-    // per-request content (theology, age, bible version, customization,
-    // freshness, style) follows the breakpoint and is never cached. The static
-    // prefix varies only by section-shape (full vs short) -- so just a couple of
-    // cache variants -- which keeps the cache hit-rate high. Prompt caching is GA
-    // (no anthropic-beta header needed); min cacheable prefix on sonnet-4-6 is
-    // 2048 tokens, which this static block comfortably exceeds.
+    // PROMPT ASSEMBLY (three system blocks: static | theology | dynamic)
+    //
+    // Block 1 -- staticSystemPrefix (no cache_control)
+    //   Framework guardrails + lesson structure + output format.
+    //   Varies by section-shape (full vs short) only.
+    //
+    // Block 2 -- theologyBlock (cache_control: ephemeral HERE)
+    //   Theology profile name + summary + generateTheologicalGuardrails().
+    //   Varies by theology profile.
+    //   Placing cache_control on this block makes Anthropic cache blocks 1+2
+    //   together as the prefix. Cache key = shape x theology-profile
+    //   (24 variants across 12 profiles x 2 shapes). Repeat generators on
+    //   the same profile share the prefix and pay cache-read rates (0.1x).
+    //
+    // Block 3 -- dynamicRemainder (no cache_control)
+    //   Age group, ministry context, bible version, copyright, customization,
+    //   freshness, style. Unique per request -- never cached.
+    //
+    // Byte-identity guarantee: block1 + block2 + block3 assembles to exactly
+    // the same string as the prior two-block layout for the same inputs.
+    // No prompt wording was changed; only the cache boundary moved.
+    //
+    // Prompt caching is GA (no anthropic-beta header); min cacheable prefix
+    // on sonnet-4-6 is 2048 tokens. Block 1 alone is ~3,803 tok; adding
+    // block 2 brings the cached prefix to ~5,150 tok.
     // =========================================================================
     const staticSystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
 
@@ -776,12 +791,17 @@ Each section separated by "---" on its own line.
 Meet ALL word minimums. Respect ALL word maximums. Do NOT exceed any section maximum.
 `;
 
-    const dynamicSystemSuffix = `-------------------------------------------------------------------------------
+    // Block 2: per-theology-profile static content. Cache boundary is here.
+    const theologyBlock = `-------------------------------------------------------------------------------
 THEOLOGY PROFILE: ${theologyProfile.name}
 -------------------------------------------------------------------------------
 ${theologyProfile.summary}
 
-${generateTheologicalGuardrails(theologyProfile.id)}
+${generateTheologicalGuardrails(theologyProfile.id)}`;
+
+    // Block 3: per-request dynamic content. Never cached.
+    // theologyBlock + dynamicRemainder == former dynamicSystemSuffix (byte-identical).
+    const dynamicRemainder = `
 
 -------------------------------------------------------------------------------
 AGE GROUP: ${ageGroupData.label}
@@ -847,8 +867,9 @@ ${styleExtractionPromptAddition}
 
     checkpoint = logTiming('Prompt built', checkpoint);
 
-    console.log(`System prompt static prefix (cached): ${staticSystemPrefix.length} chars (~${Math.round(staticSystemPrefix.length / 4)} tokens)`);
-    console.log(`System prompt dynamic suffix: ${dynamicSystemSuffix.length} chars (~${Math.round(dynamicSystemSuffix.length / 4)} tokens)`);
+    console.log(`System block 1 (static, uncached): ${staticSystemPrefix.length} chars (~${Math.round(staticSystemPrefix.length / 4)} tokens)`);
+    console.log(`System block 2 (theology, cached): ${theologyBlock.length} chars (~${Math.round(theologyBlock.length / 4)} tokens)`);
+    console.log(`System block 3 (dynamic, uncached): ${dynamicRemainder.length} chars (~${Math.round(dynamicRemainder.length / 4)} tokens)`);
     console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);
 
     const controller = new AbortController();
@@ -871,8 +892,9 @@ ${styleExtractionPromptAddition}
           max_tokens: 8000,
           temperature: 0.6,
           system: [
-            { type: 'text', text: staticSystemPrefix, cache_control: { type: 'ephemeral' } },
-            { type: 'text', text: dynamicSystemSuffix }
+            { type: 'text', text: staticSystemPrefix },
+            { type: 'text', text: theologyBlock, cache_control: { type: 'ephemeral' } },
+            { type: 'text', text: dynamicRemainder }
           ],
           messages: [{ role: 'user', content: userPrompt }]
         })
@@ -914,10 +936,12 @@ ${styleExtractionPromptAddition}
 
       const tokensInput = anthropicData.usage?.input_tokens || null;
       const tokensOutput = anthropicData.usage?.output_tokens || null;
+      const cacheCreationTokens = anthropicData.usage?.cache_creation_input_tokens ?? null;
+      const cacheReadTokens = anthropicData.usage?.cache_read_input_tokens ?? null;
 
       console.log(`Lesson generated: ${generatedLesson.length} chars, ${wordCount} words`);
       console.log(`Anthropic usage: ${JSON.stringify(anthropicData.usage)}`);
-      console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}`);
+      console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}, Cache Write: ${cacheCreationTokens}, Cache Read: ${cacheReadTokens}`);
 
       // =========================================================================
       // STYLE METADATA EXTRACTION
@@ -1291,7 +1315,9 @@ ${styleExtractionPromptAddition}
             status: 'completed',
             tokens_input: tokensInput,
             tokens_output: tokensOutput,
-            anthropic_model: ANTHROPIC_MODEL
+            anthropic_model: ANTHROPIC_MODEL,
+            cache_creation_input_tokens: cacheCreationTokens,
+            cache_read_input_tokens: cacheReadTokens
           })
           .eq('id', metricId);
       }
