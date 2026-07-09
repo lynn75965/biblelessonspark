@@ -655,6 +655,7 @@ export function EnhanceLessonForm({
   const [removingFromSeries, setRemovingFromSeries] = useState(false);
   const addToSeriesTriggerRef = useRef<HTMLButtonElement>(null);
   const addToSeriesPopoverRef = useRef<HTMLDivElement>(null);
+  const streamingPreviewRef = useRef<HTMLDivElement>(null);
 
   // Close popover on Escape (return focus to trigger) and on click-outside.
   useEffect(() => {
@@ -1023,6 +1024,12 @@ export function EnhanceLessonForm({
     }, 400);
     return () => clearInterval(interval);
   }, [isSubmitting, isEnhancing]);
+
+  useEffect(() => {
+    if (showStreamingContent && streamingPreviewRef.current) {
+      streamingPreviewRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [showStreamingContent]);
 
   // ============================================================================
   // SERIES STYLE - Derived from selectedSeries (Phase 24)
@@ -1783,7 +1790,7 @@ export function EnhanceLessonForm({
         {/* ================================================================ */}
         {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
         {/* ================================================================ */}
-        {showForm && (
+        {showForm && !showStreamingContent && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Limit reached banner -- above Step 1 */}
           {subLessonsUsed >= subLessonsLimit && (
@@ -2764,26 +2771,28 @@ export function EnhanceLessonForm({
       </div>
 
       {/* ================================================================ */}
-      {/* STREAMING PREVIEW -- appears after 20s countdown, before done  */}
+      {/* STREAMING PREVIEW -- form hides at 20s; this fills the screen  */}
       {/* ================================================================ */}
-      {showStreamingContent && (isSubmitting || isEnhancing) && !currentLesson && (
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
-              <span>Building Your Lesson...</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div
-              className="whitespace-pre-wrap text-sm leading-relaxed text-foreground max-h-[560px] overflow-y-auto"
-              aria-live="polite"
-              aria-label="Lesson content generating"
-            >
-              {streamingContent || 'Receiving content...'}
-            </div>
-          </CardContent>
-        </Card>
+      {showStreamingContent && !currentLesson && (
+        <div ref={streamingPreviewRef}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+                <span>Building Your Lesson...</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                className="whitespace-pre-wrap text-sm leading-relaxed text-foreground max-h-[560px] overflow-y-auto"
+                aria-live="polite"
+                aria-label="Lesson content generating"
+              >
+                {streamingContent || 'Receiving content...'}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* ================================================================ */}
