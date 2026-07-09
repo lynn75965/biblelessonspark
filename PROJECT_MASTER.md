@@ -1,6 +1,65 @@
-# PROJECT MASTER -- Last updated: June 25, 2026 (LessonLibrary card action row -- 3 icon bugs fixed + deployed; working tree CLEAN)
+# PROJECT MASTER -- Last updated: July 9, 2026 (Session 1: Generation Metrics & Output Analysis -- READ-ONLY)
 
-## >>> RESUME HERE <<< -- LessonLibrary card icon bugs fixed (June 25); Shepherding build COMPLETE (A/B/C/D shipped)
+## >>> RESUME HERE <<< -- Generation analysis complete (GENERATION_ANALYSIS.md local). Next: Session 4 design uses these numbers. LessonLibrary icon bugs remain the last shipped feature (June 25).
+
+## JULY 9, 2026 SESSION -- Generation Metrics & Output Analysis (Session 1, READ-ONLY)
+
+GOAL: Establish the cost and duration baseline for the streaming refactor (Session 4).
+No code changes, no migrations, no deploys. One gitignore edit (added GENERATION_ANALYSIS.md).
+Deliverable: GENERATION_ANALYSIS.md in project root (gitignored; local only).
+
+KEY FINDINGS (all facts, from DB + source code):
+
+1. DURATION (60-day window, n=83 completed):
+   Full lessons (8 sections, n=79): p50=101s, p75=107s, p95=133s, max=140s
+   Short lessons (3 sections, n=4): p50=58s, p75=65s, p95=66s, max=67s
+   The June 18 assessment cited 98s median; current is 101s (+3.1%) -- normal drift.
+   CRITICAL MODEL DIFFERENCE: claude-sonnet-4-6 (current) p95=138s vs 112s for retired
+   model. Only 2s of margin before the 140s abort cliff. Streaming is now safety-critical,
+   not just UX polish.
+
+2. TOKENS (9-lesson sample with complete Anthropic usage data, claude-sonnet-4-6):
+   Static prefix (cache write): exactly 3,803 tokens -- consistent across ALL lessons.
+   Dynamic suffix + user prompt: 4,864 - 5,749 tokens (median ~5,082).
+   Output tokens: 3,907 - 4,572 (median ~4,247 all models; 4,606 avg for current model).
+   Current model is 11% MORE verbose than the retired model -- explains the p95 drift.
+
+3. PROMPT CACHE IS BROKEN IN PRACTICE:
+   cache_read_input_tokens = 0 on all 10 lessons in last 30 days; 2/74 hits in 60 days
+   (2.7% effective hit rate). Root cause: 5-minute ephemeral TTL expires between every
+   lesson generation. Cache WRITES cost 1.25x the base input rate, adding ~$0.00285
+   overhead per lesson with zero benefit. Fix = switch to 1-hour ephemeral TTL (one line).
+
+4. OUTPUT TOKEN MAP (single-lesson parse, lesson 08c6637a):
+   S5 Main Teaching Content: 24.2% of output tokens (largest section)
+   S3+S5 combined (core teaching): 42.1%
+   S8 Group Handout: 14.6% (frequently overshoots 325-word target; ran +36% in sample)
+   Teaser: 2.5%
+   Functional grouping: Core 42% / Teacher prep 18% / Discussion 22% / Handout 15%
+
+5. COST TODAY: $0.0955/full lesson (cache never hits; paying 1.25x write cost with no read savings)
+   WITH WORKING CACHE (70% hit rate): $0.0856/lesson (-10.4%)
+   TWO-PHASE STREAMING: same cost as today (streaming doesn't change token counts)
+   At current volumes (~480 lessons/year): ~$46/year. At 12k/year: ~$1,146/year.
+
+6. DURATION PROJECTION WITH STREAMING:
+   Tokens/second: 43.5 tok/s (consistent across both models and lesson types)
+   Core content (S1-S5) complete at: ~73s under streaming (vs 101s current monolithic wait)
+   Section 3 core/supplement split: 3s additional improvement on top of streaming (minor)
+   Primary streaming benefit: UX (28s improvement to core content); cost unchanged.
+
+SESSION FILES:
+   GENERATION_ANALYSIS.md -- local only (gitignored), project root. Full data + projections.
+   .gitignore -- one line added: GENERATION_ANALYSIS.md (committed this session, commit TBD below)
+
+NEXT SESSION: Session 4 (Streaming Refactor) design should use the numbers above.
+   See GENERATION_ANALYSIS.md Section 6 for the token-level timeline.
+   Priority order:
+   (1) Fix prompt cache TTL first (5m -> 1h ephemeral; 1-line change; deploy alone).
+   (2) Streaming refactor (SSE output; coordinated frontend + edge-function deploy).
+   The cache fix is the quick win; streaming is the safety fix for the p95 cliff.
+
+## >>> PRIOR RESUME <<< -- LessonLibrary card icon bugs fixed (June 25); Shepherding build COMPLETE (A/B/C/D shipped)
 
 LESSONLIBRARY CARD ACTION ROW -- 3 ICON BUGS (2026-06-25, shipped commit a4e092f):
 Three coupled icon bugs in src/components/dashboard/LessonLibrary.tsx only. No other
