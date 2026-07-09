@@ -583,6 +583,7 @@ export function EnhanceLessonForm({
   const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [showStreamingContent, setShowStreamingContent] = useState(false);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
@@ -1001,15 +1002,23 @@ export function EnhanceLessonForm({
   useEffect(() => {
     if (!isSubmitting && !isEnhancing) {
       setGenerationProgress(0);
+      setShowStreamingContent(false);
       return;
     }
-    // Linear 0 -> 99% over 20 seconds, then holds at 99% until the lesson is ready.
+    // 0 -> 99% over 20 seconds; at 20s, switch to live streaming preview.
     setGenerationProgress(0);
+    setShowStreamingContent(false);
     const startTime = Date.now();
     const RAMP_MS = 20_000;
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const pct = Math.min(99, Math.round((elapsed / RAMP_MS) * 99));
+      if (elapsed >= RAMP_MS) {
+        setGenerationProgress(99);
+        setShowStreamingContent(true);
+        clearInterval(interval);
+        return;
+      }
+      const pct = Math.round((elapsed / RAMP_MS) * 99);
       setGenerationProgress(pct);
     }, 400);
     return () => clearInterval(interval);
@@ -2753,6 +2762,29 @@ export function EnhanceLessonForm({
         </form>
         )}
       </div>
+
+      {/* ================================================================ */}
+      {/* STREAMING PREVIEW -- appears after 20s countdown, before done  */}
+      {/* ================================================================ */}
+      {showStreamingContent && (isSubmitting || isEnhancing) && !currentLesson && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
+              <span>Building Your Lesson...</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div
+              className="whitespace-pre-wrap text-sm leading-relaxed text-foreground max-h-[560px] overflow-y-auto"
+              aria-live="polite"
+              aria-label="Lesson content generating"
+            >
+              {streamingContent || 'Receiving content...'}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}
