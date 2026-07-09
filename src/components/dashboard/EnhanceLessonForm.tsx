@@ -179,6 +179,7 @@ interface EnhanceLessonFormProps {
   initialFocusData?: FocusApplicationData;
   lessonCount?: number; // Used to conditionally show welcome banner for new users only
   lessonsLoading?: boolean; // Prevent flicker - don't show welcome banner while loading
+  buildLessonKey?: number; // Incremented by Dashboard when "Build Lesson" tab is activated -- clears generated lesson
 }
 
 // ============================================================================
@@ -477,6 +478,7 @@ export function EnhanceLessonForm({
   initialFocusData,
   lessonCount = 0,
   lessonsLoading = false,
+  buildLessonKey,
 }: EnhanceLessonFormProps) {
   // ============================================================================
   // ACCORDION STATE
@@ -1001,11 +1003,17 @@ export function EnhanceLessonForm({
       setGenerationProgress(0);
       return;
     }
-    // Drive progress from real token count. 4500 = typical full-lesson output tokens.
-    const ESTIMATED_OUTPUT_TOKENS = 4500;
-    const pct = Math.min(99, Math.round((streamingTokenCount / ESTIMATED_OUTPUT_TOKENS) * 100));
-    setGenerationProgress(pct);
-  }, [isSubmitting, isEnhancing, streamingTokenCount]);
+    // Linear 0 -> 99% over 20 seconds, then holds at 99% until the lesson is ready.
+    setGenerationProgress(0);
+    const startTime = Date.now();
+    const RAMP_MS = 20_000;
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(99, Math.round((elapsed / RAMP_MS) * 99));
+      setGenerationProgress(pct);
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isSubmitting, isEnhancing]);
 
   // ============================================================================
   // SERIES STYLE - Derived from selectedSeries (Phase 24)
@@ -1490,6 +1498,13 @@ export function EnhanceLessonForm({
     setEditTitle("");
     setEditContent("");
   }, [viewingLesson?.id]);
+
+  // Clear the generated lesson card when Dashboard activates the "Build Lesson" tab
+  useEffect(() => {
+    if (buildLessonKey !== undefined && buildLessonKey > 0) {
+      setGeneratedLesson(null);
+    }
+  }, [buildLessonKey]);
 
   /**
    * Execute reshape: assemble prompt with theology + age context, call Edge Function, save to DB
@@ -2738,25 +2753,6 @@ export function EnhanceLessonForm({
         </form>
         )}
       </div>
-
-      {/* ================================================================ */}
-      {/* STREAMING PREVIEW -- visible while generation is in progress     */}
-      {/* ================================================================ */}
-      {(isSubmitting || isEnhancing) && streamingContent && (
-        <Card className="mt-6" aria-live="polite" aria-label="Lesson being generated">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
-              <span>Generating your lesson...</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-foreground whitespace-pre-wrap font-mono leading-relaxed max-h-96 overflow-y-auto">
-              {streamingContent}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}

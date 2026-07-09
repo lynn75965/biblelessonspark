@@ -37,15 +37,16 @@ export const useEnhanceLesson = () => {
         return { success: false, error: "User not authenticated" };
       }
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+      // URL and key match src/integrations/supabase/client.ts (auto-generated, no env vars)
+      const SUPABASE_URL = "https://hphebzdftpjbiudpfcrs.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaGViemRmdHBqYml1ZHBmY3JzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MDk0MjksImV4cCI6MjA3NjM4NTQyOX0.WSNtUrxihquk0ZV0tT7uaad8W3MNjIUwCD4hG0jr-eo";
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/generate-lesson`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-lesson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
-          'apikey': supabaseAnonKey,
+          'apikey': SUPABASE_ANON_KEY,
         },
         body: JSON.stringify(enhancementData),
       });

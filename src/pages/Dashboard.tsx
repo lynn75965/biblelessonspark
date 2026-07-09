@@ -70,6 +70,7 @@ export default function Dashboard() {
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
   const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [buildLessonKey, setBuildLessonKey] = useState(0);
   const [viewOrigin, setViewOrigin] = useState<string | null>(null);
   const [originSeriesId, setOriginSeriesId] = useState<string | null>(null);
   const [pendingViewLessonId, setPendingViewLessonId] = useState<string | null>(null);
@@ -131,6 +132,7 @@ export default function Dashboard() {
         setSelectedLesson(null);
         setViewOrigin(null);
         setOriginSeriesId(null);
+        if (state.tab === 'enhance') setBuildLessonKey(k => k + 1);
       }
     }
 
@@ -286,6 +288,7 @@ export default function Dashboard() {
     const tabConfig = DASHBOARD_TABS[tabKey];
     if (tabConfig?.clearViewingOnClick) {
       setSelectedLesson(null);
+      if (tabValue === 'enhance') setBuildLessonKey(k => k + 1);
     }
     setActiveTab(tabValue);
   };
@@ -484,6 +487,7 @@ export default function Dashboard() {
                 );
               }}
               initialFocusData={focusDataToApply || undefined}
+              buildLessonKey={buildLessonKey}
             />
             )}
           </TabsContent>
