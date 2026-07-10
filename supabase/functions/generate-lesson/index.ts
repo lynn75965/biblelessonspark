@@ -801,8 +801,9 @@ ${theologyProfile.summary}
 ${generateTheologicalGuardrails(theologyProfile.id)}`;
 
     // Block 3: per-request dynamic content. Never cached.
-    // theologyBlock + dynamicRemainder == former dynamicSystemSuffix (byte-identical).
-    const dynamicRemainder = `
+    // For two-phase: teaser instructions suppressed in Phase 1; Phase 2 uses the full block.
+    // Both share the same template; only the teaser line differs.
+    const buildDynamicRemainder = (includeTeaserInBlock: boolean) => `
 
 -------------------------------------------------------------------------------
 AGE GROUP: ${ageGroupData.label}
@@ -831,7 +832,7 @@ ${copyrightGuardrails}
 
 ${customizationDirectives}
 
-${buildTeaserInstructions(effectiveTeaser, selectedTeaserFreshness)}
+${buildTeaserInstructions(includeTeaserInBlock ? effectiveTeaser : false, includeTeaserInBlock ? selectedTeaserFreshness : null)}
 
 ${buildFreshnessContext(new Date(), freshness_mode, include_liturgical, include_cultural)}
 
@@ -841,6 +842,10 @@ ${consistentStylePromptAddition}
 
 ${styleExtractionPromptAddition}
 `;
+
+    // Phase 1: suppress teaser in Block 3 (no contradiction with user prompt)
+    // Phase 2: full Block 3 with teaser (passed when building Phase 2 system)
+    const dynamicRemainder = buildDynamicRemainder(!usesTwoPhase);
 
     let lessonInput = bible_passage || focused_topic || '';
     if (bible_passage && focused_topic) {
@@ -1370,7 +1375,7 @@ ${styleExtractionPromptAddition}
               generation_end: new Date().toISOString(),
               generation_duration_ms: phase1EndMs - functionStartTime,
               sections_generated: phase1SectionCount,
-              status: usesTwoPhase ? 'phase1_complete' : 'completed',
+              status: 'completed',
               tokens_input: tokensInput,
               tokens_output: tokensOutput,
               anthropic_model: ANTHROPIC_MODEL,
@@ -1457,7 +1462,7 @@ All supplements must be specific to this lesson's content -- not generic.${bible
                 system: [
                   { type: 'text', text: phase2SystemPrefix },
                   { type: 'text', text: theologyBlock, cache_control: { type: 'ephemeral' } },
-                  { type: 'text', text: dynamicRemainder }
+                  { type: 'text', text: buildDynamicRemainder(true) }
                 ],
                 messages: [{ role: 'user', content: phase2UserPrompt }]
               })
