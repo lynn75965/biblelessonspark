@@ -1,6 +1,64 @@
-# PROJECT MASTER -- Last updated: July 9, 2026 (Session 3: Streaming Refactor -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 9, 2026 (Session 4: Two-Phase Generation -- SHIPPED)
 
-## >>> RESUME HERE <<< -- Streaming refactor LIVE (commit 0aaae98). Lessons now stream via SSE; progress bar uses real token count; live preview shows words appearing during generation. VERIFY on localhost:8080 -- generate a lesson and confirm words appear in the streaming preview card. THEN run the full test matrix before deploying to production.
+## >>> RESUME HERE <<< -- Two-phase generation LIVE (commits cb530a7, edb5377, a16c775, pushed to main). Full 8-section lessons: Phase 1 (S1-5) streams and saves at ~80s; Phase 2 (S6-8+Teaser) derived and appended at ~30s later. Short 3-section lessons unaffected (single-phase). Progress bars calibrated per lesson type. VERIFIED by Lynn on localhost before deploy. No carry-forward items from this session.
+
+## JULY 9, 2026 SESSION -- Two-Phase Derived Generation (Session 4)
+
+GOAL: Eliminate the ~100s single-phase wait by splitting full 8-section generation into two
+sequential Anthropic calls. Teacher gets a real readable lesson at ~80s (Phase 1), with
+Sections 6-8 + Teaser derived and appended ~30s later (Phase 2).
+
+SHORT LESSONS UNAFFECTED: usesTwoPhase = isFullLesson && filteredSections.length === 8.
+Free-tier short lessons (S1, S5, S8) remain single-phase, unchanged.
+
+CHANGES SHIPPED (commits cb530a7, edb5377, a16c775; pushed to main a16c775):
+
+1. supabase/functions/generate-lesson/index.ts (cb530a7)
+   ADDED: usesTwoPhase guard -- true only for full 8-section lessons.
+   ADDED: phase1Sections = filteredSections.filter(s.id <= 5) when two-phase.
+   CHANGED: Phase 1 Anthropic call: max_tokens 4000, streams S1-5 only.
+   CHANGED: teaserInstruction suppressed in Phase 1 user prompt (Phase 2 handles it).
+   ADDED: buildDynamicRemainder(includeTeaserInBlock) -- Phase 1 passes false,
+     Phase 2 passes true; eliminates contradictory teaser instructions across prompt blocks.
+   CHANGED: 'done' event carries two_phase: boolean so frontend knows whether to wait.
+   ADDED: Phase 2 block (inside IIFE, after sendEvent('done')):
+     -- Non-streaming Anthropic call, max_tokens 2500, S6+S7+S8.
+     -- Phase 1 text passed as context in Phase 2 user prompt.
+     -- Guardrail check on Phase 2 body (best-effort rewrite).
+     -- Teaser extracted from Phase 2 if effectiveTeaser.
+     -- combinedText = phase1.trimEnd() + '\n\n---\n\n' + phase2.trim().
+     -- lessons UPDATE (not INSERT -- billed exactly once per Rule #26).
+     -- sendEvent('supplements', { lesson: updatedLesson }).
+     -- Phase 2 catch: sendEvent('supplements_failed') -- Phase 1 preserved.
+   CHANGED: Phase 1 metrics: status 'completed', phase1_duration_ms logged.
+   CHANGED: Phase 2 metrics: phase2_duration_ms logged, sections_generated = 8.
+
+2. supabase/migrations/20260709010000_add_phase_duration_to_generation_metrics.sql
+   APPLIED: adds phase1_duration_ms (integer) + phase2_duration_ms (integer) to
+   generation_metrics. Both nullable.
+
+3. src/hooks/useEnhanceLesson.tsx (edb5377)
+   ADDED: isLoadingSupplements state -- true from 'done' (two_phase) until supplements fires.
+   ADDED: supplementsProgress state -- time-elapsed ramp 0->99% over 35s via setInterval.
+     Driven by useEffect watching isLoadingSupplements. Snaps to 100 when supplements fires.
+   CHANGED: IIFE does NOT return on 'done' -- continues reading for supplements event.
+   ADDED: onSupplements callback param -- called with updatedLesson on 'supplements'.
+   ADDED: 'supplements_failed' handler -- clears isLoadingSupplements, logs warning.
+   NEW exports: isLoadingSupplements, supplementsProgress.
+
+4. src/components/dashboard/EnhanceLessonForm.tsx (edb5377, a16c775)
+   CHANGED: Progress effect -- replaced token-based with time-elapsed ramp.
+     Full lesson (nextLessonType !== 'short'): 80s denominator.
+     Short lesson (nextLessonType === 'short'): 52s denominator (calibrated from 47s actual).
+     generationLessonTypeRef captures nextLessonType at start; cannot drift mid-run.
+   ADDED: onSupplements callback in handleSubmit -- merges updatedLesson into generatedLesson.
+   ADDED: Phase 2 amber banner: "Preparing Sections 6, 7 & 8... X%" with thin amber
+     progress bar (h-1.5, bg-amber-400, transition-all duration-500).
+     role="status" aria-live="polite" -- accessible.
+
+DEPLOY: pushed to main a16c775. Netlify auto-deploy triggered 2026-07-09.
+VERIFIED by Lynn on localhost: full lesson (both phases) + short lesson confirmed working.
+Progress bars confirmed realistic for both lesson types.
 
 ## JULY 9, 2026 SESSION -- Streaming Refactor (Session 3)
 
