@@ -610,6 +610,14 @@ serve(async (req) => {
       console.log('Teaser requested but suppressed: short lessons never include a teaser');
     }
 
+    // Two-phase generation: full 8-section lessons only.
+    // Phase 1 = S1-S5 (doctrinal core, streamed); Phase 2 = S6-S8+Teaser (derived supplements).
+    const usesTwoPhase = isFullLesson && filteredSections.length === 8;
+    const phase1Sections = usesTwoPhase
+      ? filteredSections.filter((s: any) => s.id <= 5)
+      : filteredSections;
+    const phase1SectionCount = phase1Sections.length;
+
     if (!bible_passage && !focused_topic && !extracted_content) {
       throw new Error('Either bible_passage, focused_topic, or extracted_content is required');
     }
@@ -756,21 +764,23 @@ serve(async (req) => {
     // on sonnet-4-6 is 2048 tokens. Block 1 alone is ~3,803 tok; adding
     // block 2 brings the cached prefix to ~5,150 tok.
     // =========================================================================
+    // Phase 1 (two-phase): suppress teaser in system prefix; Phase 2 handles it.
+    const phase1EffectiveTeaser = usesTwoPhase ? false : effectiveTeaser;
     const staticSystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
 
-${buildCompressionRules(effectiveTeaser)}
+${buildCompressionRules(phase1EffectiveTeaser)}
 
 ${buildTruthGuardrails()}
 
 -------------------------------------------------------------------------------
-LESSON STRUCTURE (EXACTLY ${totalSections} SECTIONS)
+LESSON STRUCTURE (EXACTLY ${phase1SectionCount} SECTIONS)
 -------------------------------------------------------------------------------
-${buildSectionsPrompt(filteredSections, effectiveTeaser)}
+${buildSectionsPrompt(phase1Sections, phase1EffectiveTeaser)}
 
 -------------------------------------------------------------------------------
 OUTPUT REQUIREMENTS
 -------------------------------------------------------------------------------
-Generate all ${totalSections} sections in order. Follow EXACT formatting:
+Generate all ${phase1SectionCount} sections in order. Follow EXACT formatting:
 
 ## Section N: [Section Name]
 
@@ -840,20 +850,27 @@ ${styleExtractionPromptAddition}
     let bibleVersionInstruction = `\n\nIMPORTANT: Use the ${bibleVersion.name} (${bibleVersion.abbreviation}) for ALL Scripture quotations and references.`;
 
     let teaserInstruction = '';
-    if (effectiveTeaser) {
+    // Teaser goes in Phase 2 for two-phase full lessons; suppressed in Phase 1.
+    if (effectiveTeaser && !usesTwoPhase) {
       teaserInstruction = '\n\nINCLUDE STUDENT TEASER: Generate the student teaser section at the beginning, before Section 1.';
     }
 
     let userPrompt: string;
+    const phaseOneLabel = usesTwoPhase
+      ? `${phase1SectionCount}-section core`
+      : `complete ${phase1SectionCount}-section`;
+    const phaseOneStop = usesTwoPhase
+      ? '\n\nCRITICAL: Generate ONLY Sections 1, 2, 3, 4, and 5. STOP after completing Section 5. Do NOT generate Section 6, 7, 8, or any student teaser.'
+      : '';
 
     if (extracted_content) {
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson based on this curriculum content:\n\n---BEGIN CURRICULUM CONTENT---\n${extracted_content}\n---END CURRICULUM CONTENT---\n\n${bible_passage ? `Primary Passage: ${bible_passage}\n` : ''}${focused_topic ? `Focus Topic: ${focused_topic}\n` : ''}${additional_notes ? `Teacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
+      userPrompt = `Generate a ${phaseOneLabel} Baptist Bible study lesson based on this curriculum content:\n\n---BEGIN CURRICULUM CONTENT---\n${extracted_content}\n---END CURRICULUM CONTENT---\n\n${bible_passage ? `Primary Passage: ${bible_passage}\n` : ''}${focused_topic ? `Focus Topic: ${focused_topic}\n` : ''}${additional_notes ? `Teacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}${phaseOneStop}`;
     } else if (bible_passage && focused_topic) {
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}\nTheme/Focus: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
+      userPrompt = `Generate a ${phaseOneLabel} Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}\nTheme/Focus: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}${phaseOneStop}`;
     } else if (bible_passage) {
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
+      userPrompt = `Generate a ${phaseOneLabel} Baptist Bible study lesson for:\n\nBible Passage: ${bible_passage}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}${phaseOneStop}`;
     } else {
-      userPrompt = `Generate a complete ${totalSections}-section Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}`;
+      userPrompt = `Generate a ${phaseOneLabel} Baptist Bible study lesson for:\n\nTopic: ${focused_topic}${additional_notes ? `\nTeacher Notes: ${additional_notes}` : ''}${bibleVersionInstruction}${teaserInstruction}${phaseOneStop}`;
     }
 
     checkpoint = logTiming('Prompt built', checkpoint);
@@ -902,7 +919,7 @@ ${styleExtractionPromptAddition}
           signal: stallController.signal,
           body: JSON.stringify({
             model: ANTHROPIC_MODEL,
-            max_tokens: 8000,
+            max_tokens: usesTwoPhase ? 4000 : 8000,
             temperature: 0.6,
             stream: true,
             system: [
@@ -1186,9 +1203,9 @@ ${styleExtractionPromptAddition}
             copyrightStatus: bibleVersion.copyrightStatus,
             ageGroup: ageGroupData.label,
             wordCount: wordCount,
-            sectionCount: totalSections,
-            includesTeaser: effectiveTeaser && teaserContent !== null,
-            teaser: teaserContent,
+            sectionCount: phase1SectionCount,
+            includesTeaser: !usesTwoPhase && effectiveTeaser && teaserContent !== null,
+            teaser: usesTwoPhase ? null : teaserContent,
             generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
             anthropicUsage: {
               input_tokens: tokensInput,
@@ -1204,7 +1221,7 @@ ${styleExtractionPromptAddition}
             platformMode: platformMode,
             isTrialLesson: isTrialLesson,
             isFullTrialLesson: isFullTrialLesson,
-            sectionsGenerated: filteredSections.map(s => s.id),
+            sectionsGenerated: phase1Sections.map((s: any) => s.id),
             extractedStyleMetadata: extract_style_metadata,
             usedSeriesStyleContext: !!series_style_context,
             usedOrgPool: useOrgPool,
@@ -1343,6 +1360,7 @@ ${styleExtractionPromptAddition}
           console.log('Paid-tier usage incremented for user:', user.id, 'tier:', userTier);
         }
 
+        const phase1EndMs = Date.now();
         if (metricId) {
           await supabase
             .from('generation_metrics')
@@ -1350,14 +1368,15 @@ ${styleExtractionPromptAddition}
               lesson_id: lesson.id,
               organization_id: lesson.organization_id,
               generation_end: new Date().toISOString(),
-              generation_duration_ms: Date.now() - functionStartTime,
-              sections_generated: totalSections,
-              status: 'completed',
+              generation_duration_ms: phase1EndMs - functionStartTime,
+              sections_generated: phase1SectionCount,
+              status: usesTwoPhase ? 'phase1_complete' : 'completed',
               tokens_input: tokensInput,
               tokens_output: tokensOutput,
               anthropic_model: ANTHROPIC_MODEL,
               cache_creation_input_tokens: cacheCreationTokens,
-              cache_read_input_tokens: cacheReadTokens
+              cache_read_input_tokens: cacheReadTokens,
+              phase1_duration_ms: phase1EndMs - functionStartTime
             })
             .eq('id', metricId);
         }
@@ -1365,8 +1384,199 @@ ${styleExtractionPromptAddition}
         await sendEvent('done', {
           lesson,
           metadata: lessonData.metadata,
-          style_metadata: extractedStyleMetadata
+          style_metadata: extractedStyleMetadata,
+          two_phase: usesTwoPhase
         });
+
+        // =====================================================================
+        // PHASE 2: Derived supplements (S6, S7, S8 + Teaser)
+        // Full 8-section lessons only. Runs after 'done' so teacher has core lesson now.
+        // Phase 2 failure NEVER loses Phase 1 -- it is already saved and billed.
+        // =====================================================================
+        if (usesTwoPhase) {
+          const phase2Start = Date.now();
+          try {
+            const phase2Sections = filteredSections.filter((s: any) => s.id > 5);
+            const phase2SectionCount = phase2Sections.length;
+
+            const phase2SystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
+
+${buildCompressionRules(effectiveTeaser)}
+
+${buildTruthGuardrails()}
+
+-------------------------------------------------------------------------------
+SUPPLEMENT SECTIONS (${phase2SectionCount} SECTIONS -- PHASE 2 SUPPLEMENTS)
+-------------------------------------------------------------------------------
+${buildSectionsPrompt(phase2Sections, effectiveTeaser)}
+
+-------------------------------------------------------------------------------
+OUTPUT REQUIREMENTS
+-------------------------------------------------------------------------------
+Generate ONLY the ${phase2SectionCount} supplement sections listed above.
+Each supplement must be derived from the specific content in the core lesson provided.
+${effectiveTeaser ? 'Generate the student teaser FIRST, before the numbered sections.' : ''}
+Follow EXACT formatting:
+
+## Section N: [Section Name]
+
+[Section content following rules above]
+
+---
+
+Each section separated by "---" on its own line.
+Meet ALL word minimums. Respect ALL word maximums. Do NOT exceed any section maximum.
+`;
+
+            const phase2UserPrompt = `Here is the complete core lesson (Sections 1-5) that was just generated:
+
+---BEGIN CORE LESSON---
+${generatedLesson}
+---END CORE LESSON---
+
+Using this core lesson as your source, now generate:
+${effectiveTeaser ? '- The Student Teaser (output FIRST, before Section 6)\n' : ''}- Section 6: Interactive Activities (derived from the teaching content above)
+- Section 7: Discussion & Assessment (questions referencing the actual theology and content)
+- Section 8: Group Handout (standalone, distilling the lesson for participants)
+
+All supplements must be specific to this lesson's content -- not generic.${bibleVersionInstruction}`;
+
+            console.log(`[Phase 2] Starting supplement generation for lesson ${lesson.id}`);
+
+            const phase2Response = await fetch('https://api.anthropic.com/v1/messages', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': anthropicApiKey,
+                'anthropic-version': '2023-06-01'
+              },
+              body: JSON.stringify({
+                model: ANTHROPIC_MODEL,
+                max_tokens: 2500,
+                temperature: 0.6,
+                system: [
+                  { type: 'text', text: phase2SystemPrefix },
+                  { type: 'text', text: theologyBlock, cache_control: { type: 'ephemeral' } },
+                  { type: 'text', text: dynamicRemainder }
+                ],
+                messages: [{ role: 'user', content: phase2UserPrompt }]
+              })
+            });
+
+            if (!phase2Response.ok) {
+              const errText = await phase2Response.text();
+              throw new Error(`Phase 2 API error (${phase2Response.status}): ${errText}`);
+            }
+
+            const phase2Json = await phase2Response.json();
+            const phase2RawText: string = phase2Json.content?.[0]?.text ?? '';
+            const phase2TokensOut: number = phase2Json.usage?.output_tokens ?? 0;
+            const phase2TokensIn: number = phase2Json.usage?.input_tokens ?? 0;
+            const phase2CacheWrite: number = phase2Json.usage?.cache_creation_input_tokens ?? 0;
+            const phase2CacheRead: number = phase2Json.usage?.cache_read_input_tokens ?? 0;
+
+            console.log(`[Phase 2] Generated ${phase2RawText.length} chars, ${phase2TokensOut} output tokens`);
+
+            // Extract teaser from Phase 2 output (if requested)
+            let phase2TeaserContent: string | null = null;
+            let phase2BodyText = phase2RawText;
+            if (effectiveTeaser) {
+              const tMatch = phase2BodyText.match(/\*\*STUDENT TEASER\*\*\s*([\s\S]*?)(?=##\s*Section|\s*$)/i);
+              if (tMatch) {
+                phase2TeaserContent = tMatch[1].trim();
+                phase2BodyText = phase2BodyText.replace(/\*\*STUDENT TEASER\*\*\s*[\s\S]*?(?=##\s*Section)/, '').trim();
+              } else {
+                console.log('[Phase 2] Teaser was requested but not found in Phase 2 output');
+              }
+            }
+
+            // Guardrail check on Phase 2 body (best-effort rewrite)
+            const phase2GuardrailResult = checkOutputGuardrails(phase2BodyText);
+            let phase2FinalText = phase2BodyText;
+            if (!phase2GuardrailResult.passed) {
+              console.log(`[Phase 2 Guardrail] ${phase2GuardrailResult.totalViolations} violation(s) -- attempting rewrite`);
+              try {
+                const p2Violated = phase2GuardrailResult.results.filter((r: any) => r.violations.length > 0);
+                const p2RewritePrompt = buildRewritePrompt(p2Violated);
+                const p2RwResp = await fetch('https://api.anthropic.com/v1/messages', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicApiKey, 'anthropic-version': '2023-06-01' },
+                  body: JSON.stringify({
+                    model: ANTHROPIC_MODEL,
+                    max_tokens: REWRITE_CONFIG.maxTokens,
+                    temperature: REWRITE_CONFIG.temperature,
+                    system: p2RewritePrompt.system,
+                    messages: [{ role: 'user', content: p2RewritePrompt.user }]
+                  })
+                });
+                if (p2RwResp.ok) {
+                  const p2RwData = await p2RwResp.json();
+                  const p2RwParsed = parseLessonSections(p2RwData.content[0].text);
+                  if (p2RwParsed.length > 0) {
+                    phase2FinalText = replaceSections(phase2BodyText, p2RwParsed);
+                  }
+                }
+              } catch (p2RwErr) {
+                console.error('[Phase 2 Guardrail] Rewrite failed, using original:', p2RwErr);
+              }
+            }
+
+            // Combine Phase 1 (generatedLesson) + Phase 2 body
+            const combinedText = generatedLesson.trimEnd() + '\n\n---\n\n' + phase2FinalText.trim();
+
+            // UPDATE lessons row with combined text and Phase 2 metadata
+            const supplementMeta = {
+              ...(lesson.metadata as Record<string, unknown> || {}),
+              phase2Completed: true,
+              sectionCount: filteredSections.length,
+              sectionsGenerated: filteredSections.map((s: any) => s.id),
+              includesTeaser: effectiveTeaser && phase2TeaserContent !== null,
+              teaser: phase2TeaserContent,
+              phase2GenerationSeconds: ((Date.now() - phase2Start) / 1000).toFixed(2),
+              phase2TokensInput: phase2TokensIn,
+              phase2TokensOutput: phase2TokensOut,
+              phase2CacheCreation: phase2CacheWrite,
+              phase2CacheRead: phase2CacheRead,
+            };
+
+            const { data: updatedLesson, error: updateError } = await supabase
+              .from('lessons')
+              .update({ original_text: combinedText, metadata: supplementMeta })
+              .eq('id', lesson.id)
+              .select()
+              .single();
+
+            if (updateError) {
+              throw new Error(`Phase 2 DB update failed: ${updateError.message}`);
+            }
+
+            // Update generation_metrics with final status and Phase 2 timing
+            const phase2EndMs = Date.now();
+            if (metricId) {
+              await supabase
+                .from('generation_metrics')
+                .update({
+                  status: 'completed',
+                  generation_duration_ms: phase2EndMs - functionStartTime,
+                  sections_generated: filteredSections.length,
+                  phase2_duration_ms: phase2EndMs - phase2Start
+                })
+                .eq('id', metricId);
+            }
+
+            await sendEvent('supplements', { lesson: updatedLesson });
+            console.log(`[Phase 2] Complete for lesson ${lesson.id}`);
+
+          } catch (phase2Err: any) {
+            // Phase 2 failure: Phase 1 lesson is already saved. Teacher is not blocked.
+            console.error('[Phase 2] Failed (Phase 1 lesson preserved):', phase2Err.message);
+            await sendEvent('supplements_failed', {
+              lesson_id: lesson.id,
+              message: 'The supplemental sections are still being prepared. Your lesson has been saved.'
+            }).catch(() => {});
+          }
+        }
+        // end Phase 2
 
       } catch (streamError: any) {
         clearInterval(stallTimer);

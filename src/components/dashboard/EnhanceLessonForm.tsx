@@ -583,7 +583,6 @@ export function EnhanceLessonForm({
   const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
-  const [showStreamingContent, setShowStreamingContent] = useState(false);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
@@ -655,7 +654,6 @@ export function EnhanceLessonForm({
   const [removingFromSeries, setRemovingFromSeries] = useState(false);
   const addToSeriesTriggerRef = useRef<HTMLButtonElement>(null);
   const addToSeriesPopoverRef = useRef<HTMLDivElement>(null);
-  const streamingPreviewRef = useRef<HTMLDivElement>(null);
 
   // Close popover on Escape (return focus to trigger) and on click-outside.
   useEffect(() => {
@@ -762,7 +760,7 @@ export function EnhanceLessonForm({
   // HOOKS
   // ============================================================================
 
-  const { enhanceLesson, isEnhancing, streamingContent, streamingTokenCount } = useEnhanceLesson();
+  const { enhanceLesson, isEnhancing, isLoadingSupplements, streamingContent, streamingTokenCount } = useEnhanceLesson();
   const { reshapeLesson, isReshaping } = useReshapeLesson();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [senderDisplayName, setSenderDisplayName] = useState("");
@@ -1003,33 +1001,12 @@ export function EnhanceLessonForm({
   useEffect(() => {
     if (!isSubmitting && !isEnhancing) {
       setGenerationProgress(0);
-      setShowStreamingContent(false);
       return;
     }
-    // 0 -> 99% over 20 seconds; at 20s, switch to live streaming preview.
-    setGenerationProgress(0);
-    setShowStreamingContent(false);
-    const startTime = Date.now();
-    const RAMP_MS = 20_000;
-    const interval = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      if (elapsed >= RAMP_MS) {
-        setGenerationProgress(99);
-        setShowStreamingContent(true);
-        clearInterval(interval);
-        return;
-      }
-      const pct = Math.round((elapsed / RAMP_MS) * 99);
-      setGenerationProgress(pct);
-    }, 400);
-    return () => clearInterval(interval);
-  }, [isSubmitting, isEnhancing]);
-
-  useEffect(() => {
-    if (showStreamingContent && streamingPreviewRef.current) {
-      streamingPreviewRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [showStreamingContent]);
+    // Token-based progress: ~4,300 tokens for a full lesson at median output.
+    const pct = Math.min(99, Math.round((streamingTokenCount / 4300) * 100));
+    setGenerationProgress(pct);
+  }, [isSubmitting, isEnhancing, streamingTokenCount]);
 
   // ============================================================================
   // SERIES STYLE - Derived from selectedSeries (Phase 24)
@@ -1424,7 +1401,16 @@ export function EnhanceLessonForm({
         series_style_context: isConsistentSeriesLesson2Plus ? seriesStyleContext : null,
       };
 
-      const result = await enhanceLesson(enhancementData);
+      // onSupplements: called when Phase 2 supplements arrive (S6-S8 + Teaser).
+      // Silently replaces the lesson in state with the fully-assembled version.
+      const onSupplements = (updatedLesson: any) => {
+        setGeneratedLesson((prev: any) => prev
+          ? { ...prev, lesson: updatedLesson }
+          : null
+        );
+      };
+
+      const result = await enhanceLesson(enhancementData, onSupplements);
 
       // Check for limit reached
       if (result.code === API_ERROR_CODES.LIMIT_REACHED) {
@@ -1790,7 +1776,7 @@ export function EnhanceLessonForm({
         {/* ================================================================ */}
         {/* CREATION FORM: Only show when NOT viewing a saved lesson */}
         {/* ================================================================ */}
-        {showForm && !showStreamingContent && (
+        {showForm && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Limit reached banner -- above Step 1 */}
           {subLessonsUsed >= subLessonsLimit && (
@@ -2771,36 +2757,22 @@ export function EnhanceLessonForm({
       </div>
 
       {/* ================================================================ */}
-      {/* STREAMING PREVIEW -- form hides at 20s; this fills the screen  */}
-      {/* ================================================================ */}
-      {showStreamingContent && !currentLesson && (
-        <div ref={streamingPreviewRef}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" />
-                <span>Building Your Lesson...</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                className="whitespace-pre-wrap text-sm leading-relaxed text-foreground max-h-[560px] overflow-y-auto"
-                aria-live="polite"
-                aria-label="Lesson content generating"
-              >
-                {streamingContent || 'Receiving content...'}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* ================================================================ */}
       {/* GENERATED LESSON DISPLAY */}
       {/* ================================================================ */}
       {currentLesson && (
         <Card className={viewingLesson ? "" : "mt-6"}>
           <CardHeader>
+            {/* Supplements loading banner: visible while Phase 2 (S6-S8 + Teaser) is being generated */}
+            {isLoadingSupplements && !viewingLesson && (
+              <div
+                className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-3"
+                role="status"
+                aria-live="polite"
+              >
+                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" aria-hidden="true" />
+                <span>Sections 6, 7, and 8 are being prepared and will appear shortly...</span>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <CardTitle data-tour="lesson-title" className="flex flex-wrap items-center gap-2">
                 <BookOpen className="h-5 w-5 text-primary flex-shrink-0" />

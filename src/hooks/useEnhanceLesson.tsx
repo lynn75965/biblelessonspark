@@ -16,12 +16,17 @@ export interface EnhanceLessonResult {
 
 export const useEnhanceLesson = () => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingSupplements, setIsLoadingSupplements] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [streamingTokenCount, setStreamingTokenCount] = useState(0);
   const { toast } = useToast();
 
-  const enhanceLesson = async (enhancementData: Record<string, any>): Promise<EnhanceLessonResult> => {
+  const enhanceLesson = async (
+    enhancementData: Record<string, any>,
+    onSupplements?: (updatedLesson: any) => void
+  ): Promise<EnhanceLessonResult> => {
     setIsGenerating(true);
+    setIsLoadingSupplements(false);
     setStreamingContent('');
     setStreamingTokenCount(0);
 
@@ -85,11 +90,16 @@ export const useEnhanceLesson = () => {
       return await new Promise<EnhanceLessonResult>((resolve) => {
         (async () => {
           let tokenAccum = 0;
+          let phase1Resolved = false;
           try {
             while (true) {
               const { done, value } = await reader.read();
               if (done) {
-                resolve({ success: false, error: 'Stream ended without a completion event' });
+                if (!phase1Resolved) {
+                  resolve({ success: false, error: 'Stream ended without a completion event' });
+                }
+                // Stream closed naturally after Phase 2 (or Phase 1 for single-phase)
+                setIsLoadingSupplements(false);
                 return;
               }
 
@@ -110,9 +120,13 @@ export const useEnhanceLesson = () => {
                   setStreamingTokenCount(tokenAccum);
                 } else if (event.type === 'done') {
                   toast({
-                    title: "Success",
-                    description: "Lesson generated successfully",
+                    title: "Lesson ready",
+                    description: event.two_phase
+                      ? "Sections 1-5 saved. Supplement sections being prepared..."
+                      : "Lesson generated successfully",
                   });
+                  phase1Resolved = true;
+                  // Resolve with Phase 1 lesson so the form can display it immediately
                   resolve({
                     success: true,
                     data: {
@@ -122,24 +136,45 @@ export const useEnhanceLesson = () => {
                       success: true,
                     },
                   });
+                  // If two-phase, keep reading stream for supplements event
+                  if (event.two_phase) {
+                    setIsLoadingSupplements(true);
+                  }
+                  // Don't return -- continue reading for supplements
+                } else if (event.type === 'supplements') {
+                  setIsLoadingSupplements(false);
+                  if (onSupplements && event.lesson) {
+                    onSupplements(event.lesson);
+                  }
+                  return;
+                } else if (event.type === 'supplements_failed') {
+                  setIsLoadingSupplements(false);
+                  console.warn('Supplements failed:', event.message);
                   return;
                 } else if (event.type === 'error') {
                   const errCode = event.code as string | undefined;
                   const errMsg = (event.error as string) || 'Generation failed';
-                  if (errCode !== API_ERROR_CODES.LIMIT_REACHED) {
-                    toast({
-                      title: "Generation Failed",
-                      description: errMsg,
-                      variant: "destructive",
-                    });
+                  if (!phase1Resolved) {
+                    if (errCode !== API_ERROR_CODES.LIMIT_REACHED) {
+                      toast({
+                        title: "Generation Failed",
+                        description: errMsg,
+                        variant: "destructive",
+                      });
+                    }
+                    resolve({ success: false, error: errMsg, code: errCode });
+                    phase1Resolved = true;
                   }
-                  resolve({ success: false, error: errMsg, code: errCode });
+                  setIsLoadingSupplements(false);
                   return;
                 }
               }
             }
           } catch (readError: any) {
-            resolve({ success: false, error: readError.message || 'Stream read error' });
+            if (!phase1Resolved) {
+              resolve({ success: false, error: readError.message || 'Stream read error' });
+            }
+            setIsLoadingSupplements(false);
           }
         })();
       });
@@ -154,12 +189,14 @@ export const useEnhanceLesson = () => {
       return { success: false, error: error.message };
     } finally {
       setIsGenerating(false);
+      // Note: isLoadingSupplements is NOT cleared here -- Phase 2 may still be running
     }
   };
 
   return {
     enhanceLesson,
     isEnhancing: isGenerating,
+    isLoadingSupplements,
     streamingContent,
     streamingTokenCount,
   };
