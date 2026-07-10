@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { API_ERROR_CODES } from "@/constants/apiErrorCodes";
@@ -19,7 +19,39 @@ export const useEnhanceLesson = () => {
   const [isLoadingSupplements, setIsLoadingSupplements] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [streamingTokenCount, setStreamingTokenCount] = useState(0);
+  const [supplementsProgress, setSupplementsProgress] = useState(0);
+  const supplementsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const supplementsWasActive = useRef(false);
   const { toast } = useToast();
+
+  // Phase 2 progress ramp: 0 -> 99% over ~35 seconds, snaps to 100% when supplements event fires
+  useEffect(() => {
+    if (isLoadingSupplements) {
+      supplementsWasActive.current = true;
+      setSupplementsProgress(0);
+      const startTime = Date.now();
+      const PHASE2_EXPECTED_MS = 35_000;
+      supplementsIntervalRef.current = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        setSupplementsProgress(Math.min(99, Math.round((elapsed / PHASE2_EXPECTED_MS) * 100)));
+      }, 500);
+    } else {
+      if (supplementsIntervalRef.current) {
+        clearInterval(supplementsIntervalRef.current);
+        supplementsIntervalRef.current = null;
+      }
+      if (supplementsWasActive.current) {
+        setSupplementsProgress(100);
+        supplementsWasActive.current = false;
+      }
+    }
+    return () => {
+      if (supplementsIntervalRef.current) {
+        clearInterval(supplementsIntervalRef.current);
+        supplementsIntervalRef.current = null;
+      }
+    };
+  }, [isLoadingSupplements]);
 
   const enhanceLesson = async (
     enhancementData: Record<string, any>,
@@ -197,6 +229,7 @@ export const useEnhanceLesson = () => {
     enhanceLesson,
     isEnhancing: isGenerating,
     isLoadingSupplements,
+    supplementsProgress,
     streamingContent,
     streamingTokenCount,
   };

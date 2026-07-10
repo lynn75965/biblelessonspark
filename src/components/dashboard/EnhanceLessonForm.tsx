@@ -583,6 +583,9 @@ export function EnhanceLessonForm({
   const [includeCultural, setIncludeCultural] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const generationStartRef = useRef<number | null>(null);
+  const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const generationLessonTypeRef = useRef<'full' | 'short' | null>(null);
   const [generatedLesson, setGeneratedLesson] = useState<any>(null);
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
@@ -760,7 +763,7 @@ export function EnhanceLessonForm({
   // HOOKS
   // ============================================================================
 
-  const { enhanceLesson, isEnhancing, isLoadingSupplements, streamingContent, streamingTokenCount } = useEnhanceLesson();
+  const { enhanceLesson, isEnhancing, isLoadingSupplements, supplementsProgress, streamingContent, streamingTokenCount } = useEnhanceLesson();
   const { reshapeLesson, isReshaping } = useReshapeLesson();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [senderDisplayName, setSenderDisplayName] = useState("");
@@ -998,15 +1001,40 @@ export function EnhanceLessonForm({
   // PROGRESS TIMER
   // ============================================================================
 
+  // Phase 1 progress: time-elapsed ramp calibrated to lesson type.
+  // Full 8-section lesson (two-phase): S1-5 streams in ~80s -> 80s denominator.
+  // Short 3-section lesson (single-phase): streams in ~30s -> 35s denominator.
+  // Lesson type is captured once when generation starts (generationLessonTypeRef)
+  // so mid-run subscription state changes can't corrupt the calibration.
   useEffect(() => {
     if (!isSubmitting && !isEnhancing) {
-      setGenerationProgress(0);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      generationStartRef.current = null;
+      generationLessonTypeRef.current = null;
       return;
     }
-    // Token-based progress: ~4,300 tokens for a full lesson at median output.
-    const pct = Math.min(99, Math.round((streamingTokenCount / 4300) * 100));
-    setGenerationProgress(pct);
-  }, [isSubmitting, isEnhancing, streamingTokenCount]);
+    if (generationStartRef.current === null) {
+      generationStartRef.current = Date.now();
+      generationLessonTypeRef.current = nextLessonType;
+      setGenerationProgress(0);
+    }
+    if (progressIntervalRef.current) return;
+    const isShortLesson = generationLessonTypeRef.current === 'short';
+    const PHASE1_EXPECTED_MS = isShortLesson ? 35_000 : 80_000;
+    progressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - (generationStartRef.current ?? Date.now());
+      setGenerationProgress(Math.min(99, Math.round((elapsed / PHASE1_EXPECTED_MS) * 100)));
+    }, 500);
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+    };
+  }, [isSubmitting, isEnhancing, nextLessonType]);
 
   // ============================================================================
   // SERIES STYLE - Derived from selectedSeries (Phase 24)
@@ -2764,13 +2792,18 @@ export function EnhanceLessonForm({
           <CardHeader>
             {/* Supplements loading banner: visible while Phase 2 (S6-S8 + Teaser) is being generated */}
             {isLoadingSupplements && !viewingLesson && (
-              <div
-                className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-3"
-                role="status"
-                aria-live="polite"
-              >
-                <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" aria-hidden="true" />
-                <span>Sections 6, 7, and 8 are being prepared and will appear shortly...</span>
+              <div className="mb-3" role="status" aria-live="polite">
+                <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" aria-hidden="true" />
+                  <span>Preparing Sections 6, 7 &amp; 8... {supplementsProgress}%</span>
+                </div>
+                <div className="mt-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-amber-400 transition-all duration-500 ease-out"
+                    style={{ width: `${supplementsProgress}%` }}
+                    aria-hidden="true"
+                  />
+                </div>
               </div>
             )}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
