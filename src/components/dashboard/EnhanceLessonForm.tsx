@@ -1023,7 +1023,7 @@ export function EnhanceLessonForm({
     }
     if (progressIntervalRef.current) return;
     const isShortLesson = generationLessonTypeRef.current === 'short';
-    const PHASE1_EXPECTED_MS = isShortLesson ? 35_000 : 80_000;
+    const PHASE1_EXPECTED_MS = isShortLesson ? 52_000 : 80_000;
     progressIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - (generationStartRef.current ?? Date.now());
       setGenerationProgress(Math.min(99, Math.round((elapsed / PHASE1_EXPECTED_MS) * 100)));
