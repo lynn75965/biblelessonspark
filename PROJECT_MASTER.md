@@ -1,6 +1,110 @@
-# PROJECT MASTER -- Last updated: July 9, 2026 (Session 4: Two-Phase Generation -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 13, 2026 (Session 5: Lovable Scaffold Purge -- SHIPPED)
 
-## >>> RESUME HERE <<< -- Two-phase generation LIVE (commits cb530a7, edb5377, a16c775, pushed to main). Full 8-section lessons: Phase 1 (S1-5) streams and saves at ~80s; Phase 2 (S6-8+Teaser) derived and appended at ~30s later. Short 3-section lessons unaffected (single-phase). Progress bars calibrated per lesson type. VERIFIED by Lynn on localhost before deploy. No carry-forward items from this session.
+## >>> RESUME HERE <<< -- Lovable scaffold artifacts fully purged from the public repo (commit cdd587f, pushed to main; edge functions deployed separately). Two live edge-function fixes: resend-verification's email-verification redirect now resolves through the getBaseUrl/getBranding SSOT instead of a hardcoded '.lovable.app' substitution (was a live bug -- redirected users to a nonexistent domain); ocr-image's CORS allow-list no longer accepts '.lovable.app' origins. lovable-tagger removed from package.json, stale bun.lockb/index.html.bak/four planning docs deleted, README.md rewritten, MASTER-PLAN.md purged of Lovable references (kept as living doc). VERIFIED by Lynn on localhost before deploy. One carry-forward item: backup_before_ssot_2026-01-14_120027/ (see below).
+
+## JULY 13, 2026 SESSION -- Lovable Scaffold Artifact Purge (Session 5)
+
+GOAL: Standing directive -- Lovable is NOT to be involved with BLS in any way.
+Hosting is confirmed Netlify-only (verified via DNS + response headers July 13,
+2026). The repo still carried Lovable scaffold artifacts from its original
+generation; the repo is PUBLIC, so lingering references misrepresent the
+platform's provenance. Purge all of them.
+
+INVENTORY (read-only, presented for approval before any change):
+Ran `grep -ri "lovable"` repo-wide (excluding node_modules/.git) plus checked
+all known scaffold locations. Found: vite.config.ts and index.html were
+ALREADY CLEAN (no componentTagger, no Lovable meta tags -- prior cleanup had
+already caught these). Real hits fell into three buckets: build-affecting
+(package.json/package-lock.json/bun.lockb), inert docs (README.md,
+index.html.bak, four stale planning .txt/.md files, MASTER-PLAN.md), and two
+LOAD-BEARING edge-function references that conflicted with the session's
+original "no edge function changes" scope -- flagged and stopped for
+Lynn's explicit approval before touching.
+
+CHANGES SHIPPED (commit cdd587f; edge functions deployed individually via
+--use-api before the frontend commit):
+
+1. supabase/functions/resend-verification/index.ts (deployed)
+   FIXED A LIVE BUG: redirectTo was built as
+   `${SUPABASE_URL.replace('.supabase.co', '.lovable.app')}/setup` -- pointed
+   real users clicking "resend verification email" at a nonexistent Lovable
+   preview domain instead of the live site.
+   CHANGED: now imports getBranding + getBaseUrl from _shared/branding.ts
+   (the same SSOT pattern notify-team-invitation uses) and builds
+   `${getBaseUrl(branding)}/setup`, correctly resolving to
+   https://biblelessonspark.com/setup.
+
+2. supabase/functions/ocr-image/index.ts (deployed)
+   CHANGED: CORS allow-list check dropped `origin.includes('.lovable.app')`.
+   `.supabase.co` and the biblelessonspark.com domains left intact.
+   ALSO FIXED (unrelated pre-existing corruption, discovered mid-session):
+   this file carried a leading UTF-8 BOM (\xEF\xBB\xBF) already present in
+   the last committed HEAD version -- not introduced this session, but it
+   blocked the ASCII-guard pre-commit hook once the file was re-staged.
+   Stripped via byte-level PowerShell (read bytes, drop first 3 if EF BB BF,
+   write back) rather than a text re-encode, to avoid touching anything else
+   in the file. Confirms Rule: the ASCII guard only scans files that get
+   RE-STAGED in a given commit, not the whole repo every time -- other
+   untouched files could carry similar undetected BOM corruption.
+
+3. package.json / package-lock.json
+   REMOVED: lovable-tagger devDependency. `npm install` regenerated the
+   lockfile clean (9 packages removed), zero lovable-tagger references left.
+
+4. Deleted outright (git-tracked, now gone from the public repo):
+   bun.lockb (stale/unused -- project uses npm, not Bun; only purpose was a
+     lovable-tagger lockfile entry), index.html.bak (stray backup file, not
+     read by Vite, carried old lovable.dev og-image/twitter meta),
+   CONTINUATION_PROMPT.txt, CONTINUATION_PROMPT_PHASE5_ARCHITECTURAL.txt,
+   PHASE9_CONTINUATION.txt, PHASE9_DEPLOYMENT_CHECKLIST.md (stale planning
+   docs referencing Lovable.dev as the dev/deploy platform -- factually
+   wrong for 2026, hosting has been Netlify).
+
+5. README.md -- full rewrite. Removed all "Use Lovable" / "Edit in Lovable"
+   boilerplate and the lovable.dev project URL. Now states the real stack
+   (Vite/React/TS/Tailwind/Supabase/Stripe/Netlify), accurate local-dev
+   steps, and points to CLAUDE.md for the deploy workflow.
+
+6. MASTER-PLAN.md -- Lovable references purged ONLY (kept as a living doc
+   per Lynn's instruction, not deleted): "Built on Lovable.dev" ->
+   "Built with", "Development: Lovable.dev with automatic deployment" line
+   removed, "Frontend (Lovable -> Netlify)" -> "Frontend (GitHub ->
+   Netlify)" with "Edit in Lovable.dev" -> "Edit locally" (both the
+   deployment-process and dev-workflow sections). Everything else in that
+   file (stale 12-section/2000-word references, Claude Sonnet 4 mention,
+   old repo name lesson-spark-usa) left untouched -- out of this session's
+   scope.
+
+NOT TOUCHED (correct as-is): CLAUDE.md:48 and PROJECT_MASTER_UPDATE.md:208
+both correctly STATE the Lovable ban -- they are the rule, not a violation.
+
+VERIFICATION GATE (all passed):
+- Repo-wide `grep -ri "lovable"` returns zero hits except the two ban
+  statements above and one comment inside
+  backup_before_ssot_2026-01-14_120027/src/utils/formatLessonContent.ts:12
+  (see carry-forward below).
+- `npm run build`: clean, zero errors.
+- ASCII guard: passed on the re-run after the BOM fix (first attempt was
+  correctly blocked by the guard -- see BOM note above).
+- Lynn verified on localhost:8080 (dev server, componentTagger removal did
+  not break dev mode) before deploy approval.
+
+DEPLOY SEQUENCE: edge functions deployed ONE AT A TIME via
+`npx supabase functions deploy <name> --project-ref hphebzdftpjbiudpfcrs
+--use-api` (both confirmed clean) BEFORE the frontend/docs commit, per
+Lynn's explicit two-step approval. Frontend/docs: `.\deploy.ps1 "PURGE:
+Remove Lovable scaffold artifacts"` -- first attempt blocked by the ASCII
+guard (BOM above), fixed, re-run succeeded: commit cdd587f, 12 files
+changed (38 insertions, 1543 deletions), pushed to main. Netlify
+auto-deploy triggered.
+
+CARRY-FORWARD:
+1. backup_before_ssot_2026-01-14_120027/ -- a ~150-file git-tracked
+   historical backup directory. Contains one inert Lovable-referencing
+   comment (out of this session's scope). Broader question left open: is a
+   ~150-file frozen backup snapshot appropriate to keep tracked in a PUBLIC
+   repo at all (public-repo hygiene), or should it be purged/archived
+   outside git? Lynn explicitly deferred this decision to a future session.
 
 ## JULY 9, 2026 SESSION -- Two-Phase Derived Generation (Session 4)
 
