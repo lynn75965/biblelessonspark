@@ -3,7 +3,7 @@ Last Updated: 2025-11-23 21:30 CT
 Status: Phase 5 In Progress - Timeout Debugging Required
 
 ## PROJECT OVERVIEW
-Baptist Bible study lesson generator serving volunteer teachers in Southern Baptist Convention churches. Built on Lovable.dev with React/TypeScript, Supabase backend, Claude AI generation, and Stripe payments.
+Baptist Bible study lesson generator serving volunteer teachers in Southern Baptist Convention churches. Built with React/TypeScript, Supabase backend, Claude AI generation, and Stripe payments.
 
 ## CORE ARCHITECTURE PRINCIPLES
 1. **Single Source of Truth (SSOT)**: All constants defined once in authoritative files
@@ -18,7 +18,6 @@ Baptist Bible study lesson generator serving volunteer teachers in Southern Bapt
 - **Payments**: Stripe
 - **Hosting**: Netlify (custom domain: bibleBibleLessonSpark.com)
 - **Version Control**: GitHub (lynn75965/lesson-spark-usa)
-- **Development**: Lovable.dev with automatic deployment
 
 ## SSOT ARCHITECTURE
 
@@ -235,9 +234,9 @@ Baptist Bible study lesson generator serving volunteer teachers in Southern Bapt
 
 ## DEPLOYMENT PROCESS
 
-### Frontend (Lovable → Netlify)
-1. Edit in Lovable.dev
-2. Auto-commit to GitHub (lynn75965/lesson-spark-usa)
+### Frontend (GitHub → Netlify)
+1. Edit locally
+2. Commit and push to GitHub (lynn75965/lesson-spark-usa)
 3. Netlify auto-deploys from main branch
 4. Live at: bibleBibleLessonSpark.com
 
@@ -278,7 +277,7 @@ supabase functions deploy
    - Plan frontend-first
 
 2. **Implementation**
-   - Frontend: Edit in Lovable.dev
+   - Frontend: Edit locally
    - Backend: Local PowerShell + Supabase CLI
    - Test: bibleBibleLessonSpark.com/dashboard
 

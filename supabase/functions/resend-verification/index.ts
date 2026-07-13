@@ -1,5 +1,6 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { getBranding, getBaseUrl } from '../_shared/branding.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,12 +66,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // SSOT: resolve the redirect through branding config, not a hardcoded domain
+    const branding = await getBranding(supabaseClient)
+    const baseUrl = getBaseUrl(branding)
+
     // Generate new verification link
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'signup',
       email: user.email!,
       options: {
-        redirectTo: `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}/setup`,
+        redirectTo: `${baseUrl}/setup`,
       }
     })
 

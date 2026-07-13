@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 // Secure CORS configuration
@@ -19,7 +19,6 @@ function getCorsHeaders(req: Request) {
   const origin = req.headers.get('origin');
   const isAllowed = origin && (
     allowedOrigins.includes(origin) ||
-    origin.includes('.lovable.app') ||
     origin.includes('.supabase.co')
   );
   
