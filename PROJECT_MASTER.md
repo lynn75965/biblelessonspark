@@ -1,6 +1,94 @@
-# PROJECT MASTER -- Last updated: July 13, 2026 (Session 5: Lovable Scaffold Purge -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 13, 2026 (Session 6: Terms of Service / Privacy Policy Replacement -- SHIPPED)
 
-## >>> RESUME HERE <<< -- Lovable scaffold artifacts fully purged from the public repo (commit cdd587f, pushed to main; edge functions deployed separately). Two live edge-function fixes: resend-verification's email-verification redirect now resolves through the getBaseUrl/getBranding SSOT instead of a hardcoded '.lovable.app' substitution (was a live bug -- redirected users to a nonexistent domain); ocr-image's CORS allow-list no longer accepts '.lovable.app' origins. lovable-tagger removed from package.json, stale bun.lockb/index.html.bak/four planning docs deleted, README.md rewritten, MASTER-PLAN.md purged of Lovable references (kept as living doc). VERIFIED by Lynn on localhost before deploy. One carry-forward item: backup_before_ssot_2026-01-14_120027/ (see below).
+## >>> RESUME HERE <<< -- src/pages/TermsOfService.tsx and src/pages/PrivacyPolicy.tsx fully replaced with the final EckBros Media LLC legal documents (commit 10163e5, pushed to main). Both dated Last Updated: July 13, 2026. Content is an exact section-by-section match to the source markdown (heading numbers kept verbatim, all curly quotes/apostrophes/em-dashes converted to JSX unicode-escape expressions per Rule #16). Added aria-labelledby/id on every h2 section, matching the ChurchPlantReport.tsx accessibility pattern. VERIFIED by Lynn on localhost before deploy. No carry-forward items from this session (the Lovable-purge carry-forward from Session 5 -- backup_before_ssot_2026-01-14_120027/ -- is still open, see that session's block below).
+
+## JULY 13, 2026 SESSION -- Terms of Service / Privacy Policy Replacement (Session 6)
+
+GOAL: Replace the placeholder/legacy content of the live Terms of Service and
+Privacy Policy pages with two finalized legal documents Lynn had drafted
+(BLS_Terms_of_Service.md, BLS_Privacy_Policy.md), dated Last Updated: July 13,
+2026. Exact-match requirement: every section, heading, and sentence, no
+paraphrasing, no summarizing, no additions.
+
+SOURCE FILE LOCATION CORRECTION: the task said the two markdown files were
+placed in the repo root, but they were not there (confirmed via ls + Glob
+across the whole repo). Lynn provided the actual location mid-session:
+C:\Users\lynn\Downloads\BLS_Terms_of_Service.md and
+C:\Users\lynn\Downloads\BLS_Privacy_Policy.md. Read from there instead. Since
+the files were never in the repo, step 6 of the original task (delete the
+source .md files after conversion) did not apply -- confirmed via `git status`
+and `git ls-files` that neither file was ever tracked or staged.
+
+PART 1 (read-only locate, approved before any change):
+- src/pages/TermsOfService.tsx <-> ROUTES.TERMS ('/legal/terms')
+- src/pages/PrivacyPolicy.tsx <-> ROUTES.PRIVACY ('/legal/privacy')
+  Both wired in App.tsx:168-169 already -- no route changes needed.
+- Existing pattern (identical in both files): BRANDING.layout.legalPageWrapper
+  (outer) + legalPageCard (inner), ghost Back button, h1 + Last-Updated <p>,
+  then a .prose wrapper of <section> blocks (no aria-labelledby previously),
+  h2/h3/p/ul all already using theme tokens (text-foreground, bg-card,
+  text-muted-foreground) -- no bg-white/text-slate hardcodes existed in the
+  body content already, so no theme-awareness fix was actually needed there.
+- BRANDING.layout.legalPageWrapper itself carries a hardcoded light gradient
+  (from-green-50 to-amber-50, no dark: variant) but this is the SAME wrapper
+  already in production use on ChurchPlantReport.tsx, which the May 27
+  Session A theme-awareness audit explicitly confirmed as "ALREADY
+  theme-aware." Kept unchanged -- it's the accepted pattern, not a violation.
+- Accessibility pattern adopted: ChurchPlantReport.tsx's
+  <section aria-labelledby="slug"><h2 id="slug"> convention (that file also
+  uses legalPageWrapper and was already aria-labelledby-audited). Applied to
+  every h2 in both files; h3 subsections stay plain inside the parent
+  <section>, matching the pre-existing subsection style.
+- Non-ASCII inventory (exact, both files, confirmed via grep -Pn before
+  writing): curly double quotes / apostrophe / one em-dash (Privacy Policy
+  Section 6 provider list, x5). No other special characters.
+
+PART 2 (implementation, commit 10163e5):
+- Full-file rewrite of both TSX files. Every numbered heading kept VERBATIM
+  including its number (e.g. "1. Acceptance of Terms", "3.1 Age
+  Requirement") -- exact-match requirement, no paraphrasing.
+- Slugs for aria-labelledby/id: text-derived (Lynn's explicit choice),
+  e.g. id="acceptance-of-terms", id="teaching-teams-and-organization-plans".
+- **bold** markdown spans -> <strong>. Bulleted lists -> <ul><li>. The one
+  numbered list in Terms Section 15 (liability cap, "1./2.") -> <ol><li>.
+  Contact-block trailing-double-space line breaks -> <p> with <br />.
+- CAUGHT AND FIXED MID-SESSION: the first Write-tool pass pasted LITERAL
+  curly-quote/apostrophe/em-dash glyphs into the JSX expression containers
+  instead of the intended backslash-u escape text -- exactly the
+  known trap in [[feedback_unicode_escape_traps]]. Caught immediately via
+  `grep -Pn '[^\x00-\x7F]'` on both files before build/commit. Fixed with a
+  byte-safe PowerShell pass: read as UTF8 text, String.Replace() each
+  literal glyph (matched via [char]0x201C/0x201D/0x2019/0x2014) with its
+  plain-ASCII \uXXXX escape text, write back with WriteAllText +
+  UTF8Encoding(false). Also hit and worked around a second PowerShell
+  gotcha: embedding the literal curly glyph directly in a command
+  parameter (even as the intended replacement VALUE) corrupted the
+  PowerShell parser downstream -- resolved by building the escape text
+  from character codes only, zero literal Unicode anywhere in the command.
+  Both traps are now documented in [[feedback_unicode_escape_traps]] for
+  future sessions.
+- Verification before build: cross-checked <h2>/<h3>/<li> counts in each
+  TSX file against `grep -c '^## '` / `'^### '` / `'^- '` on the source
+  markdown -- exact match on every count (Terms: 20 h2, 29 h3, 85 li
+  [83 bullets + 2 <ol> items]; Privacy: 15 h2, 6 h3, 82 li).
+
+PART 3 (verify, all passed):
+- `LC_ALL=C.UTF-8 grep -Pn '[^\x00-\x7F]'` on both files: zero hits.
+- `npm run build`: clean, zero errors.
+- Dev server: port 8080 was already occupied (leftover from an earlier
+  session), Vite fell back to 8081 automatically -- flagged the actual
+  URLs to Lynn rather than assuming the usual 8080.
+- Lynn verified both pages section-by-section against the markdown on
+  localhost:8081 before deploy approval.
+
+DEPLOY: frontend-only, no edge functions/migrations/SSOT touched (per
+Lynn's explicit constraint). `git status` confirmed only the two page
+files staged before running deploy.ps1. Commit 10163e5, 2 files changed
+(924 insertions, 360 deletions), pushed to main. Netlify auto-deploy
+triggered.
+
+CARRY-FORWARD: none new from this session. The Session 5 (Lovable purge)
+carry-forward on backup_before_ssot_2026-01-14_120027/ is still open.
 
 ## JULY 13, 2026 SESSION -- Lovable Scaffold Artifact Purge (Session 5)
 
