@@ -413,6 +413,52 @@ removal of a protected system path). Write multi-step DB scripts to a .ps1
 file under gitignored backups/, show the complete contents for review, then
 execute as a single `powershell -File "path\to\script.ps1"` command.
 
+### Rule #28: CI pipeline exists (GitHub Actions) -- alarm, not a gate
+Added July 14, 2026 (B3 session). Two workflows live in .github/workflows/:
+
+- `ci.yml` -- runs on every push/PR to main. Three jobs: build (`npm ci &&
+  npm run build`), ascii-guard (`scripts/pre-commit-ascii-guard.sh
+  --tracked`, repo-wide), lint (`npm run lint`). ascii-guard and lint are
+  currently REPORT-ONLY -- the step always exits 0 and prints a
+  `<NAME> BASELINE: N` summary line instead of using `continue-on-error`
+  (which still renders the job as flagged/failing in the Checks UI). This
+  is because their baselines are not clean as of 2026-07-14: 27 pre-existing
+  ASCII violations and 342 pre-existing lint errors (see PROJECT_MASTER.md
+  "ASCII baseline cleanup session" for the full categorized file map). Flip
+  each back to a plain failing command once its baseline is zeroed. Netlify
+  auto-deploys on every push regardless of CI result -- CI runs after the
+  push has already landed, so this is an alarm, not a gate. True pre-merge
+  gating would require abandoning direct-push-to-main for a branch+PR flow
+  (GitHub can't block a direct push with required status checks, only PR
+  merges) -- documented as an optional click-path, not enabled.
+- `edge-function-staleness.yml` -- weekly (Monday 13:00 UTC) + manual
+  dispatch. Compares each edge function's last git commit against its
+  deployed timestamp (`supabase functions list --output json`; `updated_at`
+  is epoch MILLISECONDS, not an ISO string) and flags anything where git is
+  newer than deployed by more than 48 hours (`STALE_THRESHOLD_SECONDS`,
+  172800). NOT a short threshold like 5 minutes -- the normal workflow
+  deploys a function mid-session then commits to git at session-end,
+  sometimes hours later, producing git-newer gaps up to ~3h18m with zero
+  real drift; only a genuinely forgotten redeploy sits stale for the ~30
+  days a real one has shown. Requires repo secret `SUPABASE_ACCESS_TOKEN`
+  (a personal access token from supabase.com/dashboard/account/tokens).
+  Deployed-newer-than-git is always fine and never flagged -- dashboard
+  `updated_at` can be re-stamped by unrelated `--use-api` deploy activity
+  unrelated to the function's own code.
+
+The ASCII guard's authoritative implementation is now
+`scripts/pre-commit-ascii-guard.sh` (tracked in git, two modes: `--staged`
+for the local hook, `--tracked` for CI's repo-wide run). `.git/hooks/pre-
+commit` is now a 2-line delegator to that script -- `.git/hooks/` is never
+versioned by git, so reinstall it after a fresh clone per README.md's Local
+Development section. Do NOT recreate the old fully-inline hook; the tracked
+script is the single source of truth so the local hook and CI can never
+drift out of sync with each other. The script forces `LC_ALL=C.UTF-8` /
+`LANG=C.UTF-8` internally: `grep -P` silently matches nothing (instead of
+erroring) under a non-UTF-8 or unset locale, which is a real correctness
+gap in the guard itself, not a cosmetic one -- discovered when a locale-
+less shell reported a known-BOM'd file as clean.
+
 ---
 
 ## DEBUGGING PROTOCOL

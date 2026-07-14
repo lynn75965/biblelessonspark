@@ -1,15 +1,25 @@
-# PROJECT MASTER -- Last updated: July 14, 2026 (Session B3: CI Pipeline -- IN PROGRESS)
+# PROJECT MASTER -- Last updated: July 14, 2026 (Session B3: CI Pipeline -- SHIPPED)
 
-## >>> RESUME HERE <<< -- B3 (CI Pipeline) IN PROGRESS. Phase 1 (build/ASCII-guard/lint
-audit) and Phase 2 (staleness-check design) diagnostics complete; Phase 3 (write
-workflow files) in progress. See the B3 session block below for full detail,
-findings, and named carry-forwards (9 gap functions + 2 orphan functions folded
-into B5; eslint baseline cleanup and temp_working_version.ts deletion candidate
-are separate future-work items).
+## >>> RESUME HERE <<< -- B3 (CI Pipeline) is COMPLETE and FULLY CLOSED OUT. Two GitHub
+Actions workflows are live: ci.yml (build/ascii-guard/lint on every push+PR to
+main -- ascii-guard and lint currently report-only pending baseline cleanups)
+and edge-function-staleness.yml (weekly + manual-dispatch, 48h threshold).
+Both acceptance tests passed: CI run all-green on commit 5460911 (build,
+ascii-guard, lint), staleness run #1 flagged exactly the two known-stale
+functions (create-checkout-session, create-portal-session), both were
+verified (download+diff vs git HEAD -- comment-only + BOM, no functional
+change) and redeployed one at a time, and staleness run #2 came back clean
+(zero flags, exit 0) -- the end-to-end proof. B3 joins B1 and B2 as shipped.
+One HIGH-priority finding surfaced along the way and is NOT closed: see
+"HIGH-PRIORITY FINDING" in the B3 session block below --
+create-checkout-session accepts an arbitrary price_id with no validation
+against pricingConfig.ts, live in production, scheduled as a dedicated fix
+or the first item of B5. Remaining Gate 1 work: B4 (model fallback) and B5
+(security completion, now headlined by that price_id gap).
 
 ## >>> PRIOR RESUME <<< -- B2 (Staging project + tested backup restore) is COMPLETE and FULLY CLOSED OUT, including post-session cleanup. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is docs/RESTORE_RUNBOOK.md (committed, pushed). Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. POST-SESSION CLEANUP (same day, July 14, 2026): both the production and staging DB passwords were rotated by Lynn; the two B2 commits (2e75914, e46df66) were confirmed as the only unpushed commits (B1's commits were already on origin/main) and pushed -- range 17a9acf..e46df66; the PGPASSWORD lines in all three restore-session .ps1 scripts were stripped and grep-verified clean of both retired password strings; the entire backups/B2_2026-07-14/ folder (13 files, 12MB -- the raw dump files, stripped scripts, and restore logs) was then deleted outright now that its one-time job (proving the runbook works) is done and documented. Nothing about this touched git -- the folder was always gitignored, `git status --short` confirmed empty before and after deletion. One carry-forward remains open, see this session's block below: BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list). If a future session needs to re-run the restore procedure (e.g. to refresh staging or test DR again), docs/RESTORE_RUNBOOK.md has the complete, tested, standalone command sequence -- none of it depended on the now-deleted backups/B2_2026-07-14/ folder persisting.
 
-## JULY 14, 2026 SESSION (LATEST) -- CI Pipeline (B3) -- IN PROGRESS
+## JULY 14, 2026 SESSION (LATEST) -- CI Pipeline (B3) -- SHIPPED
 
 GOAL: Automated checks on every push to main (build, ASCII guard, report-only
 lint) so broken builds and non-ASCII source get caught by machinery instead
@@ -231,6 +241,36 @@ data-exposure one -- but money-flow correctness is exactly what Gate 1
 exists for. **Fix required before surge. Schedule as a dedicated mini-session
 or the first item of B5**, not folded into the routine ASCII/eslint hygiene
 carry-forward above.
+
+### End-to-end proof (staleness run #2, post-redeploy)
+
+Manual dispatch after both redeploys: zero flags, exit 0, clean pass. This
+confirms the whole staleness-check design works both directions -- it
+correctly flagged the two genuinely stale functions in run #1, and
+correctly cleared once they were brought current in run #2. B3 CLOSED.
+
+### SESSION SUMMARY -- B3 (files/commits/carry-forwards at a glance)
+
+Files added: `.github/workflows/ci.yml`, `.github/workflows/edge-function-
+staleness.yml`, `scripts/pre-commit-ascii-guard.sh`. Files changed:
+`README.md` (hook reinstall note), `.git/hooks/pre-commit` (now a 2-line
+delegator, untracked -- not a commit), `PROJECT_MASTER.md` (this log).
+Commits: `4db4200` (CI pipeline + staleness workflow), `5460911` (ASCII
+guard report-only + locale hardening fix), `acfc9bb` (Phase 3-5 docs +
+HIGH-priority finding). All pushed to origin/main.
+
+Carry-forwards opened this session (none closed from before): ASCII
+baseline cleanup (27 files, categorized map above, paired with eslint's
+342 errors), `temp_working_version.ts` deletion candidate, PR-based gating
+option (documented, not enabled), 9 same-session-lag functions + 2
+deployed-but-not-in-git orphan functions (both folded into B5), and the
+HIGH-priority `create-checkout-session` price_id validation gap (also
+B5-bound, but called out as HIGH/distinct rather than routine).
+
+Gate 1 status per Lynn: B1, B2, B3 shipped. Remaining: B4 (model fallback),
+B5 (security completion -- now headlined by the price_id gap above, plus
+the carried-forward items from this session and the June 18 audit's
+already-closed findings for context).
 
 ## JULY 14, 2026 SESSION (LATER) -- Staging project + tested backup restore (B2) -- SHIPPED
 
