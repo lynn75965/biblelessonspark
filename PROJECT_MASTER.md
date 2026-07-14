@@ -1,6 +1,6 @@
 # PROJECT MASTER -- Last updated: July 14, 2026 (Session B2: Staging project + tested backup restore -- SHIPPED)
 
-## >>> RESUME HERE <<< -- B2 (Staging project + tested backup restore) is COMPLETE. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is now docs/RESTORE_RUNBOOK.md. Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. Two carry-forwards open, see this session's block below: (1) production and staging DB passwords both need rotating (both passed through this session's transcript) and the three restore-script .ps1 files under backups/B2_2026-07-14/ need their password lines stripped or the files deleted, (2) BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list).
+## >>> RESUME HERE <<< -- B2 (Staging project + tested backup restore) is COMPLETE and FULLY CLOSED OUT, including post-session cleanup. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is docs/RESTORE_RUNBOOK.md (committed, pushed). Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. POST-SESSION CLEANUP (same day, July 14, 2026): both the production and staging DB passwords were rotated by Lynn; the two B2 commits (2e75914, e46df66) were confirmed as the only unpushed commits (B1's commits were already on origin/main) and pushed -- range 17a9acf..e46df66; the PGPASSWORD lines in all three restore-session .ps1 scripts were stripped and grep-verified clean of both retired password strings; the entire backups/B2_2026-07-14/ folder (13 files, 12MB -- the raw dump files, stripped scripts, and restore logs) was then deleted outright now that its one-time job (proving the runbook works) is done and documented. Nothing about this touched git -- the folder was always gitignored, `git status --short` confirmed empty before and after deletion. One carry-forward remains open, see this session's block below: BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list). If a future session needs to re-run the restore procedure (e.g. to refresh staging or test DR again), docs/RESTORE_RUNBOOK.md has the complete, tested, standalone command sequence -- none of it depended on the now-deleted backups/B2_2026-07-14/ folder persisting.
 
 ## JULY 14, 2026 SESSION (LATER) -- Staging project + tested backup restore (B2) -- SHIPPED
 
@@ -129,15 +129,26 @@ sequence-fixup step, verification queries with pass criteria keyed to live
 counts rather than hardcoded numbers, what's excluded and where its real
 recovery path lives, and a session-end password-rotation checklist).
 
+POST-SESSION CLEANUP (same day, July 14, 2026, after initial SHIPPED
+sign-off): Lynn rotated both the production DB password (hphebzdftpjbiudpfcrs)
+and the staging DB password (hfamquasdbiumpzjwqsy). The two B2 commits
+(2e75914, e46df66) were confirmed as the only commits not yet on
+origin/main -- B1's commits (17a9acf and earlier) were already pushed
+before B2 started -- and were pushed (range 17a9acf..e46df66). The
+PGPASSWORD lines in all three restore-session .ps1 scripts
+(run_dumps.ps1, restore_staging_1.ps1, restore_staging_2.ps1) were
+stripped to empty strings with an annotation, then grep-verified that
+neither retired password string appeared anywhere left in the folder. The
+entire backups/B2_2026-07-14/ folder (13 files, 12MB) was then deleted
+outright on Lynn's instruction, now that its one-time job -- proving the
+runbook actually works -- is done and fully documented in
+docs/RESTORE_RUNBOOK.md, which is a complete standalone procedure that
+does not depend on any file from that folder persisting. The folder was
+always gitignored; git status was confirmed empty before and after
+deletion, so this cleanup touched nothing tracked.
+
 CARRY-FORWARD (open at session end):
-(1) PASSWORD ROTATION REQUIRED: both the production DB password
-(hphebzdftpjbiudpfcrs) and the staging DB password (hfamquasdbiumpzjwqsy)
-passed through this session's transcript and must be rotated. Also delete
-or strip the password line from the three .ps1 scripts left under
-backups/B2_2026-07-14/ (run_dumps.ps1, restore_staging_1.ps1,
-restore_staging_2.ps1) -- gitignored so never at risk of being committed,
-but they persist on disk with a live credential otherwise.
-(2) STAGING PARITY GAPS: BLS-staging has schema+data only. No deployed
+(1) STAGING PARITY GAPS: BLS-staging has schema+data only. No deployed
 Edge Functions, no Edge Function secrets, no Realtime publication table
 membership, no populated auth.users (no one can log into it), not wired to
 Stripe. Treat as database-only until a future session deliberately extends
