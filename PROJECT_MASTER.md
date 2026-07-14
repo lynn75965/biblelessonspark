@@ -1,6 +1,108 @@
-# PROJECT MASTER -- Last updated: July 14, 2026 (Session B2: Staging project + tested backup restore -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 14, 2026 (Session B3: CI Pipeline -- IN PROGRESS)
 
-## >>> RESUME HERE <<< -- B2 (Staging project + tested backup restore) is COMPLETE and FULLY CLOSED OUT, including post-session cleanup. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is docs/RESTORE_RUNBOOK.md (committed, pushed). Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. POST-SESSION CLEANUP (same day, July 14, 2026): both the production and staging DB passwords were rotated by Lynn; the two B2 commits (2e75914, e46df66) were confirmed as the only unpushed commits (B1's commits were already on origin/main) and pushed -- range 17a9acf..e46df66; the PGPASSWORD lines in all three restore-session .ps1 scripts were stripped and grep-verified clean of both retired password strings; the entire backups/B2_2026-07-14/ folder (13 files, 12MB -- the raw dump files, stripped scripts, and restore logs) was then deleted outright now that its one-time job (proving the runbook works) is done and documented. Nothing about this touched git -- the folder was always gitignored, `git status --short` confirmed empty before and after deletion. One carry-forward remains open, see this session's block below: BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list). If a future session needs to re-run the restore procedure (e.g. to refresh staging or test DR again), docs/RESTORE_RUNBOOK.md has the complete, tested, standalone command sequence -- none of it depended on the now-deleted backups/B2_2026-07-14/ folder persisting.
+## >>> RESUME HERE <<< -- B3 (CI Pipeline) IN PROGRESS. Phase 1 (build/ASCII-guard/lint
+audit) and Phase 2 (staleness-check design) diagnostics complete; Phase 3 (write
+workflow files) in progress. See the B3 session block below for full detail,
+findings, and named carry-forwards (9 gap functions + 2 orphan functions folded
+into B5; eslint baseline cleanup and temp_working_version.ts deletion candidate
+are separate future-work items).
+
+## >>> PRIOR RESUME <<< -- B2 (Staging project + tested backup restore) is COMPLETE and FULLY CLOSED OUT, including post-session cleanup. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is docs/RESTORE_RUNBOOK.md (committed, pushed). Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. POST-SESSION CLEANUP (same day, July 14, 2026): both the production and staging DB passwords were rotated by Lynn; the two B2 commits (2e75914, e46df66) were confirmed as the only unpushed commits (B1's commits were already on origin/main) and pushed -- range 17a9acf..e46df66; the PGPASSWORD lines in all three restore-session .ps1 scripts were stripped and grep-verified clean of both retired password strings; the entire backups/B2_2026-07-14/ folder (13 files, 12MB -- the raw dump files, stripped scripts, and restore logs) was then deleted outright now that its one-time job (proving the runbook works) is done and documented. Nothing about this touched git -- the folder was always gitignored, `git status --short` confirmed empty before and after deletion. One carry-forward remains open, see this session's block below: BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list). If a future session needs to re-run the restore procedure (e.g. to refresh staging or test DR again), docs/RESTORE_RUNBOOK.md has the complete, tested, standalone command sequence -- none of it depended on the now-deleted backups/B2_2026-07-14/ folder persisting.
+
+## JULY 14, 2026 SESSION (LATEST) -- CI Pipeline (B3) -- IN PROGRESS
+
+GOAL: Automated checks on every push to main (build, ASCII guard, report-only
+lint) so broken builds and non-ASCII source get caught by machinery instead
+of memory, plus a separate weekly/manual edge-function staleness check, plus
+a carry-forward redeploy of the two known stale functions from B2.
+
+### Phase 1/2 diagnostics (read-only, no code changes)
+
+- No `.github/workflows/` existed before this session. No test suite
+  configured (no `test` script in package.json, no test framework
+  dependency) -- logged as future work below, not built this session.
+- The ASCII guard previously lived ONLY as an untracked `.git/hooks/pre-
+  commit` (installed locally, never committed) -- meaning it protected
+  nothing on a fresh clone, in CI, or against `git commit --no-verify`.
+  Fixed this session: the guard logic now lives in one tracked script,
+  `scripts/pre-commit-ascii-guard.sh`, with two modes (--staged for the
+  local hook, --tracked as the CI-authoritative full-repo scan). The local
+  `.git/hooks/pre-commit` is now a 2-line delegator to the tracked script.
+  Reinstall note added to README.md's Local Development section.
+- `npm run lint` baseline is NOT clean: 398 problems / 342 errors, mostly
+  `@typescript-eslint/no-explicit-any` in supabase/functions/* (stripe-
+  webhook, send-auth-email, sync-pricing-from-stripe, etc.), plus one hard
+  parse error on `temp_working_version.ts` (see future work below). CI's
+  lint job is wired `continue-on-error: true` (report-only) until a
+  dedicated cleanup session zeroes this baseline.
+- Gating limitation documented and accepted: Netlify auto-deploys on every
+  push to main regardless of CI result -- GitHub Actions runs after the push
+  lands, so as designed this CI is an alarm, not a gate. True gating needs a
+  PR-based workflow (branch protection + required status checks only apply
+  to PR merges, not direct pushes) -- documented as an optional future
+  click-path (see future work below), not enabled; Lynn's direct-push-to-
+  main workflow stays as-is.
+- Staleness-check JSON field format verified directly (not assumed):
+  `supabase functions list --output json`'s `updated_at`/`created_at` are
+  epoch MILLISECONDS (integer), not ISO strings -- confirmed via a live
+  probe against the linked project before writing any parser.
+- Staleness-check threshold set to 48 hours (172800s), not the originally
+  proposed 5 minutes. Rationale: the normal workflow deploys an edge
+  function mid-session (right after localhost approval) and commits to git
+  at session-end, sometimes hours later -- same code both places, zero real
+  drift, but a positive git-newer diff regardless. A full git-vs-deployed
+  comparison run this session (all 47 local function directories) found 18
+  functions with a positive (git-newer) diff under a strict >0 rule: the 2
+  known carry-forwards (~30 days each) are real; 7 are single-to-triple-
+  digit-second gaps (near-certain deploy-then-commit sequencing noise); 9
+  more sit in the 10-minute-to-3h18m range -- large enough not to hand-wave
+  away, small enough to fit the same same-session pattern. 48 hours
+  comfortably swallows every same-session gap observed while still catching
+  anything genuinely forgotten (the confirmed pair sat stale ~30 days).
+
+### Carry-forward / future work logged this session (not investigated -- B3 scope was CI only)
+
+1. 9 functions with 10min-3hr git-newer gaps, presumed same-session commit
+   lag, one-time verification pending: ocr-image (+593s), resend-
+   verification (+601s), reshape-lesson (+672s), generate-devotional
+   (+925s), send-lesson-email (+1593s), purchase-lesson-pack (+1775s),
+   admin-impersonate-user (+2920s), send-invite (+7660s), generate-blog-
+   image (+11869s). None flag under the 48h threshold. Presumed explanation
+   (deploy-at-approval, commit-at-session-close) fits all 9, but "presumed"
+   isn't "verified" -- fold a one-time verification (confirm each function's
+   deployed code actually matches the git commit that shows the gap) into
+   B5.
+2. `check-subscription` and `sync-subscription-status` -- live production
+   edge functions with NO matching directory anywhere in git. Deployed
+   since October 2025, still ACTIVE, unauditable running code with
+   subscription-adjacent naming and no source in the repo to review.
+   SECURITY-RELEVANT, not just hygiene -- flagged for B5: determine what
+   they actually do, whether anything still calls them, and delete from
+   production if dead. Also fold in: extend the staleness workflow with the
+   inverse check (deployed-but-not-in-git) once these two are resolved one
+   way or the other.
+3. eslint baseline cleanup -- 342 errors, mostly `@typescript-eslint/no-
+   explicit-any` in supabase/functions/*, plus `no-useless-escape` /
+   `prefer-const` in send-lesson-email and send-sequence-email. Needs its
+   own session; not attempted here (lint job runs report-only in CI until
+   this is done, then should flip to blocking).
+4. `temp_working_version.ts` -- tracked, 58KB, unparseable/binary-looking
+   file at repo root, last touched 2025-11-21, breaks `eslint .` with a hard
+   parse error. Candidate for the same recoverable-from-history deletion
+   treatment as the .bak files removed in the 2e75914 cleanup. Not touched
+   this session.
+5. PR-based CI gating (optional, not enabled) -- true pre-merge gating
+   requires abandoning direct-push-to-main for a branch+PR flow (GitHub
+   can't block a direct push with required status checks, only PR merges).
+   Click-path if ever wanted: repo -> Settings -> Branches -> add a branch
+   protection rule for `main` -> "Require status checks to pass" -> select
+   `build` and `ascii-guard` -> "Do not allow bypassing the above settings"
+   -> disallow direct pushes. Deliberately left off this session; alarm-
+   only plus Netlify's own build failure (leaves last-good-version live) is
+   adequate at current scale per Lynn's call.
+
+(Phase 3/4/5 -- implementation, verification, and the two-function redeploy
+carry-forward -- to be logged below as they complete this session.)
 
 ## JULY 14, 2026 SESSION (LATER) -- Staging project + tested backup restore (B2) -- SHIPPED
 

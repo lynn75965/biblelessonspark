@@ -1,0 +1,83 @@
+name: CI
+
+# Runs on every push and pull request targeting main. NOTE: Netlify auto-
+# deploys on every push to main regardless of this workflow's result -- CI
+# runs after the push has already landed, so this is an alarm, not a gate.
+# See README.md / PROJECT_MASTER.md (B3 session) for the documented,
+# not-yet-enabled option to add real pre-merge gating via branch protection.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+  ascii-guard:
+    name: ASCII Guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan all tracked .ts/.tsx files for non-ASCII characters
+        run: bash scripts/pre-commit-ascii-guard.sh --tracked
+
+  lint:
+    name: Lint (report-only)
+    runs-on: ubuntu-latest
+    # Baseline is not clean as of 2026-07-14 (342 pre-existing errors -- see
+    # PROJECT_MASTER.md B3 session). Deliberately NOT using continue-on-error:
+    # that flag still renders the job as failing/flagged in the Checks UI.
+    # Instead the step below always exits 0 and prints the problem count as
+    # its own summary line, so the job is genuinely green and the baseline
+    # number is still visible to anyone who opens the log. Flip this back to
+    # a plain `npm run lint` (job fails on errors) once a dedicated cleanup
+    # session zeroes the baseline.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (never fails this job -- see LINT BASELINE line below)
+        run: |
+          set +e
+          npm run lint > /tmp/lint-output.txt 2>&1
+          cat /tmp/lint-output.txt
+          SUMMARY=$(grep -E '[0-9]+ problems \(' /tmp/lint-output.txt | tail -1)
+          echo ""
+          echo "=========================================="
+          if [ -n "$SUMMARY" ]; then
+            echo "LINT BASELINE: $SUMMARY -- non-blocking, job intentionally green"
+          else
+            echo "LINT BASELINE: 0 problems -- non-blocking, job intentionally green"
+          fi
+          echo "=========================================="
+          exit 0

@@ -1,0 +1,90 @@
+name: Edge Function Staleness Check
+
+# Weekly + manual-dispatch check for edge functions that changed in git but
+# were never redeployed. Deliberately NOT run on every push -- this queries
+# the live Supabase project via the CLI and is meant as a periodic audit,
+# not a per-commit gate.
+
+on:
+  schedule:
+    - cron: '0 13 * * 1' # Monday 13:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  staleness-check:
+    name: Compare deployed functions against git history
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: hphebzdftpjbiudpfcrs
+      # Threshold (seconds) below which a git-newer-than-deployed gap is
+      # treated as same-session sequencing noise rather than a forgotten
+      # redeploy. Rationale (verified against real data 2026-07-14, B3
+      # session): the normal workflow deploys a function via `supabase
+      # functions deploy` mid-session, right after localhost approval, then
+      # commits the source to git at session-end -- sometimes hours later.
+      # That produces a git commit timestamp *after* the deploy timestamp
+      # even though the deployed code and the committed code are identical.
+      # A full audit of all 47 local function directories against the live
+      # deployed list found 18 with a positive (git-newer) diff under a
+      # strict >0 rule: 7 were single-to-triple-digit-second gaps, 9 more
+      # ranged 10 minutes to 3h18m -- all consistent with this same-session
+      # pattern -- and only 2 (create-checkout-session, create-portal-
+      # session) were genuinely forgotten, sitting stale for ~30 days. 48
+      # hours comfortably swallows every same-session gap observed while
+      # still catching anything actually forgotten.
+      STALE_THRESHOLD_SECONDS: 172800
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch deployed function list
+        run: npx supabase functions list --project-ref "$PROJECT_REF" --output json > /tmp/deployed.json
+
+      - name: Compare git history against deployed timestamps
+        run: |
+          set -e
+          STALE_FOUND=0
+
+          for dir in supabase/functions/*/; do
+            name=$(basename "$dir")
+            [ "$name" = "_shared" ] && continue
+
+            git_ts=$(git log -1 --format=%ct -- "supabase/functions/$name")
+            if [ -z "$git_ts" ]; then
+              continue
+            fi
+
+            deployed_ms=$(jq -r --arg n "$name" '.[] | select(.name == $n) | .updated_at' /tmp/deployed.json | head -1)
+
+            if [ -z "$deployed_ms" ] || [ "$deployed_ms" = "null" ]; then
+              echo "INFO: $name -- not found in deployed list, skipping comparison"
+              continue
+            fi
+
+            deployed_ts=$(( deployed_ms / 1000 ))
+            diff=$(( git_ts - deployed_ts ))
+
+            if [ "$diff" -gt "$STALE_THRESHOLD_SECONDS" ]; then
+              git_date=$(date -u -d "@$git_ts" +"%Y-%m-%d %H:%M UTC")
+              dep_date=$(date -u -d "@$deployed_ts" +"%Y-%m-%d %H:%M UTC")
+              echo "STALE: $name -- git changed $git_date, last deployed $dep_date (gap: ${diff}s)"
+              STALE_FOUND=1
+            fi
+          done
+
+          if [ "$STALE_FOUND" -eq 1 ]; then
+            echo ""
+            echo "One or more edge functions changed in git since their last deploy."
+            echo "Redeploy with: npx supabase functions deploy <name> --project-ref $PROJECT_REF --use-api"
+            exit 1
+          fi
+
+          echo "All deployed edge functions are current with git (within the ${STALE_THRESHOLD_SECONDS}s threshold)."

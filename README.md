@@ -31,6 +31,9 @@ npm install
 npm run dev
 ```
 
+After a fresh clone, reinstall the ASCII guard pre-commit hook (`.git/hooks/`
+is never versioned by git): `cp scripts/pre-commit-ascii-guard.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`. CI runs the same check authoritatively on every push, so this is a convenience, not a requirement.
+
 ## Deployment
 
 Deploys follow the workflow defined in `CLAUDE.md`: a clean `npm run build`,
