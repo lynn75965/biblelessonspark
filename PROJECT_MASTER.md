@@ -1,6 +1,137 @@
-# PROJECT MASTER -- Last updated: July 13, 2026 (Session 6: Terms of Service / Privacy Policy Replacement -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 14, 2026 (Session B1: Email Deliverability Hardening + Health Monitor -- SHIPPED)
 
-## >>> RESUME HERE <<< -- src/pages/TermsOfService.tsx and src/pages/PrivacyPolicy.tsx fully replaced with the final EckBros Media LLC legal documents (commit 10163e5, pushed to main). Both dated Last Updated: July 13, 2026. Content is an exact section-by-section match to the source markdown (heading numbers kept verbatim, all curly quotes/apostrophes/em-dashes converted to JSX unicode-escape expressions per Rule #16). Added aria-labelledby/id on every h2 section, matching the ChurchPlantReport.tsx accessibility pattern. VERIFIED by Lynn on localhost before deploy. No carry-forward items from this session (the Lovable-purge carry-forward from Session 5 -- backup_before_ssot_2026-01-14_120027/ -- is still open, see that session's block below).
+## >>> RESUME HERE <<< -- B1 (Email Deliverability Hardening + Health Monitor) is COMPLETE. supabase/functions/health/index.ts deployed and live (UptimeRobot Monitor 3 confirmed green, keyword "status":"ok", 5-min interval). Two stale-email bugs fixed and redeployed (resend-verification dead redirect, commit cdd587f; send-focus-notification 6-month-stale from-domain, commit ad10ef5). EMAIL_DELIVERABILITY.md and docs/PRE_DEPLOY_ANON_CHECKLIST.md written (new files). All deliverability test data (4 auth accounts, throwaway org/team, tracking-table rows) cleaned up and verified zero remaining, see TEST-DATA CLEANUP block below. Three carry-forwards open, see this session's block: (1) dashboard updated_at unreliable as a staleness signal -- candidate for B3 CI check, (2) create-checkout-session + create-portal-session suspected of the same stale-deploy pattern -- not yet confirmed or redeployed, (3) backup_before_ssot_2026-01-14_120027/ public-repo hygiene decision -- still deferred by Lynn (now deferred three times).
+
+## JULY 14, 2026 SESSION -- Email Deliverability Hardening + Health Monitor (B1) -- SHIPPED
+
+GOAL: Harden the platform's email-sending posture (DNS + bug fixes across the
+11 Resend sending paths) and add a public health-check endpoint for external
+uptime monitoring. Full Parts 1-5 recap to be completed at session-end per the
+mandatory session-end protocol; carry-forwards below are logged now per
+Lynn's explicit request mid-session.
+
+SENDING-PATH INVENTORY (verified via grep across supabase/functions, 11
+confirmed, all api.resend.com/emails, all noreply@ or support@
+biblelessonspark.com): send-focus-notification, send-invite, send-auth-email,
+send-toolbelt-reflection, send-sequence-email, send-lesson-email,
+approve-org-deletion, request-org-deletion, admin-delete-user,
+send-toolbelt-sequence, notify-team-invitation. Full detail (DNS records,
+placement-test matrix, bug narratives) lives in EMAIL_DELIVERABILITY.md.
+
+send-focus-notification stale-deploy bug (commit ad10ef5): deployed function
+was 6 months stale (frozen at commit 4aacf1f, predating the domain-rename
+cleanup), silently sending from the dead lessonsparkusa.com domain --
+Resend 403 validation_error on every send. Fixed by routing the from-address
+through the SSOT getEmailFrom(branding) helper; redeployed and verified live.
+
+JWT-posture investigation (send-sequence-email): confirmed verify_jwt=false
+for send-sequence-email was NOT touched this session -- it was committed
+June 18, 2026 (0802752, the documented fail-closed-cron-secret-gate fix from
+that day's security audit) and has been unchanged since. Not deployed or
+redeployed this session.
+
+health endpoint: supabase/functions/health/index.ts added (new). Public,
+no-auth (verify_jwt=false in config.toml), DB-ping variant -- one discarded
+`.select("id").limit(1)` read on profiles proves DB reachability, returns 503
+on DB failure so a plain 200-only monitor correctly flags an outage.
+Confirmed the response body is literal strings only (status/ts/db) on every
+path, including success -- the query's `data` is never assigned or returned,
+only `error` is inspected. Deployed via
+`npx supabase functions deploy health --project-ref hphebzdftpjbiudpfcrs
+--use-api`; live curl confirmed 200 with body
+`{"status":"ok","ts":"...","db":"ok"}`. UptimeRobot Monitor 3 points at
+https://hphebzdftpjbiudpfcrs.supabase.co/functions/v1/health (Lynn confirmed
+live).
+
+CARRY-FORWARD (logged now per Lynn's request; full session carry-forward
+list to be reconciled at session-end):
+
+1. DASHBOARD updated_at IS NOT A RELIABLE STALENESS SIGNAL -- git commit
+   dates are the source of truth. Observed July 13: send-sequence-email and
+   stripe-webhook both show updated_at = 1783966820591 (July 13, 18:20:20
+   UTC) in `npx supabase functions list` output, to the exact millisecond --
+   yet neither function's code nor its config.toml verify_jwt stanza changed
+   at that time (no matching git commit; last real code change to
+   send-sequence-email was June 18's 0802752). Both are the two verify_jwt=
+   false functions in config.toml that were NOT on that session's approved
+   deploy list (only ocr-image + resend-verification were, ~10 minutes
+   earlier). Working theory, not confirmed: an unrelated `--use-api` deploy
+   that session re-stamped verify_jwt config for every function with an
+   explicit config.toml stanza as a side effect, bumping "updated_at"/version
+   without a real code or config change. Effect: the Supabase dashboard's
+   "deployed X hours/days ago" figure cannot be trusted to mean "code changed
+   then" -- always cross-check against `git log -- supabase/functions/<name>/`
+   before drawing conclusions from it. Candidate for the B3 CI staleness
+   check (deployed-timestamp vs git-date) once that's built.
+
+2. create-checkout-session + create-portal-session -- comment-only stale
+   deploys. Flagged, not yet redeployed this session (out of the "no edge
+   function changes beyond health" constraint). Revisit in a future session:
+   confirm whether their live deployed code matches current git HEAD or is
+   stale like send-focus-notification was, and redeploy if comment-only or
+   behaviorally-identical drift is found.
+
+3. backup_before_ssot_2026-01-14_120027/ -- the ~150-file git-tracked
+   historical backup directory (carried forward from the July 13 Lovable-
+   purge session, still open). Public-repo hygiene question unresolved:
+   should this frozen snapshot stay git-tracked in a PUBLIC repo, or be
+   purged/archived outside git? Lynn has deferred this decision twice now;
+   still open.
+
+TEST-DATA CLEANUP -- COMPLETE (July 14, 2026). All deliverability-testing
+artifacts removed via Dashboard SQL editor (read-only lookups + scoped
+DELETEs, one block at a time, verified after each):
+  - toolbelt_email_tracking: 3 rows deleted (by email_capture_id join on the
+    3 test addresses); underlying toolbelt_email_captures rows for the same
+    3 addresses also purged (3 rows, Lynn-approved extension of scope).
+  - email_sequence_tracking: 3 rows deleted by email. A 4th row (keyed by
+    user_id, not email -- the pastorlynn2024+leadteacher variant Block 2's
+    email-scoped DELETE couldn't reach) was later confirmed to cascade-delete
+    automatically via the auth-user deletion below.
+  - teaching_team_members (2 rows) -> teaching_teams (1 row, "Deliverability
+    Test Team") -> organizations (1 row, "Deliverability Test Org") deleted
+    in that order (children before parents).
+  - 4 auth accounts deleted via Dashboard -> Authentication -> Users:
+    pastorlynn2024@gmail.com, harold981951@outlook.com,
+    harold981951@yahoo.com, pastorlynn2024+leadteacher@gmail.com.
+  - Pre-deletion orphan check used pg_catalog.pg_constraint (NOT
+    information_schema -- that view is ownership-filtered in Supabase and
+    silently shows zero FKs referencing auth.users when queried as the
+    postgres role, a false-negative trap worth remembering for future
+    sessions) to enumerate every real FK to auth.users(id) with its
+    delete_rule, cross-checked against a naming-heuristic sweep for
+    non-FK-enforced "ownership" columns. Result: every populated table
+    (generation_metrics, lessons, auth.identities, profiles, auth.sessions,
+    events, invites, user_subscriptions, auth.one_time_tokens,
+    email_sequence_tracking, lesson_series, teacher_preference_profiles,
+    user_roles) was CASCADE or SET NULL -- zero RESTRICT/NO ACTION anywhere
+    in the path. The org/team FKs (organizations.created_by SET NULL,
+    teaching_teams.lead_teacher_id CASCADE) were confirmed moot since both
+    rows were already deleted by the time of the check.
+  - Post-deletion verify: all 14 tables checked, all returned 0 rows.
+  - scripts/tmp-deliverability-sequence-test.ps1 deleted (was untracked,
+    never committed).
+CLOSED -- no remaining test data, no orphaned rows.
+
+DOCUMENTATION SHIPPED (new files, this session):
+  - EMAIL_DELIVERABILITY.md: sending-path inventory (11 paths, all Resend,
+    verified via grep), the two bugs above, final DNS records (SPF/MX on
+    send.biblelessonspark.com, root DKIM selector resend._domainkey, DMARC
+    p=none/rua at _dmarc.biblelessonspark.com -- all captured live via
+    nslookup July 14, 2026), and the re-test procedure. Placement-matrix
+    section is a summary-level record only ("11/11 inboxed across Gmail,
+    Outlook, Yahoo, July 13, 2026, zero spam placements") -- per-send detail
+    was not preserved during testing; noted in the doc so nobody mistakes
+    the summary for a reconstruction.
+  - docs/PRE_DEPLOY_ANON_CHECKLIST.md: 10-item anonymous-browser smoke test
+    (Lynn-authored content), required before any deploy touching RLS,
+    grants, anon-facing pages, auth flows, or edge functions called from
+    public pages.
+
+FINAL VERIFICATION: health endpoint re-confirmed live post-deploy --
+`{"status":"ok","ts":"2026-07-14T12:02:11.023Z","db":"ok"}`, function ACTIVE
+in production (version 1). UptimeRobot Monitor 3 confirmed green by Lynn
+(keyword "status":"ok", 5-minute interval, 100% uptime since creation).
 
 ## JULY 13, 2026 SESSION -- Terms of Service / Privacy Policy Replacement (Session 6)
 
