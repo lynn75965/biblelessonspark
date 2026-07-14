@@ -18,6 +18,14 @@
 # (.github/workflows/ci.yml) runs this same script in --tracked mode on
 # every push/PR to main -- that run is authoritative regardless of whether
 # any local hook is installed or was bypassed with --no-verify.
+#
+# Locale is forced below, not inherited. `grep -P` silently no-ops (matches
+# nothing, exits 0) instead of erroring when LANG/LC_ALL are unset or non-
+# UTF-8 -- discovered 2026-07-14 when a locale-less shell reported a known-
+# BOM'd file as clean. Without this, the guard's correctness would depend on
+# whatever locale the calling shell happens to have.
+export LC_ALL=C.UTF-8
+export LANG=C.UTF-8
 
 MODE="$1"
 

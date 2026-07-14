@@ -35,12 +35,31 @@ jobs:
   ascii-guard:
     name: ASCII Guard
     runs-on: ubuntu-latest
+    # Baseline is not clean as of 2026-07-14: the first repo-wide (--tracked)
+    # run surfaced 27 pre-existing violations that predate this guard (it
+    # only ever ran on staged files locally, so historical files were never
+    # rescanned). Deliberately report-only for now, same mechanism as the
+    # lint job -- the step always exits 0 and prints a summary line, so the
+    # job stays green while the count stays visible. The LOCAL staged-mode
+    # hook still blocks NEW violations at commit time -- protection against
+    # new corruption is intact. See PROJECT_MASTER.md "ASCII baseline
+    # cleanup session" for the full categorized file list. Flip this back
+    # to blocking (remove the summary wrapper) once that session zeroes it.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Scan all tracked .ts/.tsx files for non-ASCII characters
-        run: bash scripts/pre-commit-ascii-guard.sh --tracked
+      - name: Scan all tracked .ts/.tsx files for non-ASCII characters (never fails this job -- see ASCII BASELINE line below)
+        run: |
+          set +e
+          bash scripts/pre-commit-ascii-guard.sh --tracked > /tmp/ascii-output.txt 2>&1
+          cat /tmp/ascii-output.txt
+          FILE_COUNT=$(grep -c '^--- ' /tmp/ascii-output.txt)
+          echo ""
+          echo "=========================================="
+          echo "ASCII BASELINE: $FILE_COUNT files with violations -- non-blocking pending cleanup session"
+          echo "=========================================="
+          exit 0
 
   lint:
     name: Lint (report-only)

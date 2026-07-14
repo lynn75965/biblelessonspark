@@ -86,6 +86,68 @@ a carry-forward redeploy of the two known stale functions from B2.
    `prefer-const` in send-lesson-email and send-sequence-email. Needs its
    own session; not attempted here (lint job runs report-only in CI until
    this is done, then should flip to blocking).
+3b. ASCII baseline cleanup session -- pair with #3 above, one hygiene
+    session covers both eslint AND ASCII. CI's first repo-wide (--tracked)
+    run found 27 files with non-ASCII bytes, all pre-existing, predating
+    the guard's local staged-only scope (which never rescanned historical
+    files). Full categorized map so that session starts with a map, not a
+    rediscovery:
+
+    (a) Stray backup/duplicate files -- delete outright, all recoverable
+        from git history, same treatment as the 2e75914 .bak cleanup:
+        backup-before-beta-migration/ (Auth.tsx, HeroSection.tsx,
+        branding.ts -- confirm no other files live in that folder before
+        deleting the whole directory), supabase/functions/create-org-
+        checkout-session/index.backup.ts, theologyProfiles-ENHANCED.ts.
+
+    (b) BOM-prefixed, line-1-only hits -- genuine corruption-class issue
+        the guard exists for, mechanical BOM strip, no other content
+        issue: supabase/functions/_shared/betaEnrollmentConfig.ts,
+        corsConfig.ts, subscriptionCheck.ts; supabase/functions/create-
+        checkout-session/index.ts, create-portal-session/index.ts,
+        org-stripe-webhook/index.ts, purchase-lesson-pack/index.ts,
+        send-focus-notification/_templates/focus-email.tsx.
+
+    (b+d mixed) BOM plus additional real violations in the same file --
+        needs both a BOM strip and a text fix: supabase/functions/seed-
+        stripe-catalog/index.ts (BOM + 5 em-dashes in plan name/
+        description strings), supabase/functions/generate-parable/
+        _guardrails/deriveGuardrails.ts (BOM + em-dashes + one curly
+        apostrophe in guardrail prompt strings), supabase/functions/
+        send-auth-email/_templates/signup-confirmation.tsx (BOM + one
+        emoji in a Heading string), customizationDirectives.ts at repo
+        root (BOM + one em-dash -- ALSO cross-check against (a): confirm
+        whether this is a stray duplicate of supabase/functions/_shared/
+        customizationDirectives.ts before deciding delete vs fix).
+
+    (c) supabase/functions/_shared/uiSymbols.ts -- DELIBERATE Unicode, the
+        documented SSOT for symbol characters (bullet, em-dash, ellipsis,
+        checkmark, star). Not a violation. The cleanup session should add
+        a documented per-file exclusion to scripts/pre-commit-ascii-
+        guard.sh for this path rather than editing its content.
+
+    (d) Real em-dashes/bullets/box-drawing/emoji in live source comments
+        and strings, no BOM -- convert per the guard's own HOW TO FIX
+        guidance in that session: supabase/functions/_shared/
+        customizationDirectives.ts (10 checkbox-glyph lines),
+        emailDeliveryConfig.ts (5 em-dash lines), outputGuardrails.ts (9
+        em-dash comment lines), trialConfig.ts (1 em-dash comment);
+        supabase/functions/notify-team-invitation/index.ts (9 box-drawing
+        divider comments); seed-test-notifications/index.ts (1 emoji);
+        send-invite/_templates/invite-email.tsx (1 emoji, no BOM);
+        send-toolbelt-sequence/index.ts (bullet regex + decorative star +
+        copyright symbol, 3 lines); sync-pricing-from-stripe/index.ts (1
+        em-dash in a template string).
+
+    LOCALE BUG FOUND AND FIXED THIS SESSION (not deferred): the guard's
+    `grep -P` silently matches nothing and exits 0 -- instead of erroring
+    -- when the invoking shell has LANG/LC_ALL unset or non-UTF-8.
+    Discovered when a locale-less shell reported a known-BOM'd file as
+    clean. `scripts/pre-commit-ascii-guard.sh` now forces `LC_ALL=C.UTF-8`
+    / `LANG=C.UTF-8` internally so detection is correct regardless of the
+    calling shell's environment -- a guard that can silently pass is worse
+    than no guard, so this was fixed immediately rather than logged for
+    later.
 4. `temp_working_version.ts` -- tracked, 58KB, unparseable/binary-looking
    file at repo root, last touched 2025-11-21, breaks `eslint .` with a hard
    parse error. Candidate for the same recoverable-from-history deletion
