@@ -163,8 +163,74 @@ a carry-forward redeploy of the two known stale functions from B2.
    only plus Netlify's own build failure (leaves last-good-version live) is
    adequate at current scale per Lynn's call.
 
-(Phase 3/4/5 -- implementation, verification, and the two-function redeploy
-carry-forward -- to be logged below as they complete this session.)
+### Phase 3/4 -- implementation and verification (commits 4db4200, 5460911)
+
+`.github/workflows/ci.yml` (build, ascii-guard, lint -- all report-only where
+noted) and `.github/workflows/edge-function-staleness.yml` (weekly Monday
+13:00 UTC + workflow_dispatch, 48h threshold) both written, committed, and
+pushed. `scripts/pre-commit-ascii-guard.sh` is now the single tracked,
+authoritative guard implementation (--staged for the local hook, --tracked
+for CI); `.git/hooks/pre-commit` is now a 2-line delegator to it; README.md
+has the reinstall note. CI run #1 on 5460911: build green, lint green with
+`LINT BASELINE: 398 problems (342 errors, 56 warnings)` visible in the log,
+ascii-guard green with `ASCII BASELINE: 27 files with violations`. Staleness
+workflow first manual dispatch: exactly 2 STALE flags --
+create-checkout-session (gap 2590943s) and create-portal-session (gap
+2590938s) -- exit 1, redeploy hint printed, no other flags. Acceptance test
+PASSED exactly as predicted. Minor future work logged: actions/checkout@v4
+and actions/setup-node@v4 both hit GitHub's Node.js 20 runner deprecation
+warning in the run log -- schedule an action-version bump, not urgent.
+
+### Phase 5 -- carry-forward redeploy (create-checkout-session, create-portal-session)
+
+Before redeploying, verified both functions against the money-flow
+architecture rule (imports exclusively from _shared/pricingConfig.ts) and
+diffed local git HEAD against the actually-deployed source (`npx supabase
+functions download <name> --project-ref hphebzdftpjbiudpfcrs`, diffed
+against git HEAD in a scratch location outside the repo tree):
+
+- `create-portal-session` -- clean. No pricing decision made in this
+  function (only opens the Stripe billing portal for the caller's own
+  existing customer ID, gated by getUser() + ownership-scoped DB lookup) --
+  pricingConfig.ts import isn't applicable here. Diff vs deployed: comment-
+  only (`LESSONSPARK USA` -> `BIBLELESSONSPARK` header) + a BOM present in
+  git HEAD but absent from the live version. No functional difference.
+  Redeployed successfully.
+- `create-checkout-session` -- diff vs deployed: same pattern, comment-only
+  + BOM, no functional difference between git HEAD and what was live.
+  Confirmed via download+diff before redeploying, per Lynn's explicit
+  verification step, rather than trusting the "comment-only" characterization
+  on faith. Redeployed successfully. See the HIGH-priority finding below --
+  this function has a real, separate, pre-existing gap that redeploying does
+  not introduce (it was already live) but also does not fix.
+
+Both redeploys done one at a time, each confirmed via the CLI's success
+response before moving to the next. Side effect of syncing prod to git HEAD:
+the harmless BOM (already tracked in the ASCII baseline carry-forward,
+category b) is now live in both functions -- cosmetic only, no functional
+impact, will be cleaned up whenever that session runs.
+
+### HIGH-PRIORITY FINDING (distinct from routine carry-forward -- money-flow correctness, not hygiene)
+
+**create-checkout-session accepts an arbitrary `price_id` from the request
+body with NO validation against pricingConfig.** `_shared/pricingConfig.ts`
+exports `resolveTierFromPriceId(priceId): SubscriptionTier | null` -- built
+for exactly this purpose -- and `create-checkout-session/index.ts` never
+imports or calls it. The function passes the client-supplied `price_id`
+straight to `stripe.checkout.sessions.create()` after only an auth check
+(getUser); any authenticated user can create a checkout session for ANY
+price that exists in the connected Stripe account, not just BLS's five
+self-service prices. **LIVE IN PRODUCTION NOW** (confirmed both before and
+after this session's redeploy -- the gap predates this session and
+redeploying did not introduce it). This is a direct violation of
+Architecture Principle #2 ("Frontend constants are the authoritative
+source... backend validates against frontend-defined values") and the
+spirit of Rule #17. Exploitability is bounded -- an authenticated user
+mis-purchasing at a real Stripe price is a revenue-integrity problem, not a
+data-exposure one -- but money-flow correctness is exactly what Gate 1
+exists for. **Fix required before surge. Schedule as a dedicated mini-session
+or the first item of B5**, not folded into the routine ASCII/eslint hygiene
+carry-forward above.
 
 ## JULY 14, 2026 SESSION (LATER) -- Staging project + tested backup restore (B2) -- SHIPPED
 
