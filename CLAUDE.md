@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Claude Code Instructions
-# Last updated: April 13, 2026
+# Last updated: July 14, 2026
 # READ THIS ENTIRE FILE BEFORE TOUCHING ANY CODE
 
 ## AUTO-READ ON SESSION START
@@ -384,6 +384,34 @@ own.
 SHORT_SECTIONS [1,5,8], self-contained). pricingConfig.ts derives from it. The
 check_lesson_limit SQL arrays [1,5,8]/[1..8] are an INTENTIONAL documented mirror
 (SQL cannot import TS) -- keep in sync by hand; not an SSOT violation.
+
+### Rule #27: Database restore/DR procedure is documented and tested -- see docs/RESTORE_RUNBOOK.md
+Added July 14, 2026 (session B2). Full production-to-staging restore procedure
+tested end-to-end against a dedicated staging Supabase project. Three reusable
+gotchas from that session, all documented in the runbook:
+
+(1) `supabase db dump` / `db push` invoke pg_dump through DOCKER on Windows and
+fail immediately with LegacyDockerRunError if Docker Desktop isn't installed.
+This project does NOT have Docker installed. Use native pg_dump/pg_dumpall/psql
+instead -- installed once via
+`winget install --id PostgreSQL.PostgreSQL.17 --interactive`, selecting
+Command Line Tools ONLY (no server, no service). Verify no data\ directory and
+no postgresql* Windows service exist after install.
+
+(2) Windows PowerShell 5.1's `*>` redirect operator and `Out-File -Encoding utf8`
+both write UTF-16LE by default. A plain-ASCII grep against that output finds
+ZERO matches even when real errors are present -- this produced a false "clean"
+read during B2's first restore attempt. For any log file that will be
+grepped/read later, capture output into a variable and write with
+`[System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($false))`
+instead.
+
+(3) Long inline PowerShell commands mixing path variables (e.g. a $pgdump
+variable holding a "C:\Program Files\..." path) with Remove-Item calls have
+tripped a tool-level safety-check false positive (blocked as an attempted
+removal of a protected system path). Write multi-step DB scripts to a .ps1
+file under gitignored backups/, show the complete contents for review, then
+execute as a single `powershell -File "path\to\script.ps1"` command.
 
 ---
 

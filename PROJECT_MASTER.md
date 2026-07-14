@@ -1,6 +1,149 @@
-# PROJECT MASTER -- Last updated: July 14, 2026 (Session B1: Email Deliverability Hardening + Health Monitor -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 14, 2026 (Session B2: Staging project + tested backup restore -- SHIPPED)
 
-## >>> RESUME HERE <<< -- B1 (Email Deliverability Hardening + Health Monitor) is COMPLETE. supabase/functions/health/index.ts deployed and live (UptimeRobot Monitor 3 confirmed green, keyword "status":"ok", 5-min interval). Two stale-email bugs fixed and redeployed (resend-verification dead redirect, commit cdd587f; send-focus-notification 6-month-stale from-domain, commit ad10ef5). EMAIL_DELIVERABILITY.md and docs/PRE_DEPLOY_ANON_CHECKLIST.md written (new files). All deliverability test data (4 auth accounts, throwaway org/team, tracking-table rows) cleaned up and verified zero remaining, see TEST-DATA CLEANUP block below. Three carry-forwards open, see this session's block: (1) dashboard updated_at unreliable as a staleness signal -- candidate for B3 CI check, (2) create-checkout-session + create-portal-session suspected of the same stale-deploy pattern -- not yet confirmed or redeployed, (3) backup_before_ssot_2026-01-14_120027/ public-repo hygiene decision -- still deferred by Lynn (now deferred three times).
+## >>> RESUME HERE <<< -- B2 (Staging project + tested backup restore) is COMPLETE. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is now docs/RESTORE_RUNBOOK.md. Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. Two carry-forwards open, see this session's block below: (1) production and staging DB passwords both need rotating (both passed through this session's transcript) and the three restore-script .ps1 files under backups/B2_2026-07-14/ need their password lines stripped or the files deleted, (2) BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list).
+
+## JULY 14, 2026 SESSION (LATER) -- Staging project + tested backup restore (B2) -- SHIPPED
+
+GOAL: Prove production can be restored from a backup, end-to-end, into a
+dedicated staging Supabase project, and produce a runbook so restore is a
+documented procedure, not a hope.
+
+STAGING PROJECT: BLS-staging, ref hfamquasdbiumpzjwqsy, us-east-1, same
+Supabase org as production (jervmcxgddkdexeekpah), created by Lynn at
+session start.
+
+TOOLCHAIN GAP FOUND AND CLOSED: `supabase db dump`/`db push` invoke pg_dump
+through Docker on Windows; this box has no Docker Desktop, so those
+commands fail immediately (LegacyDockerRunError). Resolved by installing
+PostgreSQL 17 client tools only via
+`winget install --id PostgreSQL.PostgreSQL.17 --interactive` (Lynn ran the
+interactive installer herself, selected Command Line Tools only). Verified
+clean afterward: no data\ directory under C:\Program Files\PostgreSQL\17\,
+no postgresql* Windows service. All dump/restore work for the rest of the
+session used native pg_dump.exe / pg_dumpall.exe / psql.exe directly,
+bypassing the Supabase CLI's dump/push commands entirely.
+
+DUMP (PROD-READ, production hphebzdftpjbiudpfcrs): schema-only dump of
+public+extensions (337,435 bytes), data-only dump of public with
+--column-inserts (11,526,517 bytes, wrapped manually in
+`SET session_replication_role = replica; ... RESET ALL;`), and a role-only
+dump (5,957 bytes, expected near-total no-op). Connected via each project's
+Session Pooler connection string specifically -- not Direct (IPv6-only,
+unreachable from most networks) and not Transaction pooler (breaks the
+session-scoped SET needed for the FK workaround). Saved to gitignored
+backups/B2_2026-07-14/; git status --short and git check-ignore -v both
+confirmed clean/ignored throughout.
+
+Two production DB password resets were needed mid-session (first
+Lynn-provided password and a second freshly-generated one both failed
+auth against the Session Pooler before a third, freshly-copied-at-display
+password succeeded -- root cause not fully isolated, but paste-clean
+generation resolved it). Both a production and a staging DB password
+passed through this session's transcript as a result; both must be
+rotated at session end (see carry-forward).
+
+FK HANDLING: production has ~14 tables with FKs into auth.users (excluded
+from this restore by design) plus, newly discovered via pg_dump's own
+warning during the July 14 dump, circular FKs entirely within public among
+profiles/organizations/lessons/org_shared_focus. Both classes are handled
+by the same mechanism: wrapping the data-only restore in
+`SET session_replication_role = replica`, which suppresses FK-enforcement
+triggers for the load. This is documented in RESTORE_RUNBOOK.md Section 5
+as also being the correct first-order fix for a REAL disaster-recovery
+restore, with the added note that real DR still needs auth.users restored
+via Supabase's own PITR before the public-schema data, which this staging
+drill intentionally skips.
+
+RESTORE (STAGING, hfamquasdbiumpzjwqsy): roles -> schema -> data ->
+sequence fixup, in that order, each step logging full psql output to a
+file rather than the terminal. Roles: ~60 errors, all benign
+(already-exists / reserved-role / permission-denied on Supabase-managed
+roles) -- pure audit trail, staging's role set was already fully
+provisioned. Schema: ~30 errors, all traced to Supabase-platform-internal
+objects (grant_pg_net_access, grant_pg_cron_access, pgrst_ddl_watch,
+pgrst_drop_watch, the default supabase_realtime publication, cron-schema
+objects) -- zero CREATE TABLE failures, all 59 tables created clean. Data:
+zero errors, every table inserted cleanly, INSERT counts from 1 row up to
+12,347. Sequence fixup: ran clean, correctly found nothing to fix --
+confirmed via direct grep against schema.sql that this schema has zero
+nextval() defaults, zero GENERATED...AS IDENTITY columns, and zero
+CREATE SEQUENCE statements anywhere (fully UUID-keyed schema). The fixup
+step stays mandatory in the runbook regardless, as a no-cost guard against
+a future schema change introducing a serial column.
+
+BUG FOUND AND FIXED MID-SESSION: Windows PowerShell 5.1's `*>` redirect
+operator (and Out-File -Encoding utf8) writes UTF-16LE by default. The
+first restore attempt's error logs were written this way, and a
+plain-ASCII grep against them found zero "ERROR" matches -- a false
+"clean" read, not a real one. Fixed by switching every logging step to
+capture output into a variable and write via
+`[System.IO.File]::WriteAllText($path, $text,
+[System.Text.UTF8Encoding]::new($false))` (true UTF-8, no BOM), matching
+CLAUDE.md's existing no-BOM file-write convention. Documented as a new
+reusable gotcha in CLAUDE.md Rule #27 and RESTORE_RUNBOOK.md Section 6.
+
+VERIFY (Phase 4, all four gates PASSED): (1) public table counts 59=59 on
+both projects (other schemas expected to differ, not gated). (2) top-10
+public table row counts identical on both sides (events 12347,
+generation_metrics 420, lessons 369, devotionals 83, rate_limits 71,
+reshape_metrics 57, profiles 52, user_subscriptions 41,
+email_sequence_tracking 31, teacher_preference_profiles 29). (3) migration
+history: staging correctly returned "relation does not exist" for
+supabase_migrations.schema_migrations (pass, by design -- this restore
+method never touches migration-tracking history, and a future db push
+against staging would replay all migrations from scratch and fail on mass
+already-exists errors -- documented as a permanent limitation, not a
+one-off). (4) RLS policy counts 147=147 on both.
+
+MIGRATION-COUNT RECONCILIATION: Phase 1 predicted production's
+schema_migrations count would match the local supabase/migrations/ file
+count of 154 (a naive `ls | wc -l`). Production's actual count came back
+94. Root cause: 60 of the 154 directory entries were stray .bak backup
+files (two naming variants -- <name>.sql.bak and
+<name>.sql.<timestamp>.bak -- across 30 original migrations), never
+matched by the Supabase CLI's .sql-only file discovery and therefore never
+pushed or tracked. 154 - 60 = 94 real .sql files with unique version
+prefixes, which matches production's 94 exactly. No real drift; the March
+20, 2026 reconciliation (45 migrations, zero drift, per CLAUDE.md) holds --
+94 - 45 = 49 net-new real migrations added since, over ~4 months, an
+ordinary pace. The count-method error was Claude's (naive ls), not a repo
+integrity problem.
+
+REPO HYGIENE (Phase 6, one commit, 2e75914): both the 60 stray .bak files
+in supabase/migrations/ and the entire backup_before_ssot_2026-01-14_120027/
+snapshot folder (237 files, 2.7MB, deferred across three prior sessions)
+were confirmed 100% git-tracked and therefore 100% recoverable from git
+history even after removal. Deleted together with Lynn's explicit
+approval: "REFACTOR: Remove 60 stray .bak files from supabase/migrations
+and backup_before_ssot_2026-01-14_120027 snapshot folder (297 files, all
+recoverable from git history)". Verified after: 94 .sql files / 0 .bak
+files in supabase/migrations, folder gone, git status clean. The
+backup_before_ssot carry-forward that had been deferred since before this
+session's start is now CLOSED.
+
+DELIVERABLE: docs/RESTORE_RUNBOOK.md -- full tested procedure (toolchain
+prerequisites, exact dump/restore commands, the FK-handling plan and why,
+the UTF-16 logging trap and its fix, expected-error tables with
+dispositions pulled from this session's actual logs, the mandatory
+sequence-fixup step, verification queries with pass criteria keyed to live
+counts rather than hardcoded numbers, what's excluded and where its real
+recovery path lives, and a session-end password-rotation checklist).
+
+CARRY-FORWARD (open at session end):
+(1) PASSWORD ROTATION REQUIRED: both the production DB password
+(hphebzdftpjbiudpfcrs) and the staging DB password (hfamquasdbiumpzjwqsy)
+passed through this session's transcript and must be rotated. Also delete
+or strip the password line from the three .ps1 scripts left under
+backups/B2_2026-07-14/ (run_dumps.ps1, restore_staging_1.ps1,
+restore_staging_2.ps1) -- gitignored so never at risk of being committed,
+but they persist on disk with a live credential otherwise.
+(2) STAGING PARITY GAPS: BLS-staging has schema+data only. No deployed
+Edge Functions, no Edge Function secrets, no Realtime publication table
+membership, no populated auth.users (no one can log into it), not wired to
+Stripe. Treat as database-only until a future session deliberately extends
+it -- see RESTORE_RUNBOOK.md Section 10 for the full list.
+
+---
 
 ## JULY 14, 2026 SESSION -- Email Deliverability Hardening + Health Monitor (B1) -- SHIPPED
 
