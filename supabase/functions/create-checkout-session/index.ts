@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BIBLELESSONSPARK - CREATE CHECKOUT SESSION
 // Location: supabase/functions/create-checkout-session/index.ts
 // ============================================================
@@ -7,6 +7,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { getBranding, getBaseUrl } from "../_shared/branding.ts";
+import { resolveTierFromPriceId } from "../_shared/pricingConfig.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -55,6 +56,50 @@ serve(async (req) => {
       });
     }
 
+    // SSOT gate: this endpoint is PERSONAL-TIER-ONLY by design (mode is
+    // hardcoded to "subscription" below and only the individual Personal
+    // plan is sold here). Organization tiers go through
+    // create-org-checkout-session instead. The === "personal" scoping is
+    // intentional, not an oversight -- do not widen this to "!== null"
+    // without first reconsidering why an org price ID would ever need to
+    // reach this function.
+    if (resolveTierFromPriceId(price_id) !== "personal") {
+      console.error(`Rejected checkout attempt: user=${user.id} attempted_price_id=${price_id}`);
+      return new Response(JSON.stringify({ error: "Invalid price_id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SSOT: Get base URL from branding config
+    const branding = await getBranding(supabase);
+    const baseUrl = getBaseUrl(branding);
+    const baseOrigin = new URL(baseUrl).origin;
+
+    const isSameOrigin = (url: string): boolean => {
+      try {
+        return new URL(url).origin === baseOrigin;
+      } catch {
+        return false;
+      }
+    };
+
+    if (success_url && !isSameOrigin(success_url)) {
+      console.error(`Rejected checkout attempt: user=${user.id} unsafe_success_url=${success_url}`);
+      return new Response(JSON.stringify({ error: "Invalid success_url" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (cancel_url && !isSameOrigin(cancel_url)) {
+      console.error(`Rejected checkout attempt: user=${user.id} unsafe_cancel_url=${cancel_url}`);
+      return new Response(JSON.stringify({ error: "Invalid cancel_url" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     let customerId: string;
 
     const { data: existingSub } = await supabase
@@ -80,9 +125,6 @@ serve(async (req) => {
       }, { onConflict: "user_id" });
     }
 
-    // SSOT: Get base URL from branding config
-    const branding = await getBranding(supabase);
-    const baseUrl = getBaseUrl(branding);
     const finalSuccessUrl = success_url || `${baseUrl}/dashboard?payment=success`;
     const finalCancelUrl = cancel_url || `${baseUrl}/pricing?payment=canceled`;
 
@@ -112,4 +154,3 @@ serve(async (req) => {
     );
   }
 });
-

@@ -1,6 +1,25 @@
-# PROJECT MASTER -- Last updated: July 14, 2026 (Session B3: CI Pipeline -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 14, 2026 (Session: SECURITY -- create-checkout-session price_id gap CLOSED)
 
-## >>> RESUME HERE <<< -- B3 (CI Pipeline) is COMPLETE and FULLY CLOSED OUT. Two GitHub
+## >>> RESUME HERE <<< -- SECURITY mini-session CLOSED the HIGH-priority
+create-checkout-session price_id validation gap flagged at the end of B3.
+Fix: `resolveTierFromPriceId(price_id) === 'personal'` gate (this endpoint
+is personal-tier-only by design -- org tiers use create-org-checkout-session)
+plus a same-origin guard on success_url/cancel_url (open-redirect close,
+folded into the same patch at Lynn's direction rather than a separate
+session). Fail-closed: unknown/org/lesson-pack/onboarding price_id -> 400,
+no Stripe call, console.error logs user_id + attempted price_id (no
+secrets). Verified end-to-end: localhost happy path (both monthly/annual
+reached Stripe checkout), post-deploy rejection curl (400 /
+"Invalid price_id"), and a real production purchase flow -- all three
+passed. Deployed via `npx supabase functions deploy create-checkout-session
+--project-ref hphebzdftpjbiudpfcrs --use-api`. Three findings surfaced and
+logged (NOT fixed this session -- scope was single-function): see
+"FINDINGS LOGGED" in the SECURITY session block below. Most urgent:
+create-org-checkout-session's self-service (MODE 2) branch has the
+IDENTICAL HIGH-priority gap, live in production now -- schedule as its own
+mini-session immediately next.
+
+## >>> PRIOR RESUME <<< -- B3 (CI Pipeline) is COMPLETE and FULLY CLOSED OUT. Two GitHub
 Actions workflows are live: ci.yml (build/ascii-guard/lint on every push+PR to
 main -- ascii-guard and lint currently report-only pending baseline cleanups)
 and edge-function-staleness.yml (weekly + manual-dispatch, 48h threshold).
@@ -10,16 +29,133 @@ functions (create-checkout-session, create-portal-session), both were
 verified (download+diff vs git HEAD -- comment-only + BOM, no functional
 change) and redeployed one at a time, and staleness run #2 came back clean
 (zero flags, exit 0) -- the end-to-end proof. B3 joins B1 and B2 as shipped.
-One HIGH-priority finding surfaced along the way and is NOT closed: see
-"HIGH-PRIORITY FINDING" in the B3 session block below --
-create-checkout-session accepts an arbitrary price_id with no validation
-against pricingConfig.ts, live in production, scheduled as a dedicated fix
-or the first item of B5. Remaining Gate 1 work: B4 (model fallback) and B5
-(security completion, now headlined by that price_id gap).
+One HIGH-priority finding surfaced along the way was CLOSED in the
+follow-up SECURITY mini-session (see >>> RESUME HERE <<< above): create-
+checkout-session accepted an arbitrary price_id with no validation against
+pricingConfig.ts, live in production -- now fixed and deployed. Remaining
+Gate 1 work: B4 (model fallback) and B5 (security completion --
+create-org-checkout-session's identical self-service gap, logged in the
+SECURITY session block below, is the next item).
 
-## >>> PRIOR RESUME <<< -- B2 (Staging project + tested backup restore) is COMPLETE and FULLY CLOSED OUT, including post-session cleanup. Production (hphebzdftpjbiudpfcrs) was restored end-to-end into a dedicated staging Supabase project, BLS-staging (hfamquasdbiumpzjwqsy, us-east-1, same org), using native pg_dump/pg_dumpall/psql (NOT the Supabase CLI's db dump, which requires Docker on Windows and this box doesn't have it). All four verification gates passed: public table counts match (59=59), top-10 table row counts identical on both sides, RLS policy counts match (147=147), and migration-history check behaved exactly as documented (staging correctly has no schema_migrations relation -- that's a pass, not a gap, since this restore method captures the public schema's end-state, not migration replay history). Full tested procedure is docs/RESTORE_RUNBOOK.md (committed, pushed). Along the way, discovered and closed a data-quality question from Phase 1's naive migration count: local supabase/migrations/ had 154 directory entries but only 94 real .sql migrations -- the other 60 were stray .bak backup files (two naming variants x 30 originals) that were never tracked by the Supabase CLI and never applied to production. Production's supabase_migrations.schema_migrations row count (94) matches the real local .sql count exactly once the .bak files are excluded -- there is no drift, the March 20, 2026 reconciliation holds. Those 60 .bak files plus the entire backup_before_ssot_2026-01-14_120027/ snapshot folder (237 files, deferred three times across prior sessions) were both git-tracked and both fully recoverable from git history, so both were removed in one hygiene commit (2e75914) with Lynn's explicit approval. POST-SESSION CLEANUP (same day, July 14, 2026): both the production and staging DB passwords were rotated by Lynn; the two B2 commits (2e75914, e46df66) were confirmed as the only unpushed commits (B1's commits were already on origin/main) and pushed -- range 17a9acf..e46df66; the PGPASSWORD lines in all three restore-session .ps1 scripts were stripped and grep-verified clean of both retired password strings; the entire backups/B2_2026-07-14/ folder (13 files, 12MB -- the raw dump files, stripped scripts, and restore logs) was then deleted outright now that its one-time job (proving the runbook works) is done and documented. Nothing about this touched git -- the folder was always gitignored, `git status --short` confirmed empty before and after deletion. One carry-forward remains open, see this session's block below: BLS-staging currently has schema+data only -- no deployed Edge Functions, no Realtime publication membership, no populated auth.users, not wired to Stripe -- treat it as database-only until a future session extends parity (see RESTORE_RUNBOOK.md Section 10 for the full gap list). If a future session needs to re-run the restore procedure (e.g. to refresh staging or test DR again), docs/RESTORE_RUNBOOK.md has the complete, tested, standalone command sequence -- none of it depended on the now-deleted backups/B2_2026-07-14/ folder persisting.
+## JULY 14, 2026 SESSION (LATEST) -- SECURITY: create-checkout-session price_id validation gap -- CLOSED
 
-## JULY 14, 2026 SESSION (LATEST) -- CI Pipeline (B3) -- SHIPPED
+GOAL: Close the HIGH-priority finding logged at the end of B3 --
+create-checkout-session accepted an arbitrary client-supplied price_id with
+zero validation against pricingConfig.ts, live in production. Single-
+function scope: only create-checkout-session/index.ts changes this session.
+
+### Phase 1 -- diagnosis (read-only)
+
+Confirmed repo clean, origin/main current at 25926f1, PROJECT_MASTER.md
+matched the HIGH-priority finding as logged. Read create-checkout-session/
+index.ts and _shared/pricingConfig.ts in full. Drift check (Rule #24):
+compared _shared/pricingConfig.ts against src/constants/pricingConfig.ts +
+orgPricingConfig.ts line-by-line (STRIPE_INDIVIDUAL, STRIPE_LESSON_PACKS,
+STRIPE_ONBOARDING, TIER_LESSON_LIMITS, all 5 ORG_TIERS entries) -- zero
+drift, mirror is current, safe to use as the validation source. Also live-
+queried the `pricing_plans` DB table (read-only) -- personal row's
+stripe_price_id_monthly/annual match STRIPE_INDIVIDUAL.personal.prices
+exactly, no live discrepancy.
+
+Audited every frontend caller of create-checkout-session: exactly two
+(useSubscription.tsx:262 getUpgradeUrl -- hardcoded from STRIPE_INDIVIDUAL
+SSOT; UpgradePromptModal.tsx:56 -- sourced from the pricing_plans DB table
+via usePricingPlans()). Both resolve to 'personal' tier today. No frontend
+code constructs a price_id dynamically.
+
+Audited the other three money-flow functions that call
+stripe.checkout.sessions.create:
+- create-org-checkout-session -- MODE 1 (existing org): tier is validated
+  against ORG_TIERS, safe. MODE 2 (self-service): priceId is read straight
+  from the request body, checked only for truthiness, passed directly to
+  Stripe -- IDENTICAL gap, HIGH-priority. Logged below, not fixed this
+  session (scope was single-function).
+- purchase-lesson-pack / purchase-onboarding -- client sends pack_type /
+  onboarding_type, not a price_id; server resolves the actual Stripe price
+  server-side from a DB config table (lesson_pack_config /
+  onboarding_config) keyed by that type. Client cannot inject an arbitrary
+  price_id directly -- NOT the same vulnerability. Separate, lower-severity
+  architecture note: these resolve prices from a DB table rather than the
+  frontend SSOT (STRIPE_LESSON_PACKS / STRIPE_ONBOARDING in
+  pricingConfig.ts). Logged below.
+
+### Phase 2 -- fix implemented, deployed
+
+`create-checkout-session/index.ts` -- complete file replacement:
+- Added `import { resolveTierFromPriceId } from "../_shared/pricingConfig.ts"`.
+- New gate immediately after the existing `if (!price_id)` check:
+  `if (resolveTierFromPriceId(price_id) !== "personal")` -> 400,
+  `{"error":"Invalid price_id"}`, console.error logs `user=<id>
+  attempted_price_id=<value>` (no secrets), NO Stripe call made. Scoped to
+  exactly 'personal' (not just "!= null") because this endpoint is
+  personal-tier-only by design -- org tiers go through
+  create-org-checkout-session. Commented explicitly so a future session
+  doesn't mistake the scoping for an accident.
+- Added a same-origin guard on success_url/cancel_url (open-redirect close,
+  folded into this patch at Lynn's explicit direction -- same request body,
+  same function, same fail-closed principle): when either is provided, it
+  must share origin with getBaseUrl(branding) or the request is rejected
+  400 with no silent fallback. Required moving the getBranding/getBaseUrl
+  call earlier in the function (before customer lookup/creation) so
+  validation happens before any Stripe/DB side effects.
+- Side effect: the file's original BOM (present in git HEAD, called out in
+  the B3 Phase 5 redeploy notes) is now gone -- Write tool output is BOM-
+  free UTF-8, consistent with the CLAUDE.md file-writing rule.
+
+`npm run build` clean. ASCII guard clean (verified directly against the
+file with LC_ALL=C.UTF-8 grep -- no BOM, no non-ASCII bytes). Deployed via
+`npx supabase functions deploy create-checkout-session --project-ref
+hphebzdftpjbiudpfcrs --use-api`.
+
+### Phase 3/4 -- verification, all passed
+
+- Localhost happy path: Lynn confirmed both monthly and annual intervals
+  reach Stripe checkout with correct pricing (frontend regression only --
+  local edge-function serving needs Docker, which this machine doesn't
+  have, so the gate itself couldn't be exercised until after deploy).
+- Post-deploy rejection curl: `{"price_id":"price_bogus_probe_test"}` ->
+  `400 {"error":"Invalid price_id"}`, confirmed live against the deployed
+  function.
+- Production happy path: Lynn confirmed a real upgrade flow on
+  biblelessonspark.com still works end-to-end post-deploy.
+
+FINDING CLOSED.
+
+### FINDINGS LOGGED (not fixed this session -- scope was single-function)
+
+1. **HIGH -- create-org-checkout-session, self-service (MODE 2) branch.**
+   Client-supplied `priceId` is passed straight to
+   stripe.checkout.sessions.create with zero validation against ORG_TIERS /
+   STRIPE_INDIVIDUAL -- identical pattern and severity to the finding just
+   closed. Live in production now. **Schedule as its own mini-session
+   immediately after this one.**
+2. **LOW/architecture -- purchase-lesson-pack and purchase-onboarding**
+   resolve their Stripe price IDs from DB config tables
+   (lesson_pack_config, onboarding_config) rather than the frontend SSOT
+   (STRIPE_LESSON_PACKS / STRIPE_ONBOARDING in pricingConfig.ts). Not a
+   price-injection vulnerability -- the client can only select a pack_type /
+   onboarding_type, not a price_id directly -- but it's a Frontend-Drives-
+   Backend deviation worth reconciling.
+3. **LOW/architecture -- usePricingPlans.tsx reads stripe_price_id_monthly
+   /annual from the `pricing_plans` DB table**, not pricingConfig.ts, to
+   build the price_id UpgradePromptModal.tsx sends to
+   create-checkout-session. Verified in sync today (live-queried), but it
+   is a second source of truth for the same value. Explicit note: if
+   `pricing_plans` ever drifts from pricingConfig.ts, real purchases will
+   start failing against the new gate with a 400 -- that is fail-closed
+   working as intended, NOT a bug in the gate. The fix in that scenario is
+   re-syncing the table (or migrating UpgradePromptModal off the DB table
+   onto the SSOT directly), never loosening the gate.
+
+### SESSION SUMMARY
+
+Files changed: `supabase/functions/create-checkout-session/index.ts`
+(deployed), `PROJECT_MASTER.md` (this log). Commit: pending Lynn's approval
+to push. Carry-forward: finding #1 above (org self-service gap) is the next
+scheduled mini-session; #2 and #3 are lower-priority architecture notes for
+a future SSOT pass.
+
+## JULY 14, 2026 SESSION (EARLIER) -- CI Pipeline (B3) -- SHIPPED
 
 GOAL: Automated checks on every push to main (build, ASCII guard, report-only
 lint) so broken builds and non-ASCII source get caught by machinery instead
