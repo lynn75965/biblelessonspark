@@ -1,6 +1,31 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B4 -- model fallback -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 -- create-org-checkout-session price_id gap -- SHIPPED)
 
-## >>> RESUME HERE <<< -- B4 (model fallback / graceful degradation) is
+## >>> RESUME HERE <<< -- B5 (create-org-checkout-session MODE 2 price
+injection + open-redirect) is COMPLETE and FULLY CLOSED OUT. This closes
+the last HIGH-priority finding logged from the July 14 SECURITY session
+(finding #1 -- MODE 2's self-service branch had the identical unvalidated-
+priceId gap as the sibling create-checkout-session fix). Single-file scope:
+create-org-checkout-session/index.ts only. Fix mirrors the sibling exactly:
+`ORG_TIERS.find(t => t.priceMonthly === priceId || t.priceAnnual === priceId)`
+gate (400 "Invalid price_id", no Stripe call, console.error logs user_id +
+attempted price, no secrets) plus a same-origin guard on successUrl/
+cancelUrl via getBranding/getBaseUrl (400 "Invalid success_url"/
+"Invalid cancel_url"). Verified end-to-end: localhost happy path (MODE 2
+self-service org signup), both post-deploy rejection probes (bogus
+priceId -> 400, cross-origin successUrl -> 400), and MODE 1 (existing-org
+upgrade via OrgPoolStatusCard) confirmed still working in production.
+Deployed via `npx supabase functions deploy create-org-checkout-session
+--project-ref hphebzdftpjbiudpfcrs --use-api`, fresh timestamp confirmed.
+
+Gate 1 (B1-B5) is now FULLY SHIPPED. No open Gate 1 items remain. The two
+LOW/architecture findings from the July 14 SECURITY session (purchase-
+lesson-pack/purchase-onboarding resolving prices from DB config tables
+instead of pricingConfig.ts; usePricingPlans.tsx reading from the
+pricing_plans DB table) remain open as documented architecture notes, not
+urgent -- see the FINDINGS LOGGED section in the July 14 SECURITY session
+below.
+
+## >>> PRIOR RESUME <<< -- B4 (model fallback / graceful degradation) is
 COMPLETE and FULLY CLOSED OUT. All six Claude-calling edge functions
 (generate-lesson, generate-parable, reshape-lesson, generate-devotional,
 extract-lesson, toolbelt-reflect) now retry transient errors, fall back to
@@ -25,9 +50,8 @@ erased at transpile time, so it doesn't affect the runtime bundle) and
 predates this session -- worth a one-line fix (`from './contracts.ts'`)
 in a future session touching theologyProfiles.ts, not urgent.
 
-Next up: B5 (create-org-checkout-session's identical self-service price_id
-validation gap, logged in the July 14 SECURITY session below -- still
-open, still live in production).
+(B5 -- the create-org-checkout-session gap referenced above -- was closed
+in the next session; see the new RESUME HERE block at the top of this file.)
 
 ## >>> PRIOR RESUME <<< -- SECURITY mini-session CLOSED the HIGH-priority
 create-checkout-session price_id validation gap flagged at the end of B3.
@@ -66,7 +90,80 @@ Gate 1 work: B4 (model fallback) and B5 (security completion --
 create-org-checkout-session's identical self-service gap, logged in the
 SECURITY session block below, is the next item).
 
-## JULY 15, 2026 SESSION (LATEST) -- B4: Model fallback / graceful degradation -- IMPLEMENTED, NOT YET DEPLOYED
+## JULY 15, 2026 SESSION (LATEST) -- B5: create-org-checkout-session MODE 2 price injection + open-redirect -- CLOSED
+
+GOAL: Close the last open Gate 1 item -- the HIGH-priority finding logged
+in the July 14 SECURITY session (finding #1): create-org-checkout-session's
+self-service (MODE 2) branch had the identical unvalidated-priceId gap that
+was closed in create-checkout-session earlier that same session. Single-
+function scope: only create-org-checkout-session/index.ts changes.
+
+### Phase 1 -- diagnosis (read-only)
+
+Confirmed repo clean, origin/main current at 5140991 (B4's commit). Read
+create-org-checkout-session/index.ts in full. Confirmed the gap: MODE 2
+(lines 160-170 as of that read) validated `priceId` only for truthiness
+and passed it straight to Stripe as `line_items[0][price]` -- no check
+against ORG_TIERS at all. MODE 1 (existing org) was already safe (resolves
+the Stripe price from ORG_TIERS by tier name server-side). The same
+successUrl/cancelUrl open-redirect gap the sibling fix closed also existed
+in MODE 2 (accepted from the request body, no same-origin check).
+
+Verified before proposing anything:
+- `_shared/pricingConfig.ts`'s ORG_TIERS checked line-by-line against
+  `src/constants/orgPricingConfig.ts` (all 5 tiers' Stripe price IDs) --
+  zero drift, safe to use as the validation source.
+- Audited both frontend callers: `OrgSetup.tsx:219` (MODE 2 -- its priceId
+  comes from `activeTiers`, sourced from the same SSOT, and its
+  successUrl/cancelUrl are built from `window.location.origin`, always
+  same-origin) and `OrgPoolStatusCard.tsx:113` (MODE 1 only, unaffected).
+  Neither the price gate nor the same-origin guard could break either
+  legitimate caller.
+- `_shared/branding.ts`'s getBranding/getBaseUrl (already used by the
+  sibling fix) confirmed directly reusable here.
+
+### Phase 2 -- fix implemented, deployed
+
+`create-org-checkout-session/index.ts` -- complete file replacement:
+- Added imports for `getBranding`, `getBaseUrl` from `_shared/branding.ts`
+  (ORG_TIERS/STRIPE_INDIVIDUAL import unchanged).
+- New gate in MODE 2, immediately after the existing orgMetadata field
+  validation and BEFORE any Stripe customer/session call:
+  `ORG_TIERS.find(t => t.priceMonthly === priceId || t.priceAnnual === priceId)`
+  -- if not found, 400 `{"error":"Invalid price_id"}`, console.error logs
+  `user=<id> attempted_price_id=<value>` (no secrets), no Stripe call made.
+  Direct membership check (not the shared resolveTierFromPriceId helper)
+  since that helper also matches personal-tier prices, which line_items[0]
+  of an org self-service checkout must never accept.
+- Same-origin guard on successUrl/cancelUrl added directly after the price
+  gate, identical logic to the create-checkout-session fix: reject with
+  400 `{"error":"Invalid success_url"}` / `{"error":"Invalid cancel_url"}`
+  if either is provided and its origin doesn't match `getBaseUrl(branding)`.
+
+`npm run build` clean. ASCII guard clean (pre-commit hook confirmed at
+commit time). Deployed via `npx supabase functions deploy
+create-org-checkout-session --project-ref hphebzdftpjbiudpfcrs --use-api`,
+fresh timestamp confirmed (2026-07-15T14:48:08Z).
+
+### Phase 3/4 -- verification, all passed
+
+- Localhost happy path: Lynn confirmed the legitimate MODE 2 self-service
+  org signup flow still works.
+- Post-deploy rejection probe 1 (bogus priceId): `400
+  {"error":"Invalid price_id"}` -- confirmed live.
+- Post-deploy rejection probe 2 (cross-origin successUrl with a valid
+  priceId): `400 {"error":"Invalid success_url"}` -- confirmed live.
+- MODE 1 production spot-check (OrgPoolStatusCard existing-org upgrade):
+  Lynn confirmed the Stripe checkout page is still reached successfully --
+  unaffected by the MODE 2-only fix.
+
+FINDING CLOSED. Gate 1 (B1-B5) is now fully shipped -- no open Gate 1 items
+remain. The two LOW/architecture findings from the July 14 SECURITY session
+(purchase-lesson-pack/purchase-onboarding DB-table price resolution;
+usePricingPlans.tsx reading pricing_plans instead of pricingConfig.ts)
+remain open as documented architecture notes, not urgent.
+
+## JULY 15, 2026 SESSION -- B4: Model fallback / graceful degradation -- SHIPPED
 
 GOAL: Surge prep, Gate 1 item B4. Every Claude-calling edge function should
 retry transient Anthropic errors, fall back to an alternate model when
@@ -359,11 +456,13 @@ FINDING CLOSED.
 ### FINDINGS LOGGED (not fixed this session -- scope was single-function)
 
 1. **HIGH -- create-org-checkout-session, self-service (MODE 2) branch.**
-   Client-supplied `priceId` is passed straight to
-   stripe.checkout.sessions.create with zero validation against ORG_TIERS /
-   STRIPE_INDIVIDUAL -- identical pattern and severity to the finding just
-   closed. Live in production now. **Schedule as its own mini-session
-   immediately after this one.**
+   **CLOSED July 15, 2026 (B5 session).** Client-supplied `priceId` was
+   passed straight to stripe.checkout.sessions.create with zero validation
+   against ORG_TIERS / STRIPE_INDIVIDUAL -- identical pattern and severity
+   to the finding closed earlier in this same session. Fixed with the
+   identical `ORG_TIERS.find(...)` gate + same-origin successUrl/cancelUrl
+   guard. See the B5 RESUME HERE block at the top of this file for full
+   verification detail.
 2. **LOW/architecture -- purchase-lesson-pack and purchase-onboarding**
    resolve their Stripe price IDs from DB config tables
    (lesson_pack_config, onboarding_config) rather than the frontend SSOT

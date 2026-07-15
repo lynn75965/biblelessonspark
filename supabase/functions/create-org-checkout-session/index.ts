@@ -15,6 +15,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ORG_TIERS, STRIPE_INDIVIDUAL } from "../_shared/pricingConfig.ts";
+import { getBranding, getBaseUrl } from "../_shared/branding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,7 +40,7 @@ serve(async (req) => {
     if (userError || !user) throw new Error("Invalid user token");
 
     const body = await req.json();
-    
+
     // Determine mode: existing org vs self-service
     const isExistingOrgMode = !!body.organization_id;
     const isSelfServiceMode = !!body.orgMetadata;
@@ -97,23 +98,23 @@ serve(async (req) => {
           .select("email, full_name")
           .eq("id", user.id)
           .single();
-        
+
         const customerResponse = await fetch("https://api.stripe.com/v1/customers", {
           method: "POST",
-          headers: { 
-            "Authorization": `Bearer ${stripeSecretKey}`, 
-            "Content-Type": "application/x-www-form-urlencoded" 
+          headers: {
+            "Authorization": `Bearer ${stripeSecretKey}`,
+            "Content-Type": "application/x-www-form-urlencoded"
           },
-          body: new URLSearchParams({ 
-            email: userProfile?.email || user.email || "", 
-            name: org.name, 
-            "metadata[organization_id]": organization_id, 
-            "metadata[user_id]": user.id 
+          body: new URLSearchParams({
+            email: userProfile?.email || user.email || "",
+            name: org.name,
+            "metadata[organization_id]": organization_id,
+            "metadata[user_id]": user.id
           }),
         });
-        if (!customerResponse.ok) { 
-          const err = await customerResponse.json(); 
-          throw new Error(`Failed to create customer: ${err.error?.message}`); 
+        if (!customerResponse.ok) {
+          const err = await customerResponse.json();
+          throw new Error(`Failed to create customer: ${err.error?.message}`);
         }
         const customer = await customerResponse.json();
         stripeCustomerId = customer.id;
@@ -122,33 +123,33 @@ serve(async (req) => {
 
       const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
         method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${stripeSecretKey}`, 
-          "Content-Type": "application/x-www-form-urlencoded" 
+        headers: {
+          "Authorization": `Bearer ${stripeSecretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded"
         },
         body: new URLSearchParams({
-          customer: stripeCustomerId, 
-          "line_items[0][price]": stripePriceId, 
-          "line_items[0][quantity]": "1", 
+          customer: stripeCustomerId,
+          "line_items[0][price]": stripePriceId,
+          "line_items[0][quantity]": "1",
           mode: "subscription",
           success_url: `${siteUrl}/org?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/org?checkout=cancelled`,
           allow_promotion_codes: "true",
-          "metadata[organization_id]": organization_id, 
-          "metadata[tier]": tier, 
+          "metadata[organization_id]": organization_id,
+          "metadata[tier]": tier,
           "metadata[billing_interval]": billing_interval,
-          "subscription_data[metadata][organization_id]": organization_id, 
+          "subscription_data[metadata][organization_id]": organization_id,
           "subscription_data[metadata][tier]": tier,
         }),
       });
-      if (!checkoutResponse.ok) { 
-        const err = await checkoutResponse.json(); 
-        throw new Error(`Checkout failed: ${err.error?.message}`); 
+      if (!checkoutResponse.ok) {
+        const err = await checkoutResponse.json();
+        throw new Error(`Checkout failed: ${err.error?.message}`);
       }
       const session = await checkoutResponse.json();
 
       return new Response(
-        JSON.stringify({ checkout_url: session.url, session_id: session.id }), 
+        JSON.stringify({ checkout_url: session.url, session_id: session.id }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
       );
     }
@@ -157,13 +158,13 @@ serve(async (req) => {
     // MODE 2: SELF-SERVICE (create org after payment)
     // Frontend is SSOT - it provides priceId from orgPricingConfig.ts
     // ================================================================
-    const { 
+    const {
       priceId,           // From frontend SSOT (orgPricingConfig.ts)
       billingInterval,   // 'monthly' or 'annual'
       orgMetadata,       // Org details to create after payment
       includePersonalSubscription,  // Add personal sub to checkout
       successUrl,
-      cancelUrl 
+      cancelUrl
     } = body;
 
     // Validate required fields with specific error messages
@@ -171,7 +172,7 @@ serve(async (req) => {
     if (!billingInterval || !["monthly", "annual"].includes(billingInterval)) {
       throw new Error("Invalid or missing billingInterval");
     }
-    
+
     // Detailed orgMetadata validation
     if (!orgMetadata) {
       throw new Error("Missing orgMetadata object");
@@ -188,7 +189,52 @@ serve(async (req) => {
     if (!orgMetadata.leaderEmail) {
       throw new Error("Missing orgMetadata.leaderEmail");
     }
-    
+
+    // SSOT gate: priceId must resolve to a real ORG_TIERS Stripe price.
+    // Mirrors the identical fix in create-checkout-session (personal-tier
+    // gate) -- this endpoint's self-service line_items[0] must always be an
+    // organization subscription price, never an arbitrary client-supplied
+    // Stripe price ID. Fail closed BEFORE any Stripe customer/session call.
+    const orgTierForPrice = ORG_TIERS.find(
+      t => t.priceMonthly === priceId || t.priceAnnual === priceId
+    );
+    if (!orgTierForPrice) {
+      console.error(`Rejected org checkout attempt: user=${user.id} attempted_price_id=${priceId}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid price_id" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
+    // Same-origin guard on successUrl/cancelUrl (open-redirect close,
+    // identical to the sibling fix in create-checkout-session).
+    const branding = await getBranding(supabase);
+    const baseUrl = getBaseUrl(branding);
+    const baseOrigin = new URL(baseUrl).origin;
+
+    const isSameOrigin = (url: string): boolean => {
+      try {
+        return new URL(url).origin === baseOrigin;
+      } catch {
+        return false;
+      }
+    };
+
+    if (successUrl && !isSameOrigin(successUrl)) {
+      console.error(`Rejected org checkout attempt: user=${user.id} unsafe_success_url=${successUrl}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid success_url" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    if (cancelUrl && !isSameOrigin(cancelUrl)) {
+      console.error(`Rejected org checkout attempt: user=${user.id} unsafe_cancel_url=${cancelUrl}`);
+      return new Response(
+        JSON.stringify({ error: "Invalid cancel_url" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+
     console.log("orgMetadata validated:", JSON.stringify(orgMetadata));
     console.log("includePersonalSubscription:", includePersonalSubscription);
 
@@ -207,19 +253,19 @@ serve(async (req) => {
       // Create new Stripe customer
       const customerResponse = await fetch("https://api.stripe.com/v1/customers", {
         method: "POST",
-        headers: { 
-          "Authorization": `Bearer ${stripeSecretKey}`, 
-          "Content-Type": "application/x-www-form-urlencoded" 
+        headers: {
+          "Authorization": `Bearer ${stripeSecretKey}`,
+          "Content-Type": "application/x-www-form-urlencoded"
         },
-        body: new URLSearchParams({ 
+        body: new URLSearchParams({
           email: orgMetadata.leaderEmail,
           name: orgMetadata.leaderName,
           "metadata[user_id]": user.id,
         }),
       });
-      if (!customerResponse.ok) { 
-        const err = await customerResponse.json(); 
-        throw new Error(`Failed to create customer: ${err.error?.message}`); 
+      if (!customerResponse.ok) {
+        const err = await customerResponse.json();
+        throw new Error(`Failed to create customer: ${err.error?.message}`);
       }
       const customer = await customerResponse.json();
       stripeCustomerId = customer.id;
@@ -234,7 +280,7 @@ serve(async (req) => {
     }
 
     // Build line items array
-    // Line item 0: Org subscription (priceId from frontend SSOT)
+    // Line item 0: Org subscription (priceId from frontend SSOT, validated above)
     const lineItemParams: Record<string, string> = {
       "line_items[0][price]": priceId,
       "line_items[0][quantity]": "1",
@@ -289,17 +335,17 @@ serve(async (req) => {
 
     const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
-      headers: { 
-        "Authorization": `Bearer ${stripeSecretKey}`, 
-        "Content-Type": "application/x-www-form-urlencoded" 
+      headers: {
+        "Authorization": `Bearer ${stripeSecretKey}`,
+        "Content-Type": "application/x-www-form-urlencoded"
       },
       body: checkoutParams,
     });
 
-    if (!checkoutResponse.ok) { 
-      const err = await checkoutResponse.json(); 
+    if (!checkoutResponse.ok) {
+      const err = await checkoutResponse.json();
       console.error("Stripe checkout error:", err);
-      throw new Error(`Checkout failed: ${err.error?.message}`); 
+      throw new Error(`Checkout failed: ${err.error?.message}`);
     }
     const session = await checkoutResponse.json();
 
@@ -307,14 +353,14 @@ serve(async (req) => {
 
     // Return checkout_url per frontend SSOT (OrgSetup.tsx expects checkout_url or url)
     return new Response(
-      JSON.stringify({ checkout_url: session.url, url: session.url, session_id: session.id }), 
+      JSON.stringify({ checkout_url: session.url, url: session.url, session_id: session.id }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
 
   } catch (error) {
     console.error("Error:", error.message);
     return new Response(
-      JSON.stringify({ error: error.message }), 
+      JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
     );
   }
