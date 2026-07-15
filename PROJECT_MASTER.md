@@ -1,18 +1,22 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B4 shipped, B5 item 1 of 6 closed, contracts.ts cleanup -- B5 items 2-6 remain)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 2 of 6 closed -- orphan functions retired -- B5 items 3-6 remain)
 
-## >>> RESUME HERE <<< -- CORRECTION to this session's earlier claim: B5 is
-NOT fully shipped. Only B5 item 1 (create-org-checkout-session MODE 2
-price injection + open-redirect) closed this session. Gate 1 status is:
-B1, B2, B3, B4 SHIPPED; B5 item 1 CLOSED; B5 items 2-6 REMAIN OPEN:
+## >>> RESUME HERE <<< -- B5 item 2 (orphan functions check-subscription /
+sync-subscription-status) is CLOSED. Gate 1 status is:
+B1, B2, B3, B4 SHIPPED; B5 items 1-2 CLOSED; B5 items 3-6 REMAIN OPEN:
 
-  2. Orphan functions `check-subscription` and `sync-subscription-status`
-     -- deployed and callable on the live project, but NO source exists in
-     git for either. Need to either recover/recreate the source (if still
-     in use) or confirm they're truly dead and delete them from the
-     deployed project.
   3. Anon-grants hardening -- items B/C deferred from the June Supabase
      Security Advisor audit (see project_security_advisor_audit_in_progress
      memory / the audit session log below for what B/C actually are).
+     ADDED SCOPE this session: also verify no other deployed function
+     bypasses the May 31, 2026 EXECUTE REVOKE on `allocate_monthly_credits`
+     / `deduct_credits` / `cleanup_old_rate_limits` / `debug_admin_check`
+     by calling them through a service-role Supabase client from inside an
+     edge function -- REVOKE FROM PUBLIC/anon/authenticated does not stop
+     a service-role caller, and `sync-subscription-status` (deleted this
+     session) proved that pattern was live at least once. Grep every
+     function in `supabase/functions/` for `.rpc('allocate_monthly_credits'`,
+     `.rpc('deduct_credits'`, `.rpc('cleanup_old_rate_limits'`,
+     `.rpc('debug_admin_check'` combined with a service-role client.
   4. 9 functions showing same-session deploy-vs-git lag need individual
      verification (download + diff vs git HEAD, confirm each is a
      comment-only/BOM difference and not a real drift, per the B3
@@ -31,7 +35,15 @@ B1, B2, B3, B4 SHIPPED; B5 item 1 CLOSED; B5 items 2-6 REMAIN OPEN:
   stripe_price_id_monthly/annual from the pricing_plans DB table as a
   second source instead of pricingConfig.ts directly.
 
-B5 items 2-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
+  NEW LOW/architecture (logged this session, not fixed): the credits
+  system (`allocate_monthly_credits` RPC + `credits_ledger` table) has no
+  remaining application callers anywhere in the codebase now that
+  sync-subscription-status is deleted -- candidate for full retirement
+  (drop RPC + table via migration) in a dedicated future session. Not
+  urgent; EXECUTE is already locked down to service_role/cron per the May
+  31 hardening.
+
+B5 items 3-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
 infra, B8 capacity recheck, legal pages confirmation) can start.
 
 Also closed this session (accurate, unaffected by the correction above):
@@ -46,6 +58,71 @@ bundler WARN during edge-function deploys. A third occurrence exists in
 synced to `_shared/` or uploaded during a function deploy, so it can't
 cause the warning -- left alone, not a bug. Commit `4f6f73c`. No redeploy
 needed for this fix (no edge function's actual behavior changed).
+
+## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 2: Orphan functions retired
+
+GOAL: `check-subscription` and `sync-subscription-status` were deployed and
+callable in production with zero source in git -- recover, audit, and
+retire or adopt.
+
+### Diagnosis
+Downloaded both via `npx supabase functions download <name> --project-ref
+hphebzdftpjbiudpfcrs` into a scratch folder outside the repo. `git log
+--all --oneline` for both names returned nothing -- these never existed in
+this repo at any commit. Both created 2025-10-28, last updated 2025-10-31
+(version 48), untouched for ~8.5 months -- profile matches the Lovable
+scaffold artifacts purged 2026-07-13 (see project_lovable_scaffold_purge
+memory), just never caught because they only existed as deployed functions.
+
+- `check-subscription`: read-only, looks up the caller's own Stripe
+  customer by email, returns `{subscribed, product_id, subscription_end}`
+  live from Stripe. No DB writes. Low risk as deployed, but doesn't
+  resolve one of our tier names and nothing in the app could safely
+  consume it.
+- `sync-subscription-status`: upserts `user_subscriptions` after resolving
+  `plan_id` via a **`subscription_plans` table lookup** -- the exact
+  pattern Rule #17 forbids (tier resolution must go through
+  `resolveTierFromPriceId` in pricingConfig.ts; this function bypassed
+  that SSOT entirely, and defaulted to `plan_id: null` on a lookup miss).
+  Also called `supabaseAdmin.rpc('allocate_monthly_credits')` using a
+  **service-role client** -- the May 31, 2026 hardening migration
+  (`20260531120100_security_definer_execute_revoke.sql`) revoked EXECUTE
+  on that RPC from PUBLIC/anon/authenticated specifically to make it
+  cron-only, but a service-role caller inside an edge function is
+  unaffected by that REVOKE. This function was therefore a live,
+  undocumented bypass of an intentional access restriction -- any
+  authenticated user could trigger it on demand.
+
+Grepped all of `src/` and `supabase/functions/` for both function-name
+strings: zero call sites anywhere, frontend or backend. Confirmed via
+Supabase Dashboard invocation logs: no invocations in the visible window
+for either function. `subscription_plans` table is still used elsewhere
+(PricingPlansManager.tsx, sync-pricing-from-stripe, seed-stripe-catalog --
+the already-logged LOW/architecture finding, untouched). `credits_ledger`
+and `allocate_monthly_credits` have no callers anywhere else in the
+codebase besides generated types.
+
+### Decision and action
+Lynn approved RETIRE for both (zero callers on either, one with a live
+security-relevant bypass). Deleted `sync-subscription-status` first (the
+live exploit path), confirmed removal via `supabase functions list`, then
+deleted `check-subscription`, confirmed again. Function count post-delete:
+47. Lynn spot-checked her admin account and the Cornerstone org account --
+both resolve correct tier/status in the app, confirming no regression.
+
+### Logged for future sessions (not fixed this session)
+1. Credits system (`allocate_monthly_credits` + `credits_ledger`) has no
+   remaining callers -- candidate for full retirement (drop RPC + table
+   via migration) in a dedicated session. See B5 item 3 scope note above
+   for the related follow-up: audit whether any OTHER deployed function
+   bypasses the May 31 REVOKE via a service-role client the same way
+   sync-subscription-status did.
+
+### SESSION SUMMARY
+No files changed in the repo (there was nothing to remove -- these
+functions had no git presence). Production change only: two edge
+functions deleted from the Supabase project. Commit is documentation-only
+(this PROJECT_MASTER.md update).
 
 ## >>> PRIOR RESUME <<< -- B5 ITEM 1 ONLY (create-org-checkout-session MODE
 2 price injection + open-redirect) is COMPLETE and FULLY CLOSED OUT --
