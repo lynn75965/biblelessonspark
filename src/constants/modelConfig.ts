@@ -22,6 +22,110 @@ export const ANTHROPIC_MODELS = {
   default: 'claude-sonnet-4-6',
   fast: 'claude-haiku-4-5-20251001',
   parable: 'claude-sonnet-4-5-20250929',
+  // Fallback tier used when a function's primary model (default or parable)
+  // is overloaded/erroring/timing out. Same literal as .parable today, but a
+  // distinct key so parable's dedicated pin is never accidentally coupled to
+  // this generic fallback if either one changes independently later.
+  // generate-parable itself falls back to .default (its natural inverse).
+  fallback: 'claude-sonnet-4-5-20250929',
 } as const;
 
 export type AnthropicModelKey = keyof typeof ANTHROPIC_MODELS;
+
+// ============================================================================
+// RETRY / FALLBACK CONFIG -- B4 (model fallback / graceful degradation)
+// ============================================================================
+//
+// Pure data (timeouts, counts, backoff) consumed by the orchestration logic in
+// supabase/functions/_shared/anthropicRetry.ts (hand-maintained, Rule #24 --
+// no frontend equivalent needed since no frontend code calls Anthropic
+// directly). Kept here rather than a backend-only file so it stays under the
+// existing sync-constants mechanism, consistent with ANTHROPIC_MODELS above.
+//
+// Error taxonomy this config supports:
+//   529 / overloaded_error        -> retry same model once, then fallback
+//                                     model once, then fail
+//   500/502/503 / network / abort -> same as above
+//   429 rate_limit_error          -> bounded retry honoring retry-after
+//                                     (capped), NO model switch
+//   400/401/403                   -> fail immediately, no retry
+//   malformed/empty completion    -> one retry same model, then fail (no
+//                                     fallback-model attempt)
+//
+// Latency budget: Supabase edge functions have a ~150s TOTAL wall-clock
+// execution ceiling, not just an idle timeout -- reshape-lesson's own tuning
+// history proves this (a prior 180s single-call attempt never fired its own
+// AbortController because the gateway 504'd the whole invocation first, see
+// reshape-lesson/index.ts). That means the budget below is a ceiling on the
+// ENTIRE attempt sequence (all retries + backoff + fallback combined) per
+// call site, not a per-attempt allowance repeated N times.
+//
+// Two functions (reshape-lesson, generate-devotional) already have
+// empirically-tuned single-call timeouts (140s / 120s) sized for a
+// legitimately slow-but-successful generation under real load -- those
+// values are preserved as the FIRST attempt's timeout below so a healthy
+// slow call is never cut short. Anthropic's actual error responses
+// (429/500/529) come back in seconds, not after the full timeout, so a fast
+// failure still leaves most of the budget free for a retry/fallback; a
+// genuine network hang that burns the entire first-attempt timeout
+// legitimately leaves little or no room for a second attempt, and the
+// implementation must fail gracefully rather than start an attempt that
+// cannot finish before the platform ceiling hits.
+// ============================================================================
+
+export type RetryCallSite =
+  | 'reshapeLesson'
+  | 'devotional'
+  | 'parable'
+  | 'toolbeltReflect'
+  | 'extractHeavy'
+  | 'extractFast'
+  | 'lessonPhase2';
+
+export const RETRY_CONFIG = {
+  // Overall wall-clock budget (ms) for the ENTIRE attempt sequence per call
+  // site, chosen to stay under Supabase's ~150s ceiling.
+  totalBudgetMs: {
+    reshapeLesson: 145_000,
+    devotional: 145_000,
+    parable: 90_000,
+    toolbeltReflect: 90_000,
+    extractHeavy: 100_000,
+    extractFast: 20_000,
+    lessonPhase2: 90_000, // generate-lesson's non-streaming supplement/rewrite calls
+  } satisfies Record<RetryCallSite, number>,
+  // The FIRST attempt's timeout (ms) -- preserves each function's own
+  // proven-safe tuning where one already existed (reshapeLesson, devotional);
+  // reasonable new ceilings for call sites that had none before. Later
+  // attempts (retry / fallback) get min(this value, remaining total budget).
+  primaryAttemptTimeoutMs: {
+    reshapeLesson: 140_000, // unchanged from reshape-lesson's existing tuning
+    devotional: 120_000,    // unchanged from generate-devotional's existing tuning
+    parable: 60_000,
+    toolbeltReflect: 60_000,
+    extractHeavy: 75_000,
+    extractFast: 12_000,
+    lessonPhase2: 60_000,
+  } satisfies Record<RetryCallSite, number>,
+  // Per-attempt timeout for generate-lesson's Phase-1 stream
+  // connection/stall-before-first-byte phase only -- matches its existing
+  // stall guard. Retry/fallback for generate-lesson applies ONLY to this
+  // pre-first-byte phase; once content is streaming, no further
+  // retry/fallback occurs (an SSE response already reached the client).
+  streamConnectTimeoutMs: 30_000,
+  // Backoff delays (ms) between successive same-model retry attempts.
+  backoffMs: [500, 1500],
+  // How many times to retry the SAME model before switching to the fallback
+  // model, for 529/500/502/503/network-error/malformed-completion classes.
+  maxSameModelRetries: 1,
+  // How many attempts on the fallback model after the primary is exhausted.
+  maxFallbackRetries: 1,
+  // 429 handling: bounded retries, no model switch.
+  maxRateLimitRetries: 1,
+  // Cap on how long we'll honor a Retry-After header, so a single 429 can't
+  // blow the latency budget.
+  rateLimitRetryAfterCapMs: 10_000,
+  // Below this much remaining total budget, don't start another attempt --
+  // fail gracefully instead of starting one that cannot finish in time.
+  minRemainingBudgetToAttemptMs: 10_000,
+} as const;

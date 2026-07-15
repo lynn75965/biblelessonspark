@@ -7,6 +7,7 @@ import { getShapeById } from '../_shared/lessonShapeProfiles.ts';
 import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
 import { checkOrgPoolAccess, consumeFromOrgPool } from '../_shared/orgPoolCheck.ts';
+import { callAnthropicNonStreaming, getForcedErrorClass } from '../_shared/anthropicRetry.ts';
 
 /**
  * reshape-lesson Edge Function (Session A -- reshape-as-lesson)
@@ -34,13 +35,15 @@ import { checkOrgPoolAccess, consumeFromOrgPool } from '../_shared/orgPoolCheck.
  */
 
 const ANTHROPIC_MODEL = ANTHROPIC_MODELS.default;
-// Reshape takes a full 2000-3500 word source lesson as input and produces
-// a similar-length output. 90s was too tight under real Anthropic latency
-// (timeout hit during 2026-05-18 smoke test). Held at 140s to fire BELOW the
-// Supabase 150s gateway idle timeout (504 ceiling) -- the prior 180s was above
-// it and could never fire (the gateway 504'd first), giving users a raw 504
-// instead of a graceful timeout body. Matches generate-lesson's 140s envelope.
-const RESHAPE_TIMEOUT_MS = 140000;
+// Reshape takes a full 2000-3500 word source lesson as input and produces a
+// similar-length output. The 140s single-attempt timeout empirically tuned
+// here on 2026-05-18 (90s was too tight under real Anthropic latency; 180s
+// was above Supabase's ~150s gateway ceiling and never fired, giving users a
+// raw 504 instead of a graceful timeout body) now lives as
+// RETRY_CONFIG.primaryAttemptTimeoutMs.reshapeLesson in
+// _shared/modelConfig.ts (B4 -- retry/fallback), preserved unchanged as the
+// first attempt's timeout so a healthy slow-but-successful reshape is never
+// cut short.
 const RESHAPE_MAX_TOKENS = 6000;
 const RESHAPE_TEMPERATURE = 0.5;
 
@@ -374,97 +377,68 @@ serve(async (req) => {
     console.log(`System prompt: ${systemPrompt.length} chars`);
     console.log(`User prompt: ${userPrompt.length} chars`);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log(`[TIMEOUT] Aborting Anthropic request after ${RESHAPE_TIMEOUT_MS / 1000}s`);
-      controller.abort();
-    }, RESHAPE_TIMEOUT_MS);
-
     let reshapedContent = '';
     let tokensInput: number | null = null;
     let tokensOutput: number | null = null;
+    let modelUsed: string = ANTHROPIC_MODEL;
 
-    try {
-      const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: ANTHROPIC_MODEL,
-          max_tokens: RESHAPE_MAX_TOKENS,
-          temperature: RESHAPE_TEMPERATURE,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: userPrompt }]
-        })
+    const forcedErrorClass = getForcedErrorClass(req);
+    const reshapeResult = await callAnthropicNonStreaming({
+      functionName: 'reshape-lesson',
+      callLabel: 'reshape',
+      callSite: 'reshapeLesson',
+      apiKey: anthropicApiKey,
+      primaryModel: ANTHROPIC_MODEL,
+      fallbackModel: ANTHROPIC_MODELS.fallback,
+      forcedErrorClass,
+      buildBody: (model) => ({
+        model,
+        max_tokens: RESHAPE_MAX_TOKENS,
+        temperature: RESHAPE_TEMPERATURE,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    checkpoint = logTiming('Anthropic API returned', checkpoint);
+
+    if (!reshapeResult.ok) {
+      console.error('Anthropic call failed after retries/fallback:', reshapeResult.errorClass);
+
+      if (metricId) {
+        await supabase
+          .from('reshape_metrics')
+          .update({
+            reshape_end: new Date().toISOString(),
+            reshape_duration_ms: Date.now() - functionStartTime,
+            status: reshapeResult.errorClass === 'network' ? 'timeout' : 'error',
+            rate_limited: reshapeResult.errorClass === 'rate_limit',
+            anthropic_model: ANTHROPIC_MODEL,
+            error_message: reshapeResult.error
+          })
+          .eq('id', metricId);
+      }
+
+      return new Response(JSON.stringify({
+        error: reshapeResult.error,
+        code: reshapeResult.code
+      }), {
+        status: 503,
+        headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
       });
-
-      clearTimeout(timeoutId);
-      checkpoint = logTiming('Anthropic API returned', checkpoint);
-
-      if (anthropicResponse.status === 429) {
-        const errorData = await anthropicResponse.text();
-        console.error('Anthropic API rate limited:', errorData);
-
-        if (metricId) {
-          await supabase
-            .from('reshape_metrics')
-            .update({
-              reshape_end: new Date().toISOString(),
-              reshape_duration_ms: Date.now() - functionStartTime,
-              status: 'error',
-              rate_limited: true,
-              anthropic_model: ANTHROPIC_MODEL,
-              error_message: 'Anthropic API rate limit exceeded (429)'
-            })
-            .eq('id', metricId);
-        }
-
-        throw new Error('Service temporarily busy. Please try again in a few minutes.');
-      }
-
-      if (!anthropicResponse.ok) {
-        const errorData = await anthropicResponse.text();
-        console.error('Anthropic API error:', errorData);
-        throw new Error(`Anthropic API error: ${anthropicResponse.status} - ${errorData}`);
-      }
-
-      const anthropicData = await anthropicResponse.json();
-      reshapedContent = anthropicData.content[0].text;
-      tokensInput = anthropicData.usage?.input_tokens ?? null;
-      tokensOutput = anthropicData.usage?.output_tokens ?? null;
-
-      const wordCount = reshapedContent.split(/\s+/).length;
-      console.log(`Reshaped lesson: ${reshapedContent.length} chars, ${wordCount} words`);
-      console.log(`Tokens -- Input: ${tokensInput}, Output: ${tokensOutput}`);
-
-      checkpoint = logTiming('Response parsed', checkpoint);
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-
-      if (fetchError?.name === 'AbortError') {
-        console.error(`Anthropic API timeout after ${RESHAPE_TIMEOUT_MS / 1000}s`);
-
-        if (metricId) {
-          await supabase
-            .from('reshape_metrics')
-            .update({
-              reshape_end: new Date().toISOString(),
-              reshape_duration_ms: Date.now() - functionStartTime,
-              status: 'timeout',
-              anthropic_model: ANTHROPIC_MODEL,
-              error_message: `Anthropic API timeout after ${RESHAPE_TIMEOUT_MS / 1000}s`
-            })
-            .eq('id', metricId);
-        }
-
-        throw new Error('Lesson reshaping timed out. Please try again.');
-      }
-      throw fetchError;
     }
+
+    reshapedContent = reshapeResult.text;
+    modelUsed = reshapeResult.modelUsed;
+    const rawUsage = (reshapeResult.raw as any)?.usage;
+    tokensInput = rawUsage?.input_tokens ?? null;
+    tokensOutput = rawUsage?.output_tokens ?? null;
+
+    const wordCount = reshapedContent.split(/\s+/).length;
+    console.log(`Reshaped lesson: ${reshapedContent.length} chars, ${wordCount} words (model: ${modelUsed}, attempts: ${reshapeResult.attempts})`);
+    console.log(`Tokens -- Input: ${tokensInput}, Output: ${tokensOutput}`);
+
+    checkpoint = logTiming('Response parsed', checkpoint);
 
     // =========================================================================
     // BUILD AND INSERT THE NEW LESSON ROW
@@ -596,7 +570,7 @@ serve(async (req) => {
         wordCount: reshapedContent.split(/\s+/).length,
         tokensInput,
         tokensOutput,
-        model: ANTHROPIC_MODEL,
+        model: modelUsed,
         temperature: RESHAPE_TEMPERATURE,
         generationTimeSeconds: ((Date.now() - functionStartTime) / 1000).toFixed(2),
       }

@@ -96,30 +96,30 @@ export const useReshapeLesson = () => {
       });
 
       if (error) {
-        // Try to parse structured error from Edge Function
+        // B4: branch on the machine-readable `code` field from
+        // callAnthropicNonStreaming's graceful-failure contract, not fragile
+        // string-matching on the message text.
         const errorBody = error.context?.body;
         if (errorBody) {
           try {
             const parsed = typeof errorBody === 'string' ? JSON.parse(errorBody) : errorBody;
-            
-            // Rate limited
-            if (parsed.error?.includes('rate limit') || parsed.error?.includes('overloaded')) {
+
+            if (parsed.code === 'AI_TEMPORARILY_UNAVAILABLE') {
               toast({
                 title: "Service Busy",
-                description: "The AI service is temporarily busy. Please try again in a moment.",
+                description: parsed.error || "Our AI assistant is experiencing very heavy demand right now. Please try again in a few minutes.",
                 variant: "destructive",
               });
-              return { success: false, error: "Rate limited -- please retry" };
+              return { success: false, error: "AI temporarily unavailable -- please retry" };
             }
 
-            // Timeout
-            if (parsed.error?.includes('timeout') || parsed.error?.includes('timed out')) {
+            if (parsed.code === 'AI_ERROR') {
               toast({
-                title: "Request Timed Out",
-                description: "The reshape took too long. Please try again.",
+                title: "Reshape Failed",
+                description: parsed.error || "We ran into a problem generating that. Please try again in a moment.",
                 variant: "destructive",
               });
-              return { success: false, error: "Reshape timed out" };
+              return { success: false, error: "Reshape failed" };
             }
           } catch (e) {
             // Not JSON, continue with generic error

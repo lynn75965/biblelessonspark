@@ -1,7 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
-import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
+import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,14 +54,16 @@ serve(async (req) => {
     // Fail-CLOSED extraction rate limit -- a DEDICATED cap, NOT the lesson quota --
     // enforced BEFORE form parsing and any paid Anthropic call.
     // 25/user/day, 15/IP/hour, 300/day global spend backstop.
+    let extractRateLimitScopes: { endpoint: string; identifier: string; windowStart: string; cap: number }[] = [];
     if (!isAdmin) {
       const ip = getClientIP(req);
       const { hour, day } = windowStartsISO();
-      const rl = await checkRateLimits(supabase, [
+      extractRateLimitScopes = [
         { endpoint: "extract-lesson:user", identifier: user.id, windowStart: day, cap: 25 },
         { endpoint: "extract-lesson:ip", identifier: ip, windowStart: hour, cap: 15 },
         { endpoint: "extract-lesson:global", identifier: "GLOBAL", windowStart: day, cap: 300 },
-      ]);
+      ];
+      const rl = await checkRateLimits(supabase, extractRateLimitScopes);
       if (rl.blocked) {
         return new Response(
           JSON.stringify({ success: false, error: "Extraction limit reached. Please try again later." }),
@@ -68,6 +71,17 @@ serve(async (req) => {
         );
       }
     }
+
+    // B4: refund the extraction-cap scopes on a terminal Anthropic failure so
+    // a transient outage doesn't cost the teacher one of her daily/hourly
+    // extraction attempts. Only refunds if a cap was actually consumed above
+    // (admins never consume it).
+    async function refundExtractQuota() {
+      if (extractRateLimitScopes.length > 0) {
+        await refundRateLimits(supabase, extractRateLimitScopes);
+      }
+    }
+    const forcedErrorClass = getForcedErrorClass(req);
 
     // Parse form data
     const formData = await req.formData();
@@ -86,48 +100,47 @@ serve(async (req) => {
       let extractedFocus: string | null = null;
 
       if (extractedText.length >= 50 && anthropicApiKey) {
-        try {
-          console.log("Running scripture/focus extraction with Haiku (pasted text)...");
-          const analysisResponse = await fetch("https://api.anthropic.com/v1/messages", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-api-key": anthropicApiKey,
-              "anthropic-version": "2023-06-01",
-            },
-            body: JSON.stringify({
-              model: ANTHROPIC_MODELS.fast,
-              max_tokens: 200,
-              messages: [
-                {
-                  role: "user",
-                  content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God\'s love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
-                },
-              ],
-            }),
-          });
+        console.log("Running scripture/focus extraction with Haiku (pasted text)...");
+        // Best-effort tagging: retry-only, no model fallback (Phase 2 design
+        // decision -- this is cheap/non-critical, already degrades to null
+        // on failure without blocking the main extraction result).
+        const analysisResult = await callAnthropicNonStreaming({
+          functionName: "extract-lesson",
+          callLabel: "haiku-tag-pasted",
+          callSite: "extractFast",
+          apiKey: anthropicApiKey,
+          primaryModel: ANTHROPIC_MODELS.fast,
+          fallbackModel: null,
+          forcedErrorClass,
+          buildBody: (model) => ({
+            model,
+            max_tokens: 200,
+            messages: [
+              {
+                role: "user",
+                content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God\'s love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
+              },
+            ],
+          }),
+        });
 
-          if (analysisResponse.ok) {
-            const analysisResult = await analysisResponse.json();
-            let rawText = analysisResult.content?.[0]?.text || "";
-            rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-            try {
-              const parsed = JSON.parse(rawText);
-              if (parsed.scripture && typeof parsed.scripture === "string" && parsed.scripture !== "null") {
-                extractedPassage = parsed.scripture;
-              }
-              if (parsed.focus && typeof parsed.focus === "string" && parsed.focus !== "null") {
-                extractedFocus = parsed.focus;
-              }
-              console.log(`Haiku extraction (pasted) - passage: ${extractedPassage}, focus: ${extractedFocus}`);
-            } catch (parseErr) {
-              console.error("Failed to parse Haiku response:", rawText);
+        if (analysisResult.ok) {
+          let rawText = analysisResult.text;
+          rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+          try {
+            const parsed = JSON.parse(rawText);
+            if (parsed.scripture && typeof parsed.scripture === "string" && parsed.scripture !== "null") {
+              extractedPassage = parsed.scripture;
             }
-          } else {
-            console.error("Haiku API error:", await analysisResponse.text());
+            if (parsed.focus && typeof parsed.focus === "string" && parsed.focus !== "null") {
+              extractedFocus = parsed.focus;
+            }
+            console.log(`Haiku extraction (pasted) - passage: ${extractedPassage}, focus: ${extractedFocus}`);
+          } catch (parseErr) {
+            console.error("Failed to parse Haiku response:", rawText);
           }
-        } catch (analysisErr) {
-          console.error("Scripture/focus extraction failed:", analysisErr);
+        } else {
+          console.error("Haiku tagging (pasted) failed after retries:", analysisResult.errorClass);
         }
       }
 
@@ -183,15 +196,16 @@ serve(async (req) => {
 
       console.log(`Sending PDF to Claude Sonnet 4: ${file.name} (${Math.round(base64.length / 1024)}KB base64)`);
 
-      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: ANTHROPIC_MODELS.default,
+      const pdfResult = await callAnthropicNonStreaming({
+        functionName: "extract-lesson",
+        callLabel: "pdf-extraction",
+        callSite: "extractHeavy",
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODELS.default,
+        fallbackModel: ANTHROPIC_MODELS.fallback,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
           max_tokens: 8000,
           messages: [
             {
@@ -215,20 +229,18 @@ serve(async (req) => {
         }),
       });
 
-      if (!claudeResponse.ok) {
-        const errorText = await claudeResponse.text();
-        console.error("Claude API error for PDF:", errorText);
+      if (!pdfResult.ok) {
+        await refundExtractQuota();
         return new Response(
-          JSON.stringify({ success: false, error: "Failed to process PDF" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: pdfResult.error, code: pdfResult.code }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const claudeResult = await claudeResponse.json();
-      extractedText = claudeResult.content?.[0]?.text || "";
-      
+      extractedText = pdfResult.text;
+
       const extractionTime = ((Date.now() - startTime) / 1000).toFixed(2);
-      console.log(`Claude Sonnet 4 extracted ${extractedText.length} characters in ${extractionTime}s`);
+      console.log(`Claude Sonnet 4 extracted ${extractedText.length} characters in ${extractionTime}s (model: ${pdfResult.modelUsed})`);
 
       if (extractedText.length < 50) {
         extractedText = `[PDF: ${file.name}. Could not extract sufficient text. Please also enter a Bible passage or topic.]`;
@@ -255,15 +267,16 @@ serve(async (req) => {
 
       console.log(`Sending DOCX to Claude Sonnet 4: ${file.name}`);
 
-      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: ANTHROPIC_MODELS.default,
+      const docxResult = await callAnthropicNonStreaming({
+        functionName: "extract-lesson",
+        callLabel: "docx-extraction",
+        callSite: "extractHeavy",
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODELS.default,
+        fallbackModel: ANTHROPIC_MODELS.fallback,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
           max_tokens: 8000,
           messages: [
             {
@@ -287,20 +300,18 @@ serve(async (req) => {
         }),
       });
 
-      if (!claudeResponse.ok) {
-        const errorText = await claudeResponse.text();
-        console.error("Claude API error for DOCX:", errorText);
+      if (!docxResult.ok) {
+        await refundExtractQuota();
         return new Response(
-          JSON.stringify({ success: false, error: "Failed to process DOCX" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: docxResult.error, code: docxResult.code }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const claudeResult = await claudeResponse.json();
-      extractedText = claudeResult.content?.[0]?.text || "";
+      extractedText = docxResult.text;
 
       const extractionTime = ((Date.now() - startTime) / 1000).toFixed(2);
-      console.log(`Claude Sonnet 4 extracted ${extractedText.length} characters from DOCX in ${extractionTime}s`);
+      console.log(`Claude Sonnet 4 extracted ${extractedText.length} characters from DOCX in ${extractionTime}s (model: ${docxResult.modelUsed})`);
 
       if (extractedText.length < 50) {
         extractedText = `[DOCX: ${file.name}. Could not extract sufficient text. Please also enter a Bible passage or topic.]`;
@@ -330,15 +341,16 @@ serve(async (req) => {
 
       console.log(`Sending image to Claude Sonnet 4: ${file.name}`);
 
-      const claudeResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        body: JSON.stringify({
-          model: ANTHROPIC_MODELS.default,
+      const imageResult = await callAnthropicNonStreaming({
+        functionName: "extract-lesson",
+        callLabel: "image-extraction",
+        callSite: "extractHeavy",
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODELS.default,
+        fallbackModel: ANTHROPIC_MODELS.fallback,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
           max_tokens: 4000,
           messages: [
             {
@@ -362,20 +374,18 @@ serve(async (req) => {
         }),
       });
 
-      if (!claudeResponse.ok) {
-        const errorText = await claudeResponse.text();
-        console.error("Claude API error:", errorText);
+      if (!imageResult.ok) {
+        await refundExtractQuota();
         return new Response(
-          JSON.stringify({ success: false, error: "Failed to process image" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: imageResult.error, code: imageResult.code }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const claudeResult = await claudeResponse.json();
-      extractedText = claudeResult.content?.[0]?.text || "";
+      extractedText = imageResult.text;
 
       const extractionTime = ((Date.now() - startTime) / 1000).toFixed(2);
-      console.log(`Claude Sonnet 4 extracted ${extractedText.length} characters from image in ${extractionTime}s`);
+      console.log(`Claude Sonnet 4 extracted ${extractedText.length} characters from image in ${extractionTime}s (model: ${imageResult.modelUsed})`);
 
       if (extractedText.length < 50) {
         extractedText = `[Image: ${file.name}. Could not extract sufficient text. Please also enter a Bible passage or topic.]`;
@@ -396,49 +406,47 @@ serve(async (req) => {
     let extractedFocus: string | null = null;
 
     if (extractedText.length >= 50 && anthropicApiKey) {
-      try {
-        console.log("Running scripture/focus extraction with Haiku...");
-        const analysisResponse = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": anthropicApiKey,
-            "anthropic-version": "2023-06-01",
-          },
-          body: JSON.stringify({
-            model: ANTHROPIC_MODELS.fast,
-            max_tokens: 200,
-            messages: [
-              {
-                role: "user",
-                content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God\'s love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
-              },
-            ],
-          }),
-        });
+      console.log("Running scripture/focus extraction with Haiku...");
+      // Best-effort tagging: retry-only, no model fallback (same as the
+      // pasted-text path above).
+      const analysisResult = await callAnthropicNonStreaming({
+        functionName: "extract-lesson",
+        callLabel: "haiku-tag-file",
+        callSite: "extractFast",
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODELS.fast,
+        fallbackModel: null,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
+          max_tokens: 200,
+          messages: [
+            {
+              role: "user",
+              content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God\'s love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
+            },
+          ],
+        }),
+      });
 
-        if (analysisResponse.ok) {
-          const analysisResult = await analysisResponse.json();
-          let rawText = analysisResult.content?.[0]?.text || "";
-          // Strip markdown code fences if present
-          rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
-          try {
-            const parsed = JSON.parse(rawText);
-            if (parsed.scripture && typeof parsed.scripture === "string" && parsed.scripture !== "null") {
-              extractedPassage = parsed.scripture;
-            }
-            if (parsed.focus && typeof parsed.focus === "string" && parsed.focus !== "null") {
-              extractedFocus = parsed.focus;
-            }
-            console.log(`Haiku extraction - passage: ${extractedPassage}, focus: ${extractedFocus}`);
-          } catch (parseErr) {
-            console.error("Failed to parse Haiku response:", rawText);
+      if (analysisResult.ok) {
+        let rawText = analysisResult.text;
+        // Strip markdown code fences if present
+        rawText = rawText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+        try {
+          const parsed = JSON.parse(rawText);
+          if (parsed.scripture && typeof parsed.scripture === "string" && parsed.scripture !== "null") {
+            extractedPassage = parsed.scripture;
           }
-        } else {
-          console.error("Haiku API error:", await analysisResponse.text());
+          if (parsed.focus && typeof parsed.focus === "string" && parsed.focus !== "null") {
+            extractedFocus = parsed.focus;
+          }
+          console.log(`Haiku extraction - passage: ${extractedPassage}, focus: ${extractedFocus}`);
+        } catch (parseErr) {
+          console.error("Failed to parse Haiku response:", rawText);
         }
-      } catch (analysisErr) {
-        console.error("Scripture/focus extraction failed:", analysisErr);
+      } else {
+        console.error("Haiku tagging failed after retries:", analysisResult.errorClass);
       }
     }
 

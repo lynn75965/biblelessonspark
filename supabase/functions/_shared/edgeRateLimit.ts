@@ -90,3 +90,33 @@ export async function checkRateLimits(
   }
   return { blocked: false, counts };
 }
+
+/**
+ * Refund a previously-consumed rate-limit scope after a terminal Anthropic
+ * failure (B4 -- see 20260715120000_decrement_rate_limit_refund.sql). Call
+ * ONLY from a terminal-failure path (all retries/fallback exhausted) -- a
+ * request that eventually succeeds, even after retries, is never refunded.
+ *
+ * Best-effort, not fail-closed: a refund failure is logged and swallowed
+ * rather than surfaced, since it's a courtesy to the user, not a security
+ * control (unlike checkRateLimits, which must fail closed).
+ */
+export async function refundRateLimits(
+  supabase: any,
+  scopes: RateLimitScope[],
+): Promise<void> {
+  for (const s of scopes) {
+    try {
+      const { error } = await supabase.rpc("decrement_rate_limit", {
+        p_endpoint: s.endpoint,
+        p_identifier: s.identifier,
+        p_window_start: s.windowStart,
+      });
+      if (error) {
+        console.error("[edgeRateLimit] decrement_rate_limit error (refund skipped):", s.endpoint, error.message);
+      }
+    } catch (e) {
+      console.error("[edgeRateLimit] decrement_rate_limit threw (refund skipped):", s.endpoint, (e as Error)?.message ?? e);
+    }
+  }
+}

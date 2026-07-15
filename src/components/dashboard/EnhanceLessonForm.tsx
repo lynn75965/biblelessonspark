@@ -1091,7 +1091,9 @@ export function EnhanceLessonForm({
         });
 
         if (!response.ok) {
-          throw new Error(`Extraction failed for ${file.name}: ${response.status}`);
+          let errBody: any = {};
+          try { errBody = await response.json(); } catch { /* non-JSON body */ }
+          throw new Error(errBody.error || "We ran into a problem generating that. Please try again in a moment.");
         }
 
         const result = await response.json();
@@ -1189,7 +1191,18 @@ export function EnhanceLessonForm({
         body: formDataToSend,
       });
 
-      if (!response.ok) return;
+      if (!response.ok) {
+        // B4: this used to fail silently. It's a best-effort auto-populate
+        // convenience (the teacher can still type passage/focus manually),
+        // so keep the toast low-key rather than alarming.
+        let errBody: any = {};
+        try { errBody = await response.json(); } catch { /* non-JSON body */ }
+        toast({
+          title: "Auto-fill unavailable",
+          description: errBody.error || "Couldn't auto-detect the passage and focus this time -- you can enter them manually.",
+        });
+        return;
+      }
 
       const result = await response.json();
       if (result.success) {
@@ -1301,6 +1314,16 @@ export function EnhanceLessonForm({
                   setScriptureLockedFromExtraction(true);
                 }
               }
+            } else {
+              // B4: this used to fail silently. Low-key toast, since this is
+              // a background auto-populate courtesy after removing a page --
+              // not something that should feel alarming mid-edit.
+              let errBody: any = {};
+              try { errBody = await response.json(); } catch { /* non-JSON body */ }
+              toast({
+                title: "Auto-fill unavailable",
+                description: errBody.error || "Couldn't auto-detect the passage and focus from the new first page -- you can enter them manually.",
+              });
             }
           }
         } catch (error) {

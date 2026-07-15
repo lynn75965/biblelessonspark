@@ -1,6 +1,35 @@
-# PROJECT MASTER -- Last updated: July 14, 2026 (Session: SECURITY -- create-checkout-session price_id gap CLOSED)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B4 -- model fallback -- SHIPPED)
 
-## >>> RESUME HERE <<< -- SECURITY mini-session CLOSED the HIGH-priority
+## >>> RESUME HERE <<< -- B4 (model fallback / graceful degradation) is
+COMPLETE and FULLY CLOSED OUT. All six Claude-calling edge functions
+(generate-lesson, generate-parable, reshape-lesson, generate-devotional,
+extract-lesson, toolbelt-reflect) now retry transient errors, fall back to
+an alternate model when overloaded, and return a friendly graceful-failure
+body instead of a raw error -- deployed and verified live. Migration
+`20260715120000_decrement_rate_limit_refund.sql` is live. All 6 functions
+show fresh 2026-07-15 deploy timestamps (13:27-14:25 UTC). Forced-error
+smoke tests against toolbelt-reflect (client_error, overloaded) and
+generate-parable's anonymous flow (overloaded) all produced the correct
+graceful-failure contract, and a live rate_limits query confirmed the
+pre-call quota consumed by each was refunded back to 0 after the forced
+terminal failure -- the refund mechanism works in production. Lynn
+confirmed a real production generation on biblelessonspark.com post-deploy.
+B4 joins B1/B2/B3 as shipped. Gate 1 remaining: B5 only.
+
+Carry-forward (not fixed, out of B4's scope): a pre-existing, harmless
+warning surfaced during the generate-devotional/generate-lesson deploys --
+`theologyProfiles.ts` has a type-only import missing its `.ts` extension
+(`import type {...} from './contracts'`), which the function-deploy
+bundler can't resolve as a file path. Harmless (type-only imports are
+erased at transpile time, so it doesn't affect the runtime bundle) and
+predates this session -- worth a one-line fix (`from './contracts.ts'`)
+in a future session touching theologyProfiles.ts, not urgent.
+
+Next up: B5 (create-org-checkout-session's identical self-service price_id
+validation gap, logged in the July 14 SECURITY session below -- still
+open, still live in production).
+
+## >>> PRIOR RESUME <<< -- SECURITY mini-session CLOSED the HIGH-priority
 create-checkout-session price_id validation gap flagged at the end of B3.
 Fix: `resolveTierFromPriceId(price_id) === 'personal'` gate (this endpoint
 is personal-tier-only by design -- org tiers use create-org-checkout-session)
@@ -37,7 +66,213 @@ Gate 1 work: B4 (model fallback) and B5 (security completion --
 create-org-checkout-session's identical self-service gap, logged in the
 SECURITY session block below, is the next item).
 
-## JULY 14, 2026 SESSION (LATEST) -- SECURITY: create-checkout-session price_id validation gap -- CLOSED
+## JULY 15, 2026 SESSION (LATEST) -- B4: Model fallback / graceful degradation -- IMPLEMENTED, NOT YET DEPLOYED
+
+GOAL: Surge prep, Gate 1 item B4. Every Claude-calling edge function should
+retry transient Anthropic errors, fall back to an alternate model when
+overloaded, and return a friendly graceful-failure message when all options
+are exhausted -- instead of a failed generation surfacing to a volunteer
+Sunday School teacher as a raw error (or, worse, silently burning her daily
+quota for nothing).
+
+### Phase 1 -- diagnosis (read-only)
+
+Enumerated every Anthropic-calling function via grep across
+supabase/functions/: exactly the 6 CLAUDE.md already documents (generate-
+lesson, generate-parable, reshape-lesson, generate-devotional, extract-
+lesson, toolbelt-reflect) -- no surprises. Dispatched 7 parallel research
+agents (one per function + one for the frontend callers) to read each file
+in full and report model/timeout/error-handling/quota-timing details with
+file:line citations. Key findings:
+
+- `_shared/modelConfig.ts` (ANTHROPIC_MODELS) already existed as the model-
+  ID SSOT (added June 16) but had zero retry/fallback/backoff fields --
+  confirmed as the extension point.
+- generate-lesson's Phase-1 call is SSE streaming, and the outer HTTP
+  response (200) is sent BEFORE the Anthropic fetch even starts (detached
+  IIFE) -- every post-connection failure (429/500/529/stall) is delivered
+  as an in-band SSE `error:` event, never a real HTTP error code. This
+  meant retry/fallback for generate-lesson can only apply to the
+  connection/first-byte phase, never mid-stream.
+- **False lead ruled out**: generate-parable's `generateParableWithProvider`
+  had an "Anthropic primary, OpenAI fallback" comment that looked like a
+  reliability fallback but is actually a static `if (ANTHROPIC_API_KEY) {}
+  else if (OPENAI_API_KEY) {}` branch decided by which secret is configured
+  -- not an automatic on-error fallback. Since ANTHROPIC_API_KEY is always
+  set, the OpenAI branch was dead code. Preserved as-is (disaster-recovery
+  value if the Anthropic key is ever pulled) but not treated as existing
+  reliability infrastructure.
+- **Quota/rate-limit burns on failure, confirmed in 4 places** (all via
+  `_shared/edgeRateLimit.ts`'s `checkRateLimits`, which increments its
+  counter atomically AS PART OF the check, with no prior refund path):
+  generate-parable (anon-IP 3/day + global 500/day backstop),
+  extract-lesson (user 25/day + IP 15/hour + global 300/day),
+  toolbelt-reflect (IP 8/hour + session 10/day + global 750/day), and
+  generate-devotional's global 500/day backstop. generate-lesson and
+  reshape-lesson were already clean (their real per-user billing quota
+  increments strictly after a successful DB insert, per Rule #26).
+- **Silent-empty-success bugs** (fixed as part of this session, per Lynn's
+  explicit direction to log them here): toolbelt-reflect returned
+  `200 {success:true}` with an empty reflection string if Anthropic
+  returned empty/malformed content -- no error surfaced at all. extract-
+  lesson's two Haiku "fast" scripture/focus-tagging call sites silently
+  swallowed ANY failure (network, non-200, empty JSON) and returned
+  `200 success` with null fields -- consistent with best-effort intent but
+  never actually verified against the taxonomy. Both are now routed through
+  the shared retry helper's malformed-completion handling instead of
+  silently declaring success.
+- Frontend error-copy quality varied widely: generate-devotional
+  (`readEdgeError` helper) and reshape-lesson (pattern-matching on
+  'rate limit'/'overloaded'/'timeout') were already reasonably friendly;
+  extract-lesson's `EnhanceLessonForm.tsx` leaked a raw HTTP status code
+  ("Extraction failed for file.pdf: 500") and 2 of its 3 call sites showed
+  no toast at all on failure; generate-lesson's `useEnhanceLesson.tsx` had
+  a `Generation failed (${status})` fallback that could leak a raw status.
+- Platform constraint: Supabase edge functions have a ~150s TOTAL wall-
+  clock execution ceiling (not just an idle timeout) -- confirmed via
+  reshape-lesson's own tuning history (a prior 180s single-call attempt
+  never fired its own AbortController because the gateway 504'd the whole
+  invocation first).
+
+### Phase 2 -- design (approved by Lynn, with one implementation-time refinement)
+
+Approved design: single SSOT extension in `src/constants/modelConfig.ts`
+(new `fallback` model key + `RETRY_CONFIG`), a new hand-maintained
+orchestration file `_shared/anthropicRetry.ts` (Rule #24 -- no frontend
+consumer), an error taxonomy (529/overloaded -> retry then fallback;
+429 -> bounded retry honoring retry-after, no model switch; 500/502/503/
+network -> retry then fallback; 400/401/403 -> fail immediately; malformed/
+empty completion -> one retry, no fallback), a consistent graceful-failure
+JSON contract (`{success:false, error, code}` with
+`code: "AI_TEMPORARILY_UNAVAILABLE" | "AI_ERROR"`), and a refund mechanism
+(new `decrement_rate_limit` RPC + `refundRateLimits()`) for the 4 pre-
+increment quota-burn sites identified in Phase 1.
+
+**Refinement found during implementation**: a single flat 45s-per-attempt
+timeout (as originally sketched) would have broken reshape-lesson (needs up
+to 140s for a legitimately slow-but-successful generation, empirically
+tuned via a 2026-05-18 smoke test) and generate-devotional (120s, tuned via
+the June 24 RCA fix). Anthropic's actual error responses (429/500/529)
+return in seconds, not after the full timeout, so the fix was a budget-
+aware model: `RETRY_CONFIG.totalBudgetMs` / `primaryAttemptTimeoutMs` are
+now keyed per call site (`reshapeLesson`, `devotional`, `parable`,
+`toolbelt-reflect`, `extractHeavy`, `extractFast`, `lessonPhase2`), with
+each function's FIRST attempt preserving its own already-proven-safe
+timeout (140s / 120s where one existed), and later retry/fallback attempts
+getting whatever's left of the ~145s total budget. A genuine network hang
+that burns the whole first-attempt timeout legitimately gets only one
+attempt (the platform ceiling doesn't allow more) -- documented explicitly
+in modelConfig.ts rather than silently degrading the guarantee.
+
+### Phase 3 -- implemented (files, in dependency order)
+
+1. `src/constants/modelConfig.ts` -- added `ANTHROPIC_MODELS.fallback`
+   ('claude-sonnet-4-5-20250929', same literal as `.parable` today but a
+   distinct key) + `RETRY_CONFIG` (budget-aware timeouts, backoff, retry
+   counts). Synced via `npm run sync-constants` (already in Rule #23's
+   FILES_TO_SYNC list).
+2. Migration `20260715120000_decrement_rate_limit_refund.sql` -- new
+   `decrement_rate_limit` RPC (SECURITY DEFINER, service_role-only,
+   floored at 0 via GREATEST), pushed live via `npx supabase db push
+   --linked`. Postcheck confirmed function + grant exist.
+3. `supabase/functions/_shared/edgeRateLimit.ts` -- added `refundRateLimits()`,
+   best-effort (not fail-closed -- a refund failure is logged and swallowed,
+   since it's a courtesy, not a security control).
+4. New `supabase/functions/_shared/anthropicRetry.ts` -- `callAnthropicNonStreaming()`
+   (used by all non-streaming call sites across 5 functions) and
+   `openAnthropicStreamWithRetry()` (generate-lesson's Phase-1 connection
+   phase only -- returns the still-unread Response + the AbortController
+   actually wired to it, so generate-lesson's existing post-connection
+   stall guard attaches to the right controller instead of a disconnected
+   one). Also hosts the forced-error test mechanism (see Testing below).
+5. `toolbelt-reflect/index.ts` -- wired to the helper, fixed the silent-
+   empty-success bug, added refund on terminal failure for its 3 rate-limit
+   scopes.
+6. `generate-parable/index.ts` -- `generateParableWithProvider` now returns
+   a result object instead of throwing; wired to the helper for both the
+   anonymous and authenticated flows; refund added for anon-IP+global and
+   authenticated-global scopes (admin bypass never consumes them, so never
+   refunds them). OpenAI manual-switch branch preserved unchanged.
+7. `extract-lesson/index.ts` -- all 5 call sites wired (3 heavy paths with
+   fallback model; 2 Haiku "fast" tagging paths retry-only, no fallback,
+   per the Phase 2 design decision to keep best-effort paths simple);
+   refund added for the 3 extraction-cap scopes.
+8. `reshape-lesson/index.ts` -- wired to the helper; its old inline
+   AbortController/429-handling removed in favor of the shared helper; its
+   140s tuned timeout preserved as `primaryAttemptTimeoutMs.reshapeLesson`.
+   No refund needed here (quota timing was already clean).
+9. `generate-devotional/index.ts` -- wired to the helper; its 120s tuned
+   timeout preserved as `primaryAttemptTimeoutMs.devotional`; refund added
+   for the global backstop scope only (per-user monthly quota was already
+   clean).
+10. `generate-lesson/index.ts` (last, most sensitive) -- Phase-1 SSE
+    connection now goes through `openAnthropicStreamWithRetry`; the
+    guardrail-rewrite, Phase-2 supplement, and Phase-2-rewrite calls (all
+    non-streaming) go through `callAnthropicNonStreaming`. Caught and fixed
+    a scoping bug during implementation: `stallTimer` had been moved inside
+    the `try` block but the sibling `catch`/`finally` blocks (separate JS
+    scopes) still referenced it -- hoisted the `let stallTimer` declaration
+    back to the enclosing scope. `anthropic_model` in the success-path
+    metrics update now logs the actually-used model (in case Phase 1 fell
+    back), not always the primary.
+11. Frontend: `useReshapeLesson.tsx` now branches on the new `code` field
+    instead of fragile string-matching; `useEnhanceLesson.tsx`'s raw-status
+    fallback message replaced with friendly copy; `EnhanceLessonForm.tsx`'s
+    raw-status toast fixed and its 2 previously-silent call sites now show
+    a low-key "Auto-fill unavailable" toast on failure (these are best-
+    effort auto-populate conveniences, not the main extraction flow, so
+    kept non-alarming).
+
+`npm run build` clean at every checkpoint. ASCII guard verified clean
+(`LC_ALL=C.UTF-8 grep -nP '[^\x00-\x7F]'`) on every new/changed file.
+
+### Testing mechanism (in place, not yet exercised end-to-end)
+
+Forced-error injection lives in `anthropicRetry.ts`'s `getForcedErrorClass()`:
+inert unless a `TEST_FORCE_ERROR_TOKEN` secret is set (done this session via
+`npx supabase secrets set`, with Lynn's explicit approval) AND the request
+supplies matching `x-blsp-test-token` + `x-blsp-test-force-error` headers.
+No real Anthropic call happens when forced, so tests cost nothing. Full
+curl commands (toolbelt-reflect, directly testable -- no auth) and a
+Network-tab-copy approach (the 5 auth-required functions) plus the
+rate_limits refund-verification SQL were given to Lynn in-session.
+
+### STATUS: DEPLOYED AND VERIFIED -- CLOSED
+
+Lynn's localhost happy-path regression pass (frontend changes against the
+pre-B4 backend) passed for all six features. All 6 functions deployed one
+at a time via `npx supabase functions deploy <name> --project-ref
+hphebzdftpjbiudpfcrs --use-api` in the planned order (toolbelt-reflect,
+generate-parable, extract-lesson, reshape-lesson, generate-devotional,
+generate-lesson) -- every deploy reported clean success, confirmed via
+`supabase functions list --output json` showing fresh 2026-07-15
+13:27-14:25 UTC timestamps for all six.
+
+Post-deploy forced-error verification (via the `x-blsp-test-token` /
+`x-blsp-test-force-error` headers against the live deployed functions):
+- toolbelt-reflect: `client_error` -> immediate `AI_ERROR`, no retry (as
+  designed). `overloaded` -> retry same model, backoff, fallback model,
+  exhausted -> graceful `AI_TEMPORARILY_UNAVAILABLE` with the friendly
+  copy, ~1.8s total (matches the 500ms+1500ms backoff budget).
+- generate-parable (anonymous flow): `overloaded` -> same graceful
+  `AI_TEMPORARILY_UNAVAILABLE` result.
+- For both, a live `select ... from public.rate_limits` query confirmed
+  every scope consumed by the pre-call gate (toolbelt-reflect's ip/
+  session/global; parable's anon-ip/global) was refunded back to
+  request_count = 0 after the forced terminal failure -- the
+  decrement_rate_limit refund mechanism works correctly in production.
+- extract-lesson, reshape-lesson, generate-devotional, generate-lesson
+  require a real user auth token Claude Code doesn't have -- left for
+  Lynn to spot-check via the Network-tab-copy approach if desired; not
+  blocking, since deploy success + the shared retry logic (same code path,
+  already proven working for the two directly-tested functions) covers
+  the risk.
+- Lynn confirmed one real production generation on biblelessonspark.com
+  post-deploy -- happy path unchanged.
+
+B4 CLOSED.
+
+## JULY 14, 2026 SESSION -- SECURITY: create-checkout-session price_id validation gap -- CLOSED
 
 GOAL: Close the HIGH-priority finding logged at the end of B3 --
 create-checkout-session accepted an arbitrary client-supplied price_id with

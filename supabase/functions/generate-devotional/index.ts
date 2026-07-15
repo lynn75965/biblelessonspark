@@ -47,8 +47,9 @@ import {
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
-import { windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
+import { windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
 import { parseDeviceType, parseBrowser, parseOS } from "../_shared/generationMetrics.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -59,12 +60,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Anthropic fetch timeout for devotional generation. Held below Supabase's 150s
-// gateway idle timeout (the raw-504 ceiling) with headroom to send a clean JSON
-// response back. Mirrors generate-lesson's GENERATION_TIMEOUT_MS pattern. A
-// devotional is a single ~4k-token call, so 120s is generous; the guard exists
-// so a hung upstream returns a friendly TIMEOUT instead of an opaque gateway 504.
-const DEVOTIONAL_TIMEOUT_MS = 120000;
+// The 120s single-attempt Anthropic timeout empirically tuned here (held
+// below Supabase's ~150s gateway ceiling with headroom for a clean JSON
+// response) now lives as RETRY_CONFIG.primaryAttemptTimeoutMs.devotional in
+// _shared/modelConfig.ts (B4 -- retry/fallback), preserved unchanged as the
+// first attempt's timeout so a healthy slow-but-successful devotional is
+// never cut short.
 
 // ============================================================================
 // TYPES
@@ -529,13 +530,15 @@ serve(async (req: Request) => {
       .maybeSingle();
     const isAdmin = !!devAdminCheck;
 
+    let devotionalGlobalScopes: { endpoint: string; identifier: string; windowStart: string; cap: number }[] = [];
     if (!isAdmin) {
       // Global/day spend backstop (fail-CLOSED), consistent with the other
       // generators -- aggregate ceiling on top of the per-user monthly cap.
       const { day } = windowStartsISO();
-      const globalRl = await checkRateLimits(supabase, [
+      devotionalGlobalScopes = [
         { endpoint: "devotional:global", identifier: "GLOBAL", windowStart: day, cap: 500 },
-      ]);
+      ];
+      const globalRl = await checkRateLimits(supabase, devotionalGlobalScopes);
       if (globalRl.blocked) {
         return new Response(
           JSON.stringify({ success: false, error: "Daily devotional capacity reached. Please try again tomorrow.", code: "RATE_LIMITED" }),
@@ -714,42 +717,30 @@ serve(async (req: Request) => {
     // 6. CALL ANTHROPIC API
     // ========================================================================
 
-    // Timeout guard: abort the call below the 150s gateway ceiling so a hung
-    // upstream returns a controlled TIMEOUT response (and a logged 'timeout'
-    // metric) instead of an opaque raw 504 the frontend can't explain.
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log(`[generate-devotional] [TIMEOUT] Aborting Anthropic request after ${DEVOTIONAL_TIMEOUT_MS / 1000}s`);
-      controller.abort();
-    }, DEVOTIONAL_TIMEOUT_MS);
+    // B4: retry + model fallback, budget-aware timeout (preserves the
+    // original 120s-tuned first attempt via
+    // RETRY_CONFIG.primaryAttemptTimeoutMs.devotional in _shared/modelConfig.ts).
+    const forcedErrorClass = getForcedErrorClass(req);
+    const devotionalResult = await callAnthropicNonStreaming({
+      functionName: "generate-devotional",
+      callLabel: "devotional",
+      callSite: "devotional",
+      apiKey: anthropicApiKey,
+      primaryModel: ANTHROPIC_MODELS.default,
+      fallbackModel: ANTHROPIC_MODELS.fallback,
+      forcedErrorClass,
+      buildBody: (model) => ({
+        model,
+        max_tokens: 4096,
+        messages: [
+          { role: "user", content: userPrompt }
+        ],
+        system: systemPrompt,
+      }),
+    });
 
-    let anthropicResponse: Response;
-    try {
-      anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": anthropicApiKey,
-          "anthropic-version": "2023-06-01",
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: ANTHROPIC_MODELS.default,
-          max_tokens: 4096,
-          messages: [
-            { role: "user", content: userPrompt }
-          ],
-          system: systemPrompt,
-        }),
-      });
-      clearTimeout(timeoutId);
-    } catch (fetchErr: any) {
-      clearTimeout(timeoutId);
-      const isTimeout = fetchErr?.name === "AbortError";
-      console.error(
-        `[generate-devotional] Anthropic fetch ${isTimeout ? "timed out" : "failed"}:`,
-        fetchErr?.message ?? fetchErr
-      );
+    if (!devotionalResult.ok) {
+      console.error("[generate-devotional] Anthropic call failed after retries/fallback:", devotionalResult.errorClass);
       if (metricId) {
         await supabase
           .from("devotional_metrics")
@@ -757,51 +748,30 @@ serve(async (req: Request) => {
             generation_end: new Date().toISOString(),
             generation_duration_ms: Date.now() - startTime,
             anthropic_model: ANTHROPIC_MODELS.default,
-            status: isTimeout ? "timeout" : "error",
-            error_message: isTimeout
-              ? `Devotional generation timed out after ${DEVOTIONAL_TIMEOUT_MS / 1000}s`
-              : `Anthropic fetch failed: ${fetchErr?.message ?? "unknown"}`,
+            status: devotionalResult.errorClass === "network" ? "timeout" : "error",
+            rate_limited: devotionalResult.errorClass === "rate_limit",
+            error_message: devotionalResult.error,
           })
           .eq("id", metricId);
       }
-      return new Response(
-        JSON.stringify(
-          isTimeout
-            ? { success: false, error: "The devotional took too long to generate. Please try again.", code: "TIMEOUT" }
-            : { success: false, error: "AI generation failed", code: "AI_ERROR" }
-        ),
-        { status: isTimeout ? 504 : 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      console.error("[generate-devotional] Anthropic API error:", errorText);
-      if (metricId) {
-        await supabase
-          .from("devotional_metrics")
-          .update({
-            generation_end: new Date().toISOString(),
-            generation_duration_ms: Date.now() - startTime,
-            anthropic_model: ANTHROPIC_MODELS.default,
-            status: "error",
-            rate_limited: anthropicResponse.status === 429,
-            error_message: `Anthropic API error ${anthropicResponse.status}`,
-          })
-          .eq("id", metricId);
+      // Terminal failure after retries/fallback exhausted -- refund the
+      // global/day backstop consumed above so a transient Anthropic outage
+      // doesn't cost the platform's aggregate daily devotional capacity.
+      if (devotionalGlobalScopes.length > 0) {
+        await refundRateLimits(supabase, devotionalGlobalScopes);
       }
       return new Response(
-        JSON.stringify({ success: false, error: "AI generation failed", code: "AI_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: devotionalResult.error, code: devotionalResult.code }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const anthropicData = await anthropicResponse.json();
-    console.log("[generate-devotional] Anthropic response received");
+    console.log("[generate-devotional] Anthropic response received (model:", devotionalResult.modelUsed, "attempts:", devotionalResult.attempts, ")");
 
-    let generatedContent = anthropicData.content[0]?.text || "";
-    const tokensInput = anthropicData.usage?.input_tokens || 0;
-    const tokensOutput = anthropicData.usage?.output_tokens || 0;
+    let generatedContent = devotionalResult.text;
+    const rawUsage = (devotionalResult.raw as any)?.usage;
+    const tokensInput = rawUsage?.input_tokens || 0;
+    const tokensOutput = rawUsage?.output_tokens || 0;
 
     // ========================================================================
     // 7. PARSE GENERATED CONTENT

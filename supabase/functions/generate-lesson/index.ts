@@ -35,6 +35,7 @@ import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replace
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
+import { callAnthropicNonStreaming, openAnthropicStreamWithRetry, getForcedErrorClass } from '../_shared/anthropicRetry.ts';
 // Section-shape SSOT (Phase 1). Full = [1..8], Short = [1,5,8]. This is the
 // first edge function to import the _shared mirror at runtime.
 import { FULL_SECTIONS, SHORT_SECTIONS } from '../_shared/lessonTiers.ts';
@@ -885,18 +886,9 @@ ${styleExtractionPromptAddition}
     console.log(`System block 3 (dynamic, uncached): ${dynamicRemainder.length} chars (~${Math.round(dynamicRemainder.length / 4)} tokens)`);
     console.log(`User prompt: ${userPrompt.length} chars (~${Math.round(userPrompt.length / 4)} tokens)`);
 
-    // STALL GUARD -- replaces the 140s AbortController.
-    // Aborts only if Anthropic sends NO bytes for >30 s (genuine silence, not slow generation).
+    // Post-connection stall guard (moved inside the IIFE below, once we have
+    // the controller actually wired to the successful attempt -- B4).
     const STALL_TIMEOUT_MS = 30_000;
-    const stallController = new AbortController();
-    let lastByteTime = Date.now();
-    const stallTimer = setInterval(() => {
-      if (Date.now() - lastByteTime > STALL_TIMEOUT_MS) {
-        console.error(`[STALL] No bytes from Anthropic for ${STALL_TIMEOUT_MS / 1000}s -- aborting`);
-        stallController.abort();
-        clearInterval(stallTimer);
-      }
-    }, 5_000);
 
     // =========================================================================
     // SSE STREAMING RESPONSE
@@ -912,18 +904,23 @@ ${styleExtractionPromptAddition}
       await writer.write(encoder.encode(`data: ${data}\n\n`));
     };
 
+    // Declared here (not inside the try block below) so the catch/finally
+    // blocks -- separate sibling scopes in JS -- can still see and clear it.
+    // Only assigned once we have a successful stream connection.
+    let stallTimer: ReturnType<typeof setInterval> | undefined;
+
     (async () => {
       try {
-        const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': anthropicApiKey,
-            'anthropic-version': '2023-06-01'
-          },
-          signal: stallController.signal,
-          body: JSON.stringify({
-            model: ANTHROPIC_MODEL,
+        const forcedErrorClass = getForcedErrorClass(req);
+        const streamResult = await openAnthropicStreamWithRetry({
+          functionName: 'generate-lesson',
+          callLabel: 'phase1-stream',
+          apiKey: anthropicApiKey,
+          primaryModel: ANTHROPIC_MODEL,
+          fallbackModel: ANTHROPIC_MODELS.fallback,
+          forcedErrorClass,
+          buildBody: (model) => ({
+            model,
             max_tokens: usesTwoPhase ? 4000 : 8000,
             temperature: 0.6,
             stream: true,
@@ -938,9 +935,8 @@ ${styleExtractionPromptAddition}
 
         checkpoint = logTiming('Anthropic stream opened', checkpoint);
 
-        if (anthropicResponse.status === 429) {
-          const errorData = await anthropicResponse.text();
-          console.error('Anthropic API rate limited:', errorData);
+        if (!streamResult.ok) {
+          console.error('Anthropic stream connection failed after retries/fallback:', streamResult.errorClass);
           if (metricId) {
             await supabase
               .from('generation_metrics')
@@ -948,22 +944,31 @@ ${styleExtractionPromptAddition}
                 generation_end: new Date().toISOString(),
                 generation_duration_ms: Date.now() - functionStartTime,
                 status: 'error',
-                rate_limited: true,
+                rate_limited: streamResult.errorClass === 'rate_limit',
                 anthropic_model: ANTHROPIC_MODEL,
-                error_message: 'Anthropic API rate limit exceeded (429)'
+                error_message: streamResult.error
               })
               .eq('id', metricId);
           }
-          await sendEvent('error', { error: 'Service temporarily busy. Please try again in a few minutes.', code: 'RATE_LIMITED' });
+          await sendEvent('error', { error: streamResult.error, code: streamResult.code });
           return;
         }
 
-        if (!anthropicResponse.ok) {
-          const errorData = await anthropicResponse.text();
-          console.error('Anthropic API error:', errorData);
-          await sendEvent('error', { error: `Generation failed (${anthropicResponse.status})` });
-          return;
-        }
+        const anthropicResponse = streamResult.response;
+        const modelUsedForGeneration = streamResult.modelUsed;
+
+        // STALL GUARD -- aborts only if Anthropic sends NO bytes for >30s
+        // (genuine silence, not slow generation). Attached to the controller
+        // actually wired to this successful attempt (B4 -- see
+        // openAnthropicStreamWithRetry), not a separately-created one.
+        let lastByteTime = Date.now();
+        stallTimer = setInterval(() => {
+          if (Date.now() - lastByteTime > STALL_TIMEOUT_MS) {
+            console.error(`[STALL] No bytes from Anthropic for ${STALL_TIMEOUT_MS / 1000}s -- aborting`);
+            streamResult.controller.abort();
+            clearInterval(stallTimer);
+          }
+        }, 5_000);
 
         // Parse Anthropic SSE stream -- collect tokens + usage metadata
         let fullText = '';
@@ -1082,67 +1087,57 @@ ${styleExtractionPromptAddition}
 
           const rewritePrompt = buildRewritePrompt(violatedSections);
 
-          try {
-            const rewriteController = new AbortController();
-            const rewriteTimeoutId = setTimeout(() => rewriteController.abort(), REWRITE_CONFIG.timeoutMs);
+          // B4: retry + model fallback. This is a content-quality corrective
+          // call, not the primary generation -- a terminal failure after
+          // retries/fallback is non-fatal exactly as before: log and deliver
+          // the original (still-violating) content as-is.
+          const rewriteResult = await callAnthropicNonStreaming({
+            functionName: 'generate-lesson',
+            callLabel: 'guardrail-rewrite',
+            callSite: 'lessonPhase2',
+            apiKey: anthropicApiKey,
+            primaryModel: ANTHROPIC_MODEL,
+            fallbackModel: ANTHROPIC_MODELS.fallback,
+            forcedErrorClass,
+            buildBody: (model) => ({
+              model,
+              max_tokens: REWRITE_CONFIG.maxTokens,
+              temperature: REWRITE_CONFIG.temperature,
+              system: rewritePrompt.system,
+              messages: [{ role: 'user', content: rewritePrompt.user }]
+            }),
+          });
 
-            const rewriteResponse = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': anthropicApiKey,
-                'anthropic-version': '2023-06-01'
-              },
-              signal: rewriteController.signal,
-              body: JSON.stringify({
-                model: ANTHROPIC_MODEL,
-                max_tokens: REWRITE_CONFIG.maxTokens,
-                temperature: REWRITE_CONFIG.temperature,
-                system: rewritePrompt.system,
-                messages: [{ role: 'user', content: rewritePrompt.user }]
-              })
-            });
+          if (rewriteResult.ok) {
+            const rewrittenContent = rewriteResult.text;
+            const rewrittenParsed = parseLessonSections(rewrittenContent);
 
-            clearTimeout(rewriteTimeoutId);
+            if (rewrittenParsed.length > 0) {
+              generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
+              rewrittenSectionIds = rewrittenParsed.map(s => s.id);
+              wasRewritten = true;
 
-            if (rewriteResponse.ok) {
-              const rewriteData = await rewriteResponse.json();
-              const rewrittenContent = rewriteData.content[0].text;
+              wordCount = generatedLesson.split(/\s+/).length;
 
-              const rewrittenParsed = parseLessonSections(rewrittenContent);
+              const rawUsage = (rewriteResult.raw as any)?.usage;
+              rewriteTokensInput = rawUsage?.input_tokens || 0;
+              rewriteTokensOutput = rawUsage?.output_tokens || 0;
 
-              if (rewrittenParsed.length > 0) {
-                generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
-                rewrittenSectionIds = rewrittenParsed.map(s => s.id);
-                wasRewritten = true;
+              console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully (model: ${rewriteResult.modelUsed})`);
+              console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
 
-                wordCount = generatedLesson.split(/\s+/).length;
-
-                rewriteTokensInput = rewriteData.usage?.input_tokens || 0;
-                rewriteTokensOutput = rewriteData.usage?.output_tokens || 0;
-
-                console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully`);
-                console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
-
-                const postRewriteCheck = checkOutputGuardrails(generatedLesson);
-                if (!postRewriteCheck.passed) {
-                  console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
-                } else {
-                  guardrailCheckPassed = true;
-                  console.log('GUARDRAIL: All violations resolved after rewrite');
-                }
+              const postRewriteCheck = checkOutputGuardrails(generatedLesson);
+              if (!postRewriteCheck.passed) {
+                console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
               } else {
-                console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
+                guardrailCheckPassed = true;
+                console.log('GUARDRAIL: All violations resolved after rewrite');
               }
             } else {
-              console.error('GUARDRAIL REWRITE FAILED: API returned', rewriteResponse.status);
+              console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
             }
-          } catch (rewriteError: any) {
-            if (rewriteError.name === 'AbortError') {
-              console.error('GUARDRAIL REWRITE: Timed out after', REWRITE_CONFIG.timeoutMs / 1000, 'seconds');
-            } else {
-              console.error('GUARDRAIL REWRITE ERROR:', rewriteError);
-            }
+          } else {
+            console.error('GUARDRAIL REWRITE FAILED after retries/fallback:', rewriteResult.errorClass);
           }
         } else {
           console.log('GUARDRAIL: Passed \u2014 no violations detected');
@@ -1378,7 +1373,7 @@ ${styleExtractionPromptAddition}
               status: 'completed',
               tokens_input: tokensInput,
               tokens_output: tokensOutput,
-              anthropic_model: ANTHROPIC_MODEL,
+              anthropic_model: modelUsedForGeneration,
               cache_creation_input_tokens: cacheCreationTokens,
               cache_read_input_tokens: cacheReadTokens,
               phase1_duration_ms: phase1EndMs - functionStartTime
@@ -1448,15 +1443,20 @@ All supplements must be specific to this lesson's content -- not generic.${bible
 
             console.log(`[Phase 2] Starting supplement generation for lesson ${lesson.id}`);
 
-            const phase2Response = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': anthropicApiKey,
-                'anthropic-version': '2023-06-01'
-              },
-              body: JSON.stringify({
-                model: ANTHROPIC_MODEL,
+            // B4: retry + model fallback. A terminal failure throws, caught
+            // by this Phase 2 block's own catch below -- Phase 1's lesson is
+            // already saved, so the teacher is never blocked by a Phase 2
+            // failure (unchanged behavior, just with retry/fallback first).
+            const phase2Result = await callAnthropicNonStreaming({
+              functionName: 'generate-lesson',
+              callLabel: 'phase2-supplements',
+              callSite: 'lessonPhase2',
+              apiKey: anthropicApiKey,
+              primaryModel: ANTHROPIC_MODEL,
+              fallbackModel: ANTHROPIC_MODELS.fallback,
+              forcedErrorClass,
+              buildBody: (model) => ({
+                model,
                 max_tokens: 2500,
                 temperature: 0.6,
                 system: [
@@ -1465,20 +1465,19 @@ All supplements must be specific to this lesson's content -- not generic.${bible
                   { type: 'text', text: buildDynamicRemainder(true) }
                 ],
                 messages: [{ role: 'user', content: phase2UserPrompt }]
-              })
+              }),
             });
 
-            if (!phase2Response.ok) {
-              const errText = await phase2Response.text();
-              throw new Error(`Phase 2 API error (${phase2Response.status}): ${errText}`);
+            if (!phase2Result.ok) {
+              throw new Error(`Phase 2 generation failed after retries/fallback: ${phase2Result.errorClass}`);
             }
 
-            const phase2Json = await phase2Response.json();
-            const phase2RawText: string = phase2Json.content?.[0]?.text ?? '';
-            const phase2TokensOut: number = phase2Json.usage?.output_tokens ?? 0;
-            const phase2TokensIn: number = phase2Json.usage?.input_tokens ?? 0;
-            const phase2CacheWrite: number = phase2Json.usage?.cache_creation_input_tokens ?? 0;
-            const phase2CacheRead: number = phase2Json.usage?.cache_read_input_tokens ?? 0;
+            const phase2RawText: string = phase2Result.text;
+            const phase2RawUsage = (phase2Result.raw as any)?.usage;
+            const phase2TokensOut: number = phase2RawUsage?.output_tokens ?? 0;
+            const phase2TokensIn: number = phase2RawUsage?.input_tokens ?? 0;
+            const phase2CacheWrite: number = phase2RawUsage?.cache_creation_input_tokens ?? 0;
+            const phase2CacheRead: number = phase2RawUsage?.cache_read_input_tokens ?? 0;
 
             console.log(`[Phase 2] Generated ${phase2RawText.length} chars, ${phase2TokensOut} output tokens`);
 
@@ -1503,23 +1502,32 @@ All supplements must be specific to this lesson's content -- not generic.${bible
               try {
                 const p2Violated = phase2GuardrailResult.results.filter((r: any) => r.violations.length > 0);
                 const p2RewritePrompt = buildRewritePrompt(p2Violated);
-                const p2RwResp = await fetch('https://api.anthropic.com/v1/messages', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'x-api-key': anthropicApiKey, 'anthropic-version': '2023-06-01' },
-                  body: JSON.stringify({
-                    model: ANTHROPIC_MODEL,
+                // B4: retry + model fallback. Non-fatal exactly as before --
+                // on terminal failure, phase2FinalText simply stays as the
+                // original (still-violating) phase2BodyText.
+                const p2RwResult = await callAnthropicNonStreaming({
+                  functionName: 'generate-lesson',
+                  callLabel: 'phase2-guardrail-rewrite',
+                  callSite: 'lessonPhase2',
+                  apiKey: anthropicApiKey,
+                  primaryModel: ANTHROPIC_MODEL,
+                  fallbackModel: ANTHROPIC_MODELS.fallback,
+                  forcedErrorClass,
+                  buildBody: (model) => ({
+                    model,
                     max_tokens: REWRITE_CONFIG.maxTokens,
                     temperature: REWRITE_CONFIG.temperature,
                     system: p2RewritePrompt.system,
                     messages: [{ role: 'user', content: p2RewritePrompt.user }]
-                  })
+                  }),
                 });
-                if (p2RwResp.ok) {
-                  const p2RwData = await p2RwResp.json();
-                  const p2RwParsed = parseLessonSections(p2RwData.content[0].text);
+                if (p2RwResult.ok) {
+                  const p2RwParsed = parseLessonSections(p2RwResult.text);
                   if (p2RwParsed.length > 0) {
                     phase2FinalText = replaceSections(phase2BodyText, p2RwParsed);
                   }
+                } else {
+                  console.error('[Phase 2 Guardrail] Rewrite failed after retries/fallback, using original:', p2RwResult.errorClass);
                 }
               } catch (p2RwErr) {
                 console.error('[Phase 2 Guardrail] Rewrite failed, using original:', p2RwErr);

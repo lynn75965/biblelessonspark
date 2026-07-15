@@ -23,7 +23,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
-import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
+import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, type AnthropicErrorClass } from "../_shared/anthropicRetry.ts";
 
 // =============================================================================
 // TYPES
@@ -860,26 +861,39 @@ Write the parable now:`;
 // LLM PROVIDER (Anthropic primary, OpenAI fallback)
 // =============================================================================
 
+type ParableGenerationResult =
+  | { ok: true; text: string; modelUsed: string }
+  | { ok: false; code: string; error: string };
+
+/**
+ * B4: retry/fallback within Anthropic (primary .parable model -> .default as
+ * its natural inverse fallback -- see modelConfig.ts) lives in
+ * callAnthropicNonStreaming. The OPENAI_API_KEY branch below is unchanged
+ * from before B4 -- it is NOT an automatic on-error fallback (it only
+ * triggers if ANTHROPIC_API_KEY is entirely unconfigured, a manual ops
+ * decision, not a runtime error), so it's preserved as-is for that
+ * disaster-recovery scenario, outside the new retry/fallback logic.
+ */
 async function generateParableWithProvider(
   systemInstruction: string,
   userPrompt: string,
+  forcedErrorClass: AnthropicErrorClass | null,
   maxTokens = 1500,
   temperature = 0.7,
-): Promise<string> {
+): Promise<ParableGenerationResult> {
   const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
   const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
   if (anthropicKey) {
-    const model = ANTHROPIC_MODELS.parable;
-    
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
+    const result = await callAnthropicNonStreaming({
+      functionName: "generate-parable",
+      callLabel: "parable",
+      callSite: "parable",
+      apiKey: anthropicKey,
+      primaryModel: ANTHROPIC_MODELS.parable,
+      fallbackModel: ANTHROPIC_MODELS.default,
+      forcedErrorClass,
+      buildBody: (model) => ({
         model,
         max_tokens: maxTokens,
         temperature,
@@ -887,25 +901,13 @@ async function generateParableWithProvider(
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
-
-    if (!resp.ok) {
-      const t = await resp.text();
-      console.error("Anthropic API error:", resp.status, t);
-      throw new Error(`anthropic_failed: ${resp.status} ${t}`);
-    }
-
-    const j = await resp.json();
-    const text =
-      j?.content?.find?.((c: any) => c?.type === "text")?.text ??
-      j?.content?.[0]?.text ??
-      "";
-    if (!text) throw new Error("anthropic_empty_response");
-    return text;
+    if (result.ok) return { ok: true, text: result.text, modelUsed: result.modelUsed };
+    return { ok: false, code: result.code, error: result.error };
   }
 
   if (openaiKey) {
     const model = "gpt-4o-mini";
-    
+
     const resp = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -926,16 +928,16 @@ async function generateParableWithProvider(
     if (!resp.ok) {
       const t = await resp.text();
       console.error("OpenAI API error:", resp.status, t);
-      throw new Error(`openai_failed: ${resp.status} ${t}`);
+      return { ok: false, code: "AI_ERROR", error: "We ran into a problem generating that. Please try again in a moment." };
     }
 
     const j = await resp.json();
     const text = j?.choices?.[0]?.message?.content ?? "";
-    if (!text) throw new Error("openai_empty_response");
-    return text;
+    if (!text) return { ok: false, code: "AI_ERROR", error: "We ran into a problem generating that. Please try again in a moment." };
+    return { ok: true, text, modelUsed: model };
   }
 
-  throw new Error("no_llm_provider_configured");
+  return { ok: false, code: "AI_ERROR", error: "We ran into a problem generating that. Please try again in a moment." };
 }
 
 // =============================================================================
@@ -1079,10 +1081,11 @@ Deno.serve(async (req: Request) => {
     // global/day spend backstop. Replaces the old fail-open, spoofable-leftmost-
     // x-forwarded-for checkAnonymousLimit.
     const { day } = windowStartsISO();
-    const rl = await checkRateLimits(supabaseAdmin, [
+    const anonRateLimitScopes = [
       { endpoint: "parable:anon-ip", identifier: ipAddress, windowStart: day, cap: 3 },
       { endpoint: "parable:global", identifier: "GLOBAL", windowStart: day, cap: 500 },
-    ]);
+    ];
+    const rl = await checkRateLimits(supabaseAdmin, anonRateLimitScopes);
     const anonUsed = rl.counts["parable:anon-ip"] ?? 0;
     const anonRemaining = Math.max(0, 3 - anonUsed);
     
@@ -1114,7 +1117,16 @@ Deno.serve(async (req: Request) => {
 
       // Generate parable
       console.log("Generating parable for anonymous user");
-      const parableText = await generateParableWithProvider(systemInstruction, userPrompt);
+      const forcedErrorClass = getForcedErrorClass(req);
+      const genResult = await generateParableWithProvider(systemInstruction, userPrompt, forcedErrorClass);
+      if (!genResult.ok) {
+        // Terminal failure after retries/fallback exhausted -- refund the
+        // anon-IP and global scopes consumed above so a transient Anthropic
+        // outage doesn't cost the visitor one of her 3 daily attempts.
+        await refundRateLimits(supabaseAdmin, anonRateLimitScopes);
+        return json({ success: false, error: genResult.error, code: genResult.code }, 503);
+      }
+      const parableText = genResult.text;
       const generationTimeMs = Date.now() - startTime;
 
       // Return without saving (anonymous parables are not stored)
@@ -1165,12 +1177,14 @@ Deno.serve(async (req: Request) => {
 
   try {
     // ADMIN BYPASS - skip usage limits
+    let authGlobalRateLimitScopes: { endpoint: string; identifier: string; windowStart: string; cap: number }[] = [];
     if (!isAdmin) {
       // Global/day spend backstop (fail-CLOSED) -- applies to all non-admin users.
       const { day } = windowStartsISO();
-      const globalRl = await checkRateLimits(supabaseAdmin, [
+      authGlobalRateLimitScopes = [
         { endpoint: "parable:global", identifier: "GLOBAL", windowStart: day, cap: 500 },
-      ]);
+      ];
+      const globalRl = await checkRateLimits(supabaseAdmin, authGlobalRateLimitScopes);
       if (globalRl.blocked) {
         return json({
           success: false,
@@ -1234,7 +1248,18 @@ Deno.serve(async (req: Request) => {
 
     // Generate parable
     console.log("Generating parable for authenticated user:", user.id);
-    const parableText = await generateParableWithProvider(systemInstruction, userPrompt);
+    const forcedErrorClass = getForcedErrorClass(req);
+    const genResult = await generateParableWithProvider(systemInstruction, userPrompt, forcedErrorClass);
+    if (!genResult.ok) {
+      // Terminal failure after retries/fallback exhausted -- refund the
+      // global backstop scope if it was consumed above (admins never
+      // consumed it, so authGlobalRateLimitScopes is empty for them).
+      if (authGlobalRateLimitScopes.length > 0) {
+        await refundRateLimits(supabaseAdmin, authGlobalRateLimitScopes);
+      }
+      return json({ success: false, error: genResult.error, code: genResult.code }, 503);
+    }
+    const parableText = genResult.text;
     const generationTimeMs = Date.now() - startTime;
 
     // Save to database

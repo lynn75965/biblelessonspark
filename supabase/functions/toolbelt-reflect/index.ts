@@ -38,7 +38,8 @@ import {
   type ToolbeltToolId,
 } from "../_shared/toolbeltConfig.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
-import { getClientIP, windowStartsISO, checkRateLimits } from "../_shared/edgeRateLimit.ts";
+import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -329,11 +330,12 @@ serve(async (req) => {
 
     const ip = getClientIP(req);
     const { hour, day } = windowStartsISO();
-    const rl = await checkRateLimits(supabase, [
+    const rateLimitScopes = [
       { endpoint: "toolbelt-reflect:ip", identifier: ip, windowStart: hour, cap: 8 },
       { endpoint: "toolbelt-reflect:session", identifier: body.session_id, windowStart: day, cap: 10 },
       { endpoint: "toolbelt-reflect:global", identifier: "GLOBAL", windowStart: day, cap: 750 },
-    ]);
+    ];
+    const rl = await checkRateLimits(supabase, rateLimitScopes);
     if (rl.blocked) {
       console.warn("[toolbelt-reflect] rate limited:", rl.scope, "ip:", ip);
       return new Response(
@@ -352,18 +354,20 @@ serve(async (req) => {
     console.log("[toolbelt-reflect] Calling Anthropic API for tool:", tool.name);
 
     // ========================================================================
-    // 4. CALL ANTHROPIC API
+    // 4. CALL ANTHROPIC API (retry + model fallback, B4)
     // ========================================================================
 
-    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": anthropicApiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODELS.default,
+    const forcedErrorClass = getForcedErrorClass(req);
+    const anthropicResult = await callAnthropicNonStreaming({
+      functionName: "toolbelt-reflect",
+      callLabel: "reflection",
+      callSite: "toolbeltReflect",
+      apiKey: anthropicApiKey,
+      primaryModel: ANTHROPIC_MODELS.default,
+      fallbackModel: ANTHROPIC_MODELS.fallback,
+      forcedErrorClass,
+      buildBody: (model) => ({
+        model,
         max_tokens: TOOLBELT_THRESHOLDS.maxTokensPerCall,
         messages: [
           { role: "user", content: userPrompt }
@@ -372,20 +376,22 @@ serve(async (req) => {
       }),
     });
 
-    if (!anthropicResponse.ok) {
-      const errorText = await anthropicResponse.text();
-      console.error("[toolbelt-reflect] Anthropic API error:", errorText);
+    if (!anthropicResult.ok) {
+      // Terminal failure after retries/fallback exhausted -- refund the three
+      // rate-limit scopes consumed at step 2b so a transient Anthropic
+      // outage doesn't cost the teacher one of her daily/hourly attempts.
+      await refundRateLimits(supabase, rateLimitScopes);
       return new Response(
-        JSON.stringify({ success: false, error: "AI generation failed", code: "AI_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: anthropicResult.error, code: anthropicResult.code }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const anthropicData = await anthropicResponse.json();
-    const reflection = anthropicData.content[0]?.text || "";
-    const tokensUsed = (anthropicData.usage?.input_tokens || 0) + (anthropicData.usage?.output_tokens || 0);
+    const reflection = anthropicResult.text;
+    const usage = (anthropicResult.raw as any)?.usage;
+    const tokensUsed = (usage?.input_tokens || 0) + (usage?.output_tokens || 0);
 
-    console.log("[toolbelt-reflect] Reflection generated, tokens:", tokensUsed);
+    console.log("[toolbelt-reflect] Reflection generated, tokens:", tokensUsed, "model:", anthropicResult.modelUsed, "attempts:", anthropicResult.attempts);
 
     // ========================================================================
     // 5. LOG USAGE

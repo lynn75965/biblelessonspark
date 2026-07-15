@@ -105,7 +105,7 @@ export const useEnhanceLesson = () => {
           };
         }
 
-        const errMsg = errorBody.error || `Generation failed (${response.status})`;
+        const errMsg = errorBody.error || "We ran into a problem generating that. Please try again in a moment.";
         toast({
           title: "Error",
           description: errMsg,
