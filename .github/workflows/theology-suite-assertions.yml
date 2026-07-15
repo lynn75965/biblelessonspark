@@ -1,0 +1,54 @@
+name: Theology Suite Assertions
+
+# B6 theology golden suite -- the cheap tier. Runs on every push/PR to
+# main. Zero Anthropic API calls, zero cost: pure string assertions
+# against already-committed, already-vetted fixtures, plus a staleness
+# hash comparison. Neither script needs npm dependencies installed --
+# both import only Node built-ins and theologyProfiles.ts itself (which
+# has zero runtime imports of its own).
+#
+# This job does NOT generate or regenerate anything. Regeneration
+# requires a short-lived admin token supplied by Lynn for that run only
+# (never stored, never available to CI) -- see theology-golden-suite/README.md.
+#
+# Node 24, not the repo's usual 20 (see ci.yml): these scripts are plain
+# .mts files run directly via `node`, relying on native TypeScript type-
+# stripping, which needs a newer Node than the project's other CI jobs use.
+# Verified locally against Node v24.13.1.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  assertions:
+    name: Assertion suite (approved fixtures)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run assertion suite against approved fixtures
+        run: node theology-golden-suite/scripts/runAssertionSuite.mts
+
+  staleness:
+    name: Staleness check (informational)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Check fixture staleness against current pipeline
+        run: node theology-golden-suite/scripts/checkStaleness.mts

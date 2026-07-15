@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "B6 theology golden suite -- tracks Lynn's vet status per fixture. Each fixture file's own frontmatter is the source of truth for vet_status; this manifest is a convenience index rebuilt as fixtures are generated and reviewed.",
+  "fixtures": []
+}
