@@ -1,12 +1,122 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 2 of 6 closed -- orphan functions retired -- B5 items 3-6 remain)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 3 of 6 closed -- anon-grants item B shipped -- B5 items 4-6 remain)
 
-## >>> RESUME HERE <<< -- B5 item 2 (orphan functions check-subscription /
-sync-subscription-status) is CLOSED. Gate 1 status is:
-B1, B2, B3, B4 SHIPPED; B5 items 1-2 CLOSED; B5 items 3-6 REMAIN OPEN:
+## >>> RESUME HERE <<< -- B5 item 3 (anon-grants hardening, item B half) is
+CLOSED. Gate 1 status is:
+B1, B2, B3, B4 SHIPPED; B5 items 1-3 CLOSED; B5 items 4-6 REMAIN OPEN:
 
-  3. Anon-grants hardening -- items B/C deferred from the June Supabase
-     Security Advisor audit (see project_security_advisor_audit_in_progress
-     memory / the audit session log below for what B/C actually are).
+  4. 9 functions showing same-session deploy-vs-git lag need individual
+     verification (download + diff vs git HEAD, confirm each is a
+     comment-only/BOM difference and not a real drift, per the B3
+     staleness-workflow pattern used on create-checkout-session/
+     create-portal-session).
+  5. ASCII baseline cleanup (27 pre-existing violations) + eslint baseline
+     cleanup (342 pre-existing errors) -- both currently report-only in
+     ci.yml (see Rule #28); flip each job back to a plain failing command
+     once its baseline is zeroed.
+  6. Delete `temp_working_version.ts` (confirm it's dead first, per the
+     general "verify before deleting" caution).
+
+  LOW/architecture (not blocking, documented): purchase-lesson-pack and
+  purchase-onboarding resolve Stripe prices from DB config tables instead
+  of the frontend SSOT (pricingConfig.ts); usePricingPlans.tsx reads
+  stripe_price_id_monthly/annual from the pricing_plans DB table as a
+  second source instead of pricingConfig.ts directly.
+
+  NEW LOW/architecture (logged 2026-07-15, not fixed): the credits
+  system (`allocate_monthly_credits` RPC + `credits_ledger` table) has no
+  remaining application callers anywhere in the codebase -- candidate for
+  full retirement (drop RPC + table via migration) in a dedicated future
+  session. Not urgent; EXECUTE is already locked to service_role/cron.
+
+  STANDING BACKLOG (not a B5 blocker, no target session yet): item C from
+  the June Supabase Security Advisor audit -- backfilling ~55 live
+  routine bodies (50 SECURITY DEFINER + 7 INVOKER; only 2 currently exist
+  as migration files) into `supabase/migrations/` via `pg_get_functiondef`.
+  Confirmed 2026-07-15 as explicitly NOT part of B5 item 3 -- the June
+  audit itself classified it as "pure housekeeping, zero security value,
+  highest risk (re-defining live functions)," and Lynn confirmed it stays
+  deferred to its own dedicated session, never bundled into a security
+  fix. Track it here as backlog, not urgency.
+
+B5 items 4-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
+infra, B8 capacity recheck, legal pages confirmation) can start.
+
+## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 3: Anon-grants hardening (item B)
+
+GOAL: Close the item B half of the June-deferred anon-grants hardening
+(item C stays deferred, see below), plus re-check for any other function
+bypassing the May 31 EXECUTE REVOKE the way sync-subscription-status did.
+
+### Bypass re-check -- CLEAN, no code change
+Grepped every function in `supabase/functions/` for `.rpc('allocate_
+monthly_credits'`, `.rpc('deduct_credits'`, `.rpc('cleanup_old_rate_
+limits'`, `.rpc('debug_admin_check'` (the four RPCs revoked from
+`authenticated`, not just anon/PUBLIC, on 2026-05-31 -- meaning they were
+intended to be service_role/cron-only). Zero matches anywhere.
+sync-subscription-status was the only offender and it's already deleted.
+No other function bypasses the restriction today.
+
+### Item B -- `TO public` -> `TO authenticated` sweep
+The June audit's own diagnostic (`SECURITY_ADVISOR_C_FINDINGS.md`) was a
+2026-05-31 CSV snapshot, and its own stated lesson from Migration 3 was to
+always re-query live `pg_policies` before applying a policy-cleanup
+migration. Re-queried fresh via `npx supabase db query --linked`
+(read-only, Rule #20) rather than trusting the stale export -- several
+sessions' worth of new tables (devotionals, devotional_series,
+devotional_usage, devotional_metrics, org_shared_focus,
+org_lesson_pack_purchases, org_onboarding_purchases, reshape_metrics,
+transfer_requests, email_rosters) had appeared since May 31 and were
+never classified.
+
+Fresh count: 51 policies currently `TO public` (not ~50/55 as originally
+estimated). Classified all 51:
+- 10 stay `TO public` -- reconfirmed against live data, unchanged from
+  the original May 31 classification (branding_config, feedback_questions,
+  lesson_pack_config, onboarding_config, org_tier_config, pricing_plans,
+  system_settings, tier_config, toolbelt_email_captures, toolbelt_usage).
+- 2 newly discovered no-op `service_role`-named policies on
+  `devotional_usage` and `user_subscriptions` (added sometime after May
+  31) -- same shape (`auth.role() = 'service_role'`, meaningless because
+  service_role bypasses RLS regardless of policy content) as the ~25
+  already dropped in Migration 3 Finding 4. Dropped, not retargeted, for
+  consistency with that precedent.
+- 39 retargeted `TO authenticated` via `ALTER POLICY` (qual/with_check
+  untouched). Every one verified to have a real auth-gated predicate
+  (`auth.uid() = ...`, `has_role(...)`, `profiles.role = 'admin'`,
+  org-membership subquery) before drafting -- none was a bare `true`, so
+  zero behavior change (anon's `auth.uid()` is already NULL).
+
+Migration `20260715150000_rls_public_to_authenticated.sql` drafted, shown
+to Lynn in full before applying (per standing preference), approved, and
+applied via `"y" | npx supabase db push --linked`. Post-apply verification
+(both queries run read-only via `db query --linked` immediately after):
+exactly 10 policies remain `TO public` (matching the intended list
+exactly), and both no-op policies confirmed gone (0 rows). Lynn then
+confirmed the functional checks: public pricing page loads logged-out,
+anonymous toolbelt/parable capture still works, and the admin dashboard +
+lesson library load normally.
+
+### Item C -- explicitly NOT bundled, confirmed deferred
+Item C (backfilling ~55 live routine bodies into migration files via
+`pg_get_functiondef`) was flagged by the original June audit itself as
+"pure housekeeping, zero security value, highest risk (re-defining live
+functions)." Recommended keeping it out of this security-fix session;
+Lynn confirmed. Logged as a standing backlog item in the RESUME HERE
+block above, not a B5 blocker and not scheduled to any session yet.
+
+### SESSION SUMMARY
+Files changed: `supabase/migrations/20260715150000_rls_public_to_
+authenticated.sql` (new), `PROJECT_MASTER.md` (this log). Commit:
+"SECURITY: anon-grants item B -- retarget 39 policies to authenticated,
+drop 2 no-ops". B5 item 3 CLOSED. B5 items 4-6 remain before Gate 2.
+
+## >>> PRIOR RESUME <<< -- B5 item 2 (orphan functions check-subscription /
+sync-subscription-status) is CLOSED.
+
+  [SUPERSEDED -- was item 3, now closed] Anon-grants hardening -- items B/C
+     deferred from the June Supabase Security Advisor audit (see
+     project_security_advisor_audit_in_progress memory / the audit
+     session log below for what B/C actually are).
      ADDED SCOPE this session: also verify no other deployed function
      bypasses the May 31, 2026 EXECUTE REVOKE on `allocate_monthly_credits`
      / `deduct_credits` / `cleanup_old_rate_limits` / `debug_admin_check`
