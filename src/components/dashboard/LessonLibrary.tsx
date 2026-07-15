@@ -131,7 +131,7 @@ const extractLessonTitle = (content: string): string | null => {
   const lines = content.split("\n");
   for (const line of lines) {
     const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
-    if (match) return match[1].replace(/[""\*]/g, "").trim();
+    if (match) return match[1].replace(/[""*]/g, "").trim();
   }
   return null;
 };
@@ -150,7 +150,7 @@ const extractPrimaryScripture = (content: string): string | null => {
   for (const line of lines) {
     // Match both "Primary Scripture:" and "Primary Scripture Passage:"
     const match = line.match(/^(?:\*\*)?Primary Scripture(?:\s+Passage)?:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
-    if (match) return match[1].replace(/[""\*]/g, "").trim();
+    if (match) return match[1].replace(/[""*]/g, "").trim();
   }
   return null;
 };

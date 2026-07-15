@@ -26,10 +26,6 @@ export async function logAuditEvent(entry: AuditLogEntry): Promise<void> {
       timestamp: new Date().toISOString(),
     };
 
-    // Log to console in development
-    if (process.env.NODE_ENV === 'development') {
-    }
-
     // In production, you would send this to your logging service
     // For now, we'll store it in browser storage as a fallback
     const existingLogs = JSON.parse(localStorage.getItem('audit_logs') || '[]');

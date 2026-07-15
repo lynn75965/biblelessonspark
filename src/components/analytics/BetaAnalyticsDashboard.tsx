@@ -353,23 +353,26 @@ export function BetaAnalyticsDashboard() {
     switch (dateFilter) {
       case 'today':
         return { start: today.toISOString(), end: new Date(today.getTime() + 86400000).toISOString() };
-      case 'yesterday':
+      case 'yesterday': {
         const yesterday = new Date(today.getTime() - 86400000);
         return { start: yesterday.toISOString(), end: today.toISOString() };
+      }
       case 'last7days':
         return { start: new Date(today.getTime() - 7 * 86400000).toISOString(), end: now.toISOString() };
       case 'last30days':
         return { start: new Date(today.getTime() - 30 * 86400000).toISOString(), end: now.toISOString() };
-      case 'thisWeek':
+      case 'thisWeek': {
         const startOfWeek = new Date(today);
         startOfWeek.setDate(today.getDate() - today.getDay());
         return { start: startOfWeek.toISOString(), end: now.toISOString() };
-      case 'lastWeek':
+      }
+      case 'lastWeek': {
         const lastWeekStart = new Date(today);
         lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
         const lastWeekEnd = new Date(lastWeekStart);
         lastWeekEnd.setDate(lastWeekStart.getDate() + 7);
         return { start: lastWeekStart.toISOString(), end: lastWeekEnd.toISOString() };
+      }
       case 'custom':
         return {
           start: customStartDate ? new Date(customStartDate).toISOString() : null,
@@ -583,28 +586,33 @@ export function BetaAnalyticsDashboard() {
             {value}
           </div>
         );
-      case 'nps_score':
+      case 'nps_score': {
         const nps = value as number;
         const npsStyle = nps >= 9 ? BADGE_STYLES.nps.promoter
           : nps >= 7 ? BADGE_STYLES.nps.passive
           : BADGE_STYLES.nps.detractor;
         return <Badge className={npsStyle}>{nps}</Badge>;
-      case 'ease_of_use':
+      }
+      case 'ease_of_use': {
         const easeStyle = BADGE_STYLES.easeOfUse[value as keyof typeof BADGE_STYLES.easeOfUse] || BADGE_STYLES.default;
         return <Badge className={easeStyle}>{value}</Badge>;
-      case 'lesson_quality':
+      }
+      case 'lesson_quality': {
         const qualityStyle = BADGE_STYLES.quality[value as keyof typeof BADGE_STYLES.quality] || BADGE_STYLES.default;
         return <Badge className={qualityStyle}>{value}</Badge>;
-      case 'minutes_saved':
+      }
+      case 'minutes_saved': {
         const labels: Record<number, string> = { 15: '15 min', 30: '30 min', 60: '1 hour', 120: '2+ hrs' };
         return labels[value as number] || `${value} min`;
+      }
       case 'would_pay_for':
         return value;
       case 'positive_comments':
       case 'improvement_suggestions':
-      case 'ui_issues':
+      case 'ui_issues': {
         const text = value as string;
         return text.length > 50 ? `${text.substring(0, 50)}...` : text;
+      }
       default:
         return String(value);
     }

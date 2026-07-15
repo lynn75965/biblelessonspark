@@ -853,7 +853,7 @@ ${styleExtractionPromptAddition}
       lessonInput = `${bible_passage} - ${focused_topic}`;
     }
 
-    let bibleVersionInstruction = `\n\nIMPORTANT: Use the ${bibleVersion.name} (${bibleVersion.abbreviation}) for ALL Scripture quotations and references.`;
+    const bibleVersionInstruction = `\n\nIMPORTANT: Use the ${bibleVersion.name} (${bibleVersion.abbreviation}) for ALL Scripture quotations and references.`;
 
     let teaserInstruction = '';
     // Teaser goes in Phase 2 for two-phase full lessons; suppressed in Phase 1.

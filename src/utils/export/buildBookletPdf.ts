@@ -682,7 +682,7 @@ export async function buildBookletPdf(
     const content = lesson.shaped_content ?? lesson.original_text ?? '';
     const results: Array<{ verse: string; reference: string }> = [];
     // Match quoted scripture blocks
-    const pattern = /["\u201C]([^"\u201D]+)["\u201D]\s*[\u2014\-]\s*([A-Z][a-z]+ \d+:\d+(?:[--\-]\d+)?(?:\s*\([A-Z]+\))?)/g;
+    const pattern = /["\u201C]([^"\u201D]+)["\u201D]\s*[\u2014-]\s*([A-Z][a-z]+ \d+:\d+(?:[---]\d+)?(?:\s*\([A-Z]+\))?)/g;
     let match;
     while ((match = pattern.exec(content)) !== null) {
       results.push({ verse: match[1].trim(), reference: match[2].trim() });
@@ -692,7 +692,7 @@ export async function buildBookletPdf(
 
   function extractMemoryVerse(lesson: Lesson): { verse: string; reference: string } | null {
     const content = lesson.shaped_content ?? lesson.original_text ?? '';
-    const pattern = /Memory Verse[:\s]+["\u201C]([^"\u201D]+)["\u201D]\s*[\u2014\-]\s*([A-Z][a-z]+ \d+:\d+[^\n]*)/i;
+    const pattern = /Memory Verse[:\s]+["\u201C]([^"\u201D]+)["\u201D]\s*[\u2014-]\s*([A-Z][a-z]+ \d+:\d+[^\n]*)/i;
     const match = content.match(pattern);
     if (!match) return null;
     return { verse: match[1].trim(), reference: match[2].trim() };
@@ -747,8 +747,8 @@ export async function buildBookletPdf(
         continue;
       }
       // Bullet lines
-      if (/^[*\-\*]\s/.test(line)) {
-        y = bullet(line.replace(/^[*\-\*]\s/, ''), x, y);
+      if (/^[*\-*]\s/.test(line)) {
+        y = bullet(line.replace(/^[*\-*]\s/, ''), x, y);
         continue;
       }
       // Numbered items

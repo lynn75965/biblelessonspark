@@ -82,6 +82,7 @@ function sanitizeForPdf(text: string): string {
     .replace(/[\u00BD]/g, '1/2')
     .replace(/[\u00BC]/g, '1/4')
     .replace(/[\u00BE]/g, '3/4')
+    // eslint-disable-next-line no-control-regex -- \x00-\x7F is the ASCII range boundary, not a literal control-char match
     .replace(/[^\x00-\x7F]/g, '');
 }
 

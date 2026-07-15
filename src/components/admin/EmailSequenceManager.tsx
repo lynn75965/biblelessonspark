@@ -132,7 +132,7 @@ function textToHtml(text: string): string {
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
     
-    const bulletMatch = line.match(/^[*\-]\s+(.+)$/);
+    const bulletMatch = line.match(/^[*-]\s+(.+)$/);
     if (bulletMatch) {
       if (!inList) {
         htmlLines.push(`<ul style="margin: 12px 0; padding-left: 24px;">`);

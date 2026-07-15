@@ -328,7 +328,7 @@ const extractLessonTitle = (content: string): string | null => {
   const lines = content.split("\n");
   for (const line of lines) {
     const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
-    if (match) return match[1].replace(/[""\*]/g, "").trim();
+    if (match) return match[1].replace(/[""*]/g, "").trim();
   }
   return null;
 };
@@ -350,7 +350,7 @@ const parseLessonSections = (content: string, freeSections: number[]): ParsedDis
   // This prevents matching numbered questions like "1. Paul says..."
   // Valid: "Section 1: Title" or "## 1. Title" or "## Section 1:" or "**Section 1:**"
   // Invalid: "1. Question text" (no Section keyword or ##)
-  const sectionRegex = /(?:^|\n)(?:\*\*)?(?:(?:##\s*)?Section\s*|##\s*)(\d+)[\.\:\-\s]+([^\n\*]+?)(?:\*\*)?(?=\n)/gi;
+  const sectionRegex = /(?:^|\n)(?:\*\*)?(?:(?:##\s*)?Section\s*|##\s*)(\d+)[.:\-\s]+([^\n*]+?)(?:\*\*)?(?=\n)/gi;
   
   let match;
   const matches: { index: number; sectionNumber: number; title: string; fullMatch: string }[] = [];
@@ -434,7 +434,7 @@ const formatSectionContent = (content: string): string => {
     convertHeadingsToHtml(
       normalized
         // Remove section header line in various formats
-        .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[\.\:\-\s]+[^\n]+\n?/i, '')
+        .replace(/^(?:\*\*)?(?:##\s*)?(?:Section\s*)?\d+[.:\-\s]+[^\n]+\n?/i, '')
     )
   )
     .replace(/\n---\n/g, '<hr class="my-1.5 border-t border-muted-foreground/20">')

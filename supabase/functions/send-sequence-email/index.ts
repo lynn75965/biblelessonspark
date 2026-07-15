@@ -42,7 +42,7 @@ function textToHtml(text: string): string {
       .replace(/>/g, "&gt;");
     
     // Check if this is a bullet point
-    const bulletMatch = line.match(/^[\u2022\-]\s+(.+)$/);
+    const bulletMatch = line.match(/^[\u2022-]\s+(.+)$/);
     if (bulletMatch) {
       if (!inList) {
         htmlLines.push(`<ul style="margin: 12px 0; padding-left: 24px;">`);

@@ -100,7 +100,7 @@ function extractDocTitle(content: string): string | null {
     const cleaned = cleanAllMarkdown(line);
     const match   = cleaned.match(/^Lesson\s+Title[:\s]*[""]?(.+?)[""]?\s*$/i);
     if (match) {
-      return match[1].replace(/[""\*#]/g, '').trim();
+      return match[1].replace(/[""*#]/g, '').trim();
     }
   }
   return null;
@@ -156,7 +156,7 @@ function buildTextRuns(
   if (!text) return [];
 
   const runs: TextRun[] = [];
-  let processedText     = text.replace(/^#{1,6}\s*/, '');
+  const processedText     = text.replace(/^#{1,6}\s*/, '');
   const segments        = processedText.split(/(\*\*[^*]+\*\*)/g);
 
   for (const seg of segments) {

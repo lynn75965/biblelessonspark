@@ -5,7 +5,17 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  {
+    // dist: build output.
+    // backups/, SSOT-PROJECT-FILES/: gitignored local-only directories
+    // (untracked, not part of the repo -- eslint scans the filesystem
+    // directly and doesn't respect .gitignore on its own, so these need
+    // an explicit ignore here even though `git ls-files`-based tooling,
+    // like the ASCII guard, already skips them for free).
+    // docs/white-label/examples/: illustrative code snippets meant to be
+    // copy-pasted into branding.ts, not valid standalone TypeScript.
+    ignores: ["dist", "backups", "SSOT-PROJECT-FILES", "docs/white-label/examples"],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

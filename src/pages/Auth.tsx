@@ -111,7 +111,7 @@ export default function Auth() {
           // (the confirmation link lands on emailRedirectTo=/dashboard with no
           // token in the URL). The AuthProvider consumer claims it on the next
           // authenticated entry. Persisted only for a valid, unclaimed invite.
-          try { localStorage.setItem('bls_pending_invite', inviteToken); } catch {}
+          try { localStorage.setItem('bls_pending_invite', inviteToken); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
 
           setFormData(prev => ({ ...prev, email: invite.email }));
           // Default tab is left to getDefaultTab() (the bls_has_account hint),
@@ -179,7 +179,7 @@ export default function Auth() {
           description: "You have successfully signed in.",
         });
         // Remember this browser has an account for future visits
-        try { localStorage.setItem('bls_has_account', 'true'); } catch {}
+        try { localStorage.setItem('bls_has_account', 'true'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
       }
     } catch (error) {
       toast({
@@ -324,7 +324,7 @@ export default function Auth() {
           });
           setActiveTab('signin');
           // Remember this browser has an account
-          try { localStorage.setItem('bls_has_account', 'true'); } catch {}
+          try { localStorage.setItem('bls_has_account', 'true'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
           setIsLoading(false);
           return;
         }
@@ -335,7 +335,7 @@ export default function Auth() {
           // confirmation ON the inline sign-in below fails (email not yet
           // confirmed) and this handler returns early -- the persisted token lets
           // the AuthProvider consumer finish the join after the user confirms.
-          try { localStorage.setItem('bls_pending_invite', inviteToken); } catch {}
+          try { localStorage.setItem('bls_pending_invite', inviteToken); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
 
           // Sign in the user to establish an active session
           const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -358,7 +358,7 @@ export default function Auth() {
           if (claimResult.ok) {
             // Inline success: clear the persisted token so the AuthProvider
             // consumer does not attempt a redundant (already-claimed) accept.
-            try { localStorage.removeItem('bls_pending_invite'); } catch {}
+            try { localStorage.removeItem('bls_pending_invite'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
           }
           
           // Confirm email automatically (they proved ownership via invite link)
@@ -374,7 +374,7 @@ export default function Auth() {
             description: "Your account has been created. Taking you to your dashboard...",
           });
           // Remember this browser has an account
-          try { localStorage.setItem('bls_has_account', 'true'); } catch {}
+          try { localStorage.setItem('bls_has_account', 'true'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
           navigate(ROUTES.DASHBOARD);
           return;
         }
@@ -400,7 +400,7 @@ export default function Auth() {
         await supabase.auth.signOut();
         setShowEmailConfirmation(true);
         // Remember this browser has an account
-        try { localStorage.setItem('bls_has_account', 'true'); } catch {}
+        try { localStorage.setItem('bls_has_account', 'true'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
         
         toast({
           title: "Account created!",

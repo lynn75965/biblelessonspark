@@ -94,6 +94,7 @@ const sanitizeText = (text: string): string => {
     .replace(/[\u200B-\u200F\u202A-\u202E\uFEFF]/g, "")
     // Strip decorative symbols, emoji, and all non-ASCII
     // (jsPDF built-in fonts only render ASCII reliably)
+    // eslint-disable-next-line no-control-regex -- \x00-\x7F is the ASCII range boundary, not a literal control-char match
     .replace(/[^\x00-\x7F]/g, "");
 };
 
@@ -101,7 +102,7 @@ const extractLessonTitle = (content: string): string | null => {
   const lines = content.split("\n");
   for (const line of lines) {
     const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*[""]?(.+?)[""]?\s*$/i);
-    if (match) return match[1].replace(/[""\*]/g, "").trim();
+    if (match) return match[1].replace(/[""*]/g, "").trim();
   }
   return null;
 };
@@ -110,7 +111,7 @@ const extractLessonTitle = (content: string): string | null => {
  * Detect Section header lines (Section 1: Title, etc.)
  */
 const isSectionHeader = (line: string): { isSection: boolean; num: number; cleanTitle: string } => {
-  let cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
+  const cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
   const match = cleaned.match(/^Section\s+(\d+)\s*[:\----]?\s*(.*)$/i);
 
   if (match) {
@@ -131,7 +132,7 @@ const isSectionHeader = (line: string): { isSection: boolean; num: number; clean
  * Matches original format ("Section 8: Group Handout") and shaped variants
  */
 const isSection8Line = (line: string): boolean => {
-  let cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
+  const cleaned = line.replace(/^\*\*/, '').replace(/\*\*$/, '').replace(/^#{1,6}\s*/, '').trim();
   if (/^Section\s+8/i.test(cleaned)) return true;
   if (GROUP_HANDOUT_HEADING_REGEX.test(cleaned)) return true;
   return false;

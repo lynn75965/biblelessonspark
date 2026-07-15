@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (pendingInviteHandledRef.current) return;
 
     let token: string | null = null;
-    try { token = localStorage.getItem('bls_pending_invite'); } catch {}
+    try { token = localStorage.getItem('bls_pending_invite'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
     if (!token) return;
 
     pendingInviteHandledRef.current = true;
@@ -137,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const { ok, retryable } = await claimInvite(token);
       if (ok) {
-        try { localStorage.removeItem('bls_pending_invite'); } catch {}
+        try { localStorage.removeItem('bls_pending_invite'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
         // Hard reload into an org-aware dashboard so every context (org,
         // subscription, sidebar gating) re-initializes from the updated DB.
         // AuthProvider is mounted above the Router, so useNavigate is unavailable
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else if (!retryable) {
         // Definitive failure (already-claimed / invalid / expired). Clear the
         // token so it cannot recur on every future authenticated entry.
-        try { localStorage.removeItem('bls_pending_invite'); } catch {}
+        try { localStorage.removeItem('bls_pending_invite'); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
       }
       // Transient failure: leave the token in place. accept-org-invite is
       // retry-safe (claim stamp written last), so the next authenticated entry

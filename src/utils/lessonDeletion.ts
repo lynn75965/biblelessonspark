@@ -45,7 +45,7 @@ const extractTitleFromBody = (body: string | null | undefined): string | null =>
   for (const line of lines) {
     const match = line.match(/^(?:\*\*)?Lesson Title:?(?:\*\*)?\s*"?(.+?)"?\s*$/i);
     if (match) {
-      return match[1].replace(/["\*]/g, "").trim();
+      return match[1].replace(/["*]/g, "").trim();
     }
   }
   return null;

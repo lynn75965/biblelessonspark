@@ -81,7 +81,7 @@ function escapeHtml(text: string): string {
  */
 function formatLessonForEmail(text: string): string {
   // Strip bare heading markers (shaped content uses these as section separators)
-  let cleaned = text.replace(/^#{1,3}\s*$/gm, '');
+  const cleaned = text.replace(/^#{1,3}\s*$/gm, '');
   let html = escapeHtml(cleaned);
 
   // Single # heading (title-level) -> styled major header (must come before ## check)
@@ -110,7 +110,7 @@ function formatLessonForEmail(text: string): string {
 
   // Bullet points: lines starting with *, -, or *
   html = html.replace(
-    /^[\u2022\-\*]\s+(.+)$/gm,
+    /^[\u2022\-*]\s+(.+)$/gm,
     '<li style="margin-bottom:4px;font-family:Georgia,serif;font-size:15px;color:#1a1a1a;">$1</li>'
   );
   // Wrap consecutive <li> in <ul>
@@ -189,7 +189,7 @@ function isStudentHandoutHeading(line: string): boolean {
   const trimmed = line.trim();
   let cleaned = trimmed.replace(/^#{1,4}\s*/, "");
   cleaned = cleaned.replace(/^\*\*/, "").replace(/\*\*$/, "");
-  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:\u2013\u2014\-].*)?$/i.test(cleaned);
+  return /^(?:STUDENT\s+(?:HANDOUT|EXPERIENCE|MATERIAL|SECTION)|Student\s+(?:Handout|Experience|Material|Section))(?:\s*[:\u2013\u2014-].*)?$/i.test(cleaned);
 }
 
 /**

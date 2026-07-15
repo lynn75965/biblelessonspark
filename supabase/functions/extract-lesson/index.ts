@@ -118,7 +118,7 @@ serve(async (req) => {
             messages: [
               {
                 role: "user",
-                content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God\'s love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
+                content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God's love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
               },
             ],
           }),
@@ -423,7 +423,7 @@ serve(async (req) => {
           messages: [
             {
               role: "user",
-              content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God\'s love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
+              content: `Read this curriculum content and identify two things:\n1. The primary Bible scripture reference or passage (book, chapter, and verses if present). Return ONLY the reference, nothing else (e.g. 'John 3:16-21'). If no specific passage is identifiable, return null.\n2. The main teaching focus or topic in 10 words or fewer. Return ONLY the topic phrase (e.g. 'God's love and the gift of salvation'). If no clear focus is identifiable, return null.\n\nRespond in this exact JSON format with no other text:\n{"scripture": "John 3:16-21" or null, "focus": "Main teaching topic here" or null}\n\nCurriculum content:\n${extractedText.substring(0, 3000)}`,
             },
           ],
         }),

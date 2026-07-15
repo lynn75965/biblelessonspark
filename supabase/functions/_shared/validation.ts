@@ -89,6 +89,7 @@ export function validateLessonRequest(data: any): LessonRequest {
   const sanitizeString = (str: string | undefined): string | undefined => {
     if (!str) return str;
     // Remove null bytes, control characters except newlines/tabs
+    // eslint-disable-next-line no-control-regex -- intentional: strips control chars, deliberately preserves \x09 tab, \x0A LF, \x0D CR
     return str.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '').trim();
   };
 
