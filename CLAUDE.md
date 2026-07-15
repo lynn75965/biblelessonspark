@@ -418,17 +418,25 @@ Added July 14, 2026 (B3 session). Two workflows live in .github/workflows/:
 
 - `ci.yml` -- runs on every push/PR to main. Three jobs: build (`npm ci &&
   npm run build`), ascii-guard (`scripts/pre-commit-ascii-guard.sh
-  --tracked`, repo-wide), lint (`npm run lint`). ascii-guard and lint are
-  currently REPORT-ONLY -- the step always exits 0 and prints a
-  `<NAME> BASELINE: N` summary line instead of using `continue-on-error`
-  (which still renders the job as flagged/failing in the Checks UI). This
-  is because their baselines are not clean as of 2026-07-14: 27 pre-existing
-  ASCII violations and 342 pre-existing lint errors (see PROJECT_MASTER.md
-  "ASCII baseline cleanup session" for the full categorized file map). Flip
-  each back to a plain failing command once its baseline is zeroed. Netlify
-  auto-deploys on every push regardless of CI result -- CI runs after the
-  push has already landed, so this is an alarm, not a gate. True pre-merge
-  gating would require abandoning direct-push-to-main for a branch+PR flow
+  --tracked`, repo-wide), lint (`npm run lint`). ascii-guard's baseline was
+  ZEROED 2026-07-15 (B5 item 5 session) and the job is now a plain blocking
+  command again, same as the local staged-mode hook. lint remains
+  REPORT-ONLY -- the step always exits 0 and prints a `LINT BASELINE: N`
+  summary line instead of using `continue-on-error` (which still renders
+  the job as flagged/failing in the Checks UI). As of 2026-07-15 the lint
+  baseline is down to exactly two categories: `@typescript-eslint/
+  no-explicit-any` (246 errors, deferred to its own dedicated session --
+  see PROJECT_MASTER.md backlog table for the file-by-file map) and one
+  parsing error in `temp_working_version.ts` (Rule #6 item, B5 item 6).
+  Every other rule (no-useless-escape, no-empty, no-case-declarations,
+  no-control-regex, no-empty-object-type, prefer-const) was zeroed in the
+  same session. Flip lint back to a plain failing command once
+  no-explicit-any is resolved AND temp_working_version.ts is deleted --
+  both conditions, not either alone, since a single remaining parsing
+  error still fails the whole `eslint .` invocation. Netlify auto-deploys
+  on every push regardless of CI result -- CI runs after the push has
+  already landed, so this is an alarm, not a gate. True pre-merge gating
+  would require abandoning direct-push-to-main for a branch+PR flow
   (GitHub can't block a direct push with required status checks, only PR
   merges) -- documented as an optional click-path, not enabled.
 - `edge-function-staleness.yml` -- weekly (Monday 13:00 UTC) + manual

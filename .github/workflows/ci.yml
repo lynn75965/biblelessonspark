@@ -35,37 +35,26 @@ jobs:
   ascii-guard:
     name: ASCII Guard
     runs-on: ubuntu-latest
-    # Baseline is not clean as of 2026-07-14: the first repo-wide (--tracked)
-    # run surfaced 27 pre-existing violations that predate this guard (it
-    # only ever ran on staged files locally, so historical files were never
-    # rescanned). Deliberately report-only for now, same mechanism as the
-    # lint job -- the step always exits 0 and prints a summary line, so the
-    # job stays green while the count stays visible. The LOCAL staged-mode
-    # hook still blocks NEW violations at commit time -- protection against
-    # new corruption is intact. See PROJECT_MASTER.md "ASCII baseline
-    # cleanup session" for the full categorized file list. Flip this back
-    # to blocking (remove the summary wrapper) once that session zeroes it.
+    # Baseline zeroed 2026-07-15 (B5 item 5 cleanup session -- see
+    # PROJECT_MASTER.md). Blocking again, same as the local staged-mode
+    # hook: a new non-ASCII byte in any tracked .ts/.tsx file fails this
+    # job. If this ever needs to go report-only again, restore the
+    # summary-wrapper pattern still used by the lint job below.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Scan all tracked .ts/.tsx files for non-ASCII characters (never fails this job -- see ASCII BASELINE line below)
-        run: |
-          set +e
-          bash scripts/pre-commit-ascii-guard.sh --tracked > /tmp/ascii-output.txt 2>&1
-          cat /tmp/ascii-output.txt
-          FILE_COUNT=$(grep -c '^--- ' /tmp/ascii-output.txt)
-          echo ""
-          echo "=========================================="
-          echo "ASCII BASELINE: $FILE_COUNT files with violations -- non-blocking pending cleanup session"
-          echo "=========================================="
-          exit 0
+      - name: Scan all tracked .ts/.tsx files for non-ASCII characters
+        run: bash scripts/pre-commit-ascii-guard.sh --tracked
 
   lint:
     name: Lint (report-only)
     runs-on: ubuntu-latest
-    # Baseline is not clean as of 2026-07-14 (342 pre-existing errors -- see
-    # PROJECT_MASTER.md B3 session). Deliberately NOT using continue-on-error:
+    # Baseline reduced 2026-07-15 (B5 item 5 session) to exactly two
+    # categories left: no-explicit-any (246 errors, deferred to its own
+    # session -- see PROJECT_MASTER.md backlog table) and one parsing
+    # error in temp_working_version.ts (B5 item 6). Every other rule was
+    # zeroed. Deliberately NOT using continue-on-error:
     # that flag still renders the job as failing/flagged in the Checks UI.
     # Instead the step below always exits 0 and prints the problem count as
     # its own summary line, so the job is genuinely green and the baseline

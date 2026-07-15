@@ -1,20 +1,84 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 4 of 6 closed -- 9-function staleness verification, send-lesson-email redeployed -- B5 items 5-6 remain)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 5 of 6 closed -- ASCII baseline zeroed, eslint baseline down to no-explicit-any only -- B5 item 6 remains)
 
-## >>> RESUME HERE <<< -- B5 item 4 (9-function deploy-vs-git staleness
-verification) is CLOSED. Gate 1 status is:
-B1, B2, B3, B4 SHIPPED; B5 items 1-4 CLOSED; B5 items 5-6 REMAIN OPEN:
+## >>> RESUME HERE <<< -- B5 item 5 (ASCII + eslint baseline cleanup) is
+CLOSED. Gate 1 status is:
+B1, B2, B3, B4 SHIPPED; B5 items 1-5 CLOSED; B5 item 6 REMAINS OPEN:
 
-  5. ASCII baseline cleanup (27 pre-existing violations) + eslint baseline
-     cleanup (342 pre-existing errors) -- both currently report-only in
-     ci.yml (see Rule #28); flip each job back to a plain failing command
-     once its baseline is zeroed. Two functions confirmed this session as
-     BOM-only carry-forwards belonging to this cleanup: reshape-lesson's
-     bundled corsConfig.ts/subscriptionCheck.ts and purchase-lesson-pack's
-     index.ts all have a leading BOM in git that the currently-deployed
-     versions lack -- strip the BOM from the git files as part of item 5
-     (NOT a redeploy target; deployed is already the clean version).
   6. Delete `temp_working_version.ts` (confirm it's dead first, per the
-     general "verify before deleting" caution).
+     general "verify before deleting" caution). This is now the LAST B5
+     item -- closing it, plus a dedicated no-explicit-any session (see
+     backlog below), lets ci.yml's lint job flip back to blocking.
+
+  NEW STANDING BACKLOG (logged 2026-07-15, not fixed -- needs its own
+  dedicated session): `@typescript-eslint/no-explicit-any`, 246 errors
+  across 86 files. Each needs a real type judgment at its call site, not
+  a mechanical substitution -- genuine type-engineering work, not hygiene.
+  Top offenders (>= 3 errors) to help scope that session:
+
+  | File | Count |
+  |---|---|
+  | src/components/admin/OrganizationManagement.tsx | 15 |
+  | src/components/dashboard/EnhanceLessonForm.tsx | 11 |
+  | supabase/functions/generate-lesson/index.ts | 11 |
+  | src/pages/Dashboard.tsx | 10 |
+  | supabase/functions/stripe-webhook/index.ts | 9 |
+  | src/hooks/useEnhanceLesson.tsx | 7 |
+  | src/pages/PublishingHub.tsx | 7 |
+  | supabase/functions/admin-delete-user/index.ts | 7 |
+  | supabase/functions/reshape-lesson/index.ts | 7 |
+  | src/components/dashboard/DevotionalLibrary.tsx | 5 |
+  | src/components/dashboard/LessonLibrary.tsx | 5 |
+  | src/components/feedback/BetaFeedbackForm.tsx | 5 |
+  | src/lib/auditLogger.ts | 5 |
+  | supabase/functions/_shared/orgPoolCheck.ts | 5 |
+  | supabase/functions/generate-devotional/index.ts | 5 |
+  | src/components/EmailLessonDialog.tsx | 4 |
+  | src/components/account/MyOrganizationSection.tsx | 4 |
+  | src/components/org/OrgManagerTransferRequests.tsx | 4 |
+  | src/hooks/useAdminOperations.tsx | 4 |
+  | src/hooks/useInvites.tsx | 4 |
+  | src/pages/OrgManager.tsx | 4 |
+  | supabase/functions/_shared/branding.ts | 4 |
+  | supabase/functions/_shared/validation.ts | 4 |
+  | supabase/functions/sync-pricing-from-stripe/index.ts | 4 |
+  | src/components/org/OrgLessonsPanel.tsx | 3 |
+  | src/components/org/OrgSharedFocusPanel.tsx | 3 |
+  | src/hooks/useSeriesManager.ts | 3 |
+  | src/pages/Admin.tsx | 3 |
+  | supabase/functions/_shared/anthropicRetry.ts | 3 |
+  | supabase/functions/approve-org-deletion/index.ts | 3 |
+  | supabase/functions/send-auth-email/index.ts | 3 |
+
+  Remaining 55 files carry 1-2 errors each (diffuse, likely quick
+  individual fixes) -- full list is in the eslint JSON output, not
+  reproduced here. `npx eslint . --format json` regenerates it fresh.
+
+  NEW STANDING BACKLOG (logged 2026-07-15, NOT deleted -- needs Lynn's
+  per-file review, do not touch without her sign-off): two entirely
+  gitignored/untracked directories surfaced while chasing eslint errors
+  down. BOTH confirmed via `git check-ignore` to have ZERO tracked files
+  -- nothing in either is git-recoverable, so nothing was deleted despite
+  matching the same "zero importers" pattern as the dead files that WERE
+  deleted this session.
+  - `backups/` (23 files, multiple dated snapshots from Nov 2025-Feb
+    2026: EnhanceLessonForm.tsx.backup/.backup2/.backup3/dated variants,
+    LessonLibrary.tsx.backup/.backup2, UserProfileModal.tsx.backup, a
+    `console-log-cleanup-20260219-162033/` snapshot of 9 files, a
+    `phase4-20251122-163455/` snapshot of 3 files, two `202511224-*/`
+    snapshots of generate-lesson-index.ts.backup/theologyProfiles.ts.backup
+    variants). `.gitignore:36`.
+  - `SSOT-PROJECT-FILES/` (32 files -- a flat dump of files named like the
+    real src/constants/*.ts and supabase/functions/_shared/*.ts SSOT
+    files). `.gitignore:39`. Its own git history is informative: commit
+    `d52f32f` "Remove SSOT-PROJECT-FILES from repo, add to gitignore"
+    (2026-02-19) -- it was deliberately untracked, consistent with a
+    local reference/export bundle (e.g. for uploading to Claude.ai
+    project knowledge) rather than repo cruft.
+  Both were added to `eslint.config.js`'s `ignores` array (eslint scans
+  the filesystem directly and doesn't respect .gitignore on its own; the
+  ASCII guard already skipped both for free since it enumerates via
+  `git ls-files`). Neither directory's contents were read for secrets or
+  content beyond filenames.
 
   LOW/architecture (not blocking, documented): purchase-lesson-pack and
   purchase-onboarding resolve Stripe prices from DB config tables instead
@@ -41,7 +105,152 @@ B1, B2, B3, B4 SHIPPED; B5 items 1-4 CLOSED; B5 items 5-6 REMAIN OPEN:
 B5 items 4-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
 infra, B8 capacity recheck, legal pages confirmation) can start.
 
-## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 4: 9-function staleness verification
+## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 5: ASCII + eslint baseline cleanup
+
+GOAL: Zero out both baselines (27 ASCII files per B3's original count, 342
+eslint errors) so ci.yml's report-only jobs can go back to blocking,
+except for the intentionally-deferred no-explicit-any bucket.
+
+### ASCII cleanup
+Fresh scan found 26 files (not 27 -- create-checkout-session/index.ts had
+already been fixed as a side effect of an earlier same-day session).
+Cross-checked the full July 14 categorization against live data and it
+still held exactly, plus two refinements:
+- The repo-root `customizationDirectives.ts` (previously "needs a content
+  fix, cross-check against category a") resolved cleanly as a stale,
+  unimported duplicate -- its own header names the correct location,
+  `supabase/functions/_shared/customizationDirectives.ts`. Deleted.
+- `_shared/uiSymbols.ts` (previously classified "deliberate Unicode, add
+  a guard exclusion") turned out to have ZERO importers anywhere in
+  `supabase/functions` -- not a live backend mirror at all, just an
+  orphaned duplicate. The real, live SSOT is `src/constants/uiSymbols.ts`
+  (8 real frontend callers), which was already ASCII-clean via its own
+  escape-sequence/ASCII-substitute choices and was untouched. Deleted the
+  dead backend copy instead of excluding or fixing it.
+- Mid-cleanup, `_shared/betaEnrollmentConfig.ts` turned out to be the
+  same story -- zero importers, confirmed via two independent grep
+  patterns -- so its BOM-strip was reverted and it was deleted too
+  instead.
+
+Commit 1 (`96c8fde`): deleted 4 confirmed-dead items (8 files: the
+`backup-before-beta-migration/` directory, `create-org-checkout-session/
+index.backup.ts`, `theologyProfiles-ENHANCED.ts`, root `customization
+Directives.ts`), each re-verified zero-importer immediately before its
+own deletion, not relying on the session-start scan.
+
+Commit 2 (`398d3b2`): the remaining 22 files. 7 BOM-stripped mechanically
+(byte-level, 3 bytes removed each, verified via byte-count diff). 12 had
+real non-ASCII converted to JS Unicode escape sequences -- every
+substitution round-trip verified via a script that JSON.parse-decodes the
+literal escape text and compares it against the exact original character
+(catches the known Edit-tool "\uXXXX <-> literal" normalization trap
+before it can corrupt anything). Comments in the same files got plain
+ASCII substitutes (`--`, `-`) per the guard's own convention, not
+escapes. Plus the 2 newly-discovered dead mirrors (uiSymbols.ts,
+betaEnrollmentConfig.ts) deleted.
+
+One deviation from the pre-approved before/after table, flagged and
+explained before writing: `_shared/emailDeliveryConfig.ts`'s 3 label
+strings were changed to match their already-ASCII-clean frontend master
+(`src/constants/emailDeliveryConfig.ts`) verbatim -- confirmed
+`send-lesson-email` (the only backend importer) never reads those
+specific fields, so matching the true SSOT source is strictly safer than
+the originally-proposed escape-sequence approach, with zero functional
+difference either way.
+
+Full before/after table for every user-facing/prompt-facing string
+(lesson-generation verification checklist, parable guardrail prompt text,
+email subjects/templates, Stripe product names, notification copy) was
+shown and approved before any write. All 12 files independently confirmed
+ASCII-clean and residue-free after writing.
+
+Affected functions (17, direct edits or a touched `_shared` import):
+create-portal-session, org-stripe-webhook, purchase-lesson-pack,
+send-focus-notification, notify-team-invitation, seed-test-notifications,
+send-invite, send-toolbelt-sequence, sync-pricing-from-stripe,
+seed-stripe-catalog, generate-parable, send-auth-email, create-blog-post,
+generate-lesson, reshape-lesson, upload-blog-image, send-lesson-email.
+Every change confirmed BOM-only, comment-only, or byte-identical-
+rendering -- no redeploy needed or performed; fixed source ships on each
+function's next regular deploy.
+
+### Eslint cleanup
+`eslint --fix` auto-fixed the 8 `prefer-const` (all `let` never
+reassigned, zero behavior change). The remaining 71 non-any errors were
+hand-fixed, each verified before writing:
+- 30 `no-useless-escape`: built a Node test harness that runs every
+  before/after regex pair against realistic sample inputs and asserts
+  identical `.test()` results -- caught the fact that some flagged
+  backslashes (e.g. a dash between two escaped-unicode range endpoints)
+  needed to STAY escaped to avoid an invalid/reversed character-class
+  range, so only exactly the eslint-flagged backslashes were removed, not
+  every backslash in the same character class. One pair of duplicate
+  `'God\'s love...'` template-literal apostrophes (extract-lesson/
+  index.ts, both prompt-building call sites) also fixed -- confirmed
+  identical string value via `===` comparison.
+- 11 `no-empty`: three `localStorage` try/catch pairs in useAuth.tsx, plus
+  seven more of the same pattern across Auth.tsx, given a clarifying
+  comment. One in `auditLogger.ts` was genuinely dead code -- a vestige
+  of a removed console.log (matches the "console-log-cleanup" backup
+  directory's own history) that did nothing regardless of branch taken --
+  deleted outright rather than commented.
+- 10 `no-case-declarations` (all in BetaAnalyticsDashboard.tsx): wrapped
+  each case body in block braces. Zero behavior change since every case
+  already returns before falling through.
+- 4 `no-control-regex`: all four are genuinely intentional (three
+  `\x00-\x7F` ASCII-range boundary checks for PDF font compatibility, one
+  deliberate control-character sanitizer in `_shared/validation.ts` that
+  specifically preserves tab/LF/CR) -- documented with `eslint-disable-
+  next-line` rather than altered, since "fixing" these would have broken
+  real sanitization/compatibility logic.
+- 2 `@typescript-eslint/no-empty-object-type`: two shadcn/ui boilerplate
+  interfaces with zero added members (`command.tsx`, `textarea.tsx`),
+  converted to type aliases per eslint's own suggested fix. Confirmed
+  neither is imported/extended anywhere else first.
+
+Along the way, `eslint .` (which scans the filesystem directly, unlike
+the git-ls-files-based ASCII guard) surfaced two entirely gitignored,
+untracked directories contributing noise: `backups/` and
+`SSOT-PROJECT-FILES/`. Lynn's explicit instruction: verify tracked status
+before touching anything, since backups/ was suspected (correctly) of
+being gitignored and therefore NOT git-recoverable if deleted. Both
+confirmed zero tracked files via `git check-ignore`; nothing in either
+was deleted. Excluded both from `eslint.config.js` instead (plus
+`docs/white-label/examples/` -- a tracked documentation snippet, not
+standalone-valid TypeScript by design, which was the 2nd of the original
+2 parsing errors). See the STANDING BACKLOG entries above for the full
+file inventory of both directories, logged for Lynn's own per-file
+review.
+
+Commit 3 (`17dd2db`): all eslint fixes plus the three config exclusions.
+
+### Acceptance
+`bash scripts/pre-commit-ascii-guard.sh --tracked`: exit 0, "All checked
+files are ASCII-clean." `npx eslint .`: 299 problems (247 errors -- 246
+no-explicit-any + 1 parsing error in temp_working_version.ts -- + 52
+warnings, all react-hooks/exhaustive-deps or react-refresh/only-export-
+components, neither touched this session). `npm run build`: clean after
+every commit. Flipped `ascii-guard` job in `ci.yml` to a plain blocking
+command (matches the local staged-mode hook again). Updated the `lint`
+job's comment and CLAUDE.md Rule #28 to reflect the new two-condition
+flip requirement (no-explicit-any resolved AND temp_working_version.ts
+deleted -- either alone still leaves `eslint .` failing).
+
+Deviation from directive 7's literal acceptance target ("271 errors + 2
+parsing"): actual result is 246 errors + 1 parsing, not a shortfall --
+the two dead-file deletions (uiSymbols.ts, betaEnrollmentConfig.ts)
+removed `any`-errors that lived in them, and fixing the docs/ parsing
+error was explicit in the originally-approved 6-step plan.
+
+### SESSION SUMMARY
+Commits: `96c8fde` (delete 8 dead files), `398d3b2` (ASCII fixes, 20
+files), `17dd2db` (eslint fixes, 22 files), plus this PROJECT_MASTER.md +
+ci.yml + CLAUDE.md update (session-end commit). B5 item 5 CLOSED. B5 item
+6 (temp_working_version.ts) remains -- last item before Gate 2, alongside
+the newly-logged no-explicit-any backlog session (not a B5 blocker) and
+the two untracked-directory reviews (not a B5 blocker).
+
+## JULY 15, 2026 SESSION -- B5 ITEM 4: 9-function staleness verification
 
 GOAL: Verify the 9 functions B3 found with 10min-3hr git-newer deploy gaps
 (ocr-image, resend-verification, reshape-lesson, generate-devotional,
