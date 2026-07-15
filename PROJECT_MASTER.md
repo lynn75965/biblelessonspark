@@ -1,23 +1,58 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 + contracts.ts import-extension cleanup -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B4 shipped, B5 item 1 of 6 closed, contracts.ts cleanup -- B5 items 2-6 remain)
 
-## >>> RESUME HERE <<< -- Gate 1 (B1-B5) is FULLY SHIPPED. No open Gate 1
-items remain, and no other work is queued as of this session's close.
-Also closed this session: the two carry-forward `import type {...} from
-'./contracts'` (missing `.ts` extension) findings logged during B4 --
-fixed in both `src/constants/theologyProfiles.ts` and
-`src/constants/ageGroups.ts` (`.ts` added to the specifier), re-synced to
-their `_shared/` mirrors via `npm run sync-constants`. Type-only imports
-are erased at transpile time so nothing was ever broken at runtime -- this
-only silences a harmless bundler WARN during edge-function deploys. A
-third occurrence exists in `src/constants/index.ts` but that file is a
-frontend-only barrel never synced to `_shared/` or uploaded during a
-function deploy, so it can't cause the warning -- left alone, not a bug.
-Commit `4f6f73c`. No redeploy needed for this fix (no edge function's
-actual behavior changed).
+## >>> RESUME HERE <<< -- CORRECTION to this session's earlier claim: B5 is
+NOT fully shipped. Only B5 item 1 (create-org-checkout-session MODE 2
+price injection + open-redirect) closed this session. Gate 1 status is:
+B1, B2, B3, B4 SHIPPED; B5 item 1 CLOSED; B5 items 2-6 REMAIN OPEN:
 
-## >>> PRIOR RESUME <<< -- B5 (create-org-checkout-session MODE 2 price
-injection + open-redirect) is COMPLETE and FULLY CLOSED OUT. This closes
-the last HIGH-priority finding logged from the July 14 SECURITY session
+  2. Orphan functions `check-subscription` and `sync-subscription-status`
+     -- deployed and callable on the live project, but NO source exists in
+     git for either. Need to either recover/recreate the source (if still
+     in use) or confirm they're truly dead and delete them from the
+     deployed project.
+  3. Anon-grants hardening -- items B/C deferred from the June Supabase
+     Security Advisor audit (see project_security_advisor_audit_in_progress
+     memory / the audit session log below for what B/C actually are).
+  4. 9 functions showing same-session deploy-vs-git lag need individual
+     verification (download + diff vs git HEAD, confirm each is a
+     comment-only/BOM difference and not a real drift, per the B3
+     staleness-workflow pattern used on create-checkout-session/
+     create-portal-session).
+  5. ASCII baseline cleanup (27 pre-existing violations) + eslint baseline
+     cleanup (342 pre-existing errors) -- both currently report-only in
+     ci.yml (see Rule #28); flip each job back to a plain failing command
+     once its baseline is zeroed.
+  6. Delete `temp_working_version.ts` (confirm it's dead first, per the
+     general "verify before deleting" caution).
+
+  LOW/architecture (not blocking, documented): purchase-lesson-pack and
+  purchase-onboarding resolve Stripe prices from DB config tables instead
+  of the frontend SSOT (pricingConfig.ts); usePricingPlans.tsx reads
+  stripe_price_id_monthly/annual from the pricing_plans DB table as a
+  second source instead of pricingConfig.ts directly.
+
+B5 items 2-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
+infra, B8 capacity recheck, legal pages confirmation) can start.
+
+Also closed this session (accurate, unaffected by the correction above):
+the two carry-forward `import type {...} from './contracts'` (missing
+`.ts` extension) findings logged during B4 -- fixed in both
+`src/constants/theologyProfiles.ts` and `src/constants/ageGroups.ts`
+(`.ts` added to the specifier), re-synced to their `_shared/` mirrors via
+`npm run sync-constants`. Type-only imports are erased at transpile time
+so nothing was ever broken at runtime -- this only silences a harmless
+bundler WARN during edge-function deploys. A third occurrence exists in
+`src/constants/index.ts` but that file is a frontend-only barrel never
+synced to `_shared/` or uploaded during a function deploy, so it can't
+cause the warning -- left alone, not a bug. Commit `4f6f73c`. No redeploy
+needed for this fix (no edge function's actual behavior changed).
+
+## >>> PRIOR RESUME <<< -- B5 ITEM 1 ONLY (create-org-checkout-session MODE
+2 price injection + open-redirect) is COMPLETE and FULLY CLOSED OUT --
+CORRECTION logged in the RESUME HERE block above: B5 as a whole has 5 more
+open items (2-6), this closed only the HIGH-priority security finding
+(item 1). This closes the last HIGH-priority *finding* logged from the
+July 14 SECURITY session
 (finding #1 -- MODE 2's self-service branch had the identical unvalidated-
 priceId gap as the sibling create-checkout-session fix). Single-file scope:
 create-org-checkout-session/index.ts only. Fix mirrors the sibling exactly:
@@ -32,13 +67,17 @@ upgrade via OrgPoolStatusCard) confirmed still working in production.
 Deployed via `npx supabase functions deploy create-org-checkout-session
 --project-ref hphebzdftpjbiudpfcrs --use-api`, fresh timestamp confirmed.
 
-Gate 1 (B1-B5) is now FULLY SHIPPED. No open Gate 1 items remain. The two
-LOW/architecture findings from the July 14 SECURITY session (purchase-
-lesson-pack/purchase-onboarding resolving prices from DB config tables
-instead of pricingConfig.ts; usePricingPlans.tsx reading from the
-pricing_plans DB table) remain open as documented architecture notes, not
-urgent -- see the FINDINGS LOGGED section in the July 14 SECURITY session
-below.
+CORRECTION (see RESUME HERE at the top of this file): B1-B4 are shipped
+and B5's HIGH-priority security finding (item 1) is closed, but B5 as a
+whole is NOT fully shipped -- items 2-6 (orphan functions, anon-grants
+hardening, 9 functions needing staleness verification, ASCII/eslint
+baseline cleanup, temp_working_version.ts deletion) remain open, along
+with the two LOW/architecture findings from the July 14 SECURITY session
+(purchase-lesson-pack/purchase-onboarding resolving prices from DB config
+tables instead of pricingConfig.ts; usePricingPlans.tsx reading from the
+pricing_plans DB table) -- see the FINDINGS LOGGED section in the July 14
+SECURITY session below for those two, and the RESUME HERE block at the
+top of this file for the full B5 items 2-6 list.
 
 ## >>> PRIOR RESUME <<< -- B4 (model fallback / graceful degradation) is
 COMPLETE and FULLY CLOSED OUT. All six Claude-calling edge functions
