@@ -1,4 +1,4 @@
-﻿export interface ParableGuardrails {
+export interface ParableGuardrails {
   big_question: string
   real_life_trigger: "mortality" | "aging" | "irreversible" | "general"
   emotional_posture: string
@@ -25,7 +25,7 @@ export function deriveParableGuardrails(
     intended_outcome: "Clear biblical understanding"
   }
 
-  // JOB 14:5 — NUMBERED DAYS / HUMAN LIMITS
+  // JOB 14:5 -- NUMBERED DAYS / HUMAN LIMITS
   const isJob14 =
     passage.includes("job 14") ||
     passage.includes("job 14:5") ||
@@ -35,18 +35,18 @@ export function deriveParableGuardrails(
   if (isJob14) {
     guardrails = {
       big_question:
-        "My days are limited, and God alone determines their boundary — how should I live now?",
+        "My days are limited, and God alone determines their boundary \u2014 how should I live now?",
       real_life_trigger: "mortality",
       emotional_posture:
         age.includes("66") || age.includes("senior")
           ? "Quietly reflective"
           : "Sober and serious",
       intended_outcome:
-        "Sober clarity and peaceful trust in God’s sovereign limits"
+        "Sober clarity and peaceful trust in God\u2019s sovereign limits"
     }
   }
 
-  // Audience lens nuance (tone only — never override trigger)
+  // Audience lens nuance (tone only -- never override trigger)
   if (lens.includes("spiritually exhausted")) {
     guardrails.emotional_posture = "Weary but still listening"
   }

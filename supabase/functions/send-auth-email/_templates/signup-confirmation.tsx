@@ -1,4 +1,4 @@
-﻿import {
+import {
   Body,
   Container,
   Head,
@@ -31,7 +31,7 @@ export const SignupConfirmationEmail = ({
     <Preview>Confirm your email to get started with BibleLessonSpark</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Welcome to BibleLessonSpark! 🎓</Heading>
+        <Heading style={h1}>Welcome to BibleLessonSpark! \uD83C\uDF93</Heading>
         <Text style={text}>
           Thank you for signing up! We're excited to help you enhance your Bible study lessons with AI-powered tools.
         </Text>

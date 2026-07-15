@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CORS Configuration (SSOT)
  *
  * Single Source of Truth for allowed origins across all Edge Functions.

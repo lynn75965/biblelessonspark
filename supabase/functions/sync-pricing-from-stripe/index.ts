@@ -155,7 +155,7 @@ serve(async (req) => {
       }
 
       const planData = {
-        name: existingPlan?.name || `BibleLessonSpark — ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
+        name: existingPlan?.name || `BibleLessonSpark \u2014 ${tier.charAt(0).toUpperCase() + tier.slice(1)}`,
         lookup_key: data.monthly.lookupKey,
         price_monthly_cents: data.monthly.amount,
         price_yearly_cents: data.yearly.amount,

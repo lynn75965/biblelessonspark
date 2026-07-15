@@ -118,142 +118,142 @@ function buildVerificationChecklist(input: CustomizationInput): string {
   
   // Teaching Style checks
   if (input.teaching_style === 'discussion') {
-    checks.push('☐ Every section contains at least 2 open-ended questions');
+    checks.push('\u2610 Every section contains at least 2 open-ended questions');
   }
   if (input.teaching_style === 'socratic') {
-    checks.push('☐ Conclusions are discovered through questions, never stated directly');
+    checks.push('\u2610 Conclusions are discovered through questions, never stated directly');
   }
   if (input.teaching_style === 'storytelling') {
-    checks.push('☐ Each main point is framed through narrative');
+    checks.push('\u2610 Each main point is framed through narrative');
   }
   
   // Learning Style checks
   if (input.learning_style === 'kinesthetic') {
-    checks.push('☐ Every section includes a movement or hands-on element');
+    checks.push('\u2610 Every section includes a movement or hands-on element');
   }
   if (input.learning_style === 'visual') {
-    checks.push('☐ Visual aids or diagram descriptions included in each section');
+    checks.push('\u2610 Visual aids or diagram descriptions included in each section');
   }
   
   // Lesson Length checks
   if (input.lesson_length === '15') {
-    checks.push('☐ Content fits within 15 minutes (single point, one brief activity)');
+    checks.push('\u2610 Content fits within 15 minutes (single point, one brief activity)');
   }
   if (input.lesson_length === '30') {
-    checks.push('☐ Content fits within 30 minutes (one main point, one activity)');
+    checks.push('\u2610 Content fits within 30 minutes (one main point, one activity)');
   }
   
   // Cultural Context checks
   if (input.cultural_context === 'rural') {
-    checks.push('☐ Illustrations reference agricultural, small-town, or nature themes');
+    checks.push('\u2610 Illustrations reference agricultural, small-town, or nature themes');
   }
   if (input.cultural_context === 'urban') {
-    checks.push('☐ Illustrations reference city life, diversity, fast-paced environments');
+    checks.push('\u2610 Illustrations reference city life, diversity, fast-paced environments');
   }
   if (input.cultural_context === 'international') {
-    checks.push('☐ No American-specific references; universally understood illustrations');
+    checks.push('\u2610 No American-specific references; universally understood illustrations');
   }
   
   // Student Experience checks
   if (input.student_experience === 'new-believers') {
-    checks.push('☐ All theological terms are defined on first use');
+    checks.push('\u2610 All theological terms are defined on first use');
   }
   if (input.student_experience === 'seekers') {
-    checks.push('☐ No church jargon; all concepts explained accessibly');
+    checks.push('\u2610 No church jargon; all concepts explained accessibly');
   }
   
   // Education Level checks
   if (input.education_experience === 'preschool') {
-    checks.push('☐ Vocabulary uses simple 1-2 syllable words; heavy repetition');
+    checks.push('\u2610 Vocabulary uses simple 1-2 syllable words; heavy repetition');
   }
   if (input.education_experience === 'elementary') {
-    checks.push('☐ Language is clear and age-appropriate for children');
+    checks.push('\u2610 Language is clear and age-appropriate for children');
   }
   if (input.education_experience === 'doctorate') {
-    checks.push('☐ Academic vocabulary and scholarly depth included');
+    checks.push('\u2610 Academic vocabulary and scholarly depth included');
   }
   
   // Special Needs checks
   if (input.special_needs === 'learning-disabilities') {
-    checks.push('☐ Short sentences; information chunked; multi-sensory reinforcement');
+    checks.push('\u2610 Short sentences; information chunked; multi-sensory reinforcement');
   }
   if (input.special_needs === 'esl') {
-    checks.push('☐ Simple sentence structures; idioms explained; visual supports');
+    checks.push('\u2610 Simple sentence structures; idioms explained; visual supports');
   }
   if (input.special_needs === 'visual-impaired') {
-    checks.push('☐ All visual content has verbal descriptions');
+    checks.push('\u2610 All visual content has verbal descriptions');
   }
   if (input.special_needs === 'hearing-impaired') {
-    checks.push('☐ All audio content has visual/written alternatives');
+    checks.push('\u2610 All audio content has visual/written alternatives');
   }
   if (input.special_needs === 'mobility') {
-    checks.push('☐ All activities can be done seated; no movement required');
+    checks.push('\u2610 All activities can be done seated; no movement required');
   }
   
   // Group Size checks
   if (input.class_setting === 'one-on-one') {
-    checks.push('☐ Content is personalized for individual conversation');
+    checks.push('\u2610 Content is personalized for individual conversation');
   }
   if (input.class_setting === 'large-group') {
-    checks.push('☐ Activities designed for 13+ people; breakout instructions included');
+    checks.push('\u2610 Activities designed for 13+ people; breakout instructions included');
   }
   
   // Learning Environment checks
   if (input.learning_environment === 'worship-center') {
-    checks.push('☐ All activities work without tables; pew-friendly design');
-    checks.push('☐ No activities requiring students to spread out materials on a surface');
+    checks.push('\u2610 All activities work without tables; pew-friendly design');
+    checks.push('\u2610 No activities requiring students to spread out materials on a surface');
   }
   
   // Activity Type checks
   if (input.activity_types?.includes('drama')) {
-    checks.push('☐ At least one dramatic element (reader\'s theater, role-play, reenactment)');
+    checks.push('\u2610 At least one dramatic element (reader\'s theater, role-play, reenactment)');
   }
   if (input.activity_types?.includes('music')) {
-    checks.push('☐ Specific hymn or worship song referenced by name');
+    checks.push('\u2610 Specific hymn or worship song referenced by name');
   }
   if (input.activity_types?.includes('prayer')) {
-    checks.push('☐ Structured prayer format included (ACTS, lectio divina, etc.)');
+    checks.push('\u2610 Structured prayer format included (ACTS, lectio divina, etc.)');
   }
   
   // Phase 2: Emotional Entry checks
   if (input.emotional_entry === 'curiosity') {
-    checks.push('☐ Opening creates mystery or poses unanswered questions');
+    checks.push('\u2610 Opening creates mystery or poses unanswered questions');
   }
   if (input.emotional_entry === 'conviction') {
-    checks.push('☐ Opening makes bold truth claims with urgency');
+    checks.push('\u2610 Opening makes bold truth claims with urgency');
   }
   if (input.emotional_entry === 'comfort') {
-    checks.push('☐ Opening emphasizes assurance, safety, and grace');
+    checks.push('\u2610 Opening emphasizes assurance, safety, and grace');
   }
   if (input.emotional_entry === 'challenge') {
-    checks.push('☐ Opening disrupts assumptions and calls to growth');
+    checks.push('\u2610 Opening disrupts assumptions and calls to growth');
   }
   if (input.emotional_entry === 'celebration') {
-    checks.push('☐ Opening leads with gratitude, joy, and praise');
+    checks.push('\u2610 Opening leads with gratitude, joy, and praise');
   }
   
   // Phase 2: Theological Lens checks
   if (input.theological_lens === 'obedience') {
-    checks.push('☐ Application focuses on faithful response and next steps');
+    checks.push('\u2610 Application focuses on faithful response and next steps');
   }
   if (input.theological_lens === 'grace') {
-    checks.push('☐ Emphasis on what God has done, not human effort');
+    checks.push('\u2610 Emphasis on what God has done, not human effort');
   }
   if (input.theological_lens === 'mission') {
-    checks.push('☐ Application includes outward witness and sharing faith');
+    checks.push('\u2610 Application includes outward witness and sharing faith');
   }
   if (input.theological_lens === 'evangelism') {
-    checks.push('☐ Gospel message is woven naturally into lesson content');
-    checks.push('☐ Application equips students to share faith with specific people');
+    checks.push('\u2610 Gospel message is woven naturally into lesson content');
+    checks.push('\u2610 Application equips students to share faith with specific people');
   }
   if (input.theological_lens === 'worship') {
-    checks.push('☐ Content leads toward awe, reverence, and praise');
+    checks.push('\u2610 Content leads toward awe, reverence, and praise');
   }
   if (input.theological_lens === 'community') {
-    checks.push('☐ "One another" relationships emphasized throughout');
+    checks.push('\u2610 "One another" relationships emphasized throughout');
   }
   if (input.theological_lens === 'discipleship') {
-    checks.push('☐ Focus on spiritual growth, disciplines, and maturity');
+    checks.push('\u2610 Focus on spiritual growth, disciplines, and maturity');
   }
   
   if (checks.length === 0) {

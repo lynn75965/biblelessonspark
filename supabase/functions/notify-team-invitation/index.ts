@@ -31,7 +31,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    // ── Auth: Verify caller is a logged-in user ──────────────────────────
+    // -- Auth: Verify caller is a logged-in user --------------------------
     const authHeader = req.headers.get("authorization");
     if (!authHeader) {
       return new Response(
@@ -62,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
-    // ── Parse request ────────────────────────────────────────────────────
+    // -- Parse request ----------------------------------------------------
     const { team_member_id }: NotifyRequest = await req.json();
 
     if (!team_member_id) {
@@ -75,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ── Look up the invitation row ───────────────────────────────────────
+    // -- Look up the invitation row ---------------------------------------
     const { data: memberRow, error: memberError } = await supabaseClient
       .from("teaching_team_members")
       .select("id, team_id, user_id, status")
@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ── Look up the team ─────────────────────────────────────────────────
+    // -- Look up the team -------------------------------------------------
     const { data: teamRow, error: teamError } = await supabaseClient
       .from("teaching_teams")
       .select("id, name, lead_teacher_id")
@@ -122,7 +122,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ── Look up invitee profile (SSOT: full_name, email) ─────────────────
+    // -- Look up invitee profile (SSOT: full_name, email) -----------------
     const { data: inviteeProfile, error: inviteeError } = await supabaseClient
       .from("profiles")
       .select("full_name, email")
@@ -140,7 +140,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // ── Look up lead teacher name (SSOT: full_name) ──────────────────────
+    // -- Look up lead teacher name (SSOT: full_name) ----------------------
     const { data: leadProfile } = await supabaseClient
       .from("profiles")
       .select("full_name")
@@ -149,14 +149,14 @@ const handler = async (req: Request): Promise<Response> => {
 
     const leadTeacherName = leadProfile?.full_name || "A fellow teacher";
 
-    // ── SSOT: Get branding configuration ─────────────────────────────────
+    // -- SSOT: Get branding configuration ---------------------------------
     const branding = await getBranding(supabaseClient);
     const appName = getAppName(branding);
     const baseUrl = getBaseUrl(branding);
     const emailFrom = getEmailFrom(branding);
     const loginUrl = `${baseUrl}/dashboard`;
 
-    // ── Render email ─────────────────────────────────────────────────────
+    // -- Render email -----------------------------------------------------
     const emailHtml = await renderAsync(
       React.createElement(TeamInviteEmail, {
         inviteeName: inviteeProfile.full_name || "Friend",
@@ -169,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailSubject = `${leadTeacherName} has invited you to join "${teamRow.name}" on ${appName}`;
 
-    // ── Send email via Resend ────────────────────────────────────────────
+    // -- Send email via Resend --------------------------------------------
     const { error: emailError } = await resend.emails.send({
       from: emailFrom,
       to: inviteeProfile.email,
@@ -179,7 +179,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (emailError) {
       console.error("Error sending team invitation email:", emailError);
-      // Return success anyway — the invitation record already exists
+      // Return success anyway -- the invitation record already exists
       return new Response(
         JSON.stringify({
           success: true,

@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
@@ -10,23 +10,23 @@ const corsHeaders = {
 // Hardcoded catalog
 const CATALOG = [
   {
-    name: "BibleLessonSpark — Essentials",
-    description: "Perfect for individual teachers — 50 lesson credits per month",
+    name: "BibleLessonSpark \u2014 Essentials",
+    description: "Perfect for individual teachers \u2014 50 lesson credits per month",
     tier: "essentials",
     credits_monthly: 50,
     monthly: { amount_cents: 1900, lookup_key: "essentials_monthly", currency: "usd" },
     yearly: { amount_cents: 18200, lookup_key: "essentials_yearly", currency: "usd" },
   },
   {
-    name: "BibleLessonSpark — Pro",
-    description: "For power users — 200 lesson credits per month",
+    name: "BibleLessonSpark \u2014 Pro",
+    description: "For power users \u2014 200 lesson credits per month",
     tier: "pro",
     credits_monthly: 200,
     monthly: { amount_cents: 4900, lookup_key: "pro_monthly", currency: "usd" },
     yearly: { amount_cents: 47000, lookup_key: "pro_yearly", currency: "usd" },
   },
   {
-    name: "BibleLessonSpark — Premium",
+    name: "BibleLessonSpark \u2014 Premium",
     description: "Unlimited lesson credits per month",
     tier: "premium",
     credits_monthly: null, // NULL means unlimited

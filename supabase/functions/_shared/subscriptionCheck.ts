@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BIBLELESSONSPARK - SUBSCRIPTION CHECK (SHARED)
 // Location: supabase/functions/_shared/subscriptionCheck.ts
 //

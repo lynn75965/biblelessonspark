@@ -88,7 +88,7 @@ function plainTextToHtml(text: string): string {
   );
 
   // Convert bullet points
-  html = html.replace(/^[-•]\s+(.+)$/gm, '<li style="margin-bottom: 8px;">$1</li>');
+  html = html.replace(/^[-\u2022]\s+(.+)$/gm, '<li style="margin-bottom: 8px;">$1</li>');
   html = html.replace(/(<li[^>]*>.*<\/li>\n?)+/g, '<ul style="margin: 16px 0; padding-left: 24px;">$&</ul>');
 
   // Convert bold text
@@ -127,7 +127,7 @@ function buildEmailWrapper(subject: string, bodyHtml: string): string {
           <tr>
             <td style="background: linear-gradient(135deg, #3D5C3D 0%, #4A6F4A 100%); padding: 28px 32px; text-align: center;">
               <h1 style="margin: 0; color: #FFFFFF; font-size: 24px; font-weight: 600; font-family: Georgia, serif;">
-                ✦ BibleLessonSpark
+                \u2726 BibleLessonSpark
               </h1>
               <p style="margin: 8px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">
                 For Faithful Bible Teachers
@@ -146,7 +146,7 @@ function buildEmailWrapper(subject: string, bodyHtml: string): string {
           <tr>
             <td style="background-color: #F8F6F1; padding: 24px 32px; text-align: center; border-top: 1px solid #E5E2D9;">
               <p style="margin: 0 0 8px 0; color: #666666; font-size: 12px;">
-                © ${new Date().getFullYear()} BibleLessonSpark. All rights reserved.
+                \u00A9 ${new Date().getFullYear()} BibleLessonSpark. All rights reserved.
               </p>
               <p style="margin: 0 0 8px 0; color: #888888; font-size: 11px;">
                 <a href="https://biblelessonspark.com/help" style="color: #3D5C3D; text-decoration: underline;">Help</a>

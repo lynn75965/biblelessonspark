@@ -51,7 +51,7 @@ export const InviteEmail = ({
     </Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>You're Invited! 📖</Heading>
+        <Heading style={h1}>You're Invited! \uD83D\uDCD6</Heading>
         <Text style={text}>
           Hello,
         </Text>

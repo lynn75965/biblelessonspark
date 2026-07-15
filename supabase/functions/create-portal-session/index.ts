@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // BIBLELESSONSPARK - CREATE CUSTOMER PORTAL SESSION
 // Location: supabase/functions/create-portal-session/index.ts
 // ============================================================
