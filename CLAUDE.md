@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Claude Code Instructions
-# Last updated: July 14, 2026
+# Last updated: July 15, 2026
 # READ THIS ENTIRE FILE BEFORE TOUCHING ANY CODE
 
 ## AUTO-READ ON SESSION START
@@ -458,6 +458,43 @@ drift out of sync with each other. The script forces `LC_ALL=C.UTF-8` /
 erroring) under a non-UTF-8 or unset locale, which is a real correctness
 gap in the guard itself, not a cosmetic one -- discovered when a locale-
 less shell reported a known-BOM'd file as clean.
+
+### Rule #29: Claude API retry/fallback SSOT -- use _shared/anthropicRetry.ts
+Added July 15, 2026 (B4 session -- model fallback / graceful degradation).
+Every edge function that calls the Anthropic API (currently 6: generate-
+lesson, generate-parable, reshape-lesson, generate-devotional, extract-
+lesson, toolbelt-reflect) goes through `_shared/anthropicRetry.ts`'s
+`callAnthropicNonStreaming()` (non-streaming calls) or
+`openAnthropicStreamWithRetry()` (SSE connection-phase only, generate-
+lesson's Phase 1). This centralizes retry/backoff/model-fallback/graceful-
+failure so a NEW Claude-calling function should use these helpers rather
+than a raw `fetch()` to `api.anthropic.com` -- do not reintroduce a bespoke
+retry loop or an unguarded single-attempt call. Retry/fallback timeouts and
+counts live in `RETRY_CONFIG` (`_shared/modelConfig.ts`, synced from
+`src/constants/modelConfig.ts` per Rule #23) -- add a new `RetryCallSite`
+key there for a new function rather than hardcoding a timeout inline.
+If the new function's calling pattern is a pre-increment rate-limit gate
+(via `_shared/edgeRateLimit.ts`'s `checkRateLimits`), pair it with
+`refundRateLimits()` on a terminal Anthropic failure (see the 4 existing
+call sites for the pattern) -- a failed generation must never permanently
+cost the user part of their daily/hourly allotment.
+
+### Rule #30: Every Stripe checkout-session function must validate its price_id
+Added July 15, 2026 (closes a vulnerability class found TWICE: create-
+checkout-session on July 14, create-org-checkout-session's MODE 2 on
+July 15 -- both accepted a client-supplied Stripe price ID with zero
+validation and passed it straight to `stripe.checkout.sessions.create`).
+Any current or future function that creates a Stripe Checkout Session MUST
+validate every client-supplied price ID against the frontend SSOT
+(`_shared/pricingConfig.ts` -- `resolveTierFromPriceId()` for personal-tier
+gates, or a direct `ORG_TIERS.find(...)` membership check for org-tier
+gates) BEFORE any Stripe API call, fail closed with 400 on a mismatch, and
+log `user_id` + the attempted price ID (never secrets) via `console.error`.
+If the function also accepts client-supplied `success_url`/`cancel_url`
+(or `successUrl`/`cancelUrl`), gate those too with a same-origin check via
+`getBranding`/`getBaseUrl` (`_shared/branding.ts`) -- see
+create-checkout-session/index.ts or create-org-checkout-session/index.ts
+for the reference implementation of both gates.
 
 ---
 

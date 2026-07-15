@@ -1,6 +1,21 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 -- create-org-checkout-session price_id gap -- SHIPPED)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 + contracts.ts import-extension cleanup -- SHIPPED)
 
-## >>> RESUME HERE <<< -- B5 (create-org-checkout-session MODE 2 price
+## >>> RESUME HERE <<< -- Gate 1 (B1-B5) is FULLY SHIPPED. No open Gate 1
+items remain, and no other work is queued as of this session's close.
+Also closed this session: the two carry-forward `import type {...} from
+'./contracts'` (missing `.ts` extension) findings logged during B4 --
+fixed in both `src/constants/theologyProfiles.ts` and
+`src/constants/ageGroups.ts` (`.ts` added to the specifier), re-synced to
+their `_shared/` mirrors via `npm run sync-constants`. Type-only imports
+are erased at transpile time so nothing was ever broken at runtime -- this
+only silences a harmless bundler WARN during edge-function deploys. A
+third occurrence exists in `src/constants/index.ts` but that file is a
+frontend-only barrel never synced to `_shared/` or uploaded during a
+function deploy, so it can't cause the warning -- left alone, not a bug.
+Commit `4f6f73c`. No redeploy needed for this fix (no edge function's
+actual behavior changed).
+
+## >>> PRIOR RESUME <<< -- B5 (create-org-checkout-session MODE 2 price
 injection + open-redirect) is COMPLETE and FULLY CLOSED OUT. This closes
 the last HIGH-priority finding logged from the July 14 SECURITY session
 (finding #1 -- MODE 2's self-service branch had the identical unvalidated-
@@ -90,7 +105,40 @@ Gate 1 work: B4 (model fallback) and B5 (security completion --
 create-org-checkout-session's identical self-service gap, logged in the
 SECURITY session block below, is the next item).
 
-## JULY 15, 2026 SESSION (LATEST) -- B5: create-org-checkout-session MODE 2 price injection + open-redirect -- CLOSED
+## JULY 15, 2026 SESSION (LATEST) -- Cleanup: contracts.ts import-extension fix (post-Gate-1 closeout)
+
+Small follow-up after B5 closed out Gate 1. Two carry-forward findings from
+the B4 session log (harmless bundler WARN during generate-devotional/
+generate-lesson deploys) were fixed at Lynn's request:
+
+- `src/constants/theologyProfiles.ts:1` --
+  `import type { TheologyProfileId, SecurityDoctrine, TulipStance } from './contracts';`
+  -> `from './contracts.ts';`
+- `src/constants/ageGroups.ts:14` --
+  `import type { AgeGroup, TeachingProfile } from './contracts';`
+  -> `from './contracts.ts';`
+
+Both re-synced to their `_shared/` mirrors via `npm run sync-constants`.
+`npm run build` clean after each change (confirmed Vite/esbuild resolve an
+explicit `.ts` specifier fine -- this isn't universally true across all TS
+tooling, so it was verified rather than assumed). ASCII guard clean.
+A third occurrence in `src/constants/index.ts:52` was found but left
+alone -- that file is a frontend-only barrel, never synced to `_shared/`
+or uploaded during a `supabase functions deploy`, so it cannot produce the
+WARN the other two caused; fixing it would be cosmetic-only with zero
+functional effect.
+
+Since these are type-only imports (erased at transpile time), no edge
+function's runtime behavior changed -- no redeploy was needed or done.
+Committed as `4f6f73c` ("FIX: Add missing .ts extension to contracts
+imports in ageGroups/theologyProfiles"). New CLAUDE.md rules added this
+session (see CLAUDE.md Rule #29, #30) to prevent recurrence of two
+patterns discovered/closed this session: the Claude-API retry/fallback
+SSOT (`_shared/anthropicRetry.ts`) and the Stripe checkout price_id
+validation requirement (found missing twice -- create-checkout-session,
+then create-org-checkout-session).
+
+## JULY 15, 2026 SESSION -- B5: create-org-checkout-session MODE 2 price injection + open-redirect -- CLOSED
 
 GOAL: Close the last open Gate 1 item -- the HIGH-priority finding logged
 in the July 14 SECURITY session (finding #1): create-org-checkout-session's
