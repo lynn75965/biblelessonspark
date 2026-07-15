@@ -1,18 +1,18 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 3 of 6 closed -- anon-grants item B shipped -- B5 items 4-6 remain)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 4 of 6 closed -- 9-function staleness verification, send-lesson-email redeployed -- B5 items 5-6 remain)
 
-## >>> RESUME HERE <<< -- B5 item 3 (anon-grants hardening, item B half) is
-CLOSED. Gate 1 status is:
-B1, B2, B3, B4 SHIPPED; B5 items 1-3 CLOSED; B5 items 4-6 REMAIN OPEN:
+## >>> RESUME HERE <<< -- B5 item 4 (9-function deploy-vs-git staleness
+verification) is CLOSED. Gate 1 status is:
+B1, B2, B3, B4 SHIPPED; B5 items 1-4 CLOSED; B5 items 5-6 REMAIN OPEN:
 
-  4. 9 functions showing same-session deploy-vs-git lag need individual
-     verification (download + diff vs git HEAD, confirm each is a
-     comment-only/BOM difference and not a real drift, per the B3
-     staleness-workflow pattern used on create-checkout-session/
-     create-portal-session).
   5. ASCII baseline cleanup (27 pre-existing violations) + eslint baseline
      cleanup (342 pre-existing errors) -- both currently report-only in
      ci.yml (see Rule #28); flip each job back to a plain failing command
-     once its baseline is zeroed.
+     once its baseline is zeroed. Two functions confirmed this session as
+     BOM-only carry-forwards belonging to this cleanup: reshape-lesson's
+     bundled corsConfig.ts/subscriptionCheck.ts and purchase-lesson-pack's
+     index.ts all have a leading BOM in git that the currently-deployed
+     versions lack -- strip the BOM from the git files as part of item 5
+     (NOT a redeploy target; deployed is already the clean version).
   6. Delete `temp_working_version.ts` (confirm it's dead first, per the
      general "verify before deleting" caution).
 
@@ -41,7 +41,85 @@ B1, B2, B3, B4 SHIPPED; B5 items 1-3 CLOSED; B5 items 4-6 REMAIN OPEN:
 B5 items 4-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
 infra, B8 capacity recheck, legal pages confirmation) can start.
 
-## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 3: Anon-grants hardening (item B)
+## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 4: 9-function staleness verification
+
+GOAL: Verify the 9 functions B3 found with 10min-3hr git-newer deploy gaps
+(ocr-image, resend-verification, reshape-lesson, generate-devotional,
+send-lesson-email, purchase-lesson-pack, admin-impersonate-user,
+send-invite, generate-blog-image) actually have only cosmetic drift, per
+the B3-established download+diff pattern, rather than trusting the
+"presumed same-session commit lag" characterization on faith.
+
+### Method
+Downloaded each function individually (not batched) via `npx supabase
+functions download <name> --project-ref hphebzdftpjbiudpfcrs`, isolating
+each download so bundled `_shared/*.ts` files could be correctly
+attributed to the function that actually bundles them (a first batched
+attempt would have let later downloads silently overwrite earlier ones'
+_shared snapshot). Diffed every `index.ts` and every bundled `_shared`
+file against git HEAD (CRLF-normalized first to avoid false-positive
+line-ending noise).
+
+### Findings -- 8 of 9 clean, 1 genuinely stale
+- ocr-image, admin-impersonate-user, generate-blog-image -- byte-identical.
+- resend-verification -- byte-identical, including bundled branding.ts.
+- reshape-lesson -- index.ts identical; corsConfig.ts/subscriptionCheck.ts
+  differ only by a BOM present in git but absent from deployed (logged for
+  item 5, see RESUME HERE block).
+- purchase-lesson-pack -- index.ts differs the same BOM-only way.
+- generate-devotional -- index.ts identical; theologyProfiles.ts differs
+  by exactly the `.ts` import-extension fix from earlier today (`4f6f73c`)
+  -- already documented as needing no redeploy (type-only import, erased
+  at transpile).
+- send-invite -- index.ts/branding.ts identical; routes.ts is missing the
+  `SHEPHERDING` constant added after this function's last deploy --
+  confirmed via grep that send-invite/index.ts never references
+  `ROUTES.SHEPHERDING`, so inert. No action.
+- **send-lesson-email -- genuinely stale, redeployed.** Beyond the
+  cosmetic literal-Unicode-vs-escape differences (matching the May 27
+  session's own "no redeploy needed" call on that same file), two
+  substantive gaps: (1) `branding.ts`'s `getBaseUrl()` in the deployed
+  bundle predates the env-var-override + trailing-slash-strip
+  enhancement, and `send-lesson-email/index.ts:521` calls `getBaseUrl()`
+  directly, so this wasn't inert; (2) `pricingConfig.ts` in the deployed
+  bundle predates the `lessonTiers.ts` SSOT-derivation refactor (values
+  were confirmed identical today, but the mechanism was stale).
+
+### SITE_URL / APP_URL verification (before redeploying)
+`getBaseUrl()`'s new code prefers `Deno.env.get('SITE_URL') ||
+Deno.env.get('APP_URL')` before falling back to the hardcoded branding
+literal (`https://biblelessonspark.com`). `npx supabase secrets list`
+confirmed both are actually set on the project (values are SHA-256-masked
+by the CLI/Dashboard, never shown in plaintext). Lynn pulled the digests
+from the Dashboard; computed SHA-256 of a candidate URL list locally and
+found an exact match: `SITE_URL` = `https://biblelessonspark.com` (no
+trailing slash). Sanity-checked the technique itself by also hashing
+`https://hphebzdftpjbiudpfcrs.supabase.co`, which exactly matched the
+`SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_URL` digests from the same `secrets
+list` output -- confirmed these are plain unsalted SHA-256, not a
+coincidental collision. `APP_URL`'s digest didn't match any tried
+candidate, but it turned out not to matter: `SITE_URL || APP_URL` short-
+circuits on `SITE_URL` being set, so `APP_URL` is never read while
+`SITE_URL` exists. Redeploy confirmed safe regardless of `APP_URL`'s
+actual value.
+
+### Redeploy + verification
+`npx supabase functions deploy send-lesson-email --project-ref
+hphebzdftpjbiudpfcrs --use-api` -- success, fresh timestamp confirmed
+(version 24, 2026-07-15 18:46 UTC). Lynn triggered a real lesson-share
+email post-deploy and confirmed the links resolve to
+`https://biblelessonspark.com`, matching pre-deploy behavior exactly (as
+expected, since `SITE_URL` matches the old hardcoded fallback) -- zero
+regression, function now running current code.
+
+### SESSION SUMMARY
+No git-tracked files changed (this item was diagnosis + a production
+redeploy only; PROJECT_MASTER.md is the only tracked-file change).
+Production change: `send-lesson-email` edge function redeployed. B5 item
+4 CLOSED. Two BOM cleanups logged forward into item 5 (see RESUME HERE
+block). B5 items 5-6 remain before Gate 2.
+
+## JULY 15, 2026 SESSION -- B5 ITEM 3: Anon-grants hardening (item B)
 
 GOAL: Close the item B half of the June-deferred anon-grants hardening
 (item C stays deferred, see below), plus re-check for any other function
