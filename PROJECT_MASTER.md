@@ -1,13 +1,21 @@
-# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 5 of 6 closed -- ASCII baseline zeroed, eslint baseline down to no-explicit-any only -- B5 item 6 remains)
+# PROJECT MASTER -- Last updated: July 15, 2026 (Session: B5 item 6 CLOSED -- B5 fully complete -- GATE 1 (B1-B5) FULLY SHIPPED -- Gate 2 can start)
 
-## >>> RESUME HERE <<< -- B5 item 5 (ASCII + eslint baseline cleanup) is
-CLOSED. Gate 1 status is:
-B1, B2, B3, B4 SHIPPED; B5 items 1-5 CLOSED; B5 item 6 REMAINS OPEN:
+## >>> RESUME HERE <<< -- B5 item 6 (delete temp_working_version.ts) is
+CLOSED, which closes ALL of B5. Gate 1 status:
+B1, B2, B3, B4, B5 (items 1-6) ALL SHIPPED. GATE 1 IS COMPLETE.
 
-  6. Delete `temp_working_version.ts` (confirm it's dead first, per the
-     general "verify before deleting" caution). This is now the LAST B5
-     item -- closing it, plus a dedicated no-explicit-any session (see
-     backlog below), lets ci.yml's lint job flip back to blocking.
+Gate 2 (B6 theology golden suite, B7 conversion infra, B8 capacity
+recheck, legal pages confirmation) can now begin -- no B5 blockers remain.
+Two non-blocking backlog items carry forward (neither gates Gate 2):
+
+  1. `@typescript-eslint/no-explicit-any` -- 246 errors across 86 files,
+     needs its own dedicated type-engineering session (see table below).
+     Blocks ci.yml's `lint` job from going back to blocking (per Rule
+     #28's two-condition requirement -- temp_working_version.ts is now
+     deleted, so no-explicit-any is the only remaining condition).
+  2. Two untracked/gitignored directories (`backups/`, `SSOT-PROJECT-
+     FILES/`) need Lynn's own per-file review -- see inventory below.
+     Neither blocks anything; both are excluded from eslint's scan.
 
   NEW STANDING BACKLOG (logged 2026-07-15, not fixed -- needs its own
   dedicated session): `@typescript-eslint/no-explicit-any`, 246 errors
@@ -105,7 +113,54 @@ B1, B2, B3, B4 SHIPPED; B5 items 1-5 CLOSED; B5 item 6 REMAINS OPEN:
 B5 items 4-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
 infra, B8 capacity recheck, legal pages confirmation) can start.
 
-## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 5: ASCII + eslint baseline cleanup
+## JULY 15, 2026 SESSION (LATEST) -- B5 ITEM 6: delete temp_working_version.ts -- B5 COMPLETE, GATE 1 SHIPPED
+
+GOAL: Close the last B5 item -- verify temp_working_version.ts is dead,
+then delete it.
+
+### Diagnosis
+`file` identified it as UTF-16LE text -- that's exactly why `eslint .`
+threw "Parsing error: File appears to be binary" (eslint expects UTF-8;
+a UTF-16LE BOM looks like garbage to a UTF-8-only parser). Decoded via
+Node's `buffer.toString('utf16le')` (iconv produced no output, abandoned
+in favor of Node): the content is an old draft of lesson-generation logic
+(`TeacherPreferences`/`LessonRequest` interfaces) that opens with `import
+"https://deno.land/x/xhr@0.1.0/mod.ts"` -- the exact legacy polyfill
+import Rule #20 documents as deliberately removed from every live
+function on 2026-06-17, never to be reintroduced. `git log --follow`
+showed exactly one commit ever touching this file: `753d598` ("Phase 0
+Complete: Foundation infrastructure for SSOT constants", 2025-11-21) --
+added once, never modified since. It lives at the repo root, never
+inside `supabase/functions/`, so it was never part of any deployable
+structure. Grepped every tracked file for the filename: the only 4 hits
+were documentation/config mentions of the cleanup task itself (CLAUDE.md,
+PROJECT_MASTER.md, ci.yml's lint-job comment, and a stale permission-
+allowlist entry in .claude/settings.local.json from a past decode
+attempt) -- zero real code references anywhere.
+
+### Action
+Lynn approved deletion. `git rm temp_working_version.ts`. Post-delete
+verification: `npm run build` clean, `bash scripts/pre-commit-ascii-
+guard.sh --tracked` exit 0, `npx eslint .` down to 298 problems (246
+errors -- now purely no-explicit-any, the parsing error is gone -- + 52
+warnings). Per Rule #28's two-condition flip requirement, `lint` stays
+report-only in ci.yml since no-explicit-any (246 errors) is still
+outstanding -- only half the condition is now met.
+
+### B5 COMPLETE -- GATE 1 SHIPPED
+This closes B5 items 1-6 in full. Combined with B1-B4 (already shipped),
+**Gate 1 is now completely closed.** Gate 2 (B6 theology golden suite, B7
+conversion infra, B8 capacity recheck, legal pages confirmation) has no
+remaining blockers and can begin. Two backlog items carry forward but
+gate nothing: the no-explicit-any type-engineering session, and Lynn's
+own review of the two untracked directories (both logged in the RESUME
+HERE block above).
+
+### SESSION SUMMARY
+One file deleted (`temp_working_version.ts`), one commit, pushed to
+origin/main. PROJECT_MASTER.md updated to reflect Gate 1 fully shipped.
+
+## JULY 15, 2026 SESSION -- B5 ITEM 5: ASCII + eslint baseline cleanup
 
 GOAL: Zero out both baselines (27 ASCII files per B3's original count, 342
 eslint errors) so ci.yml's report-only jobs can go back to blocking,
