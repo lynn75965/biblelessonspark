@@ -17,7 +17,7 @@
  * @lastUpdated 2025-11-21
  */
 
-import type { AgeGroup, TeachingProfile } from './contracts';
+import type { AgeGroup, TeachingProfile } from './contracts.ts';
 
 // ============================================================
 // AGE GROUP DEFINITIONS

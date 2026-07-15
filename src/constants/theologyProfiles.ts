@@ -1,4 +1,4 @@
-import type { TheologyProfileId, SecurityDoctrine, TulipStance } from './contracts';
+import type { TheologyProfileId, SecurityDoctrine, TulipStance } from './contracts.ts';
 
 /**
  * THEOLOGY PROFILES - Single Source of Truth (SSOT)
