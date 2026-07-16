@@ -427,6 +427,15 @@
       "reviewer_notes": "Approved by Lynn, 2026-07-16. Missional/table-fellowship framing rather than TULIP-loaded -- fifth data point for B6 finding #5 (Psalm 23 control divergence).",
       "generated_at": "2026-07-16T12:59:46.198Z",
       "fixture_hash": "8d2d138e534f2dcb"
+    },
+    {
+      "profile_id": "baptist-core-beliefs",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/baptist-core-beliefs/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16. Regenerated after B6 finding #8 (generate-lesson word-budget fix) -- Section 5 verified at 980 words of genuine teaching content, Phase 1 total 2,116 words, both within corrected targets. Final fixture, completes all 48 of 48.",
+      "generated_at": "2026-07-16T16:57:06.977Z",
+      "fixture_hash": "d0501f2b65b7cfb7"
     }
   ]
 }

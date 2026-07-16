@@ -180,7 +180,17 @@ the follow-up lands.
   Southern Baptist 1963/2000 (documented historical drift risk) → CBF
   (orthogonal distinctive axis) → Regular Baptist GARBC → the four
   tonal/subtle profiles last (National Baptist, Independent, Missionary,
-  General Baptist) → Baptist Core Beliefs.
+  General Baptist) → Baptist Core Beliefs. **APPROVED 2026-07-16** (all
+  36; see MANIFEST.json). GARBC's initial batch was held and regenerated
+  after the profile fix in Finding #7; Baptist Core Beliefs' hebrews-6
+  was held and regenerated after the pipeline fix in Finding #8.
+
+**All 48 fixtures (12 profiles x 4 passages) generated and APPROVED as
+of 2026-07-16.** B6's fixture-generation phase is complete. Two real
+product bugs were caught and fixed along the way (Findings #7 and #8) --
+this is the suite doing exactly what it was built to do. Remaining open
+items are the standing findings below (#1-4, #6) and the provisional
+Finding #5 pattern, none of which block calling this phase done.
 
 ## Logged findings (not fixed this session -- follow-up candidates)
 
@@ -302,6 +312,31 @@ the follow-up lands.
    fixture, not from the mechanical checker (which reported 0
    violations against the old profile, because the old
    `avoidTerminology` list had nothing in it to flag).
+8. **`generate-lesson`'s word-budget prompt was wrong for two-phase
+   generation -- caught and fixed 2026-07-16.** Also caught by golden-
+   suite vetting: `baptist-core-beliefs/hebrews-6`'s Section 5 (Main
+   Teaching Content) came back at 329 words against a 630-840 target and
+   a ~900-965 word norm across every other fixture -- just the raw Bible
+   text with no teacher commentary. Root cause: `buildCompressionRules()`
+   (`generate-lesson/index.ts`) always computed its word-budget
+   instructions from the full 8-section total (2,100-3,090 words, hard
+   cap ~3,200), even when called for Phase 1 (sections 1-5 only, correct
+   target 1,500-2,140) or Phase 2 (sections 6-8 only, correct target
+   ~600-950) of a two-phase generation. The model was told in the same
+   prompt "EXACTLY 5 SECTIONS... generate all 5" right next to "Total
+   lesson target: 2,100-3,090 words" -- a self-contradictory budget
+   signal on every two-phase (full 8-section, paid-tier) generation, not
+   just this one fixture. Fixed same session: `buildCompressionRules()`
+   now derives its word budget from the actual sections passed to it
+   (`phase1Sections`/`phase2Sections`), defaulting to the full list only
+   when none are passed. Deployed to `generate-lesson` (v182) after
+   Lynn's line-by-line approval of the diagnosis and fix. Verified by
+   regenerating `baptist-core-beliefs/hebrews-6`: Section 5 came back at
+   980 words of genuine teaching content, Phase 1 total 2,116 words --
+   both within the corrected targets. This bug affected live production
+   generation for every full 8-section lesson, not just this suite's
+   fixtures -- the golden suite caught a real product defect, which is
+   exactly the case B6 was built to make for itself.
 
 ## File map
 
