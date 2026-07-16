@@ -355,6 +355,78 @@
       "reviewer_notes": "Approved by Lynn, 2026-07-16.",
       "generated_at": "2026-07-16T16:05:11.647Z",
       "fixture_hash": "927c6bdd14770544"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-1963",
+      "passage_slug": "romans-9",
+      "path": "fixtures/southern-baptist-bfm-1963/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T12:43:17.811Z",
+      "fixture_hash": "6759778a861b7659"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-1963",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/southern-baptist-bfm-1963/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T12:45:26.918Z",
+      "fixture_hash": "6759778a861b7659"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-1963",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/southern-baptist-bfm-1963/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T12:48:02.671Z",
+      "fixture_hash": "6759778a861b7659"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-1963",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/southern-baptist-bfm-1963/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16. Discipleship-framed rather than TULIP-loaded -- fourth data point for B6 finding #5 (Psalm 23 control divergence).",
+      "generated_at": "2026-07-16T12:50:10.369Z",
+      "fixture_hash": "6759778a861b7659"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-2000",
+      "passage_slug": "romans-9",
+      "path": "fixtures/southern-baptist-bfm-2000/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T12:52:23.697Z",
+      "fixture_hash": "8d2d138e534f2dcb"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-2000",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/southern-baptist-bfm-2000/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T12:54:30.371Z",
+      "fixture_hash": "8d2d138e534f2dcb"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-2000",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/southern-baptist-bfm-2000/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T12:57:18.823Z",
+      "fixture_hash": "8d2d138e534f2dcb"
+    },
+    {
+      "profile_id": "southern-baptist-bfm-2000",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/southern-baptist-bfm-2000/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16. Missional/table-fellowship framing rather than TULIP-loaded -- fifth data point for B6 finding #5 (Psalm 23 control divergence).",
+      "generated_at": "2026-07-16T12:59:46.198Z",
+      "fixture_hash": "8d2d138e534f2dcb"
     }
   ]
 }

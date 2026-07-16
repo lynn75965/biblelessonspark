@@ -8,8 +8,8 @@ two_phase: true
 supplements_completed: true
 pipeline_hash: e3fdd7c94a521b661d1cf97fa60f5dc4de4f923c858b88a7d5cc410354f2e0dd
 fixture_hash: 8d2d138e534f2dcb
-vet_status: PENDING_REVIEW
-reviewer_notes: ""
+vet_status: APPROVED
+reviewer_notes: "Approved by Lynn, 2026-07-16. Missional/table-fellowship framing rather than TULIP-loaded -- fifth data point for B6 finding #5 (Psalm 23 control divergence)."
 ---
 ## Section 1: Lens + Lesson Overview
 
