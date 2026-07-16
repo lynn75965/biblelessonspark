@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { getBranding, getBaseUrl } from "../_shared/branding.ts";
 import { resolveTierFromPriceId } from "../_shared/pricingConfig.ts";
+import { CONVERSION_EVENT_TYPES } from "../_shared/conversionEvents.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -47,7 +48,7 @@ serve(async (req) => {
       });
     }
 
-    const { price_id, success_url, cancel_url } = await req.json();
+    const { price_id, success_url, cancel_url, trigger_source, billing_interval } = await req.json();
 
     if (!price_id) {
       return new Response(JSON.stringify({ error: "Missing price_id" }), {
@@ -104,7 +105,7 @@ serve(async (req) => {
 
     const { data: existingSub } = await supabase
       .from("user_subscriptions")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, tier")
       .eq("user_id", user.id)
       .single();
 
@@ -141,6 +142,21 @@ serve(async (req) => {
     });
 
     console.log(`Created checkout session ${session.id} for user ${user.id}`);
+
+    // B7: server-side conversion event, service role -- bypasses RLS the
+    // same way generate-lesson's guardrail_violations insert does. Never
+    // blocks the checkout response on failure; a lost event is acceptable,
+    // a broken checkout is not.
+    const { error: eventError } = await supabase.from("conversion_events").insert({
+      user_id: user.id,
+      event_type: CONVERSION_EVENT_TYPES.CHECKOUT_STARTED,
+      trigger_source: trigger_source ?? null,
+      tier_at_event: existingSub?.tier ?? "free",
+      meta: { billing_interval, price_id },
+    });
+    if (eventError) {
+      console.error("Failed to log checkout_started conversion event:", eventError);
+    }
 
     return new Response(
       JSON.stringify({ url: session.url, session_id: session.id }),
