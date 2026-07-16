@@ -109,6 +109,8 @@ export default function PrivacyPolicy() {
               <li>Generation status, quality, response-time, and reliability metrics;</li>
               <li>Device, browser, operating-system, referral, and approximate location information derived from an Internet Protocol address;</li>
               <li>Cookies, local storage, and similar technologies;</li>
+              <li>Interactions with upgrade or plan-related messages -- for example, when one is shown to you, clicked, or dismissed -- linked to a randomly generated identifier used only to connect those interactions within your own visit, not to identify you across other websites;</li>
+              <li>Your Internet Protocol (IP) address, retained for a limited time, used to enforce fair-use limits and protect the Service from automated abuse during periods of high demand, whether or not you are signed in;</li>
               <li>Error reports, diagnostic records, and security logs; and</li>
               <li>Information used to detect fraud, misuse, unauthorized access, and technical failures.</li>
             </ul>
@@ -124,7 +126,7 @@ export default function PrivacyPolicy() {
               <li>Limited billing information supplied by Stripe.</li>
             </ul>
             <p className="text-foreground mt-3">
-              We do not store your full payment-card number.
+              Your card details go directly to Stripe and never touch our servers.
             </p>
           </section>
 
@@ -272,7 +274,7 @@ export default function PrivacyPolicy() {
           <section aria-labelledby="account-deletion-and-shared-content">
             <h2 id="account-deletion-and-shared-content" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">10. Account Deletion and Shared Content</h2>
             <p className="text-foreground">
-              You may request deletion of your account and associated personal information by contacting <strong>support@biblelessonspark.com</strong>.
+              You may request deletion of your account and associated personal information by contacting <strong>{BRANDING.contact.supportEmail}</strong>.
             </p>
             <p className="text-foreground mt-3">
               Following a verified deletion request, we will take reasonable steps to delete or de-identify your account information and private generated content within 30 days, except for information we are permitted or required to retain.
@@ -303,7 +305,7 @@ export default function PrivacyPolicy() {
               <li>Address a privacy concern or complaint.</li>
             </ul>
             <p className="text-foreground mt-3">
-              You may update certain account information through the Service. To make another request, contact <strong>support@biblelessonspark.com</strong>. We may need to verify your identity before completing a request.
+              You may update certain account information through the Service. To make another request, contact <strong>{BRANDING.contact.supportEmail}</strong>. We may need to verify your identity before completing a request.
             </p>
           </section>
 
@@ -313,7 +315,7 @@ export default function PrivacyPolicy() {
               BibleLessonSpark is designed for adult teachers, ministry leaders, churches, and ministry organizations. You must be at least 18 years old to create an account.
             </p>
             <p className="text-foreground mt-3">
-              We do not knowingly collect personal information directly from children under 13. We also do not knowingly permit a person under 18 to maintain a BibleLessonSpark account. If you believe a child has provided personal information to us, contact <strong>support@biblelessonspark.com</strong> so we can investigate and take appropriate action.
+              We do not knowingly collect personal information directly from children under 13. We also do not knowingly permit a person under 18 to maintain a BibleLessonSpark account. If you believe a child has provided personal information to us, contact <strong>{BRANDING.contact.supportEmail}</strong> so we can investigate and take appropriate action.
             </p>
             <p className="text-foreground mt-3">
               Teachers should not submit identifiable personal information about children or students unless they have an appropriate lawful basis and the submission is necessary for a legitimate ministry purpose.
@@ -343,7 +345,7 @@ export default function PrivacyPolicy() {
               <strong>BibleLessonSpark</strong><br />
               EckBros Media LLC<br />
               Nacogdoches, Texas, USA<br />
-              <strong>Email:</strong> support@biblelessonspark.com
+              <strong>Email:</strong> {BRANDING.contact.supportEmail}
             </p>
           </section>
         </div>

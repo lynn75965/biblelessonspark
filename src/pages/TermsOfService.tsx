@@ -87,7 +87,7 @@ export default function TermsOfService() {
               <li>Protecting your credentials;</li>
               <li>Restricting access to your account and devices;</li>
               <li>Activities performed through your account; and</li>
-              <li>Promptly notifying us at <strong>support@biblelessonspark.com</strong> if you suspect unauthorized access.</li>
+              <li>Promptly notifying us at <strong>{BRANDING.contact.supportEmail}</strong> if you suspect unauthorized access.</li>
             </ul>
             <p className="text-foreground mt-3">
               Your account is personal to you. You may not share credentials with another person. Collaboration should occur through Teaching Teams, Organization memberships, invitations, and sharing features supplied by the Service.
@@ -126,7 +126,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2">5.1 Payment Processing</h3>
             <p className="text-foreground">
-              Payments are processed by Stripe. We do not store your full payment-card details. By making a purchase, you authorize us and Stripe to charge the payment method you provide for the applicable amounts, taxes, and renewals.
+              Payments are processed by Stripe. Your card details go directly to Stripe and never touch our servers. By making a purchase, you authorize us and Stripe to charge the payment method you provide for the applicable amounts, taxes, and renewals.
             </p>
 
             <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 mt-4">5.2 Automatic Renewal</h3>
@@ -139,7 +139,7 @@ export default function TermsOfService() {
 
             <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 mt-4">5.3 Cancellation</h3>
             <p className="text-foreground">
-              You may cancel a subscription at any time through the Stripe billing portal or subscription-management option made available through your BibleLessonSpark account. You may also request cancellation by contacting <strong>support@biblelessonspark.com</strong>.
+              You may cancel a subscription at any time through the Stripe billing portal or subscription-management option made available through your BibleLessonSpark account. You may also request cancellation by contacting <strong>{BRANDING.contact.supportEmail}</strong>.
             </p>
             <p className="text-foreground mt-3">
               Unless a different cancellation term was clearly disclosed at purchase, cancellation takes effect at the end of the current paid billing period. You will retain access to the paid features and remaining period-based benefits until that period ends. Cancellation prevents the next renewal charge but does not retroactively reverse charges already incurred.
@@ -153,7 +153,7 @@ export default function TermsOfService() {
               Except where required by law or expressly stated at purchase, payments are non-refundable, including payments for partially used billing periods, unused subscription time, and completed one-time services.
             </p>
             <p className="text-foreground mt-3">
-              If you believe a charge resulted from an error, duplicate transaction, unauthorized use, or other exceptional circumstance, contact <strong>support@biblelessonspark.com</strong> within 30 days of the charge. We will review the request in good faith. Any refund remains at our reasonable discretion unless the law requires otherwise.
+              If you believe a charge resulted from an error, duplicate transaction, unauthorized use, or other exceptional circumstance, contact <strong>{BRANDING.contact.supportEmail}</strong> within 30 days of the charge. We will review the request in good faith. Any refund remains at our reasonable discretion unless the law requires otherwise.
             </p>
 
             <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 mt-4">5.5 Lesson Packs and One-Time Purchases</h3>
@@ -561,7 +561,7 @@ export default function TermsOfService() {
               <strong>BibleLessonSpark</strong><br />
               EckBros Media LLC<br />
               Nacogdoches, Texas, USA<br />
-              <strong>Email:</strong> support@biblelessonspark.com
+              <strong>Email:</strong> {BRANDING.contact.supportEmail}
             </p>
           </section>
         </div>
