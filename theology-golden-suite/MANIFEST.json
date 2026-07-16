@@ -328,6 +328,33 @@
       "reviewer_notes": "Approved by Lynn, 2026-07-16.",
       "generated_at": "2026-07-16T15:49:39.396Z",
       "fixture_hash": "4ff4c7452e159162"
+    },
+    {
+      "profile_id": "baptist-core-beliefs",
+      "passage_slug": "romans-9",
+      "path": "fixtures/baptist-core-beliefs/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:58:45.395Z",
+      "fixture_hash": "927c6bdd14770544"
+    },
+    {
+      "profile_id": "baptist-core-beliefs",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/baptist-core-beliefs/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T16:02:54.023Z",
+      "fixture_hash": "927c6bdd14770544"
+    },
+    {
+      "profile_id": "baptist-core-beliefs",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/baptist-core-beliefs/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T16:05:11.647Z",
+      "fixture_hash": "927c6bdd14770544"
     }
   ]
 }
