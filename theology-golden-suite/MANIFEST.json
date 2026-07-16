@@ -146,6 +146,42 @@
       "reviewer_notes": "Approved by Lynn, CBF batch review, 2026-07-16. Non-doctrinally-loaded control rendering noted as a useful contrast point for B6 finding #5 (Psalm 23 control divergence).",
       "generated_at": "2026-07-16T13:34:45.120Z",
       "fixture_hash": "13b3a9bf3a3e5467"
+    },
+    {
+      "profile_id": "regular-baptist-garbc",
+      "passage_slug": "romans-9",
+      "path": "fixtures/regular-baptist-garbc/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16. The acid test for B6 finding #7's GARBC profile fix -- passes: explicitly and repeatedly distinguishes corporate/national election from individual soteriological election, never asserts unconditional individual election.",
+      "generated_at": "2026-07-16T14:41:36.988Z",
+      "fixture_hash": "b65278bad174c864"
+    },
+    {
+      "profile_id": "regular-baptist-garbc",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/regular-baptist-garbc/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T14:44:55.645Z",
+      "fixture_hash": "b65278bad174c864"
+    },
+    {
+      "profile_id": "regular-baptist-garbc",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/regular-baptist-garbc/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T14:47:16.343Z",
+      "fixture_hash": "b65278bad174c864"
+    },
+    {
+      "profile_id": "regular-baptist-garbc",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/regular-baptist-garbc/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16. Doctrinally loaded (covenant theology, hesed, eternal security, atonement) but on-profile, not off-axis -- noted as a third Finding #5 data point alongside Reformed/Primitive Baptist (TULIP-loaded) and CBF (plain).",
+      "generated_at": "2026-07-16T14:51:31.221Z",
+      "fixture_hash": "b65278bad174c864"
     }
   ]
 }

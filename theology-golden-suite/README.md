@@ -247,6 +247,22 @@ the follow-up lands.
    into distortion, that becomes the concrete case for a prompt-tuning
    session to address guardrail over-injection on low-doctrinal-density
    passages.
+
+   **Third data point (GARBC, 2026-07-16):** `regular-baptist-garbc`'s
+   Psalm 23 fixture adds a distinct pattern to the two above. It carries
+   real doctrinal weight -- covenant theology, *hesed*, eternal security,
+   substitutionary atonement -- so it is not the plain convergence CBF
+   showed. But none of that weight sits on the TULIP/Calvinist-Arminian
+   axis Finding #5 was originally tracking; it's GARBC's own affirmed
+   doctrine (eternal security, the cross) surfacing in a passage that
+   invites it, not off-axis injection. Approved by Lynn, 2026-07-16, as
+   on-profile. Three data points now on file: Reformed/Primitive Baptist
+   (TULIP-loaded, off-axis), CBF (plain, fully convergent), GARBC
+   (doctrinally loaded, but on-axis for that profile, not off-axis). The
+   emerging pattern -- still provisional at three points -- is that
+   Psalm 23 divergence tracks how central a profile's own distinctive
+   doctrine is to its identity, not a uniform tendency toward
+   over-injection across all profiles alike.
 6. **All 12 fixtures generated so far run longer than the documented
    8-section word target.** CLAUDE.md's 8-Section Lesson Framework
    documents a 2,100-3,090 word total target. Every fixture in Batch 1
