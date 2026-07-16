@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { BookOpen, Mail, User, Lock, Eye, EyeOff, ArrowLeft, Church, AlertCircle, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -57,6 +58,9 @@ export default function Auth() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   // NEW: State for email confirmation blocking
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [showTermsError, setShowTermsError] = useState(false);
+  const termsCheckboxRef = useRef<HTMLButtonElement>(null);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [unconfirmedEmail, setUnconfirmedEmail] = useState('');
   const [isResendingVerification, setIsResendingVerification] = useState(false);
@@ -269,6 +273,12 @@ export default function Auth() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email || !formData.password || !formData.fullName) return;
+
+    if (!agreedToTerms) {
+      setShowTermsError(true);
+      termsCheckboxRef.current?.focus();
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -1021,12 +1031,33 @@ export default function Auth() {
                   >
                     {isLoading ? FORM_TEXT.submittingButton : FORM_TEXT.submitButton}
                   </Button>
-                  <p className="text-[10px] sm:text-xs text-muted-foreground text-center">
-                    {FORM_TEXT.termsText}{' '}
-                    <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">{FORM_TEXT.termsLink}</button>
-                    {' '}and{' '}
-                    <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">{FORM_TEXT.privacyLink}</button>
-                  </p>
+                  <div className="flex items-start gap-2">
+                    <Checkbox
+                      id="signup-agree-terms"
+                      ref={termsCheckboxRef}
+                      checked={agreedToTerms}
+                      onCheckedChange={(checked) => {
+                        setAgreedToTerms(checked === true);
+                        if (checked === true) setShowTermsError(false);
+                      }}
+                      aria-required="true"
+                      className="mt-0.5"
+                    />
+                    <Label
+                      htmlFor="signup-agree-terms"
+                      className="text-[10px] sm:text-xs text-muted-foreground font-normal leading-snug"
+                    >
+                      {FORM_TEXT.termsText}{' '}
+                      <button type="button" onClick={() => setLegalModal('terms')} className="underline hover:text-primary">{FORM_TEXT.termsLink}</button>
+                      {' '}and{' '}
+                      <button type="button" onClick={() => setLegalModal('privacy')} className="underline hover:text-primary">{FORM_TEXT.privacyLink}</button>
+                    </Label>
+                  </div>
+                  {showTermsError && (
+                    <p role="alert" className="text-xs text-destructive text-center">
+                      Please agree to the Terms of Service and Privacy Policy to create your account.
+                    </p>
+                  )}
                 </form>
               </TabsContent>
             </Tabs>
