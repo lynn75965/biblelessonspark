@@ -1,26 +1,35 @@
-# PROJECT MASTER -- Last updated: July 16, 2026 (Session: B7 conversion infra -- COMPLETE, checkout_started deployed and verified in production)
+# PROJECT MASTER -- Last updated: July 16, 2026 (Session: B8 capacity recheck -- COMPLETE, fail-closed quota + truncation detection + capacity_events deployed and verified)
 
-## >>> RESUME HERE <<< -- B7 conversion infra is now COMPLETE and verified
-live: migration + RPC, client emission (impression/click/declined via
-UpgradePromptModal), the two trigger-attribution fixes (TeachingTeam ->
-"teachingTeam", DevotionalGenerator -> "devotionalLibrary"), and the
-server-side checkout_started emission in create-checkout-session/index.ts
-are all shipped, pushed to origin/main (CI green on 1c7be4e), deployed
-(version 29), and Lynn-confirmed via a live checkout_started row for the
-free-tier test user with correct trigger_source and tier_at_event='free'.
-See the July 16 (B7 completion) session log below for the full account,
-including a prior session that was lost mid-task and had to be
-reconstructed from disk before finishing.
+## >>> RESUME HERE <<< -- B8 capacity recheck is now COMPLETE. Shipped:
+fail-closed quota check (subscriptionCheck.ts no longer grants 999
+lessons on RPC error; honest CAPACITY_UNAVAILABLE message), truncation
+detection (stop_reason) across generate-lesson/devotional/parable/
+extract-lesson with the approved behavior split (Phase 1 fails cleanly,
+Phase 2 degrades gracefully with a visible inline banner above Section
+6), and a new capacity_events table with emission wired at every quota
+rejection/rate-limit breach/truncation/terminal-failure across all four
+generators -- including generate-parable, which previously persisted
+nothing at all on failure. All four functions deployed and confirmed
+clean: generate-lesson v183, generate-devotional v33, generate-parable
+v60, extract-lesson v32. The anon 3/day/IP rate limit was end-to-end
+verified live (see the July 16 B8 session log below for the full
+account, including a false-alarm mid-session where an apparently-failed
+test turned out to be a leftover authenticated session, not a code
+defect). modelConfig.ts's stale timeout comment was also corrected,
+surfacing a real conflict between vendor docs (400s Pro-plan limit) and
+this project's own empirical incident (a 2026-05-18 180s call hitting a
+504 at ~150-180s) -- flagged as a standing observation, not resolved.
+CAPTCHA was scoped out mid-session once community evidence showed
+Supabase's enforcement is account-wide, not signup-only (see backlog
+below).
 
-B6 theology golden suite's fixture-generation phase is also COMPLETE:
-all 48 fixtures (12 theology profiles x 4 anchor passages) generated,
-vetted by Lynn, and APPROVED as of 2026-07-16. Two real product bugs
-were caught and fixed along the way -- see that session's own log below.
+B7 conversion infra and B6 theology golden suite are also COMPLETE (see
+their own session logs below for full accounts).
 
-Gate 2 remaining work: B8 capacity recheck and legal pages confirmation
-have not been started. B6's own standing findings (below and in
-theology-golden-suite/README.md) and B7's adjacent finding #1 (events
-table RLS, below) are follow-up candidates, not blockers.
+Gate 2 remaining work: legal pages confirmation ONLY. B6's own standing
+findings (below and in theology-golden-suite/README.md) and B7's
+adjacent finding #1 (events table RLS, below) are follow-up candidates,
+not blockers.
 
 Gate 1 (B1-B5) was fully shipped July 15, 2026 -- see that session's own
 entry below for the full account. Two non-blocking backlog items carry
@@ -175,16 +184,166 @@ forward from Gate 1 (neither gates Gate 2):
   Auth server docs/behavior, confirmed via web search, no source found
   anywhere stating enforcement can be scoped to signup only).
 
-Gate 2 remaining work: B7 conversion infra is COMPLETE (see session log
-immediately below). B8 capacity recheck (in progress -- items 1-3 and 5
-underway, CAPTCHA removed from scope per the backlog item above) and
-legal pages confirmation remain. B6 theology golden suite's
-fixture-generation phase is also done (see the July 16 B6 session below
-it); its own standing findings (numbered in
-theology-golden-suite/README.md) are follow-up candidates, not Gate 2
-blockers.
+  NEW STANDING BACKLOG (logged 2026-07-16, B8 session -- deferred, not
+  fixed): proactive Anthropic throttle/backpressure/queueing. B8's audit
+  found the retry/fallback layer (_shared/anthropicRetry.ts) is purely
+  reactive -- no concurrency ceiling or request queue exists before an
+  Anthropic call is made, so a traffic surge translates directly into a
+  burst of concurrent calls with no backpressure. Needs its own
+  dedicated session to design. Carries an attached observation from the
+  same session's modelConfig.ts doc fix: the budgets that any throttle
+  design would need to respect are governed by an EMPIRICAL ~150-180s
+  ceiling (a real 2026-05-18 504 incident, reshape-lesson/index.ts:39-42),
+  not the 400s Pro-plan figure in Supabase's current published docs --
+  whoever designs the throttle should re-verify this empirically rather
+  than trust either number, since the two sources disagree and this
+  project has already been burned once by trusting the wrong one.
 
-## JULY 16, 2026 SESSION (LATEST) -- B7 CONVERSION INFRA: COMPLETE -- checkout_started deployed and verified live; prior session's work reconstructed from disk after a mid-task loss
+  NEW LOW/architecture (logged 2026-07-16, B8 adjacent finding, not
+  fixed): `src/constants/lessonTiers.ts:58`'s full-tier `wordCountTarget.max`
+  (2790) disagrees with `src/constants/lessonStructure.ts:180-187`'s
+  per-section sums (3090) by ~300 words / 9.7%. Two SSOT-adjacent files
+  stating different numbers for the same thing -- needs a session to
+  reconcile which is authoritative.
+
+  NEW LOW/architecture (logged 2026-07-16, B8 adjacent finding, not
+  fixed): two dead rate-limit files are cleanup candidates --
+  `src/constants/rateLimitConfig.ts` (+ its `_shared/` mirror), marked
+  DEPRECATED in its own header and confirmed unimported anywhere, and
+  `supabase/functions/_shared/rateLimit.ts` (singular, fail-open by
+  design), whose only remaining references are inside `.backup-*` files.
+  Neither is wired into any live function. Not urgent; flagged so a
+  future session doesn't mistake either for the live enforcement path.
+
+Gate 2 remaining work: legal pages confirmation ONLY. B7 conversion
+infra, B6 theology golden suite, and B8 capacity recheck are all
+COMPLETE (see their own session logs below for full accounts). B6's own
+standing findings (numbered in theology-golden-suite/README.md) are
+follow-up candidates, not Gate 2 blockers.
+
+## JULY 16, 2026 SESSION (LATEST) -- B8 CAPACITY RECHECK: COMPLETE -- fail-closed quota, truncation detection, capacity_events across all four generators; anon rate limit verified live
+
+GOAL: Gate 2's B8 item -- verify the platform can absorb a surge of new
+users without falling over, make capacity limits visible before they're
+hit, and persist any new capacity/health events to queryable tables per
+Rule #31 (no console-only rejection paths).
+
+### Phase 1 -- audit (read-only)
+Five parallel research threads covered rate limiting, Anthropic API
+headroom, Supabase capacity, free-tier abuse surface, and failure
+visibility. Key findings: `generate-lesson` had no rate limiter of its
+own and its ONE cost guard (`check_lesson_limit`'s RPC-error path)
+failed OPEN, granting 999 lessons on a DB hiccup -- the exact condition
+a surge creates; `stop_reason` was never read anywhere in
+`supabase/functions`, meaning a `max_tokens` truncation was silently
+treated as a complete, successful lesson; `generate-parable` persisted
+NOTHING on any failure or rejection (no metrics table existed for it at
+all); no technical duplicate-account or disposable-email protection
+exists (email-verification gating relies entirely on Supabase Auth's
+own undeclared platform defaults); and the Anthropic retry layer is
+purely reactive with no proactive throttle. Delivered a capacity map,
+ranked risk list, and Rule #31 gap list; held for review.
+
+### Phase 2 -- proposal (approved with revisions)
+Five-item design: (1) fail-closed quota fix with Lynn-approved wording
+("We're experiencing a lot of activity right now. Please try again in a
+few minutes -- your lesson allowance is unaffected."); (2) truncation
+detection via a new `stopReason` field, with a fail-vs-degrade split
+Lynn ruled on directly -- Phase 1 fails cleanly (no save, no counter
+increment), Phase 2 degrades gracefully since Sections 1-5 are already
+saved and trustworthy, with a VISIBLE persistent banner (not a
+dismissable toast) placed adjacent to Section 6, using Lynn's approved
+copy ("One or more supplemental sections may be incomplete. Your core
+lesson is complete and ready to use."); (3) a shared `capacity_events`
+table (Pattern B, service-role writes only) covering all four
+generators; (4) CAPTCHA (Turnstile) -- scoped to signup-only in the
+proposal; (5) verify the ~150s timeout assumption in modelConfig.ts
+against current Supabase docs, doc-fix only unless unsafe.
+
+CAPTCHA was stopped mid-implementation: verification (a Supabase
+community discussion + GoTrue endpoint documentation) showed
+enforcement is account-wide (signup + sign-in + recovery gated
+together), not scoped to whichever calls opt in -- contradicting the
+Phase 2 assumption. Per Lynn's explicit STOP condition ("existing
+users' sign-in must never be at risk"), no CAPTCHA code was written;
+deferred to its own dedicated session (see backlog above, with
+evidence links).
+
+### Phase 3 -- implementation
+Migration `20260716200000_create_capacity_events.sql` shipped first
+(table, 2 indexes, admin-only RLS via `has_role()`, no client INSERT
+path at all -- stricter than `conversion_events`, which at least has a
+client-callable RPC). The two flagged reads (generate-parable's authed
+flow, extract-lesson's 5 Anthropic call sites) surfaced one real
+touch-point refinement: extract-lesson's 2 Haiku-tagging calls are
+explicitly best-effort/silent-by-design and were excluded from
+`capacity_events` wiring (would be noise); its 3 heavy-extraction calls
+(PDF/DOCX/image) got full wiring. generate-parable's own
+`generateParableWithProvider` wrapper stripped `stopReason` out of its
+return shape and has an OpenAI fallback path with different truncation
+vocabulary (`finish_reason: "length"` vs Anthropic's `stop_reason:
+"max_tokens"`) -- normalized both to the same sentinel so call sites
+need no provider-specific branching.
+
+Backend commit `d58e8e8`: subscriptionCheck.ts's `checkFailed`
+sentinel, new `_shared/capacityEvents.ts` helper, `stopReason` added to
+`anthropicRetry.ts`'s `NonStreamingSuccess`, and emission/truncation
+wiring across all four generators. Frontend commit `628cfee`:
+`useEnhanceLesson.tsx`'s `supplementsIncomplete` state +
+`EnhanceLessonForm.tsx`'s inline banner (placed inside the sections
+`.map()`, directly above Section 6, using a `Fragment` since a plain
+`<>` can't carry the required map key). modelConfig.ts fix (`885a208`)
+corrected the stale "~150s ceiling" comment -- found it cited the
+Free-plan number as if it were this project's Pro-plan limit, but
+current Supabase docs' Pro figure (400s) directly contradicts this
+project's own dated production incident (reshape-lesson, 2026-05-18: a
+real 180s call hit a raw 504 before its own AbortController could
+fire). Comment now treats the empirical incident as authoritative over
+vendor docs rather than asserting a single confident number; no budget
+values changed. All four functions deployed sequentially, each
+confirmed clean before the next: generate-lesson 182->183,
+generate-devotional 32->33, generate-parable 59->60, extract-lesson
+31->32. reshape-lesson and toolbelt-reflect left on their current
+bundles (import the same shared files but don't use `stopReason` yet).
+
+### Verification -- one false alarm, then a clean pass
+Lynn's first live test of the anon 3/day/IP limit "failed" -- 5
+consecutive anonymous parable generations with no 429 and zero
+`capacity_events` rows. Full diagnosis (deploy-content byte-diff via
+`supabase functions download`, a direct API call proving the project's
+anon key returns 403 from `auth.getUser()` rather than resolving to a
+user, and a full read of the anonymous block's control flow proving
+every path returns) ruled out a stale deploy, a fallthrough bug, and an
+anon-key-resolves-to-a-user path. The actual DB state broke it open:
+`parable:global` had incremented 5 times today while `parable:anon-ip`
+had zero rows for any identifier -- and `modern_parables` showed all 5
+of that day's parables saved under a real `user_id`, which the
+anonymous flow never does at all. Root cause: the "incognito" test
+session was still authenticated as the free-tier test user, so the
+request correctly routed through the authenticated flow (7/month,
+500/day global -- neither remotely close to tripping at 5 uses). No
+code defect; verdict was a test-conditions false alarm, accepted as
+such. Re-verified via a curl/Invoke-WebRequest call sending the anon
+key as both `apikey` and `Authorization: Bearer` (matching exactly what
+`supabase.functions.invoke()` sends for a genuinely logged-out browser)
+-- 4 calls run sequentially, confirmed PASS: `parable:anon-ip` shows
+IP `99.140.238.174` at `request_count = 4` (3 allowed + the blocking
+4th attempt, which the persisted counter correctly includes), and
+`capacity_events` shows the expected row (`user_id` null,
+`tier_at_event = 'anonymous'`, `meta.scope = 'parable:anon-ip'`).
+
+### B8 is now COMPLETE
+Shipped: fail-closed quota check with approved copy, truncation
+detection with the approved fail/degrade split and visible banner,
+`capacity_events` across all four generators (deployed and verified
+live), modelConfig.ts timeout-comment correction. Deferred to backlog
+(all logged above with evidence): CAPTCHA, proactive Anthropic
+throttle, the lessonTiers/lessonStructure word-count mismatch, the two
+dead rate-limit files, and the Pattern A `events` table (carried
+forward from B7). Gate 2's only remaining item is legal pages
+confirmation.
+
+## JULY 16, 2026 SESSION -- B7 CONVERSION INFRA: COMPLETE -- checkout_started deployed and verified live; prior session's work reconstructed from disk after a mid-task loss
 
 GOAL: Finish B7 conversion-funnel-events infrastructure. A prior session
 had shipped the migration + RPC, client emission points at
