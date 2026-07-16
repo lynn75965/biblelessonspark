@@ -44,6 +44,7 @@ const FILES_TO_SYNC = [
   'toolbeltConfig.ts',
   'scriptureIntegrityGuardrail.ts',
   'modelConfig.ts',
+  'conversionEvents.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**

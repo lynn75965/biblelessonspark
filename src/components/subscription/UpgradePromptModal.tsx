@@ -5,7 +5,7 @@
 // 2026-02-26: Added email confirmation step before checkout
 // ============================================================
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +21,8 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
 import { formatPrice } from '@/constants/pricingConfig';
 import { SIDEBAR_ITEMS } from '@/constants/sidebarConfig';
+import { CONVERSION_EVENT_TYPES } from '@/constants/conversionEvents';
+import { logConversionEvent } from '@/lib/conversionTracking';
 
 interface UpgradePromptModalProps {
   isOpen: boolean;
@@ -40,7 +42,23 @@ export function UpgradePromptModal({
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
 
+  // B7: fires once per genuine open transition (isOpen false -> true), not
+  // on every re-render. Placed here, ahead of every conditional early
+  // return below, because hooks must run unconditionally regardless of
+  // which branch this component ends up rendering.
+  useEffect(() => {
+    if (isOpen) {
+      logConversionEvent(CONVERSION_EVENT_TYPES.UPGRADE_PROMPT_IMPRESSION, trigger, {
+        tier,
+        lessonsUsed,
+        lessonsLimit,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
   const handleUpgradeClick = () => {
+    logConversionEvent(CONVERSION_EVENT_TYPES.UPGRADE_CLICK, trigger, { billingInterval });
     // Show email confirmation before proceeding to Stripe
     setShowEmailConfirm(true);
   };
@@ -56,6 +74,7 @@ export function UpgradePromptModal({
       const url = await startCheckout({
         priceId: priceId ?? '',
         billingInterval,
+        triggerSource: trigger,
       });
 
       if (url) {
@@ -235,7 +254,14 @@ export function UpgradePromptModal({
         </div>
 
         <div className="flex gap-3 mt-3">
-          <Button variant="outline" onClick={onClose} className="flex-1">
+          <Button
+            variant="outline"
+            onClick={() => {
+              logConversionEvent(CONVERSION_EVENT_TYPES.UPGRADE_DECLINED, trigger, { billingInterval });
+              onClose();
+            }}
+            className="flex-1"
+          >
             I{'\u2019'}ll stay here for now
           </Button>
           <Button

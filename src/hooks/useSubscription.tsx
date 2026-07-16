@@ -36,6 +36,11 @@ interface CheckoutOptions {
   billingInterval: 'month' | 'year';
   successUrl?: string;
   cancelUrl?: string;
+  // B7: descriptive-only, not security-relevant (Rule #30's price_id/URL
+  // validation is unaffected). Threaded through to create-checkout-session
+  // so the server-side checkout_started conversion event retains which of
+  // the three conversion moments led here.
+  triggerSource?: string;
 }
 
 export function useSubscription() {
@@ -189,6 +194,7 @@ export function useSubscription() {
           billing_interval: options.billingInterval,
           success_url: options.successUrl,
           cancel_url: options.cancelUrl,
+          trigger_source: options.triggerSource,
         },
       });
 
