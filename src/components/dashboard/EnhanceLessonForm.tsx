@@ -32,7 +32,7 @@
  * - SSOT: SeriesStyleMetadata now imported from seriesConfig.ts (migrated from freshnessOptions.ts)
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Fragment } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +42,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
-import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil, Trash2, ListPlus, ListX } from "lucide-react";
+import { BookOpen, Loader2, Star, Upload, Type, ArrowLeft, ChevronDown, ChevronRight, Play, PlayCircle, Check, Lock, Eye, Copy, Library, Layers, ExternalLink, Pencil, Trash2, ListPlus, ListX, AlertCircle } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { marked } from "marked";
@@ -763,7 +763,7 @@ export function EnhanceLessonForm({
   // HOOKS
   // ============================================================================
 
-  const { enhanceLesson, isEnhancing, isLoadingSupplements, supplementsProgress, streamingContent, streamingTokenCount } = useEnhanceLesson();
+  const { enhanceLesson, isEnhancing, isLoadingSupplements, supplementsProgress, supplementsIncomplete, supplementsIncompleteMessage, streamingContent, streamingTokenCount } = useEnhanceLesson();
   const { reshapeLesson, isReshaping } = useReshapeLesson();
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [senderDisplayName, setSenderDisplayName] = useState("");
@@ -3351,59 +3351,80 @@ export function EnhanceLessonForm({
                 // Render sections with toggle logic
                 return sections.map((section) => {
                   const isVisible = lessonViewMode === "full" || section.isFreeTier;
-                  
+
+                  // B8: visible, persistent notice placed directly above the
+                  // supplemental sections it describes (S6-S8), not at the
+                  // top of the whole lesson -- a teacher must understand
+                  // which part is affected and that Sections 1-5 are
+                  // trustworthy regardless.
+                  const supplementsBanner = section.sectionNumber === 6 && supplementsIncomplete && (
+                    <div
+                      key="supplements-incomplete-banner"
+                      role="status"
+                      aria-live="polite"
+                      className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 mb-1"
+                    >
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+                      <span>{supplementsIncompleteMessage || "One or more supplemental sections may be incomplete. Your core lesson is complete and ready to use."}</span>
+                    </div>
+                  );
+
                   if (isVisible) {
                     // Show full section
                     return (
-                      <div
-                        key={section.sectionNumber}
-                        className="bg-muted p-3 rounded-lg"
-                      >
-                        <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">
-                            {section.sectionNumber}
-                          </span>
-                          {section.title}
-                          {section.isFreeTier && lessonViewMode === "free" && !isPaidUser && (
-                            <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                              Included in Free
-                            </span>
-                          )}
-                        </h3>
+                      <Fragment key={section.sectionNumber}>
+                        {supplementsBanner}
                         <div
-                          className="whitespace-pre-wrap text-sm overflow-auto"
-                          style={{ lineHeight: "1.4" }}
-                          dangerouslySetInnerHTML={{
-                            __html: formatSectionContent(section.content),
-                          }}
-                        />
-                      </div>
+                          className="bg-muted p-3 rounded-lg"
+                        >
+                          <h3 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-primary text-white text-xs font-bold">
+                              {section.sectionNumber}
+                            </span>
+                            {section.title}
+                            {section.isFreeTier && lessonViewMode === "free" && !isPaidUser && (
+                              <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Included in Free
+                              </span>
+                            )}
+                          </h3>
+                          <div
+                            className="whitespace-pre-wrap text-sm overflow-auto"
+                            style={{ lineHeight: "1.4" }}
+                            dangerouslySetInnerHTML={{
+                              __html: formatSectionContent(section.content),
+                            }}
+                          />
+                        </div>
+                      </Fragment>
                     );
                   } else {
                     // Show locked/collapsed section (only for free users in free view mode)
                     return (
-                      <div
-                        key={section.sectionNumber}
-                        className="bg-muted/50 border border-border p-4 rounded-lg"
-                      >
-                        <h3 className="text-base font-medium text-muted-foreground flex items-center gap-2 mb-2">
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted-foreground text-white text-xs font-bold">
-                            {section.sectionNumber}
-                          </span>
-                          <Lock className="h-4 w-4 text-muted-foreground" />
-                          {section.title}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          This section includes valuable teaching content to deepen your lesson.
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setLessonViewMode("full")}
-                          className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
+                      <Fragment key={section.sectionNumber}>
+                        {supplementsBanner}
+                        <div
+                          className="bg-muted/50 border border-border p-4 rounded-lg"
                         >
-                          ? See what the full lesson includes
-                        </button>
-                      </div>
+                          <h3 className="text-base font-medium text-muted-foreground flex items-center gap-2 mb-2">
+                            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-muted-foreground text-white text-xs font-bold">
+                              {section.sectionNumber}
+                            </span>
+                            <Lock className="h-4 w-4 text-muted-foreground" />
+                            {section.title}
+                          </h3>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            This section includes valuable teaching content to deepen your lesson.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setLessonViewMode("full")}
+                            className="text-sm text-amber-600 hover:text-amber-700 font-medium hover:underline"
+                          >
+                            ? See what the full lesson includes
+                          </button>
+                        </div>
+                      </Fragment>
                     );
                   }
                 });

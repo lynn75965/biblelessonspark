@@ -20,6 +20,11 @@ export const useEnhanceLesson = () => {
   const [streamingContent, setStreamingContent] = useState('');
   const [streamingTokenCount, setStreamingTokenCount] = useState(0);
   const [supplementsProgress, setSupplementsProgress] = useState(0);
+  // B8: visible, persistent -- set whenever Phase 2 (S6-S8 + Teaser) fails
+  // or is truncated, regardless of reason. Never auto-dismissed; a teacher
+  // must never unknowingly treat an incomplete supplement as final.
+  const [supplementsIncomplete, setSupplementsIncomplete] = useState(false);
+  const [supplementsIncompleteMessage, setSupplementsIncompleteMessage] = useState<string | null>(null);
   const supplementsIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const supplementsWasActive = useRef(false);
   const { toast } = useToast();
@@ -61,6 +66,8 @@ export const useEnhanceLesson = () => {
     setIsLoadingSupplements(false);
     setStreamingContent('');
     setStreamingTokenCount(0);
+    setSupplementsIncomplete(false);
+    setSupplementsIncompleteMessage(null);
 
     try {
       // Fresh session token required -- prevents 401s on long-lived sessions
@@ -181,7 +188,9 @@ export const useEnhanceLesson = () => {
                   return;
                 } else if (event.type === 'supplements_failed') {
                   setIsLoadingSupplements(false);
-                  console.warn('Supplements failed:', event.message);
+                  setSupplementsIncomplete(true);
+                  setSupplementsIncompleteMessage(event.message || null);
+                  console.warn('Supplements incomplete:', event.message);
                   return;
                 } else if (event.type === 'error') {
                   const errCode = event.code as string | undefined;
@@ -230,6 +239,8 @@ export const useEnhanceLesson = () => {
     isEnhancing: isGenerating,
     isLoadingSupplements,
     supplementsProgress,
+    supplementsIncomplete,
+    supplementsIncompleteMessage,
     streamingContent,
     streamingTokenCount,
   };
