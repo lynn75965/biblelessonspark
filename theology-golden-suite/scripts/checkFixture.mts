@@ -13,8 +13,15 @@ export interface Violation {
 
 export interface CheckResult {
   profileId: string;
+  // passed reflects mustNotContain (avoidTerminology) hits ONLY.
+  // requiredTerminology is advisory -- see README.md "requiredTerminology
+  // semantics": it describes how a faithful teacher in that tradition
+  // works, not a per-lesson checklist a single passage must tick every
+  // box of. A missing-required flag is surfaced for human review, never
+  // treated as a fixture regression on its own.
   passed: boolean;
   violations: Violation[];
+  advisories: Violation[];
 }
 
 function escapeRegex(s: string): string {
@@ -42,6 +49,7 @@ function findContext(haystack: string, match: RegExpMatchArray): string {
 export function checkFixtureText(profileId: string, lessonText: string): CheckResult {
   const rules = deriveAssertionRules(profileId);
   const violations: Violation[] = [];
+  const advisories: Violation[] = [];
 
   for (const term of rules.mustNotContain) {
     const match = findMatch(lessonText, term);
@@ -56,7 +64,7 @@ export function checkFixtureText(profileId: string, lessonText: string): CheckRe
 
   for (const term of rules.mustContain) {
     if (!findMatch(lessonText, term)) {
-      violations.push({ type: 'missing-required', term });
+      advisories.push({ type: 'missing-required', term });
     }
   }
 
@@ -64,6 +72,7 @@ export function checkFixtureText(profileId: string, lessonText: string): CheckRe
     profileId,
     passed: violations.length === 0,
     violations,
+    advisories,
   };
 }
 

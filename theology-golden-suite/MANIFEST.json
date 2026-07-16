@@ -1,5 +1,61 @@
 {
   "version": 1,
   "description": "B6 theology golden suite -- tracks Lynn's vet status per fixture. Each fixture file's own frontmatter is the source of truth for vet_status; this manifest is a convenience index rebuilt as fixtures are generated and reviewed.",
-  "fixtures": []
+  "fixtures": [
+    {
+      "profile_id": "reformed-baptist",
+      "passage_slug": "romans-9",
+      "path": "fixtures/reformed-baptist/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Teaches unconditional election without flinching. Approved by Lynn, Batch 1 review, 2026-07-16.",
+      "generated_at": "2026-07-15T22:14:34.351Z",
+      "fixture_hash": "41457fdb6c0e1b4a",
+      "known_false_positives": ["foreseen faith"]
+    },
+    {
+      "profile_id": "reformed-baptist",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/reformed-baptist/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 1 review, 2026-07-16.",
+      "generated_at": "2026-07-15T22:18:15.326Z",
+      "fixture_hash": "41457fdb6c0e1b4a"
+    },
+    {
+      "profile_id": "primitive-baptist",
+      "passage_slug": "romans-9",
+      "path": "fixtures/primitive-baptist/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 1 review, 2026-07-16.",
+      "generated_at": "2026-07-15T22:20:37.865Z",
+      "fixture_hash": "287d74969306378a"
+    },
+    {
+      "profile_id": "primitive-baptist",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/primitive-baptist/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 1 review, 2026-07-16.",
+      "generated_at": "2026-07-15T22:22:57.784Z",
+      "fixture_hash": "287d74969306378a"
+    },
+    {
+      "profile_id": "free-will-baptist",
+      "passage_slug": "romans-9",
+      "path": "fixtures/free-will-baptist/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 1 review, 2026-07-16.",
+      "generated_at": "2026-07-16T00:02:20.745Z",
+      "fixture_hash": "7ccb87d5c6c74183"
+    },
+    {
+      "profile_id": "free-will-baptist",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/free-will-baptist/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 1 review, 2026-07-16.",
+      "generated_at": "2026-07-16T00:04:07.761Z",
+      "fixture_hash": "7ccb87d5c6c74183"
+    }
+  ]
 }

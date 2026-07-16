@@ -35,7 +35,10 @@ session -- never fixed inline here.
    assertion rules *derived live* from `src/constants/theologyProfiles.ts`
    (never a duplicated list -- if that file changes, the rules change with
    it). Catches SSOT drift: "this fixture was approved, but the profile
-   definition it was approved under has since changed."
+   definition it was approved under has since changed." `avoidTerminology`
+   hits are blocking (fail the build); `requiredTerminology` misses are
+   advisory only and never fail the build -- see "requiredTerminology
+   semantics" below.
 2. **Staleness check** (`scripts/checkStaleness.mts`) -- zero API cost,
    runs on every CI push. Hashes every file that can affect a generated
    lesson's theology content (`scripts/computePipelineHash.mts`'s
@@ -48,6 +51,76 @@ session -- never fixed inline here.
    should never be one: it requires an admin-authenticated call to the
    live `generate-lesson` function, and per Lynn's explicit directive no
    admin credential is ever scripted, stored, or made available to CI.
+
+## Checker semantics: required vs. prohibited terminology
+
+Ruled by Lynn during Batch 1 review (2026-07-16).
+
+`avoidTerminology` (a profile's prohibited terms) is a hard boundary --
+if it appears, the lesson has said something that profile's tradition
+does not say, full stop. A hit is a **blocking failure** in both
+`checkFixture.mts` (`result.passed = false`) and the CI assertion suite.
+
+`requiredTerminology` is different in kind, not just in degree. It does
+not mean "this exact passage must use this exact word." It means "a
+faithful teacher working in this tradition, teaching topically-relevant
+material, works with this vocabulary." Romans 9 is the passage where a
+Reformed Baptist lesson should reach for "unconditional election"; a
+lesson on Psalm 23 has no natural occasion to. Whether a given passage +
+profile combination is topically relevant enough for a specific required
+term to actually appear is a judgment call, not a mechanical rule -- and
+that judgment belongs to Lynn's read of the fixture, not to a string
+match. Treating a missing required term as a failure would punish
+fixtures for not forcing vocabulary into passages where it doesn't
+belong, which is its own kind of unfaithfulness.
+
+Consequently: `checkFixtureText()` reports missing-required terms in a
+separate `advisories` array and they carry zero weight in `passed`. The
+CI assertion suite prints every advisory (fixture, term) so drift is
+visible, then reports `0 failed` as long as no `avoidTerminology` term
+was hit -- an all-advisory run is a green build. This is intentional,
+not a gap: the human review documented in "Vetting workflow" above is
+the actual check on required-terminology coverage; the automated
+advisory list exists to inform that review, not replace it.
+
+The Batch 1 missing-required flags surfaced during initial generation
+are resolved as non-issues under this semantic -- they were never
+doctrinal problems, just topics the passage didn't reach for.
+
+## Known checker limitation: negation context
+
+`checkFixture.mts` does plain word-boundary substring matching -- it has
+no grammar and cannot tell a term used affirmatively from the same term
+used inside a denial. The concrete case found during Batch 1: a Reformed
+Baptist fixture's own text reads "...not in human merit or foreseen
+faith" -- correctly *rejecting* foreseen-faith election -- but the
+literal phrase "foreseen faith" is present, so a checker rule treating
+that phrase as prohibited would flag it as a false positive.
+
+This is a known, accepted limitation, not a bug to chase. The fix is not
+a negation-detection engine bolted onto a string matcher -- that is a
+disproportionate amount of NLP machinery for a mechanical pre-check
+whose entire job is to narrow what Lynn has to read closely, never to
+render the final verdict. Lynn's human read is the backstop for exactly
+this class of false positive, and it will remain so regardless of how
+sophisticated the mechanical layer gets.
+
+Because a `must-not-contain` hit is a *blocking* failure (unlike
+`requiredTerminology`), an already-`APPROVED` fixture that legitimately
+contains a denied phrase would otherwise fail the assertion suite on
+every future CI run forever -- a permanent false alarm for a fixture a
+human already read and confirmed. The resolution is a fixture-level
+frontmatter field, `known_false_positives`, that only a human sets after
+reading the actual context: a comma-separated list of terms
+(`known_false_positives: "foreseen faith"`), paired with
+`known_false_positives_notes` explaining why. `runAssertionSuite.mts`
+excludes any violation whose term appears in that fixture's list from
+the failure count and instead prints it under an `ACKNOWLEDGED` line.
+This is deliberately not automatic: nothing in the checker infers
+negation on its own, so a new false positive in a future fixture will
+still fail loudly until a human reads it and adds it here. See
+`fixtures/reformed-baptist/romans-9.md` for the live example ("foreseen
+faith" inside "not in human merit or foreseen faith").
 
 ## Running a generation batch
 
@@ -98,7 +171,8 @@ the follow-up lands.
 **Review order** (front-loaded, per Lynn's own priority):
 - Batch 1: Reformed Baptist + Primitive Baptist + Free Will Baptist ×
   Romans 9 + Hebrews 6 (6 fixtures) -- sharpest doctrinal markers ×
-  most doctrinally live passages.
+  most doctrinally live passages. **APPROVED 2026-07-16** (all 6; see
+  MANIFEST.json).
 - Batch 2: same three profiles × Ephesians 2 + Psalm 23 (6 fixtures).
 - Batch 3+: remaining 9 profiles × 4 passages (36 fixtures), ordered
   Southern Baptist 1963/2000 (documented historical drift risk) → CBF
@@ -156,10 +230,10 @@ the follow-up lands.
 |---|---|
 | `scripts/anchorPassages.mts` | The 4 passages, shared by generation + docs |
 | `scripts/deriveAssertions.mts` | Profile -> assertion rules, derived live from theologyProfiles.ts |
-| `scripts/checkFixture.mts` | Pure checker: profile + lesson text -> pass/fail + violations |
+| `scripts/checkFixture.mts` | Pure checker: profile + lesson text -> passed (avoidTerminology only) + violations + advisories (requiredTerminology) |
 | `scripts/computePipelineHash.mts` | Hashes every theology-relevant pipeline input file |
 | `scripts/generateFixture.mts` | Calls the deployed function, captures + cleans up |
-| `scripts/runAssertionSuite.mts` | CI tier (a) entrypoint |
+| `scripts/runAssertionSuite.mts` | CI tier (a) entrypoint; also applies each fixture's `known_false_positives` frontmatter field |
 | `scripts/checkStaleness.mts` | CI tier (a.5) entrypoint |
 | `MANIFEST.json` | Convenience index of fixture vet status |
 | `fixtures/<profileId>/<passageSlug>.md` | The fixtures themselves (populated as generated) |

@@ -26,6 +26,19 @@ function parseFrontmatter(raw: string): { meta: Record<string, string>; body: st
   return { meta, body: match[2] };
 }
 
+// known_false_positives is an explicit, human-set frontmatter field -- NOT
+// automated negation detection. checkFixture.mts stays a dumb string
+// matcher on purpose (see README.md "Known checker limitation: negation
+// context"). A term only lands here after Lynn has read the actual context
+// and confirmed the match is the term being denied/rejected, not asserted.
+// Comma-separated, optionally quoted: known_false_positives: "foreseen faith"
+function parseKnownFalsePositives(raw: string | undefined): Set<string> {
+  if (!raw) return new Set();
+  const stripped = raw.trim().replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+  if (!stripped) return new Set();
+  return new Set(stripped.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean));
+}
+
 function main() {
   if (!existsSync(FIXTURES_ROOT)) {
     console.log('No fixtures directory yet -- nothing to check. Exiting clean.');
@@ -36,6 +49,10 @@ function main() {
   let checked = 0;
   let failed = 0;
   let skippedNotApproved = 0;
+  let advisoryCount = 0;
+  let fixturesWithAdvisories = 0;
+  let acknowledgedCount = 0;
+  let fixturesWithAcknowledged = 0;
 
   for (const profileDir of profileDirs) {
     const profileId = profileDir.name;
@@ -56,11 +73,36 @@ function main() {
 
       checked++;
       const result = checkFixtureText(profileId, body);
-      if (!result.passed) {
+      const knownFalsePositives = parseKnownFalsePositives(meta.known_false_positives);
+      const realFailures = result.violations.filter((v) => !knownFalsePositives.has(v.term.toLowerCase()));
+      const acknowledged = result.violations.filter((v) => knownFalsePositives.has(v.term.toLowerCase()));
+
+      if (realFailures.length > 0) {
         failed++;
         console.error(`FAIL: ${profileId}/${file}`);
-        for (const v of result.violations) {
+        for (const v of realFailures) {
           console.error(`  [${v.type}] "${v.term}"${v.context ? ` -- context: "${v.context}"` : ''}`);
+        }
+      }
+
+      if (acknowledged.length > 0) {
+        fixturesWithAcknowledged++;
+        acknowledgedCount += acknowledged.length;
+        console.log(`ACKNOWLEDGED (human-reviewed negation-context false positive): ${profileId}/${file}`);
+        for (const v of acknowledged) {
+          console.log(`  [${v.type}, non-blocking] "${v.term}"${v.context ? ` -- context: "${v.context}"` : ''}`);
+        }
+      }
+
+      // requiredTerminology is advisory, not blocking -- see README.md
+      // "requiredTerminology semantics." Reported here so drift is visible
+      // without ever failing the build.
+      if (result.advisories.length > 0) {
+        fixturesWithAdvisories++;
+        advisoryCount += result.advisories.length;
+        console.log(`ADVISORY: ${profileId}/${file}`);
+        for (const a of result.advisories) {
+          console.log(`  [missing-required, non-blocking] "${a.term}"`);
         }
       }
     }
@@ -69,6 +111,8 @@ function main() {
   console.log('');
   console.log('==========================================');
   console.log(`THEOLOGY ASSERTION SUITE: ${checked} approved fixture(s) checked, ${failed} failed, ${skippedNotApproved} pending-review skipped`);
+  console.log(`ADVISORY (non-blocking): ${advisoryCount} missing-required flag(s) across ${fixturesWithAdvisories} fixture(s) -- requiredTerminology is topical, not per-lesson-mandatory`);
+  console.log(`ACKNOWLEDGED (non-blocking): ${acknowledgedCount} known-false-positive flag(s) across ${fixturesWithAcknowledged} fixture(s) -- human-reviewed negation-context matches, see known_false_positives in fixture frontmatter`);
   console.log('==========================================');
 
   if (failed > 0) {

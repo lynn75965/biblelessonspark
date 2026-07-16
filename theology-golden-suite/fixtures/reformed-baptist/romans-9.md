@@ -8,8 +8,10 @@ two_phase: true
 supplements_completed: true
 pipeline_hash: e3fdd7c94a521b661d1cf97fa60f5dc4de4f923c858b88a7d5cc410354f2e0dd
 fixture_hash: 41457fdb6c0e1b4a
-vet_status: PENDING_REVIEW
-reviewer_notes: ""
+vet_status: APPROVED
+reviewer_notes: "Teaches unconditional election without flinching. Approved by Lynn, Batch 1 review, 2026-07-16."
+known_false_positives: "foreseen faith"
+known_false_positives_notes: "Section 1 reads 'not in human merit or foreseen faith' -- the phrase is being denied/rejected, which is exactly what a Reformed Baptist lesson on unconditional election should do. checkFixture.mts does plain string matching with no negation awareness, so it flags this literal phrase as a mustNotContain hit. Reviewed and confirmed a false positive by Lynn, 2026-07-16. See README.md 'Known checker limitation: negation context.'"
 ---
 ## Section 1: Lens + Lesson Overview
 
