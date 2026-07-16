@@ -36,6 +36,7 @@ import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replace
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
 import { callAnthropicNonStreaming, openAnthropicStreamWithRetry, getForcedErrorClass } from '../_shared/anthropicRetry.ts';
+import { logCapacityEvent } from '../_shared/capacityEvents.ts';
 // Section-shape SSOT (Phase 1). Full = [1..8], Short = [1,5,8]. This is the
 // first edge function to import the _shared mirror at runtime.
 import { FULL_SECTIONS, SHORT_SECTIONS } from '../_shared/lessonTiers.ts';
@@ -51,6 +52,12 @@ const corsHeaders = {
 
 // Anthropic model constant for tracking (value sourced from model-ID SSOT)
 const ANTHROPIC_MODEL = ANTHROPIC_MODELS.default;
+
+// B8: shown to the teacher whenever Phase 2 (Sections 6-8 + Teaser) fails
+// or is truncated -- the core lesson (Sections 1-5) is always trustworthy
+// regardless of which reason triggered this message. Lynn-approved wording.
+const SUPPLEMENTS_INCOMPLETE_MESSAGE =
+  'One or more supplemental sections may be incomplete. Your core lesson is complete and ready to use.';
 
 
 
@@ -424,9 +431,31 @@ serve(async (req) => {
         const limitCheck = await checkLessonLimit(supabase, user.id);
         console.log('Subscription check:', limitCheck);
 
+        if (limitCheck.checkFailed) {
+          await logCapacityEvent(supabase, {
+            userId: user.id,
+            source: 'generate-lesson',
+            eventType: 'quota_denied_failclosed',
+          });
+          return new Response(JSON.stringify({
+            error: "We're experiencing a lot of activity right now. Please try again in a few minutes \u2014 your lesson allowance is unaffected.",
+            code: 'CAPACITY_UNAVAILABLE'
+          }), {
+            status: 503,
+            headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
         userTier = limitCheck.tier;
 
         if (userTier !== 'free' && !limitCheck.can_generate) {
+          await logCapacityEvent(supabase, {
+            userId: user.id,
+            source: 'generate-lesson',
+            eventType: 'quota_denied',
+            tier: limitCheck.tier,
+            meta: { lessons_used: limitCheck.lessons_used, lessons_limit: limitCheck.lessons_limit },
+          });
           return new Response(JSON.stringify({
             error: 'Lesson limit reached',
             code: 'LIMIT_REACHED',
@@ -952,6 +981,13 @@ ${styleExtractionPromptAddition}
               })
               .eq('id', metricId);
           }
+          await logCapacityEvent(supabase, {
+            userId: user.id,
+            source: 'generate-lesson',
+            eventType: 'anthropic_terminal_failure',
+            tier: userTier,
+            meta: { phase: 'phase1-connect', errorClass: streamResult.errorClass },
+          });
           await sendEvent('error', { error: streamResult.error, code: streamResult.code });
           return;
         }
@@ -978,6 +1014,7 @@ ${styleExtractionPromptAddition}
         let tokensOutput: number | null = null;
         let cacheCreationTokens: number | null = null;
         let cacheReadTokens: number | null = null;
+        let finalStopReason: string | null = null;
 
         const streamReader = anthropicResponse.body!.getReader();
         const streamDecoder = new TextDecoder();
@@ -1017,6 +1054,7 @@ ${styleExtractionPromptAddition}
 
               if (event.type === 'message_delta') {
                 tokensOutput = event.usage?.output_tokens ?? null;
+                finalStopReason = event.delta?.stop_reason ?? finalStopReason;
               }
             } catch {
               // Skip unparseable SSE events
@@ -1032,6 +1070,42 @@ ${styleExtractionPromptAddition}
 
         console.log(`Lesson generated: ${generatedLesson.length} chars, ${wordCount} words`);
         console.log(`Tokens - Input: ${tokensInput}, Output: ${tokensOutput}, Cache Write: ${cacheCreationTokens}, Cache Read: ${cacheReadTokens}`);
+
+        // =====================================================================
+        // TRUNCATION CHECK (B8) -- must run before any downstream work
+        // (guardrail rewrite call, DB save, trial/usage increment, Phase 2).
+        // A truncated core lesson is never saved and never counted against
+        // the teacher's allowance.
+        // =====================================================================
+        if (finalStopReason === 'max_tokens') {
+          console.error(`Phase 1 truncated (max_tokens) for user ${user.id}`);
+          if (metricId) {
+            await supabase
+              .from('generation_metrics')
+              .update({
+                generation_end: new Date().toISOString(),
+                generation_duration_ms: Date.now() - functionStartTime,
+                status: 'error',
+                anthropic_model: modelUsedForGeneration,
+                tokens_input: tokensInput,
+                tokens_output: tokensOutput,
+                error_message: 'Truncated: max_tokens reached before Phase 1 completed'
+              })
+              .eq('id', metricId);
+          }
+          await logCapacityEvent(supabase, {
+            userId: user.id,
+            source: 'generate-lesson',
+            eventType: 'truncated',
+            tier: userTier,
+            meta: { phase: 'phase1', tokensOutput },
+          });
+          await sendEvent('error', {
+            error: 'Generation was cut short before completing. Please try again.',
+            code: 'TRUNCATED'
+          });
+          return;
+        }
 
         // =====================================================================
         // STYLE METADATA EXTRACTION
@@ -1474,6 +1548,26 @@ All supplements must be specific to this lesson's content -- not generic.${bible
               throw new Error(`Phase 2 generation failed after retries/fallback: ${phase2Result.errorClass}`);
             }
 
+            if (phase2Result.stopReason === 'max_tokens') {
+              // Degrade gracefully -- Phase 1's core lesson (S1-5) is already
+              // saved and trustworthy. Don't extract/guardrail-check/save the
+              // truncated supplement text; tell the client the same way an
+              // outright Phase 2 failure is communicated (B8).
+              console.error(`[Phase 2] Truncated (max_tokens) for lesson ${lesson.id}`);
+              await logCapacityEvent(supabase, {
+                userId: user.id,
+                source: 'generate-lesson',
+                eventType: 'truncated',
+                tier: userTier,
+                meta: { phase: 'phase2', lessonId: lesson.id },
+              });
+              await sendEvent('supplements_failed', {
+                lesson_id: lesson.id,
+                message: SUPPLEMENTS_INCOMPLETE_MESSAGE,
+              }).catch(() => {});
+              return;
+            }
+
             const phase2RawText: string = phase2Result.text;
             const phase2RawUsage = (phase2Result.raw as any)?.usage;
             const phase2TokensOut: number = phase2RawUsage?.output_tokens ?? 0;
@@ -1585,9 +1679,16 @@ All supplements must be specific to this lesson's content -- not generic.${bible
           } catch (phase2Err: any) {
             // Phase 2 failure: Phase 1 lesson is already saved. Teacher is not blocked.
             console.error('[Phase 2] Failed (Phase 1 lesson preserved):', phase2Err.message);
+            await logCapacityEvent(supabase, {
+              userId: user.id,
+              source: 'generate-lesson',
+              eventType: 'anthropic_terminal_failure',
+              tier: userTier,
+              meta: { phase: 'phase2', lessonId: lesson.id, error: phase2Err.message },
+            });
             await sendEvent('supplements_failed', {
               lesson_id: lesson.id,
-              message: 'The supplemental sections are still being prepared. Your lesson has been saved.'
+              message: SUPPLEMENTS_INCOMPLETE_MESSAGE,
             }).catch(() => {});
           }
         }
@@ -1611,6 +1712,13 @@ All supplements must be specific to this lesson's content -- not generic.${bible
             })
             .eq('id', metricId);
         }
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: 'generate-lesson',
+          eventType: 'anthropic_terminal_failure',
+          tier: userTier,
+          meta: { phase: 'phase1-stream', name: streamError.name },
+        });
         const errMsg = streamError.name === 'AbortError'
           ? 'Generation timed out. Please try again.'
           : (streamError.message || 'An unexpected error occurred');
@@ -1646,6 +1754,16 @@ All supplements must be specific to this lesson's content -- not generic.${bible
           error_message: error.message || 'Unknown error'
         })
         .eq('id', metricId);
+    }
+
+    if (typeof user !== 'undefined' && user && supabase) {
+      await logCapacityEvent(supabase, {
+        userId: user.id,
+        source: 'generate-lesson',
+        eventType: 'anthropic_terminal_failure',
+        tier: typeof userTier !== 'undefined' ? userTier : 'unknown',
+        meta: { phase: 'outer-catch', error: error.message },
+      });
     }
 
     return new Response(JSON.stringify({

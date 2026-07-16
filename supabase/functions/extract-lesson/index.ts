@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
 import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
+import { logCapacityEvent } from "../_shared/capacityEvents.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +66,12 @@ serve(async (req) => {
       ];
       const rl = await checkRateLimits(supabase, extractRateLimitScopes);
       if (rl.blocked) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "rate_limited",
+          meta: { scope: rl.scope },
+        });
         return new Response(
           JSON.stringify({ success: false, error: "Extraction limit reached. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -230,9 +237,30 @@ serve(async (req) => {
       });
 
       if (!pdfResult.ok) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "anthropic_terminal_failure",
+          meta: { errorClass: pdfResult.errorClass, fileType: "pdf" },
+        });
         await refundExtractQuota();
         return new Response(
           JSON.stringify({ success: false, error: pdfResult.error, code: pdfResult.code }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (pdfResult.stopReason === "max_tokens") {
+        console.error("[extract-lesson] Truncated (max_tokens) for PDF, user:", user.id);
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "truncated",
+          meta: { fileType: "pdf" },
+        });
+        await refundExtractQuota();
+        return new Response(
+          JSON.stringify({ success: false, error: "Extraction was cut short before completing. Please try a shorter document or split it into parts." }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -301,9 +329,30 @@ serve(async (req) => {
       });
 
       if (!docxResult.ok) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "anthropic_terminal_failure",
+          meta: { errorClass: docxResult.errorClass, fileType: "docx" },
+        });
         await refundExtractQuota();
         return new Response(
           JSON.stringify({ success: false, error: docxResult.error, code: docxResult.code }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (docxResult.stopReason === "max_tokens") {
+        console.error("[extract-lesson] Truncated (max_tokens) for DOCX, user:", user.id);
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "truncated",
+          meta: { fileType: "docx" },
+        });
+        await refundExtractQuota();
+        return new Response(
+          JSON.stringify({ success: false, error: "Extraction was cut short before completing. Please try a shorter document or split it into parts." }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
@@ -375,9 +424,30 @@ serve(async (req) => {
       });
 
       if (!imageResult.ok) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "anthropic_terminal_failure",
+          meta: { errorClass: imageResult.errorClass, fileType: "image" },
+        });
         await refundExtractQuota();
         return new Response(
           JSON.stringify({ success: false, error: imageResult.error, code: imageResult.code }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (imageResult.stopReason === "max_tokens") {
+        console.error("[extract-lesson] Truncated (max_tokens) for image, user:", user.id);
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: "truncated",
+          meta: { fileType: "image" },
+        });
+        await refundExtractQuota();
+        return new Response(
+          JSON.stringify({ success: false, error: "Extraction was cut short before completing. Please try again." }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }

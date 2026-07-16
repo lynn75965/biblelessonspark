@@ -14,22 +14,29 @@ export interface LessonLimitResult {
   tier: string;
   sections_allowed: number[];
   reset_date: string | null;
+  /** true only when the RPC itself errored -- distinct from a legitimate
+   *  "quota reached" denial. Lets the caller return an honest "try again"
+   *  response instead of granting unlimited generation. (B8) */
+  checkFailed?: boolean;
 }
 
 export async function checkLessonLimit(supabase: any, userId: string): Promise<LessonLimitResult> {
   const { data, error } = await supabase.rpc('check_lesson_limit', { p_user_id: userId });
-  
+
   if (error) {
     console.error('Error checking lesson limit:', error);
-    // Fail open - allow generation if check fails
-    // Use SSOT for free tier sections
+    // FAIL CLOSED (B8) -- a DB/RPC error must never be silently treated as
+    // "unlimited." checkFailed lets the caller (generate-lesson) return an
+    // honest "we couldn't check, try again" response instead of granting
+    // 999 lessons or misfiring the LIMIT_REACHED upgrade-prompt flow.
     return {
-      can_generate: true,
+      can_generate: false,
       lessons_used: 0,
-      lessons_limit: 999,
+      lessons_limit: 0,
       tier: 'free',
       sections_allowed: getSectionsForTier('free'),
-      reset_date: null
+      reset_date: null,
+      checkFailed: true
     };
   }
   

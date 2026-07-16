@@ -25,6 +25,7 @@ import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuar
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
 import { callAnthropicNonStreaming, getForcedErrorClass, type AnthropicErrorClass } from "../_shared/anthropicRetry.ts";
+import { logCapacityEvent } from "../_shared/capacityEvents.ts";
 
 // =============================================================================
 // TYPES
@@ -862,7 +863,7 @@ Write the parable now:`;
 // =============================================================================
 
 type ParableGenerationResult =
-  | { ok: true; text: string; modelUsed: string }
+  | { ok: true; text: string; modelUsed: string; stopReason?: string }
   | { ok: false; code: string; error: string };
 
 /**
@@ -901,7 +902,7 @@ async function generateParableWithProvider(
         messages: [{ role: "user", content: userPrompt }],
       }),
     });
-    if (result.ok) return { ok: true, text: result.text, modelUsed: result.modelUsed };
+    if (result.ok) return { ok: true, text: result.text, modelUsed: result.modelUsed, stopReason: result.stopReason };
     return { ok: false, code: result.code, error: result.error };
   }
 
@@ -934,7 +935,11 @@ async function generateParableWithProvider(
     const j = await resp.json();
     const text = j?.choices?.[0]?.message?.content ?? "";
     if (!text) return { ok: false, code: "AI_ERROR", error: "We ran into a problem generating that. Please try again in a moment." };
-    return { ok: true, text, modelUsed: model };
+    // Normalize OpenAI's finish_reason vocabulary to Anthropic's stop_reason
+    // sentinel ("length" -> "max_tokens") so call sites need no provider-
+    // specific branching for truncation detection (B8).
+    const finishReason = j?.choices?.[0]?.finish_reason;
+    return { ok: true, text, modelUsed: model, stopReason: finishReason === "length" ? "max_tokens" : finishReason };
   }
 
   return { ok: false, code: "AI_ERROR", error: "We ran into a problem generating that. Please try again in a moment." };
@@ -1090,6 +1095,13 @@ Deno.serve(async (req: Request) => {
     const anonRemaining = Math.max(0, 3 - anonUsed);
     
     if (rl.blocked) {
+      await logCapacityEvent(supabaseAdmin, {
+        userId: null,
+        source: "generate-parable",
+        eventType: "rate_limited",
+        tier: "anonymous",
+        meta: { scope: rl.scope },
+      });
       const blockMsg = rl.scope === "parable:global"
         ? "We've hit today's capacity for free parables. Please try again tomorrow, or create a free account."
         : "Daily limit reached. You can generate more parables tomorrow, or create a free account for additional access.";
@@ -1123,8 +1135,28 @@ Deno.serve(async (req: Request) => {
         // Terminal failure after retries/fallback exhausted -- refund the
         // anon-IP and global scopes consumed above so a transient Anthropic
         // outage doesn't cost the visitor one of her 3 daily attempts.
+        await logCapacityEvent(supabaseAdmin, {
+          userId: null,
+          source: "generate-parable",
+          eventType: "anthropic_terminal_failure",
+          tier: "anonymous",
+          meta: { code: genResult.code },
+        });
         await refundRateLimits(supabaseAdmin, anonRateLimitScopes);
         return json({ success: false, error: genResult.error, code: genResult.code }, 503);
+      }
+      if (genResult.stopReason === "max_tokens") {
+        // B8: fail cleanly, refund the same way a terminal failure does --
+        // a truncated parable is not delivered or saved.
+        console.error("[generate-parable] Truncated (max_tokens) for anonymous IP:", ipAddress);
+        await logCapacityEvent(supabaseAdmin, {
+          userId: null,
+          source: "generate-parable",
+          eventType: "truncated",
+          tier: "anonymous",
+        });
+        await refundRateLimits(supabaseAdmin, anonRateLimitScopes);
+        return json({ success: false, error: "Generation was cut short before completing. Please try again." }, 503);
       }
       const parableText = genResult.text;
       const generationTimeMs = Date.now() - startTime;
@@ -1186,6 +1218,12 @@ Deno.serve(async (req: Request) => {
       ];
       const globalRl = await checkRateLimits(supabaseAdmin, authGlobalRateLimitScopes);
       if (globalRl.blocked) {
+        await logCapacityEvent(supabaseAdmin, {
+          userId: user.id,
+          source: "generate-parable",
+          eventType: "rate_limited",
+          meta: { scope: globalRl.scope },
+        });
         return json({
           success: false,
           error: "We've hit today's capacity for parable generation. Please try again tomorrow.",
@@ -1254,10 +1292,29 @@ Deno.serve(async (req: Request) => {
       // Terminal failure after retries/fallback exhausted -- refund the
       // global backstop scope if it was consumed above (admins never
       // consumed it, so authGlobalRateLimitScopes is empty for them).
+      await logCapacityEvent(supabaseAdmin, {
+        userId: user.id,
+        source: "generate-parable",
+        eventType: "anthropic_terminal_failure",
+        meta: { code: genResult.code },
+      });
       if (authGlobalRateLimitScopes.length > 0) {
         await refundRateLimits(supabaseAdmin, authGlobalRateLimitScopes);
       }
       return json({ success: false, error: genResult.error, code: genResult.code }, 503);
+    }
+    if (genResult.stopReason === "max_tokens") {
+      // B8: fail cleanly, refund the same way a terminal failure does.
+      console.error("[generate-parable] Truncated (max_tokens) for user:", user.id);
+      await logCapacityEvent(supabaseAdmin, {
+        userId: user.id,
+        source: "generate-parable",
+        eventType: "truncated",
+      });
+      if (authGlobalRateLimitScopes.length > 0) {
+        await refundRateLimits(supabaseAdmin, authGlobalRateLimitScopes);
+      }
+      return json({ success: false, error: "Generation was cut short before completing. Please try again." }, 503);
     }
     const parableText = genResult.text;
     const generationTimeMs = Date.now() - startTime;

@@ -50,6 +50,7 @@ import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
 import { parseDeviceType, parseBrowser, parseOS } from "../_shared/generationMetrics.ts";
 import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
+import { logCapacityEvent } from "../_shared/capacityEvents.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -540,6 +541,12 @@ serve(async (req: Request) => {
       ];
       const globalRl = await checkRateLimits(supabase, devotionalGlobalScopes);
       if (globalRl.blocked) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "generate-devotional",
+          eventType: "rate_limited",
+          meta: { scope: globalRl.scope },
+        });
         return new Response(
           JSON.stringify({ success: false, error: "Daily devotional capacity reached. Please try again tomorrow.", code: "RATE_LIMITED" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -561,6 +568,12 @@ serve(async (req: Request) => {
 
       if (limitError) {
         console.error("[generate-devotional] Limit check failed (fail closed):", (limitError as Error)?.message ?? limitError);
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "generate-devotional",
+          eventType: "quota_denied_failclosed",
+          meta: { reason: "rpc_error" },
+        });
         return new Response(
           JSON.stringify({ success: false, error: "Unable to verify your usage right now. Please try again shortly.", code: "LIMIT_CHECK_FAILED" }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -572,6 +585,12 @@ serve(async (req: Request) => {
 
       if (!limitResult) {
         console.error("[generate-devotional] Limit check returned no result (fail closed)");
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "generate-devotional",
+          eventType: "quota_denied_failclosed",
+          meta: { reason: "no_result" },
+        });
         return new Response(
           JSON.stringify({ success: false, error: "Unable to verify your usage right now. Please try again shortly.", code: "LIMIT_CHECK_FAILED" }),
           { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -579,6 +598,12 @@ serve(async (req: Request) => {
       }
 
       if (!limitResult.can_generate) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "generate-devotional",
+          eventType: "quota_denied",
+          meta: { devotionals_used: limitResult.devotionals_used, devotionals_limit: limitResult.devotionals_limit },
+        });
         return new Response(
           JSON.stringify({
             success: false,
@@ -754,6 +779,12 @@ serve(async (req: Request) => {
           })
           .eq("id", metricId);
       }
+      await logCapacityEvent(supabase, {
+        userId: user.id,
+        source: "generate-devotional",
+        eventType: "anthropic_terminal_failure",
+        meta: { errorClass: devotionalResult.errorClass },
+      });
       // Terminal failure after retries/fallback exhausted -- refund the
       // global/day backstop consumed above so a transient Anthropic outage
       // doesn't cost the platform's aggregate daily devotional capacity.
@@ -762,6 +793,38 @@ serve(async (req: Request) => {
       }
       return new Response(
         JSON.stringify({ success: false, error: devotionalResult.error, code: devotionalResult.code }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (devotionalResult.stopReason === "max_tokens") {
+      // B8: fail cleanly -- devotionals are short-form with a generous
+      // max_tokens ceiling, so truncation should be rare. Don't save a
+      // truncated devotional; refund the global backstop the same way a
+      // terminal Anthropic failure does above.
+      console.error("[generate-devotional] Truncated (max_tokens) for user", user.id);
+      if (metricId) {
+        await supabase
+          .from("devotional_metrics")
+          .update({
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - startTime,
+            anthropic_model: devotionalResult.modelUsed,
+            status: "error",
+            error_message: "Truncated: max_tokens reached before completion",
+          })
+          .eq("id", metricId);
+      }
+      await logCapacityEvent(supabase, {
+        userId: user.id,
+        source: "generate-devotional",
+        eventType: "truncated",
+      });
+      if (devotionalGlobalScopes.length > 0) {
+        await refundRateLimits(supabase, devotionalGlobalScopes);
+      }
+      return new Response(
+        JSON.stringify({ success: false, error: "Generation was cut short before completing. Please try again.", code: "TRUNCATED" }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

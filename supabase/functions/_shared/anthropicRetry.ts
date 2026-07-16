@@ -247,6 +247,10 @@ export interface NonStreamingSuccess {
   text: string;
   modelUsed: string;
   raw: unknown;
+  /** Anthropic's top-level stop_reason ("end_turn" | "max_tokens" | ...) --
+   *  extracted once here so call sites don't need an `as any` cast on
+   *  `raw` (B8 truncation detection). */
+  stopReason: string | undefined;
   attempts: number;
 }
 
@@ -318,7 +322,14 @@ export async function callAnthropicNonStreaming(
   });
 
   if (result.ok) {
-    return { ok: true, text: result.value.text, raw: result.value.raw, modelUsed: result.modelUsed, attempts: result.attempts };
+    return {
+      ok: true,
+      text: result.value.text,
+      raw: result.value.raw,
+      stopReason: (result.value.raw as any)?.stop_reason,
+      modelUsed: result.modelUsed,
+      attempts: result.attempts,
+    };
   }
   return { ok: false, code: result.code, error: result.error, errorClass: result.errorClass, attempts: result.attempts };
 }
