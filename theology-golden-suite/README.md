@@ -256,6 +256,36 @@ the follow-up lands.
    (this suite never touches prompts -- see "What this suite is NOT").
    Logged as a standing finding and a candidate for whichever future
    session next tunes the generation prompts.
+7. **GARBC profile shipped with underspecified soteriology -- fixed
+   2026-07-16.** `regular-baptist-garbc`'s `tulipStance` was `'anti'`,
+   and its `avoidTerminology`/`filterContent` said nothing about the
+   extent of the atonement, irresistible grace, or individual election
+   -- a real doctrinal-accuracy gap, not a mechanical checker miss.
+   Caught during Batch 3+ vetting: the first-generated `romans-9`
+   fixture asserted "God's election is real, unconditional, and
+   grounded solely in His sovereign will" as GARBC's position, which
+   the Articles of Faith do not state -- no individual-election article
+   exists; only Art. XVIII's national-Israel "sovereign selection."
+   Lynn supplied the authoritative correction from the Articles (Total
+   Depravity and divine-initiative regeneration affirmed per Art.
+   VI/X; Unconditional individual Election, Limited Atonement, and
+   Irresistible Grace deliberately left unstated per Art. VIII), fixed
+   same session: `tulipStance` widened to a three-value union (`'anti'
+   | 'pro' | 'partial'`), `filterContent` gained new Regeneration and
+   Election subsections, `avoidTerminology` and `guardrails` gained
+   U/L/I-assertion blocks plus a symmetric guard protecting the
+   correctly-affirmed Total Depravity from overcorrection.
+   `generate-lesson` and `generate-devotional` (the two consumers of
+   the shared guardrail-generation function) were redeployed same
+   session; the 4 held GARBC fixtures were deleted and regenerated
+   against the corrected, live profile -- the regenerated `romans-9`
+   now explicitly states the corporate/national election reading "is
+   critical for GARBC interpretation." This is the suite doing exactly
+   its intended job: catching a real doctrinal-accuracy bug before any
+   GARBC church ever saw it, entirely from Lynn's read of a held
+   fixture, not from the mechanical checker (which reported 0
+   violations against the old profile, because the old
+   `avoidTerminology` list had nothing in it to flag).
 
 ## File map
 
