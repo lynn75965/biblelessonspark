@@ -1,13 +1,26 @@
-# PROJECT MASTER -- Last updated: July 16, 2026 (Session: B6 theology golden suite -- all 48 fixtures generated and APPROVED, fixture-generation phase COMPLETE)
+# PROJECT MASTER -- Last updated: July 16, 2026 (Session: B7 conversion infra -- COMPLETE, checkout_started deployed and verified in production)
 
-## >>> RESUME HERE <<< -- B6 theology golden suite's fixture-generation
-phase is COMPLETE: all 48 fixtures (12 theology profiles x 4 anchor
-passages) generated, vetted by Lynn, and APPROVED as of 2026-07-16. Two
-real product bugs were caught and fixed along the way -- see the July 16
-session log below for the full account of both. Gate 2 remaining work:
-B6's own standing findings (below and in theology-golden-suite/README.md)
-are follow-up candidates, not blockers; B7 conversion infra, B8 capacity
-recheck, and legal pages confirmation have not been started this session.
+## >>> RESUME HERE <<< -- B7 conversion infra is now COMPLETE and verified
+live: migration + RPC, client emission (impression/click/declined via
+UpgradePromptModal), the two trigger-attribution fixes (TeachingTeam ->
+"teachingTeam", DevotionalGenerator -> "devotionalLibrary"), and the
+server-side checkout_started emission in create-checkout-session/index.ts
+are all shipped, pushed to origin/main (CI green on 1c7be4e), deployed
+(version 29), and Lynn-confirmed via a live checkout_started row for the
+free-tier test user with correct trigger_source and tier_at_event='free'.
+See the July 16 (B7 completion) session log below for the full account,
+including a prior session that was lost mid-task and had to be
+reconstructed from disk before finishing.
+
+B6 theology golden suite's fixture-generation phase is also COMPLETE:
+all 48 fixtures (12 theology profiles x 4 anchor passages) generated,
+vetted by Lynn, and APPROVED as of 2026-07-16. Two real product bugs
+were caught and fixed along the way -- see that session's own log below.
+
+Gate 2 remaining work: B8 capacity recheck and legal pages confirmation
+have not been started. B6's own standing findings (below and in
+theology-golden-suite/README.md) and B7's adjacent finding #1 (events
+table RLS, below) are follow-up candidates, not blockers.
 
 Gate 1 (B1-B5) was fully shipped July 15, 2026 -- see that session's own
 entry below for the full account. Two non-blocking backlog items carry
@@ -145,15 +158,88 @@ forward from Gate 1 (neither gates Gate 2):
   uses a separate, working table (`conversion_events`, Pattern B --
   service-role/RPC writes only) and does not touch or depend on `events`.
 
-Gate 2 remaining work: B7 conversion infra (migration + client emission
-points SHIPPED 2026-07-16; server-side checkout_started emission
-implemented but NOT deployed -- see below), B8 capacity recheck, legal
-pages confirmation. B6 theology golden suite's fixture-generation phase is
-done (see July 16 session below); its own standing findings (numbered in
-theology-golden-suite/README.md) are follow-up candidates, not Gate 2
-blockers.
+Gate 2 remaining work: B7 conversion infra is COMPLETE (see session log
+immediately below). B8 capacity recheck and legal pages confirmation
+remain. B6 theology golden suite's fixture-generation phase is also done
+(see the July 16 B6 session below it); its own standing findings
+(numbered in theology-golden-suite/README.md) are follow-up candidates,
+not Gate 2 blockers.
 
-## JULY 16, 2026 SESSION (LATEST) -- B6 THEOLOGY GOLDEN SUITE: all 48 fixtures generated and APPROVED; two production bugs caught and fixed
+## JULY 16, 2026 SESSION (LATEST) -- B7 CONVERSION INFRA: COMPLETE -- checkout_started deployed and verified live; prior session's work reconstructed from disk after a mid-task loss
+
+GOAL: Finish B7 conversion-funnel-events infrastructure. A prior session
+had shipped the migration + RPC, client emission points at
+UpgradePromptModal, and the two trigger-attribution fixes, and had
+implemented (but not deployed) the server-side `checkout_started`
+emission in `create-checkout-session/index.ts` -- then was lost mid-task
+before deploying and before pushing to origin. This session's job was to
+reconstruct state from disk, finish the deploy, and verify live.
+
+### Step 1 -- state reconstruction (read-only)
+Confirmed via `git status`/`git log`: all 5 B7 commits (`7551c1a`
+migration, `3e62cfd` client emission, `412730d` checkout_started
+emission, `84ed7e7` docs + adjacent finding #1, `1c7be4e` tier-resolution
++ trigger-attribution fix) were present locally and the working tree was
+clean, but **none had been pushed** -- local `main` was 5 commits ahead
+of `origin/main`, which still pointed at `906549f`. Confirmed both
+migrations (`20260716180000_create_conversion_events.sql`,
+`20260716190000_fix_conversion_event_tier_source.sql`) were applied to
+the linked remote database via `migration list --linked`. Confirmed
+`create-checkout-session/index.ts` at HEAD contained a correct
+`conversion_events` insert (event_type `CHECKOUT_STARTED`,
+trigger_source, `tier_at_event: existingSub?.tier ?? "free"`, meta with
+billing_interval/price_id) -- no corruption.
+
+Deploy status was genuinely ambiguous from `functions list` alone: the
+live function's `updated_at` (13:28:06 CDT) was ~9.5 minutes after the
+final B7 commit, suggesting the lost session likely did deploy before
+being cut off despite the `412730d` commit message saying "NOT
+DEPLOYED" -- but per CLAUDE.md Rule #28, `updated_at` can be re-stamped
+by unrelated `--use-api` activity elsewhere, so timestamp proximity
+alone wasn't proof the live code matched HEAD. Reported both findings
+(unpushed commits, ambiguous deploy) to Lynn and held rather than
+guessing.
+
+### Step 2 -- push + redeploy (Lynn approved both)
+Pushed the 5 local commits: `906549f..1c7be4e main -> main`. Verified CI
+green on `1c7be4e` via the GitHub REST API directly (`gh` CLI is not
+installed in this environment -- used `Invoke-RestMethod` against
+`api.github.com/repos/.../actions/runs` instead): both the `CI` and
+`Theology Suite Assertions` workflows completed with `conclusion:
+success`.
+
+Redeployed `create-checkout-session` (`npx supabase functions deploy
+create-checkout-session --project-ref hphebzdftpjbiudpfcrs --use-api`)
+to eliminate the ambiguity rather than trust the timestamp inference --
+version `28 -> 29`, `updated_at` refreshed to 13:37:27 CDT, now
+guaranteed to match HEAD.
+
+### Step 3 -- live verification (Lynn confirmed)
+Test script: log in as the free-tier test user
+(`09415f5e-c839-49b3-940b-4657361cafb1`), trigger UpgradePromptModal via
+a locked sidebar item or the exhausted-lessons banner, click the
+checkout CTA, let Stripe Checkout open, then abandon it without entering
+payment details (checkout_started fires server-side the instant the
+session is created, before any payment fields are touched). Lynn ran
+this in production and confirmed a live `conversion_events` row: `
+event_type = 'checkout_started'`, `trigger_source` matching the item she
+triggered from, `tier_at_event = 'free'`, `meta` containing the correct
+billing_interval/price_id.
+
+### B7 is now COMPLETE
+All pieces shipped, pushed, deployed, and verified live: migration +
+`log_conversion_event` RPC, `src/constants/conversionEvents.ts` SSOT,
+client emission (impression/click/declined with trigger_source, tier,
+and `meta.client_session_id`) at UpgradePromptModal, the two
+trigger-attribution fixes, and the server-side `checkout_started`
+emission in `create-checkout-session/index.ts`. Adjacent finding #1
+(the generic `events` table's missing INSERT policy, logged 2026-07-16)
+remains open standing backlog, untouched this session -- see the
+`>>> RESUME HERE <<<` block above for its full description. It does not
+block B7 or Gate 2; `conversion_events` is a separate, working table
+(Pattern B, service-role/RPC writes only) that never depended on it.
+
+## JULY 16, 2026 SESSION -- B6 THEOLOGY GOLDEN SUITE: all 48 fixtures generated and APPROVED; two production bugs caught and fixed
 
 GOAL: Generate and vet all 48 B6 golden-suite fixtures (12 theology
 profiles x 4 anchor passages: Romans 9, Hebrews 6, Ephesians 2, Psalm
