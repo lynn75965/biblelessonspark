@@ -52,13 +52,22 @@ export type AnthropicModelKey = keyof typeof ANTHROPIC_MODELS;
 //   malformed/empty completion    -> one retry same model, then fail (no
 //                                     fallback-model attempt)
 //
-// Latency budget: Supabase edge functions have a ~150s TOTAL wall-clock
-// execution ceiling, not just an idle timeout -- reshape-lesson's own tuning
-// history proves this (a prior 180s single-call attempt never fired its own
-// AbortController because the gateway 504'd the whole invocation first, see
-// reshape-lesson/index.ts). That means the budget below is a ceiling on the
-// ENTIRE attempt sequence (all retries + backoff + fallback combined) per
-// call site, not a per-attempt allowance repeated N times.
+// Latency budget: reshape-lesson's own tuning history is the authoritative
+// evidence here, not vendor docs -- a real 180s single-call attempt (tuned
+// 2026-05-18) never fired its own AbortController because Supabase's gateway
+// 504'd the whole invocation first, at or under ~150-180s (see
+// reshape-lesson/index.ts). Supabase's currently-published docs (checked
+// 2026-07-16, supabase.com/docs/guides/functions/limits) state a 400s
+// wall-clock limit for Edge Functions on the Pro plan, separate from a 2s
+// CPU-time cap that doesn't constrain I/O-bound Anthropic calls -- but that
+// number directly contradicts this project's own dated production incident,
+// so it is NOT treated as authoritative here. The budgets below stay
+// conservative under the empirically-observed ~150s ceiling regardless of
+// what current docs claim; anyone raising them in the future should
+// re-verify empirically (a deliberate single-call timing test) rather than
+// trust either number blindly. That means the budget below is a ceiling on
+// the ENTIRE attempt sequence (all retries + backoff + fallback combined)
+// per call site, not a per-attempt allowance repeated N times.
 //
 // Two functions (reshape-lesson, generate-devotional) already have
 // empirically-tuned single-call timeouts (140s / 120s) sized for a
@@ -84,7 +93,8 @@ export type RetryCallSite =
 
 export const RETRY_CONFIG = {
   // Overall wall-clock budget (ms) for the ENTIRE attempt sequence per call
-  // site, chosen to stay under Supabase's ~150s ceiling.
+  // site, chosen to stay under the empirically-observed ~150s ceiling (see
+  // the file-header comment above -- not the vendor-documented 400s figure).
   totalBudgetMs: {
     reshapeLesson: 145_000,
     devotional: 145_000,
