@@ -687,7 +687,7 @@ export function DevotionalGenerator() {
       <UpgradePromptModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
-        trigger="feature_teaser"
+        trigger="devotionalLibrary"
       />
     </div>
   );

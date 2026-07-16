@@ -81,7 +81,7 @@ export default function TeachingTeam() {
         <UpgradePromptModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
-          trigger="feature_teaser"
+          trigger="teachingTeam"
         />
       </div>
     </AppShell>
