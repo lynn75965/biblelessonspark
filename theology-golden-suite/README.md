@@ -174,6 +174,8 @@ the follow-up lands.
   most doctrinally live passages. **APPROVED 2026-07-16** (all 6; see
   MANIFEST.json).
 - Batch 2: same three profiles × Ephesians 2 + Psalm 23 (6 fixtures).
+  **APPROVED 2026-07-16** (all 6; see MANIFEST.json). Surfaced the Psalm
+  23 control-divergence question -- see Finding #5 below.
 - Batch 3+: remaining 9 profiles × 4 passages (36 fixtures), ordered
   Southern Baptist 1963/2000 (documented historical drift risk) → CBF
   (orthogonal distinctive axis) → Regular Baptist GARBC → the four
@@ -223,6 +225,37 @@ the follow-up lands.
    back. A small addition to `generate-lesson/index.ts` (persist
    `phase2Result.modelUsed` the same way Phase 1's is persisted) would
    close this; out of scope this session per the scope fence.
+5. **Psalm 23 control cell does not converge across profiles --
+   possible over-injection.** Discovered during Batch 2 review,
+   2026-07-16. Psalm 23 was chosen specifically as the "doctrinally
+   neutral control" passage that "all profiles should converge" on (see
+   Anchor passages above). In practice, the Reformed Baptist and
+   Primitive Baptist Batch 2 fixtures both weave full TULIP vocabulary
+   into the psalm -- irresistible grace, particular redemption,
+   perseverance of the saints, unconditional election -- none of which
+   the text itself calls for, and the Free Will Baptist fixture puts a
+   conditional-security caveat directly in its lesson title ("The
+   Shepherd Who Never Lets Go -- Unless You Walk Away") against a verse
+   (23:6) that reads as unconditional on its face. Lynn's ruling on
+   Batch 2 (2026-07-16): approved all three as within the range of
+   emphasis rather than distortion, but logged this as a standing
+   open question for the theology prompt/guardrail layer, not resolved
+   here -- see "What this suite is NOT." Future batches should keep
+   judging each Psalm 23 fixture individually against this same
+   emphasis-vs-distortion line rather than assuming Batch 2's outcome
+   generalizes; if a future profile's Psalm 23 fixture crosses further
+   into distortion, that becomes the concrete case for a prompt-tuning
+   session to address guardrail over-injection on low-doctrinal-density
+   passages.
+6. **All 12 fixtures generated so far run longer than the documented
+   8-section word target.** CLAUDE.md's 8-Section Lesson Framework
+   documents a 2,100-3,090 word total target. Every fixture in Batch 1
+   and Batch 2 (12 of 12) lands between 3,112 and 3,453 words --
+   consistently above that range, not a one-off. Pre-existing pipeline
+   behavior, not something this suite's fixtures introduced or can fix
+   (this suite never touches prompts -- see "What this suite is NOT").
+   Logged as a standing finding and a candidate for whichever future
+   session next tunes the generation prompts.
 
 ## File map
 

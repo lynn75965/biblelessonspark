@@ -56,6 +56,60 @@
       "reviewer_notes": "Approved by Lynn, Batch 1 review, 2026-07-16.",
       "generated_at": "2026-07-16T00:04:07.761Z",
       "fixture_hash": "7ccb87d5c6c74183"
+    },
+    {
+      "profile_id": "reformed-baptist",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/reformed-baptist/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16.",
+      "generated_at": "2026-07-16T11:19:02.428Z",
+      "fixture_hash": "41457fdb6c0e1b4a"
+    },
+    {
+      "profile_id": "reformed-baptist",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/reformed-baptist/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16. TULIP vocabulary woven into this Psalm 23 control cell was reviewed and judged emphasis, not distortion -- see B6 finding #5 (Psalm 23 control divergence) in README.md.",
+      "generated_at": "2026-07-16T11:22:07.770Z",
+      "fixture_hash": "41457fdb6c0e1b4a"
+    },
+    {
+      "profile_id": "primitive-baptist",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/primitive-baptist/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16.",
+      "generated_at": "2026-07-16T11:24:38.308Z",
+      "fixture_hash": "287d74969306378a"
+    },
+    {
+      "profile_id": "primitive-baptist",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/primitive-baptist/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16. Explicit TULIP framing (including 'the shepherd claims the sheep' monergism) in this Psalm 23 control cell was reviewed and judged emphasis, not distortion -- see B6 finding #5 (Psalm 23 control divergence) in README.md.",
+      "generated_at": "2026-07-16T11:26:49.086Z",
+      "fixture_hash": "287d74969306378a"
+    },
+    {
+      "profile_id": "free-will-baptist",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/free-will-baptist/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16.",
+      "generated_at": "2026-07-16T11:29:15.017Z",
+      "fixture_hash": "7ccb87d5c6c74183"
+    },
+    {
+      "profile_id": "free-will-baptist",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/free-will-baptist/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16. Conditional-security framing in the title itself ('The Shepherd Who Never Lets Go -- Unless You Walk Away') on this Psalm 23 control cell was reviewed and judged emphasis, not distortion -- see B6 finding #5 (Psalm 23 control divergence) in README.md.",
+      "generated_at": "2026-07-16T11:31:16.484Z",
+      "fixture_hash": "7ccb87d5c6c74183"
     }
   ]
 }
