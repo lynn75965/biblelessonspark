@@ -8,8 +8,8 @@ two_phase: true
 supplements_completed: true
 pipeline_hash: e3fdd7c94a521b661d1cf97fa60f5dc4de4f923c858b88a7d5cc410354f2e0dd
 fixture_hash: 13b3a9bf3a3e5467
-vet_status: PENDING_REVIEW
-reviewer_notes: ""
+vet_status: APPROVED
+reviewer_notes: "Approved by Lynn, CBF batch review, 2026-07-16."
 ---
 ## Section 1: Lens + Lesson Overview
 

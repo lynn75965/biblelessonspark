@@ -110,6 +110,42 @@
       "reviewer_notes": "Approved by Lynn, Batch 2 review, 2026-07-16. Conditional-security framing in the title itself ('The Shepherd Who Never Lets Go -- Unless You Walk Away') on this Psalm 23 control cell was reviewed and judged emphasis, not distortion -- see B6 finding #5 (Psalm 23 control divergence) in README.md.",
       "generated_at": "2026-07-16T11:31:16.484Z",
       "fixture_hash": "7ccb87d5c6c74183"
+    },
+    {
+      "profile_id": "cbf",
+      "passage_slug": "romans-9",
+      "path": "fixtures/cbf/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, CBF batch review, 2026-07-16.",
+      "generated_at": "2026-07-16T13:07:33.039Z",
+      "fixture_hash": "13b3a9bf3a3e5467"
+    },
+    {
+      "profile_id": "cbf",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/cbf/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, CBF batch review, 2026-07-16.",
+      "generated_at": "2026-07-16T13:09:34.283Z",
+      "fixture_hash": "13b3a9bf3a3e5467"
+    },
+    {
+      "profile_id": "cbf",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/cbf/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, CBF batch review, 2026-07-16.",
+      "generated_at": "2026-07-16T13:11:39.008Z",
+      "fixture_hash": "13b3a9bf3a3e5467"
+    },
+    {
+      "profile_id": "cbf",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/cbf/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, CBF batch review, 2026-07-16. Non-doctrinally-loaded control rendering noted as a useful contrast point for B6 finding #5 (Psalm 23 control divergence).",
+      "generated_at": "2026-07-16T13:34:45.120Z",
+      "fixture_hash": "13b3a9bf3a3e5467"
     }
   ]
 }
