@@ -1,35 +1,32 @@
-# PROJECT MASTER -- Last updated: July 16, 2026 (Session: B8 capacity recheck -- COMPLETE, fail-closed quota + truncation detection + capacity_events deployed and verified)
+# PROJECT MASTER -- Last updated: July 16, 2026 (Session: GATE 2 COMPLETE -- legal pages audit closed the last remaining item)
 
-## >>> RESUME HERE <<< -- B8 capacity recheck is now COMPLETE. Shipped:
-fail-closed quota check (subscriptionCheck.ts no longer grants 999
-lessons on RPC error; honest CAPACITY_UNAVAILABLE message), truncation
-detection (stop_reason) across generate-lesson/devotional/parable/
-extract-lesson with the approved behavior split (Phase 1 fails cleanly,
-Phase 2 degrades gracefully with a visible inline banner above Section
-6), and a new capacity_events table with emission wired at every quota
-rejection/rate-limit breach/truncation/terminal-failure across all four
-generators -- including generate-parable, which previously persisted
-nothing at all on failure. All four functions deployed and confirmed
-clean: generate-lesson v183, generate-devotional v33, generate-parable
-v60, extract-lesson v32. The anon 3/day/IP rate limit was end-to-end
-verified live (see the July 16 B8 session log below for the full
-account, including a false-alarm mid-session where an apparently-failed
-test turned out to be a leftover authenticated session, not a code
-defect). modelConfig.ts's stale timeout comment was also corrected,
-surfacing a real conflict between vendor docs (400s Pro-plan limit) and
-this project's own empirical incident (a 2026-05-18 180s call hitting a
-504 at ~150-180s) -- flagged as a standing observation, not resolved.
-CAPTCHA was scoped out mid-session once community evidence showed
-Supabase's enforcement is account-wide, not signup-only (see backlog
-below).
+## >>> RESUME HERE <<< -- GATE 2 IS FULLY COMPLETE. Legal pages
+confirmation (the last remaining Gate 2 item) closed out this session:
+a factual-accuracy audit of Terms of Service, Privacy Policy, and
+Cookie Policy against actual current data practices (including what B7
+and B8 just added) found and fixed one real code-level gap
+(`devotional_metrics` had no FK to `auth.users` at all, so rows
+survived account deletion forever, fully identified, contradicting the
+Privacy Policy's own deletion promise -- fixed via a new FK with
+`ON DELETE SET NULL`, same precedent as `capacity_events`), one
+seriously stale/inaccurate page (`Cookie.tsx` falsely claimed
+"analytics cookies" and cookie-based authentication existed -- neither
+does; rewritten truthfully and aligned to the other two pages'
+template), a signup-consent gap (implied-only, no checkbox -- now an
+affirmative required checkbox wired into the existing agreement
+sentence), and two new Privacy Policy disclosures naming B7's
+conversion-tracking session identifier and B8's IP-based rate
+limiting explicitly. All four changes deployed via `deploy.ps1` after
+Lynn's live click-through verification passed. See the July 16 legal
+audit session log below for the full account.
 
-B7 conversion infra and B6 theology golden suite are also COMPLETE (see
-their own session logs below for full accounts).
+B8 capacity recheck, B7 conversion infra, and B6 theology golden suite
+are all COMPLETE (see their own session logs below for full accounts).
 
-Gate 2 remaining work: legal pages confirmation ONLY. B6's own standing
-findings (below and in theology-golden-suite/README.md) and B7's
-adjacent finding #1 (events table RLS, below) are follow-up candidates,
-not blockers.
+**Gate 2 has zero remaining items.** B6's own standing findings (below
+and in theology-golden-suite/README.md) and B7's adjacent finding #1
+(events table RLS, below) are follow-up candidates, not blockers --
+Gate 2 itself does not depend on any of them.
 
 Gate 1 (B1-B5) was fully shipped July 15, 2026 -- see that session's own
 entry below for the full account. Two non-blocking backlog items carry
@@ -215,13 +212,132 @@ forward from Gate 1 (neither gates Gate 2):
   Neither is wired into any live function. Not urgent; flagged so a
   future session doesn't mistake either for the live enforcement path.
 
-Gate 2 remaining work: legal pages confirmation ONLY. B7 conversion
+  NEW STANDING BACKLOG (logged 2026-07-16, Gate 2 legal audit session --
+  deferred, not fixed): checkout-time Terms/Privacy consent touchpoint.
+  The audit found checkout has zero Terms/Privacy reference despite the
+  ToS's own Section 1 framing "purchasing a subscription" as an
+  independent point of agreement -- signup now has an affirmative
+  checkbox (shipped this session), but checkout still relies entirely
+  on that earlier consent. Lynn's ruling: log to backlog, do not
+  implement this session.
+
+  NEW LOW/architecture (logged 2026-07-16, Gate 2 legal audit adjacent
+  finding, not fixed): two near-duplicate Footer components exist --
+  `src/components/Footer.tsx` (used only by `Auth.tsx`) and
+  `src/components/layout/Footer.tsx` (used by the homepage and most
+  other pages) -- same links, same labels, both reading from the same
+  `footerLinks.ts` SSOT. Code hygiene only, not a disclosure or linking
+  gap (both correctly link all three legal pages).
+
+Gate 2 remaining work: NONE. Legal pages confirmation, B7 conversion
 infra, B6 theology golden suite, and B8 capacity recheck are all
 COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 16, 2026 SESSION (LATEST) -- B8 CAPACITY RECHECK: COMPLETE -- fail-closed quota, truncation detection, capacity_events across all four generators; anon rate limit verified live
+## JULY 16, 2026 SESSION (LATEST) -- GATE 2 COMPLETE: legal pages factual-accuracy audit -- devotional_metrics FK fix, signup consent checkbox, Cookie Policy rewrite, Privacy Policy disclosures
+
+GOAL: Gate 2's final item -- verify the legal pages are present,
+reachable, and factually accurate against what the platform actually
+does today, including data practices B7/B8 just added. Factual-accuracy
+audit, not legal drafting; judgment calls routed to Lynn, anything
+exceeding factual review flagged for counsel.
+
+### Phase 1 -- audit (read-only)
+Inventoried three pages: Privacy Policy and Terms of Service
+(`src/pages/PrivacyPolicy.tsx`, `TermsOfService.tsx`, both rewritten
+July 13, 2026) and Cookie Policy (`src/pages/legal/Cookie.tsx`,
+content untouched since October 2025). All three correctly routed and
+linked from both Footer components' shared `footerLinks.ts` SSOT.
+Two parallel research threads plus direct reading of all three pages
+found:
+- `Cookie.tsx` made two affirmatively false claims -- "analytics
+  cookies help us understand how visitors interact with our site" (no
+  analytics technology of any kind exists anywhere in the codebase)
+  and cookies "authenticate users" (auth sessions live in localStorage,
+  not a cookie) -- directly contradicting the newer Privacy Policy's
+  own Section 8, which implies analytics aren't in use yet. The app's
+  own code sets exactly one cookie total: a sidebar-collapse UI
+  preference.
+- `devotional_metrics.user_id` had no foreign key to `auth.users` at
+  all -- rows survived account deletion forever, fully identified,
+  contradicting the Privacy Policy Section 10 promise to "delete or
+  de-identify... within 30 days." The one place in the whole audit
+  where actual code contradicted a specific published promise, not
+  just a copy question.
+- Signup consent was implied-only: a passive sentence next to the
+  submit button, no checkbox, submission never gated on agreement.
+  Checkout had zero Terms/Privacy touchpoint at all.
+- B7's `conversion_events` (session-correlation identifier) and B8's
+  `capacity_events`/`rate_limits` (IP retention for authenticated users
+  too, not just anonymous) were covered only in generic terms, not
+  named specifically.
+- Confirmed accurate and requiring no action: Anthropic AI-processing
+  disclosure (thorough, matches the 6-generator architecture exactly),
+  Stripe cancellation timing (matches `stripe-webhook`'s actual
+  `customer.subscription.deleted`-vs-`updated` handling precisely),
+  and the ToS's deliberate non-hardcoding of tier names/pricing
+  (Section 4 defers entirely to "the pricing page shown at the time of
+  purchase" -- zero SSOT drift risk by design).
+
+Delivered an inventory table, severity-ranked discrepancy list, a
+CC-can-draft vs. Lynn's-call breakdown, and an explicit note on what
+exceeds factual review (consent-mechanism legal sufficiency; the
+tradeoff between fixing code vs. narrowing a published promise for the
+`devotional_metrics` gap). Held for rulings.
+
+### Phase 1 rulings
+`devotional_metrics`: fix the code, promise stands (in scope --
+explicitly the one place code contradicts a published promise). Signup
+consent: affirmative checkbox, required, submission blocked until
+checked; checkout-time consent touchpoint logged to backlog instead.
+Explicit disclosures: draft plain-language Privacy Policy additions for
+both B7's and B8's new data practices. Cookie.tsx truthful rewrite,
+BRANDING SSOT email import in ToS/Privacy, and payment-card wording
+precision all approved as proposed.
+
+### Phase 2 -- drafting (approved as one package, with one correction)
+Presented all six items in one report for review: the migration SQL,
+the checkbox design (reusing the existing agreement sentence as the
+checkbox's label rather than duplicating copy), both new Privacy
+Policy bullets verbatim, the full Cookie.tsx rewrite, and the payment
+wording. Lynn's one correction: the Cookie.tsx rewrite must preserve
+its existing correct use of `BRANDING.contact.supportEmail` for the
+contact section rather than regressing to a hardcoded literal.
+
+### Phase 3 -- implementation
+Migration `20260716210000_devotional_metrics_user_fk.sql`: pre-flight
+orphan check found 0 existing rows referencing already-deleted
+accounts (the de-identification UPDATE ships anyway as a defensive
+no-op); dropped the `NOT NULL` constraint (required for `ON DELETE SET
+NULL` to ever apply) and added the FK. No `admin-delete-user`
+manual-list entry needed -- confirmed that function's Step 4 already
+calls `auth.admin.deleteUser()`, which fires the new FK automatically
+and unconditionally, the same reasoning already documented for
+`conversion_events`. Applied and verified live
+(`confdeltype = 'n'` in `pg_constraint`).
+
+Four atomic commits: `a3f479c` (migration), `a42305c` (signup
+checkbox -- wired into `Auth.tsx`'s existing agreement sentence, unchecked
+by default, blocks submission with a visible `role="alert"` error and
+moves focus to the checkbox on failure per Rule #22), `151e409`
+(Privacy Policy's two new Section 2.5 bullets + BRANDING SSOT email
+import + payment wording in both ToS and Privacy), `260ba8c` (Cookie
+Policy full rewrite, aligned to the other two pages' visual template,
+dated July 16, 2026, preserving the `BRANDING.contact.supportEmail`
+import per Lynn's correction). Build clean, ASCII guard clean on every
+commit. Deployed via `deploy.ps1` after Lynn's live click-through
+verification passed (all three pages render correctly, checkbox blocks
+submission with the right error and keyboard focus, new bullets
+render). CI green on `260ba8c`.
+
+### Gate 2 is now COMPLETE
+All four items -- B6 theology golden suite, B7 conversion infra, B8
+capacity recheck, and legal pages confirmation -- are shipped, deployed,
+and verified. Two new backlog items logged (checkout consent
+touchpoint; duplicate Footer component cleanup), both non-blocking.
+
+## JULY 16, 2026 SESSION -- B8 CAPACITY RECHECK: COMPLETE -- fail-closed quota, truncation detection, capacity_events across all four generators; anon rate limit verified live
 
 GOAL: Gate 2's B8 item -- verify the platform can absorb a surge of new
 users without falling over, make capacity limits visible before they're
