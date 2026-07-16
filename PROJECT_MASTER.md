@@ -158,12 +158,31 @@ forward from Gate 1 (neither gates Gate 2):
   uses a separate, working table (`conversion_events`, Pattern B --
   service-role/RPC writes only) and does not touch or depend on `events`.
 
+  NEW STANDING BACKLOG (logged 2026-07-16, B8 session -- deferred, not
+  fixed): Signup CAPTCHA (Turnstile) -- deferred from B8. Verified via
+  community evidence that Supabase captcha enforcement is account-wide
+  (signup + sign-in + recovery gated together); requires Turnstile
+  wiring in sign-in and password-recovery flows too. Dedicated session
+  must (a) empirically verify enforcement scope in a throwaway Supabase
+  project first, (b) design the returning-user UX, (c) plan a rollout
+  that cannot lock out existing users. Evidence found: a Supabase
+  community discussion reporting plain signInWithPassword calls failing
+  with a captcha error once hCaptcha was enabled, with no captchaToken
+  involved in that call at all --
+  https://github.com/orgs/supabase/discussions/20816 -- plus GoTrue's
+  own /signup, /token, and /recover endpoints all accepting/requiring
+  captcha_token under the same gotrue_meta_security mechanism (Supabase
+  Auth server docs/behavior, confirmed via web search, no source found
+  anywhere stating enforcement can be scoped to signup only).
+
 Gate 2 remaining work: B7 conversion infra is COMPLETE (see session log
-immediately below). B8 capacity recheck and legal pages confirmation
-remain. B6 theology golden suite's fixture-generation phase is also done
-(see the July 16 B6 session below it); its own standing findings
-(numbered in theology-golden-suite/README.md) are follow-up candidates,
-not Gate 2 blockers.
+immediately below). B8 capacity recheck (in progress -- items 1-3 and 5
+underway, CAPTCHA removed from scope per the backlog item above) and
+legal pages confirmation remain. B6 theology golden suite's
+fixture-generation phase is also done (see the July 16 B6 session below
+it); its own standing findings (numbered in
+theology-golden-suite/README.md) are follow-up candidates, not Gate 2
+blockers.
 
 ## JULY 16, 2026 SESSION (LATEST) -- B7 CONVERSION INFRA: COMPLETE -- checkout_started deployed and verified live; prior session's work reconstructed from disk after a mid-task loss
 
