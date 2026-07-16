@@ -1080,9 +1080,9 @@ Warm, pastoral, thoughtful, and inclusive. Honor freedom of conscience, cooperat
     shortName: "GARBC",
     displayOrder: 12,
     isDefault: false,
-    summary: "The General Association of Regular Baptist Churches (GARBC), whose Articles of Faith are the doctrinal standard. Hallmarks: verbal-plenary inspiration and biblical inerrancy, cessationism, literal six-day creation with a historical Adam, eternal security, two ordinances by immersion, autonomous local-church congregationalism, biblical personal and ecclesiastical separation, Israel distinct from the church, and dispensational premillennial / pretribulational eschatology.",
+    summary: "The General Association of Regular Baptist Churches (GARBC), whose Articles of Faith are the doctrinal standard. Hallmarks: verbal-plenary inspiration and biblical inerrancy, total depravity and God's sovereign initiative in the new birth, eternal security, cessationism, literal six-day creation with a historical Adam, two ordinances by immersion, autonomous local-church congregationalism, biblical personal and ecclesiastical separation, Israel distinct from the church, and dispensational premillennial / pretribulational eschatology. Moderately Calvinistic -- deliberately not five-point; the extent of the atonement and the mechanics of individual election are left open by the Articles.",
     securityDoctrine: 'eternal',
-    tulipStance: 'anti',
+    tulipStance: 'partial',
     badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
     avoidTerminology: [
       "replacement theology",
@@ -1093,7 +1093,14 @@ Warm, pastoral, thoughtful, and inclusive. Honor freedom of conscience, cooperat
       // CRITICAL: Baptists use "ordinance" not "sacrament" (except Reformed Baptist)
       "sacrament",
       "sacraments",
-      "Eucharist"
+      "Eucharist",
+      // GARBC is moderately Calvinistic, deliberately not five-point (Articles
+      // of Faith have no article on individual election) -- see the Election
+      // and Regeneration sections of filterContent below.
+      "limited atonement",
+      "particular redemption",
+      "irresistible grace",
+      "unconditional election"
     ],
     preferredTerminology: {
       "communion": "the Lord's Supper",
@@ -1114,7 +1121,11 @@ Warm, pastoral, thoughtful, and inclusive. Honor freedom of conscience, cooperat
       "Frames amillennialism, postmillennialism, or post-tribulationism as this profile's eschatology",
       "Teaches annihilationism or universalism, or denies the everlasting conscious punishment of the lost",
       "Presents biblical separation as legalism to apologize for rather than as obedience to God",
-      "Presents baptism by sprinkling, pouring, or infant baptism as valid"
+      "Presents baptism by sprinkling, pouring, or infant baptism as valid",
+      "Presents limited atonement or particular redemption as this profile's position, or states that Christ's atonement was intended only for the elect",
+      "Presents irresistible grace as this profile's stated doctrine, or denies that saving faith involves the sinner's voluntary response to the gospel",
+      "Presents unconditional individual election or predestination to salvation as this profile's settled doctrine outside Scripture's own corporate/national application to Israel, or asserts double predestination or reprobation as decreed apart from human response",
+      "Denies total depravity, or presents the new birth as originating in human decision rather than the sovereign, Spirit-wrought work of God"
     ],
     filterContent: `## THEOLOGICAL LENS: Regular Baptist (GARBC)
 
@@ -1136,7 +1147,13 @@ Literal, historical, direct creation without any evolutionary process; Genesis 1
 All people are totally depraved in Adam, sinners by nature and by conduct, under just condemnation.
 
 ### Salvation
-Divinely initiated and wholly of grace through faith in the Lord Jesus Christ alone; voluntary substitutionary atonement -- Christ bore our sins in His own body on the tree; repentance is a Spirit-prompted change of mind integral to saving faith; the new birth is instantaneous, not a process. Justification is God's judicial declaration based on Christ's imputed righteousness, never works.
+Divinely initiated and wholly of grace (Art. VIII, X) -- the sinner contributes nothing to his own salvation. Christ's substitutionary atonement on the cross fully satisfies God's just demands regarding sin; He is an all-sufficient Savior, and faith in Him is the only condition of salvation (Art. VIII). The Articles leave the intended extent of the atonement open and do not require particular redemption -- never assert limited atonement or particular redemption as this profile's position. Repentance is a Spirit-prompted change of mind integral to saving faith; the new birth is instantaneous, not a process. Justification is God's judicial declaration based on Christ's imputed righteousness, never works.
+
+### Regeneration
+The new birth is brought about by our sovereign God, not by any work of ours, solely by the power of the Holy Spirit acting upon the sinner (Art. X). This sovereign work secures the sinner's voluntary obedience to the gospel -- regeneration is God's act, but the response it produces is genuinely the sinner's own willing response, not a coerced one. Never assert irresistible grace as this profile's stated doctrine; the Articles deliberately hold divine sovereignty and human responsibility together without resolving the mechanism.
+
+### Election
+The Articles of Faith contain no article on individual election or predestination to salvation. This is deliberate, not an oversight -- GARBC formed in 1932 as a fundamentalist separatist fellowship whose Articles were written to hold together churches ranging from moderately Calvinistic to leaning-Arminian-on-the-atonement, united around biblical inerrancy, separation, and dispensational premillennialism rather than around a settled TULIP position. Never assert unconditional individual election or predestination to salvation as this profile's settled doctrine. Where Scripture uses election/sovereign-selection language (e.g., Romans 9, Art. XVIII), the on-profile reading is corporate and dispensational -- God's sovereign selection of Israel as a nation -- not a decree of which individuals will be saved. Teachers may present Romans 9's argument as Paul makes it (God's sovereign freedom to show mercy, corporate election of Israel, the remnant principle) without extending it into a settled individual-soteriological position the Articles do not take.
 
 ### Security
 All who are truly born again are kept by God the Father for Jesus Christ. Never suggest a true believer can lose salvation.
@@ -1154,7 +1171,7 @@ Obedience to the biblical commands of personal separation from worldliness and e
 Divinely appointed; pray for, honor, and obey magistrates except where commands oppose the will of the Lord Jesus Christ.
 
 ### Israel
-Israel is God's eternal covenant people, distinct from the church; now dispersed, to be regathered and saved as a nation at Christ's second advent. NEVER present replacement theology or supersessionism; never identify the church as the new Israel or spiritual Israel.
+Israel is God's eternal covenant people, distinct from the church; now dispersed, to be regathered and saved as a nation at Christ's second advent. NEVER present replacement theology or supersessionism; never identify the church as the new Israel or spiritual Israel. See Election above -- this national/corporate sovereign selection is distinct from, and does not resolve, the question of individual soteriological election, which the Articles leave open.
 
 ### Eschatology
 Dispensational premillennialism. Pretribulational rapture of the church, imminent (any-moment); a seven-year Tribulation follows; premillennial return of Christ in power to sit on David's throne and establish His earthly kingdom. Never frame amillennialism, postmillennialism, or post-tribulationism as this profile's view.
@@ -1596,7 +1613,11 @@ ${profile.guardrails.map(g => `- ${g}`).join('\n')}
 Before outputting the lesson, verify:
 1. No prohibited terminology appears in any section
 2. Required substitutions are applied consistently
-3. ${profile.tulipStance === 'anti' ? 'No TULIP/Calvinist terminology is present' : 'Reformed/TULIP terminology is used appropriately'}
+3. ${
+  profile.tulipStance === 'pro' ? 'Reformed/TULIP terminology is used appropriately' :
+  profile.tulipStance === 'partial' ? 'Total Depravity and God\'s sovereign initiative in the new birth are affirmed; Unconditional (individual) Election, Limited Atonement, and Irresistible Grace are NOT asserted as this profile\'s position' :
+  'No TULIP/Calvinist terminology is present'
+}
 4. Security doctrine reflects: ${profile.securityDoctrine === 'eternal' ? 'Eternal Security (once saved, always saved)' : profile.securityDoctrine === 'conditional' ? 'Conditional Security (salvation can be forfeited through persistent unbelief)' : 'Perseverance of the Saints (the truly elect will persevere)'}
 5. Content aligns with the theological lens described above
 6. No non-Baptist terminology appears (see Baptist Terminology Guardrails below)

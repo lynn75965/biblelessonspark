@@ -106,8 +106,12 @@ export type SecurityDoctrine = 'eternal' | 'conditional' | 'perseverance';
  * TULIP stance across profiles.
  * 'anti' = rejects Calvinistic terminology
  * 'pro' = embraces Reformed/TULIP terminology
+ * 'partial' = affirms Total Depravity and Perseverance but leaves
+ *   Unconditional (individual) Election, Limited Atonement, and
+ *   Irresistible Grace deliberately unstated (e.g. GARBC's Articles of
+ *   Faith -- moderately Calvinistic, not five-point)
  */
-export type TulipStance = 'anti' | 'pro';
+export type TulipStance = 'anti' | 'pro' | 'partial';
 
 // ============================================================================
 // TIER 2: Bible Version Contracts
