@@ -504,6 +504,21 @@ If the function also accepts client-supplied `success_url`/`cancel_url`
 create-checkout-session/index.ts or create-org-checkout-session/index.ts
 for the reference implementation of both gates.
 
+### Rule #31: Admin-observable by design
+Added July 16, 2026. Lynn will administer surge operations from the Admin
+Panel (Configuration / Analytics / Security / Growth tabs). Therefore all
+Gate 2 work (B6 finding #3 runtime verification, B7 conversion infra, B8
+capacity gauges) and any future security rejection paths MUST persist
+their events/metrics to queryable tables at build time -- never
+console.error only -- so the Admin Panel can read them later without a
+retrofit. Applies going forward to any new event/metric a session adds,
+not just the three named above. The Admin Panel UI work itself
+(Configuration: AI service status + rate-limit gauges; Analytics:
+generation health + surge trends; Security: security events feed
+expansion + theology violations; Growth: funnel) is scoped as its own
+dedicated post-Gate-2 session -- do not build Admin Panel UI as a side
+effect of Gate 2 work; persist the data, leave the UI for that session.
+
 ---
 
 ## DEBUGGING PROTOCOL

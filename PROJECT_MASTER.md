@@ -110,6 +110,20 @@ Two non-blocking backlog items carry forward (neither gates Gate 2):
   deferred to its own dedicated session, never bundled into a security
   fix. Track it here as backlog, not urgency.
 
+  NEW STANDING BACKLOG (logged 2026-07-16, design principle -- not a
+  Gate 2 blocker, applies to all Gate 2 work going forward, see CLAUDE.md
+  Rule #31): "Admin-observable by design." Lynn will administer surge
+  operations from the Admin Panel (Configuration / Analytics / Security /
+  Growth tabs). Therefore B6 finding #3's runtime verification, B7
+  conversion infra, B8 capacity gauges, and any future security rejection
+  paths must persist their events/metrics to queryable tables at build
+  time -- not console.error only -- so the Admin Panel can read them
+  later without retrofitting. The Admin Panel UI work itself (AI service
+  status + rate-limit gauges on Configuration; generation health + surge
+  trends on Analytics; security events feed expansion + theology
+  violations on Security; funnel on Growth) is a dedicated post-Gate-2
+  session -- not started now; Gate 2 completion remains the priority.
+
 B5 items 4-6 remain before Gate 2 (B6 theology golden suite, B7 conversion
 infra, B8 capacity recheck, legal pages confirmation) can start.
 
