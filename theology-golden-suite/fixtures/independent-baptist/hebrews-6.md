@@ -8,8 +8,10 @@ two_phase: true
 supplements_completed: true
 pipeline_hash: 2e9feb75d4d18b5a1fd4f03bdffae818ae44b2c77f0ae2053ae6c93e2259c4a5
 fixture_hash: df237865565a756e
-vet_status: PENDING_REVIEW
-reviewer_notes: ""
+vet_status: APPROVED
+reviewer_notes: "Approved by Lynn, 2026-07-16."
+known_false_positives: "covenant theology"
+known_false_positives_notes: "Section 3 reads '...the author argues from Levitical priesthood, Melchizedek, and covenant theology throughout' -- this describes the content of the biblical book of Hebrews itself, not an assertion that Independent Baptist's own system is covenant theology (which the profile is correctly dispensational and blocks). Reviewed and confirmed a false positive by Lynn, 2026-07-16. See README.md 'Known checker limitation: negation context.'"
 ---
 ## Section 1: Lens + Lesson Overview
 

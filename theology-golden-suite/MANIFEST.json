@@ -182,6 +182,152 @@
       "reviewer_notes": "Approved by Lynn, 2026-07-16. Doctrinally loaded (covenant theology, hesed, eternal security, atonement) but on-profile, not off-axis -- noted as a third Finding #5 data point alongside Reformed/Primitive Baptist (TULIP-loaded) and CBF (plain).",
       "generated_at": "2026-07-16T14:51:31.221Z",
       "fixture_hash": "b65278bad174c864"
+    },
+    {
+      "profile_id": "national-baptist-convention",
+      "passage_slug": "romans-9",
+      "path": "fixtures/national-baptist-convention/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:08:16.284Z",
+      "fixture_hash": "9495869f06cd04dc"
+    },
+    {
+      "profile_id": "national-baptist-convention",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/national-baptist-convention/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:10:24.587Z",
+      "fixture_hash": "9495869f06cd04dc"
+    },
+    {
+      "profile_id": "national-baptist-convention",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/national-baptist-convention/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:12:30.336Z",
+      "fixture_hash": "9495869f06cd04dc"
+    },
+    {
+      "profile_id": "national-baptist-convention",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/national-baptist-convention/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:14:40.189Z",
+      "fixture_hash": "9495869f06cd04dc"
+    },
+    {
+      "profile_id": "independent-baptist",
+      "passage_slug": "romans-9",
+      "path": "fixtures/independent-baptist/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:17:15.624Z",
+      "fixture_hash": "df237865565a756e"
+    },
+    {
+      "profile_id": "independent-baptist",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/independent-baptist/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:19:15.227Z",
+      "fixture_hash": "df237865565a756e",
+      "known_false_positives": ["covenant theology"]
+    },
+    {
+      "profile_id": "independent-baptist",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/independent-baptist/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:21:19.692Z",
+      "fixture_hash": "df237865565a756e"
+    },
+    {
+      "profile_id": "independent-baptist",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/independent-baptist/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:31:32.515Z",
+      "fixture_hash": "df237865565a756e"
+    },
+    {
+      "profile_id": "missionary-baptist",
+      "passage_slug": "romans-9",
+      "path": "fixtures/missionary-baptist/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:34:34.071Z",
+      "fixture_hash": "9cbc15c8cb0a883e",
+      "known_false_positives": ["determinism"]
+    },
+    {
+      "profile_id": "missionary-baptist",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/missionary-baptist/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:36:32.651Z",
+      "fixture_hash": "9cbc15c8cb0a883e"
+    },
+    {
+      "profile_id": "missionary-baptist",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/missionary-baptist/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:38:40.449Z",
+      "fixture_hash": "9cbc15c8cb0a883e"
+    },
+    {
+      "profile_id": "missionary-baptist",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/missionary-baptist/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:40:44.455Z",
+      "fixture_hash": "9cbc15c8cb0a883e"
+    },
+    {
+      "profile_id": "general-baptist",
+      "passage_slug": "romans-9",
+      "path": "fixtures/general-baptist/romans-9.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:43:31.562Z",
+      "fixture_hash": "4ff4c7452e159162"
+    },
+    {
+      "profile_id": "general-baptist",
+      "passage_slug": "hebrews-6",
+      "path": "fixtures/general-baptist/hebrews-6.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:45:33.852Z",
+      "fixture_hash": "4ff4c7452e159162"
+    },
+    {
+      "profile_id": "general-baptist",
+      "passage_slug": "ephesians-2",
+      "path": "fixtures/general-baptist/ephesians-2.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:47:39.695Z",
+      "fixture_hash": "4ff4c7452e159162"
+    },
+    {
+      "profile_id": "general-baptist",
+      "passage_slug": "psalm-23",
+      "path": "fixtures/general-baptist/psalm-23.md",
+      "vet_status": "APPROVED",
+      "reviewer_notes": "Approved by Lynn, 2026-07-16.",
+      "generated_at": "2026-07-16T15:49:39.396Z",
+      "fixture_hash": "4ff4c7452e159162"
     }
   ]
 }

@@ -8,8 +8,10 @@ two_phase: true
 supplements_completed: true
 pipeline_hash: 2e9feb75d4d18b5a1fd4f03bdffae818ae44b2c77f0ae2053ae6c93e2259c4a5
 fixture_hash: 9cbc15c8cb0a883e
-vet_status: PENDING_REVIEW
-reviewer_notes: ""
+vet_status: APPROVED
+reviewer_notes: "Approved by Lynn, 2026-07-16."
+known_false_positives: "determinism"
+known_false_positives_notes: "The word 'determinism' appears three times, all as explicit rejections: 'Distinguish between God's sovereign purposes and fatalistic determinism' (learning objective), 'not a closed system of determinism', 'distinguish between God's sovereign direction of history and fatalistic determinism' (comprehension check). The lesson names and rejects determinism, it never asserts it. Reviewed and confirmed a false positive by Lynn, 2026-07-16. See README.md 'Known checker limitation: negation context.'"
 ---
 ## Section 1: Lens + Lesson Overview
 
