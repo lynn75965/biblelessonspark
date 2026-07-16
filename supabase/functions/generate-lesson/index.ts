@@ -156,9 +156,10 @@ Integrity matters more than engagement. A teacher's credibility depends on it.
 `;
 }
 
-function buildCompressionRules(includeTeaser: boolean = false) {
-  const baseWordMin = getTotalMinWords();
-  const baseWordMax = getTotalMaxWords();
+function buildCompressionRules(includeTeaser: boolean = false, sections: any[] | null = null) {
+  const targetSections = sections ?? getRequiredSections();
+  const baseWordMin = targetSections.reduce((sum: number, s: any) => sum + s.minWords, 0);
+  const baseWordMax = targetSections.reduce((sum: number, s: any) => sum + s.maxWords, 0);
 
   return `
 -------------------------------------------------------------------------------
@@ -172,9 +173,10 @@ RULE 1: REDUNDANCY PREVENTION BY ARCHITECTURE
 
 RULE 2: WORD BUDGET ENFORCEMENT (HARD CAP)
 - Each section has MANDATORY min/max word limits - RESPECT BOTH THE MIN AND THE MAX
-- Total lesson target: ${baseWordMin}-${baseWordMax} words
-- HARD CAP: do NOT exceed ~3,200 words total across all sections. Stop when the
-  lesson is complete -- do not pad, do not over-explain, do not exceed any section maximum.
+- Total target for this generation: ${baseWordMin}-${baseWordMax} words
+- HARD CAP: do NOT exceed ${baseWordMax + 100} words total across the sections generated in
+  this call. Stop when the lesson is complete -- do not pad, do not over-explain, do not
+  exceed any section maximum.
 - Going over budget causes timeouts and truncation failures
 
 RULE 3: SECTION PURPOSE INTEGRITY
@@ -769,7 +771,7 @@ serve(async (req) => {
     const phase1EffectiveTeaser = usesTwoPhase ? false : effectiveTeaser;
     const staticSystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
 
-${buildCompressionRules(phase1EffectiveTeaser)}
+${buildCompressionRules(phase1EffectiveTeaser, phase1Sections)}
 
 ${buildTruthGuardrails()}
 
@@ -1401,7 +1403,7 @@ ${styleExtractionPromptAddition}
 
             const phase2SystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
 
-${buildCompressionRules(effectiveTeaser)}
+${buildCompressionRules(effectiveTeaser, phase2Sections)}
 
 ${buildTruthGuardrails()}
 
