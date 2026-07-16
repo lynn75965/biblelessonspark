@@ -17,31 +17,45 @@ export interface CheckResult {
   violations: Violation[];
 }
 
-function findContext(haystack: string, needle: string): string | undefined {
-  const idx = haystack.toLowerCase().indexOf(needle.toLowerCase());
-  if (idx === -1) return undefined;
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Word-boundary-anchored, case-insensitive. Plain substring matching would
+// false-positive "conditional election" inside "UNconditional election" --
+// a required phrase for several profiles containing a banned one as a
+// literal substring. \b correctly does NOT match between "un" and
+// "conditional" (both word characters, no boundary), so this fixes that
+// whole class of false positive without needing a manual exceptions list.
+function findMatch(haystack: string, term: string): RegExpMatchArray | null {
+  const pattern = new RegExp(`\\b${escapeRegex(term)}\\b`, 'i');
+  return haystack.match(pattern);
+}
+
+function findContext(haystack: string, match: RegExpMatchArray): string {
+  const idx = match.index ?? 0;
   const start = Math.max(0, idx - 40);
-  const end = Math.min(haystack.length, idx + needle.length + 40);
+  const end = Math.min(haystack.length, idx + match[0].length + 40);
   return haystack.slice(start, end).replace(/\s+/g, ' ').trim();
 }
 
 export function checkFixtureText(profileId: string, lessonText: string): CheckResult {
   const rules = deriveAssertionRules(profileId);
   const violations: Violation[] = [];
-  const lower = lessonText.toLowerCase();
 
   for (const term of rules.mustNotContain) {
-    if (lower.includes(term.toLowerCase())) {
+    const match = findMatch(lessonText, term);
+    if (match) {
       violations.push({
         type: 'must-not-contain',
         term,
-        context: findContext(lessonText, term),
+        context: findContext(lessonText, match),
       });
     }
   }
 
   for (const term of rules.mustContain) {
-    if (!lower.includes(term.toLowerCase())) {
+    if (!findMatch(lessonText, term)) {
       violations.push({ type: 'missing-required', term });
     }
   }
