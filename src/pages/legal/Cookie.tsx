@@ -1,66 +1,81 @@
-import { Button } from "@/components/ui/button";
-import { Footer } from "@/components/layout/Footer";
-import { Link } from "react-router-dom";
-import { Cookie as CookieIcon, Mail } from "lucide-react";
 import { BRANDING } from "@/config/branding";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { ROUTES } from "@/constants/routes";
+import { ArrowLeft } from "lucide-react";
 
-const Cookie = () => {
+export default function Cookie() {
+  const navigate = useNavigate();
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="container max-w-4xl py-16 flex-1">
-        <div className="space-y-8">
-          <div className="text-center space-y-4">
-            <div className="inline-flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-primary">
-              <CookieIcon className="h-8 w-8 text-white" />
-            </div>
-            <h1 className="text-4xl font-bold gradient-text">Cookie Policy</h1>
-            <p className="text-sm text-muted-foreground">Last updated: October 14, 2025</p>
-            <Button asChild variant="secondary" size="sm">
-              <Link to="/">Back to Home</Link>
-            </Button>
-          </div>
+    <div className={BRANDING.layout.legalPageWrapper}>
+      <div className={BRANDING.layout.legalPageCard}>
+        <Button
+          variant="ghost"
+          onClick={() => window.history.length > 1 ? navigate(-1) : navigate(ROUTES.HOME)}
+          className="mb-6"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back
+        </Button>
 
-          <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
-            <p className="text-lg">
-              This Cookie Policy explains how BibleLessonSpark uses cookies and similar technologies to recognize you when you visit our platform.
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Cookie Policy</h1>
+        <p className="text-sm text-muted-foreground mb-8">Last Updated: July 16, 2026</p>
+
+        <div className="prose prose-blue max-w-none space-y-6">
+          <section aria-labelledby="overview">
+            <h2 id="overview" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">1. Overview</h2>
+            <p className="text-foreground">
+              This Cookie Policy explains what cookies and similar storage technologies BibleLessonSpark actually uses, and how they differ from the browser storage the Service also relies on.
             </p>
+          </section>
 
-            <h2 className="text-2xl font-semibold mt-8">What Are Cookies</h2>
-            <p>
-              Cookies are small data files that are placed on your computer or mobile device when you visit a website. They are widely used to make websites work more efficiently and provide information to the site owners.
+          <section aria-labelledby="cookies-we-set">
+            <h2 id="cookies-we-set" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">2. Cookies We Set</h2>
+            <p className="text-foreground">
+              BibleLessonSpark{'\u2019'}s own code sets one cookie: a preference cookie that remembers whether your sidebar navigation is open or collapsed between visits. This cookie is purely functional -- it does not identify you personally and is not used for analytics or advertising.
             </p>
+          </section>
 
-            <h2 className="text-2xl font-semibold mt-8">How We Use Cookies</h2>
-            <p>
-              We use cookies to authenticate users, remember user preferences, analyze how our service is used, and improve user experience. Essential cookies are necessary for the platform to function properly, while analytics cookies help us understand how visitors interact with our site.
+          <section aria-labelledby="storage-instead-of-cookies">
+            <h2 id="storage-instead-of-cookies" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">3. What We Use Instead of Cookies</h2>
+            <p className="text-foreground">
+              For almost everything else, BibleLessonSpark uses browser storage technologies that are not cookies. Local storage keeps you signed in between visits -- your session is not stored in a cookie. Session storage holds a short-lived, randomly generated identifier used only to connect your own actions (such as viewing then clicking an upgrade prompt) within a single visit; see our Privacy Policy for more detail.
             </p>
-
-            <h2 className="text-2xl font-semibold mt-8">Your Choices</h2>
-            <p>
-              You can control and/or delete cookies as you wish. You can delete all cookies that are already on your computer and set most browsers to prevent them from being placed. However, if you do this, you may have to manually adjust preferences every time you visit our site.
+            <p className="text-foreground mt-3">
+              These technologies are not sent to third parties and are not used to track you across other websites.
             </p>
+          </section>
 
-            <h2 className="text-2xl font-semibold mt-8">Contact Us</h2>
-            <p>
-              If you have questions about our use of cookies, please contact us at {BRANDING.contact.supportEmail}.
+          <section aria-labelledby="provider-cookies">
+            <h2 id="provider-cookies" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">4. Cookies Set by Our Service Providers</h2>
+            <p className="text-foreground">
+              Some of the outside providers we rely on to operate BibleLessonSpark -- including Stripe for payments and the infrastructure that delivers our site securely -- may set their own cookies as part of providing their services. These are governed by those providers{'\u2019'} own policies, not this one, and we do not control them directly.
             </p>
-          </div>
+          </section>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 border-t">
-            <Button variant="outline" size="lg" asChild>
-              <a href={`mailto:${BRANDING.contact.supportEmail}`} className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                Email Support
-              </a>
-            </Button>
-          </div>
+          <section aria-labelledby="no-analytics-cookies">
+            <h2 id="no-analytics-cookies" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">5. We Do Not Use Analytics or Advertising Cookies</h2>
+            <p className="text-foreground">
+              BibleLessonSpark does not currently use analytics cookies, advertising cookies, or cross-site tracking technologies of any kind. If that changes in the future, we will update this Policy, and our Privacy Policy, before any such technology is enabled.
+            </p>
+          </section>
+
+          <section aria-labelledby="your-choices">
+            <h2 id="your-choices" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">6. Your Choices</h2>
+            <p className="text-foreground">
+              You can control or delete cookies through your browser settings. Because BibleLessonSpark{'\u2019'}s own use of cookies is limited to a single preference cookie, clearing it will simply reset your sidebar to its default state -- it will not sign you out or affect your account.
+            </p>
+          </section>
+
+          <section aria-labelledby="contact-us">
+            <h2 id="contact-us" className="text-xl sm:text-2xl font-semibold text-foreground mb-3">7. Contact Us</h2>
+            <p className="text-foreground">
+              If you have questions about this Cookie Policy, contact us at <strong>{BRANDING.contact.supportEmail}</strong>.
+            </p>
+          </section>
         </div>
       </div>
-
-      {/* Footer - SSOT Component */}
-      <Footer />
     </div>
   );
-};
-
-export default Cookie;
+}
