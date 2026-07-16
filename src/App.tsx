@@ -31,6 +31,7 @@ import AdminBetaMetrics from "./pages/AdminBetaMetrics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Cookie from "./pages/legal/Cookie";
+import Legal from "./pages/legal/Legal";
 import NotFound from "./pages/NotFound";
 import Devotionals from "./pages/Devotionals";
 import Bonuses from "./pages/Bonuses";
@@ -165,6 +166,7 @@ const App = () => (
             <Route path={ROUTES.WHY_CHURCHES_CAN_TRUST} element={<WhyChurchesCanTrustBibleLessonSpark />} />
             <Route path={ROUTES.BLOG} element={<Blog />} />
             <Route path={ROUTES.BLOG_POST} element={<BlogPost />} />
+            <Route path={ROUTES.LEGAL} element={<Legal />} />
             <Route path={ROUTES.PRIVACY} element={<PrivacyPolicy />} />
             <Route path={ROUTES.TERMS} element={<TermsOfService />} />
             <Route path={ROUTES.COOKIE} element={<Cookie />} />

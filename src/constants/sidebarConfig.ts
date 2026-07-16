@@ -52,6 +52,7 @@ import {
   Printer,
   Megaphone,
   Sparkles,
+  Scale,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ROLES, Role } from "./accessControl";
@@ -260,6 +261,14 @@ export const SIDEBAR_ITEMS: Record<string, SidebarItem> = {
     route: ROUTES.FAQS,
     tierGate: 'always',
   },
+  legal: {
+    id: 'legal',
+    label: 'Legal',
+    icon: Scale,
+    description: 'Privacy Policy, Terms of Service, and Cookie Policy',
+    route: ROUTES.LEGAL,
+    tierGate: 'always',
+  },
   bonuses: {
     id: 'bonuses',
     label: 'Resources',
@@ -313,7 +322,7 @@ export const SIDEBAR_SECTIONS: Record<string, SidebarSection> = {
   account: {
     id: 'account',
     label: 'Account',
-    items: ['userProfile', 'tutorials', 'faqs', 'support', 'pricing', 'signOut'],
+    items: ['userProfile', 'tutorials', 'faqs', 'support', 'legal', 'pricing', 'signOut'],
   },
   extras: {
     id: 'extras',
