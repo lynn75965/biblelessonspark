@@ -328,6 +328,36 @@ export type Database = {
           },
         ]
       }
+      conversion_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          meta: Json
+          tier_at_event: string
+          trigger_source: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          meta?: Json
+          tier_at_event?: string
+          trigger_source?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json
+          tier_at_event?: string
+          trigger_source?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       credits_ledger: {
         Row: {
           amount: number
@@ -891,6 +921,8 @@ export type Database = {
         Row: {
           anthropic_model: string | null
           browser: string | null
+          cache_creation_input_tokens: number | null
+          cache_read_input_tokens: number | null
           connection_type: string | null
           created_at: string | null
           device_type: string
@@ -902,6 +934,8 @@ export type Database = {
           lesson_id: string | null
           organization_id: string | null
           os: string | null
+          phase1_duration_ms: number | null
+          phase2_duration_ms: number | null
           rate_limited: boolean | null
           sections_generated: number | null
           sections_requested: number
@@ -915,6 +949,8 @@ export type Database = {
         Insert: {
           anthropic_model?: string | null
           browser?: string | null
+          cache_creation_input_tokens?: number | null
+          cache_read_input_tokens?: number | null
           connection_type?: string | null
           created_at?: string | null
           device_type: string
@@ -926,6 +962,8 @@ export type Database = {
           lesson_id?: string | null
           organization_id?: string | null
           os?: string | null
+          phase1_duration_ms?: number | null
+          phase2_duration_ms?: number | null
           rate_limited?: boolean | null
           sections_generated?: number | null
           sections_requested: number
@@ -939,6 +977,8 @@ export type Database = {
         Update: {
           anthropic_model?: string | null
           browser?: string | null
+          cache_creation_input_tokens?: number | null
+          cache_read_input_tokens?: number | null
           connection_type?: string | null
           created_at?: string | null
           device_type?: string
@@ -950,6 +990,8 @@ export type Database = {
           lesson_id?: string | null
           organization_id?: string | null
           os?: string | null
+          phase1_duration_ms?: number | null
+          phase2_duration_ms?: number | null
           rate_limited?: boolean | null
           sections_generated?: number | null
           sections_requested?: number
@@ -2855,6 +2897,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          reflection_text: string | null
           session_id: string
           tokens_used: number | null
           tool_id: string
@@ -2862,6 +2905,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          reflection_text?: string | null
           session_id: string
           tokens_used?: number | null
           tool_id: string
@@ -2869,6 +2913,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          reflection_text?: string | null
           session_id?: string
           tokens_used?: number | null
           tool_id?: string
@@ -3171,6 +3216,14 @@ export type Database = {
           step: string
         }[]
       }
+      decrement_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_window_start: string
+        }
+        Returns: number
+      }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -3278,8 +3331,8 @@ export type Database = {
         Args: { p_token: string }
         Returns: {
           email: string
-          inviter_name: string | null
-          organization_name: string | null
+          inviter_name: string
+          organization_name: string
         }[]
       }
       get_managed_org_ids: { Args: never; Returns: string[] }
@@ -3291,6 +3344,33 @@ export type Database = {
           my_status: string
           team_id: string
           team_name: string
+        }[]
+      }
+      get_org_pool_lessons: {
+        Args: never
+        Returns: {
+          age_group: string
+          author_name: string
+          bible_passage: string
+          created_at: string
+          lesson_id: string
+          metadata: Json
+          org_pool_consumed: boolean
+          original_text: string
+          theology_profile: string
+          title: string
+          user_id: string
+          visibility: string
+        }[]
+      }
+      get_org_pool_usage: {
+        Args: never
+        Returns: {
+          full_name: string
+          last_pool_lesson_at: string
+          pool_lessons_this_period: number
+          pool_lessons_total: number
+          user_id: string
         }[]
       }
       get_parent_active_focus: {
@@ -3341,33 +3421,6 @@ export type Database = {
           title: string
           user_id: string
           visibility: string
-        }[]
-      }
-      get_org_pool_lessons: {
-        Args: never
-        Returns: {
-          age_group: string
-          author_name: string
-          bible_passage: string
-          created_at: string
-          lesson_id: string
-          metadata: Json
-          org_pool_consumed: boolean
-          original_text: string
-          theology_profile: string
-          title: string
-          user_id: string
-          visibility: string
-        }[]
-      }
-      get_org_pool_usage: {
-        Args: never
-        Returns: {
-          full_name: string
-          last_pool_lesson_at: string
-          pool_lessons_this_period: number
-          pool_lessons_total: number
-          user_id: string
         }[]
       }
       get_team_lessons: {
@@ -3428,6 +3481,18 @@ export type Database = {
         Returns: number
       }
       increment_lesson_usage: { Args: { p_user_id: string }; Returns: boolean }
+      increment_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_identifier: string
+          p_window_start: string
+        }
+        Returns: number
+      }
+      invite_team_member: {
+        Args: { p_invitee_id: string; p_team_id: string }
+        Returns: string
+      }
       is_admin:
         | { Args: never; Returns: boolean }
         | { Args: { check_user_id: string }; Returns: boolean }
@@ -3437,11 +3502,11 @@ export type Database = {
       is_org_member: { Args: { check_org_id: string }; Returns: boolean }
       is_team_lead_of: { Args: { team_uuid: string }; Returns: boolean }
       is_team_member_of: { Args: { team_uuid: string }; Returns: boolean }
-      invite_team_member: {
-        Args: { p_invitee_id: string; p_team_id: string }
-        Returns: string
-      }
       leave_teaching_team: { Args: never; Returns: string }
+      log_conversion_event: {
+        Args: { p_event_type: string; p_meta?: Json; p_trigger_source?: string }
+        Returns: undefined
+      }
       log_security_event: {
         Args: { event_type: string; metadata?: Json; user_id?: string }
         Returns: undefined
