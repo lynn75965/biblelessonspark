@@ -129,11 +129,29 @@ forward from Gate 1 (neither gates Gate 2):
   violations on Security; funnel on Growth) is a dedicated post-Gate-2
   session -- not started now; Gate 2 completion remains the priority.
 
-Gate 2 remaining work: B7 conversion infra, B8 capacity recheck, legal
-pages confirmation -- none started yet. B6 theology golden suite's
-fixture-generation phase is done (see July 16 session below); its own
-standing findings (numbered in theology-golden-suite/README.md) are
-follow-up candidates, not Gate 2 blockers.
+  NEW STANDING BACKLOG (logged 2026-07-16, B7 adjacent finding #1 -- not
+  fixed, needs its own dedicated session): the generic `events` table's
+  RLS has no INSERT policy for authenticated users -- only `admin_full_access`
+  (ALL, admin role) and `users_select_own` (SELECT only). Every call to
+  `src/hooks/useAnalytics.tsx`'s `trackEvent()` from a real user's session
+  fails the RLS check silently (caught by a try/catch that only does
+  `console.error`). Confirmed live: all 12,456 existing rows in `events`
+  belong to a single user_id -- Lynn's own admin account. This table has
+  never recorded a real teacher's activity since it was introduced; it has
+  only ever logged Lynn's own testing sessions. Needs a dedicated session
+  to decide repair (add a `user_id = auth.uid()` INSERT policy) vs.
+  retirement (this table has no current product consumer besides the
+  broken hook itself). Discovered during B7 Phase 1 diagnosis; B7 itself
+  uses a separate, working table (`conversion_events`, Pattern B --
+  service-role/RPC writes only) and does not touch or depend on `events`.
+
+Gate 2 remaining work: B7 conversion infra (migration + client emission
+points SHIPPED 2026-07-16; server-side checkout_started emission
+implemented but NOT deployed -- see below), B8 capacity recheck, legal
+pages confirmation. B6 theology golden suite's fixture-generation phase is
+done (see July 16 session below); its own standing findings (numbered in
+theology-golden-suite/README.md) are follow-up candidates, not Gate 2
+blockers.
 
 ## JULY 16, 2026 SESSION (LATEST) -- B6 THEOLOGY GOLDEN SUITE: all 48 fixtures generated and APPROVED; two production bugs caught and fixed
 
