@@ -1,24 +1,35 @@
-# PROJECT MASTER -- Last updated: July 16, 2026 (Session: GATE 2 COMPLETE -- legal pages audit closed the last remaining item)
+# PROJECT MASTER -- Last updated: July 16, 2026 (Session: Legal sidebar entry shipped -- post-Gate-2 follow-up from the legal audit)
 
-## >>> RESUME HERE <<< -- GATE 2 IS FULLY COMPLETE. Legal pages
-confirmation (the last remaining Gate 2 item) closed out this session:
-a factual-accuracy audit of Terms of Service, Privacy Policy, and
-Cookie Policy against actual current data practices (including what B7
-and B8 just added) found and fixed one real code-level gap
-(`devotional_metrics` had no FK to `auth.users` at all, so rows
-survived account deletion forever, fully identified, contradicting the
-Privacy Policy's own deletion promise -- fixed via a new FK with
-`ON DELETE SET NULL`, same precedent as `capacity_events`), one
-seriously stale/inaccurate page (`Cookie.tsx` falsely claimed
+## >>> RESUME HERE <<< -- GATE 2 IS FULLY COMPLETE (closed out earlier
+this session -- see below). As a direct follow-up from that audit
+(the footer isn't consistently present across the app, so signed-in
+users had no reliable path to the legal pages), a "Legal" sidebar item
+now gives persistent access: Scale icon, tierGate `'always'` (visible
+and active for every tier, never locked), placed in the Account section
+adjacent to FAQs/Support, routing to a new minimal `/legal` index page
+listing all three documents as a semantic list of real Links.
+`ROUTES.LEGAL` added and registered in `App.tsx` in the same change.
+Deployed via `deploy.ps1` after Lynn's live click-through (keyboard-only
+navigation through all four pages) passed. See the session log below
+for the full account.
+
+Earlier this session: legal pages confirmation (the last remaining Gate
+2 item) closed out via a factual-accuracy audit of Terms of Service,
+Privacy Policy, and Cookie Policy against actual current data practices
+(including what B7 and B8 just added). Found and fixed one real
+code-level gap (`devotional_metrics` had no FK to `auth.users` at all,
+so rows survived account deletion forever, fully identified,
+contradicting the Privacy Policy's own deletion promise -- fixed via a
+new FK with `ON DELETE SET NULL`, same precedent as `capacity_events`),
+one seriously stale/inaccurate page (`Cookie.tsx` falsely claimed
 "analytics cookies" and cookie-based authentication existed -- neither
 does; rewritten truthfully and aligned to the other two pages'
 template), a signup-consent gap (implied-only, no checkbox -- now an
 affirmative required checkbox wired into the existing agreement
 sentence), and two new Privacy Policy disclosures naming B7's
-conversion-tracking session identifier and B8's IP-based rate
-limiting explicitly. All four changes deployed via `deploy.ps1` after
-Lynn's live click-through verification passed. See the July 16 legal
-audit session log below for the full account.
+conversion-tracking session identifier and B8's IP-based rate limiting
+explicitly. See the July 16 legal audit session log below for the full
+account.
 
 B8 capacity recheck, B7 conversion infra, and B6 theology golden suite
 are all COMPLETE (see their own session logs below for full accounts).
@@ -235,7 +246,55 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 16, 2026 SESSION (LATEST) -- GATE 2 COMPLETE: legal pages factual-accuracy audit -- devotional_metrics FK fix, signup consent checkbox, Cookie Policy rewrite, Privacy Policy disclosures
+## JULY 16, 2026 SESSION (LATEST) -- Legal sidebar entry: persistent access to legal pages (post-Gate-2 follow-up)
+
+GOAL: The legal-pages audit (session log immediately below) confirmed
+the footer isn't consistently present across the app, leaving
+signed-in users with no reliable path to `/legal/privacy`,
+`/legal/terms`, `/legal/cookie`. Add a "Legal" sidebar entry, visible
+to every tier, never locked, following DIAGNOSE -> PROPOSE -> WAIT ->
+IMPLEMENT.
+
+### Phase 1 -- diagnose
+Read `sidebarConfig.ts`'s full schema and `AppShell.tsx`'s rendering.
+Confirmed the sidebar has no parent/sub-item nesting concept
+anywhere -- every `SidebarItem` has exactly one destination (a tab, a
+route, or an action) -- so only "a single item navigating to one page"
+was viable, not "a parent with sub-items." Confirmed `routes.ts`
+already had `PRIVACY`/`TERMS`/`COOKIE` registered; a new index route
+would be the only routing change needed. Confirmed the `account`
+section (`userProfile, tutorials, faqs, support, pricing, signOut`) is
+the existing "Settings/Help"-style grouping Legal belongs in. Flagged
+one adjacent, out-of-scope observation: every existing route item's
+icon lacks `aria-hidden="true"` in `AppShell.tsx` (only the locked-item
+variant sets it) -- a pre-existing gap across all current items
+uniformly, not something to fix as a side effect of this task.
+
+### Phase 2 -- propose (approved as drafted)
+Single "Legal" item, `Scale` icon (conventional legal register, no
+collision with any icon already in use), `tierGate: 'always'`, placed
+immediately after `support` in the `account` section. Routes to a new
+`ROUTES.LEGAL` ('/legal') index page -- a minimal component matching
+the other three legal pages' visual template, with a semantic
+`<ul>/<li>` list of three real `<Link>`s (Privacy Policy, Terms of
+Service, Cookie Policy), no marketing copy. Confirmed the new item
+inherits nothing from the locked-item render variant: with
+`tierGate: 'always'`, `AppShell.tsx`'s `isLocked` computation can never
+evaluate true for it on any tier, so it renders exclusively through the
+real-`<Link>` route-item branch.
+
+### Phase 3 -- implement
+`sidebarConfig.ts` (new `legal` item + `Scale` import + `account`
+section item-list edit), `routes.ts` (`ROUTES.LEGAL` added alongside
+the other three), `App.tsx` (import + `<Route>` registration in the
+same change, per Rule #3's route-bug-pattern discipline), and the new
+`src/pages/legal/Legal.tsx` page. Build clean, ASCII guard clean.
+Single atomic commit (`814ada9`). Lynn's click-through verified: item
+visible and active on both free and paid accounts, all four pages
+(the index plus the three documents) reachable keyboard-only with
+visible focus throughout. Deployed via `deploy.ps1`; CI green.
+
+## JULY 16, 2026 SESSION -- GATE 2 COMPLETE: legal pages factual-accuracy audit -- devotional_metrics FK fix, signup consent checkbox, Cookie Policy rewrite, Privacy Policy disclosures
 
 GOAL: Gate 2's final item -- verify the legal pages are present,
 reachable, and factually accurate against what the platform actually
