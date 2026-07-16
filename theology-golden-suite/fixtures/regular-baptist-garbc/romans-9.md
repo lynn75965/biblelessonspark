@@ -1,55 +1,55 @@
 ---
 profile_id: regular-baptist-garbc
 passage_slug: romans-9
-generated_at: 2026-07-16T13:40:49.673Z
+generated_at: 2026-07-16T14:41:36.988Z
 phase1_model_used: claude-sonnet-4-6
 phase2_model_used: UNKNOWN -- not persisted by generate-lesson (see B6 finding #4)
 two_phase: true
 supplements_completed: true
-pipeline_hash: e3fdd7c94a521b661d1cf97fa60f5dc4de4f923c858b88a7d5cc410354f2e0dd
-fixture_hash: 7c17fcbc404df67f
+pipeline_hash: 2e9feb75d4d18b5a1fd4f03bdffae818ae44b2c77f0ae2053ae6c93e2259c4a5
+fixture_hash: b65278bad174c864
 vet_status: PENDING_REVIEW
 reviewer_notes: ""
 ---
 ## Section 1: Lens + Lesson Overview
 
-**Theological Profile:** Regular Baptist (GARBC) — Dispensational, inerrantist, eternal security, Israel distinct from the church
+**Theological Profile:** Regular Baptist (GARBC) — Dispensational Premillennial, Moderately Calvinistic, Biblically Inerrant
 
-**Lesson Title:** *The Potter's Right: God's Sovereign Purpose in Election*
+**Lesson Title:** *The Potter's Right: God's Sovereign Freedom and the Gospel's Sure Foundation*
 
-**Lesson Summary:** Romans 9:1–24 confronts believers with one of Scripture's most challenging truths — God's absolute sovereignty in salvation. Paul defends divine election not as injustice but as the expression of God's holy freedom to show mercy on whom He will, using Israel's history as the proving ground. This lesson examines that sovereignty through a GARBC lens, holding together God's freedom and human accountability without collapsing either.
+**Lesson Summary:** Romans 9:1–24 confronts us with God's absolute freedom to show mercy according to His own purposes, using Israel's history as the proving ground. Paul defends the faithfulness of God's word while establishing that salvation has always been by grace through God's sovereign initiative, not by ethnic heritage or human effort. The passage anchors the gospel in God's unshakable character.
 
-**Main Theme:** God's sovereign right to elect and show mercy is grounded in His character, not human merit — and this truth glorifies Him rather than diminishes us.
+**Main Theme:** God's sovereign freedom to show mercy is not injustice — it is the very ground on which the gospel stands.
 
-**Key Takeaway:** Students will leave understanding that God's sovereignty in salvation is not a theological problem to solve but a truth to worship.
+**Key Takeaway:** Because salvation originates entirely in God's sovereign grace, every person who trusts Christ can rest in a mercy that no human failure can overturn.
 
-**Audience Insight:** Mid-life adults (36–50) have often wrestled with unanswered prayers, difficult providences, and the salvation of loved ones. Romans 9 meets them where they live — with hard questions that demand honest, Scripture-grounded answers rather than comfortable deflection.
+**Audience Insight:** Mid-life adults (36–50) carry real-world weight — career pressures, family complexity, civic disappointments. Questions about fairness, divine sovereignty, and unanswered prayer are not abstract for this group. This passage meets them where they live.
 
 ---
 
 ## Section 2: Learning Objectives + Key Scriptures
 
-**Measurable Learning Objectives:**
+**Measurable Learning Objectives — Students will be able to:**
 
-- Students will identify Paul's three historical examples (patriarchs, Moses, Pharaoh) and explain what each demonstrates about divine sovereignty
-- Students will articulate why God's election does not constitute injustice, using Paul's own defense from the text
-- Students will distinguish between God's sovereign election and fatalism or human passivity
-- Students will connect God's sovereignty over Israel (Romans 9) to His distinct purposes for Israel versus the church in dispensational perspective
-- Students will state one personal response to God's sovereignty — either renewed trust, worship, or a specific prayer
+- Explain why Paul's anguish for Israel in Romans 9:1–5 reflects both genuine love and evangelical urgency
+- Distinguish between God's corporate election of Israel as a nation and the individual's need for personal faith in Christ
+- Articulate why God's sovereign freedom to show mercy is not unfair, using Paul's argument from Scripture
+- Identify the potter/clay image as a statement about God's rightful authority, not fatalistic determinism
+- Express personal confidence in the gospel because salvation rests on God's character, not human performance
 
 **Primary Scripture Passage:**
 Romans 9:1–24 (NASB)
 
 **Supporting Passages:**
-- Exodus 33:19 (God's declaration to Moses, quoted in Romans 9:15)
-- Jeremiah 18:1–6 (the potter and clay — background to Paul's metaphor)
+- Exodus 33:19 (God's declaration to Moses — quoted in Romans 9:15)
+- Jeremiah 18:1–6 (the potter and clay — background for Romans 9:21)
 
 **Teacher Preparation Checklist:**
-- [ ] Read Romans 9:1–24 in full at least twice in NASB
-- [ ] Review Section 3 theological background thoroughly before class
-- [ ] Prepare to distinguish election from fatalism
-- [ ] Have Exodus 9:16 and Jeremiah 18:1–6 bookmarked
-- [ ] Pray through the passage — this material demands humility
+- [ ] Read Romans 9–11 in full for context
+- [ ] Review Section 3 theological background before class
+- [ ] Prepare to distinguish corporate/national election from individual soteriological election
+- [ ] Have NASB Bible available for extended reading
+- [ ] Pray specifically for any students who may be wrestling with God's fairness
 
 ---
 
@@ -57,89 +57,75 @@ Romans 9:1–24 (NASB)
 
 **Literary and Structural Context**
 
-Romans 9–11 forms a self-contained theological unit within Paul's letter, addressing a pressing apologetic question: if the gospel is the power of God unto salvation (1:16), why have most Israelites rejected it? Has God's Word failed? Paul's answer in chapter 9 is a sustained defense of divine sovereignty. The chapter divides naturally: Paul's anguish over Israel (vv. 1–5), the principle that not all Israel is Israel (vv. 6–13), the defense against the charge of injustice (vv. 14–18), the defense against the charge of arbitrariness (vv. 19–24).
+Romans 9–11 forms a self-contained theological unit addressing a crisis question raised by Romans 1–8: if God's promises are unbreakable (8:38–39), why has Israel largely rejected her Messiah? Paul's answer unfolds in three movements — God's word has not failed (ch. 9), Israel's own unbelief is responsible (ch. 10), and God's purposes for Israel remain intact (ch. 11). Romans 9:1–24 is the first movement, establishing that God's sovereign freedom is the explanation, not a problem.
 
 **Historical and Audience Context**
 
-Paul writes to a mixed Jewish-Gentile congregation in Rome, where tension over Israel's covenantal status was live and personal. Jewish believers may have felt their heritage devalued; Gentile believers may have been tempted toward arrogance (cf. Romans 11:18). Paul's argument serves both: God's sovereign freedom is the only basis on which anyone — Jew or Gentile — receives mercy.
+Paul writes to a mixed Jewish-Gentile congregation in Rome, likely around A.D. 57. Jewish Christians faced the painful reality that most of their kinsmen had rejected Jesus as Messiah. Gentile believers risked arrogance toward Israel. Paul's grief in verses 1–5 is not rhetorical — it mirrors Moses' intercession in Exodus 32:32 and signals that evangelistic passion and doctrinal precision belong together.
 
-**Key Greek Word Insights**
+**Key Theological Concepts**
 
-- *Eklogē* (election, v. 11) — the noun form of "to select out." It denotes a choice made entirely from the chooser's will, not the chosen's qualifications. Paul uses it to describe Jacob's selection before birth, eliminating works as a contributing factor.
-- *Sklērynō* (to harden, v. 18) — used of Pharaoh. This is judicial hardening: God confirms and intensifies a direction a person has already chosen. It is not arbitrary cruelty but God's sovereign use of human rebellion for His purposes (cf. Exodus 4–14, where Pharaoh first hardens his own heart).
-- *Plassō* (to form/mold, v. 20) — the potter image draws from this root and directly echoes Jeremiah 18. The clay has no standing to interrogate the potter's design.
+*"Children of the promise" (v. 8):* Physical descent from Abraham never guaranteed covenant standing. Isaac, not Ishmael, was the child of promise; Jacob, not Esau, was chosen before birth or works — establishing that God's elective purpose operates on a basis other than human merit (vv. 11–13). In GARBC dispensational terms, this is corporate/national election: God's sovereign selection of the line through which the Messiah and covenant blessings would come, not a decree determining which individuals will be saved.
 
-**Doctrinal Framing (GARBC Alignment)**
+*"I will have mercy on whom I have mercy" (v. 15):* Quoted from Exodus 33:19, this is God's own self-definition. Mercy, by definition, is unearned. God owes no one salvation. This is not cruelty — it is the logical precondition for grace. If God were obligated to save anyone, it would be justice, not mercy.
 
-GARBC theology affirms that God's election is real, unconditional, and grounded solely in His sovereign will — yet it equally affirms that human beings are responsible agents who genuinely reject or receive the gospel. Romans 9 does not resolve this tension philosophically; it asserts both poles. The passage does not teach double predestination in the hyper-Calvinist sense; Paul's focus is on God's freedom to show mercy, not a decree of reprobation. The hardening of Pharaoh is judicial and responsive, not the originating cause of his rebellion.
+*Pharaoh (vv. 17–18):* God "raised up" Pharaoh — placed him in history — to display divine power. Hardening here is judicial: God confirmed Pharaoh in the direction Pharaoh had already chosen. Scripture is clear that Pharaoh hardened his own heart first (Exodus 8:15, 32). Paul's point is God's sovereign governance of history, not that God arbitrarily damns individuals apart from their own choices.
 
-**Israel and the Church (Dispensational Significance)**
+*The Potter and Clay (vv. 20–24):* Drawn from Jeremiah 18, the image asserts the Creator's rightful authority over the creature. The clay does not interrogate the potter. This is not fatalism — it is a call to humility before the God whose ways exceed human comprehension (cf. Isaiah 55:8–9). Crucially, Paul's application in verses 22–24 moves toward mercy: God's patience with "vessels of wrath" serves the purpose of making known the riches of His glory to "vessels of mercy" — both Jews and Gentiles.
 
-Critically, Paul's argument in Romans 9 is corporate and historical before it is individual and soteriological. "Not all Israel is Israel" (v. 6) means that within ethnic Israel, God has always worked through a chosen remnant — Isaac not Ishmael, Jacob not Esau. This does not dissolve ethnic Israel's future; Romans 11 preserves it. The church does not inherit Israel's covenantal promises; God's sovereign freedom operates distinctly in both economies. Teachers should note this distinction carefully — the passage is often misread as erasing Israel's identity, but Paul's entire burden in chapters 9–11 is to show that God has not abandoned Israel.
+**Greek Word Insight**
 
-**Theological Significance**
+*Eklogē* (election/selection, v. 11): In Paul's usage here, the term describes God's sovereign purpose in selecting the covenant line — it is corporate and historical before it is individual and soteriological. This distinction is critical for GARBC interpretation.
 
-The potter-and-clay metaphor (vv. 20–24) does not dehumanize people; it establishes the proper Creator-creature relationship. The clay's question ("Why did you make me this way?") is not philosophical inquiry — it is rebellion against the Maker's prerogative. Paul's point: God's mercy is never owed. When anyone receives salvation, it is grace. When judgment falls, it is just. Both outcomes display God's glory — His mercy and His power (v. 22–23).
+*Sklērunō* (to harden, v. 18): The verb carries the sense of making firm or stiff. It describes a judicial confirmation of an existing moral condition, not an originating cause of rebellion.
 
-**Age-Appropriate Depth Note**
+**Doctrinal Connections**
 
-Mid-life adults are equipped to engage this passage's tension without needing it artificially resolved. Acknowledge the difficulty honestly; model how a mature believer holds sovereignty and responsibility together in worship rather than anxiety.
+This passage grounds the gospel's certainty in God's character. Because salvation originates in God's sovereign mercy rather than human merit, eternal security is coherent: what God initiates, God sustains. The passage also anticipates Romans 10's evangelistic urgency — God's sovereignty never eliminates the call to preach.
 
 ---
 
 ## Section 4: Opening Activities
 
-**Activity 1 — "Imagine This" Hook**
-*Time: 3–4 minutes*
+**Activity 1 — "Fairness Audit" (5 minutes)**
 
-Open with this scenario: "Imagine you're a master sculptor who has spent years perfecting your craft. You sit down with a block of marble and begin shaping it according to a design only you can see. Now imagine the marble asking, 'Why are you cutting here? I don't like this shape.' How would you respond?"
+Open with this question: "Think about the last time something felt deeply unfair — not to you personally, but to someone you love. How did that feel? What did you want to do about it?"
 
-Let two or three students react briefly. Don't answer it yet — just let the absurdity register.
+Let two or three students respond briefly. Then say: "Paul opens Romans 9 with that exact emotional weight — grief so intense he says he could wish himself cut off from Christ for the sake of his people. And then he immediately argues that God has been perfectly just all along. That tension is exactly where we're going today."
 
-**Activity 2 — Warm-Up Discussion Prompt**
-*Time: 3–4 minutes*
+**Activity 2 — Creative Reflection Prompt (3 minutes)**
 
-Ask the class: "Has anyone ever wrestled with this question — why does God save some people and not others? Maybe you've prayed for a family member for years and they still haven't believed. Where does that question take you emotionally?"
+Hand out a small notecard. Ask students to write or sketch one word or image that comes to mind when they hear the phrase "God is in control." Collect responses mentally — you'll return to this at the end of class.
 
-Invite honest responses. Affirm that Romans 9 doesn't avoid this question — it walks straight into it.
-
-**Transition:** "Paul felt that anguish too. And instead of offering a quick answer, he opens with his own broken heart. Let's read what he says."
+**Transition:** "Romans 9 doesn't just tell us God is in control — it shows us why that truth is the best news in the world, not a threat."
 
 ---
 
 ## Section 5: Main Teaching Content (Teacher Transcript)
 
-Open your Bibles to Romans 9, beginning at verse 1. Before we dig into the theology, I want you to notice something that often gets skipped. Paul doesn't open this chapter with an argument — he opens with grief.
+Open your Bibles to Romans 9, beginning at verse 1. Before we read a single word of Paul's argument, I want you to feel what he feels.
 
-He writes: "I am telling the truth in Christ, I am not lying, my conscience testifies with me in the Holy Spirit, that I have great sorrow and unceasing grief in my heart. For I could wish that I myself were accursed, separated from Christ for the sake of my brethren, my kinsmen according to the flesh" (Romans 9:1–3, NASB).
+Paul writes: "I am telling the truth in Christ, I am not lying, my conscience testifies with me in the Holy Spirit, that I have great sorrow and unceasing grief in my heart. For I could wish that I myself were accursed, separated from Christ for the benefit of my brothers and sisters, my kinsmen according to the flesh" (Romans 9:1–3, NASB).
 
-That's not a theological proposition — that's a man in pain. Paul would trade his own standing with God if it meant Israel's salvation. He can't, of course — that's not how the gospel works — but the impulse is real. Why does he say this? Because the question he's about to tackle isn't abstract to him. These are his people. And most of them have rejected Jesus as Messiah.
+Three layers of verification — truth in Christ, not lying, conscience confirmed by the Holy Spirit. Paul stacks them because what he's about to say sounds almost impossible: he would be willing to be cut off from Christ if it meant Israel's salvation. This mirrors Moses in Exodus 32, where Moses pleads with God to blot his own name from the book of life for Israel's sake. This is not hyperbole for effect. This is what genuine evangelistic love looks like — it costs something emotionally. And here's the application before we even get to the theology: if we're going to talk about God's sovereignty in salvation, we must do it with Paul's tears, not with a detached theological shrug.
 
-So the question underneath Romans 9 is this: Has God's Word failed? Has God made promises to Israel that He's now walking back? Paul's answer begins in verse 6 — and it's not what you might expect. He doesn't say God changed His mind. He says we misunderstood the promise.
+Now Paul lists Israel's privileges in verses 4 and 5 — adoption as sons, the glory, the covenants, the Law, the temple service, the promises, the patriarchs, and supremely, the Messiah Himself, "who is over all, God blessed forever." That last phrase is one of the clearest affirmations of Christ's full deity in all of Paul's letters. Israel's tragedy is not that they lacked access — they had everything. Their tragedy is that they missed the One to whom everything pointed.
 
-"For they are not all Israel who are descended from Israel" (v. 6). What does that mean? It means that within the nation of Israel, God has always been working through a chosen remnant — not every biological descendant of Abraham. He proves it with two examples.
+So Paul raises the crisis question in verse 6: "It is not as though the word of God has failed." Has God broken His promise to Israel? Paul's answer is immediate and decisive — no. And his proof is historical: "For they are not all Israel who are descended from Israel" (v. 6). Being physically Jewish never automatically meant being in covenant standing before God. This was true from the very beginning. Ishmael was Abraham's son, but Isaac was the child of promise. Esau was Isaac's firstborn, but Jacob was chosen — and Paul is explicit that this choice was made before either child was born, before either had done anything good or bad, "so that God's purpose according to His choice would stand, not because of works but because of Him who calls" (v. 11).
 
-First, Isaac and Ishmael. Both were Abraham's sons. But God said, "In Isaac your descendants shall be called" (v. 7). Ishmael was excluded — not because of anything he did, but because God's purpose operated through a specific line. Second example: Jacob and Esau. Same mother, same father, twins — and God said before they were born, before either had done anything good or bad, "The older will serve the younger" (v. 12). Paul is deliberate here: "so that God's purpose according to His choice would stand, not because of works but because of Him who calls" (v. 11).
+Now, this is where we need to think carefully. Paul is talking about corporate, national election — God's sovereign decision to run the covenant line through Isaac and Jacob, through whom the Messiah would come. This is not Paul settling the question of which individual persons will be saved. He is establishing that God's purposes have always operated on a basis other than human merit or ethnic heritage. That principle then becomes the foundation for the gospel: if God's mercy was never earned by Israel's bloodline, it cannot be earned by anyone's moral performance either.
 
-Now here's where people get uncomfortable. If God chose Jacob before Jacob did anything, doesn't that make God unfair? Paul anticipates exactly that objection. Verse 14: "What shall we say then? There is no injustice with God, is there? May it never be!" That phrase — "may it never be" — is Paul's strongest Greek negative. He's not hedging. He's appalled at the suggestion.
+Then Paul quotes Exodus 33:19 in verse 15: "I will have mercy on whom I have mercy, and I will have compassion on whom I have compassion." God said this to Moses — the most faithful man of his generation — to make clear that mercy is not a reward. Mercy, by definition, is given to people who don't deserve it. If God were obligated to save you, it wouldn't be mercy. It would be a debt He owed. The moment you understand that, the gospel becomes staggering. God saves people not because they earned it, not because He found something worthy in them, but because He is merciful. That is terrifying and glorious at the same time.
 
-His defense is this: God's mercy is never owed to anyone. When God said to Moses, "I will have mercy on whom I have mercy, and I will have compassion on whom I have compassion" (v. 15, quoting Exodus 33:19), He was not announcing a policy of favoritism. He was declaring that mercy is His sovereign prerogative. Nobody earns it. Nobody deserves it. If God gave everyone exactly what they deserved, there would be no mercy at all — only judgment. So the moment you demand that God be "fair" in salvation, you're actually demanding judgment, not grace.
+What about Pharaoh? Paul says God raised him up to display His power. This is not God creating a puppet and then punishing the puppet. Exodus records that Pharaoh hardened his own heart first — multiple times — before God confirmed that hardness judicially. God's hardening of Pharaoh is the divine ratification of what Pharaoh had already chosen. But God sovereignly placed Pharaoh in that moment of history so that the Exodus — the greatest act of redemption in the Old Testament — would display God's power to the entire world. The point is God's governance of history, not arbitrary condemnation.
 
-Then Paul brings in Pharaoh. "For this very purpose I raised you up, to demonstrate My power in you, and that My name might be proclaimed throughout the whole earth" (v. 17). God used Pharaoh's rebellion as the stage on which He displayed His power through the Exodus. But notice — God didn't create Pharaoh's rebellion. The text in Exodus shows Pharaoh hardening his own heart first. What God did was judicially confirm and intensify what Pharaoh had already chosen. That's what "hardening" means here — it's not arbitrary cruelty; it's God's sovereign use of human sin for His own purposes.
+Then comes the potter and clay in verses 20–21. Paul is drawing from Jeremiah 18. The image is not about fatalism. It's about the creature's proper posture before the Creator. You don't interrogate the One who made you about the fairness of His methods. But notice where Paul takes this — verses 22 through 24. God has borne with great patience the vessels of wrath, and His purpose in doing so is to make known the riches of His glory to the vessels of mercy. The end of the argument is not condemnation — it's the lavish display of mercy extended to both Jews and Gentiles who trust Christ.
 
-So verse 18 summarizes: "So then He has mercy on whom He desires, and He hardens whom He desires." Both outcomes — mercy and hardening — display God's glory. His mercy displays His compassion. His hardening displays His justice and power. Neither is random.
+Here is the evangelistic bottom line: Romans 9 is not a chapter that makes evangelism pointless. It is the chapter that makes evangelism urgent and confident. We preach because God saves — and God saves through the preaching of the gospel. Paul, who wrote this chapter, was the most tireless missionary in the New Testament. His confidence in God's sovereignty fueled his evangelism, not paralyzed it.
 
-Now the second objection comes in verse 19: "Why does He still find fault? For who resists His will?" In other words — if God sovereignly ordains outcomes, how can He hold anyone responsible? This is the hardest question in the passage, and I want to be honest with you: Paul doesn't resolve the tension philosophically. He redirects it.
+Here is your closing challenge: the God who has the right to do whatever He wills with the clay has chosen to display the riches of His mercy. You are either a vessel in which that mercy is being displayed, or you are being invited right now to receive it. There is no safer place to rest than in the hands of a God whose mercy is not accidental, not fragile, and not dependent on your performance to sustain it.
 
-Verse 20: "On the contrary, who are you, O man, who answers back to God? The thing molded will not say to the molder, 'Why did you make me like this,' will it?" This sounds harsh until you understand what Paul is doing. He's not dismissing the question — he's exposing the posture behind it. When we demand that God justify His sovereign choices to us, we've reversed the Creator-creature relationship. The clay doesn't audit the potter. That's not because the question is stupid — it's because we don't have the vantage point to evaluate God's purposes from inside history.
-
-Think about it this way: imagine you're watching a single frame of a film and demanding to know why a character is suffering. You don't have the whole story. God does. His purposes in election span redemptive history from eternity past to the new creation. We're evaluating His justice from inside a single chapter.
-
-Paul closes this section in verses 22–24 by pointing to the goal: God endures vessels of wrath with patience — not rushing judgment — so that He might make known the riches of His glory on vessels of mercy. Both categories exist. Both serve His glory. And the vessels of mercy include not just Jewish believers but Gentiles — which is exactly where the argument is heading in chapters 10 and 11.
-
-Here's the takeaway for today: God's sovereignty in salvation is not a problem to be solved — it's a truth to be worshiped. If you're a believer, you are a vessel of mercy. You didn't earn that. You didn't deserve it. Someone could have looked at your life before Christ and seen nothing that warranted grace. But God, in His sovereign freedom, showed mercy. That's not a reason for pride. It's a reason for permanent, unshakeable gratitude.
-
-Your action step this week: identify one person you've been praying for who hasn't believed yet. Don't stop praying. Paul didn't. His grief for Israel didn't produce fatalism — it produced intercession. Let God's sovereignty fuel your prayers, not silence them.
+Commit to pray this week for one person by name — someone you love who has not yet trusted Christ. Let Paul's grief in verse 2 become yours. That is Romans 9 lived out.
 
 ---
 
@@ -149,25 +135,29 @@ Your action step this week: identify one person you've been praying for who hasn
 
 ## Section 6: Interactive Activities
 
-**Activity 1 — Potter and Clay Mapping (Whole-Group Interactive)**
-*Time: 8–10 minutes | Materials: Whiteboard or large notepad*
+**Activity 1 — "Mercy or Debt?" Sorting Exercise**
+*(10 minutes | Materials: index cards, pens)*
 
-Draw two columns on the board labeled **"Potter's Actions"** and **"Clay's Response."** Walk through Romans 9:6–24 together as a class and call on volunteers to identify what God does (chooses Jacob, hardens Pharaoh, shows mercy, endures vessels of wrath) and how human figures respond (Pharaoh rebels, Israel rejects Messiah, believers receive mercy). Fill in the columns together.
+Write these six phrases on the board, one at a time:
+- "I earned it"
+- "I deserved better"
+- "I owe you nothing"
+- "You didn't deserve this, but here it is"
+- "You met the requirements"
+- "This is pure gift"
 
-After completing the chart, ask the group: "Looking at this, where does human responsibility appear alongside God's sovereignty?" Let three or four students respond. The goal is not resolution but recognition — both columns are real.
+Ask students to sort each phrase into one of two columns on their notecard: **JUSTICE** or **MERCY**. After two minutes, discuss answers together. The goal is to surface the insight from Section 3: mercy is definitionally unearned. If God were obligated to save anyone, it would be justice — not mercy. This reframes why Romans 9:15 is good news, not a threat.
 
-*Adaptation: Smaller classes can do this as a single conversation; larger classes can divide into pairs to build their own lists before sharing with the group.*
+*Adaptation: In a larger class, do this as a show-of-hands vote for each phrase.*
 
-**Activity 2 — "Reframe the Objection"**
-*Time: 5–6 minutes | No materials needed*
+---
 
-Present these two objections from the passage:
-- "God is unfair" (v. 14)
-- "God can't hold people responsible" (v. 19)
+**Activity 2 — Potter's Clay Creative Response**
+*(8 minutes | Materials: air-dry clay or playdough, one small piece per student)*
 
-Ask the class: "Using only what Paul says in the text, how would you answer a skeptic who raises one of these?" Invite two or three volunteers to attempt a response. Affirm accurate answers; gently redirect incomplete ones back to the text.
+Give each student a small piece of clay. Ask them to shape it into something — anything — while you read Romans 9:20–21 aloud slowly. Then ask: "What does it feel like to hold the clay? What authority do you have over it?" Invite one or two students to share. Close by asking students to hold the shaped clay and silently answer: *"What am I currently demanding that God explain to me?"* This is a personal, prayerful moment — not a discussion.
 
-*Adaptation: For quieter classes, have students write their answer on paper first, then share.*
+*Adaptation: If materials aren't available, substitute a brief written reflection on the same question.*
 
 ---
 
@@ -175,49 +165,51 @@ Ask the class: "Using only what Paul says in the text, how would you answer a sk
 
 **Discussion Questions:**
 
-**1.** **Recall:** Paul opens Romans 9 with personal grief before making any argument. What specifically does he say he wishes he could do for his fellow Israelites, and why does that matter for how we read the rest of the chapter?
+**1.** **Recall:** Paul lists Israel's privileges in Romans 9:4–5. Name at least three of those privileges. Why does listing them make Israel's rejection of the Messiah more tragic, not less?
 
-**2.** **Understanding:** Paul uses both Isaac/Ishmael and Jacob/Esau as examples of divine election. What single point do both examples establish, and why does Paul emphasize that Jacob was chosen *before birth*?
+**2.** **Understanding:** Paul argues in verse 6 that "they are not all Israel who are descended from Israel." What does he mean, and how do the examples of Isaac and Jacob support that point?
 
-**3.** **Analysis:** The lesson distinguished between God *creating* Pharaoh's rebellion and God *judicially hardening* what Pharaoh had already chosen. Why does that distinction matter for understanding whether God is just?
+**3.** **Analysis:** The teaching distinguished between *corporate/national election* — God's sovereign selection of the covenant line — and the question of individual salvation. Why is that distinction important for interpreting Romans 9 correctly? What misreading does it prevent?
 
-**4.** **Application:** Paul redirects the "who can resist His will?" objection rather than resolving it philosophically. How does the potter-and-clay image address the *posture* behind the question rather than the question itself? When have you found yourself in that posture?
+**4.** **Application:** The lesson argued that God's sovereignty in salvation fuels evangelism rather than paralyzing it. How does that work practically? What would Paul's grief in verses 1–3 look like in your own relationships with people who don't yet know Christ?
 
-**5.** **Personal Reflection:** The lesson closed by saying God's sovereignty should fuel prayer, not silence it — pointing to Paul's ongoing intercession for Israel. Who in your life are you praying for, and how does Romans 9 change how you approach that prayer?
-
-**Comprehension Check:** Listen for students who can distinguish mercy as God's sovereign prerogative (never owed) from fairness as a standard God must meet. Students who grasp this will stop framing election as a justice problem and start framing it as a grace reality.
-
-**Spiritual Indicators:** Students who are genuinely processing this material will express either renewed awe at their own salvation, honest tension they're holding in faith, or renewed commitment to intercession. Watch for students who move from intellectual debate to personal worship — that is the passage's intended destination.
-
-**Closing Reflection:** "If God's mercy is never owed to anyone — and you have received it — what is the only appropriate response?"
+**5.** **Personal Reflection:** The teacher closed with this challenge: you are either a vessel in which God's mercy is being displayed, or you are being invited to receive it right now. Which is true of you — and what does your answer change about how you live this week?
 
 ---
 
-## Section 8: Group Handout (Standalone)
+**Comprehension Check:** Listen for students who can articulate that Romans 9 is about God's sovereign freedom to show mercy, not arbitrary condemnation, and who can distinguish national/corporate election from individual salvation. Students who conflate the two, or who conclude that sovereignty eliminates human responsibility, need gentle redirection toward Paul's own evangelistic urgency in Romans 10.
 
-**The Potter's Right: God's Sovereign Purpose in Election**
+**Spiritual Indicators:** Students who have genuinely engaged this passage will express both humility before God's authority and confidence in His mercy — not anxiety. Watch for students who name a specific person they intend to pray for; that behavioral response signals the lesson's evangelistic application has landed.
 
-**Key Idea:** God's sovereignty in salvation is not a theological problem to argue through — it is a truth to worship. Romans 9 shows that God's freedom to show mercy is grounded in His character, not our merit.
+**Closing Reflection:** "If mercy is definitionally unearned, what does it mean for you personally that God has chosen to display the riches of His glory through people like you?"
 
-**Memory Verse:** "So then He has mercy on whom He desires, and He hardens whom He desires." — Romans 9:18 (NASB)
+---
+
+## Section 8: Group Handout
+
+**The Potter's Right: God's Sovereign Freedom and the Gospel's Sure Foundation**
+
+**Key Idea:** God's freedom to show mercy according to His own purposes is not injustice — it is the very ground on which the gospel stands. Because salvation originates entirely in God's sovereign grace, every person who trusts Christ can rest in a mercy no human failure can overturn.
+
+**Memory Verse:** "So then it does not depend on the man who wills or the man who runs, but on God who has mercy." — Romans 9:16 (NASB)
 
 **Big Points:**
-* Paul opens Romans 9 with grief, not argument — his anguish over Israel's unbelief shows that sovereign theology and deep compassion belong together.
-* "Not all Israel is Israel" (v. 6) — God has always worked through a chosen remnant within ethnic Israel. This does not cancel Israel's future; Romans 11 preserves it.
-* Jacob was chosen over Esau before either was born, before either had done anything good or bad — eliminating human merit as any factor in election.
-* God's mercy is never owed. Demanding that God be "fair" in salvation is actually demanding judgment, since no one deserves grace.
-* The potter-and-clay image corrects our posture, not just our theology. The clay has no standing to audit the potter's design.
-* God's sovereignty should drive us to intercession, not passivity — Paul's grief for Israel produced unceasing prayer, not fatalism.
+* Paul's grief for Israel in Romans 9:1–3 shows that doctrinal precision and evangelistic passion belong together — one without the other is incomplete.
+* Physical descent from Abraham never guaranteed covenant standing; God's purposes have always operated on a basis other than human merit or ethnic heritage.
+* "I will have mercy on whom I have mercy" (v. 15) is not a threat — it is God's own definition of Himself as a God who gives what no one deserves.
+* The potter and clay image (vv. 20–21) calls us to humility before a Creator whose authority over His creation is absolute and whose purposes bend toward mercy (vv. 22–24).
+* God's sovereignty in salvation makes evangelism more urgent and confident, not less — Paul, who wrote Romans 9, was the most relentless missionary of the first century.
 
-**Gospel Connection:** Every person who has trusted Christ is a vessel of mercy — not because of anything they brought to God, but because God, in His sovereign freedom, chose to show grace. The cross is where God's mercy and justice meet perfectly: Christ bore the judgment we deserved so that mercy could be extended freely. If you have never trusted Christ, this passage is an invitation — God is still calling vessels of mercy from every nation.
+**Gospel Connection:** Romans 9 strips away every false foundation for hope before God — bloodline, moral record, religious effort — and leaves only one: the mercy of a God who saves because He is merciful, not because we are worthy. That is exactly what the gospel offers. Christ's death satisfies God's just demands against sin, and faith in Him is the only condition of salvation. If God's mercy depended on your performance to sustain it, you would have reason to fear. Because it rests entirely on His character, you have every reason to trust.
 
 **Reflection Questions:**
-**1.** What objection to God's sovereignty do you find most personally challenging, and what does Paul's response teach you about the posture behind that objection?
-**2.** How does understanding that mercy is never owed change the way you think about your own salvation?
-**3.** Is there someone you have been praying for who has not yet believed? How does Paul's example of unceasing intercession shape your commitment to keep praying?
+**1.** Where have you been tempted to treat God's mercy as something you earned or maintained by your own effort?
+**2.** How does understanding that God's sovereign mercy is the *foundation* of the gospel change the way you share your faith with others?
+**3.** Who is one person by name that you will commit to pray for this week — someone who has not yet trusted Christ?
 
-**Weekly Challenge:** This week, write down the name of one person you are praying will come to faith. Pray for them daily, and let God's sovereignty be the fuel for that prayer rather than a reason to stop. Paul's grief for Israel didn't produce silence — it produced persistent, Spirit-driven intercession.
+**Weekly Challenge:** Write that person's name somewhere you will see it every day this week. Pray for them using Paul's own posture from Romans 9:1–3 — with genuine grief and genuine hope, because the God who shows mercy is still showing it.
 
-**Prayer:** "Father, we confess that Your ways are higher than our ways and Your thoughts higher than ours. Thank You that mercy was never owed to us — and that You gave it freely through Christ. Teach us to hold Your sovereignty not as a puzzle to solve but as a truth to worship. Where we have questioned Your justice, give us humility. Where we have grown passive, stir us to pray. We trust You with the people we love who do not yet know You. In Christ's name, Amen."
+**Prayer:** "Father, I confess that I often want to interrogate Your ways rather than trust Your character. Thank You that Your mercy is not fragile, not earned, and not dependent on my performance. Make my heart grieve for those who don't yet know You, and make me bold to share the gospel because You are the One who saves. In Christ's name, amen."
 
+---
 *Scripture quotations taken from the (NASB®) New American Standard Bible®, Copyright © 1960, 1971, 1977, 1995, 2020 by The Lockman Foundation. Used by permission. All rights reserved. lockman.org*

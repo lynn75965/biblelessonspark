@@ -1,148 +1,161 @@
 ---
 profile_id: regular-baptist-garbc
 passage_slug: psalm-23
-generated_at: 2026-07-16T13:49:18.710Z
+generated_at: 2026-07-16T14:51:31.221Z
 phase1_model_used: claude-sonnet-4-6
 phase2_model_used: UNKNOWN -- not persisted by generate-lesson (see B6 finding #4)
 two_phase: true
 supplements_completed: true
-pipeline_hash: e3fdd7c94a521b661d1cf97fa60f5dc4de4f923c858b88a7d5cc410354f2e0dd
-fixture_hash: 7c17fcbc404df67f
+pipeline_hash: 2e9feb75d4d18b5a1fd4f03bdffae818ae44b2c77f0ae2053ae6c93e2259c4a5
+fixture_hash: b65278bad174c864
 vet_status: PENDING_REVIEW
 reviewer_notes: ""
 ---
 ## Section 1: Lens + Lesson Overview
 
-**Theological Profile:** Regular Baptist (GARBC) — Dispensational, Inerrant Scripture, Eternal Security
+**Theological Profile:** Regular Baptist (GARBC) — Dispensational Premillennial, Cessationist, Inerrancy-Committed
 
-**Lesson Title:** *The LORD Is My Shepherd: Confident Trust in a Faithful God*
+**Lesson Title:** *The LORD Is My Shepherd: Sovereign Care in a Dangerous World*
 
-**Lesson Summary:** Psalm 23 is one of the most beloved passages in Scripture, yet its depths are rarely fully explored. This lesson moves students beyond familiarity into genuine theological engagement with what it means to confess God as their personal Shepherd, Provider, and Escort through death itself. The lesson defends the Christian's confidence in God's sovereign care as a rational, Scripture-grounded conviction — not mere sentiment.
+**Lesson Summary:** Psalm 23 is David's personal testimony of God's sufficiency as Shepherd, Provider, and Host. This lesson examines the psalm as a confession of confident trust rooted in God's covenant character, not in favorable circumstances. Students will discover that the Shepherd's care is not an escape from hardship but a sustaining presence through it.
 
-**Main Theme:** Because the LORD is our Shepherd, we lack nothing — not in life, not in death, not in eternity.
+**Main Theme:** God's shepherding care is comprehensive, covenantal, and certain — covering provision, guidance, protection, and eternal welcome.
 
-**Key Takeaway:** The same God who shepherds you through green pastures also walks with you through the valley of death, and His presence is the reason for confidence in both.
+**Key Takeaway:** Because the LORD is your Shepherd, you lack nothing that truly matters — not in life, not in death, not in eternity.
 
-**Audience Insight:** Mid-life adults (36–50) often face the pressures of aging parents, career plateaus, health concerns, and shifting family dynamics. Psalm 23 speaks directly to people who have lived long enough to know that life is not always green pastures — and who need a theologically grounded anchor, not a greeting-card answer.
+**Audience Insight:** Mid-life adults (36–50) carry significant responsibilities — careers, aging parents, teenagers, financial pressure, health concerns. They are sophisticated enough to reject shallow comfort but hungry for grounded assurance. This psalm speaks directly into their season of life with theological weight and pastoral warmth.
 
 ---
 
 ## Section 2: Learning Objectives + Key Scriptures
 
-**Measurable Learning Objectives:**
+**Learning Objectives:** By the end of this lesson, students will be able to:
 
-- Students will identify at least three specific provisions described in Psalm 23 and connect each to a divine attribute of God.
-- Students will articulate why the Shepherd metaphor is theologically significant, not merely poetic.
-- Students will distinguish between God's presence as comfort and God's presence as active, guiding power.
-- Students will explain how eternal security is embedded in verse 6's declaration of dwelling in God's house forever.
-- Students will identify one area of their own life where they are not trusting the Shepherd's provision and commit it to prayer.
+- Identify the two primary metaphors in Psalm 23 (Shepherd/sheep and Host/guest) and explain what each communicates about God's character
+- Articulate why David's confidence is rooted in *who God is*, not in the absence of hardship
+- Connect the "valley of the shadow of death" (v. 4) to the biblical truth that God's presence sustains believers through suffering, not around it
+- Explain how Psalm 23 points forward to Jesus as the Good Shepherd (John 10:11–14)
+- State one specific area of their own life where they will apply the psalm's truth this week
 
-**Primary Scripture Passage:**
-Psalm 23:1–6 (NASB)
+**Primary Scripture:** Psalm 23:1–6 (NASB)
 
 **Supporting Passages:**
-- John 10:11–15 — Jesus as the Good Shepherd who lays down His life
-- Hebrews 13:20–21 — The God of peace as the great Shepherd of the sheep
+- John 10:11–14 — Jesus as the Good Shepherd who lays down His life
+- Hebrews 13:20–21 — "the great Shepherd of the sheep" in benediction
 
 **Teacher Preparation Checklist:**
-- [ ] Read Psalm 23 in NASB at least three times, once aloud
+- [ ] Read Psalm 23 in full, at least three times, in the NASB
 - [ ] Review Section 3 theological background thoroughly before class
-- [ ] Pray through the psalm personally, identifying your own application
-- [ ] Consider which students may be walking through a "valley" season currently
-- [ ] Have Bibles or printed NASB text available for students
+- [ ] Have Bibles or printed text available for each student
+- [ ] Prepare to read the psalm aloud at the lesson's opening
 
 ---
 
 ## Section 3: Theological Background (Deep-Dive)
 
-**Author, Genre, and Literary Context**
+**Literary Context and Structure**
 
-Psalm 23 is attributed to David — a man who literally shepherded flocks before he shepherded a nation. This biographical detail is not incidental. David writes from experiential knowledge of shepherding: the rod, the staff, the green pastures, the still waters. The psalm is a *song of trust*, a sub-genre of Hebrew poetry characterized by confident declaration rather than petition. Unlike lament psalms, Psalm 23 opens with a settled theological assertion: "The LORD is my shepherd" — present tense, personal, and unqualified.
+Psalm 23 is a psalm of trust, a subcategory of individual lament psalms where the complaint is replaced entirely by confident declaration. David writes in first person throughout, making this an intensely personal confession. The psalm divides naturally into two metaphor-frames: verses 1–4 use the shepherd/sheep image, and verses 5–6 shift to a host/honored guest image at a prepared table. Both metaphors communicate the same theological reality from different angles — God's total sufficiency for His own.
 
-**The Name LORD (YHWH)**
+**Historical and Authorial Context**
 
-The opening word translated "LORD" is the covenant name *YHWH* — the personal, self-existent God who revealed Himself to Moses at the burning bush (Exodus 3:14). This is not a generic deity. David is claiming the covenant-keeping God of Israel as his personal Shepherd. Every provision that follows flows from this identity. Teachers should note: this is an apologetically significant point. David is not expressing a wish; he is making a truth claim about the character of a specific, revealed God.
+The superscription attributes this psalm to David, and internal evidence supports it. David's background as a literal shepherd (1 Samuel 16:11; 17:34–36) gives the metaphor biographical weight — he knew firsthand what a shepherd's vigilance cost. He wrote as a man who had faced lions, bears, Philistines, and the treachery of Saul. His confidence in verse 4 is not theoretical. The "table prepared in the presence of my enemies" (v. 5) likely draws on ancient Near Eastern hospitality customs, where a host's protection of a guest was a binding social and moral obligation.
 
-**"I Shall Not Want" — Comprehensive Provision**
+**Key Hebrew Word Insights**
 
-The Hebrew *lo' 'echsar* means "I shall lack nothing." This is a statement of sufficiency, not luxury. The Shepherd's provision covers rest (green pastures), refreshment (still waters), spiritual restoration (*nephesh* — the whole person, not merely the soul), and righteous guidance — all "for His name's sake," meaning God's provision flows from His own character and reputation, not from our merit.
+- **"The LORD"** (v. 1) — *YHWH*, the covenant name of God revealed to Moses (Exodus 3:14). This is not a generic deity; David is declaring that the covenant God of Israel is his personal Shepherd. The weight of Exodus redemption stands behind this single word.
+- **"I shall not want"** (v. 1) — *lo' echsar*, meaning "I will lack nothing." This is a declaration, not a wish. It is grounded in who the Shepherd is, not in current circumstances.
+- **"Valley of the shadow of death"** (v. 4) — *tsalmawet*, a compound Hebrew word combining *tsal* (shadow/darkness) and *mawet* (death). It describes the most extreme danger imaginable — a ravine so deep and dark that death seems certain. The sheep does not avoid this valley; the Shepherd accompanies through it.
+- **"Rod and staff"** (v. 4) — The rod (*shebet*) was a weapon for defense against predators; the staff (*misheneth*) was the crook used to guide and rescue sheep. Together they represent both protection and guidance.
+- **"Goodness and lovingkindness"** (v. 6) — *tov* and *hesed*. The second term, *hesed*, is the great covenant-loyalty word of the Old Testament — steadfast love that does not fail because it is bound to God's own character and promises.
 
-**The Valley of the Shadow of Death**
+**Doctrinal Connections**
 
-Verse 4's Hebrew *tsalmaveth* combines *tsel* (shadow) and *maveth* (death). Some scholars prefer "deep darkness," but the traditional rendering captures the passage's full weight. The shift from third person ("He leads me") to second person ("You are with me") in verse 4 is theologically intentional — in the darkest moments, the relationship becomes intimate and direct. The rod and staff are not decorative; the rod was used to fight predators, the staff to guide and rescue. God's presence in the valley is active, not passive.
+Psalm 23 is a pre-cross expression of the truth that God is the all-sufficient Shepherd of His people. Jesus explicitly claims this identity in John 10:11: "I am the good shepherd; the good shepherd lays down His life for the sheep." The New Testament fulfillment does not replace Psalm 23 but reveals its full depth — the Shepherd's care for His sheep cost Him His life. Hebrews 13:20 calls Jesus "the great Shepherd of the sheep" in connection with "the blood of the eternal covenant," anchoring the psalm's covenant vocabulary (*hesed*) directly to the cross.
 
-**The Table Before Enemies**
+The phrase "I shall dwell in the house of the LORD forever" (v. 6) anticipates what the New Testament makes explicit — the eternal security of God's people. For the believer, the Shepherd's care does not terminate at death; it ushers the sheep into permanent dwelling with God.
 
-Verse 5 shifts the metaphor from shepherd to host. God prepares a *table* — a covenant meal — in the presence of enemies. This is a declaration that God's provision is not contingent on favorable circumstances. Anointing with oil was a sign of honor and blessing. The cup overflowing speaks of abundance beyond sufficiency.
+**Age-Appropriate Depth Note**
 
-**Verse 6 and Eternal Security**
-
-"Surely goodness and lovingkindness will follow me all the days of my life, and I will dwell in the house of the LORD forever." The Hebrew *chesed* (lovingkindness) is covenant loyalty — the same word used throughout the Psalms to describe God's unbreakable commitment to His own. "Forever" (*le'orek yamim*, "for length of days") points beyond biological life. For the New Testament believer, this finds its fullest expression in the eternal security of all who are genuinely born again — kept by God the Father for Jesus Christ (1 Peter 1:5). The Shepherd does not lose His sheep.
-
-**Christological Connection**
-
-Jesus explicitly claims this psalm's identity in John 10:11: "I am the good shepherd; the good shepherd lays down His life for the sheep." Psalm 23 is not merely a comfort text — it is a Messianic portrait. The Shepherd of Psalm 23 is the same Shepherd who died for His flock and rose again, confirmed in Hebrews 13:20 as "the great Shepherd of the sheep."
+Mid-life adults often experience the "valley of the shadow" not as a single dramatic crisis but as a sustained season — a difficult marriage, a prodigal child, a career collapse, a health diagnosis. The psalm's structure is important: the Shepherd does not eliminate the valley. He walks through it with the sheep. This is the pastoral nerve of the lesson.
 
 ---
 
 ## Section 4: Opening Activities
 
-**Activity 1 — Thought-Provoking Question (3–4 minutes)**
+**Opening Hook — Thought-Provoking Question**
+*(3–4 minutes)*
 
-Open by asking the class: *"If someone asked you to prove that God actually cares about the details of your daily life — not just your eternal soul, but your stress, your sleep, your fears — what would you say?"*
+Open with this question — do not answer it yet, just let it sit:
 
-Allow two or three brief responses. Don't resolve the tension yet. Tell the class: "Psalm 23 is David's answer to that exact question — and it's more theologically loaded than most of us realize."
+"Think about the most uncertain or frightening season of your adult life. What did you actually need in that moment — and did you get it?"
 
-**Activity 2 — Familiarity Check (2 minutes)**
+Give students thirty seconds to think silently, then invite two or three brief responses. You are not looking for theological answers yet. You want the room to feel the weight of real need before you open the psalm.
 
-Ask: "How many of you have heard Psalm 23 read at a funeral?" Most hands will go up. Then ask: "How many of you have studied it as a doctrine of God's character?" Fewer hands. Use this contrast to frame the lesson: "Today we're not reading this as a comfort verse — we're reading it as a truth claim about who God is and what He has committed Himself to do for His people."
+**Warm-Up: Nature Parallel**
+*(2 minutes)*
 
-**Transition:** "Open your Bibles to Psalm 23. Let's read it together and then dig into what David is actually saying."
+Say: "Sheep are uniquely dependent animals. Unlike deer or horses, they cannot find their own water reliably, they cannot defend themselves, and they will follow a familiar voice without hesitation — even into danger if the shepherd leads wrong. A sheep's survival is almost entirely a function of its shepherd's character."
+
+Ask: "What does it say about David — and about us — that God chose *this* animal as the image for His people?"
+
+**Transition:** "Let's open to Psalm 23 and read what David, a man who had actually been a shepherd and had faced real enemies, chose to declare about his God."
 
 ---
 
 ## Section 5: Main Teaching Content (Teacher Transcript)
 
-Let's read Psalm 23 together from the NASB:
+Open your Bibles to Psalm 23. I want to read it aloud before we dig in, because this psalm was meant to be heard as a whole before it's examined in pieces.
 
-> "The LORD is my shepherd, I shall not want. He makes me lie down in green pastures; He leads me beside quiet waters. He restores my soul; He guides me in the paths of righteousness for His name's sake. Even though I walk through the valley of the shadow of death, I fear no evil, for You are with me; Your rod and Your staff, they comfort me. You prepare a table before me in the presence of my enemies; You have anointed my head with oil; my cup overflows. Surely goodness and lovingkindness will follow me all the days of my life, and I will dwell in the house of the LORD forever."
-> — Psalm 23:1–6 (NASB)
+*Read Psalm 23:1–6 aloud, slowly.*
 
-Most of us have heard this psalm so many times that we risk reading it without actually hearing it. So today I want to slow down and ask: what is David actually claiming here? Because this is not poetry for poetry's sake. This is a theological argument.
+Now — most of us have heard this psalm at funerals. And it belongs there. But David did not write it as a funeral text. He wrote it as a declaration for the living, in the middle of life, with real enemies present and real dangers ahead. That reframing matters enormously.
 
-**The First Word Changes Everything**
+**The Shepherd's Identity Changes Everything**
 
-Notice that David doesn't open with a request. He opens with a declaration: *"The LORD is my shepherd."* That word LORD is the covenant name of God — YHWH — the God who told Moses "I AM WHO I AM." David isn't saying "I hope God is watching over me." He's saying: the self-existent, covenant-keeping God of Israel has personally taken responsibility for my life. That's a stunning claim. And it's the foundation for everything that follows.
+Verse 1 opens with the most important statement in the psalm: "The LORD is my shepherd." Before David says anything about green pastures or still waters, he tells us *who* the Shepherd is. The word translated "LORD" here is *YHWH* — the covenant name God revealed to Moses at the burning bush. This is the God who parted the Red Sea, who fed Israel in the wilderness, who bound Himself by promise to a people. David is not saying "a good God looks after me." He is saying "the covenant-keeping God of all creation is personally shepherding my life."
 
-When David says "I shall not want," he's not claiming a life without hardship. He's claiming that under this Shepherd's care, he will lack nothing that genuinely matters. Green pastures and still waters aren't luxury — they're what sheep need to survive. God provides what is necessary. And He does it because of *His name's sake* — meaning His own character and reputation are bound up in how He cares for you. God doesn't provide for you because you've earned it. He provides because that's who He is.
+That word "my" is just as important. David does not say "the LORD is *a* shepherd" or even "the LORD is *the* shepherd." He says *my* shepherd. This is not abstract theology. It is a personal claim on a personal God.
 
-**What Does "He Restores My Soul" Actually Mean?**
+And then the conclusion: "I shall not want." That is a declaration, not a wish. The Hebrew means "I will lack nothing" — nothing that a sheep genuinely needs. Notice David does not say "I will have everything I desire." He says he will lack nothing he *needs*. The Shepherd defines sufficiency, not the sheep.
 
-The Hebrew word translated "soul" is *nephesh* — it refers to the whole person, not just some invisible spiritual component. When David says "He restores my soul," he means God brings the whole person back — the exhausted, depleted, spiritually drained person — back to a place of strength. Think about what it means to be genuinely restored. Not just rested. Restored. That's what the Shepherd does.
+**Green Pastures and Still Waters Are Not the Whole Story**
 
-**The Valley Is Not the Exception — It's Part of the Path**
+Verses 2 and 3 are the ones people put on greeting cards. Green pastures, still waters, restored soul, paths of righteousness. These are real. God does provide seasons of rest, refreshment, and spiritual renewal. But notice why He leads in paths of righteousness — "for His name's sake." The Shepherd's reputation is bound up in the welfare of His sheep. God's own honor is at stake in how He cares for you. That is not a small thing.
 
-Here's something we need to sit with: David doesn't say *if* you walk through the valley of the shadow of death. He says *when*. The valley is on the path. The Shepherd leads you through it — not around it. This matters enormously for mid-life adults who've discovered that following God doesn't exempt you from dark seasons. The question isn't whether the valley comes. The question is who is with you when it does.
+But the psalm does not stop at verse 3. And this is where it gets honest.
 
-Notice something subtle but profound in verse 4. Up to this point, David has been speaking *about* God in the third person — "He makes me," "He leads me," "He restores me." But the moment he enters the valley, the language shifts: *"You are with me."* The relationship becomes direct and personal in the darkest moment. That is not accidental. When the darkness is deepest, the intimacy is closest.
+**The Valley Is Real — and So Is the Shepherd**
 
-The rod and staff aren't decorations. The rod was a weapon — used to fight off predators. The staff was a crook — used to guide and rescue sheep that had fallen. God's presence in the valley is not passive comfort. It is active protection and intervention.
+Verse 4: "Even though I walk through the valley of the shadow of death, I fear no evil, for You are with me."
 
-**A Table in Enemy Territory**
+The Hebrew word behind "shadow of death" is *tsalmawet* — a word that combines darkness and death into a single image. The deepest ravine, the darkest canyon, the moment when death seems close enough to touch. And David says: the sheep walks *through* that valley. Not around it. Not over it. Through it.
 
-Verse 5 shifts the image. Now God is not the Shepherd — He's the Host. And He sets a table for you *in the presence of your enemies.* Not after the enemies are gone. While they're still there. This is a declaration that God's provision is not dependent on your circumstances being favorable first. He doesn't wait until your life is sorted out to bless you. He blesses you in the middle of the conflict.
+Here is what I want you to hold onto: the Shepherd does not promise to reroute you around every valley. He promises to walk through it with you. The basis of David's fearlessness is not the absence of danger — it's the presence of the Shepherd. "I fear no evil, *for You are with me.*" The logic is not "there is nothing to fear." The logic is "the One who is with me is greater than what I fear."
 
-**Verse 6 Is a Doctrine, Not Just a Comfort**
+Mid-life is often a season of sustained valleys — not dramatic single crises, but long, grinding stretches of difficulty. A marriage that has gone cold. A child making choices that break your heart. A health diagnosis that changes everything. The psalm does not promise those valleys will end quickly. It promises you will not walk them alone.
 
-"Surely goodness and lovingkindness will follow me all the days of my life, and I will dwell in the house of the LORD forever."
+Notice also that the grammar shifts in verse 4. In verses 1–3, David speaks *about* God — "He makes me lie down," "He leads me." In verse 4, he speaks *to* God — "You are with me," "Your rod and Your staff." When the valley gets dark enough, theology becomes prayer. The knowledge of God becomes conversation with God.
 
-That word *lovingkindness* is the Hebrew *chesed* — covenant loyalty. It's the word used throughout the Psalms to describe God's unbreakable commitment to His own people. David isn't hoping for this. He's declaring it as certain. And "forever" points beyond this life entirely.
+**The Table and the House**
 
-For those of us who know Christ, this verse is a statement of eternal security. The Shepherd does not lose His sheep. Jesus said it plainly in John 10: "I give eternal life to them, and they will never perish; and no one will snatch them out of My hand." The same God who shepherds you through today's valley is the God who has secured your place in His house forever.
+Verses 5 and 6 shift the metaphor. Now David is not a sheep — he is an honored guest at a table prepared by a Host. And the table is set "in the presence of my enemies." This is not a private, hidden feast. God's provision for His people is visible. The enemies are present but powerless to interrupt the meal.
 
-Here's the challenge I want to leave you with this week: identify one area of your life where you are living as if the Shepherd isn't there. One area where you're carrying the weight yourself, where you're afraid, where you're depleted. And this week, bring it specifically to the Shepherd in prayer — not as a wish, but as a claim on who He has declared Himself to be.
+The anointing with oil was a sign of honor and welcome in ancient Near Eastern culture. The overflowing cup communicates abundance beyond need. David is not just surviving — he is being honored by God in the very sight of those who oppose him.
 
-The LORD is *your* shepherd. That means you shall not want.
+And then the final declaration: "Surely goodness and lovingkindness will follow me all the days of my life, and I will dwell in the house of the LORD forever."
+
+That word "lovingkindness" is the Hebrew *hesed* — God's covenant loyalty. It is steadfast love that does not fail because it is anchored in God's own character, not in our performance. Goodness and *hesed* are not occasional visitors in the believer's life. David says they will *follow* him — pursue him — every single day.
+
+And it ends with eternity: "I will dwell in the house of the LORD forever." The Shepherd's care does not terminate at death. It ushers the sheep home permanently.
+
+**The Good Shepherd Laid Down His Life**
+
+Jesus stood before His disciples in John 10:11 and said, "I am the good shepherd; the good shepherd lays down His life for the sheep." He was not quoting Psalm 23 — He was *fulfilling* it. The care David described — the provision, the guidance, the protection through the valley, the eternal welcome — all of it was purchased at the cross. The Shepherd became the sacrifice so the sheep could dwell in the house of the LORD forever.
+
+Here is the challenge I want to leave with you: Identify one specific valley you are walking through right now — one area where you are tempted to fear, to doubt, or to feel abandoned. This week, return to Psalm 23 daily and read it as a declaration, not a comfort. Speak it as David spoke it — as a man who knew real danger and chose to trust a real Shepherd. Let the psalm do its work on you.
+
+The LORD is *your* Shepherd. You shall not want.
 
 ---
 
@@ -152,31 +165,28 @@ The LORD is *your* shepherd. That means you shall not want.
 
 ## Section 6: Interactive Activities
 
-**Activity 1 — Personal Shepherd Map (8–10 minutes)**
+**Activity 1: Rod and Staff Paired Sharing**
+*(5–7 minutes | No materials needed)*
 
-*Materials:* Index cards or half-sheets of paper, pens
+Pair students with someone they know moderately well. Each person answers two questions — one per tool from verse 4:
 
-Each student draws a simple two-column chart. Label the left column "Valley Seasons" and the right column "What the Shepherd Provided." Students list one or two genuinely difficult seasons from their adult lives — not for public sharing unless they choose — and in the right column write any evidence, however small, of God's provision, protection, or presence during that time.
+- **Rod (protection):** "What is one threat or pressure in your life right now that you need God to defend you against?"
+- **Staff (guidance):** "Where do you need God's direction most right now?"
 
-After 4–5 minutes of writing, invite two or three volunteers to share briefly. Frame the debrief: "This isn't nostalgia — this is building an apologetic. You're documenting evidence that the Shepherd was actually there."
+Each partner shares for about 90 seconds, then the other responds with one sentence from Psalm 23 that speaks to what they heard. Bring the group back together and ask: "Did anyone hear something from their partner that they want to share with the class?"
 
-*Adaptation:* In a smaller class, share in pairs. In a larger class, keep sharing voluntary and brief.
+*Smaller classes (under 8):* Do this as a full group circle rather than pairs.
 
 ---
 
-**Activity 2 — Shepherd Prayer Practice (5–6 minutes)**
+**Activity 2: Declaration vs. Wish Exercise**
+*(3–4 minutes | Optional: index cards)*
 
-*Materials:* None required*
+Ask students to rewrite verse 1 as a personal declaration using their own name and one specific circumstance. Example: *"The LORD is my Shepherd in this season of caring for my aging father — I shall not lack what I need."*
 
-Guide the class through a structured prayer exercise based directly on Psalm 23's provisions. Read each phrase slowly and pause:
+If index cards are available, have them write it out and keep it. Otherwise, invite two or three volunteers to share aloud.
 
-- "He restores my soul" — silently name one area where you need restoration right now.
-- "You are with me" — name one fear you've been carrying alone.
-- "My cup overflows" — name one provision you've been taking for granted.
-
-Close by praying aloud over the class, claiming God's *chesed* — covenant faithfulness — over whatever they just named.
-
-*Adaptation:* Can be done individually, in pairs, or as a full-group guided prayer.
+This reinforces the lesson's core distinction: the psalm is a declaration, not a wish.
 
 ---
 
@@ -184,49 +194,49 @@ Close by praying aloud over the class, claiming God's *chesed* — covenant fait
 
 **Discussion Questions:**
 
-**1.** **Recall:** David opens Psalm 23 with a declaration rather than a request. What specific name for God does he use, and why does that name matter more than simply saying "God is my shepherd"?
+**1.** **Recall:** Psalm 23 uses two distinct metaphors for God's relationship with His people. What are they, and which verses correspond to each?
 
-**2.** **Understanding:** The lesson drew attention to the shift from third person to second person in verse 4 — from "He leads me" to "You are with me." What does this grammatical shift reveal about the nature of God's presence in dark seasons?
+**2.** **Understanding:** The lesson emphasized that the covenant name *YHWH* carries the full weight of God's redemptive history. Why does it matter that David used *this* name specifically in verse 1, rather than a more general title for God?
 
-**3.** **Analysis:** Verse 5 describes God preparing a table "in the presence of my enemies" — not after they're gone. How does this challenge the assumption that God's blessing requires favorable circumstances first?
+**3.** **Analysis:** In verse 4, the grammar shifts from David speaking *about* God to speaking *to* God. What does that shift reveal about how deep suffering affects — and can deepen — a believer's relationship with God?
 
-**4.** **Application:** The lesson identified *chesed* — covenant loyalty — as the theological weight behind "lovingkindness" in verse 6. How does understanding *chesed* as covenant commitment rather than warm feeling change how you approach God when you don't feel His presence?
+**4.** **Application:** The lesson described mid-life valleys as often sustained rather than dramatic — a difficult marriage, a prodigal child, a health diagnosis. How does the psalm's promise of the Shepherd's *presence through* the valley (rather than removal from it) change how you approach a long, grinding hardship?
 
-**5.** **Personal Reflection:** The teacher challenged students to identify one area where they are living as though the Shepherd isn't present. What would it look like, practically, to bring that specific area to God as a claim on His declared character rather than merely a wish?
+**5.** **Personal Reflection:** Jesus said in John 10:11 that the good shepherd lays down his life for the sheep. How does knowing the Shepherd's care was purchased at the cross change the way you read verse 6's promise — "I will dwell in the house of the LORD forever"?
 
-**Comprehension Check:** Listen for whether students can distinguish between YHWH as a covenant name versus a generic title, and whether they understand that verse 6's "forever" is a doctrinal statement about eternal security, not poetic flourish.
+**Comprehension Check:** Listen for students connecting David's confidence to *who God is* rather than to favorable circumstances. Strong answers will reference *YHWH*, *hesed*, or the cross. Weak answers will treat the psalm primarily as emotional comfort rather than covenantal declaration.
 
-**Spiritual Indicators:** Students who genuinely grasp this lesson will speak about God's care with confidence rather than hesitation, reference specific provisions rather than vague feelings, and show willingness to name real fears or depleted areas rather than offering safe, abstract answers.
+**Spiritual Indicators:** Students who are genuinely processing this lesson will begin naming specific valleys rather than speaking in generalities, and will express trust in God's presence rather than asking why the valley exists.
 
-**Closing Reflection:** "If the Shepherd's provision is grounded in His own name and character — not your merit — what is the one thing that could actually separate you from His care?"
+**Closing Reflection:** "If the Shepherd's care is truly comprehensive — covering provision, guidance, protection, and eternal welcome — what is the one thing you are still trying to carry alone that you could place in His hands today?"
 
 ---
 
 ## Section 8: Group Handout
 
-**The LORD Is My Shepherd: Confident Trust in a Faithful God**
+**The LORD Is My Shepherd: Sovereign Care in a Dangerous World**
 
-**Key Idea:** Psalm 23 is not a comfort verse — it is a truth claim. David declares that the covenant God of Israel has personally committed Himself to shepherd His people through every season of life, including death itself.
+**Key Idea:** Psalm 23 is not a poem about comfortable circumstances — it is a covenant declaration about an unshakeable God. David's confidence rests entirely on who his Shepherd is, not on what his life looks like at the moment.
 
 **Memory Verse:** "The LORD is my shepherd, I shall not want." — Psalm 23:1 (NASB)
 
 **Big Points:**
-* The name LORD (YHWH) is God's covenant name — David is claiming the self-existent, promise-keeping God as his personal Shepherd, not a generic higher power.
-* "I shall not want" means comprehensive sufficiency — God provides what genuinely matters, and He does it for His own name's sake, not because we've earned it.
-* The valley of the shadow of death is on the path, not a detour from it — and the language shifts to "You are with me" precisely when the darkness is deepest.
-* God's rod and staff are active tools of protection and rescue, not symbols — His presence in hard seasons is never passive.
-* "Lovingkindness" translates the Hebrew *chesed* — unbreakable covenant loyalty. Verse 6's "forever" is a doctrinal statement: the Shepherd does not lose His sheep.
+* The name *YHWH* in verse 1 is God's covenant name — the same God who redeemed Israel from Egypt is personally shepherding your life.
+* "I shall not want" is a declaration, not a wish. The Shepherd defines what you truly need — and He guarantees it.
+* The valley of the shadow of death is not bypassed — it is walked *through*, with the Shepherd present every step.
+* The grammar shifts in verse 4 from talking *about* God to talking *to* God. Deep valleys turn theology into prayer.
+* *Hesed* — God's covenant loyalty — pursues you every day of your life and delivers you into eternity.
 
-**Gospel Connection:** Jesus declared in John 10:11, "I am the good shepherd; the good shepherd lays down His life for the sheep." Psalm 23 is a Messianic portrait. The Shepherd who guides you through green pastures and dark valleys is the same Shepherd who died for His flock and rose again. Hebrews 13:20 calls Him "the great Shepherd of the sheep" — raised through the blood of the eternal covenant. Every provision in Psalm 23 is secured by the cross and confirmed by the empty tomb.
+**Gospel Connection:** Jesus did not merely comfort His followers with Psalm 23 — He fulfilled it. When He declared "I am the good shepherd" in John 10:11, He claimed the identity David celebrated and then paid for it with His life. The eternal welcome of verse 6 — "I will dwell in the house of the LORD forever" — was purchased at the cross. The Shepherd became the sacrifice so His sheep could come home.
 
 **Reflection Questions:**
-**1.** Where in your life right now are you living as if the Shepherd isn't present — carrying weight He has already committed to carry?
-**2.** How does knowing God provides "for His name's sake" — not your performance — change how you approach Him in a depleted season?
-**3.** What does it mean to you personally that God's covenant loyalty (*chesed*) follows you, rather than waiting for you to catch up to it?
+**1.** Where in your life right now are you walking through a valley rather than around one — and have you invited the Shepherd into it?
+**2.** How does knowing that God's *hesed* (covenant loyalty) is anchored in His character — not your performance — change how you face your hardest days?
+**3.** The psalm ends with eternity. How does that final destination shape the way you endure what is difficult today?
 
-**Weekly Challenge:** Choose one specific fear, burden, or depleted area you identified during today's class. Every morning this week, open to Psalm 23:1 and pray it as a declaration — not a wish: *"LORD, You are my Shepherd. I shall not want in this."* At the end of the week, note whether your posture toward that burden has shifted.
+**Weekly Challenge:** Each morning this week, read Psalm 23 aloud as a declaration — not a comfort, but a statement of what is true about your Shepherd. On the final day, write down one specific way the psalm changed how you faced the week.
 
-**Prayer:** "Father, You are the LORD — the covenant-keeping, self-existent God who has declared Yourself my Shepherd. I confess that I often carry what You have already committed to carry. Restore my soul. Walk with me through the valleys I have been afraid to name. Let Your *chesed* — Your unbreakable loyalty — be the ground I stand on, not my own strength or worthiness. Thank You that the Good Shepherd laid down His life for me and rose again, and that no one can snatch me from His hand. I dwell in Your house forever. Amen."
+**Prayer:** "Lord, You are my Shepherd. I confess that I often act as though I must find my own way, defend myself, and secure my own future. Teach me to trust Your rod and Your staff — Your protection and Your guidance — especially in the valleys I cannot see the end of. Thank You that Your goodness and lovingkindness pursue me every day, and that because of the cross, I will dwell in Your house forever. Amen."
 
 ---
 
