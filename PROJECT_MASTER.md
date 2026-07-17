@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 17, 2026 (Session: Phase 2 org-invite verification complete -- org-invite system fully closed)
+# PROJECT MASTER -- Last updated: July 17, 2026 (Session: Admin Panel Growth/Analytics tabs COMPLETE -- ConversionFunnelPanel + CapacityHealthPanel shipped)
 
 ## >>> RESUME HERE <<< -- PHASE 2 ORG-INVITE (existing-confirmed-user
 accept path) VERIFIED COMPLETE in production July 17, 2026. Test invite
@@ -169,11 +169,14 @@ forward from Gate 1 (neither gates Gate 2):
   conversion infra, B8 capacity gauges, and any future security rejection
   paths must persist their events/metrics to queryable tables at build
   time -- not console.error only -- so the Admin Panel can read them
-  later without retrofitting. The Admin Panel UI work itself (AI service
-  status + rate-limit gauges on Configuration; generation health + surge
-  trends on Analytics; security events feed expansion + theology
-  violations on Security; funnel on Growth) is a dedicated post-Gate-2
-  session -- not started now; Gate 2 completion remains the priority.
+  later without retrofitting. The Admin Panel UI work itself was split
+  across two tabs. Analytics -> Capacity (generation health + surge
+  trends, reading B8's capacity_events) and Growth -> Conversion Funnel
+  (reading B7's conversion_events) SHIPPED July 17, 2026 as
+  CapacityHealthPanel and ConversionFunnelPanel -- see that session's log
+  below. STILL OPEN, no target session yet: AI service status +
+  rate-limit gauges on Configuration, and security events feed expansion
+  + theology violations on Security.
 
   NEW STANDING BACKLOG (logged 2026-07-16, B7 adjacent finding #1 -- not
   fixed, needs its own dedicated session): the generic `events` table's
@@ -262,7 +265,99 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 16, 2026 SESSION (LATEST) -- Legal sidebar entry: persistent access to legal pages (post-Gate-2 follow-up)
+## JULY 17, 2026 SESSION (LATEST) -- Admin Panel Growth/Analytics tabs COMPLETE: read-only ConversionFunnelPanel + CapacityHealthPanel over B7/B8 data, no migrations
+
+GOAL: B7 (`conversion_events`) and B8 (`capacity_events`) shipped July 16,
+2026 with data flowing in production, but no UI over it -- Lynn was
+reading both tables via Dashboard SQL. This session closed that gap:
+read-only Growth and Analytics views inside the existing Admin Panel.
+
+### Phase 1 -- diagnose + propose (read-only)
+Confirmed both tables' RLS already permits a direct authenticated admin
+read with zero migration: `admin_full_access` on both `conversion_events`
+and `capacity_events` is `FOR ALL ... USING (has_role(auth.uid(),
+'admin'::app_role))`, which covers SELECT, and both tables `GRANT SELECT
+... TO authenticated`. Confirmed the existing codebase precedent
+(`SystemAnalyticsDashboard.tsx`, `EnrollmentAnalyticsPanel.tsx`) is direct
+`.from(table).select(...)` reads plus client-side JS aggregation, not
+RPCs or SQL views -- recommended following that pattern rather than
+introducing a new read path. Proposal approved with one change: default
+date window 7 days, not 30 -- surge-watching needs this week's signal,
+not last month's baseline; 30-day toggle still available.
+
+### Phase 2 -- implementation (approved as proposed)
+Four files touched, nothing else:
+- `src/constants/adminAnalyticsConfig.ts` (NEW) -- SSOT for every label
+  used by both panels: conversion/capacity event-type labels, capacity
+  source labels, trigger_source labels, tab labels, date-window options
+  (7d default / 30d), the defensive row limit (5000), and all panel copy
+  (empty/error/loading text, stat-tile hints). `CapacitySource` /
+  `CapacityEventType` are hand-mirrored from
+  `supabase/functions/_shared/capacityEvents.ts` (Deno edge-function
+  land, not importable into the Vite bundle) -- same cross-runtime mirror
+  pattern already documented for `capacity_events`'s SQL CHECK
+  constraints.
+- `src/components/ConversionFunnelPanel.tsx` (NEW) -- Growth ->
+  Conversion Funnel. Direct read of `conversion_events`
+  (event_type, trigger_source, created_at), filtered to the selected
+  window, limit 5000. Funnel-stage bar chart, a daily
+  impressions-vs-checkout-started trend line (solid vs. dashed strokes,
+  not color-only), a bar chart of impressions by trigger_source, and two
+  stat tiles (click-through rate, checkout rate) that render an em dash
+  when their denominator is zero.
+- `src/components/CapacityHealthPanel.tsx` (NEW) -- Analytics ->
+  Capacity. Direct read of `capacity_events` (source, event_type,
+  created_at). Grouped bar chart of event-type counts per generator, a
+  truncation-by-source bar chart, a daily anthropic_terminal_failure
+  trend line, a neutral "Quota Denied" raw-count tile (explicitly not a
+  rate -- no reliable denominator), and a visually distinct "Fail-Closed
+  Denials" tile that only takes on `role="alert"` and destructive styling
+  when its count is nonzero, so a healthy zero-value tile doesn't
+  announce itself as an alert on every page load.
+- `src/pages/Admin.tsx` (EDITED) -- Growth tab gained a 4th sub-tab
+  ("Conversion Funnel"); the previously-flat Analytics tab was split into
+  "System" (unchanged `SystemAnalyticsDashboard`) and "Capacity" (new
+  panel) sub-tabs, matching the nested-Tabs pattern already used
+  elsewhere in this file.
+
+Read-only throughout: no writes, no exports, no realtime subscriptions,
+no new RPCs, no migrations, no new dependencies (recharts ^2.15.4 was
+already present). WCAG 2.1 AA: non-color-only encoding on every chart
+(explicit data labels on bars, line-style differentiation on the
+two-series trend chart), a keyboard-operable date-window toggle (Radix
+`ToggleGroup`) and refresh button with aria-labels, `role="alert"`
+reserved for genuine error/anomaly states rather than applied
+unconditionally.
+
+One ASCII-guard near-miss during drafting, caught before it reached a
+commit: `adminAnalyticsConfig.ts` briefly held a literal em-dash
+character (Rule #16 violation) instead of the required backslash-u-2014 escape.
+Found via a byte-level PowerShell scan; fixed by building the escape
+sequence from explicit char codes in PowerShell rather than literal text,
+to avoid the same Write/Edit Unicode-transcoding ambiguity noted in prior
+sessions. All four files re-verified byte-clean
+(0 non-ASCII bytes, no BOM) before build.
+
+`npm run build` confirmed clean before Lynn's localhost review. Lynn
+verified all four items on her own manual checklist (funnel/trend/trigger
+charts render correctly, System sub-tab unchanged, empty/loading/error
+states, keyboard pass), then approved deploy.
+
+### Deploy
+`.\deploy.ps1 "FEATURE: Admin Panel Growth Conversion Funnel and Analytics
+Capacity sub-tabs"` -- ASCII guard passed, committed, pushed to main.
+Commit `ae7ef9d`.
+
+### Admin Panel Growth/Analytics tabs -- COMPLETE
+Closes the Growth/Analytics portion of the "Admin Panel UI work" open
+item logged 2026-07-16 under Rule #31's "Admin-observable by design"
+backlog entry (see that entry above, now updated). Scope was
+intentionally the smallest useful surge-watching version -- explicitly
+NOT built: CSV/export, realtime subscriptions, new RPCs/migrations,
+Configuration tab AI-service/rate-limit gauges, or Security tab events-
+feed expansion. Those remain open, no target session yet.
+
+## JULY 16, 2026 SESSION -- Legal sidebar entry: persistent access to legal pages (post-Gate-2 follow-up)
 
 GOAL: The legal-pages audit (session log immediately below) confirmed
 the footer isn't consistently present across the app, leaving
