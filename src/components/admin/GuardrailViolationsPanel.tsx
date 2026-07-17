@@ -16,9 +16,11 @@ import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { ShieldAlert, CheckCircle, Eye, RefreshCw, AlertTriangle, Check } from "lucide-react";
+import { ShieldAlert, CheckCircle, Eye, RefreshCw, AlertTriangle, Check, Archive, ShieldOff, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { UI_SYMBOLS, formatEmpty } from "@/constants/uiSymbols";
 import {
   getViolationPatternMeta,
@@ -27,6 +29,10 @@ import {
   VIOLATION_PATTERNS,
   GUARDRAIL_PATTERN_RETUNED_NOTICE,
   GUARDRAIL_TEXT_NOT_FOUND_NOTICE,
+  GUARDRAIL_SUPPRESSION_CREATED_NOTICE,
+  GUARDRAIL_SUPPRESSION_UNAVAILABLE_NOTICE,
+  isFalsePositiveDisposition,
+  normalizeMatchedPhrase,
 } from "@/constants/outputGuardrails";
 import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CONTENT_CONTAINER_STYLES } from "@/utils/formatLessonContent";
 
@@ -73,7 +79,7 @@ interface ViolationDetailDialogProps {
   reviewNotes: string;
   setReviewNotes: (notes: string) => void;
   marking: boolean;
-  onMarkReviewed: (violation: ViolationDetail) => void;
+  onMarkReviewed: (violation: ViolationDetail, dispositionId: string | null) => void;
   formatDate: (dateString: string) => string;
 }
 
@@ -467,7 +473,7 @@ function ViolationDetailDialog({
                 })}
               </div>
               <Textarea placeholder="Optional review notes..." value={reviewNotes} onChange={(e) => { setReviewNotes(e.target.value); setSelectedDisposition(null); }} className="mb-3" />
-              <Button onClick={() => onMarkReviewed(violation)} disabled={marking}>
+              <Button onClick={() => onMarkReviewed(violation, selectedDisposition)} disabled={marking}>
                 {marking ? "Saving..." : "Mark as Reviewed"}
               </Button>
             </div>
@@ -484,19 +490,176 @@ function ViolationDetailDialog({
   );
 }
 
+interface SuppressionRow {
+  id: string;
+  violation_code: string;
+  matched_phrase_normalized: string;
+  created_at: string;
+  user_id: string;
+  guardrail_violations: { lesson_title: string } | null;
+}
+
+function SuppressionsList() {
+  const [suppressions, setSuppressions] = useState<SuppressionRow[]>([]);
+  const [profileMap, setProfileMap] = useState<Record<string, { full_name: string | null; email: string | null }>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const fetchSuppressions = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('guardrail_suppressions')
+        .select('id, violation_code, matched_phrase_normalized, created_at, user_id, guardrail_violations(lesson_title)')
+        .is('revoked_at', null)
+        .order('created_at', { ascending: false });
+      if (fetchError) throw fetchError;
+      const rows = (data || []) as unknown as SuppressionRow[];
+      setSuppressions(rows);
+
+      // Two-query pattern -- guardrail_suppressions.user_id has no FK to
+      // profiles (same reasoning as AllLessonsPanel.tsx / ViolationDetailDialog).
+      const userIds = [...new Set(rows.map(r => r.user_id).filter(Boolean))];
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+        const map: Record<string, { full_name: string | null; email: string | null }> = {};
+        (profiles || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, email: p.email }; });
+        setProfileMap(map);
+      } else {
+        setProfileMap({});
+      }
+    } catch (err: any) {
+      console.error('Error fetching suppressions:', err);
+      setError(err.message || 'Failed to load suppressions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchSuppressions(); }, []);
+
+  const handleRevoke = async (suppression: SuppressionRow) => {
+    setRevokingId(suppression.id);
+    try {
+      const { error: revokeError } = await supabase
+        .from('guardrail_suppressions')
+        .update({ revoked_at: new Date().toISOString(), revoked_by: user?.id })
+        .eq('id', suppression.id);
+      if (revokeError) throw revokeError;
+      toast({ title: "Suppression revoked", description: "This phrase will be flagged again for this user." });
+      fetchSuppressions();
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message || "Failed to revoke suppression", variant: "destructive" });
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  if (loading) {
+    return <Skeleton className="h-32 w-full" />;
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (suppressions.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <ShieldOff className="h-12 w-12 mx-auto mb-3" aria-hidden="true" />
+        <p className="font-medium">No active suppressions</p>
+        <p className="text-sm">Phrases suppressed via a false-positive disposition appear here, per user.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="border rounded-lg overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Phrase</TableHead>
+            <TableHead>Code</TableHead>
+            <TableHead className="hidden sm:table-cell">User</TableHead>
+            <TableHead className="hidden md:table-cell">Source Lesson</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {suppressions.map((s) => {
+            const meta = getViolationPatternMeta(s.violation_code);
+            const profile = profileMap[s.user_id];
+            return (
+              <TableRow key={s.id}>
+                <TableCell className="max-w-[200px] truncate" title={s.matched_phrase_normalized}>
+                  {s.matched_phrase_normalized}
+                </TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-xs">{meta.description} ({meta.code})</Badge>
+                </TableCell>
+                <TableCell className="text-sm hidden sm:table-cell">
+                  {formatEmpty(profile?.full_name || profile?.email)}
+                </TableCell>
+                <TableCell className="text-sm hidden md:table-cell max-w-[150px] truncate">
+                  {formatEmpty(s.guardrail_violations?.lesson_title)}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {formatDate(s.created_at)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Revoke suppression for phrase "${s.matched_phrase_normalized}"`}
+                    onClick={() => handleRevoke(s)}
+                    disabled={revokingId === s.id}
+                  >
+                    <Ban className="h-4 w-4 mr-1" aria-hidden="true" />
+                    {revokingId === s.id ? "Revoking..." : "Revoke"}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+
 export function GuardrailViolationsPanel() {
   const [summary, setSummary] = useState<ViolationSummary[]>([]);
-  const [recentViolations, setRecentViolations] = useState<ViolationDetail[]>([]);
+  const [pendingViolations, setPendingViolations] = useState<ViolationDetail[]>([]);
+  const [archivedViolations, setArchivedViolations] = useState<ViolationDetail[]>([]);
+  const [archiveFetched, setArchiveFetched] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState("");
   const [marking, setMarking] = useState(false);
+  const [activeTab, setActiveTab] = useState("pending");
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const fetchData = async () => {
+  const fetchSummaryAndPending = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const { data: summaryData, error: summaryError } = await supabase
         .from('guardrail_violation_summary')
@@ -504,13 +667,14 @@ export function GuardrailViolationsPanel() {
       if (summaryError) throw summaryError;
       setSummary(summaryData || []);
 
-      const { data: violationsData, error: violationsError } = await supabase
+      const { data: pendingData, error: pendingError } = await supabase
         .from('guardrail_violations')
         .select('*')
+        .eq('was_reviewed', false)
         .order('created_at', { ascending: false })
         .limit(20);
-      if (violationsError) throw violationsError;
-      setRecentViolations(violationsData || []);
+      if (pendingError) throw pendingError;
+      setPendingViolations(pendingData || []);
     } catch (err: any) {
       console.error('Error fetching violations:', err);
       setError(err.message || 'Failed to load violation data');
@@ -519,9 +683,90 @@ export function GuardrailViolationsPanel() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchArchive = async () => {
+    try {
+      const { data, error: archiveError } = await supabase
+        .from('guardrail_violations')
+        .select('*')
+        .eq('was_reviewed', true)
+        .order('reviewed_at', { ascending: false })
+        .limit(20);
+      if (archiveError) throw archiveError;
+      setArchivedViolations(data || []);
+      setArchiveFetched(true);
+    } catch (err: any) {
+      console.error('Error fetching archive:', err);
+    }
+  };
 
-  const handleMarkReviewed = async (violation: ViolationDetail) => {
+  useEffect(() => { fetchSummaryAndPending(); }, []);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'archive' && !archiveFetched) {
+      fetchArchive();
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchSummaryAndPending();
+    if (archiveFetched) fetchArchive();
+  };
+
+  // Suppress-all-phrases-per-row: the UI offers one disposition per row,
+  // not per context entry, so a false-positive judgment on the row covers
+  // every distinct (code, phrase) it logged. Per-phrase resolution reuses
+  // the same stored-matchedPhrase-then-re-derive logic as the highlight.
+  // A phrase that can't be resolved (legacy row, pattern retuned since
+  // flagging) is skipped with no suppression written -- never a wrong or
+  // oversized key.
+  const createSuppressionsForViolation = async (
+    violation: ViolationDetail
+  ): Promise<{ createdCount: number; skippedCount: number }> => {
+    let createdCount = 0;
+    let skippedCount = 0;
+    const createdBy = user?.id;
+    if (!createdBy) {
+      return { createdCount: 0, skippedCount: violation.violation_contexts?.length || 0 };
+    }
+
+    for (const ctx of violation.violation_contexts || []) {
+      const patternDef = VIOLATION_PATTERNS.find(p => p.id === ctx.term);
+      const sample = (ctx.samples?.[0] || '').trim();
+      const phrase = resolveMatchedTerm(ctx, sample, patternDef);
+      if (!phrase) {
+        skippedCount++;
+        continue;
+      }
+
+      const { error: suppressionError } = await supabase
+        .from('guardrail_suppressions')
+        .insert({
+          violation_code: ctx.term,
+          matched_phrase_normalized: normalizeMatchedPhrase(phrase),
+          source_violation_id: violation.id,
+          created_by: createdBy,
+          user_id: violation.user_id,
+        });
+
+      if (suppressionError) {
+        // 23505 = unique_violation -- an active suppression for this
+        // (code, phrase, user) already exists. Benign, not an error.
+        if (suppressionError.code === '23505') {
+          createdCount++;
+        } else {
+          console.error('Failed to create suppression:', suppressionError.message);
+          skippedCount++;
+        }
+      } else {
+        createdCount++;
+      }
+    }
+
+    return { createdCount, skippedCount };
+  };
+
+  const handleMarkReviewed = async (violation: ViolationDetail, dispositionId: string | null) => {
     setMarking(true);
     try {
       const { error } = await supabase
@@ -533,9 +778,21 @@ export function GuardrailViolationsPanel() {
         })
         .eq('id', violation.id);
       if (error) throw error;
+
+      if (isFalsePositiveDisposition(dispositionId)) {
+        const { createdCount, skippedCount } = await createSuppressionsForViolation(violation);
+        if (createdCount > 0) {
+          toast({ title: "Suppression created", description: GUARDRAIL_SUPPRESSION_CREATED_NOTICE });
+        }
+        if (skippedCount > 0) {
+          toast({ title: "Some phrases not suppressed", description: GUARDRAIL_SUPPRESSION_UNAVAILABLE_NOTICE });
+        }
+      }
+
       toast({ title: "Marked as Reviewed", description: "Violation has been marked as reviewed." });
       setReviewNotes("");
-      fetchData();
+      fetchSummaryAndPending();
+      if (archiveFetched) fetchArchive();
     } catch (err: any) {
       toast({ title: "Error", description: err.message || "Failed to update violation", variant: "destructive" });
     } finally {
@@ -549,8 +806,10 @@ export function GuardrailViolationsPanel() {
     });
   };
 
-  const totalUnreviewed = summary.reduce((sum, s) => sum + (s.unreviewed_count || 0), 0);
-  const totalViolations = summary.reduce((sum, s) => sum + (s.total_violations || 0), 0);
+  const totalPending = summary.reduce((sum, s) => sum + (s.unreviewed_count || 0), 0);
+  const totalAll = summary.reduce((sum, s) => sum + (s.total_violations || 0), 0);
+  const totalArchived = totalAll - totalPending;
+  const profilesWithPending = summary.filter(s => (s.unreviewed_count || 0) > 0).length;
 
   if (loading) {
     return (
@@ -583,7 +842,7 @@ export function GuardrailViolationsPanel() {
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
-          <Button onClick={fetchData} variant="outline" className="mt-4">
+          <Button onClick={fetchSummaryAndPending} variant="outline" className="mt-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
           </Button>
@@ -591,6 +850,79 @@ export function GuardrailViolationsPanel() {
       </Card>
     );
   }
+
+  const renderViolationsTable = (violations: ViolationDetail[], emptyMessage: string) => (
+    violations.length === 0 ? (
+      <div className="text-center py-8 text-muted-foreground">
+        <CheckCircle className="h-12 w-12 mx-auto mb-3 text-primary" aria-hidden="true" />
+        <p className="font-medium">{emptyMessage}</p>
+      </div>
+    ) : (
+      <div className="border rounded-lg overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Lesson</TableHead>
+              <TableHead className="hidden sm:table-cell">Profile</TableHead>
+              <TableHead>Violated Terms</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {violations.map((v) => (
+              <TableRow key={v.id}>
+                <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                  {formatDate(v.created_at)}
+                </TableCell>
+                <TableCell className="max-w-[150px] truncate" title={v.lesson_title}>
+                  {v.lesson_title}
+                </TableCell>
+                <TableCell className="text-sm hidden sm:table-cell">
+                  {v.theology_profile_name}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {v.violated_terms.slice(0, 2).map((term, i) => {
+                      const meta = getViolationPatternMeta(term);
+                      return (
+                        <Badge key={i} variant="outline" className="text-xs">
+                          {meta.description} ({meta.code})
+                        </Badge>
+                      );
+                    })}
+                    {v.violated_terms.length > 2 && (
+                      <Badge variant="outline" className="text-xs">+{v.violated_terms.length - 2}</Badge>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {v.was_reviewed ? (
+                    <Badge variant="secondary" className="bg-primary/10 text-green-800">
+                      <CheckCircle className="h-3 w-3 mr-1" />Reviewed
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="bg-amber-100 text-amber-800">Pending</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <ViolationDetailDialog
+                    violation={v}
+                    reviewNotes={reviewNotes}
+                    setReviewNotes={setReviewNotes}
+                    marking={marking}
+                    onMarkReviewed={handleMarkReviewed}
+                    formatDate={formatDate}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  );
 
   return (
     <Card>
@@ -605,132 +937,78 @@ export function GuardrailViolationsPanel() {
               Track when AI generates content with prohibited terminology
             </CardDescription>
           </div>
-          <Button onClick={fetchData} variant="outline" size="sm">
+          <Button onClick={handleRefresh} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Summary Stats -- reflect the ACTIVE (pending) queue; archived
+            count shown as a smaller, secondary line, not an equal-weight
+            card, per Lynn's "visible but secondary" requirement. */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-primary">{totalViolations}</div>
-            <div className="text-sm text-muted-foreground">Total Violations</div>
+            <div className="text-3xl font-bold text-amber-600">{totalPending}</div>
+            <div className="text-sm text-muted-foreground">Active (Pending)</div>
           </div>
           <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-amber-600">{totalUnreviewed}</div>
-            <div className="text-sm text-muted-foreground">Unreviewed</div>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-4 text-center">
-            <div className="text-3xl font-bold text-primary">{summary.length}</div>
+            <div className="text-3xl font-bold text-primary">{profilesWithPending}</div>
             <div className="text-sm text-muted-foreground">Profiles Affected</div>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground text-center">
+          {totalArchived} archived (already reviewed)
+        </p>
 
-        {totalViolations === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-primary" />
-            <p className="font-medium">No Violations Detected</p>
-            <p className="text-sm">All generated lessons are following theological guardrails correctly.</p>
+        {summary.length > 0 && (
+          <div>
+            <h4 className="font-medium mb-3">{GUARDRAIL_SUMMARY_HEADING}</h4>
+            <div className="space-y-2">
+              {summary.map((s) => (
+                <div key={s.theology_profile_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/30 rounded-lg gap-2">
+                  <div>
+                    <span className="font-medium">{s.theology_profile_name}</span>
+                    {s.unreviewed_count > 0 && (
+                      <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-800">
+                        {s.unreviewed_count} unreviewed
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {s.total_violations} violation{s.total_violations !== 1 ? 's' : ''} {UI_SYMBOLS.BULLET} {s.total_terms_violated} term{s.total_terms_violated !== 1 ? 's' : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        ) : (
-          <>
-            {/* Summary by Profile */}
-            {summary.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-3">{GUARDRAIL_SUMMARY_HEADING}</h4>
-                <div className="space-y-2">
-                  {summary.map((s) => (
-                    <div key={s.theology_profile_id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/30 rounded-lg gap-2">
-                      <div>
-                        <span className="font-medium">{s.theology_profile_name}</span>
-                        {s.unreviewed_count > 0 && (
-                          <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-800">
-                            {s.unreviewed_count} unreviewed
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {s.total_violations} violation{s.total_violations !== 1 ? 's' : ''} {UI_SYMBOLS.BULLET} {s.total_terms_violated} term{s.total_terms_violated !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Recent Violations Table */}
-            {recentViolations.length > 0 && (
-              <div>
-                <h4 className="font-medium mb-3">Recent Violations</h4>
-                <div className="border rounded-lg overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Lesson</TableHead>
-                        <TableHead className="hidden sm:table-cell">Profile</TableHead>
-                        <TableHead>Violated Terms</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentViolations.map((v) => (
-                        <TableRow key={v.id}>
-                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                            {formatDate(v.created_at)}
-                          </TableCell>
-                          <TableCell className="max-w-[150px] truncate" title={v.lesson_title}>
-                            {v.lesson_title}
-                          </TableCell>
-                          <TableCell className="text-sm hidden sm:table-cell">
-                            {v.theology_profile_name}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {v.violated_terms.slice(0, 2).map((term, i) => {
-                                const meta = getViolationPatternMeta(term);
-                                return (
-                                  <Badge key={i} variant="outline" className="text-xs">
-                                    {meta.description} ({meta.code})
-                                  </Badge>
-                                );
-                              })}
-                              {v.violated_terms.length > 2 && (
-                                <Badge variant="outline" className="text-xs">+{v.violated_terms.length - 2}</Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {v.was_reviewed ? (
-                              <Badge variant="secondary" className="bg-primary/10 text-green-800">
-                                <CheckCircle className="h-3 w-3 mr-1" />Reviewed
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="bg-amber-100 text-amber-800">Pending</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <ViolationDetailDialog
-                              violation={v}
-                              reviewNotes={reviewNotes}
-                              setReviewNotes={setReviewNotes}
-                              marking={marking}
-                              onMarkReviewed={handleMarkReviewed}
-                              formatDate={formatDate}
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-          </>
         )}
+
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+            <TabsTrigger value="archive" className="flex items-center gap-1">
+              <Archive className="h-4 w-4" aria-hidden="true" />
+              Reviewed Archive
+            </TabsTrigger>
+            <TabsTrigger value="suppressions" className="flex items-center gap-1">
+              <ShieldOff className="h-4 w-4" aria-hidden="true" />
+              Suppressions
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pending" className="mt-4">
+            {renderViolationsTable(pendingViolations, "No pending violations.")}
+          </TabsContent>
+
+          <TabsContent value="archive" className="mt-4">
+            {renderViolationsTable(archivedViolations, "No reviewed violations yet.")}
+          </TabsContent>
+
+          <TabsContent value="suppressions" className="mt-4">
+            <SuppressionsList />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
