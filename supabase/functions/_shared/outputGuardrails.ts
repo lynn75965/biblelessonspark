@@ -73,7 +73,7 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
 
   // --- FABRICATED EVENTS (FE) ---
   { id: 'FE01', category: 'fabricated_event', pattern: /you may have (?:seen|heard)(?: about)? the news/i, description: 'Fabricated news story reference' },
-  { id: 'FE02', category: 'fabricated_event', pattern: /you might have (?:seen|heard|read)(?: about)? (?:the|a) /i, description: 'Fabricated news reference' },
+  { id: 'FE02', category: 'fabricated_event', pattern: /you might have (?:seen|heard|read)(?: about)? (?:the|a) /i, description: 'Generic "you might have..." opener -- phrase-matched, does not require news-specific wording despite category' },
   { id: 'FE03', category: 'fabricated_event', pattern: /(?:was|made|hit) (?:in )?the news (?:this|last) week/i, description: 'Fabricated weekly news reference' },
   { id: 'FE04', category: 'fabricated_event', pattern: /made (?:national |local |international )?headlines/i, description: 'Fabricated headline reference' },
   { id: 'FE05', category: 'fabricated_event', pattern: /(?:I |you may have )?(?:read|saw|seen) an article/i, description: 'Fabricated article reference' },
@@ -100,7 +100,7 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
 
   // --- ASSUMED LOCAL KNOWLEDGE (AL) ---
   { id: 'AL01', category: 'assumed_local', pattern: /(?:here )?in our (?:state|city|town|county|region|area|neighborhood|part of the country)(?:,| )/i, description: 'Assumed geographic locality' },
-  { id: 'AL02', category: 'assumed_local', pattern: /(?:right here|just down the road|in our neighborhood|on our street|around the corner from)/i, description: 'Fabricated hyper-local reference' },
+  { id: 'AL02', category: 'assumed_local', pattern: /(?:right here|just down the road|in our neighborhood|on our street|around the corner from)/i, description: 'Invented hyper-local place/event claim -- phrase-matched, also fires on rhetorical non-fabrication uses of "right here"' },
   { id: 'AL03', category: 'assumed_local', pattern: /(?:in|across|throughout) our state[^.]*(?:just|recently|this week|last week|this month)/i, description: 'Fabricated state-level current event' },
   { id: 'AL04', category: 'assumed_local', pattern: /our (?:local|city|town|county) (?:government|council|board|school district|police|fire department) (?:just|recently|this week)/i, description: 'Fabricated local government event' },
 

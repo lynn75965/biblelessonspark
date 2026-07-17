@@ -39,6 +39,12 @@ export interface SectionViolation {
   description: string;
 }
 
+export interface ViolationPatternMeta {
+  code: string;
+  category: ViolationCategory | null;
+  description: string;
+}
+
 export interface SectionCheckResult {
   sectionId: number;
   sectionName: string;
@@ -73,7 +79,7 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
 
   // --- FABRICATED EVENTS (FE) ---
   { id: 'FE01', category: 'fabricated_event', pattern: /you may have (?:seen|heard)(?: about)? the news/i, description: 'Fabricated news story reference' },
-  { id: 'FE02', category: 'fabricated_event', pattern: /you might have (?:seen|heard|read)(?: about)? (?:the|a) /i, description: 'Fabricated news reference' },
+  { id: 'FE02', category: 'fabricated_event', pattern: /you might have (?:seen|heard|read)(?: about)? (?:the|a) /i, description: 'Generic "you might have..." opener -- phrase-matched, does not require news-specific wording despite category' },
   { id: 'FE03', category: 'fabricated_event', pattern: /(?:was|made|hit) (?:in )?the news (?:this|last) week/i, description: 'Fabricated weekly news reference' },
   { id: 'FE04', category: 'fabricated_event', pattern: /made (?:national |local |international )?headlines/i, description: 'Fabricated headline reference' },
   { id: 'FE05', category: 'fabricated_event', pattern: /(?:I |you may have )?(?:read|saw|seen) an article/i, description: 'Fabricated article reference' },
@@ -100,7 +106,7 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
 
   // --- ASSUMED LOCAL KNOWLEDGE (AL) ---
   { id: 'AL01', category: 'assumed_local', pattern: /(?:here )?in our (?:state|city|town|county|region|area|neighborhood|part of the country)(?:,| )/i, description: 'Assumed geographic locality' },
-  { id: 'AL02', category: 'assumed_local', pattern: /(?:right here|just down the road|in our neighborhood|on our street|around the corner from)/i, description: 'Fabricated hyper-local reference' },
+  { id: 'AL02', category: 'assumed_local', pattern: /(?:right here|just down the road|in our neighborhood|on our street|around the corner from)/i, description: 'Invented hyper-local place/event claim -- phrase-matched, also fires on rhetorical non-fabrication uses of "right here"' },
   { id: 'AL03', category: 'assumed_local', pattern: /(?:in|across|throughout) our state[^.]*(?:just|recently|this week|last week|this month)/i, description: 'Fabricated state-level current event' },
   { id: 'AL04', category: 'assumed_local', pattern: /our (?:local|city|town|county) (?:government|council|board|school district|police|fire department) (?:just|recently|this week)/i, description: 'Fabricated local government event' },
 
@@ -110,6 +116,69 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
   { id: 'FC03', category: 'false_currency', pattern: /I want to start with something that (?:just )?happened/i, description: 'False current event opening' },
   { id: 'FC04', category: 'false_currency', pattern: /something (?:interesting|amazing|remarkable|incredible|fascinating) (?:just )?happened (?:in|this|last)/i, description: 'False remarkable current event claim' },
   { id: 'FC05', category: 'false_currency', pattern: /(?:did you|have you) (?:see|hear|read|catch|notice) (?:about |what happened )?(?:this|last) (?:week|weekend|month)/i, description: 'False "did you see" current event reference' },
+];
+
+// =========================================================================
+// PATTERN META LOOKUP -- sole source for human-readable term-code display
+// Used by the Admin Guardrail Violations panel so no component hardcodes
+// a code-to-description mapping.
+// =========================================================================
+
+export function getViolationPatternMeta(code: string): ViolationPatternMeta {
+  const pattern = VIOLATION_PATTERNS.find(p => p.id === code);
+  if (!pattern) {
+    return { code, category: null, description: 'Unrecognized pattern code' };
+  }
+  return { code: pattern.id, category: pattern.category, description: pattern.description };
+}
+
+// =========================================================================
+// ADMIN PANEL DISPLAY LABELS
+// =========================================================================
+export const GUARDRAIL_SUMMARY_HEADING = 'Violations by Profile Active at Generation';
+
+// =========================================================================
+// REVIEW DISPOSITIONS -- preset "Mark as Reviewed" note text
+// Sole source for the Admin Guardrail Violations modal's preset buttons.
+// =========================================================================
+
+export interface ReviewDisposition {
+  id: string;
+  label: string;
+  note: string;
+}
+
+export const REVIEW_DISPOSITIONS: ReviewDisposition[] = [
+  {
+    id: 'false_positive_pastoral',
+    label: 'False positive: pastoral context',
+    note: 'False positive. Term matched in legitimate pastoral/ministry context (e.g., addiction recovery, counseling, community care). Content is doctrinally appropriate for the active profile. No action needed.',
+  },
+  {
+    id: 'false_positive_scripture',
+    label: 'False positive: Scripture reference',
+    note: 'False positive. Term matched within a Scripture quotation, biblical narrative, or historical-biblical reference. Content is appropriate. No action needed.',
+  },
+  {
+    id: 'false_positive_idiom',
+    label: 'False positive: figure of speech',
+    note: 'False positive. Term matched an idiom or figure of speech unrelated to the prohibited meaning (e.g., "right here in this passage"). Pattern needs context-aware tuning; logged to backlog.',
+  },
+  {
+    id: 'genuine_doctrinal',
+    label: 'Genuine: doctrinal mismatch',
+    note: "Genuine violation. Content conflicts with the active theology profile's doctrinal position. Requires guardrail/prompt correction -- escalate to a fix session.",
+  },
+  {
+    id: 'genuine_fabrication',
+    label: 'Genuine: fabricated content',
+    note: 'Genuine violation. Content invents quotes, sources, or historical details presented as fact. Requires generation-pipeline correction -- escalate to a fix session.',
+  },
+  {
+    id: 'inconclusive',
+    label: 'Inconclusive: needs follow-up',
+    note: 'Unable to determine from available context. Flagged for follow-up review.',
+  },
 ];
 
 // =========================================================================
