@@ -303,6 +303,35 @@ forward from Gate 1 (neither gates Gate 2):
   requests it -- note the white-label-church skill may intersect (a
   single-tenant church deployment would want this same library).
 
+  NEW STANDING BACKLOG (logged 2026-07-17, Admin Panel guardrail-violation
+  review session -- deferred, not fixed): "GUARDRAIL PATTERN TUNING --
+  AL02 'Fabricated hyper-local reference' false positives"
+
+  OBSERVED: 5 violations, all AL02 (Fabricated hyper-local reference),
+  Jun 16 - Jul 16 2026, profiles Baptist Core Beliefs (3) and Missionary
+  Baptist (2). Pattern fires on rhetorical/idiomatic locality phrases
+  that fabricate nothing.
+
+  IMPACT: unchanged -- log-only, no user-facing harm, dilutes admin
+  signal.
+
+  FUTURE SESSION SCOPE: context-aware tuning of the hyper-local pattern
+  (e.g., exclude matches adjacent to Scripture/passage/testament/moment/
+  room; require an actual place-noun or invented-specific pattern);
+  regression-check against the B6 golden suite; consider a
+  guardrail-specific true/false-positive fixture set; fold in the
+  code-notation recommendation from the same session's diagnostic
+  (labels-only vs. code rename + legacy-alias map vs. code rename + data
+  migration -- decision pending Lynn's approval as of 2026-07-17).
+
+  NOTE: this replaces the intended correction to an entry titled
+  "PROHIBITED-TERM GUARDRAIL TUNING (AL02 over-firing on pastoral
+  context)" -- no entry under that title, or any similar wording, was
+  found anywhere in this file. AL02 is confirmed (via outputGuardrails.ts,
+  the SSOT) to be a fabrication checker, not a prohibited-terminology/
+  keyword matcher, so this is logged fresh under the corrected framing
+  rather than edited in place.
+
 Gate 2 remaining work: NONE. Legal pages confirmation, B7 conversion
 infra, B6 theology golden suite, and B8 capacity recheck are all
 COMPLETE (see their own session logs below for full accounts). B6's own
