@@ -303,34 +303,68 @@ forward from Gate 1 (neither gates Gate 2):
   requests it -- note the white-label-church skill may intersect (a
   single-tenant church deployment would want this same library).
 
-  NEW STANDING BACKLOG (logged 2026-07-17, Admin Panel guardrail-violation
-  review session -- deferred, not fixed): "GUARDRAIL PATTERN TUNING --
-  AL02 'Fabricated hyper-local reference' false positives"
+  SHIPPED 2026-07-17 (was: NEW STANDING BACKLOG "GUARDRAIL PATTERN TUNING
+  -- AL02 'Fabricated hyper-local reference' false positives"): AL02
+  tuning is COMPLETE. Dropped "right here" from the AL02 alternation
+  entirely (src/constants/outputGuardrails.ts + supabase/functions/
+  _shared/outputGuardrails.ts, verified byte-identical after the edit)
+  -- Lynn's directive was unconditional: "right here" is acceptable
+  teaching rhetoric in every context, not just some. The four remaining
+  phrases ("just down the road", "in our neighborhood", "on our street",
+  "around the corner from") are unchanged; none of the 5 logged false
+  positives involved them, and none reads as a plausible Scripture-
+  rhetoric idiom the way "right here" does.
 
-  OBSERVED: 5 violations, all AL02 (Fabricated hyper-local reference),
-  Jun 16 - Jul 16 2026, profiles Baptist Core Beliefs (3) and Missionary
-  Baptist (2). Pattern fires on rhetorical/idiomatic locality phrases
-  that fabricate nothing.
+  OBSERVED (original finding): 5 violations, all AL02, Jun 16 - Jul 16
+  2026, profiles Baptist Core Beliefs (3) and Missionary Baptist (2).
+  Pattern fired on rhetorical/idiomatic locality phrases that fabricate
+  nothing (e.g. "rooted right here in the Old Testament", "right here,
+  right now").
 
-  IMPACT: unchanged -- log-only, no user-facing harm, dilutes admin
-  signal.
+  ALSO FIXED THIS SESSION: the admin Guardrail Violations modal's Full
+  Lesson Content highlighter had two related bugs, found via Lynn's
+  localhost testing -- (1) it searched for the whole ~150-char stored
+  context snippet as one contiguous string, which cannot match across
+  the paragraph/bold-markdown element boundaries the rendered HTML
+  introduces, producing a false "not found" notice on text that was
+  genuinely present (confirmed against the live Joshua lesson's actual
+  saved content, byte-for-byte); (2) a separate pre-existing mechanism
+  coincidentally highlighted whatever literal **bold** markdown fell
+  within the stored snippet (a section heading), never the real match.
+  Fixed by extracting the actual matched term from the stored snippet
+  (via the pattern already associated with that violation's code, run
+  only against already-stored data, never live content -- not a fresh
+  guardrail re-scan) and matching it against the rendered DOM with both
+  whitespace AND markdown-structural characters ("*#-") stripped on both
+  sides. Gracefully widens to the whole stored snippet if the associated
+  pattern no longer matches (exactly the case for these same 5 rows now
+  that "right here" was removed) -- never shows nothing.
 
-  FUTURE SESSION SCOPE: context-aware tuning of the hyper-local pattern
-  (e.g., exclude matches adjacent to Scripture/passage/testament/moment/
-  room; require an actual place-noun or invented-specific pattern);
-  regression-check against the B6 golden suite; consider a
-  guardrail-specific true/false-positive fixture set; fold in the
-  code-notation recommendation from the same session's diagnostic
-  (labels-only vs. code rename + legacy-alias map vs. code rename + data
-  migration -- decision pending Lynn's approval as of 2026-07-17).
+  REGRESSION COVERAGE: new scripts/guardrail-pattern-fixtures.mts --
+  deterministic, zero-API-cost, runs the real checkOutputGuardrails()
+  against 9 fixtures (the 5 real false positives, must NOT flag; 4
+  genuine hyper-local fabrications, must still flag AL02). Wired into
+  .github/workflows/ci.yml as a new blocking job (Node 24, independent of
+  build/lint's Node 20 -- .mts native TypeScript execution needs 23.6+).
+  Confirmed green on push (run 51: Build, ASCII Guard, Lint, and the new
+  Guardrail Pattern Fixtures job all succeeded). B6 theology golden suite
+  run as a sanity check (48 fixtures, 0 failed) -- confirmed unaffected,
+  since it does not exercise outputGuardrails.ts at all (separate system,
+  separate charter, verified by grep before relying on it).
 
-  NOTE: this replaces the intended correction to an entry titled
-  "PROHIBITED-TERM GUARDRAIL TUNING (AL02 over-firing on pastoral
-  context)" -- no entry under that title, or any similar wording, was
-  found anywhere in this file. AL02 is confirmed (via outputGuardrails.ts,
-  the SSOT) to be a fabrication checker, not a prohibited-terminology/
-  keyword matcher, so this is logged fresh under the corrected framing
-  rather than edited in place.
+  DEPLOYED: generate-lesson Edge Function version 184 (updated
+  2026-07-17T16:13:26Z) carries the tuned pattern. Shipped as two
+  separate commits per Lynn's sequencing -- frontend patch (User
+  Context, View Lesson, term-code legend, preset dispositions, working
+  highlight) as commit 1288c23; AL02 tuning + fixtures + CI as commit
+  8925531 -- so a regression is unambiguous about which change caused it.
+
+  NEW LOW/architecture (logged 2026-07-17, found during the AL02 tuning
+  session, not fixed): AL01 and AL02 overlap on "in our neighborhood" --
+  both patterns' alternations include that exact phrase, so it
+  double-fires both codes today. Pre-existing (not introduced by this
+  session's AL02 edit), cosmetic, not urgent -- flagged so a future
+  session doesn't mistake it for a new regression.
 
 Gate 2 remaining work: NONE. Legal pages confirmation, B7 conversion
 infra, B6 theology golden suite, and B8 capacity recheck are all
