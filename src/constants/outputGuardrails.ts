@@ -137,6 +137,14 @@ export function getViolationPatternMeta(code: string): ViolationPatternMeta {
 // =========================================================================
 export const GUARDRAIL_SUMMARY_HEADING = 'Violations by Profile Active at Generation';
 
+// A highlight may only ever mark text the pattern actually matched.
+// These two notices cover the two distinct reasons that can fail, so an
+// admin knows which one they are looking at:
+export const GUARDRAIL_PATTERN_RETUNED_NOTICE =
+  'The pattern that flagged this violation has since been tuned, so the originally matched phrase can no longer be identified in the text below. See the excerpt under Violated Terms for context.';
+export const GUARDRAIL_TEXT_NOT_FOUND_NOTICE =
+  'Flagged text not found in current content.';
+
 // =========================================================================
 // REVIEW DISPOSITIONS -- preset "Mark as Reviewed" note text
 // Sole source for the Admin Guardrail Violations modal's preset buttons.

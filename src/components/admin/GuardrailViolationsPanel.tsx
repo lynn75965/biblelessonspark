@@ -20,7 +20,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { ShieldAlert, CheckCircle, Eye, RefreshCw, AlertTriangle, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UI_SYMBOLS, formatEmpty } from "@/constants/uiSymbols";
-import { getViolationPatternMeta, GUARDRAIL_SUMMARY_HEADING, REVIEW_DISPOSITIONS, VIOLATION_PATTERNS } from "@/constants/outputGuardrails";
+import {
+  getViolationPatternMeta,
+  GUARDRAIL_SUMMARY_HEADING,
+  REVIEW_DISPOSITIONS,
+  VIOLATION_PATTERNS,
+  GUARDRAIL_PATTERN_RETUNED_NOTICE,
+  GUARDRAIL_TEXT_NOT_FOUND_NOTICE,
+} from "@/constants/outputGuardrails";
 import { formatLessonContentToHtml, LESSON_CONTENT_CONTAINER_CLASSES, LESSON_CONTENT_CONTAINER_STYLES } from "@/utils/formatLessonContent";
 
 interface ViolationSummary {
@@ -143,6 +150,22 @@ function wrapFlatRange(nodeMap: FlatTextNode[], flatStart: number, flatEnd: numb
   return firstMark;
 }
 
+// Isolates the exact matched term within an already-stored snippet by
+// running the pattern associated with the violation's code -- never
+// against live content, so this stays "source of truth: the stored
+// matched text," not a fresh guardrail re-scan. Returns null if the
+// pattern (possibly retuned since flagging) no longer matches anything
+// in that snippet -- callers must not fall back to treating the whole
+// snippet as a match.
+function findMatchedTerm(
+  patternDef: (typeof VIOLATION_PATTERNS)[number] | undefined,
+  sample: string
+): string | null {
+  if (!patternDef) return null;
+  const match = sample.match(patternDef.pattern);
+  return match && match[0] ? match[0] : null;
+}
+
 function highlightNeedleInContainer(container: HTMLElement, needle: string): HTMLElement | null {
   const needleStripped = needle.replace(new RegExp(STRUCTURAL_CHARS.source, 'g'), '');
   if (!needleStripped) return null;
@@ -174,6 +197,7 @@ function ViolationDetailDialog({
   const [selectedDisposition, setSelectedDisposition] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [missingHighlight, setMissingHighlight] = useState(false);
+  const [patternRetuned, setPatternRetuned] = useState(false);
   const contentContainerRef = useRef<HTMLDivElement>(null);
 
   const handleOpenChange = (nextOpen: boolean) => {
@@ -233,19 +257,24 @@ function ViolationDetailDialog({
     })();
   };
 
-  // Highlight the actual matched term (not the whole stored context
-  // snippet) inside the rendered Full Lesson Content and auto-scroll to
-  // the first match. Runs on every open (not just the first fetch)
-  // because DialogContent unmounts on close, which discards any DOM
-  // marks applied during a prior open.
+  // Highlight the actual matched term inside the rendered Full Lesson
+  // Content and auto-scroll to the first match. Runs on every open (not
+  // just the first fetch) because DialogContent unmounts on close, which
+  // discards any DOM marks applied during a prior open.
   //
-  // The term is isolated by running the pattern already associated with
-  // this violation's code against the STORED snippet only -- never
-  // against live content, so this stays "source of truth: the stored
-  // matched text," not a fresh guardrail re-scan. If that pattern has
-  // since been retuned and no longer matches the stored snippet (e.g.
-  // AL02 dropping "right here"), this degrades gracefully to
-  // highlighting the whole stored snippet instead of finding nothing.
+  // A highlight may ONLY ever mark text the pattern actually matched --
+  // there is no whole-snippet fallback. The stored context snippet often
+  // spans a heading or unrelated adjacent narrative (it's a fixed-size
+  // character window around the real match, not a semantic boundary), so
+  // highlighting all of it mismarks innocent text as violating. Two
+  // distinct failure states, surfaced with two distinct notices:
+  //   - patternRetuned: the pattern associated with this code no longer
+  //     matches anything in the stored snippet (e.g. AL02 dropping
+  //     "right here") -- nothing is highlighted, by design.
+  //   - missingHighlight: the term WAS re-derived from the stored
+  //     snippet, but that exact text isn't found anywhere in the current
+  //     rendered content -- the lesson itself may have changed since
+  //     this violation was logged.
   useEffect(() => {
     if (!open || !lessonContent) return;
     const container = contentContainerRef.current;
@@ -253,7 +282,8 @@ function ViolationDetailDialog({
 
     const contexts = violation.violation_contexts || [];
     let firstMark: HTMLElement | null = null;
-    let anyMissing = false;
+    let anyTextNotFound = false;
+    let anyPatternRetuned = false;
     let anyProcessed = false;
 
     for (const ctx of contexts) {
@@ -263,27 +293,23 @@ function ViolationDetailDialog({
         if (!sample) continue;
         anyProcessed = true;
 
-        let needle = sample;
-        const match = patternDef ? sample.match(patternDef.pattern) : null;
-        if (match && match[0]) {
-          needle = match[0];
+        const needle = findMatchedTerm(patternDef, sample);
+        if (!needle) {
+          anyPatternRetuned = true;
+          continue;
         }
 
-        let mark = highlightNeedleInContainer(container, needle);
-        if (!mark && needle !== sample) {
-          // Graceful degradation: widen to the whole stored snippet.
-          mark = highlightNeedleInContainer(container, sample);
-        }
-
+        const mark = highlightNeedleInContainer(container, needle);
         if (mark) {
           if (!firstMark) firstMark = mark;
         } else {
-          anyMissing = true;
+          anyTextNotFound = true;
         }
       }
     }
 
-    setMissingHighlight(anyProcessed && anyMissing);
+    setMissingHighlight(anyProcessed && anyTextNotFound);
+    setPatternRetuned(anyProcessed && anyPatternRetuned);
 
     if (firstMark) {
       // Scope the scroll to this one container -- never scrollIntoView,
@@ -339,6 +365,7 @@ function ViolationDetailDialog({
             <div className="space-y-3">
               {violation.violation_contexts?.map((ctx, i) => {
                 const meta = getViolationPatternMeta(ctx.term);
+                const patternDef = VIOLATION_PATTERNS.find(p => p.id === ctx.term);
                 return (
                   <div key={i} className="bg-muted/50 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-2">
@@ -346,11 +373,24 @@ function ViolationDetailDialog({
                       <span className="text-sm text-muted-foreground">({ctx.occurrences}x)</span>
                     </div>
                     <div className="space-y-1">
-                      {ctx.samples?.map((sample, j) => (
-                        <p key={j} className="text-sm text-muted-foreground bg-background p-2 rounded break-words"
-                          dangerouslySetInnerHTML={{ __html: sample.replace(/\*\*(.*?)\*\*/g, '<mark class="bg-red-200 px-1 rounded">$1</mark>') }}
-                        />
-                      ))}
+                      {ctx.samples?.map((rawSample, j) => {
+                        const sample = rawSample.trim();
+                        const term = findMatchedTerm(patternDef, sample);
+                        const idx = term ? sample.indexOf(term) : -1;
+                        return (
+                          <p key={j} className="text-sm text-muted-foreground bg-background p-2 rounded break-words">
+                            {term && idx !== -1 ? (
+                              <>
+                                {sample.slice(0, idx)}
+                                <mark className="bg-red-200 px-1 rounded font-bold">{sample.slice(idx, idx + term.length)}</mark>
+                                {sample.slice(idx + term.length)}
+                              </>
+                            ) : (
+                              sample
+                            )}
+                          </p>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -360,9 +400,14 @@ function ViolationDetailDialog({
 
           <div className="border-t pt-4">
             <h5 className="font-medium mb-2">Full Lesson Content</h5>
+            {patternRetuned && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mb-2" aria-live="polite">
+                {GUARDRAIL_PATTERN_RETUNED_NOTICE}
+              </p>
+            )}
             {missingHighlight && (
               <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2 mb-2" aria-live="polite">
-                Flagged text not found in current content.
+                {GUARDRAIL_TEXT_NOT_FOUND_NOTICE}
               </p>
             )}
             {loadingContext ? (
