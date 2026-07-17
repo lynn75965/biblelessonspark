@@ -190,6 +190,34 @@ export const REVIEW_DISPOSITIONS: ReviewDisposition[] = [
   },
 ];
 
+// A disposition creates a suppression only if it is one of the three
+// false_positive_* presets -- derived from the id prefix rather than a
+// hardcoded list, so REVIEW_DISPOSITIONS stays the single place that
+// defines what counts as a false-positive judgment.
+export function isFalsePositiveDisposition(dispositionId: string | null): boolean {
+  return !!dispositionId && dispositionId.startsWith('false_positive_');
+}
+
+// =========================================================================
+// SUPPRESSION OVERLAY -- shared by the frontend writer (creates
+// guardrail_suppressions rows on a false-positive disposition) and the
+// backend checker (generate-lesson, at flag time). Both sides MUST use
+// this exact function so a phrase normalized at write time always matches
+// the same phrase normalized at check time.
+// =========================================================================
+
+export function normalizeMatchedPhrase(phrase: string): string {
+  return phrase.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+// =========================================================================
+// SUPPRESSION UI NOTICES
+// =========================================================================
+export const GUARDRAIL_SUPPRESSION_CREATED_NOTICE =
+  'This phrase will no longer be flagged.';
+export const GUARDRAIL_SUPPRESSION_UNAVAILABLE_NOTICE =
+  'No suppression created: the matched phrase for this violation can no longer be identified (the pattern has since been tuned).';
+
 // =========================================================================
 // SECTIONS TO CHECK -- only sections that generate illustrations/hooks
 // Sections 1-3 are factual/structural and don't produce illustrations

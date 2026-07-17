@@ -295,3 +295,15 @@ export function replaceSections(
 
   return updatedLesson;
 }
+
+// =========================================================================
+// SUPPRESSION OVERLAY -- shared by the frontend writer (creates
+// guardrail_suppressions rows on a false-positive disposition) and this
+// backend checker (generate-lesson, at flag time). Both sides MUST use
+// this exact function so a phrase normalized at write time always matches
+// the same phrase normalized at check time.
+// =========================================================================
+
+export function normalizeMatchedPhrase(phrase: string): string {
+  return phrase.trim().toLowerCase().replace(/\s+/g, ' ');
+}

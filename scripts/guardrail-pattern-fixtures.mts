@@ -9,7 +9,7 @@
 // excludes outputGuardrails.ts from its charter. This is a separate,
 // narrower check of the Truth & Integrity fabrication patterns only.
 
-import { checkOutputGuardrails } from '../src/constants/outputGuardrails.ts';
+import { checkOutputGuardrails, normalizeMatchedPhrase } from '../src/constants/outputGuardrails.ts';
 
 interface Fixture {
   description: string;
@@ -87,11 +87,41 @@ for (const fixture of FIXTURES) {
   if (!pass) failures++;
 }
 
+// normalizeMatchedPhrase is the shared key-normalization function used by
+// both the suppression writer (frontend, on a false-positive disposition)
+// and the suppression checker (generate-lesson, at flag time). If these
+// two sides ever normalize differently, a suppression silently stops
+// matching -- these assertions guard the one function both sides share.
+interface NormalizationFixture {
+  input: string;
+  expected: string;
+}
+
+const NORMALIZATION_FIXTURES: NormalizationFixture[] = [
+  { input: 'right here', expected: 'right here' },
+  { input: 'Right   HERE', expected: 'right here' },
+  { input: '  right here  ', expected: 'right here' },
+  { input: 'Right\nHere', expected: 'right here' },
+  { input: 'JUST DOWN THE ROAD', expected: 'just down the road' },
+];
+
+for (const fixture of NORMALIZATION_FIXTURES) {
+  const actual = normalizeMatchedPhrase(fixture.input);
+  const pass = actual === fixture.expected;
+  const label = pass ? 'PASS' : 'FAIL';
+  console.log(
+    `[${label}] normalizeMatchedPhrase(${JSON.stringify(fixture.input)}) -- expected ${JSON.stringify(fixture.expected)}, got ${JSON.stringify(actual)}`
+  );
+  if (!pass) failures++;
+}
+
+const totalFixtures = FIXTURES.length + NORMALIZATION_FIXTURES.length;
+
 console.log('');
 if (failures > 0) {
-  console.log(`GUARDRAIL PATTERN FIXTURES: ${failures}/${FIXTURES.length} FAILED`);
+  console.log(`GUARDRAIL PATTERN FIXTURES: ${failures}/${totalFixtures} FAILED`);
   process.exit(1);
 } else {
-  console.log(`GUARDRAIL PATTERN FIXTURES: all ${FIXTURES.length} passed`);
+  console.log(`GUARDRAIL PATTERN FIXTURES: all ${totalFixtures} passed`);
   process.exit(0);
 }

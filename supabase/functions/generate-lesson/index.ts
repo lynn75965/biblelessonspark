@@ -31,7 +31,7 @@ import { TRIAL_CONFIG, getTrialStatus, doesTrialApply, TrialStatus } from '../_s
 // Phase 13.6: Organization Pool Check
 import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_shared/orgPoolCheck.ts';
 // Output Guardrails: Post-generation truth & integrity verification (SSOT: outputGuardrails.ts)
-import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replaceSections, GuardrailCheckResult, OUTPUT_GUARDRAILS_VERSION, REWRITE_CONFIG } from '../_shared/outputGuardrails.ts';
+import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replaceSections, GuardrailCheckResult, SectionCheckResult, OUTPUT_GUARDRAILS_VERSION, REWRITE_CONFIG, normalizeMatchedPhrase } from '../_shared/outputGuardrails.ts';
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
@@ -1145,6 +1145,11 @@ ${styleExtractionPromptAddition}
         let rewrittenSectionIds: number[] = [];
         let rewriteTokensInput = 0;
         let rewriteTokensOutput = 0;
+        // Populated only when there are unsuppressed violations -- the
+        // later logging block reads this directly instead of re-deriving
+        // from guardrailResult, so the rewrite decision and the log
+        // decision are always based on the exact same suppression filter.
+        let unsuppressedSectionsForLog: SectionCheckResult[] = [];
 
         const guardrailResult = checkOutputGuardrails(generatedLesson);
 
@@ -1161,59 +1166,116 @@ ${styleExtractionPromptAddition}
             }
           }
 
-          const rewritePrompt = buildRewritePrompt(violatedSections);
+          // SUPPRESSION OVERLAY (SSOT: guardrail_suppressions table).
+          // An explicit false-positive disposition on a prior violation
+          // creates a row here; a match against an active row means
+          // Lynn has already judged that exact phrasing acceptable, so
+          // this hit skips BOTH the rewrite-and-replace call below AND
+          // the guardrail_violations log further down -- the pipeline
+          // must not silently rewrite content he ruled fine, and
+          // skipping the rewrite also saves the Anthropic call.
+          // PER-USER ONLY -- a reviewed false positive covers only the
+          // generating user whose violation was reviewed. Any other user
+          // producing the same (code, phrase) still gets the normal
+          // rewrite + log treatment until their own occurrence is
+          // separately reviewed. There is no platform-wide scope.
+          // Fetched lazily (only reached when there's something to
+          // filter) and fail-open: a fetch error is treated as zero
+          // suppressions, never as "suppress everything."
+          let activeSuppressions = new Set<string>();
+          try {
+            const { data: suppressionRows, error: suppressionError } = await supabase
+              .from('guardrail_suppressions')
+              .select('violation_code, matched_phrase_normalized')
+              .eq('user_id', user.id)
+              .is('revoked_at', null);
+            if (suppressionError) throw suppressionError;
+            activeSuppressions = new Set(
+              (suppressionRows || []).map((r: any) => `${r.violation_code}::${r.matched_phrase_normalized}`)
+            );
+          } catch (suppressionFetchError) {
+            console.error('GUARDRAIL SUPPRESSION FETCH FAILED -- failing open (treating as zero suppressions):', suppressionFetchError);
+          }
 
-          // B4: retry + model fallback. This is a content-quality corrective
-          // call, not the primary generation -- a terminal failure after
-          // retries/fallback is non-fatal exactly as before: log and deliver
-          // the original (still-violating) content as-is.
-          const rewriteResult = await callAnthropicNonStreaming({
-            functionName: 'generate-lesson',
-            callLabel: 'guardrail-rewrite',
-            callSite: 'lessonPhase2',
-            apiKey: anthropicApiKey,
-            primaryModel: ANTHROPIC_MODEL,
-            fallbackModel: ANTHROPIC_MODELS.fallback,
-            forcedErrorClass,
-            buildBody: (model) => ({
-              model,
-              max_tokens: REWRITE_CONFIG.maxTokens,
-              temperature: REWRITE_CONFIG.temperature,
-              system: rewritePrompt.system,
-              messages: [{ role: 'user', content: rewritePrompt.user }]
-            }),
-          });
+          const isSuppressed = (code: string, phrase: string) =>
+            activeSuppressions.has(`${code}::${normalizeMatchedPhrase(phrase)}`);
 
-          if (rewriteResult.ok) {
-            const rewrittenContent = rewriteResult.text;
-            const rewrittenParsed = parseLessonSections(rewrittenContent);
+          const unsuppressedSections: SectionCheckResult[] = violatedSections
+            .map(section => ({
+              ...section,
+              violations: section.violations.filter(v => !isSuppressed(v.patternId, v.matchedPhrase)),
+            }))
+            .filter(section => section.violations.length > 0);
 
-            if (rewrittenParsed.length > 0) {
-              generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
-              rewrittenSectionIds = rewrittenParsed.map(s => s.id);
-              wasRewritten = true;
+          const totalHits = violatedSections.reduce((sum, s) => sum + s.violations.length, 0);
+          const unsuppressedHits = unsuppressedSections.reduce((sum, s) => sum + s.violations.length, 0);
+          if (totalHits > unsuppressedHits) {
+            console.log(`GUARDRAIL: ${totalHits - unsuppressedHits} hit(s) suppressed by admin-created suppression rule(s) -- skipping rewrite and log for those`);
+          }
 
-              wordCount = generatedLesson.split(/\s+/).length;
+          unsuppressedSectionsForLog = unsuppressedSections;
 
-              const rawUsage = (rewriteResult.raw as any)?.usage;
-              rewriteTokensInput = rawUsage?.input_tokens || 0;
-              rewriteTokensOutput = rawUsage?.output_tokens || 0;
+          if (unsuppressedSections.length === 0) {
+            // Every hit on this generation was suppressed -- nothing left
+            // to rewrite or log. The delivered content has no admin-
+            // actionable guardrail concern.
+            guardrailCheckPassed = true;
+            console.log('GUARDRAIL: All violations suppressed -- no rewrite, no log');
+          } else {
+            const rewritePrompt = buildRewritePrompt(unsuppressedSections);
 
-              console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully (model: ${rewriteResult.modelUsed})`);
-              console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
+            // B4: retry + model fallback. This is a content-quality corrective
+            // call, not the primary generation -- a terminal failure after
+            // retries/fallback is non-fatal exactly as before: log and deliver
+            // the original (still-violating) content as-is.
+            const rewriteResult = await callAnthropicNonStreaming({
+              functionName: 'generate-lesson',
+              callLabel: 'guardrail-rewrite',
+              callSite: 'lessonPhase2',
+              apiKey: anthropicApiKey,
+              primaryModel: ANTHROPIC_MODEL,
+              fallbackModel: ANTHROPIC_MODELS.fallback,
+              forcedErrorClass,
+              buildBody: (model) => ({
+                model,
+                max_tokens: REWRITE_CONFIG.maxTokens,
+                temperature: REWRITE_CONFIG.temperature,
+                system: rewritePrompt.system,
+                messages: [{ role: 'user', content: rewritePrompt.user }]
+              }),
+            });
 
-              const postRewriteCheck = checkOutputGuardrails(generatedLesson);
-              if (!postRewriteCheck.passed) {
-                console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
+            if (rewriteResult.ok) {
+              const rewrittenContent = rewriteResult.text;
+              const rewrittenParsed = parseLessonSections(rewrittenContent);
+
+              if (rewrittenParsed.length > 0) {
+                generatedLesson = replaceSections(generatedLesson, rewrittenParsed);
+                rewrittenSectionIds = rewrittenParsed.map(s => s.id);
+                wasRewritten = true;
+
+                wordCount = generatedLesson.split(/\s+/).length;
+
+                const rawUsage = (rewriteResult.raw as any)?.usage;
+                rewriteTokensInput = rawUsage?.input_tokens || 0;
+                rewriteTokensOutput = rawUsage?.output_tokens || 0;
+
+                console.log(`GUARDRAIL REWRITE: Sections [${rewrittenSectionIds.join(', ')}] rewritten successfully (model: ${rewriteResult.modelUsed})`);
+                console.log(`Rewrite tokens \u2014 Input: ${rewriteTokensInput}, Output: ${rewriteTokensOutput}`);
+
+                const postRewriteCheck = checkOutputGuardrails(generatedLesson);
+                if (!postRewriteCheck.passed) {
+                  console.log(`GUARDRAIL WARNING: ${postRewriteCheck.totalViolations} violation(s) remain after rewrite \u2014 delivering as-is`);
+                } else {
+                  guardrailCheckPassed = true;
+                  console.log('GUARDRAIL: All violations resolved after rewrite');
+                }
               } else {
-                guardrailCheckPassed = true;
-                console.log('GUARDRAIL: All violations resolved after rewrite');
+                console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
               }
             } else {
-              console.error('GUARDRAIL REWRITE: Could not parse rewritten sections from API response');
+              console.error('GUARDRAIL REWRITE FAILED after retries/fallback:', rewriteResult.errorClass);
             }
-          } else {
-            console.error('GUARDRAIL REWRITE FAILED after retries/fallback:', rewriteResult.errorClass);
           }
         } else {
           console.log('GUARDRAIL: Passed \u2014 no violations detected');
@@ -1343,15 +1405,18 @@ ${styleExtractionPromptAddition}
         console.log('Lesson saved:', lesson.id);
 
         // =====================================================================
-        // LOG GUARDRAIL VIOLATIONS TO DATABASE (if any were detected)
+        // LOG GUARDRAIL VIOLATIONS TO DATABASE (unsuppressed hits only)
         // =====================================================================
-        if (!guardrailCheckPassed && guardrailResult && guardrailResult.totalViolations > 0) {
+        // Uses unsuppressedSectionsForLog (computed once, above, alongside
+        // the rewrite decision) rather than re-deriving from guardrailResult
+        // -- the rewrite decision and the log decision must always agree on
+        // exactly which hits are suppressed.
+        if (!guardrailCheckPassed && unsuppressedSectionsForLog.length > 0) {
           try {
-            const violatedSections = guardrailResult.results.filter(r => r.violations.length > 0);
-            const allViolatedTerms = violatedSections.flatMap(s =>
+            const allViolatedTerms = unsuppressedSectionsForLog.flatMap(s =>
               s.violations.map(v => v.patternId)
             );
-            const violationContexts = violatedSections.flatMap(s =>
+            const violationContexts = unsuppressedSectionsForLog.flatMap(s =>
               s.violations.map(v => ({
                 term: v.patternId,
                 occurrences: 1,
@@ -1368,7 +1433,7 @@ ${styleExtractionPromptAddition}
                 theology_profile_id: theology_profile_id,
                 theology_profile_name: theologyProfile.name,
                 violated_terms: allViolatedTerms,
-                violation_count: guardrailResult.totalViolations,
+                violation_count: allViolatedTerms.length,
                 violation_contexts: violationContexts,
                 lesson_title: lessonInput,
                 age_group: age_group,
@@ -1378,7 +1443,7 @@ ${styleExtractionPromptAddition}
             if (violationInsertError) {
               console.error('Failed to log guardrail violation:', violationInsertError.message);
             } else {
-              console.log(`GUARDRAIL: Logged ${guardrailResult.totalViolations} violation(s) to guardrail_violations table`);
+              console.log(`GUARDRAIL: Logged ${allViolatedTerms.length} violation(s) to guardrail_violations table`);
             }
           } catch (violationLogError) {
             console.error('GUARDRAIL LOGGING ERROR:', violationLogError);
