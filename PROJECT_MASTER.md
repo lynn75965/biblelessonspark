@@ -321,24 +321,27 @@ forward from Gate 1 (neither gates Gate 2):
   nothing (e.g. "rooted right here in the Old Testament", "right here,
   right now").
 
-  ALSO FIXED THIS SESSION: the admin Guardrail Violations modal's Full
-  Lesson Content highlighter had two related bugs, found via Lynn's
-  localhost testing -- (1) it searched for the whole ~150-char stored
-  context snippet as one contiguous string, which cannot match across
-  the paragraph/bold-markdown element boundaries the rendered HTML
-  introduces, producing a false "not found" notice on text that was
+  ALSO FIXED THIS SESSION (first pass): the admin Guardrail Violations
+  modal's Full Lesson Content highlighter had two related bugs, found via
+  Lynn's localhost testing -- (1) it searched for the whole ~150-char
+  stored context snippet as one contiguous string, which cannot match
+  across the paragraph/bold-markdown element boundaries the rendered
+  HTML introduces, producing a false "not found" notice on text that was
   genuinely present (confirmed against the live Joshua lesson's actual
   saved content, byte-for-byte); (2) a separate pre-existing mechanism
   coincidentally highlighted whatever literal **bold** markdown fell
   within the stored snippet (a section heading), never the real match.
-  Fixed by extracting the actual matched term from the stored snippet
-  (via the pattern already associated with that violation's code, run
-  only against already-stored data, never live content -- not a fresh
-  guardrail re-scan) and matching it against the rendered DOM with both
-  whitespace AND markdown-structural characters ("*#-") stripped on both
-  sides. Gracefully widens to the whole stored snippet if the associated
-  pattern no longer matches (exactly the case for these same 5 rows now
-  that "right here" was removed) -- never shows nothing.
+  First fix: extract the actual matched term from the stored snippet and
+  match it against the rendered DOM with whitespace AND markdown-
+  structural characters ("*#-") stripped on both sides, gracefully
+  widening to the whole stored snippet if the associated pattern no
+  longer matches. SUPERSEDED the same day -- see the July 17 (later)
+  entry below: the whole-snippet widening turned out to have the exact
+  same class of bug it was meant to fix (mismarking a heading and
+  unrelated adjacent narrative as violating), caught in production by
+  Lynn against this same Joshua row. Corrected design: a highlight may
+  ONLY ever mark text the pattern actually matched -- no whole-snippet
+  fallback at all.
 
   REGRESSION COVERAGE: new scripts/guardrail-pattern-fixtures.mts --
   deterministic, zero-API-cost, runs the real checkOutputGuardrails()
@@ -353,11 +356,12 @@ forward from Gate 1 (neither gates Gate 2):
   separate charter, verified by grep before relying on it).
 
   DEPLOYED: generate-lesson Edge Function version 184 (updated
-  2026-07-17T16:13:26Z) carries the tuned pattern. Shipped as two
-  separate commits per Lynn's sequencing -- frontend patch (User
-  Context, View Lesson, term-code legend, preset dispositions, working
-  highlight) as commit 1288c23; AL02 tuning + fixtures + CI as commit
-  8925531 -- so a regression is unambiguous about which change caused it.
+  2026-07-17T16:13:26Z) carried the tuned pattern; superseded by version
+  185 later the same day (see below). Shipped as two separate commits
+  per Lynn's sequencing -- frontend patch (User Context, View Lesson,
+  term-code legend, preset dispositions, working highlight) as commit
+  1288c23; AL02 tuning + fixtures + CI as commit 8925531 -- so a
+  regression is unambiguous about which change caused it.
 
   NEW LOW/architecture (logged 2026-07-17, found during the AL02 tuning
   session, not fixed): AL01 and AL02 overlap on "in our neighborhood" --
@@ -365,6 +369,72 @@ forward from Gate 1 (neither gates Gate 2):
   double-fires both codes today. Pre-existing (not introduced by this
   session's AL02 edit), cosmetic, not urgent -- flagged so a future
   session doesn't mistake it for a new regression.
+
+  SHIPPED 2026-07-17 (LATER SAME DAY) -- three follow-up fixes, in order:
+
+  (1) PERMISSION FIX -- guardrail_violations UPDATE grant. Mark as
+  Reviewed was failing in production with "permission denied for table
+  guardrail_violations." Diagnosed live: the RLS policy layer was always
+  correct ("Admins can update violations", USING+WITH CHECK both
+  profiles.role='admin') -- the bug was a missing TABLE-LEVEL GRANT.
+  `20260605100000_security_section_f_grants.sql` (the June Security
+  Advisor item-A hardening, commit ed1a230) revoked ALL privileges from
+  authenticated/anon on 23 tables as defense-in-depth and re-granted only
+  SELECT to `guardrail_violations` (see that migration's own June 6
+  carry-forward entry above) -- nothing since ever restored UPDATE, and
+  the admin review feature (built weeks later) was never wired against
+  this gap. Fixed via new migration
+  `20260717150000_guardrail_violations_update_grant.sql`: a single
+  column-limited `GRANT UPDATE (was_reviewed, reviewed_at, review_notes)
+  ON public.guardrail_violations TO authenticated` -- least privilege,
+  matches exactly what GuardrailViolationsPanel.tsx's handleMarkReviewed
+  writes. Verified live via information_schema.role_column_grants (3
+  rows, exactly those columns) and by Lynn's own live retest (preset
+  applied, saved, status flipped Pending -> Reviewed). Commit 1929f9b.
+  SIBLING-GAP AUDIT FLAG for the deferred Security Advisor item
+  C/carry-forward (see the June 6, 2026 session entry above): the same
+  Section F migration left THREE OTHER tables at authenticated
+  SELECT-only -- app_settings, org_tier_config, guardrail_violation_
+  summary. If any of those gains an admin-write feature the way
+  guardrail_violations did, check for the identical missing-GRANT trap
+  before assuming an RLS UPDATE/INSERT policy alone is sufficient.
+
+  (2) HIGHLIGHT FIX (corrected design) -- commit 84b7607. Removed the
+  whole-snippet-widening fallback entirely once Lynn caught it
+  mismarking "Joshua led Israel across a flooded Jordan River" (plus the
+  section heading) as violating text on the same Joshua row the first
+  fix was built against. New rule, no exceptions: a highlight may ONLY
+  mark text the pattern actually matched. Two distinct, separately
+  worded notices now cover the two ways that can fail to resolve --
+  GUARDRAIL_PATTERN_RETUNED_NOTICE (new SSOT string,
+  src/constants/outputGuardrails.ts) when the pattern no longer matches
+  anything in the stored snippet (expected for these same 5 AL02 rows
+  now that "right here" is gone -- nothing highlighted, by design), and
+  the existing GUARDRAIL_TEXT_NOT_FOUND_NOTICE (also moved to the same
+  SSOT file) when the term IS re-derived but genuinely isn't found in
+  the current saved lesson (real content drift, a different and rarer
+  cause). The Violated Terms excerpt also stopped using
+  dangerouslySetInnerHTML plus a **bold**-to-mark regex (the exact
+  mechanism that mislabeled the section heading as the match) -- it now
+  splits the excerpt into plain-before / <mark> / plain-after via real
+  JSX children, using the same term-resolution logic as the Full Lesson
+  Content view so both surfaces agree.
+
+  (3) PIPELINE-SIDE matchedPhrase PERSISTENCE -- commit 12b0c8d,
+  generate-lesson redeployed to version 185 (2026-07-17T17:03:15Z).
+  SectionViolation (outputGuardrails.ts, both the frontend copy and the
+  _shared mirror, verified still byte-identical) gained a
+  `matchedPhrase` field -- the exact regex hit (`match[0]`), captured
+  once at flag time, alongside the existing ~150-char matchedText
+  context window. generate-lesson threads it into violation_contexts
+  when logging to guardrail_violations. No migration -- violation_
+  contexts is jsonb, schemaless, so this is a pure code change. The
+  frontend now prefers a row's stored matchedPhrase over re-deriving the
+  term from the current pattern whenever it's present, so any violation
+  logged from this point forward has a highlight that is permanently
+  immune to future pattern tuning. Rows logged before this change
+  (including the 5 AL02 rows) still fall back to re-derivation-or-notice
+  exactly as fix (2) describes.
 
 Gate 2 remaining work: NONE. Legal pages confirmation, B7 conversion
 infra, B6 theology golden suite, and B8 capacity recheck are all
@@ -5396,6 +5466,20 @@ Carry-forward from June 6, 2026 Session (Security Advisor follow-up -- item A ap
   npm run build clean. Role names verified (anon/authenticated only). Only the migration
   file was staged/committed (manual git, NOT deploy.ps1 -- avoids staging untracked audit
   files and the gitignored DEPLOYMENT_PLAN.md). ASCII pre-commit hook passed.
+
+  FOLLOW-UP (logged 2026-07-17): this migration's revoke-ALL-then-grant-
+  SELECT-only pattern caused a real production bug on guardrail_violations
+  -- when the admin Mark-as-Reviewed feature was built weeks later, its
+  RLS UPDATE policy was correct but the matching table-level UPDATE grant
+  was never restored, so every save failed with "permission denied for
+  table guardrail_violations" until a dedicated fix migration
+  (20260717150000_guardrail_violations_update_grant.sql, see the July 17
+  session entry above) restored it column-limited. The other 3 tables
+  left authenticated SELECT-only by this same migration -- app_settings,
+  org_tier_config, guardrail_violation_summary -- have not been checked
+  for the identical trap. Whoever eventually picks up deferred item C
+  (or any future admin-write feature on these tables) should verify the
+  matching GRANT exists before assuming the RLS policy alone is enough.
 
 - CONFLICT FOUND + RESOLVED: the Section F draft (written before Sections C/D) revoked anon
   on tables Section C later marked "Category 1 -- leave alone (public read/insert)":
