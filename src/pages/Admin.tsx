@@ -9,11 +9,13 @@ import { EnrollmentAnalyticsPanel } from "@/components/admin/EnrollmentAnalytics
 import { SystemAnalyticsDashboard } from "@/components/admin/SystemAnalyticsDashboard";
 import { AllLessonsPanel } from "@/components/admin/AllLessonsPanel";
 import { EmailSequenceManager } from "@/components/admin/EmailSequenceManager";
+import { ConversionFunnelPanel } from "@/components/ConversionFunnelPanel";
+import { CapacityHealthPanel } from "@/components/CapacityHealthPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Users, Settings2, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText } from "lucide-react";
+import { ShieldCheck, Users, Settings2, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
@@ -29,6 +31,7 @@ import { TransferRequestQueue } from "@/components/admin/TransferRequestQueue";
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 import { ORG_DELETION_REQUEST } from "@/constants/organizationConfig";
+import { ADMIN_ANALYTICS_TAB_LABELS } from "@/constants/adminAnalyticsConfig";
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -383,10 +386,27 @@ export default function Admin() {
           </TabsContent>
 
           {/* ===========================================================
-              ANALYTICS -- System Analytics (single panel)
+              ANALYTICS -- System + Capacity (with sub-tabs)
               =========================================================== */}
           <TabsContent value="analytics" className="mt-6 relative z-0">
-            <SystemAnalyticsDashboard />
+            <Tabs defaultValue="system">
+              <TabsList className="bg-background border mb-4">
+                <TabsTrigger value="system" className="flex items-center gap-1.5 text-sm">
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  {ADMIN_ANALYTICS_TAB_LABELS.system}
+                </TabsTrigger>
+                <TabsTrigger value="capacity" className="flex items-center gap-1.5 text-sm">
+                  <Activity className="h-3.5 w-3.5" />
+                  {ADMIN_ANALYTICS_TAB_LABELS.capacity}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="system">
+                <SystemAnalyticsDashboard />
+              </TabsContent>
+              <TabsContent value="capacity">
+                <CapacityHealthPanel />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
 
           {/* ===========================================================
@@ -413,6 +433,10 @@ export default function Admin() {
                 <TabsTrigger value="pricing" className="flex items-center gap-1.5 text-sm">
                   <DollarSign className="h-3.5 w-3.5" />
                   Pricing & Plans
+                </TabsTrigger>
+                <TabsTrigger value="conversionFunnel" className="flex items-center gap-1.5 text-sm">
+                  <TrendingUp className="h-3.5 w-3.5" />
+                  {ADMIN_ANALYTICS_TAB_LABELS.conversionFunnel}
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="beta">
@@ -498,6 +522,9 @@ export default function Admin() {
               </TabsContent>
               <TabsContent value="pricing">
                 <PricingPlansManager />
+              </TabsContent>
+              <TabsContent value="conversionFunnel">
+                <ConversionFunnelPanel />
               </TabsContent>
             </Tabs>
           </TabsContent>
