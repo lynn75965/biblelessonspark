@@ -36,6 +36,7 @@ export interface SectionViolation {
   patternId: string;
   category: ViolationCategory;
   matchedText: string;
+  matchedPhrase: string;
   description: string;
 }
 
@@ -186,6 +187,7 @@ export function checkOutputGuardrails(lessonText: string): GuardrailCheckResult 
           patternId: pattern.id,
           category: pattern.category,
           matchedText: matchedText.trim(),
+          matchedPhrase: match[0],
           description: pattern.description
         });
       }

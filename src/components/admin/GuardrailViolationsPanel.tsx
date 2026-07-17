@@ -50,6 +50,7 @@ interface ViolationDetail {
     term: string;
     occurrences: number;
     samples: string[];
+    matchedPhrase?: string;
   }>;
   lesson_title: string;
   age_group: string;
@@ -164,6 +165,19 @@ function findMatchedTerm(
   if (!patternDef) return null;
   const match = sample.match(patternDef.pattern);
   return match && match[0] ? match[0] : null;
+}
+
+// Prefers the phrase persisted at flag time (tuning-proof, immune to any
+// later pattern change) over re-deriving it from the current pattern.
+// Only violations logged before matchedPhrase existed fall through to
+// re-derivation.
+function resolveMatchedTerm(
+  ctx: { term: string; matchedPhrase?: string },
+  sample: string,
+  patternDef: (typeof VIOLATION_PATTERNS)[number] | undefined
+): string | null {
+  if (ctx.matchedPhrase) return ctx.matchedPhrase;
+  return findMatchedTerm(patternDef, sample);
 }
 
 function highlightNeedleInContainer(container: HTMLElement, needle: string): HTMLElement | null {
@@ -293,7 +307,7 @@ function ViolationDetailDialog({
         if (!sample) continue;
         anyProcessed = true;
 
-        const needle = findMatchedTerm(patternDef, sample);
+        const needle = resolveMatchedTerm(ctx, sample, patternDef);
         if (!needle) {
           anyPatternRetuned = true;
           continue;
@@ -375,7 +389,7 @@ function ViolationDetailDialog({
                     <div className="space-y-1">
                       {ctx.samples?.map((rawSample, j) => {
                         const sample = rawSample.trim();
-                        const term = findMatchedTerm(patternDef, sample);
+                        const term = resolveMatchedTerm(ctx, sample, patternDef);
                         const idx = term ? sample.indexOf(term) : -1;
                         return (
                           <p key={j} className="text-sm text-muted-foreground bg-background p-2 rounded break-words">

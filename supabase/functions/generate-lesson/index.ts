@@ -1356,6 +1356,7 @@ ${styleExtractionPromptAddition}
                 term: v.patternId,
                 occurrences: 1,
                 samples: [v.matchedText],
+                matchedPhrase: v.matchedPhrase,
               }))
             );
 
