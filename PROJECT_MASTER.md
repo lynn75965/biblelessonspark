@@ -436,6 +436,86 @@ forward from Gate 1 (neither gates Gate 2):
   (including the 5 AL02 rows) still fall back to re-derivation-or-notice
   exactly as fix (2) describes.
 
+  SHIPPED 2026-07-17 (SAME DAY, THIRD ROUND) -- Reviewed Archive +
+  per-user false-positive suppression system. Two requirements from
+  Lynn: (1) reviewed violations must leave the active/pending queue into
+  a retrievable archive, and (2) a false-positive disposition must
+  mechanically prevent the SAME matched phrase under the SAME code from
+  ever being flagged again -- for the SAME generating user only. Lynn
+  explicitly ruled out any platform-wide/all-users suppression option --
+  another user producing the identical phrase still gets the normal
+  rewrite + log treatment until their own occurrence is separately
+  reviewed. Suppression is created only by an explicit false_positive_*
+  disposition -- never inferred, never statistical -- and never modifies
+  VIOLATION_PATTERNS (the SSOT); it is a flag-time overlay only.
+
+  SCHEMA: new table guardrail_suppressions (migration
+  20260717180000_create_guardrail_suppressions.sql), amended same day by
+  20260717190000_guardrail_suppressions_per_user.sql to add a required
+  user_id (references auth.users, cascades on delete) after Lynn's
+  per-user correction arrived mid-implementation -- caught before
+  anything using the platform-wide shape was deployed, so no rework of
+  shipped code was needed, only a follow-up migration (the first
+  migration was already applied+committed, so per Rule #20 it was never
+  hand-edited). Soft-revoke (revoked_at/revoked_by) over hard delete, to
+  preserve the audit trail the whole feature exists to create. Uniqueness
+  is a PARTIAL index on (violation_code, matched_phrase_normalized,
+  user_id) WHERE revoked_at IS NULL -- active-only, so a revoked-then-
+  reinstated suppression doesn't collide with its own history. RLS:
+  admin_full_access via has_role() (matching the capacity_events
+  convention, not the older guardrail_violations-style profiles.role
+  check). GRANTS are explicit and column-limited on both writes,
+  deliberately mindful of the exact gap found earlier today
+  (guardrail_violations' missing UPDATE grant) -- authenticated gets only
+  the columns the UI actually writes; service_role gets an explicit GRANT
+  ALL, confirmed via capacity_events that this is never automatic.
+
+  EDGE FUNCTION (generate-lesson only -- confirmed via grep that none of
+  the other three generators call checkOutputGuardrails or write to
+  guardrail_violations at all): at flag time, fetches this generating
+  user's active suppressions (lazy -- only reached when there's an
+  actual violation to filter; per-invocation, no caching, since the table
+  is tiny and Edge Function isolates aren't reliably reused across
+  invocations anyway) and filters BOTH the rewrite-and-replace step AND
+  the guardrail_violations log to unsuppressed hits only -- an explicit
+  design decision from Lynn: a suppressed phrase must not be silently
+  rewritten (he already judged that phrasing acceptable) and skipping the
+  rewrite also saves the Anthropic call. Fail-open: a suppression-fetch
+  error is treated as zero suppressions (log everything normally), never
+  as "suppress everything" -- a broken suppressions table must never
+  blind the guardrails. Deployed as generate-lesson version 186 (updated
+  2026-07-17T17:28:55Z).
+
+  UI (GuardrailViolationsPanel.tsx): three tabs -- Pending (default,
+  was_reviewed=false), Reviewed Archive (was_reviewed=true, lazy-fetched
+  on first visit), Suppressions (active rows only, phrase/code/user/
+  source-lesson/created-date/Revoke). Summary cards reframed to the
+  active queue ("Active (Pending)" + "Profiles Affected" as the two
+  primary cards); archived count is a smaller secondary line beneath, not
+  an equal-weight third card. A false_positive_* disposition on Mark as
+  Reviewed suppresses every (code, phrase) the row logged (suppress-all,
+  not per-phrase -- the UI only offers one judgment per row, so that is
+  the only coherent behavior); a phrase that can't be resolved (legacy
+  row, pattern retuned since flagging -- exactly the situation for the 5
+  AL02 rows) is skipped with an honest toast rather than a wrong or
+  oversized suppression key. No retroactive seeding was done for those 5
+  rows -- confirmed unnecessary: their root cause (the word "right here"
+  itself) was already removed from AL02 earlier the same day.
+
+  FIXTURES: normalizeMatchedPhrase (the exact function both the frontend
+  writer and the backend checker use, so a suppression written can never
+  silently stop matching at check time) gained 5 deterministic assertions
+  in the existing scripts/guardrail-pattern-fixtures.mts, all passing (14
+  total fixtures now). End-to-end suppression behavior needs a real
+  generation call against live data and was not added to CI, consistent
+  with this project's own established line for the golden suite's
+  regeneration tier.
+
+  DEPLOY ORDER (each held for Lynn's approval): migration -> per-user
+  amendment migration -> generate-lesson redeploy (v186) -> frontend
+  commit a9aa446, deployed after Lynn's own localhost verification.
+  Migration commits: 2bc23f0, 0aa1c34. Edge Function commit: 96db1d2.
+
 Gate 2 remaining work: NONE. Legal pages confirmation, B7 conversion
 infra, B6 theology golden suite, and B8 capacity recheck are all
 COMPLETE (see their own session logs below for full accounts). B6's own
