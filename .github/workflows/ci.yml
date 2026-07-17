@@ -47,6 +47,28 @@ jobs:
       - name: Scan all tracked .ts/.tsx files for non-ASCII characters
         run: bash scripts/pre-commit-ascii-guard.sh --tracked
 
+  guardrail-fixtures:
+    name: Guardrail Pattern Fixtures
+    runs-on: ubuntu-latest
+    # Deterministic, zero-API-cost regression check for outputGuardrails.ts's
+    # VIOLATION_PATTERNS -- added 2026-07-17 after the AL02 "right here"
+    # over-firing incident (5 real false positives logged before this
+    # existed). Node 24 (not the build/lint jobs' Node 20) because the
+    # fixture script is a .mts file executed directly via native TypeScript
+    # stripping -- stable by default only from Node 23.6+; Node 20 cannot
+    # run it at all. This job is independent of build/lint's Node version.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run guardrail pattern fixtures
+        run: node scripts/guardrail-pattern-fixtures.mts
+
   lint:
     name: Lint (report-only)
     runs-on: ubuntu-latest

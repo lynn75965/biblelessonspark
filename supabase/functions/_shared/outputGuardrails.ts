@@ -100,7 +100,7 @@ export const VIOLATION_PATTERNS: ViolationPattern[] = [
 
   // --- ASSUMED LOCAL KNOWLEDGE (AL) ---
   { id: 'AL01', category: 'assumed_local', pattern: /(?:here )?in our (?:state|city|town|county|region|area|neighborhood|part of the country)(?:,| )/i, description: 'Assumed geographic locality' },
-  { id: 'AL02', category: 'assumed_local', pattern: /(?:right here|just down the road|in our neighborhood|on our street|around the corner from)/i, description: 'Invented hyper-local place/event claim -- phrase-matched, also fires on rhetorical non-fabrication uses of "right here"' },
+  { id: 'AL02', category: 'assumed_local', pattern: /(?:just down the road|in our neighborhood|on our street|around the corner from)/i, description: 'Invented hyper-local place/event claim -- phrase-matched' },
   { id: 'AL03', category: 'assumed_local', pattern: /(?:in|across|throughout) our state[^.]*(?:just|recently|this week|last week|this month)/i, description: 'Fabricated state-level current event' },
   { id: 'AL04', category: 'assumed_local', pattern: /our (?:local|city|town|county) (?:government|council|board|school district|police|fire department) (?:just|recently|this week)/i, description: 'Fabricated local government event' },
 
