@@ -1,6 +1,36 @@
-# PROJECT MASTER -- Last updated: July 17, 2026 (Session: Admin Panel Growth/Analytics tabs COMPLETE -- ConversionFunnelPanel + CapacityHealthPanel shipped)
+# PROJECT MASTER -- Last updated: July 17, 2026 (Session: Guardrail Violation Review system COMPLETE -- lesson/user context, term legend, presets, working highlight, AL02 tuning, per-user suppression, Reviewed Archive -- all verified live via Netlify build + smoke test)
 
-## >>> RESUME HERE <<< -- PHASE 2 ORG-INVITE (existing-confirmed-user
+## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
+multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
+highlight fix, matchedPhrase persistence, Reviewed Archive, per-user
+suppression) is CLOSED as of July 17, 2026. Verified in production via
+Netlify build check + live smoke test (Lynn's own words: "proves all
+things are functioning as they should be").
+
+Final shipped state: `generate-lesson` Edge Function at version 186.
+Admin Guardrail Violations panel has three tabs (Pending / Reviewed
+Archive / Suppressions). AL02 no longer matches "right here" in any
+context. A false-positive disposition creates a per-user suppression
+that skips both the rewrite call and the log for that exact (code,
+phrase, user) going forward -- never platform-wide. Full commit list and
+technical detail: see the "SHIPPED 2026-07-17" entries under the GATE 2
+section below (search for "GUARDRAIL" or "AL02" if jumping around).
+
+New standing rule from this arc: CLAUDE.md Rule #32 (RLS alone is not
+enough -- verify the matching table-level GRANT too). Three tables
+(app_settings, org_tier_config, guardrail_violation_summary) still carry
+the same latent gap Rule #32 describes and have not been individually
+re-checked -- flagged, not fixed, no target session yet.
+
+No code-level carry-forward from this arc beyond what's already logged
+inline: (a) AL01/AL02 both matching "in our neighborhood" (cosmetic
+double-fire, not fixed), (b) the three sibling tables just mentioned,
+(c) suppression end-to-end behavior has no automated test (by design --
+needs a live API call, matches the golden suite's own regeneration-tier
+boundary) -- manual verification steps are documented at the relevant
+session entry if this ever needs re-checking.
+
+## >>> PRIOR RESUME <<< -- PHASE 2 ORG-INVITE (existing-confirmed-user
 accept path) VERIFIED COMPLETE in production July 17, 2026. Test invite
 858aef57-721a-4f75-91dd-a3a1c6c5706b was reset and re-claimed live via
 the `/auth?invite=` flow. Dashboard SQL confirmed: the invite's

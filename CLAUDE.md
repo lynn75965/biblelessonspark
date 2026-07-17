@@ -519,6 +519,37 @@ expansion + theology violations; Growth: funnel) is scoped as its own
 dedicated post-Gate-2 session -- do not build Admin Panel UI as a side
 effect of Gate 2 work; persist the data, leave the UI for that session.
 
+### Rule #32: A correct RLS policy is not enough -- verify the matching table-level GRANT too
+Added July 17, 2026. Postgres checks table-level GRANTs BEFORE it ever
+evaluates RLS. A table can have a perfectly correct RLS policy (e.g.
+"Admins can update X" via has_role()/profiles.role='admin') and STILL
+fail every write with "permission denied for table X" if the matching
+GRANT was never issued to the authenticated role. This bit
+guardrail_violations directly: the June 2026 Security Advisor Section F
+migration (20260605100000_security_section_f_grants.sql) revoked ALL
+privileges and re-granted only SELECT to four tables (app_settings,
+org_tier_config, guardrail_violations, guardrail_violation_summary) as
+defense-in-depth -- when the admin Mark-as-Reviewed feature was built on
+guardrail_violations weeks later, its RLS UPDATE policy was correct but
+nobody restored the matching UPDATE grant, so every save failed silently
+from the RLS's perspective (the RLS never even ran) until a dedicated
+fix migration restored it column-limited. Before shipping ANY new
+admin-write path (INSERT/UPDATE/DELETE) on an existing table, query
+`information_schema.role_column_grants` (or `role_table_grants`) for the
+target role and confirm the needed privilege actually exists -- do not
+assume a correct-looking RLS policy is sufficient. When creating a new
+table from scratch, follow the explicit-grant pattern already
+established in capacity_events / conversion_events / guardrail_suppressions:
+`REVOKE ALL ... FROM anon, authenticated;` then explicit, ideally
+column-limited, `GRANT ... TO authenticated` for exactly what the app
+writes, plus an explicit `GRANT ALL ... TO service_role` (confirmed via
+capacity_events that service_role privileges are NOT automatic on a new
+table either). The three OTHER tables Section F left at
+authenticated-SELECT-only (app_settings, org_tier_config,
+guardrail_violation_summary) have not been individually re-checked --
+if any of them ever gains a client-side write path, check for this exact
+trap before assuming the RLS alone will cover it.
+
 ---
 
 ## DEBUGGING PROTOCOL
