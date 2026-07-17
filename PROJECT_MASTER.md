@@ -259,6 +259,50 @@ forward from Gate 1 (neither gates Gate 2):
   `footerLinks.ts` SSOT. Code hygiene only, not a disclosure or linking
   gap (both correctly link all three legal pages).
 
+  NEW STANDING BACKLOG (logged 2026-07-17, deferred by design -- post-
+  surge, not a Gate 2 item): "ORGANIZATION RESOURCE LIBRARY (org perk --
+  verbatim PDF hosting)"
+
+  PURPOSE: Let an organization leader upload existing multi-page PDF
+  documents (e.g., a quarterly 13-week teacher training booklet) and
+  distribute them to org members as-is -- original pages intact, no AI
+  processing, no reformatting. This is an organization-tier perk.
+  Distinct from extract-lesson (which converts uploads into the
+  8-section framework); this is verbatim hosting.
+
+  DESIGN (approved direction, pending diagnostic session):
+  - Supabase Storage bucket `org-resources`, files scoped by
+    organization_id path prefix
+  - New table `org_resources`: id, organization_id, uploaded_by, title,
+    description, file_path, file_size, page_count, created_at
+  - RLS on both bucket and table: org members SELECT/download; org
+    leaders INSERT/DELETE -- reuse the existing organization_members /
+    has_role patterns verified in the Phase 2 invite work
+  - UI: "Resources" section in the org context -- leader upload +
+    delete/replace; member list + view/download
+  - Validation: PDF-only, file size cap (TBD in diagnostic)
+  - Quarterly workflow: upload new, archive/delete old
+
+  REQUIRED BEFORE SHIP (non-code):
+  - Terms of Service addendum: uploader affirms rights to distribute
+    the material. Current legal pages cover AI-generated content only;
+    user-supplied content is a different liability posture. Legal pages
+    were fully audited July 2026 -- this addendum must go through the
+    same care.
+
+  FIRST SESSION WHEN PICKED UP: diagnostic only -- audit existing
+  Supabase Storage usage in the codebase (buckets, policies, any upload
+  UI precedent), identify the org-context UI insertion point, confirm
+  RLS pattern against current organization_members policies, propose
+  exact schema + storage policies. DIAGNOSE -> PROPOSE -> WAIT before
+  any implementation. One migration expected (table + bucket policies)
+  via supabase/migrations + npx supabase db push --linked.
+
+  STATUS: Deferred by design (post-surge). No church is currently
+  blocked. Escalate to active if an enterprise/white-label prospect
+  requests it -- note the white-label-church skill may intersect (a
+  single-tenant church deployment would want this same library).
+
 Gate 2 remaining work: NONE. Legal pages confirmation, B7 conversion
 infra, B6 theology golden suite, and B8 capacity recheck are all
 COMPLETE (see their own session logs below for full accounts). B6's own
