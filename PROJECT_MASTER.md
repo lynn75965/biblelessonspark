@@ -1,6 +1,22 @@
-# PROJECT MASTER -- Last updated: July 16, 2026 (Session: Legal sidebar entry shipped -- post-Gate-2 follow-up from the legal audit)
+# PROJECT MASTER -- Last updated: July 17, 2026 (Session: Phase 2 org-invite verification complete -- org-invite system fully closed)
 
-## >>> RESUME HERE <<< -- GATE 2 IS FULLY COMPLETE (closed out earlier
+## >>> RESUME HERE <<< -- PHASE 2 ORG-INVITE (existing-confirmed-user
+accept path) VERIFIED COMPLETE in production July 17, 2026. Test invite
+858aef57-721a-4f75-91dd-a3a1c6c5706b was reset and re-claimed live via
+the `/auth?invite=` flow. Dashboard SQL confirmed: the invite's
+`claimed_at`/`claimed_by` were stamped, the `organization_members` row
+existed (idempotent upsert reused the existing row rather than erroring
+or duplicating), and the `profiles` affiliation (organization_id +
+organization_role) was correct. Code verification (read-only, done
+before the live test) confirmed the deployed path matches design: the
+logged-out card read goes exclusively through the `get_invite_by_token`
+RPC (`SECURITY DEFINER`, minimal return columns -- email, inviter_name,
+organization_name only), with no surviving `anon_claim_by_token` policy
+or direct anon table read anywhere in the codebase. **The org-invite
+system (Phase 1 + Phase 2) is now fully closed** -- no further invite
+verification remains open.
+
+## GATE 2 IS FULLY COMPLETE (closed out earlier
 this session -- see below). As a direct follow-up from that audit
 (the footer isn't consistently present across the app, so signed-in
 users had no reliable path to the legal pages), a "Legal" sidebar item
