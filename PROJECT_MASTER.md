@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: events analytics write path retired -- table frozen, orphaned log_security_event() dropped, dead useAnalytics hook removed; commit f08899a, closes B7 adjacent finding #1. Prior session same day: Feedback popup trigger fixed -- server-authoritative first-lesson gate with permanent suppression, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 1 SHIPPED -- top 9 offender files (88 errors, fresh count) fully typed, zero behavior change, 1 occurrence intentionally left with justification; commit 2423425, pushed to main, 4 edge functions redeployed. Prior sessions same day: events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
@@ -90,32 +90,40 @@ Gate 1 (B1-B5) was fully shipped July 15, 2026 -- see that session's own
 entry below for the full account. Two non-blocking backlog items carry
 forward from Gate 1 (neither gates Gate 2):
 
-  1. `@typescript-eslint/no-explicit-any` -- 246 errors across 86 files,
-     needs its own dedicated type-engineering session (see table below).
-     Blocks ci.yml's `lint` job from going back to blocking (per Rule
-     #28's two-condition requirement -- temp_working_version.ts is now
-     deleted, so no-explicit-any is the only remaining condition).
+  1. `@typescript-eslint/no-explicit-any` -- BATCH 1 SHIPPED 2026-07-18
+     (see that session's log entry for full detail). Repo-wide count was
+     254 (drifted up from 246 by 2026-07-18; re-verify fresh at the
+     start of each future batch session -- `npx eslint . --format json`).
+     Batch 1 fixed the top 9 offender files (88 of those 254). Current
+     repo-wide count: 167, across ~77 remaining files. Batches 2-3 still
+     need their own dedicated sessions (see table below, top-9 rows now
+     struck). Still blocks ci.yml's `lint` job from going back to
+     blocking (per Rule #28's two-condition requirement) until zero.
   2. Two untracked/gitignored directories (`backups/`, `SSOT-PROJECT-
      FILES/`) need Lynn's own per-file review -- see inventory below.
      Neither blocks anything; both are excluded from eslint's scan.
 
-  NEW STANDING BACKLOG (logged 2026-07-15, not fixed -- needs its own
-  dedicated session): `@typescript-eslint/no-explicit-any`, 246 errors
-  across 86 files. Each needs a real type judgment at its call site, not
-  a mechanical substitution -- genuine type-engineering work, not hygiene.
-  Top offenders (>= 3 errors) to help scope that session:
+  NEW STANDING BACKLOG (logged 2026-07-15, BATCH 1 SHIPPED 2026-07-18):
+  `@typescript-eslint/no-explicit-any`. Each occurrence needs a real type
+  judgment at its call site, not a mechanical substitution -- genuine
+  type-engineering work, not hygiene. Top offenders (>= 3 errors as of
+  2026-07-15) to help scope Batches 2-3 -- top 9 rows below are DONE,
+  left in place for history; regenerate the list fresh
+  (`npx eslint . --format json`) before starting Batch 2, since files
+  below this point may have drifted since July 15 the same way the top 9
+  did (generate-lesson went 11->15 by session start):
 
-  | File | Count |
-  |---|---|
-  | src/components/admin/OrganizationManagement.tsx | 15 |
-  | src/components/dashboard/EnhanceLessonForm.tsx | 11 |
-  | supabase/functions/generate-lesson/index.ts | 11 |
-  | src/pages/Dashboard.tsx | 10 |
-  | supabase/functions/stripe-webhook/index.ts | 9 |
-  | src/hooks/useEnhanceLesson.tsx | 7 |
-  | src/pages/PublishingHub.tsx | 7 |
-  | supabase/functions/admin-delete-user/index.ts | 7 |
-  | supabase/functions/reshape-lesson/index.ts | 7 |
+  | File | Count (July 15) | Status |
+  |---|---|---|
+  | src/components/admin/OrganizationManagement.tsx | 15 | DONE (0 remaining) |
+  | src/components/dashboard/EnhanceLessonForm.tsx | 11 | DONE (1 remaining -- see below) |
+  | supabase/functions/generate-lesson/index.ts | 11 | DONE (0 remaining; was actually 15 by 2026-07-18) |
+  | src/pages/Dashboard.tsx | 10 | DONE (0 remaining) |
+  | supabase/functions/stripe-webhook/index.ts | 9 | DONE (0 remaining) |
+  | src/hooks/useEnhanceLesson.tsx | 7 | DONE (0 remaining) |
+  | src/pages/PublishingHub.tsx | 7 | DONE (0 remaining) |
+  | supabase/functions/admin-delete-user/index.ts | 7 | DONE (0 remaining) |
+  | supabase/functions/reshape-lesson/index.ts | 7 | DONE (0 remaining) |
   | src/components/dashboard/DevotionalLibrary.tsx | 5 |
   | src/components/dashboard/LessonLibrary.tsx | 5 |
   | src/components/feedback/BetaFeedbackForm.tsx | 5 |
@@ -547,7 +555,152 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 18, 2026 SESSION (LATEST) -- events analytics write path retired: table frozen, orphaned function dropped, dead hook removed
+## JULY 18, 2026 SESSION (LATEST) -- no-explicit-any BATCH 1 SHIPPED: top 9 offender files fully typed, zero behavior change
+
+GOAL: close out the standing backlog item logged 2026-07-15 (Gate 1) --
+`@typescript-eslint/no-explicit-any`, which blocks ci.yml's `lint` job
+from returning to blocking (Rule #28). This session scoped to BATCH 1
+only: the 9 files with 7+ errors each. Batches 2-3 (the remaining ~77
+files, 1-6 errors each) are separate future sessions.
+
+NON-NEGOTIABLE CONSTRAINT going in: ZERO runtime behavior change. Three
+of the 9 files are money-flow or generation-critical (stripe-webhook,
+generate-lesson, reshape-lesson) -- any occurrence that couldn't be typed
+correctly without touching runtime logic was to be flagged and left
+alone, not forced.
+
+### Phase 1 -- diagnose
+Regenerated `npx eslint . --format json` fresh rather than trust the
+July 15 table -- found real drift: repo-wide total was 254 (not 246),
+and `generate-lesson/index.ts` alone had grown from 11 to 15 errors.
+Batch 1's true total was 88, not 84. Read all 9 files in full and
+categorized every occurrence (existing SSOT type / missing type /
+genuinely-unknown-needs-narrowing / unfixable-without-behavior-change).
+
+Found a real cross-cutting SSOT bug during diagnosis, not fixed this
+session (flagged, out of scope): **`LessonFilters` in `contracts.ts`
+does not match the actual runtime shape of `lessons.filters`.** The
+interface declares camelCase fields; `generate-lesson/index.ts` (line
+1307) actually writes the JSON column in snake_case. Every real consumer
+(`EnhanceLessonForm.tsx`'s reshape flow, `PublishingHub.tsx`'s
+list/export/preview) already bypassed the SSOT type via
+`as Record<string, any>` because the honest type would have been wrong.
+Fixed by adding a new, accurately-named `LessonFiltersRaw` type
+reflecting reality, used only where the `any` cast previously lived --
+the drift itself (two competing types) is untouched, needs a dedicated
+architecture session if Lynn wants it resolved.
+
+### Phase 2/3 -- proposed, then implemented after approval
+Per-file categorized findings + new/extended type definitions presented
+for approval before any edit. One occurrence flagged and deliberately
+LEFT as `any` (category d): `EnhanceLessonForm.tsx`'s
+`onLessonGenerated?: (lesson: any) => void` prop. `EnhanceLessonForm.tsx`
+calls it with the full `{ lesson, style_metadata, metadata, success }`
+wrapper (not the lesson itself), but `Dashboard.tsx`'s callback reads
+`lesson?.id` -- which only exists on the *inner* `.lesson`. Typing this
+accurately would turn Dashboard.tsx's `.id` access into a compile error;
+fixing it means changing Dashboard.tsx's logic (forbidden under the
+zero-behavior-change mandate) or leaving it loose. **Flagged for Lynn:**
+this looks like `lastGeneratedLessonId` (feeds the feedback-popup modal's
+`lessonId` prop) may always resolve to `null` in production. Worth a
+manual production check -- not investigated further this session.
+
+### Phase 4 -- implement (15 files changed)
+
+New/extended SSOT types:
+- `src/constants/contracts.ts` -- extended `Organization` (added
+  `org_level`, `org_type`, `parent_org_id` -- real DB columns the
+  frontend type never declared), extended `UserProfile` (added
+  `preferred_age_group`), extended `Lesson.metadata` (added the real
+  fields `generate-lesson` writes: `bibleVersion`,
+  `bibleVersionAbbreviation`, `copyrightStatus`, `copyrightNotice`,
+  `wordCount`, `sectionCount`, `generationTimeSeconds`), added
+  `LessonFiltersRaw` (see cross-cutting finding above), added
+  `ViewingLesson` (unifies the 3 real shapes flowing through
+  Dashboard.tsx's `selectedLesson` / EnhanceLessonForm.tsx's
+  `viewingLesson` prop / LessonLibrary.tsx's `onViewLesson`).
+- `src/constants/trialConfig.ts` -- added `TrialProfileRow`. CAUGHT AND
+  CORRECTED MID-SESSION: my own Phase 2/3 proposal wrongly said this
+  file was on `FILES_TO_SYNC` (Rule #23) and would sync automatically --
+  it's actually hand-maintained (Rule #24). `npm run sync-constants`
+  confirmed it silently skipped the file. Hand-edited
+  `supabase/functions/_shared/trialConfig.ts` to match instead of
+  relying on the sync script.
+- `supabase/functions/_shared/anthropicRetry.ts` -- added `AnthropicUsage`
+  (Anthropic's documented usage-object shape, narrows the existing
+  `raw: unknown` at call sites that need token counts; backend-only, not
+  synced).
+
+Files fixed (all now 0 remaining `no-explicit-any`, except the one
+flagged):
+`src/components/admin/OrganizationManagement.tsx` (15 -> 0),
+`src/hooks/useEnhanceLesson.tsx` (7 -> 0, added exported
+`GeneratedLessonData` + a local `GenerateLessonSSEEvent` discriminated
+union modeling the SSE contract), `supabase/functions/generate-lesson/
+index.ts` (15 -> 0), `src/pages/Dashboard.tsx` (10 -> 0, added local
+`DashboardLocationState`), `supabase/functions/stripe-webhook/index.ts`
+(9 -> 0, all 9 were the identical `supabase: any` param across 9
+function signatures -- one `SupabaseClient` import fixed all of them,
+zero logic touched), `src/pages/PublishingHub.tsx` (7 -> 0),
+`supabase/functions/admin-delete-user/index.ts` (7 -> 0),
+`supabase/functions/reshape-lesson/index.ts` (7 -> 0),
+`src/components/dashboard/EnhanceLessonForm.tsx` (11 -> 1, the flagged
+occurrence).
+
+Caught and self-corrected during implementation: several first-pass
+`catch (e: any)` -> `catch (e)` + narrowing-cast fixes accidentally
+added `?.` optional chaining where the original code had none (or vice
+versa). Went back through every catch-block fix and made each one
+byte-for-byte equivalent to the original's null/undefined-crash
+behavior rather than just "safer" -- a genuinely safer version would
+have been a real (if extremely unlikely) behavior change, which the
+mandate forbade.
+
+`npm run build`: clean, 3968 modules transformed, zero TypeScript
+errors. Fresh `npx eslint . --format json`: `no-explicit-any` 254 -> 167
+(-87, matching 88 flagged minus the 1 intentionally left). Total lint
+errors 305 -> 218 (also -87 exactly) -- confirms the non-`any` error
+count (51) is identical before and after, i.e. zero new errors of any
+rule were introduced anywhere in the repo. Manually pre-scanned all 15
+changed files for non-ASCII characters and BOMs before staging -- both
+clean (ASCII guard also passed automatically on commit).
+
+Incidental, harmless side effect: `npm run sync-constants` re-syncs all
+17 `FILES_TO_SYNC` files every run (not just the ones touched), which
+swept in one pre-existing, unrelated drift: `supabase/functions/_shared/
+routes.ts` gained a `LEGAL: '/legal'` constant that existed in the
+frontend SSOT (`src/constants/routes.ts`, from the July 16 Legal sidebar
+session) but had never been synced to the mirror. Purely additive,
+zero behavior risk, not something introduced this session -- just
+surfaced by running the required sync.
+
+Lynn verified on localhost (generate a full lesson, reshape a lesson,
+Admin Panel org management, Publishing Hub) before deploy.
+
+### Deploy
+4 edge functions redeployed one at a time via `--use-api`, each
+confirmed clean before the next: `generate-lesson` (v187),
+`reshape-lesson` (v22), `stripe-webhook` (v64), `admin-delete-user`
+(v124). Committed as `REFACTOR: no-explicit-any batch 1 -- type top 9
+offender files (84 errors)`, commit `2423425`. Pushed to `origin/main`
+(`c2678f1..2423425`) via `.\deploy.ps1` -- ASCII guard passed, Netlify
+build triggered.
+
+### BATCH 1 -- COMPLETE. Carry-forward:
+1. Batches 2-3 (~167 `no-explicit-any` errors across ~77 files) --
+   separate future sessions, per the updated backlog table above.
+   Regenerate the file list fresh at the start of each (files below the
+   top 9 may have drifted since July 15 too).
+2. The `LessonFilters`/runtime-shape mismatch in `contracts.ts` (see
+   above) -- flagged, not fixed. A dedicated architecture session would
+   need to decide whether to rename/consolidate `LessonFilters` vs.
+   `LessonFiltersRaw` or retire the stale camelCase interface entirely.
+3. The possible `lastGeneratedLessonId`-always-null bug in
+   `EnhanceLessonForm.tsx`/`Dashboard.tsx` (see Phase 2/3 above) --
+   flagged, not investigated further. Worth a quick manual production
+   check.
+
+## JULY 18, 2026 SESSION -- events analytics write path retired: table frozen, orphaned function dropped, dead hook removed
 
 GOAL: close out B7 adjacent finding #1 (logged 2026-07-16) -- the generic
 `events` table's RLS has no INSERT policy for authenticated users, so
