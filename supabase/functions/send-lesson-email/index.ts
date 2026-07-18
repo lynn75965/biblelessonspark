@@ -50,7 +50,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-function jsonResponse(body: Record<string, any>, status = 200) {
+function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

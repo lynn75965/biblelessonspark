@@ -18,7 +18,7 @@
  * @updated 2025-12-24
  */
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, User } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
@@ -1042,7 +1042,7 @@ Deno.serve(async (req: Request) => {
   
   // Check authentication
   const token = getBearerToken(req);
-  let user: any = null;
+  let user: User | null = null;
   let isAnonymous = true;
 
   if (token) {

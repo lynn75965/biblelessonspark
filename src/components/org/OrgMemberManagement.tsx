@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useInvites } from "@/hooks/useInvites";
+import { useInvites, type Invite } from "@/hooks/useInvites";
 import { Users, UserPlus, Mail, RefreshCw, XCircle, Send, UserMinus, Crown, UserCheck, ArrowRightLeft } from "lucide-react";
 
 // SSOT Imports
@@ -137,7 +137,9 @@ export function OrgMemberManagement({ organizationId, organizationName, userRole
   };
 
   const handleResendInvite = async (invite: PendingInvite) => {
-    await resendInvite(invite as any);
+    // resendInvite only reads .email and .organization_id; PendingInvite (this
+    // component's local, minimally-fetched shape) omits the rest of Invite's fields.
+    await resendInvite(invite as unknown as Invite);
   };
 
   const handlePromoteToCoLeader = async (memberId: string) => {

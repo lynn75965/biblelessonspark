@@ -28,7 +28,7 @@ export function validateFileUpload(file: File): FileValidationResult {
   }
 
   // Check MIME type
-  if (!ALLOWED_MIME_TYPES.includes(file.type as any)) {
+  if (!(ALLOWED_MIME_TYPES as readonly string[]).includes(file.type)) {
     return {
       isValid: false,
       error: `File type not allowed. Please upload PDF, TXT, or images (JPG, PNG). For Word docs, save as PDF first.`
@@ -37,7 +37,7 @@ export function validateFileUpload(file: File): FileValidationResult {
 
   // Check file extension
   const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
-  if (!ALLOWED_FILE_TYPES.includes(fileExtension as any)) {
+  if (!(ALLOWED_FILE_TYPES as readonly string[]).includes(fileExtension)) {
     return {
       isValid: false,
       error: `File extension not allowed. Please upload PDF, TXT, or images (JPG, PNG). For Word docs, save as PDF first.`

@@ -78,7 +78,13 @@ serve(async (req) => {
         const priceId = subscription.items.data[0]?.price?.id;
         // SSOT: Resolve tier from price ID using pricingConfig.ts -- never query org_tier_config
         const resolvedTier = resolveTierFromPriceId(priceId || '');
-        const updateData: any = { subscription_status: subscription.status };
+        const updateData: {
+          subscription_status: string;
+          subscription_tier?: string;
+          lessons_limit?: number;
+          current_period_start?: string;
+          current_period_end?: string;
+        } = { subscription_status: subscription.status };
         if (resolvedTier) { updateData.subscription_tier = resolvedTier; updateData.lessons_limit = TIER_LESSON_LIMITS[resolvedTier]; }
         if (subscription.current_period_start) { updateData.current_period_start = new Date(subscription.current_period_start * 1000).toISOString(); }
         if (subscription.current_period_end) { updateData.current_period_end = new Date(subscription.current_period_end * 1000).toISOString(); }

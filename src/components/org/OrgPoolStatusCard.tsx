@@ -95,11 +95,11 @@ export function OrgPoolStatusCard({
       } else {
         throw new Error("No checkout URL returned");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error initiating pack purchase:", err);
       toast({
         title: "Purchase Failed",
-        description: err.message || "Failed to initiate purchase. Please try again.",
+        description: (err as { message?: string }).message || "Failed to initiate purchase. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -126,11 +126,11 @@ export function OrgPoolStatusCard({
       } else {
         throw new Error("No checkout URL returned");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error initiating subscription:", err);
       toast({
         title: "Subscription Failed",
-        description: err.message || "Failed to initiate subscription. Please try again.",
+        description: (err as { message?: string }).message || "Failed to initiate subscription. Please try again.",
         variant: "destructive",
       });
     } finally {

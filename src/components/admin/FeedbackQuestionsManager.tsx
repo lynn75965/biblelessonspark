@@ -230,11 +230,11 @@ export function FeedbackQuestionsManager() {
       setIsDialogOpen(false);
       setEditingQuestion(null);
       fetchQuestions();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving question:', error);
       toast({
         title: 'Error Saving Question',
-        description: error.message || 'Could not save question. Please try again.',
+        description: (error as { message?: string }).message || 'Could not save question. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -543,7 +543,7 @@ export function FeedbackQuestionsManager() {
                   <Label htmlFor="type">Question Type *</Label>
                   <Select
                     value={editingQuestion.type || 'select'}
-                    onValueChange={(value: any) => setEditingQuestion({
+                    onValueChange={(value: FeedbackQuestion['type']) => setEditingQuestion({
                       ...editingQuestion,
                       type: value,
                     })}

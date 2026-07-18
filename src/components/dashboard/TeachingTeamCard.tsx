@@ -41,7 +41,7 @@ interface TeachingTeamCardProps {
   isPaidUser?: boolean;
   onUpgrade?: () => void;
   // Lead Teacher actions
-  onCreateTeam: (name: string) => Promise<{ error: any }>;
+  onCreateTeam: (name: string) => Promise<{ error: unknown }>;
   onRenameTeam: (name: string) => Promise<void>;
   onInviteMember: (email: string) => Promise<{ error: boolean; message: string }>;
   onRemoveMember: (memberId: string) => Promise<void>;

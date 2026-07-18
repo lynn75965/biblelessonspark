@@ -246,11 +246,11 @@ const OrgSetup = () => {
       } else {
         throw new Error('No checkout URL returned');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Checkout error:', error);
       toast({
         title: 'Checkout Error',
-        description: error.message || 'Failed to start checkout. Please try again.',
+        description: (error as { message?: string }).message || 'Failed to start checkout. Please try again.',
         variant: 'destructive',
       });
     } finally {

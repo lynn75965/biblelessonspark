@@ -76,7 +76,7 @@ export function OrgDetailView({
     try {
       const newBetaMode = !organization.beta_mode;
       
-      const updateData: Record<string, any> = {
+      const updateData: { beta_mode: boolean; beta_start_date?: string; beta_activated_by?: string; beta_end_date?: string | null } = {
         beta_mode: newBetaMode,
       };
 
@@ -226,11 +226,11 @@ export function OrgDetailView({
       // Close dialog and go back to list
       setDeleteDialogOpen(false);
       onBack();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error deleting organization:", error);
       toast({
         title: "Delete Failed",
-        description: error.message || "Failed to delete organization. Please try again.",
+        description: (error as { message?: string }).message || "Failed to delete organization. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -234,7 +234,7 @@ export const exportToPdf = async ({
   // registered by loadPdfFonts -- no synthetic stroke needed.
   const setPdfFont = (style: 'bold' | 'normal' | 'italic'): void => {
     doc.setFont(pdfFont, style);
-    (doc as any).internal.write('0 Tr'); // fill only -- never stroke text
+    (doc as unknown as { internal: { write: (data: string) => void } }).internal.write('0 Tr'); // fill only -- never stroke text
   };
 
   const lessonTitle   = extractLessonTitle(content);

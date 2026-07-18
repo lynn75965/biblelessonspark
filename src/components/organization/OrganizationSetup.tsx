@@ -91,14 +91,15 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
         description: "Organization created successfully!",
       });
       onComplete();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating organization:', error);
 
       // Provide specific error message for authentication issues
-      let errorMessage = error.message || "Failed to create organization";
-      if (error.message?.includes('Authentication session')) {
+      const err = error as { message?: string };
+      let errorMessage = err.message || "Failed to create organization";
+      if (err.message?.includes('Authentication session')) {
         errorMessage = "Your session has expired. Please log out and log back in to continue.";
-      } else if (error.message?.includes('row-level security policy')) {
+      } else if (err.message?.includes('row-level security policy')) {
         errorMessage = "Authentication error. Please try logging out and back in.";
       }
 
@@ -130,10 +131,10 @@ export function OrganizationSetup({ open, onComplete, onDismiss }: OrganizationS
         description: "Successfully joined organization!",
       });
       onComplete();
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to join organization.",
+        description: (error as { message?: string }).message || "Failed to join organization.",
         variant: "destructive",
       });
     } finally {

@@ -336,7 +336,7 @@ export interface FeedbackQuestion {
   description: string | null;
   placeholder: string | null;
   type: 'stars' | 'nps' | 'select' | 'boolean' | 'textarea';
-  options: Array<{ value: any; label: string; color?: string }> | null;
+  options: Array<{ value: string | number | boolean; label: string; color?: string }> | null;
   required: boolean;
   minValue: number | null;
   maxValue: number | null;

@@ -1216,7 +1216,7 @@ export function getEmailTemplate(
       Object.entries(replacements).forEach(([placeholder, replacement]) => {
         value = value.replace(new RegExp(`{${placeholder}}`, 'g'), replacement);
       });
-      (template as any)[typedKey] = value;
+      (template as Record<string, string>)[typedKey] = value;
     }
   });
   return template;

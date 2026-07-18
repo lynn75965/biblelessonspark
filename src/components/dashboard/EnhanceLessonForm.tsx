@@ -171,6 +171,7 @@ interface EnhanceLessonFormProps {
    *  reads `lesson?.id` (only present on the nested .lesson), which a strict
    *  type would turn into a compile error. Flagged for Lynn; not fixed here
    *  to avoid a runtime behavior change under this session's mandate. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see justification above; Dashboard.tsx's handler reads lesson?.id on the nested .lesson, which a strict type would break. See PROJECT_MASTER.md Batch 3 session.
   onLessonGenerated?: (lesson: any) => void;
   onExport?: () => void;
   onRequestFeedback?: () => void;

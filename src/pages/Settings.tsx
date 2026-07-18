@@ -58,11 +58,11 @@ export default function Settings() {
       });
 
       navigate(ROUTES.AUTH);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Delete account error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete account. Please try again.",
+        description: (error as { message?: string }).message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -63,7 +63,7 @@ export function PricingPlansManager() {
         description: `Updated ${data.updated?.length || 0} plans from Stripe`,
       });
     },
-    onError: (error: any) => {
+    onError: (error: { message?: string }) => {
       toast({
         title: "Sync failed",
         description: error.message,
@@ -89,7 +89,7 @@ export function PricingPlansManager() {
         description: "Credits updated successfully",
       });
     },
-    onError: (error: any) => {
+    onError: (error: { message?: string }) => {
       toast({
         title: "Update failed",
         description: error.message,

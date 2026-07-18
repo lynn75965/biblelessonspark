@@ -77,7 +77,7 @@ export function SeriesLibrary() {
 
   // Auto-expand a series when navigated from "In Series" badge
   useEffect(() => {
-    const targetId = (location.state as any)?.expandSeriesId;
+    const targetId = (location.state as { expandSeriesId?: string } | null)?.expandSeriesId;
     if (targetId && !expandConsumedRef.current && allSeries.length > 0) {
       expandConsumedRef.current = true;
       setExpandedSeriesId(targetId);

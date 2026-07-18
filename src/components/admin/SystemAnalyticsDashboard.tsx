@@ -223,7 +223,7 @@ export function SystemAnalyticsDashboard() {
 
       if (error) throw error;
 
-      const usersWithStats: UserWithStats[] = (data || []).map((row: any) => ({
+      const usersWithStats: UserWithStats[] = (data || []).map((row) => ({
         id: row.id,
         email: row.email || 'No email',
         full_name: row.full_name,

@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-import { Lesson } from "@/constants/contracts";
+import { Lesson, LessonFiltersRaw } from "@/constants/contracts";
+import type { Json } from "@/integrations/supabase/types";
 import { LESSON_LIBRARY_TEXT } from "@/constants/dashboardConfig";
 
 // Re-export for backward compatibility
@@ -69,7 +70,7 @@ export function useLessons() {
     original_text?: string;
     source_type: string;
     upload_path?: string;
-    filters: any;
+    filters: LessonFiltersRaw | null;
     organization_id?: string;
   }) => {
     if (!user) return { error: 'Not authenticated' };
@@ -86,6 +87,7 @@ export function useLessons() {
         .insert([
           {
             ...lessonData,
+            filters: lessonData.filters as unknown as Json,
             title: lessonData.title || 'Untitled Lesson',
             user_id: user.id,
             organization_id: profile?.organization_id || null,
@@ -247,7 +249,7 @@ export function useLessons() {
       return false;
     }
 
-    const payload: Record<string, any> = {
+    const payload: { updated_at: string; title?: string; original_text?: string } = {
       updated_at: new Date().toISOString(),
     };
     if (updates.title !== undefined) payload.title = updates.title.trim();

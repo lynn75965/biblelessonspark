@@ -10,6 +10,12 @@ interface SecurityAlert {
   timestamp: number;
 }
 
+interface FailedRequestEntry {
+  endpoint: string;
+  error: string;
+  timestamp: number;
+}
+
 /**
  * Hook for monitoring security-related events and user activity
  */
@@ -68,11 +74,11 @@ export function useSecurityMonitor() {
   const reportFailedRequest = (endpoint: string, error: string) => {
     if (!user) return;
     
-    const failedRequests = JSON.parse(localStorage.getItem('failed_requests') || '[]');
+    const failedRequests: FailedRequestEntry[] = JSON.parse(localStorage.getItem('failed_requests') || '[]');
     const now = Date.now();
-    
+
     // Clean old entries (older than 1 hour)
-    const recentFailures = failedRequests.filter((req: any) => now - req.timestamp < 3600000);
+    const recentFailures = failedRequests.filter((req) => now - req.timestamp < 3600000);
     
     recentFailures.push({ endpoint, error, timestamp: now });
     localStorage.setItem('failed_requests', JSON.stringify(recentFailures));
@@ -81,7 +87,7 @@ export function useSecurityMonitor() {
     if (recentFailures.length > 10) {
       logSecurityEvent('multiple_failed_requests', user.id, { 
         count: recentFailures.length, 
-        endpoints: recentFailures.map((r: any) => r.endpoint)
+        endpoints: recentFailures.map((r) => r.endpoint)
       });
       
       toast({

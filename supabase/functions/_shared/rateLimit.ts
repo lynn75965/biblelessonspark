@@ -10,6 +10,8 @@
  * Prevents API abuse and controls costs
  */
 
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 interface RateLimitResult {
   allowed: boolean;
   remaining: number;
@@ -21,7 +23,7 @@ interface RateLimitResult {
  * Check if user has exceeded rate limits
  */
 export async function checkRateLimit(
-  supabaseClient: any,
+  supabaseClient: SupabaseClient,
   userId: string
 ): Promise<RateLimitResult> {
   const now = new Date();
@@ -93,7 +95,7 @@ export async function checkRateLimit(
 /**
  * Log API usage for monitoring
  */
-export function logUsage(userId: string, action: string, metadata?: any) {
+export function logUsage(userId: string, action: string, metadata?: unknown) {
   console.log(JSON.stringify({
     timestamp: new Date().toISOString(),
     userId,

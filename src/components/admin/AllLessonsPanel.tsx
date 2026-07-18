@@ -45,14 +45,14 @@ interface AdminLessonView extends Omit<Lesson, 'filters' | 'metadata'> {
     bible_passage?: string;
     age_group?: string;
     focused_topic?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   metadata: {
     ageGroup?: string;
     teaser?: string;
     wordCount?: number;
     theologyProfile?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   organizations: {
     name: string | null;

@@ -32,7 +32,7 @@ const Help = () => {
   // Scroll to section via ?scrollTo= query parameter, React Router state, or #hash
   useEffect(() => {
     const scrollTarget = searchParams.get('scrollTo') ||
-      (location.state as any)?.scrollTo || 
+      (location.state as { scrollTo?: string } | null)?.scrollTo ||
       (location.hash ? location.hash.substring(1) : null);
     
     if (scrollTarget) {

@@ -205,7 +205,7 @@ interface TeacherCustomizationProps {
   selectedSeries: LessonSeries | null;
   isLoadingSeries: boolean;
   isCreatingSeries: boolean;
-  onCreateSeries: (name: string, totalLessons: number) => Promise<any>;
+  onCreateSeries: (name: string, totalLessons: number) => Promise<LessonSeries | null>;
   onSelectSeries: (seriesId: string) => void;
   onClearSeries: () => void;
   nextLessonNumber: number;

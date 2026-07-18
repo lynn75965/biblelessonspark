@@ -105,7 +105,7 @@ serve(async (req) => {
     const summary = {
       created: { products: 0, prices: 0 },
       reused: { products: 0, prices: 0 },
-      plans_upserted: [] as any[],
+      plans_upserted: [] as unknown[],
     };
 
     // Process each catalog item

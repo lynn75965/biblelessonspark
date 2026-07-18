@@ -5,6 +5,7 @@
 // SSOT COMPLIANT: Imports tier sections from pricingConfig.ts
 // ============================================================
 
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { TIER_SECTIONS, type SubscriptionTier } from './pricingConfig.ts';
 
 export interface LessonLimitResult {
@@ -20,7 +21,7 @@ export interface LessonLimitResult {
   checkFailed?: boolean;
 }
 
-export async function checkLessonLimit(supabase: any, userId: string): Promise<LessonLimitResult> {
+export async function checkLessonLimit(supabase: SupabaseClient, userId: string): Promise<LessonLimitResult> {
   const { data, error } = await supabase.rpc('check_lesson_limit', { p_user_id: userId });
 
   if (error) {
@@ -43,7 +44,7 @@ export async function checkLessonLimit(supabase: any, userId: string): Promise<L
   return (Array.isArray(data) ? data[0] : data) as LessonLimitResult;
 }
 
-export async function incrementLessonUsage(supabase: any, userId: string): Promise<void> {
+export async function incrementLessonUsage(supabase: SupabaseClient, userId: string): Promise<void> {
   const { error } = await supabase.rpc('increment_lesson_usage', { p_user_id: userId });
   
   if (error) {

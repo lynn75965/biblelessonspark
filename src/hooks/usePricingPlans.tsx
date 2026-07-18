@@ -58,6 +58,7 @@ export function usePricingPlans(): UsePricingPlansReturn {
       }
 
       if (data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- row shape doesn't match the live subscription_plans schema (verified via DB query 2026-07-18); flagged as a possible pre-existing bug, not a typing task. See PROJECT_MASTER.md Batch 3 session.
         const mappedPlans: PricingPlan[] = data.map((row: any) => ({
           id: row.id,
           tier: row.tier as SubscriptionTier,

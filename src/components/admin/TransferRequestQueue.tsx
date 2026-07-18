@@ -166,7 +166,7 @@ export function TransferRequestQueue() {
 
   const executeTransfer = async (request: TransferRequest) => {
     // Update user's organization_id in profiles
-    const updateData: Record<string, any> = {
+    const updateData: { organization_id: string | null; organization_role: string | null } = {
       organization_id: request.to_organization_id, // null for leave_org
       organization_role: request.to_organization_id ? "member" : null,
     };
@@ -211,11 +211,11 @@ export function TransferRequestQueue() {
 
       closeActionDialog();
       loadRequests();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error processing transfer:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to process transfer request.",
+        description: (error as { message?: string }).message || "Failed to process transfer request.",
         variant: "destructive",
       });
     } finally {

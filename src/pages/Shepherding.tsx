@@ -5,6 +5,7 @@ import { useOrganization } from "@/hooks/useOrganization";
 import { useSubscription } from "@/hooks/useSubscription";
 import { MemberPoolStatusBanner } from "@/components/org/MemberPoolStatusBanner";
 import { LessonExportButtons } from "@/components/dashboard/LessonExportButtons";
+import type { Lesson } from "@/constants/contracts";
 import { supabase } from "@/integrations/supabase/client";
 import { ROUTES } from "@/constants/routes";
 import { Building2, BookOpen, Loader2, Eye, Search } from "lucide-react";
@@ -49,7 +50,7 @@ interface ShepherdLesson {
   created_at: string;
   author_name: string | null;
   original_text: string;
-  metadata: Record<string, any> | null;
+  metadata: unknown;
 }
 
 export default function Shepherding() {
@@ -234,7 +235,7 @@ export default function Shepherding() {
                 lesson={{
                   title: viewing.title || "Untitled lesson",
                   original_text: viewing.original_text,
-                  metadata: viewing.metadata as any,
+                  metadata: viewing.metadata as unknown as Lesson['metadata'],
                 }}
                 isPaidUser={isPaidTier}
               />

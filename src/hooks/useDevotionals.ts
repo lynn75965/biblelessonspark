@@ -95,9 +95,9 @@ export function useDevotionals(): UseDevotionalsReturn {
       }
 
       setDevotionals(data || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching devotionals:", err);
-      setError(err.message || "Failed to fetch devotionals");
+      setError((err as { message?: string }).message || "Failed to fetch devotionals");
     } finally {
       setLoading(false);
     }
@@ -124,11 +124,11 @@ export function useDevotionals(): UseDevotionalsReturn {
       });
 
       return true;
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error deleting devotional:", err);
       toast({
         title: "Delete Failed",
-        description: err.message || "Could not delete the devotional.",
+        description: (err as { message?: string }).message || "Could not delete the devotional.",
         variant: "destructive",
       });
       return false;

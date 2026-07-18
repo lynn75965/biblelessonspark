@@ -55,7 +55,7 @@ export function useBookletExport() {
     try {
       // -- Fetch full lesson records for every lesson in the series ------------
       const lessonIds: string[] = (series.lesson_summaries ?? [])
-        .map((s: any) => s.lessonId)
+        .map((s) => s.lessonId)
         .filter(Boolean);
 
       if (lessonIds.length === 0) {

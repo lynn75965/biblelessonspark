@@ -4,6 +4,8 @@
 // non-fatal metrics-insert pattern used by generation_metrics and
 // devotional_metrics.
 
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 export type CapacitySource =
   | 'generate-lesson'
   | 'generate-devotional'
@@ -18,7 +20,7 @@ export type CapacityEventType =
   | 'anthropic_terminal_failure';
 
 export async function logCapacityEvent(
-  supabase: any,
+  supabase: SupabaseClient,
   params: {
     userId: string | null;
     source: CapacitySource;

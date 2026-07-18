@@ -39,7 +39,7 @@ import {
 } from "../_shared/toolbeltConfig.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
-import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, type AnthropicRawResponse } from "../_shared/anthropicRetry.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -388,7 +388,7 @@ serve(async (req) => {
     }
 
     const reflection = anthropicResult.text;
-    const usage = (anthropicResult.raw as any)?.usage;
+    const usage = (anthropicResult.raw as AnthropicRawResponse)?.usage;
     const tokensUsed = (usage?.input_tokens || 0) + (usage?.output_tokens || 0);
 
     console.log("[toolbelt-reflect] Reflection generated, tokens:", tokensUsed, "model:", anthropicResult.modelUsed, "attempts:", anthropicResult.attempts);

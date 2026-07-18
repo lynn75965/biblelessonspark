@@ -32,7 +32,7 @@ interface EventRecord {
   event: string;
   user_id: string;
   lesson_id: string | null;
-  meta: Record<string, any> | null;
+  meta: { path?: string; [key: string]: unknown } | null;
   created_at: string;
   user_email?: string;
 }

@@ -699,7 +699,23 @@ export function useTeachingTeam() {
    * Team Lessons view alongside everyone else's (changed 2026-06-17, migration
    * 20260617120000; previously the caller's own rows were excluded).
    */
-  const fetchTeamLessons = async (): Promise<{ data: any[]; error: any }> => {
+  interface TeamLessonRow {
+    id: string;
+    user_id: string;
+    title: string | null;
+    original_text: string | null;
+    visibility: string | null;
+    created_at: string | null;
+    filters: {
+      bible_passage: string | null;
+      age_group: string | null;
+      theology_profile_id: string | null;
+    };
+    author_name: string | null;
+    isTeamLesson: boolean;
+  }
+
+  const fetchTeamLessons = async (): Promise<{ data: TeamLessonRow[]; error: unknown }> => {
     if (!user || !team) return { data: [], error: null };
 
     try {

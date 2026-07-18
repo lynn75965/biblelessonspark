@@ -137,9 +137,9 @@ export function useOrgSharedFocus(): UseOrgSharedFocusReturn {
         organizationId: org?.id || null,
       });
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching org focus data:", err);
-      setError(err.message || "Failed to load organization focus");
+      setError((err as { message?: string }).message || "Failed to load organization focus");
     } finally {
       setLoading(false);
     }

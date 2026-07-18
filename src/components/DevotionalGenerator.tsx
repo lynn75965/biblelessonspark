@@ -339,9 +339,9 @@ export function DevotionalGenerator() {
         description: "Your devotional is ready to view and share.",
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Devotional generation error:", error);
-      const friendly = error?.message || "An unexpected error occurred. Please try again in a moment.";
+      const friendly = (error as { message?: string })?.message || "An unexpected error occurred. Please try again in a moment.";
       setGenerationError(friendly);
       toast({
         title: "Generation Failed",
@@ -356,7 +356,7 @@ export function DevotionalGenerator() {
   // Recover the Edge Function's JSON error body ({ error, code }) from a
   // supabase.functions.invoke failure. For a non-2xx response, supabase-js
   // exposes the original Response on error.context.
-  const readEdgeError = async (err: any): Promise<{ code?: string; message?: string }> => {
+  const readEdgeError = async (err: { context?: Response }): Promise<{ code?: string; message?: string }> => {
     try {
       if (err?.context && typeof err.context.json === "function") {
         const body = await err.context.json();

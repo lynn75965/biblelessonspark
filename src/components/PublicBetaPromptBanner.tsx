@@ -132,7 +132,7 @@ export function PublicBetaPromptBanner({
       setIsVisible(false);
       onEnrollmentComplete?.();
 
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error joining Public Beta:', error);
       toast({
         title: messages.enrollmentErrorTitle,

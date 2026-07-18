@@ -126,11 +126,12 @@ export function CreateChildOrgDialog({
       resetForm();
       onOpenChange(false);
       onCreated?.();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error creating child organization:", error);
-      
+      const err = error as { message?: string; code?: string };
+
       // Handle RLS denial gracefully
-      if (error?.message?.includes('row-level security') || error?.code === '42501') {
+      if (err?.message?.includes('row-level security') || err?.code === '42501') {
         toast({
           title: "Permission Denied",
           description: "You don't have permission to create organizations under this parent.",
@@ -139,7 +140,7 @@ export function CreateChildOrgDialog({
       } else {
         toast({
           title: "Error",
-          description: error?.message || "Failed to create organization",
+          description: err?.message || "Failed to create organization",
           variant: "destructive",
         });
       }

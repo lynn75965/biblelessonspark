@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useInvites } from '@/hooks/useInvites';
@@ -11,8 +11,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   setUser: (user: User | null) => void;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<Session | null>;
   isSessionExpired: boolean;

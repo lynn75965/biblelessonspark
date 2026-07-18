@@ -13,7 +13,7 @@ const jobs = new Map<string, {
   fileHash: string;
   state: 'queued' | 'processing' | 'done' | 'failed' | 'canceled';
   progress: number;
-  result?: any;
+  result?: { topic: string; scripture: string; content: string; sourceFile: string };
   error?: { code: string; msg: string };
   createdAt: number;
 }>();

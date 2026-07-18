@@ -169,6 +169,7 @@ const extractPrimaryScripture = (content: string): string | null => {
  * change) -- neither is a type-only fix. Flagged for Lynn.
  */
 const transformToDisplay = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see justification above; called with 3 structurally different shapes, no type-only fix exists. See PROJECT_MASTER.md Batch 3 session.
   lesson: any,
   options?: { isTeamLesson?: boolean; isShepherdLesson?: boolean; authorName?: string }
 ): LessonDisplay => {

@@ -161,14 +161,15 @@ export const useReshapeLesson = () => {
           model: data.model,
         },
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error reshaping lesson:", error);
+      const message = (error as { message?: string }).message;
       toast({
         title: "Reshape Error",
-        description: error.message || "An unexpected error occurred. Please try again.",
+        description: message || "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     } finally {
       setIsReshaping(false);
     }

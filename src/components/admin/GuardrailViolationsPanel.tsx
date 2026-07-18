@@ -530,14 +530,14 @@ function SuppressionsList() {
           .select('id, full_name, email')
           .in('id', userIds);
         const map: Record<string, { full_name: string | null; email: string | null }> = {};
-        (profiles || []).forEach((p: any) => { map[p.id] = { full_name: p.full_name, email: p.email }; });
+        (profiles || []).forEach((p: { id: string; full_name: string | null; email: string | null }) => { map[p.id] = { full_name: p.full_name, email: p.email }; });
         setProfileMap(map);
       } else {
         setProfileMap({});
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching suppressions:', err);
-      setError(err.message || 'Failed to load suppressions');
+      setError((err as { message?: string }).message || 'Failed to load suppressions');
     } finally {
       setLoading(false);
     }
@@ -555,8 +555,8 @@ function SuppressionsList() {
       if (revokeError) throw revokeError;
       toast({ title: "Suppression revoked", description: "This phrase will be flagged again for this user." });
       fetchSuppressions();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to revoke suppression", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Error", description: (err as { message?: string }).message || "Failed to revoke suppression", variant: "destructive" });
     } finally {
       setRevokingId(null);
     }
@@ -675,9 +675,9 @@ export function GuardrailViolationsPanel() {
         .limit(20);
       if (pendingError) throw pendingError;
       setPendingViolations(pendingData || []);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching violations:', err);
-      setError(err.message || 'Failed to load violation data');
+      setError((err as { message?: string }).message || 'Failed to load violation data');
     } finally {
       setLoading(false);
     }
@@ -694,7 +694,7 @@ export function GuardrailViolationsPanel() {
       if (archiveError) throw archiveError;
       setArchivedViolations(data || []);
       setArchiveFetched(true);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error fetching archive:', err);
     }
   };
@@ -793,8 +793,8 @@ export function GuardrailViolationsPanel() {
       setReviewNotes("");
       fetchSummaryAndPending();
       if (archiveFetched) fetchArchive();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to update violation", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Error", description: (err as { message?: string }).message || "Failed to update violation", variant: "destructive" });
     } finally {
       setMarking(false);
     }

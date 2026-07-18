@@ -139,11 +139,11 @@ export function TransferRequestForm({
 
       onOpenChange(false);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error submitting transfer request:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to submit transfer request.",
+        description: (error as { message?: string }).message || "Failed to submit transfer request.",
         variant: "destructive",
       });
     } finally {

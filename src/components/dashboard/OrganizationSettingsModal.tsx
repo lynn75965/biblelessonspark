@@ -90,10 +90,10 @@ export function OrganizationSettingsModal({
       });
 
       onOpenChange(false);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update settings. Please try again.",
+        description: (error as { message?: string }).message || "Failed to update settings. Please try again.",
         variant: "destructive",
       });
     } finally {

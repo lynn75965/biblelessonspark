@@ -205,9 +205,9 @@ export function useOrgPoolStatus(organizationId: string | null): UseOrgPoolStatu
         }))
       );
 
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching org pool status:", err);
-      setError(err.message || "Failed to load pool status");
+      setError((err as { message?: string }).message || "Failed to load pool status");
     } finally {
       setLoading(false);
     }

@@ -63,6 +63,7 @@ import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 import { UserProfileModal } from "@/components/dashboard/UserProfileModal";
+import type { DashboardLocationState } from "@/pages/Dashboard";
 
 // =============================================================================
 // TYPES
@@ -306,7 +307,7 @@ export function AppShell({
   // Determine current tab for active state highlighting
   // Dashboard reads tab from location.state; AppShell reads it for highlighting
   const currentTab: string | null = location.pathname === ROUTES.DASHBOARD
-    ? (location.state as any)?.tab || 'enhance'
+    ? (location.state as DashboardLocationState | null)?.tab || 'enhance'
     : null;
 
   // Handle sidebar item clicks

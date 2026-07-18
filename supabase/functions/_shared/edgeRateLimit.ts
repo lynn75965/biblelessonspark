@@ -9,6 +9,8 @@
  * Hand-maintained shared utility (Rule #24) -- not in FILES_TO_SYNC.
  */
 
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 export interface RateLimitScope {
   endpoint: string;     // namespacing tag, e.g. "toolbelt-reflect:ip"
   identifier: string;   // the IP, session id, email, or "GLOBAL"
@@ -61,7 +63,7 @@ export function windowStartsISO(): { hour: string; day: string } {
  * in order; the first to trip is returned.
  */
 export async function checkRateLimits(
-  supabase: any,
+  supabase: SupabaseClient,
   scopes: RateLimitScope[],
 ): Promise<RateLimitResult> {
   const counts: Record<string, number> = {};
@@ -102,7 +104,7 @@ export async function checkRateLimits(
  * control (unlike checkRateLimits, which must fail closed).
  */
 export async function refundRateLimits(
-  supabase: any,
+  supabase: SupabaseClient,
   scopes: RateLimitScope[],
 ): Promise<void> {
   for (const s of scopes) {

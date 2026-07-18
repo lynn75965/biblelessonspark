@@ -260,11 +260,11 @@ export function UserManagement() {
       if (error) throw new Error(error.message ?? 'Impersonation failed');
       if (!data?.url) throw new Error('No impersonation URL returned');
       newTab.location.href = data.url;
-    } catch (err: any) {
+    } catch (err) {
       newTab.close();
       toast({
         title: "Impersonation Failed",
-        description: err.message,
+        description: (err as { message?: string }).message,
         variant: "destructive",
       });
     } finally {

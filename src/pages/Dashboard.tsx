@@ -43,7 +43,7 @@ import { UserProfile, ViewingLesson } from "@/constants/contracts";
 
 /** Sidebar/series-library navigation state passed via react-router's
  *  location.state. Added 2026-07-18 (no-explicit-any batch 1). */
-interface DashboardLocationState {
+export interface DashboardLocationState {
   tab?: string;
   viewLessonId?: string;
   origin?: string;

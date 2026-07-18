@@ -35,6 +35,8 @@ import {
   Header,
   PageNumber,
   convertInchesToTwip,
+  type ISectionOptions,
+  type IParagraphStyleOptions,
 } from 'docx';
 
 import type { Lesson } from '@/constants/contracts';
@@ -155,7 +157,7 @@ export async function buildSeriesDocx(
     accent:  scheme.accent,
   };
 
-  const docSections: any[] = [];
+  const docSections: ISectionOptions[] = [];
 
   // ---- Section 1: Front Matter (Cover + TOC + Intro) -----------------------
   setStep('cover');
@@ -313,7 +315,7 @@ export async function buildSeriesDocx(
   setStep('finalizing');
 
   const doc = new Document({
-    styles:   { paragraphStyles: buildParagraphStyles(activeScheme, fontName) as any },
+    styles:   { paragraphStyles: buildParagraphStyles(activeScheme, fontName) as unknown as IParagraphStyleOptions[] },
     sections: docSections,
   });
 
