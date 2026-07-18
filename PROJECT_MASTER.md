@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: GRANT HARDENING SWEEP APPLIED LIVE, migration 20260718150000 -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl (future tables no longer auto-grant to anon/authenticated). Migration applied live; code (migration + rollback script + docs) committed locally, NOT pushed -- holding for Lynn's non-admin regression test on localhost against the live DB (no separate DB to test against this time). See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
 ## >>> GRANT HARDENING SWEEP -- APPLIED LIVE, holding for Lynn's regression test
 July 18, 2026. Closes the longest-standing deferred security item: anon/
@@ -66,13 +66,21 @@ it -- restores exact pre-migration state per table, including
 correct -- rollback undoes this session's changes, it doesn't preserve
 the bug fix separately).
 
-**Migration already applied to the live DB** (no separate local DB to
-test against -- Lynn's regression checklist runs against
-production-with-new-grants through localhost). Code committed locally
-(migration + rollback + docs), **NOT pushed** -- the push is only to get
-the migration file into git history since nothing frontend-side changed;
-no Netlify deploy is required. Holding for Lynn's non-admin regression
-test before push.
+**Migration applied to the live DB, regression-tested, and shipped.**
+Lynn ran the full checklist as a non-admin user directly against
+production-with-new-grants via localhost (no separate DB to test
+against this time) -- everything passed, including the admin Toolbelt
+Usage Report now loading correctly instead of throwing permission
+denied. Commit 91e2459 pushed to origin/main (`eb34838..91e2459`);
+CI run #76 green, all 4 jobs (Build, ASCII Guard, Guardrail Pattern
+Fixtures, Lint). No Netlify deploy needed -- zero frontend changes, the
+push exists purely to get the migration file into git history.
+
+**THE STANDING ANON-GRANTS BACKLOG ITEM (deferred since the Section F
+audit, June 2026) IS NOW CLOSED.** RLS is no longer the sole real
+authorization boundary anywhere in the public schema -- every table's
+anon/authenticated grant matches verified application usage, and future
+tables are born least-privilege by default.
 
 Carry-forward:
 1. Function-level default-privilege gap (EXECUTE auto-granted to anon/
