@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: PRICING SSOT CONSOLIDATION IMPLEMENTED, commit 9912f4a -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Code committed locally; migration NOT YET APPLIED, edge functions NOT YET DELETED from the live project, NOT pushed to origin/main -- HOLD BEFORE DEPLOY pending Lynn's localhost approval. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
 ## >>> RESOLVED -- pricing SSOT consolidation (both backlog items closed) <<<
 Two logged backlog items closed in one session, per Lynn's explicit
@@ -744,28 +744,35 @@ CLAUDE.md: Rule #35 added (pricingConfig.ts sole pricing authority
 including display -- no DB pricing tables). 4 files/functions added to
 the DO NOT RECREATE table.
 
-**HOLD BEFORE DEPLOY, per Lynn's exact sequence: code changes -> build
--> Lynn's localhost check -> THEN migration + function deletion +
-deploy.ps1 together, on her go.** Nothing pushed to `origin/main`, the
-migration not applied, `sync-pricing-from-stripe`/`seed-stripe-catalog`
-not deleted from the live project. Localhost verification list delivered
-in-conversation.
+### Deploy (after Lynn's localhost approval)
+Final live-state re-confirmation immediately before `db push` (per the
+standing migration rule) found zero drift -- every object the migration
+targets still existed exactly as diagnosed. `npx supabase db push
+--linked`: applied cleanly. Post-push SQL confirmed all 5 objects gone
+(`allocate_monthly_credits()`, the `plan_id` FK, the `plan_id` column,
+`subscription_plans`, `pricing_plans`) and both unaffected tables intact
+(`user_subscriptions` still 44 rows, `credits_ledger` still 0 rows).
 
-### PRICING SSOT CONSOLIDATION -- CODE COMPLETE, PENDING DEPLOY. Carry-forward:
+Both edge functions deleted from the live project (`npx supabase
+functions delete sync-pricing-from-stripe --project-ref
+hphebzdftpjbiudpfcrs`, same for `seed-stripe-catalog`) and confirmed
+absent via `functions list --output json` (45 functions remain, neither
+name appears).
+
+Pushed via `deploy.ps1` (`c1ae908..34c93bc`) -- nothing new to stage,
+both commits already existed locally, the script's own `git commit`
+step reported "nothing to commit" harmlessly and the push proceeded.
+CI run #73: green, all 4 jobs (Build, ASCII Guard, Guardrail Pattern
+Fixtures, Lint) passed. Netlify auto-deploying from the push.
+
+### PRICING SSOT CONSOLIDATION -- FULLY SHIPPED. Carry-forward:
 1. `credits_ledger` retirement (now writer-less and reader-less) -- a
    one-line migration for a future housekeeping session, not urgent.
 2. Lynn's manual Stripe dashboard spot-check for orphaned
-   Essentials/Pro/Premium Products -- open, not code-verifiable.
+   Essentials/Pro/Premium Products -- still open, not code-verifiable.
 3. `purchase-lesson-pack`/`purchase-onboarding` resolving Stripe prices
    from DB config tables instead of `pricingConfig.ts` -- unaffected by
    this session, remains open (see the LOW/architecture note above).
-4. Once Lynn approves on localhost: run the migration (`db push
-   --linked`, after a final live-state re-check), delete both edge
-   functions from the live project (`npx supabase functions delete
-   sync-pricing-from-stripe --project-ref hphebzdftpjbiudpfcrs` and same
-   for `seed-stripe-catalog` -- verified correct CLI syntax, does NOT
-   remove the function locally, only the deployed copy), then push and
-   run `deploy.ps1`.
 
 ## JULY 18, 2026 SESSION -- no-explicit-any BATCH 3 SHIPPED (FINAL BATCH): ~56 one-to-two-error files fully typed, campaign complete, ci.yml lint job back to blocking
 
