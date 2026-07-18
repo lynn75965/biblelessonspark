@@ -50,15 +50,11 @@ DELIBERATELY NOT TOUCHED this session -- Lynn's explicit instruction.
 Its full retirement (drop the table) is now a one-line migration for a
 future housekeeping session, no design work required.
 
-**Lynn's open manual task (not code, cannot be verified from this
-sandbox -- no Stripe API access):** spot-check dashboard.stripe.com/products
-for anything named "Essentials," "Pro," or "Premium" and archive if
-found. `subscription_plans`' live rows (free/personal) already carried
-the current, real, in-use Stripe IDs -- nothing to archive there. The
-risk is `seed-stripe-catalog`'s hardcoded catalog (Essentials/Pro/Premium
-at old prices) having been manually invoked at some point outside the
-app, which would have created real, now-orphaned Stripe Products/Prices
-that this session cannot detect or clean up.
+**Lynn's manual Stripe dashboard spot-check -- CLOSED.** Checked
+dashboard.stripe.com/products for anything named "Essentials," "Pro," or
+"Premium": none found. `seed-stripe-catalog`'s hardcoded catalog was
+apparently never actually invoked outside the app -- no orphaned Stripe
+Products/Prices exist from that old scheme. Nothing to archive.
 
 CLAUDE.md: Rule #35 added (pricingConfig.ts is the sole pricing
 authority, including display -- no DB pricing tables). All 4 deleted
@@ -768,11 +764,13 @@ Fixtures, Lint) passed. Netlify auto-deploying from the push.
 ### PRICING SSOT CONSOLIDATION -- FULLY SHIPPED. Carry-forward:
 1. `credits_ledger` retirement (now writer-less and reader-less) -- a
    one-line migration for a future housekeeping session, not urgent.
-2. Lynn's manual Stripe dashboard spot-check for orphaned
-   Essentials/Pro/Premium Products -- still open, not code-verifiable.
-3. `purchase-lesson-pack`/`purchase-onboarding` resolving Stripe prices
+2. `purchase-lesson-pack`/`purchase-onboarding` resolving Stripe prices
    from DB config tables instead of `pricingConfig.ts` -- unaffected by
    this session, remains open (see the LOW/architecture note above).
+
+Lynn's manual Stripe dashboard spot-check (Essentials/Pro/Premium
+Products) is CLOSED -- see the RESOLVED note at the top of this file.
+No orphaned Stripe objects found; nothing to archive.
 
 ## JULY 18, 2026 SESSION -- no-explicit-any BATCH 3 SHIPPED (FINAL BATCH): ~56 one-to-two-error files fully typed, campaign complete, ci.yml lint job back to blocking
 
