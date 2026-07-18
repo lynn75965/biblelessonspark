@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 17, 2026 (Session: Guardrail Violation Review system COMPLETE -- lesson/user context, term legend, presets, working highlight, AL02 tuning, per-user suppression, Reviewed Archive -- all verified live via Netlify build + smoke test)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: Feedback popup trigger fixed -- server-authoritative first-lesson gate with permanent suppression, replacing the localStorage modulo-5 counter; commit 080fa35. Prior session: Guardrail Violation Review system COMPLETE -- lesson/user context, term legend, presets, working highlight, AL02 tuning, per-user suppression, Reviewed Archive -- all verified live via Netlify build + smoke test)
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
@@ -552,7 +552,75 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 17, 2026 SESSION (LATEST) -- Admin Panel Growth/Analytics tabs COMPLETE: read-only ConversionFunnelPanel + CapacityHealthPanel over B7/B8 data, no migrations
+## JULY 18, 2026 SESSION (LATEST) -- Feedback popup trigger fixed: server-authoritative first-lesson gate with permanent suppression
+
+GOAL: users were seeing the feedback popup 5+ times, including after
+completing feedback -- violating both stated business rules (show only
+on first lesson; never appear again after completion).
+
+### Phase 1 -- diagnose (read-only)
+Root cause: Dashboard.tsx gated the popup on a client-side, per-browser
+localStorage modulo-5 lesson counter (`bls_lessonsSinceLastFeedback`)
+plus a separate localStorage submitted flag
+(`bls_hasSubmittedFeedback`) -- never tied to actual "first lesson" and
+never consulting the `feedback` table the form (BetaFeedbackForm.tsx)
+actually writes to. Both localStorage keys are wiped by any cache
+clear, new browser, or new device, and even within the same browser the
+post-submission "suppression" was only a longer interval (resurfaced
+after 5-10 more lessons), not a permanent stop.
+
+### Phase 2 -- propose (approved with two additions)
+Design: server-authoritative `should_show_feedback_popup()` /
+`dismiss_feedback_popup()` RPCs deriving eligibility from
+lessons/feedback/profiles DB state. Lynn approved with two additions:
+(1) remove the already-dead `FEEDBACK_TRIGGER.autoPopupOnExport` field
+from feedbackConfig.ts in the same commit (zero consumers confirmed);
+(2) add a lifetime `profiles.first_lesson_generated_at` timestamp,
+stamped once inside `should_show_feedback_popup()` the first time it is
+called for a user with >=1 non-reshape lesson, to close a narrow
+delete-then-regenerate edge case where a live COUNT alone could
+re-trigger eligibility after a user's only lesson was deleted and a new
+one generated.
+
+### Phase 3 -- implement
+- `supabase/migrations/20260718120000_feedback_popup_eligibility.sql`
+  (NEW) -- adds `profiles.feedback_popup_dismissed` and
+  `profiles.first_lesson_generated_at`; `should_show_feedback_popup()`
+  and `dismiss_feedback_popup()`, both SECURITY DEFINER, EXECUTE revoked
+  from PUBLIC/anon and granted to authenticated only (mirrors the
+  Teaching Team resolver posture from 20260616170000). Applied via
+  `npx supabase db push --linked`.
+- `src/pages/Dashboard.tsx` (EDITED) -- removed the localStorage
+  counter/constants/helpers entirely; `onLessonGenerated` now calls
+  `should_show_feedback_popup` via `supabase.rpc`; the modal's
+  `onOpenChange` dismissal branch now calls `dismiss_feedback_popup`;
+  `onSubmitted` no longer writes any client state (suppression is now
+  derived from the `feedback` row's existence).
+- `src/constants/feedbackConfig.ts` (EDITED) -- removed dead
+  `FEEDBACK_TRIGGER.autoPopupOnExport`; `exportDelayMs` unchanged, still
+  the SSOT for the popup's show-delay.
+
+`npm run build`: clean, 3969 modules transformed. ASCII guard: all three
+files clean. Lynn verified on localhost before deploy. New standing
+rule logged: CLAUDE.md Rule #33 (one-time/never-again UI prompts must
+be gated server-side, not via localStorage).
+
+### Deploy
+`.\deploy.ps1 "FIX: Feedback popup - server-authoritative first-lesson
+trigger with permanent suppression"` -- ASCII guard passed, committed,
+pushed to main. Commit `080fa35`.
+
+### Feedback popup fix -- COMPLETE
+No code-level carry-forward. One accepted, documented edge case (not a
+defect): if a user deletes their only lesson and regenerates before
+ever interacting with the popup (no submit, no dismiss), the popup
+could show once more -- `first_lesson_generated_at` still closes it
+permanently from that point on (see the migration file's own header
+comment for the full mechanism). Scope stayed to the popup trigger
+only; the Feedback tab, BetaFeedbackForm.tsx, and the `feedback` table
+schema were untouched.
+
+## JULY 17, 2026 SESSION -- Admin Panel Growth/Analytics tabs COMPLETE: read-only ConversionFunnelPanel + CapacityHealthPanel over B7/B8 data, no migrations
 
 GOAL: B7 (`conversion_events`) and B8 (`capacity_events`) shipped July 16,
 2026 with data flowing in production, but no UI over it -- Lynn was

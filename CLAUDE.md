@@ -550,6 +550,35 @@ guardrail_violation_summary) have not been individually re-checked --
 if any of them ever gains a client-side write path, check for this exact
 trap before assuming the RLS alone will cover it.
 
+### Rule #33: One-time / never-again UI prompts must be gated server-side, not via localStorage
+Added July 18, 2026 (feedback popup fix, commit 080fa35). The feedback
+popup showed 5+ times to some users, including after they had already
+completed the form -- root cause was a client-side, per-browser
+localStorage modulo-5 counter (Dashboard.tsx) that was never tied to
+actual first-lesson status and was wiped by any cache clear, new
+browser, or new device. The counter's own "suppression" after
+submission was also not permanent -- it only lengthened the interval
+before resurfacing.
+
+Fixed by two SECURITY DEFINER RPCs (`supabase/migrations/
+20260718120000_feedback_popup_eligibility.sql`): `should_show_
+feedback_popup()` derives eligibility from DB truth (lessons count,
+`feedback` row existence, `profiles.feedback_popup_dismissed`) and
+stamps `profiles.first_lesson_generated_at` exactly once per user so a
+later deletion of that lesson can never reopen eligibility;
+`dismiss_feedback_popup()` permanently sets the dismissed flag --
+a dismissal is a "no," not a "later." Both follow the Teaching Team
+resolver posture (20260616170000): EXECUTE revoked from PUBLIC/anon,
+granted to authenticated only, `auth.uid()` as the internal security
+boundary.
+
+Any future one-time-only or never-again UI prompt (onboarding tours,
+first-action celebrations, dismissible announcements meant to stay
+dismissed) must follow this same pattern -- a DB-backed flag read
+through a dedicated RPC or query, never a localStorage key -- since
+localStorage cannot survive a cache clear, a different browser, or a
+different device, and silently reintroduces exactly this bug class.
+
 ---
 
 ## DEBUGGING PROTOCOL
