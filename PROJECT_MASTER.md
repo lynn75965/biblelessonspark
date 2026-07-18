@@ -1,4 +1,31 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 2 SHIPPED -- 22 mid-tier files (88 errors, fresh count) fully typed, zero behavior change, 1 occurrence intentionally left with justification; commit 4f24bb0, pushed to main, 17 edge functions redeployed (wide blast radius from 4 shared modules). Prior sessions same day: no-explicit-any BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH) -- ~56 one-to-two-error files fully typed, zero behavior change, two pre-existing category-(d) exceptions converted to justified eslint-disable comments, `@typescript-eslint/no-explicit-any` now at ZERO repo-wide; commits b1cd647 (batch 3 fixes) + aae08a4 (ci.yml lint job flipped back to blocking, Rule #28 CLOSED) + 795754b (usePricingPlans.tsx diagnosis correction -- see HIGH-VISIBILITY note below); 14 edge functions redeployed; NOT YET PUSHED, holding for Lynn's localhost approval. Prior sessions same day: no-explicit-any BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+
+## >>> HIGH-VISIBILITY CORRECTION <<< -- usePricingPlans.tsx has NO schema
+mismatch. During Batch 3 diagnosis (before this file's prior compaction),
+a DB query intended to check the `pricing_plans` table (the one
+`usePricingPlans.tsx` actually queries, line 49) was accidentally run
+against a DIFFERENT table, `subscription_plans`, and came back missing
+every expected column. That false result was escalated to Lynn as a
+possible production bug, approved for a third justified eslint-disable
+with a "schema mismatch" comment, and nearly shipped that way.
+
+Before committing, re-ran the query against the CORRECT table
+(`pricing_plans`) and confirmed every column the row-mapper reads --
+`plan_name`, `price_monthly`, `price_annual`, `lessons_per_month`,
+`sections_included`, `includes_teaser`, `display_order`, `is_active`,
+`best_for`, `stripe_price_id_annual` -- exists exactly as expected,
+matching the generated `Database['public']['Tables']['pricing_plans']`
+type in `integrations/supabase/types.ts`. **No bug. No action needed on
+UpgradePromptModal.tsx or PricingSection.tsx.** Fixed in commit 795754b:
+removed the disable comment, let the row type flow through normally
+(same outcome the other 55 files in this batch got).
+
+The PRE-EXISTING, separately-documented backlog item -- `usePricingPlans.tsx`
+reads `stripe_price_id_monthly`/`annual` from the `pricing_plans` DB table
+as a second source of truth instead of `pricingConfig.ts` directly (see
+the July 14 SECURITY session findings, still open, not urgent) -- is
+UNAFFECTED by this correction and remains open as previously documented.
+That is a real, mild architecture note; the "schema mismatch" was not.
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
@@ -558,7 +585,169 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 18, 2026 SESSION (LATEST) -- no-explicit-any BATCH 2 SHIPPED: 22 mid-tier files fully typed, zero behavior change, wide shared-module blast radius
+## JULY 18, 2026 SESSION (LATEST) -- no-explicit-any BATCH 3 SHIPPED (FINAL BATCH): ~56 one-to-two-error files fully typed, campaign complete, ci.yml lint job back to blocking
+
+GOAL: close out the no-explicit-any campaign (Rule #28) with BATCH 3, the
+final batch -- the ~56 files carrying 1-2 errors each that Batches 1-2
+deliberately deferred. Fix every remaining error, convert the two known
+category-(d) exceptions (`EnhanceLessonForm.tsx`/`Dashboard.tsx`'s
+`onLessonGenerated`, `LessonLibrary.tsx`'s `transformToDisplay`) from bare
+`any` to justified `eslint-disable-next-line` comments, and -- once
+`@typescript-eslint/no-explicit-any` is confirmed at zero -- flip
+`ci.yml`'s `lint` job from report-only back to blocking, closing Rule #28
+for good.
+
+### Phase 1 -- diagnose
+Fresh `npx eslint . --format json`: repo-wide total 80 across 56 files,
+matching the Batch 2 closing count exactly (167 -> 80 after Batch 2).
+Read all 56 files in relevant context (not always full-file, given the
+1-2-error-each volume) and grouped into 8 batches of similar files:
+admin panel (9), hooks (10), org components (5), dashboard components +
+Dashboard.tsx export (9), pages + layout (5), utils/lib/config (5),
+shared edge modules (4), standalone edge functions (9).
+
+**Out-of-scope finding surfaced and escalated mid-diagnosis, then
+retracted after further verification (see the HIGH-VISIBILITY note at
+the top of this file):** `usePricingPlans.tsx`'s row-mapper appeared to
+reference a schema that didn't match a live DB query -- but that query
+had checked the wrong table (`subscription_plans` instead of
+`pricing_plans`). Escalated to Lynn as a possible production bug and
+approved for a third justified disable before the mistake was caught;
+corrected before commit (795754b) once the right table was queried and
+came back matching exactly. No production risk existed at any point --
+the live code was never wrong, only the diagnosis was.
+
+Two structural finds during diagnosis, both resolved:
+- `useTeachingTeam.tsx`'s `fetchTeamLessons` (flagged by Batch 2 as the
+  out-of-scope root cause behind `LessonLibrary.tsx`'s remaining
+  `transformToDisplay` exception) was read in full and given a precise
+  local `TeamLessonRow` interface matching its actual `shaped` return
+  array -- `LessonLibrary.tsx`'s own exception stays category (d)
+  (unrelated root cause, per Batch 2), but this closes the hook-side gap.
+- `AppShell.tsx` read `(location.state as any)?.tab` duplicating
+  `Dashboard.tsx`'s local, unexported `DashboardLocationState` type.
+  Exported it from `Dashboard.tsx` (one-word change) and imported it as
+  a type-only import in `AppShell.tsx` -- safe despite the circular
+  runtime import (`Dashboard.tsx` renders `AppShell`) because
+  `import type` is fully erased at compile time.
+
+### Phase 4 -- implement (56 files + 2 exceptions converted)
+All 56 files fixed to 0 remaining `no-explicit-any`. Pattern mix:
+catch-block narrowing (`(err as { message?: string }).message`,
+preserving each site's exact original `?.` presence for zero behavior
+change) was the single most common fix across roughly half the files.
+Notable non-trivial fixes:
+- `docx` package's real exported `ISectionOptions`/`IParagraphStyleOptions`
+  types (read directly from `node_modules/docx/dist/index.d.ts`) replaced
+  `buildSeriesDocx.ts`'s `any[]` section array and a `buildParagraphStyles`
+  bridge cast.
+- jsPDF's `.internal.write()` (a real runtime method absent from the
+  package's public `.d.ts`) got a minimal local bridge-cast type in
+  `exportToPdf.ts`, matching the same pattern Batch 1/2 used for
+  library gaps.
+- `edgeRateLimit.ts`, `rateLimit.ts` (confirmed still zero live
+  importers -- dead code, typed but not deleted), `subscriptionCheck.ts`,
+  `capacityEvents.ts` all took the established `SupabaseClient` typing
+  for their `supabase: any` parameters.
+- `toolbelt-reflect/index.ts` reused Batch 2's `AnthropicRawResponse`
+  type for a `(anthropicResult.raw as any)?.usage` read -- exact same
+  pattern as Batch 2's other five generator call sites.
+- `OrgMemberManagement.tsx`'s `resendInvite(invite as any)` needed
+  `useInvites.tsx`'s local, unexported `Invite` interface exported
+  (one-word change) so a documented `as unknown as Invite` bridge cast
+  could replace the `any` -- the component's own `PendingInvite` type
+  is a minimally-fetched subset that omits fields `resendInvite` never
+  actually reads.
+
+**Caught one placement bug via the eslint-zero verification, not just
+`grep`:** the `LessonLibrary.tsx` `transformToDisplay` disable comment
+was first placed above the function's opening line instead of directly
+above the `lesson: any,` parameter line -- `eslint-disable-next-line`
+disables the literal next line, so it silently missed the violation one
+line further down and eslint still reported 1 error. Fixed by moving the
+comment to sit directly above the parameter.
+
+**`tsc --noEmit` baseline diff** (git-stash the session, clean run,
+restore, re-run, diff by message+file ignoring line-number shifts):
+found one genuine NEW error -- `useLessons.tsx`'s `createLesson` insert
+call broke once its `filters` param went from `any` to the honest
+`LessonFiltersRaw | null`, because the generated Supabase insert type
+expects `Json` for that column and `LessonFiltersRaw` has no index
+signature. Fixed with a targeted `as unknown as Json` cast at the
+insert call site only (not the public param type, which stays the more
+useful `LessonFiltersRaw | null` for callers). Two other diff lines
+were pre-existing errors (`AdminSecurityPanel.tsx`'s `meta` field,
+`Auth.tsx`'s `useAuth` return shape) whose MESSAGE TEXT changed because
+the underlying `any` became a real type name -- same error, same
+location, zero net-new count (347 lines baseline, 347 after).
+
+`npm run build`: clean, 3968 modules transformed, both before and after
+the `useLessons.tsx` fix. Fresh eslint: `no-explicit-any` 80 -> 0
+(three justified disables: the two pre-existing plus none new, since
+the usePricingPlans.tsx third disable was retracted before commit).
+Total lint: 51 problems, all pre-existing `react-hooks/exhaustive-deps`
+and `react-refresh/only-export-components` warnings, zero errors.
+Manually confirmed ASCII-clean via the pre-commit guard on both commits.
+
+### ci.yml flip
+Gate condition met (eslint zero errors) before touching the workflow.
+Confirmed both report-only conditions from the B5 session were satisfied:
+no-explicit-any at zero, and `temp_working_version.ts` (the parsing-error
+file) already gone (confirmed via glob -- no longer exists). Replaced the
+always-`exit 0` summary-wrapper step with a plain `npm run lint`, renamed
+the job from "Lint (report-only)" to "Lint", removed the stale baseline
+comment block. Committed separately (aae08a4) from the code fixes
+(b1cd647) per the session plan.
+
+### Deploy (edge functions only -- code NOT pushed, see below)
+14 edge functions redeployed one at a time via `--use-api`, each
+confirmed ACTIVE with a fresh version via `functions list --output json`
+before moving to the next. Union of 9 directly-edited functions +
+5 blast-radius-only functions (driven by the 3 touched `_shared/`
+modules with live importers -- `edgeRateLimit.ts`, `subscriptionCheck.ts`,
+`capacityEvents.ts`; `rateLimit.ts` confirmed still zero importers):
+`admin-impersonate-user` (v7), `extract-start` (v122), `generate-parable`
+(v62), `org-stripe-webhook` (v15), `request-org-deletion` (v10),
+`resend-verification` (v124), `seed-stripe-catalog` (v123),
+`send-lesson-email` (v26), `toolbelt-reflect` (v26), `extract-lesson`
+(v34), `generate-devotional` (v35), `send-toolbelt-reflection` (v21),
+`generate-lesson` (v189), `reshape-lesson` (v24).
+
+**HOLD BEFORE DEPLOY per Lynn's explicit instruction: three commits
+(b1cd647, aae08a4, 795754b) exist locally on `main` but have NOT been
+pushed to `origin/main`, and `deploy.ps1` has NOT been run.** Waiting for
+Lynn's localhost approval before pushing. Localhost smoke-test list
+delivered in-conversation, scoped to the touched surfaces (admin panel,
+hooks-backed dashboard/org components, series/devotional/reshape flows,
+the 14 redeployed edge functions).
+
+### BATCH 3 -- COMPLETE. THE NO-EXPLICIT-ANY CAMPAIGN IS COMPLETE.
+Repo-wide `@typescript-eslint/no-explicit-any`: 246 (campaign start) ->
+0. Rule #28's lint-job-blocking condition is met and shipped. Carry-forward:
+1. The two pre-existing category-(d) exceptions
+   (`EnhanceLessonForm.tsx`/`Dashboard.tsx`'s `onLessonGenerated`,
+   `LessonLibrary.tsx`'s `transformToDisplay`) remain justified,
+   line-scoped `eslint-disable-next-line` exceptions, not bugs -- no
+   further action expected unless the underlying shape mismatches they
+   describe get resolved in a dedicated session.
+2. `logLessonEvent`/`logFileUploadEvent` in `auditLogger.ts` (Batch 2
+   finding) and `rateLimit.ts`'s zero-importer dead code (this session,
+   reconfirmed) remain flagged, not pruned -- both out of scope for a
+   typing session.
+3. The two Batch 1 findings (`LessonFilters` shape mismatch,
+   `EnhanceLessonForm.tsx`/`Dashboard.tsx`'s possible
+   `lastGeneratedLessonId`-always-null bug) remain open, untouched.
+4. The PRE-EXISTING `usePricingPlans.tsx` / `pricing_plans`-as-second-
+   source-of-truth backlog item (July 14 SECURITY session) remains open
+   as previously documented -- see the HIGH-VISIBILITY note at the top
+   of this file for what this session did and did not find there.
+5. `AdminSecurityPanel.tsx`'s `meta` field and `Auth.tsx`'s `useAuth`
+   return-shape consumption both have PRE-EXISTING `tsc` errors
+   (unrelated to no-explicit-any, not part of this repo's CI gate since
+   CI runs `vite build` not `tsc`) -- surfaced by this session's baseline
+   diff but not this session's to fix.
+
+## JULY 18, 2026 SESSION -- no-explicit-any BATCH 2 SHIPPED: 22 mid-tier files fully typed, zero behavior change, wide shared-module blast radius
 
 GOAL: continue the no-explicit-any campaign (Rule #28) with BATCH 2 -- the
 22 files that carried 3-5 errors each as of the July 15 count (~88
