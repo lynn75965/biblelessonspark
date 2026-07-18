@@ -136,6 +136,10 @@ Changes to a domain require updating only ONE file.
 | src/utils/useSpeechInput.ts                         | Voice navigation removed from feature set (deleted April 13, 2026) |
 | src/hooks/useAnalytics.tsx                          | Sole writer to the (now-frozen) events table; RLS silently blocked every non-admin insert -- retired, see Rule #34 (deleted July 18, 2026) |
 | src/components/security/SecurityMonitor.tsx         | Dead code -- never imported; read from the same frozen events table (deleted July 18, 2026) |
+| src/hooks/usePricingPlans.tsx                       | Read display pricing from the pricing_plans DB table as a second source of truth; replaced by PRICING_PLANS in pricingConfig.ts (deleted July 18, 2026) |
+| src/components/admin/PricingPlansManager.tsx        | Admin UI for the orphaned subscription_plans table (pre-SSOT credits model, essentials/pro/premium -- matched no current tier); "Sync from Stripe" button was a live footgun (deleted July 18, 2026) |
+| supabase/functions/sync-pricing-from-stripe/         | Synced the orphaned subscription_plans table against stale essentials/pro/premium Stripe lookup keys; zero callers beyond the deleted admin UI (deleted July 18, 2026) |
+| supabase/functions/seed-stripe-catalog/              | Seeded the orphaned subscription_plans table; zero callers anywhere, not even the admin UI (deleted July 18, 2026) |
 
 ### Before touching any SSOT file:
 Audit ALL consumers of that file. Every import must be verified.
@@ -617,6 +621,36 @@ session, alongside Configuration's AI-service-status/rate-limit gauges
 -- see PROJECT_MASTER.md). Lifting the freeze (a new scoped INSERT
 policy + a real writer) is that session's job, not a one-line grant
 restore.
+
+### Rule #35: pricingConfig.ts is the sole pricing authority, including display -- no DB pricing tables
+Added July 18, 2026 (pricing SSOT consolidation session). Two DB tables
+that fed frontend pricing display, `pricing_plans` and `subscription_plans`,
+are both DROPPED (`supabase/migrations/20260718140000_pricing_ssot_consolidation.sql`).
+`subscription_plans` was an orphaned pre-SSOT subsystem (credits model,
+`essentials_*`/`pro_*`/`premium_*` lookup keys matching no current tier)
+with a live admin UI (`PricingPlansManager.tsx`, Admin -> Pricing tab)
+whose "Sync from Stripe" button was a footgun -- it synced against Stripe
+lookup keys that didn't match the live catalog. `pricing_plans` was the
+hook (`usePricingPlans.tsx`) that fed `UpgradePromptModal.tsx` and
+`PricingSection.tsx` -- a real second source of truth for display pricing,
+architecturally a Rule #17 violation even though its data happened to
+stay in sync until this session. All 4 artifacts are deleted (see the
+Deleted Files table above). Both consumer components now import
+`PRICING_PLANS` (a display-ready, pre-composed constant, not a new
+independent source) directly from `pricingConfig.ts`.
+
+The migration also dropped `allocate_monthly_credits()` (a `SECURITY
+DEFINER` function with zero callers anywhere -- no cron, no `.rpc()`
+call in code -- and zero rows ever produced in `credits_ledger`, since
+`user_subscriptions.plan_id` was 100% NULL across all live rows) and the
+now-pointless `user_subscriptions.plan_id` column + its FK. `credits_ledger`
+itself was left untouched -- it is now writer-less and reader-less, a
+one-line-migration cleanup for a future housekeeping session, not this
+one (see PROJECT_MASTER.md backlog).
+
+Any future pricing display need (a new tier, a new plan comparison
+surface) adds to `PRICING_PLANS`/`PRICING_DISPLAY` in `pricingConfig.ts`
+directly -- never a new DB table, never a new hook that queries one.
 
 ---
 

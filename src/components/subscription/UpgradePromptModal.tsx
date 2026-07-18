@@ -18,8 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Check, X, Star, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { usePricingPlans, formatPlanPrice, getAnnualSavings } from '@/hooks/usePricingPlans';
-import { formatPrice } from '@/constants/pricingConfig';
+import { PRICING_PLANS, formatPlanPrice, getAnnualSavings, formatPrice } from '@/constants/pricingConfig';
 import { SIDEBAR_ITEMS } from '@/constants/sidebarConfig';
 import { CONVERSION_EVENT_TYPES } from '@/constants/conversionEvents';
 import { logConversionEvent } from '@/lib/conversionTracking';
@@ -37,7 +36,8 @@ export function UpgradePromptModal({
 }: UpgradePromptModalProps) {
   const { user } = useAuth();
   const { startCheckout, lessonsUsed, lessonsLimit, resetDate, tier } = useSubscription();
-  const { freePlan, personalPlan, isLoading: plansLoading } = usePricingPlans();
+  const freePlan = PRICING_PLANS.free;
+  const personalPlan = PRICING_PLANS.personal;
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
   const [isLoading, setIsLoading] = useState(false);
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
@@ -91,18 +91,6 @@ export function UpgradePromptModal({
     if (!resetDate) return 'next month';
     return resetDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
   };
-
-  if (plansLoading || !freePlan || !personalPlan) {
-    return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[600px]">
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
 
   // Personal tier users who hit their limit - show "wait for reset" message
   if (tier === 'personal' && trigger === 'limit_reached') {

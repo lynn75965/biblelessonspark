@@ -1,7 +1,7 @@
 // ============================================================
 // BibleLessonSpark - LANDING PAGE PRICING SECTION (SSOT-COMPLIANT)
 // Location: src/components/landing/PricingSection.tsx
-// Uses usePricingPlans hook - landing-page pricing display.
+// Reads pricing directly from pricingConfig.ts's PRICING_PLANS.
 // ============================================================
 
 import { useState, useEffect } from "react";
@@ -9,15 +9,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Star, Loader2 } from "lucide-react";
-import { usePricingPlans, formatPlanPrice, getAnnualSavings } from "@/hooks/usePricingPlans";
-import { UPGRADE_PROMPTS, formatPrice } from "@/constants/pricingConfig";
-import { formatLoading } from "@/constants/uiSymbols";
+import { Check, X, Star } from "lucide-react";
+import { PRICING_PLANS, formatPlanPrice, getAnnualSavings, UPGRADE_PROMPTS, formatPrice } from "@/constants/pricingConfig";
 import { ROUTES } from "@/constants/routes";
 
 export function PricingSection() {
   const navigate = useNavigate();
-  const { freePlan, personalPlan, isLoading, error } = usePricingPlans();
+  const freePlan = PRICING_PLANS.free;
+  const personalPlan = PRICING_PLANS.personal;
   const [billingInterval, setBillingInterval] = useState<'month' | 'year'>('year');
 
   // Load saved billing cycle preference
@@ -40,33 +39,6 @@ export function PricingSection() {
       navigate(`${ROUTES.AUTH}?redirect=${ROUTES.DASHBOARD}&plan=personal`);
     }
   };
-
-  if (isLoading) {
-    return (
-      <section id="pricing" className="py-10 sm:py-16 lg:py-20">
-        <div className="container px-4 sm:px-6">
-          <div className="text-center py-8 sm:py-12 lg:py-12">
-            <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-muted-foreground mx-auto" />
-            <p className="text-sm sm:text-base text-muted-foreground mt-3 sm:mt-4">{formatLoading("Loading pricing plans")}</p>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (error || !freePlan || !personalPlan) {
-    return (
-      <section id="pricing" className="py-10 sm:py-16 lg:py-20">
-        <div className="container px-4 sm:px-6">
-          <div className="text-center py-8 sm:py-12 lg:py-12 px-4">
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Unable to load pricing. Please refresh the page or try again later.
-            </p>
-          </div>
-        </div>
-      </section>
-    );
-  }
 
   const personalMonthlyDisplay = formatPlanPrice(personalPlan, 'month');
   const personalAnnualMonthlyDisplay = formatPlanPrice(personalPlan, 'year');

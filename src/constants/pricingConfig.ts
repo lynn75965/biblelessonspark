@@ -347,23 +347,62 @@ export function getLessonLimitForPriceId(priceId: string): number {
 }
 
 // ============================================================
-// DATABASE TYPE \u2014 matches Supabase pricing_plans table
+// DISPLAY-READY PLAN OBJECTS (SSOT)
+// Replaces the old pricing_plans DB table (dropped -- see
+// PROJECT_MASTER.md pricing SSOT consolidation, July 2026).
+// usePricingPlans.tsx / PricingPlansManager.tsx were deleted;
+// UpgradePromptModal.tsx and PricingSection.tsx import PRICING_PLANS
+// directly. Composed from the constants already above -- not a new
+// independent source of truth, just a pre-shaped convenience view.
 // ============================================================
 
-export interface PricingPlanFromDB {
-  id: string;
-  stripe_product_id: string;
-  stripe_price_id_monthly: string | null;
-  stripe_price_id_annual: string | null;
-  plan_name: string;
+export interface PricingPlanDisplay {
   tier: SubscriptionTier;
-  price_monthly: number;
-  price_annual: number;
-  lessons_per_month: number;
-  sections_included: string[];
-  includes_teaser: boolean;
-  includes_modern_parables: boolean;
-  display_order: number;
-  is_active: boolean;
-  best_for: string | null;
+  planName: string;
+  priceMonthly: number; // cents
+  priceAnnual: number;  // cents
+  lessonsPerMonth: number;
+  bestFor: string;
+  stripePriceIdMonthly: string | null;
+  stripePriceIdAnnual: string | null;
+}
+
+export const PRICING_PLANS: Record<'free' | 'personal', PricingPlanDisplay> = {
+  free: {
+    tier: 'free',
+    planName: PRICING_DISPLAY.free.displayText,
+    priceMonthly: 0,
+    priceAnnual: 0,
+    lessonsPerMonth: TIER_LESSON_LIMITS.free,
+    bestFor: 'Try before you buy',
+    stripePriceIdMonthly: null,
+    stripePriceIdAnnual: null,
+  },
+  personal: {
+    tier: 'personal',
+    planName: PRICING_DISPLAY.personal.displayName,
+    priceMonthly: PRICING_DISPLAY.personal.monthly.amount * 100,
+    priceAnnual: PRICING_DISPLAY.personal.annual.amount * 100,
+    lessonsPerMonth: TIER_LESSON_LIMITS.personal,
+    bestFor: 'Volunteer teachers who want complete lessons',
+    stripePriceIdMonthly: STRIPE_INDIVIDUAL.personal.prices.monthly,
+    stripePriceIdAnnual: STRIPE_INDIVIDUAL.personal.prices.annual,
+  },
+};
+
+export function formatPlanPrice(plan: PricingPlanDisplay, interval: 'month' | 'year'): string {
+  if (plan.tier === 'free') return '$0';
+
+  if (interval === 'year') {
+    const monthlyEquivalent = plan.priceAnnual / 12;
+    return formatPrice(monthlyEquivalent);
+  }
+
+  return formatPrice(plan.priceMonthly);
+}
+
+export function getAnnualSavings(plan: PricingPlanDisplay): number {
+  if (plan.tier === 'free') return 0;
+  const yearlyIfMonthly = plan.priceMonthly * 12;
+  return yearlyIfMonthly - plan.priceAnnual;
 }

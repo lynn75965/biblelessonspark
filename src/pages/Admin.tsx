@@ -15,9 +15,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Users, Settings2, BarChart3, DollarSign, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText, Activity } from "lucide-react";
+import { ShieldCheck, Users, Settings2, BarChart3, Rocket, Gift, TrendingUp, Building2, BookOpen, Palette, Mail, Wrench, FileText, Activity } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PricingPlansManager } from "@/components/admin/PricingPlansManager";
 import { OrganizationManagement } from "@/components/admin/OrganizationManagement";
 import { SystemSettingsPanel } from "@/components/admin/SystemSettingsPanel";
 import { useToast } from "@/hooks/use-toast";
@@ -438,10 +437,6 @@ export default function Admin() {
                   <Mail className="h-3.5 w-3.5" />
                   Email Sequences
                 </TabsTrigger>
-                <TabsTrigger value="pricing" className="flex items-center gap-1.5 text-sm">
-                  <DollarSign className="h-3.5 w-3.5" />
-                  Pricing & Plans
-                </TabsTrigger>
                 <TabsTrigger value="conversionFunnel" className="flex items-center gap-1.5 text-sm">
                   <TrendingUp className="h-3.5 w-3.5" />
                   {ADMIN_ANALYTICS_TAB_LABELS.conversionFunnel}
@@ -527,9 +522,6 @@ export default function Admin() {
               </TabsContent>
               <TabsContent value="email">
                 <EmailSequenceManager />
-              </TabsContent>
-              <TabsContent value="pricing">
-                <PricingPlansManager />
               </TabsContent>
               <TabsContent value="conversionFunnel">
                 <ConversionFunnelPanel />

@@ -359,25 +359,3 @@ export function getLessonLimitForPriceId(priceId: string): number {
   }
   return TIER_LESSON_LIMITS.free;
 }
-
-// ============================================================
-// DATABASE TYPE \u2014 matches Supabase pricing_plans table
-// ============================================================
-
-export interface PricingPlanFromDB {
-  id: string;
-  stripe_product_id: string;
-  stripe_price_id_monthly: string | null;
-  stripe_price_id_annual: string | null;
-  plan_name: string;
-  tier: SubscriptionTier;
-  price_monthly: number;
-  price_annual: number;
-  lessons_per_month: number;
-  sections_included: string[];
-  includes_teaser: boolean;
-  includes_modern_parables: boolean;
-  display_order: number;
-  is_active: boolean;
-  best_for: string | null;
-}
