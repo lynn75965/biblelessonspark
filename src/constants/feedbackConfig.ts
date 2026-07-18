@@ -40,7 +40,6 @@ export const BETA_PERIOD = {
 // ----------------------------------------------------------------------------
 export const FEEDBACK_TRIGGER = {
   exportDelayMs: 3000,  // 3 second delay after export before showing feedback
-  autoPopupOnExport: CURRENT_FEEDBACK_MODE === 'beta',  // Only auto-popup during beta period
 } as const;
 
 // ----------------------------------------------------------------------------

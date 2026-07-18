@@ -39,26 +39,6 @@ import { useHelpVideo } from "@/hooks/useHelpVideo";
 import { VideoModal } from "@/components/help/VideoModal";
 import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
 
-// ---------------------------------------------------------------------------
-// Feedback frequency cap (localStorage)
-// ---------------------------------------------------------------------------
-const LS_LESSONS_SINCE_FEEDBACK = 'bls_lessonsSinceLastFeedback';
-const LS_HAS_SUBMITTED_FEEDBACK = 'bls_hasSubmittedFeedback';
-const FEEDBACK_INTERVAL = 5; // show every Nth lesson
-
-function getLessonsSinceFeedback(): number {
-  return parseInt(localStorage.getItem(LS_LESSONS_SINCE_FEEDBACK) || '0', 10);
-}
-function setLessonsSinceFeedback(n: number): void {
-  localStorage.setItem(LS_LESSONS_SINCE_FEEDBACK, String(n));
-}
-function getHasSubmittedFeedback(): boolean {
-  return localStorage.getItem(LS_HAS_SUBMITTED_FEEDBACK) === 'true';
-}
-function setHasSubmittedFeedback(): void {
-  localStorage.setItem(LS_HAS_SUBMITTED_FEEDBACK, 'true');
-}
-
 // Public Beta Prompt Banner added (January 1, 2026)
 
 export default function Dashboard() {
@@ -454,17 +434,19 @@ export default function Dashboard() {
                   description: "Review your lesson, then use Copy or Download when ready.",
                   duration: 6000,
                 });
-                // Frequency-capped feedback prompt
-                const count = getLessonsSinceFeedback() + 1;
-                if (count >= FEEDBACK_INTERVAL) {
-                  setLessonsSinceFeedback(0);
-                  setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
-                } else {
-                  setLessonsSinceFeedback(count);
-                }
+                // First-lesson feedback prompt (server-authoritative eligibility)
+                supabase.rpc('should_show_feedback_popup').then(({ data, error }) => {
+                  if (error) {
+                    console.error('Failed to check feedback popup eligibility:', error);
+                    return;
+                  }
+                  if (data) {
+                    setTimeout(() => setShowBetaFeedbackModal(true), FEEDBACK_TRIGGER.exportDelayMs);
+                  }
+                });
               }}
               onExport={() => {
-                // Feedback prompt moved to onLessonGenerated with frequency cap
+                // Feedback prompt moved to onLessonGenerated (server-authoritative eligibility)
               }}
               organizationId={userProfile?.organization_id}
               userPreferredAgeGroup={userProfile?.preferred_age_group || "youngadult"}
@@ -536,21 +518,18 @@ export default function Dashboard() {
         open={showBetaFeedbackModal}
         onOpenChange={(open) => {
           if (!open && !feedbackSubmittedRef.current) {
-            // Dismissed without submitting -- try again sooner (after 2 more lessons)
-            setLessonsSinceFeedback(FEEDBACK_INTERVAL - 2);
+            // Dismissed without submitting -- a dismissal is a permanent "no".
+            supabase.rpc('dismiss_feedback_popup').then(({ error }) => {
+              if (error) console.error('Failed to record feedback popup dismissal:', error);
+            });
           }
           feedbackSubmittedRef.current = false;
           setShowBetaFeedbackModal(open);
         }}
         onSubmitted={() => {
           feedbackSubmittedRef.current = true;
-          // Returning submitters wait longer (10 lessons); first-timers reset to 0
-          if (getHasSubmittedFeedback()) {
-            setLessonsSinceFeedback(FEEDBACK_INTERVAL - 10);
-          } else {
-            setLessonsSinceFeedback(0);
-          }
-          setHasSubmittedFeedback();
+          // Suppression is derived server-side from the feedback row's
+          // existence (should_show_feedback_popup) -- nothing to persist here.
         }}
         lessonId={lastGeneratedLessonId}
       />
