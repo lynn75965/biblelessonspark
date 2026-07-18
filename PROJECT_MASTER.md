@@ -1,31 +1,81 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH) -- ~56 one-to-two-error files fully typed, zero behavior change, two pre-existing category-(d) exceptions converted to justified eslint-disable comments, `@typescript-eslint/no-explicit-any` now at ZERO repo-wide; commits b1cd647 (batch 3 fixes) + aae08a4 (ci.yml lint job flipped back to blocking, Rule #28 CLOSED) + 795754b (usePricingPlans.tsx diagnosis correction -- see HIGH-VISIBILITY note below); 14 edge functions redeployed; NOT YET PUSHED, holding for Lynn's localhost approval. Prior sessions same day: no-explicit-any BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH) -- ~56 one-to-two-error files fully typed, zero behavior change, two pre-existing category-(d) exceptions converted to justified eslint-disable comments, `@typescript-eslint/no-explicit-any` now at ZERO repo-wide; commits b1cd647 (batch 3 fixes) + aae08a4 (ci.yml lint job flipped back to blocking, Rule #28 CLOSED) + 795754b (usePricingPlans.tsx diagnosis correction) + 38608d1 (docs). PUSHED to origin/main, CI run #71 green (Build/ASCII Guard/Guardrail Fixtures/Lint all passed), Lynn verified on localhost and approved. Follow-up diagnose-only session same day confirmed the usePricingPlans.tsx finding was fully closed (see CLOSED note below) and surfaced a new standing backlog item (orphaned `subscription_plans` admin cluster). Prior sessions same day: no-explicit-any BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
-## >>> HIGH-VISIBILITY CORRECTION <<< -- usePricingPlans.tsx has NO schema
-mismatch. During Batch 3 diagnosis (before this file's prior compaction),
-a DB query intended to check the `pricing_plans` table (the one
-`usePricingPlans.tsx` actually queries, line 49) was accidentally run
-against a DIFFERENT table, `subscription_plans`, and came back missing
-every expected column. That false result was escalated to Lynn as a
-possible production bug, approved for a third justified eslint-disable
-with a "schema mismatch" comment, and nearly shipped that way.
+## >>> CLOSED -- usePricingPlans.tsx has NO schema mismatch (verified twice) <<<
+During Batch 3 diagnosis, a DB query intended to check the `pricing_plans`
+table (the one `usePricingPlans.tsx` actually queries, line 49) was
+accidentally run against a DIFFERENT, real, separate table,
+`subscription_plans`, and came back missing every expected column. That
+false result was escalated to Lynn as a possible production bug, approved
+for a third justified eslint-disable with a "schema mismatch" comment, and
+nearly shipped that way. Caught and fixed before commit (795754b, pushed):
+re-ran the query against the CORRECT table and confirmed every column the
+row-mapper reads exists exactly as expected, matching the generated
+`Database['public']['Tables']['pricing_plans']` type in
+`integrations/supabase/types.ts`. Removed the disable comment, let the row
+type flow through normally.
 
-Before committing, re-ran the query against the CORRECT table
-(`pricing_plans`) and confirmed every column the row-mapper reads --
-`plan_name`, `price_monthly`, `price_annual`, `lessons_per_month`,
-`sections_included`, `includes_teaser`, `display_order`, `is_active`,
-`best_for`, `stripe_price_id_annual` -- exists exactly as expected,
-matching the generated `Database['public']['Tables']['pricing_plans']`
-type in `integrations/supabase/types.ts`. **No bug. No action needed on
-UpgradePromptModal.tsx or PricingSection.tsx.** Fixed in commit 795754b:
-removed the disable comment, let the row type flow through normally
-(same outcome the other 55 files in this batch got).
+A dedicated diagnose-only follow-up session (same day, Lynn's explicit
+request after the first correction) re-verified this from scratch,
+independent of the earlier fix: read both importers (`UpgradePromptModal.tsx`,
+`PricingSection.tsx`) in full -- both gate on `isLoading`/`error`/null-checks
+before rendering, so undefined fields could never have reached the UI even
+in the false-alarm scenario. Live-queried `pricing_plans` row contents
+directly (2 active rows: free $0/5 lessons, personal $9/mo-$90/yr/20
+lessons -- exact match to CLAUDE.md's documented pricing). Checked RLS
+(`Anyone can read active pricing plans`, public SELECT, `is_active = true`)
+and table grants (broad GRANT to anon/authenticated including
+INSERT/UPDATE/DELETE, but RLS has no permissive policy for those commands
+so they default-deny -- functionally read-only despite the loose grant;
+candidate for the same GRANT-tightening pattern as Rule #32's other
+findings, not urgent, RLS already protects it). Confirmed via git log that
+`usePricingPlans.tsx` has queried `pricing_plans` since its creation
+(commit `5694fec`, "Phase 14.4") -- no historical rename or drift.
+**Conclusion unchanged: no bug, no live-production impact, ever.**
 
 The PRE-EXISTING, separately-documented backlog item -- `usePricingPlans.tsx`
 reads `stripe_price_id_monthly`/`annual` from the `pricing_plans` DB table
 as a second source of truth instead of `pricingConfig.ts` directly (see
-the July 14 SECURITY session findings, still open, not urgent) -- is
-UNAFFECTED by this correction and remains open as previously documented.
-That is a real, mild architecture note; the "schema mismatch" was not.
+the July 14 SECURITY session findings) -- is UNAFFECTED by any of this and
+remains open as previously documented. See the new backlog item directly
+below for why it should be resolved alongside a second, larger finding.
+
+## >>> STANDING BACKLOG -- orphaned `subscription_plans` admin cluster
+(discovered during the usePricingPlans.tsx follow-up diagnosis, July 18,
+2026; NOT touched this session, diagnose-only). A second, completely
+separate pricing table -- `subscription_plans` -- is real and live, used
+by `PricingPlansManager.tsx` (Admin Panel, "Pricing" tab,
+`Admin.tsx:531-533` -- **live and clickable today**), and its two
+supporting Edge Functions `sync-pricing-from-stripe` and
+`seed-stripe-catalog`. This cluster uses lookup keys
+`essentials_monthly/yearly`, `pro_*`, `premium_*` and a `credits_monthly`
+billing model that matches NO tier in the current SSOT
+(`free\|personal\|starter\|growth\|full\|enterprise`, pricingConfig.ts). A
+backup migration from October 2025 confirms this predates the current
+tier system. Zero references anywhere outside this three-file cluster --
+confirmed via full-repo grep. Real money flow (checkout, Stripe webhook)
+touches neither `subscription_plans` nor `pricing_plans` -- tier
+resolution is 100% `pricingConfig.ts` per Rule #17, so this cluster has
+zero bearing on billing correctness today.
+
+**FOOTGUN WARNING: do not click "Sync from Stripe" in Admin -> Pricing.**
+It syncs `subscription_plans` using lookup keys that likely don't exist in
+the live Stripe catalog -- not the pricing actually shown to users
+(`pricing_plans`, read by `UpgradePromptModal.tsx`/`PricingSection.tsx`).
+Clicking it will not corrupt live pricing (real checkout bypasses both DB
+tables), but it will not do what the button implies either.
+
+RECOMMENDED FIX (option a, not yet approved for implementation): delete
+`PricingPlansManager.tsx`, `sync-pricing-from-stripe`, `seed-stripe-catalog`,
+and the `subscription_plans` table itself, removing the "Pricing" tab from
+Admin.tsx in the same change. Option (b) -- repointing this admin UI at
+`pricing_plans` instead -- is a live alternative if Lynn wants a DB-driven
+pricing management path, but adds scope or the two tables remain in
+parallel unless #1 below is resolved.
+
+Lynn's explicit instruction: resolve this backlog item in the SAME future
+session as the pre-existing usePricingPlans.tsx second-source-of-truth
+item above -- both are pricing-SSOT consolidation and should not be split
+across sessions.
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
