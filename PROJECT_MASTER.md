@@ -1,81 +1,68 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH) -- ~56 one-to-two-error files fully typed, zero behavior change, two pre-existing category-(d) exceptions converted to justified eslint-disable comments, `@typescript-eslint/no-explicit-any` now at ZERO repo-wide; commits b1cd647 (batch 3 fixes) + aae08a4 (ci.yml lint job flipped back to blocking, Rule #28 CLOSED) + 795754b (usePricingPlans.tsx diagnosis correction) + 38608d1 (docs). PUSHED to origin/main, CI run #71 green (Build/ASCII Guard/Guardrail Fixtures/Lint all passed), Lynn verified on localhost and approved. Follow-up diagnose-only session same day confirmed the usePricingPlans.tsx finding was fully closed (see CLOSED note below) and surfaced a new standing backlog item (orphaned `subscription_plans` admin cluster). Prior sessions same day: no-explicit-any BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: PRICING SSOT CONSOLIDATION IMPLEMENTED, commit 9912f4a -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Code committed locally; migration NOT YET APPLIED, edge functions NOT YET DELETED from the live project, NOT pushed to origin/main -- HOLD BEFORE DEPLOY pending Lynn's localhost approval. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
-## >>> CLOSED -- usePricingPlans.tsx has NO schema mismatch (verified twice) <<<
-During Batch 3 diagnosis, a DB query intended to check the `pricing_plans`
-table (the one `usePricingPlans.tsx` actually queries, line 49) was
-accidentally run against a DIFFERENT, real, separate table,
-`subscription_plans`, and came back missing every expected column. That
-false result was escalated to Lynn as a possible production bug, approved
-for a third justified eslint-disable with a "schema mismatch" comment, and
-nearly shipped that way. Caught and fixed before commit (795754b, pushed):
-re-ran the query against the CORRECT table and confirmed every column the
-row-mapper reads exists exactly as expected, matching the generated
-`Database['public']['Tables']['pricing_plans']` type in
-`integrations/supabase/types.ts`. Removed the disable comment, let the row
-type flow through normally.
+## >>> RESOLVED -- pricing SSOT consolidation (both backlog items closed) <<<
+Two logged backlog items closed in one session, per Lynn's explicit
+instruction that they be resolved together (July 18, 2026):
 
-A dedicated diagnose-only follow-up session (same day, Lynn's explicit
-request after the first correction) re-verified this from scratch,
-independent of the earlier fix: read both importers (`UpgradePromptModal.tsx`,
-`PricingSection.tsx`) in full -- both gate on `isLoading`/`error`/null-checks
-before rendering, so undefined fields could never have reached the UI even
-in the false-alarm scenario. Live-queried `pricing_plans` row contents
-directly (2 active rows: free $0/5 lessons, personal $9/mo-$90/yr/20
-lessons -- exact match to CLAUDE.md's documented pricing). Checked RLS
-(`Anyone can read active pricing plans`, public SELECT, `is_active = true`)
-and table grants (broad GRANT to anon/authenticated including
-INSERT/UPDATE/DELETE, but RLS has no permissive policy for those commands
-so they default-deny -- functionally read-only despite the loose grant;
-candidate for the same GRANT-tightening pattern as Rule #32's other
-findings, not urgent, RLS already protects it). Confirmed via git log that
-`usePricingPlans.tsx` has queried `pricing_plans` since its creation
-(commit `5694fec`, "Phase 14.4") -- no historical rename or drift.
-**Conclusion unchanged: no bug, no live-production impact, ever.**
+1. **usePricingPlans.tsx second source of truth** -- confirmed NO
+   schema mismatch existed (a Batch 3 diagnosis mistake, verified twice,
+   see commit 795754b), but the architectural concern was real: display
+   pricing came from the `pricing_plans` DB table, a second source of
+   truth alongside `pricingConfig.ts`. `usePricingPlans.tsx` and the
+   `pricing_plans` table are now DELETED. `UpgradePromptModal.tsx` and
+   `PricingSection.tsx` import a new `PRICING_PLANS` constant from
+   `pricingConfig.ts` directly (composed from constants already there,
+   not an independent source). One genuine field gap found (`bestFor`
+   tagline text) and added to `pricingConfig.ts`, frontend-only, no
+   `_shared/` mirror impact.
 
-The PRE-EXISTING, separately-documented backlog item -- `usePricingPlans.tsx`
-reads `stripe_price_id_monthly`/`annual` from the `pricing_plans` DB table
-as a second source of truth instead of `pricingConfig.ts` directly (see
-the July 14 SECURITY session findings) -- is UNAFFECTED by any of this and
-remains open as previously documented. See the new backlog item directly
-below for why it should be resolved alongside a second, larger finding.
+2. **Orphaned `subscription_plans` admin cluster** -- a pre-SSOT pricing
+   subsystem (credits model, `essentials_*`/`pro_*`/`premium_*` lookup
+   keys matching no current tier) with a live, clickable Admin Panel
+   "Pricing" tab (`PricingPlansManager.tsx`) and two supporting edge
+   functions (`sync-pricing-from-stripe`, `seed-stripe-catalog`, the
+   latter with zero callers anywhere, not even the admin UI). All
+   deleted, along with the Admin.tsx "Pricing" tab. Blast-radius check
+   surfaced two dependents NOT in the original description: a dead FK
+   (`user_subscriptions.plan_id`, 100% NULL across all 44 live rows,
+   zero code references) and an inert function
+   (`allocate_monthly_credits()`, zero callers anywhere -- no cron, no
+   `.rpc()` call -- and zero rows ever produced in `credits_ledger`).
+   Both dropped in the same migration.
 
-## >>> STANDING BACKLOG -- orphaned `subscription_plans` admin cluster
-(discovered during the usePricingPlans.tsx follow-up diagnosis, July 18,
-2026; NOT touched this session, diagnose-only). A second, completely
-separate pricing table -- `subscription_plans` -- is real and live, used
-by `PricingPlansManager.tsx` (Admin Panel, "Pricing" tab,
-`Admin.tsx:531-533` -- **live and clickable today**), and its two
-supporting Edge Functions `sync-pricing-from-stripe` and
-`seed-stripe-catalog`. This cluster uses lookup keys
-`essentials_monthly/yearly`, `pro_*`, `premium_*` and a `credits_monthly`
-billing model that matches NO tier in the current SSOT
-(`free\|personal\|starter\|growth\|full\|enterprise`, pricingConfig.ts). A
-backup migration from October 2025 confirms this predates the current
-tier system. Zero references anywhere outside this three-file cluster --
-confirmed via full-repo grep. Real money flow (checkout, Stripe webhook)
-touches neither `subscription_plans` nor `pricing_plans` -- tier
-resolution is 100% `pricingConfig.ts` per Rule #17, so this cluster has
-zero bearing on billing correctness today.
+**Migration** (`supabase/migrations/20260718140000_pricing_ssot_consolidation.sql`,
+order: function -> FK -> column -> tables): drops
+`allocate_monthly_credits()`, the `user_subscriptions_plan_id_fkey`
+constraint, the `user_subscriptions.plan_id` column, `subscription_plans`,
+and `pricing_plans`. `pricing_plans` dropped rather than frozen (Rule #34
+precedent considered and rejected -- unlike `events`, it held no unique
+archival data, only 2 rows fully duplicated in `pricingConfig.ts`
+already). **NOT YET APPLIED** -- pending Lynn's localhost approval, then
+`npx supabase db push --linked` after one final live-state confirmation
+per the standing migration rule.
 
-**FOOTGUN WARNING: do not click "Sync from Stripe" in Admin -> Pricing.**
-It syncs `subscription_plans` using lookup keys that likely don't exist in
-the live Stripe catalog -- not the pricing actually shown to users
-(`pricing_plans`, read by `UpgradePromptModal.tsx`/`PricingSection.tsx`).
-Clicking it will not corrupt live pricing (real checkout bypasses both DB
-tables), but it will not do what the button implies either.
+**`credits_ledger` follow-up (updates the 2026-07-15 credits-system
+backlog entry below):** `allocate_monthly_credits()` is dropped by this
+migration, leaving `credits_ledger` both writer-less AND reader-less (it
+already had no application callers per the 2026-07-15 finding; now its
+one and only writer is gone too). `credits_ledger` itself is
+DELIBERATELY NOT TOUCHED this session -- Lynn's explicit instruction.
+Its full retirement (drop the table) is now a one-line migration for a
+future housekeeping session, no design work required.
 
-RECOMMENDED FIX (option a, not yet approved for implementation): delete
-`PricingPlansManager.tsx`, `sync-pricing-from-stripe`, `seed-stripe-catalog`,
-and the `subscription_plans` table itself, removing the "Pricing" tab from
-Admin.tsx in the same change. Option (b) -- repointing this admin UI at
-`pricing_plans` instead -- is a live alternative if Lynn wants a DB-driven
-pricing management path, but adds scope or the two tables remain in
-parallel unless #1 below is resolved.
+**Lynn's open manual task (not code, cannot be verified from this
+sandbox -- no Stripe API access):** spot-check dashboard.stripe.com/products
+for anything named "Essentials," "Pro," or "Premium" and archive if
+found. `subscription_plans`' live rows (free/personal) already carried
+the current, real, in-use Stripe IDs -- nothing to archive there. The
+risk is `seed-stripe-catalog`'s hardcoded catalog (Essentials/Pro/Premium
+at old prices) having been manually invoked at some point outside the
+app, which would have created real, now-orphaned Stripe Products/Prices
+that this session cannot detect or clean up.
 
-Lynn's explicit instruction: resolve this backlog item in the SAME future
-session as the pre-existing usePricingPlans.tsx second-source-of-truth
-item above -- both are pricing-SSOT consolidation and should not be split
-across sessions.
+CLAUDE.md: Rule #35 added (pricingConfig.ts is the sole pricing
+authority, including display -- no DB pricing tables). All 4 deleted
+files/functions added to the DO NOT RECREATE table.
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
@@ -260,15 +247,24 @@ forward from Gate 1 (neither gates Gate 2):
 
   LOW/architecture (not blocking, documented): purchase-lesson-pack and
   purchase-onboarding resolve Stripe prices from DB config tables instead
-  of the frontend SSOT (pricingConfig.ts); usePricingPlans.tsx reads
+  of the frontend SSOT (pricingConfig.ts); ~~usePricingPlans.tsx reads
   stripe_price_id_monthly/annual from the pricing_plans DB table as a
-  second source instead of pricingConfig.ts directly.
+  second source instead of pricingConfig.ts directly.~~ RESOLVED July 18,
+  2026 -- see the RESOLVED note at the top of this file (pricing SSOT
+  consolidation, commit 9912f4a). purchase-lesson-pack/purchase-onboarding
+  remain open, untouched by that session.
 
-  NEW LOW/architecture (logged 2026-07-15, not fixed): the credits
+  NEW LOW/architecture (logged 2026-07-15, not fixed): ~~the credits
   system (`allocate_monthly_credits` RPC + `credits_ledger` table) has no
   remaining application callers anywhere in the codebase -- candidate for
   full retirement (drop RPC + table via migration) in a dedicated future
-  session. Not urgent; EXECUTE is already locked to service_role/cron.
+  session. Not urgent; EXECUTE is already locked to service_role/cron.~~
+  UPDATED July 18, 2026: `allocate_monthly_credits()` is now DROPPED (same
+  pricing SSOT consolidation, commit 9912f4a) -- confirmed zero callers
+  and zero credits_ledger rows ever produced. `credits_ledger` itself
+  was deliberately left untouched; its retirement is now a one-line
+  migration (just the table drop, no design work) for a future
+  housekeeping session.
 
   STANDING BACKLOG (not a B5 blocker, no target session yet): item C from
   the June Supabase Security Advisor audit -- backfilling ~55 live
@@ -635,7 +631,143 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 18, 2026 SESSION (LATEST) -- no-explicit-any BATCH 3 SHIPPED (FINAL BATCH): ~56 one-to-two-error files fully typed, campaign complete, ci.yml lint job back to blocking
+## JULY 18, 2026 SESSION (LATEST) -- PRICING SSOT CONSOLIDATION: orphaned subscription_plans cluster deleted, usePricingPlans reads pricingConfig directly
+
+GOAL: resolve two logged backlog items together, per Lynn's explicit
+instruction from the prior diagnose-only follow-up session -- the
+orphaned `subscription_plans` admin cluster and `usePricingPlans.tsx`'s
+second-source-of-truth architecture. Goal state: `pricingConfig.ts` is
+the sole pricing authority for everything, display included; no DB
+pricing tables consumed by the frontend; no orphaned admin surfaces.
+
+### Phase 1 -- diagnose
+Re-verified the cluster's blast radius from scratch rather than trust
+the prior session's summary. Confirmed zero consumers of
+`subscription_plans`/`PricingPlansManager.tsx`/`sync-pricing-from-stripe`/
+`seed-stripe-catalog` beyond the cluster itself via: `Admin.tsx` tab
+wiring (only reachable as a sub-tab, no route), `routes.ts` (no
+reference), `package.json`/`deploy.ps1` (no reference), live `pg_cron`
+job list (2 unrelated jobs, neither touches either table/function), and
+a full-repo grep (`seed-stripe-catalog` has literally zero callers
+anywhere, not even the admin UI).
+
+**Two real findings NOT in the original cluster description, surfaced by
+querying FK/view/trigger/RPC dependents directly (the diagnosis
+explicitly asked for this rather than assuming "zero consumers"):**
+- `user_subscriptions.plan_id` has a live FK to `subscription_plans.id`.
+  Checked before assuming it was safe to ignore: nullable, and all 44
+  live `user_subscriptions` rows have `plan_id = NULL`. Zero application
+  code reads or writes it (only the generated `types.ts` mentions it).
+- `allocate_monthly_credits()` -- a `SECURITY DEFINER` function joining
+  `user_subscriptions.plan_id = subscription_plans.id` to allocate
+  credits. Zero callers anywhere (not cron, not `.rpc()` in code).
+  `credits_ledger` has zero rows with
+  `reference_type = 'monthly_allocation'` -- direct proof it has never
+  fired in production, consistent with `plan_id` always being NULL.
+
+Live-queried `subscription_plans`' actual row contents: only 2 rows
+(free/personal), carrying the SAME real Stripe product/price IDs as
+`pricing_plans` and `pricingConfig.ts`'s `STRIPE_INDIVIDUAL.personal` --
+not stale essentials/pro/premium data. The stale part is the CODE
+(`seed-stripe-catalog`'s hardcoded catalog, `sync-pricing-from-stripe`'s
+`CANONICAL_LOOKUP_KEYS`), which no longer matches the live table's
+lookup keys. No Stripe API access from this sandbox to confirm whether
+the old Essentials/Pro/Premium Stripe Products were ever actually
+created (only if `seed-stripe-catalog` was manually invoked outside the
+app at some point) -- flagged as Lynn's manual dashboard spot-check, not
+verifiable from code.
+
+`usePricingPlans.tsx` field-mapping: precisely checked which of the 12
+`PricingPlan` fields either consumer (`UpgradePromptModal.tsx`,
+`PricingSection.tsx`) actually reads (via targeted grep, not assumption)
+-- 5 of 12 (`id`, `sectionsIncluded`, `includesTeaser`,
+`includesModernParables`, `displayOrder`) were fetched but never
+rendered anywhere; safe to drop entirely. Of the 7 consumed fields, only
+`bestFor` (a marketing tagline) had no `pricingConfig.ts` equivalent --
+a genuine, narrow gap. Confirmed via grep that no edge function needs
+tagline text, so the addition is frontend-only, no `_shared/
+pricingConfig.ts` mirror update required (Rule #24). Also found
+`PricingPlanFromDB` (an interface in both `pricingConfig.ts` and its
+`_shared/` mirror, "matches Supabase pricing_plans table") has zero
+consumers in either file -- dead code from the same lineage, removed in
+the same pass.
+
+### Phase 2/3 -- proposed, approved with adjustments
+Lynn approved in full, including the `user_subscriptions.plan_id` column
+drop and DROP (not freeze) for both tables, with three adjustments: (1)
+do not touch `credits_ledger` itself, just update its existing backlog
+entry to reflect `allocate_monthly_credits()`'s retirement; (2) confirm
+the migration SQL against live state one final time immediately before
+`db push` (not yet done -- push is held); (3) the Stripe dashboard
+spot-check is Lynn's own manual task, logged not executed.
+
+Design pick for `usePricingPlans.tsx`: delete the hook entirely rather
+than keep it as an always-synchronous wrapper. Reasoning: once there's
+no DB round-trip, `isLoading`/`error` branches in both consumers can
+never fire -- keeping them would be permanently-dead code disguised as
+real gating logic. A new `PRICING_PLANS` constant in `pricingConfig.ts`
+(pre-composed from `PRICING_DISPLAY`/`TIER_LESSON_LIMITS`/
+`STRIPE_INDIVIDUAL`, not an independent source) replaces it; both
+consumers import it directly and their loading/error branches are
+deleted outright, not left as unreachable dead code.
+
+### Phase 4 -- implement (commit 9912f4a, NOT pushed)
+Deleted: `src/hooks/usePricingPlans.tsx`,
+`src/components/admin/PricingPlansManager.tsx`,
+`supabase/functions/sync-pricing-from-stripe/`,
+`supabase/functions/seed-stripe-catalog/`. Edited:
+`src/constants/pricingConfig.ts` (added `PRICING_PLANS`,
+`formatPlanPrice`, `getAnnualSavings`, removed dead
+`PricingPlanFromDB`), `supabase/functions/_shared/pricingConfig.ts`
+(removed the same dead interface only -- Rule #24, nothing else
+belonged there), `src/components/subscription/UpgradePromptModal.tsx`
+and `src/components/landing/PricingSection.tsx` (swapped imports,
+deleted the dead loading/error branches), `src/pages/Admin.tsx` (removed
+the "Pricing" tab trigger/content and the now-unused `DollarSign` icon
+import, confirmed unused elsewhere first).
+
+Migration written (`supabase/migrations/20260718140000_pricing_ssot_consolidation.sql`,
+order: function -> FK -> column -> tables, matching the approved
+sequence) but **NOT applied** -- `db push` is held pending Lynn's
+localhost approval and a final live-state SQL re-confirmation per the
+standing migration rule.
+
+`npm run build`: clean, 3966 modules (down 2, matching the 2 deleted
+frontend files -- confirms nothing else silently broke). `eslint`: 0
+errors, 51 pre-existing warnings (identical count to before this
+session -- confirms zero new lint issues). `tsc --noEmit`: zero errors
+in any touched file (spot-checked directly, not a full baseline diff
+this session since the change was type-additive, not `any`-removal).
+ASCII guard: clean on the staged diff.
+
+CLAUDE.md: Rule #35 added (pricingConfig.ts sole pricing authority
+including display -- no DB pricing tables). 4 files/functions added to
+the DO NOT RECREATE table.
+
+**HOLD BEFORE DEPLOY, per Lynn's exact sequence: code changes -> build
+-> Lynn's localhost check -> THEN migration + function deletion +
+deploy.ps1 together, on her go.** Nothing pushed to `origin/main`, the
+migration not applied, `sync-pricing-from-stripe`/`seed-stripe-catalog`
+not deleted from the live project. Localhost verification list delivered
+in-conversation.
+
+### PRICING SSOT CONSOLIDATION -- CODE COMPLETE, PENDING DEPLOY. Carry-forward:
+1. `credits_ledger` retirement (now writer-less and reader-less) -- a
+   one-line migration for a future housekeeping session, not urgent.
+2. Lynn's manual Stripe dashboard spot-check for orphaned
+   Essentials/Pro/Premium Products -- open, not code-verifiable.
+3. `purchase-lesson-pack`/`purchase-onboarding` resolving Stripe prices
+   from DB config tables instead of `pricingConfig.ts` -- unaffected by
+   this session, remains open (see the LOW/architecture note above).
+4. Once Lynn approves on localhost: run the migration (`db push
+   --linked`, after a final live-state re-check), delete both edge
+   functions from the live project (`npx supabase functions delete
+   sync-pricing-from-stripe --project-ref hphebzdftpjbiudpfcrs` and same
+   for `seed-stripe-catalog` -- verified correct CLI syntax, does NOT
+   remove the function locally, only the deployed copy), then push and
+   run `deploy.ps1`.
+
+## JULY 18, 2026 SESSION -- no-explicit-any BATCH 3 SHIPPED (FINAL BATCH): ~56 one-to-two-error files fully typed, campaign complete, ci.yml lint job back to blocking
 
 GOAL: close out the no-explicit-any campaign (Rule #28) with BATCH 3, the
 final batch -- the ~56 files carrying 1-2 errors each that Batches 1-2
