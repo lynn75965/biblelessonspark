@@ -1,5 +1,5 @@
 # BibleLessonSpark -- Claude Code Instructions
-# Last updated: July 15, 2026
+# Last updated: July 18, 2026
 # READ THIS ENTIRE FILE BEFORE TOUCHING ANY CODE
 
 ## AUTO-READ ON SESSION START
@@ -134,6 +134,8 @@ Changes to a domain require updating only ONE file.
 | src/components/workspace/WorkspaceSettingsPanel.tsx | Dead code -- never imported or rendered; targeted nonexistent table (deleted March 20, 2026) |
 | src/components/dashboard/BookletPrintModal.tsx      | Print feature removed; confirmed absent April 13, 2026         |
 | src/utils/useSpeechInput.ts                         | Voice navigation removed from feature set (deleted April 13, 2026) |
+| src/hooks/useAnalytics.tsx                          | Sole writer to the (now-frozen) events table; RLS silently blocked every non-admin insert -- retired, see Rule #34 (deleted July 18, 2026) |
+| src/components/security/SecurityMonitor.tsx         | Dead code -- never imported; read from the same frozen events table (deleted July 18, 2026) |
 
 ### Before touching any SSOT file:
 Audit ALL consumers of that file. Every import must be verified.
@@ -578,6 +580,49 @@ dismissed) must follow this same pattern -- a DB-backed flag read
 through a dedicated RPC or query, never a localStorage key -- since
 localStorage cannot survive a cache clear, a different browser, or a
 different device, and silently reintroduces exactly this bug class.
+
+### Rule #34: public.events is FROZEN (archival, read-only) -- do not add new writers without a dedicated session
+Added July 18, 2026 (B7 adjacent finding #1, closed via retire/freeze,
+commit f08899a). `public.events` (Pattern A -- a generic client-insert
+analytics table, distinct from B7's `conversion_events` Pattern B
+service-role/RPC table and B8's `capacity_events`) had its RLS INSERT
+policy missing for `authenticated` since introduction. Every real
+teacher's `trackEvent()` call from `src/hooks/useAnalytics.tsx` failed
+silently; all 12,456 rows found live belonged to Lynn's own admin
+account. Diagnosis also found `public.log_security_event()` (a
+SECURITY DEFINER function that would have bypassed RLS) had zero live
+callers anywhere in current code -- fully orphaned since the pre-March
+migration reconciliation.
+
+Decision: RETIRE (FREEZE), not repair, not drop. `useAnalytics.tsx` and
+the never-imported `SecurityMonitor.tsx` were deleted (see the Deleted
+Files table above); `log_security_event()` was dropped
+(`supabase/migrations/20260718130000_freeze_events_drop_log_security_event.sql`);
+`authenticated`'s write grants (INSERT/UPDATE/DELETE/TRUNCATE/
+REFERENCES/TRIGGER) on `public.events` were revoked, leaving SELECT
+only. RLS policies (`admin_full_access`, `users_select_own`) and
+`service_role`/`postgres` grants are untouched -- `admin_full_access`
+remains the sole write path. The 12,456 existing rows were left in
+place as archival data, not dropped.
+
+`src/components/admin/AdminSecurityPanel.tsx` (the one live reader,
+rendered at `/admin` -> Security tab) was deliberately left completely
+untouched -- it still reads `events` via its existing SELECT grant and
+renders its honest empty state, since none of its expected
+`security_role_changed`/`security_login_failed`/`security_access_denied`
+event types have ever had a writer (repair would not have fixed that
+category either -- `log_security_event` had no callers regardless of
+RLS).
+
+DO NOT re-grant write privileges to `authenticated` on this table, and
+do NOT recreate `useAnalytics.tsx`, `SecurityMonitor.tsx`, or
+`log_security_event()` as a quick fix for "the Security tab is empty."
+A real fix requires a dedicated session to design actual writers for
+the `security_*` category (still listed as STILL OPEN, no target
+session, alongside Configuration's AI-service-status/rate-limit gauges
+-- see PROJECT_MASTER.md). Lifting the freeze (a new scoped INSERT
+policy + a real writer) is that session's job, not a one-line grant
+restore.
 
 ---
 

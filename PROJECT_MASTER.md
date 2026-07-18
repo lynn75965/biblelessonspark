@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: Feedback popup trigger fixed -- server-authoritative first-lesson gate with permanent suppression, replacing the localStorage modulo-5 counter; commit 080fa35. Prior session: Guardrail Violation Review system COMPLETE -- lesson/user context, term legend, presets, working highlight, AL02 tuning, per-user suppression, Reviewed Archive -- all verified live via Netlify build + smoke test)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: events analytics write path retired -- table frozen, orphaned log_security_event() dropped, dead useAnalytics hook removed; commit f08899a, closes B7 adjacent finding #1. Prior session same day: Feedback popup trigger fixed -- server-authoritative first-lesson gate with permanent suppression, commit 080fa35)
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
@@ -81,9 +81,10 @@ B8 capacity recheck, B7 conversion infra, and B6 theology golden suite
 are all COMPLETE (see their own session logs below for full accounts).
 
 **Gate 2 has zero remaining items.** B6's own standing findings (below
-and in theology-golden-suite/README.md) and B7's adjacent finding #1
-(events table RLS, below) are follow-up candidates, not blockers --
-Gate 2 itself does not depend on any of them.
+and in theology-golden-suite/README.md) are follow-up candidates, not
+blockers -- Gate 2 itself does not depend on them. B7's adjacent finding
+#1 (events table RLS) is now CLOSED (2026-07-18, retire/freeze -- see
+below).
 
 Gate 1 (B1-B5) was fully shipped July 15, 2026 -- see that session's own
 entry below for the full account. Two non-blocking backlog items carry
@@ -208,21 +209,15 @@ forward from Gate 1 (neither gates Gate 2):
   rate-limit gauges on Configuration, and security events feed expansion
   + theology violations on Security.
 
-  NEW STANDING BACKLOG (logged 2026-07-16, B7 adjacent finding #1 -- not
-  fixed, needs its own dedicated session): the generic `events` table's
-  RLS has no INSERT policy for authenticated users -- only `admin_full_access`
-  (ALL, admin role) and `users_select_own` (SELECT only). Every call to
-  `src/hooks/useAnalytics.tsx`'s `trackEvent()` from a real user's session
-  fails the RLS check silently (caught by a try/catch that only does
-  `console.error`). Confirmed live: all 12,456 existing rows in `events`
-  belong to a single user_id -- Lynn's own admin account. This table has
-  never recorded a real teacher's activity since it was introduced; it has
-  only ever logged Lynn's own testing sessions. Needs a dedicated session
-  to decide repair (add a `user_id = auth.uid()` INSERT policy) vs.
-  retirement (this table has no current product consumer besides the
-  broken hook itself). Discovered during B7 Phase 1 diagnosis; B7 itself
-  uses a separate, working table (`conversion_events`, Pattern B --
-  service-role/RPC writes only) and does not touch or depend on `events`.
+  B7 adjacent finding #1 (events table RLS) -- CLOSED 2026-07-18 via
+  RETIRE (FREEZE). See the July 18 session log below ("events analytics
+  write path retired") for the full account. `src/hooks/useAnalytics.tsx`
+  and the dead `src/components/security/SecurityMonitor.tsx` were deleted,
+  the orphaned `log_security_event()` function was dropped, and
+  `authenticated`'s write grants on `public.events` were revoked (SELECT
+  only remains). `AdminSecurityPanel` (the one live reader) was left
+  untouched and still renders its empty state honestly pending a future
+  dedicated security-events-feed rebuild.
 
   NEW STANDING BACKLOG (logged 2026-07-16, B8 session -- deferred, not
   fixed): Signup CAPTCHA (Turnstile) -- deferred from B8. Verified via
@@ -552,7 +547,96 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 18, 2026 SESSION (LATEST) -- Feedback popup trigger fixed: server-authoritative first-lesson gate with permanent suppression
+## JULY 18, 2026 SESSION (LATEST) -- events analytics write path retired: table frozen, orphaned function dropped, dead hook removed
+
+GOAL: close out B7 adjacent finding #1 (logged 2026-07-16) -- the generic
+`events` table's RLS has no INSERT policy for authenticated users, so
+every `src/hooks/useAnalytics.tsx` `trackEvent()` call from a real
+teacher's session failed silently (caught by a try/catch that only did
+`console.error`). Confirmed live: all 12,456 existing rows belonged to a
+single user_id -- Lynn's own admin account. Decision needed: repair (add
+the missing INSERT policy) vs. retire (the table has no real product
+consumer besides the broken hook).
+
+### Phase 1 -- diagnose (read-only)
+Mapped the full ecosystem with file:line citations:
+- **Writers**: `useAnalytics.tsx:21` was the only client writer, but only
+  3 of its 7 possible event types are ever actually invoked in
+  production (`page_view`, `feature_used`, `lesson_viewed`), and only
+  from one mount point (`Dashboard.tsx`) -- `trackLessonCreated`,
+  `trackLessonEnhanced`, `trackSessionStart`, `trackSessionEnd` had zero
+  call sites anywhere in `src/`. A second writer,
+  `public.log_security_event()` (SECURITY DEFINER, migration
+  20260531120000), would have bypassed RLS entirely -- but a repo-wide
+  grep found zero live callers; every `PERFORM public.log_security_event`
+  call site existed only in `supabase/migrations_backup_20251026_171206/
+  *.bak`, superseded when migration history was reconciled March 20,
+  2026. Fully orphaned.
+- **Readers**: exactly one live reader, `AdminSecurityPanel.tsx`
+  (rendered at `/admin` -> Security tab), which expects 11 event strings
+  across its security/lessons/feedback categories -- of which only the 3
+  above were ever written, and only from Lynn's own session. The other
+  candidate reader, `SecurityMonitor.tsx`, was never imported anywhere --
+  dead code.
+- Also surfaced (not fixed, out of scope): `useAnalytics.tsx` piggybacked
+  every `trackEvent()` call on `logAuditEvent()`
+  (`src/lib/auditLogger.ts`), which turned out to write only to
+  `localStorage`, never to any backend -- a second, independent inert
+  code path riding the same hook. `auditLogger.ts` itself was NOT touched
+  this session: `logAuthEvent`/`logSecurityEvent` (same file) have live
+  callers in `useAuth.tsx` (5 sites) and `useSecurityMonitor.tsx` (2
+  sites), unrelated to `events` table scope.
+
+### Phase 2/3 -- evidence + both options proposed
+Repair would only ever populate 3 of 11 categories `AdminSecurityPanel`
+expects (the `security_*` category has no writer regardless of RLS,
+since `log_security_event` has zero callers) -- narrow value for a
+migration. Retire removes dead code, the inert audit-log side effect,
+the orphaned function, and the silent per-page-view console-error noise
+hitting every real teacher today. Lynn chose **RETIRE (FREEZE)**: keep
+the table (don't drop the 12,456 rows), freeze it to archival/read-only,
+leave `AdminSecurityPanel` completely untouched so it keeps rendering an
+honest empty state pending a future dedicated security-events-feed
+session.
+
+### Phase 4 -- implement
+- Deleted `src/hooks/useAnalytics.tsx` and `src/components/security/
+  SecurityMonitor.tsx` (zero importers reconfirmed immediately before
+  deletion).
+- `src/pages/Dashboard.tsx` (EDITED) -- removed the `useAnalytics` import
+  (was line 31), the hook destructure (line 68), and its 3 call sites
+  (lines 185, 190, 262).
+- `supabase/migrations/20260718130000_freeze_events_drop_log_security_event.sql`
+  (NEW) -- `DROP FUNCTION public.log_security_event(text, uuid, jsonb)`;
+  `REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON
+  public.events FROM authenticated` (SELECT retained). RLS policies
+  (`admin_full_access`, `users_select_own`) and `service_role`/`postgres`
+  grants untouched -- `admin_full_access` remains the sole write path.
+  Applied via `npx supabase db push --linked`.
+- Verified post-state directly against the live DB via `npx supabase db
+  query --linked`: `authenticated` grants reduced to `SELECT` only;
+  `log_security_event` function count = 0.
+
+`npm run build`: clean, 3968 modules transformed. ASCII guard: all four
+changed files clean. Lynn verified on localhost before deploy.
+
+### Deploy
+`.\deploy.ps1 "REFACTOR: Retire events analytics write path -- freeze
+table, drop orphaned function, remove dead hook"` -- ASCII guard passed,
+committed, pushed to main. Commit `f08899a`.
+
+### events retirement -- COMPLETE
+No code-level carry-forward. `public.events` retains its 12,456 rows
+(100% Lynn's own admin account) as frozen archival data; nothing reads
+or writes it except `AdminSecurityPanel`'s existing SELECT.
+`conversion_events`, `capacity_events`, `securityConfig.ts`, and
+`AdminSecurityPanel.tsx` itself were untouched, as scoped. A future
+dedicated session (still no target date -- same backlog item as
+Configuration's AI-service-status/rate-limit gauges) would need to
+build real writers before the Security tab's `security_*` category ever
+shows real data.
+
+## JULY 18, 2026 SESSION (EARLIER) -- Feedback popup trigger fixed: server-authoritative first-lesson gate with permanent suppression
 
 GOAL: users were seeing the feedback popup 5+ times, including after
 completing feedback -- violating both stated business rules (show only
