@@ -28,7 +28,6 @@ import { useToast } from "@/hooks/use-toast";
 import { BetaFeedbackModal } from "@/components/BetaFeedbackModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useLessons } from "@/hooks/useLessons";
-import { useAnalytics } from "@/hooks/useAnalytics";
 import { supabase } from "@/integrations/supabase/client";
 import { FEEDBACK_TRIGGER } from '@/constants/feedbackConfig';
 import { useTeachingTeam } from "@/hooks/useTeachingTeam";
@@ -65,7 +64,6 @@ export default function Dashboard() {
   const { user } = useAuth();
   const { settings } = useSystemSettings();
   const { lessons, loading: lessonsLoading } = useLessons();
-  const { trackFeatureUsed, trackLessonViewed } = useAnalytics();
   const { focusData, hasActiveFocus, focusStatus } = useOrgSharedFocus();
   const { hasTeam, pendingInvitation, acceptInvitation, declineInvitation } = useTeachingTeam();
   // Org members draw lessons from their organization's pool (the generate-lesson
@@ -182,12 +180,10 @@ export default function Dashboard() {
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User';
 
   const handleCreateLesson = () => {
-    trackFeatureUsed('create_lesson_clicked');
     setActiveTab("enhance");
   };
 
   const handleViewLesson = async (lesson: any) => {
-    trackLessonViewed(lesson.id);
     setActiveTab("enhance");
 
     // Shepherd (org pool / shared) lessons arrive from get_org_pool_lessons WITH
@@ -259,7 +255,6 @@ export default function Dashboard() {
   };
 
   const handleFeedback = () => {
-    trackFeatureUsed('feedback_button_clicked');
     setShowBetaFeedbackModal(true);
   };
 
