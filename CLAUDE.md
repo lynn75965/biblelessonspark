@@ -652,6 +652,56 @@ Any future pricing display need (a new tier, a new plan comparison
 surface) adds to `PRICING_PLANS`/`PRICING_DISPLAY` in `pricingConfig.ts`
 directly -- never a new DB table, never a new hook that queries one.
 
+### Rule #36: New tables get NO anon/authenticated grant by default -- grant explicitly, per verified need
+Added July 18, 2026 (grant hardening sweep,
+`supabase/migrations/20260718150000_grant_hardening_sweep.sql`).
+Extends Section F (Rule #25's sibling migration, 20260605100000, 23
+tables) to the entire public schema (64 tables/views) plus
+`ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public` for both
+TABLES and SEQUENCES. Supabase's own default previously auto-granted
+the full privilege suite (INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/
+TRIGGER/SELECT) to anon AND authenticated on every new table -- RLS was
+the only real boundary. A new table created via a migration (the only
+correct table-creation path, per Rule #20) now gets ZERO anon/
+authenticated grant automatically. Every new table needs an EXPLICIT
+`GRANT <verbs> ON public.<table> TO authenticated` (and `anon` only if
+genuinely pre-auth-reachable, which is rare -- confirm via an actual
+code path, not an RLS policy's `{public}` role alone) in its own
+migration, matching what the application code actually does -- never
+`GRANT ALL`, never TRUNCATE/REFERENCES/TRIGGER (zero legitimate use
+found anywhere in the audit).
+
+This sweep independently confirmed Rule #32's exact failure mode live in
+production: `toolbelt_usage` had ZERO grant for either role despite
+`ToolbeltUsageReport.tsx` doing a live authenticated SELECT against it
+-- a real, pre-existing "permission denied" bug, now fixed as part of
+this migration. Before shipping ANY new authenticated-write or
+authenticated-read path against an existing OR new table, verify the
+matching GRANT exists (`information_schema.role_table_grants`, or
+`role_column_grants` if column-limited -- `role_table_grants` silently
+hides column-limited grants entirely, a real methodology trap
+discovered mid-sweep) -- a correct-looking RLS policy is not sufficient
+on its own, per Rule #32.
+
+Rollback script preserved at
+`scripts/rollback_20260718150000_grant_hardening_sweep.sql`
+(deliberately kept OUTSIDE `supabase/migrations/` so `db push` never
+applies it) -- restores the exact pre-migration grant state per table if
+this sweep ever needs reverting.
+
+`guardrail_violations`/`guardrail_suppressions` already carry precise,
+column-limited grants from the July 17 review-system work and were
+deliberately left untouched by this sweep (verified via
+`role_column_grants`, not the naive table-level query).
+
+STILL OPEN (deliberately out of this session's scope): a matching
+`ALTER DEFAULT PRIVILEGES ... ON FUNCTIONS` gap -- new SECURITY DEFINER
+functions created by `postgres` still auto-grant EXECUTE to anon/
+authenticated by default (verified via `pg_default_acl`, unchanged by
+this migration). A future session should evaluate revoking that default
+without breaking the established per-function `GRANT EXECUTE TO
+authenticated` pattern already used for every RPC in this codebase.
+
 ---
 
 ## DEBUGGING PROTOCOL

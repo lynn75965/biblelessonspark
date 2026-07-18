@@ -1,4 +1,108 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: GRANT HARDENING SWEEP APPLIED LIVE, migration 20260718150000 -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl (future tables no longer auto-grant to anon/authenticated). Migration applied live; code (migration + rollback script + docs) committed locally, NOT pushed -- holding for Lynn's non-admin regression test on localhost against the live DB (no separate DB to test against this time). See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+
+## >>> GRANT HARDENING SWEEP -- APPLIED LIVE, holding for Lynn's regression test
+July 18, 2026. Closes the longest-standing deferred security item: anon/
+authenticated held the Supabase-default grant suite
+(INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER/SELECT) on most
+public-schema tables, RLS the sole real boundary. Extends Section F
+(20260605100000, 23 tables) to the entire schema (64 tables/views).
+
+**Methodology**: full grant inventory (`information_schema.role_table_
+grants` -- discovered mid-session it silently hides column-limited
+grants, corrected via `role_column_grants`), full RLS policy inventory,
+a complete `.from()` sweep across `src/` (including 4 dynamic table
+references: `BLOG_CONFIG.table`, `LESSONS_TABLE`, `viewName`, and
+PublishingHub's `table` var -- all resolved), an edge-function client-type
+sweep (only 2 of 63 non-service-role functions touch a table:
+`notifications-list`/`notifications-mark-read`, running as the caller's
+JWT), and a verified (not assumed) check of `pg_default_acl` before
+proposing `ALTER DEFAULT PRIVILEGES`.
+
+**Self-caught error, per Lynn's explicit verification requirement**:
+before applying, a programmatic diff of the migration against the
+approved matrix came back empty -- but a systematic recount against the
+live 64-object inventory found the *approved matrix itself* was missing
+5 tables: `toolbelt_usage` (**zero grants at all**, yet
+`ToolbeltUsageReport.tsx:41` does a live authenticated SELECT -- a
+genuine pre-existing production bug, likely broken since before this
+session, now fixed), `blog_posts` and `email_sequence_templates` (simply
+omitted / conflated with the similarly-named `toolbelt_email_templates`
+during compilation), and `capacity_events`/`conversion_events`
+(cosmetic -- already correct, just missing from the Category-1 list).
+Corrected all 5, re-ran the diff (empty), then applied.
+
+**Post-migration verification**: re-ran the full grant matrix,
+diffed against the corrected approved matrix -- **empty**, all 64 objects
+exact match, including `guardrail_violations`/`guardrail_suppressions`
+verified via `role_column_grants` (confirmed untouched, already correct
+from the July 17 review-system work). `TRUNCATE`/`REFERENCES`/`TRIGGER`
+confirmed zero occurrences anywhere post-migration. `ALTER DEFAULT
+PRIVILEGES` confirmed working via `pg_default_acl` (future tables/
+sequences created by the `postgres` role -- this project's actual
+table-creation path per Rule #20 -- no longer auto-grant to anon/
+authenticated). The `supabase_admin`-role default ACL is a separate,
+untouched entry -- documented gap, not this project's real creation
+path, not claimed as covered.
+
+**New finding, deliberately out of scope, logged as backlog**: the same
+`pg_default_acl` check revealed new *functions* created by `postgres`
+still auto-grant EXECUTE to anon/authenticated (`defaclobjtype='f'`,
+unchanged by this migration). This session's scope was tables/sequences
+only (matching the CC prompt's explicit framing) -- a future session
+should evaluate `ALTER DEFAULT PRIVILEGES ... REVOKE ALL ON FUNCTIONS`
+and confirm it doesn't break the established per-function `GRANT EXECUTE
+TO authenticated` pattern already used for every SECURITY DEFINER RPC.
+
+**Sibling-gap flag disposition** (from the CC prompt's context): checked
+`app_settings`, `org_tier_config`, `guardrail_violation_summary` --
+still correctly SELECT-only from Section F, no admin-write feature has
+appeared against any of them since. No action needed, confirmed current.
+
+Migration: `supabase/migrations/20260718150000_grant_hardening_sweep.sql`.
+Rollback: `scripts/rollback_20260718150000_grant_hardening_sweep.sql`
+(deliberately outside `supabase/migrations/` so `db push` never applies
+it -- restores exact pre-migration state per table, including
+`toolbelt_usage` reverting to its broken zero-grant state, which is
+correct -- rollback undoes this session's changes, it doesn't preserve
+the bug fix separately).
+
+**Migration already applied to the live DB** (no separate local DB to
+test against -- Lynn's regression checklist runs against
+production-with-new-grants through localhost). Code committed locally
+(migration + rollback + docs), **NOT pushed** -- the push is only to get
+the migration file into git history since nothing frontend-side changed;
+no Netlify deploy is required. Holding for Lynn's non-admin regression
+test before push.
+
+Carry-forward:
+1. Function-level default-privilege gap (EXECUTE auto-granted to anon/
+   authenticated on new functions) -- new backlog item, separate future
+   session.
+2. `outputs`/`refinements`/`organization_focus` legacy-table scaffolding
+   -- see the STANDING BACKLOG note directly below (unaffected by this
+   entry, already logged).
+
+## >>> STANDING BACKLOG -- legacy table scaffolding: outputs, refinements, organization_focus
+Discovered during the grant hardening sweep diagnosis (July 18, 2026,
+Category 3a finding, not touched -- grants-only scope). Three tables
+carry complete, well-formed user-owned-row RLS policy sets
+(admin_full_access ALL + individual users_select/insert/update/delete_own
+policies, matching `lessons`' exact shape for `outputs`/`refinements`,
+and `org_shared_focus`'s shape for `organization_focus`) but have ZERO
+live callers anywhere in `src/` or `supabase/functions/` -- confirmed via
+full-repo grep, not just a spot check. Read as: legacy tables, likely
+superseded by `lessons` (which has the identical RLS shape and IS
+actively used) and `org_shared_focus` (ditto for `organization_focus`,
+which even shares most of its column shape).
+
+This session's grants sweep revokes all anon/authenticated table
+privileges on these 3 (matching their zero live usage -- least privilege,
+zero behavior change since nothing reads/writes them today). Full
+table deletion is a separate finding, out of scope for a grants-only
+migration -- candidate for a future dedicated cleanup session (confirm
+truly dead via git history / original feature intent, then drop via
+migration, matching the `pricing_plans`/`subscription_plans` precedent
+from the July 18 pricing SSOT consolidation session above).
 
 ## >>> RESOLVED -- pricing SSOT consolidation (both backlog items closed) <<<
 Two logged backlog items closed in one session, per Lynn's explicit
