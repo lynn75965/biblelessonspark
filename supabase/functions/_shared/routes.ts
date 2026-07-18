@@ -64,6 +64,7 @@ export const ROUTES = {
   LESSON_SHAPES_GUIDE: '/lesson-shapes',
   CURRICULUM_EVALUATION: '/curriculum-evaluation',
   // Legal routes
+  LEGAL: '/legal',
   PRIVACY: '/legal/privacy',
   TERMS: '/legal/terms',
   COOKIE: '/legal/cookie',

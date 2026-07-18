@@ -37,23 +37,38 @@ import { ActiveFocusBanner, type FocusApplicationData } from "@/components/org/A
 import { useHelpVideo } from "@/hooks/useHelpVideo";
 import { VideoModal } from "@/components/help/VideoModal";
 import { shouldShowHelpBanner, shouldShowFloatingButton } from "@/constants/helpVideos";
+import { UserProfile, ViewingLesson } from "@/constants/contracts";
 
 // Public Beta Prompt Banner added (January 1, 2026)
+
+/** Sidebar/series-library navigation state passed via react-router's
+ *  location.state. Added 2026-07-18 (no-explicit-any batch 1). */
+interface DashboardLocationState {
+  tab?: string;
+  viewLessonId?: string;
+  origin?: string;
+  originSeriesId?: string;
+}
+
+type DashboardUserProfile = Pick<
+  UserProfile,
+  'preferred_age_group' | 'organization_role' | 'organization_id' | 'theology_profile_id'
+>;
 
 export default function Dashboard() {
   // STATE DECLARATIONS
   const location = useLocation();
-  const initialTab = (location.state as any)?.tab || DASHBOARD_TAB_VALUES.BUILD;
+  const initialTab = (location.state as DashboardLocationState | null)?.tab || DASHBOARD_TAB_VALUES.BUILD;
   const [showBetaFeedbackModal, setShowBetaFeedbackModal] = useState(false);
   const feedbackSubmittedRef = useRef(false);
   const [lastGeneratedLessonId, setLastGeneratedLessonId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(initialTab);
-  const [selectedLesson, setSelectedLesson] = useState<any>(null);
+  const [selectedLesson, setSelectedLesson] = useState<ViewingLesson | null>(null);
   const [buildLessonKey, setBuildLessonKey] = useState(0);
   const [viewOrigin, setViewOrigin] = useState<string | null>(null);
   const [originSeriesId, setOriginSeriesId] = useState<string | null>(null);
   const [pendingViewLessonId, setPendingViewLessonId] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<DashboardUserProfile | null>(null);
   const [focusDataToApply, setFocusDataToApply] = useState<FocusApplicationData | null>(null);
   const [bannerDismissed, setBannerDismissed] = useState(false);
 
@@ -98,11 +113,11 @@ export default function Dashboard() {
 
   // Respond to sidebar tab navigation and Series Library lesson view via location.state
   useEffect(() => {
-    const state = location.state as any;
+    const state = location.state as DashboardLocationState | null;
     if (!state) return;
 
     const validTabs = Object.values(DASHBOARD_TAB_VALUES);
-    if (state.tab && validTabs.includes(state.tab as any)) {
+    if (state.tab && (validTabs as readonly string[]).includes(state.tab)) {
       setActiveTab(state.tab);
       // Sidebar tab nav (no viewLessonId): clear any viewing-lesson state so
       // the tab opens fresh. Matches handleTabChange's clearViewingOnClick.
@@ -127,7 +142,7 @@ export default function Dashboard() {
   // Resolve pending lesson view once lessons are loaded
   useEffect(() => {
     if (!pendingViewLessonId || lessons.length === 0) return;
-    const lessonToView = lessons.find((l: any) => l.id === pendingViewLessonId);
+    const lessonToView = lessons.find((l) => l.id === pendingViewLessonId);
     if (lessonToView) {
       setSelectedLesson(lessonToView);
       setActiveTab("enhance");
@@ -141,12 +156,12 @@ export default function Dashboard() {
     const viewLessonId = searchParams.get(DASHBOARD_QUERY_PARAMS.VIEW_LESSON);
 
     const validTabs = Object.values(DASHBOARD_TAB_VALUES);
-    if (tabParam && validTabs.includes(tabParam as any)) {
+    if (tabParam && (validTabs as readonly string[]).includes(tabParam)) {
       setActiveTab(tabParam);
     }
 
     if (viewLessonId && lessons.length > 0) {
-      const lessonToView = lessons.find((l: any) => l.id === viewLessonId);
+      const lessonToView = lessons.find((l) => l.id === viewLessonId);
       if (lessonToView) {
         setSelectedLesson(lessonToView);
         setActiveTab("enhance");
@@ -183,7 +198,7 @@ export default function Dashboard() {
     setActiveTab("enhance");
   };
 
-  const handleViewLesson = async (lesson: any) => {
+  const handleViewLesson = async (lesson: ViewingLesson) => {
     setActiveTab("enhance");
 
     // Shepherd (org pool / shared) lessons arrive from get_org_pool_lessons WITH
@@ -459,7 +474,7 @@ export default function Dashboard() {
                 setOriginSeriesId(null);
               }}
               onLessonContentUpdated={(lessonId, updates) => {
-                setSelectedLesson((prev: any) =>
+                setSelectedLesson((prev) =>
                   prev && prev.id === lessonId ? { ...prev, ...updates } : prev
                 );
               }}

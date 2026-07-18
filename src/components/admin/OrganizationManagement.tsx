@@ -229,7 +229,7 @@ export function OrganizationManagement() {
 
       // Build CSV
       const headers = ["Name", "Email", "Role", "Subscription Tier", "Joined Date"];
-      const rows = profiles.map((p: any) => [
+      const rows = profiles.map((p: Omit<ExportUserProfile, 'organization_id'>) => [
         escapeCSV(p.full_name),
         escapeCSV(p.email),
         escapeCSV(p.organization_role || "Member"),
@@ -514,7 +514,7 @@ export function OrganizationManagement() {
 
   // Phase N5: Hierarchy helpers
   const getChildCount = (orgId: string) => {
-    return organizations.filter((o) => (o as any).parent_org_id === orgId).length;
+    return organizations.filter((o) => o.parent_org_id === orgId).length;
   };
 
   const toggleParentExpanded = (orgId: string) => {
@@ -532,11 +532,11 @@ export function OrganizationManagement() {
   // Build tree-ordered list for display:
   // Top-level orgs first, then their children indented beneath them
   const buildTreeOrder = (orgs: Organization[]): Organization[] => {
-    const topLevel = orgs.filter((o) => !(o as any).parent_org_id);
+    const topLevel = orgs.filter((o) => !o.parent_org_id);
     const childMap = new Map<string, Organization[]>();
     
     orgs.forEach((o) => {
-      const parentId = (o as any).parent_org_id;
+      const parentId = o.parent_org_id;
       if (parentId) {
         const siblings = childMap.get(parentId) || [];
         siblings.push(o);
@@ -578,24 +578,24 @@ export function OrganizationManagement() {
       filtered = filtered.filter((o) =>
         o.name.toLowerCase().includes(q) ||
         (o.denomination || '').toLowerCase().includes(q) ||
-        ((o as any).org_type || '').toLowerCase().includes(q)
+        (o.org_type || '').toLowerCase().includes(q)
       );
     }
 
     // Hierarchy filter
     if (hierarchyFilter === 'top-level') {
-      filtered = filtered.filter((o) => !(o as any).parent_org_id);
+      filtered = filtered.filter((o) => !o.parent_org_id);
     } else if (hierarchyFilter === 'children') {
-      filtered = filtered.filter((o) => !!(o as any).parent_org_id);
+      filtered = filtered.filter((o) => !!o.parent_org_id);
     }
 
     return buildTreeOrder(filtered);
   })();
 
   // Stats computed from all orgs (unfiltered)
-  const topLevelCount = organizations.filter((o) => !(o as any).parent_org_id && o.status === ORG_STATUS.APPROVED).length;
-  const childOrgCount = organizations.filter((o) => !!(o as any).parent_org_id && o.status === ORG_STATUS.APPROVED).length;
-  const maxDepthUsed = Math.max(...organizations.map((o) => (o as any).org_level || 1), 0);
+  const topLevelCount = organizations.filter((o) => !o.parent_org_id && o.status === ORG_STATUS.APPROVED).length;
+  const childOrgCount = organizations.filter((o) => !!o.parent_org_id && o.status === ORG_STATUS.APPROVED).length;
+  const maxDepthUsed = Math.max(...organizations.map((o) => o.org_level || 1), 0);
 
   return (
     <div className="space-y-6">
@@ -838,8 +838,8 @@ export function OrganizationManagement() {
               </TableHeader>
               <TableBody>
                 {filteredOrganizations.map((org) => {
-                  const orgLevel = (org as any).org_level || 1;
-                  const parentId = (org as any).parent_org_id;
+                  const orgLevel = org.org_level || 1;
+                  const parentId = org.parent_org_id;
                   const childCount = getChildCount(org.id);
                   const isExpanded = expandedParents.has(org.id);
                   // Indent based on level (level 1 = 0px, level 2 = 20px, etc.)
@@ -872,9 +872,9 @@ export function OrganizationManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {(org as any).parent_org_id ? (
+                      {org.parent_org_id ? (
                         <Badge variant="outline" className="text-xs">
-                          {getParentOrgName((org as any).parent_org_id)}
+                          {getParentOrgName(org.parent_org_id)}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">Top-level</span>
@@ -1098,7 +1098,7 @@ export function OrganizationManagement() {
           }}
           parentOrgId={createChildParentOrg.id}
           parentOrgName={createChildParentOrg.name}
-          parentOrgLevel={(createChildParentOrg as any).org_level || 1}
+          parentOrgLevel={createChildParentOrg.org_level || 1}
           onCreated={fetchOrganizations}
         />
       )}

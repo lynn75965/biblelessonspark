@@ -45,6 +45,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import QRCode from 'qrcode';
 import { exportToEpub } from "@/utils/export/exportToEpub";
 import type { EpubChapter } from "@/utils/export/exportToEpub";
+import type { Lesson, LessonFiltersRaw } from "@/constants/contracts";
 
 // ============================================================================
 // TYPES
@@ -55,8 +56,8 @@ interface LessonRow {
   title: string;
   original_text: string;
   created_at: string;
-  filters: Record<string, any> | null;
-  metadata: Record<string, any> | null;
+  filters: LessonFiltersRaw | null;
+  metadata: Lesson['metadata'];
   share_token: string | null;
   share_token_handout: string | null;
   share_font_id: string | null;
@@ -91,8 +92,8 @@ interface SeriesLessonRow {
   id: string;
   title: string;
   original_text: string | null;
-  filters: Record<string, any> | null;
-  metadata: Record<string, any> | null;
+  filters: LessonFiltersRaw | null;
+  metadata: Lesson['metadata'];
   series_lesson_number: number | null;
 }
 
@@ -461,8 +462,9 @@ export default function PublishingHub() {
         console.error('Error fetching series:', error);
         setSeriesList([]);
       } else {
-        setSeriesList((data || []) as SeriesRow[]);
-        const seriesIds = (data || []).map((s: any) => s.id);
+        const seriesRows = (data || []) as SeriesRow[];
+        setSeriesList(seriesRows);
+        const seriesIds = seriesRows.map((s) => s.id);
         if (seriesIds.length > 0) {
           const { data: lessonCounts } = await supabase
             .from('lessons')
@@ -470,13 +472,13 @@ export default function PublishingHub() {
             .in('series_id', seriesIds);
           if (lessonCounts) {
             const countMap: Record<string, number> = {};
-            lessonCounts.forEach((l: any) => {
+            (lessonCounts as { series_id: string | null }[]).forEach((l) => {
               if (l.series_id) countMap[l.series_id] = (countMap[l.series_id] || 0) + 1;
             });
-            setSeriesList((data || []).map((s: any) => ({
+            setSeriesList(seriesRows.map((s) => ({
               ...s,
               lessonCount: countMap[s.id] || 0,
-            })) as SeriesRow[]);
+            })));
           }
         }
       }

@@ -277,6 +277,44 @@ export interface LessonFilters {
   preparation?: string;
 }
 
+/**
+ * The ACTUAL runtime shape of the lessons.filters JSON column, as written by
+ * generate-lesson/index.ts (snake_case, matching the request body fields).
+ * This does NOT match LessonFilters above (which is camelCase and appears to
+ * predate the current generation pipeline) -- flagged during the no-explicit-any
+ * batch 1 session (2026-07-18). Consumers that read real filters data (reshape
+ * context lookups, Publishing Hub search/export) should use this type instead
+ * of LessonFilters until the drift is resolved in a dedicated session.
+ */
+export interface LessonFiltersRaw {
+  bible_passage?: string;
+  focused_topic?: string;
+  extracted_content?: string | null;
+  age_group?: string;
+  theology_profile_id?: string;
+  bible_version_id?: string;
+  teaching_style?: string;
+  lesson_length?: string;
+  activity_types?: string[];
+  language?: string;
+  class_setting?: string;
+  learning_environment?: string;
+  student_experience?: string;
+  cultural_context?: string;
+  special_needs?: string;
+  lesson_sequence?: string;
+  assessment_style?: string;
+  learning_style?: string;
+  education_experience?: string;
+  emotional_entry?: string;
+  theological_lens?: string;
+  additional_notes?: string | null;
+  generate_teaser?: boolean;
+  freshness_mode?: string;
+  extract_style_metadata?: boolean;
+  has_series_style_context?: boolean;
+}
+
 // ============================================================================
 // Database Entity Types (Frontend SSOT)
 // ============================================================================
@@ -309,6 +347,15 @@ export interface Lesson {
     teaser?: string | null;
     ageGroup?: string;
     theologyProfile?: string;
+    bibleVersion?: string;
+    bibleVersionAbbreviation?: string;
+    copyrightStatus?: string;
+    /** Legacy/defensive field some readers check; not written by the current
+     *  generation pipeline (see PublishingHub.tsx getCopyrightLine). */
+    copyrightNotice?: string;
+    wordCount?: number;
+    sectionCount?: number;
+    generationTimeSeconds?: string;
   } | null;
   series_id?: string | null;
   series_lesson_number?: number | null;
@@ -321,6 +368,36 @@ export interface Lesson {
    *  lessons are group content (Option B) and are visible to the Shepherd group
    *  regardless of shared_with_org. */
   org_pool_consumed?: boolean | null;
+}
+
+/**
+ * A lesson being viewed/generated in the UI. Covers three real shapes that
+ * all flow through the same "currently viewing" state (Dashboard.tsx,
+ * EnhanceLessonForm.tsx's viewingLesson prop, LessonLibrary.tsx's onViewLesson):
+ * a plain Lesson row, LessonLibrary's display-enriched row (ai_lesson_title,
+ * passage_or_topic, etc. -- all optional here so that shape still satisfies
+ * this type), and the minimal ad-hoc object built for Team/Shepherd lessons.
+ * Added 2026-07-18 (no-explicit-any batch 1).
+ */
+export interface ViewingLesson extends Partial<Lesson> {
+  id: string;
+  isTeamLesson?: boolean;
+  isShepherdLesson?: boolean;
+  authorName?: string;
+  ai_lesson_title?: string | null;
+  extracted_passage?: string | null;
+  bible_passage?: string | null;
+  focused_topic?: string | null;
+  passage_or_topic?: string;
+  age_group?: string;
+  theology_profile_id?: string;
+  bible_version_id?: string;
+  created_by_name?: string;
+  has_content?: boolean;
+  /** Legacy field some call sites still assign; the DB column was dropped
+   *  2026-06-24. Kept only so the existing (already-inert) assignment still
+   *  type-checks -- not a live field. */
+  visibility?: string | null;
 }
 
 /**
@@ -356,6 +433,9 @@ export interface UserProfile {
   theology_profile_id: TheologyProfileId | null;
   organization_role: string | null;
   organization_id: string | null;
+  /** Real DB column, confirmed in src/integrations/supabase/types.ts. Added
+   *  2026-07-18 (no-explicit-any batch 1). */
+  preferred_age_group?: string | null;
 }
 
 /**
@@ -386,6 +466,12 @@ export interface Organization {
   beta_activated_by?: string | null;
   deletion_requested_at?: string | null;
   deletion_requested_by?: string | null;
+  /** Org hierarchy fields (Phase N4/N5). Real DB columns confirmed in
+   *  src/integrations/supabase/types.ts; added here 2026-07-18 (no-explicit-any
+   *  batch 1) -- these were previously accessed only via `as any` casts. */
+  org_level?: number | null;
+  org_type?: string | null;
+  parent_org_id?: string | null;
 }
 
 /**

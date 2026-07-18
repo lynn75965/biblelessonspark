@@ -15,7 +15,7 @@
 // ============================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import {
   resolveTierFromPriceId,
@@ -120,7 +120,7 @@ serve(async (req) => {
 // This ensures webhook works even without metadata.user_id
 // ============================================================
 async function resolveUserIdFromCustomer(
-  supabase: any,
+  supabase: SupabaseClient,
   customerId: string
 ): Promise<string | null> {
   // Try 1: Look up by stripe_customer_id in user_subscriptions
@@ -162,7 +162,7 @@ async function resolveUserIdFromCustomer(
 // ============================================================
 // CHECKOUT COMPLETE HANDLER
 // ============================================================
-async function handleCheckoutComplete(supabase: any, session: Stripe.Checkout.Session) {
+async function handleCheckoutComplete(supabase: SupabaseClient, session: Stripe.Checkout.Session) {
   console.log("Checkout completed:", session.id);
   
   const metadata = session.metadata || {};
@@ -216,7 +216,7 @@ async function handleCheckoutComplete(supabase: any, session: Stripe.Checkout.Se
 // SELF-SERVICE ORG CREATION
 // Creates organization after successful payment
 // ============================================================
-async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Checkout.Session) {
+async function handleSelfServiceOrgCreation(supabase: SupabaseClient, session: Stripe.Checkout.Session) {
   const metadata = session.metadata || {};
   
   const userId = metadata.user_id;
@@ -340,7 +340,7 @@ async function handleSelfServiceOrgCreation(supabase: any, session: Stripe.Check
 // EXISTING ORG CHECKOUT
 // Updates subscription for an existing organization
 // ============================================================
-async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout.Session) {
+async function handleExistingOrgCheckout(supabase: SupabaseClient, session: Stripe.Checkout.Session) {
   const metadata = session.metadata || {};
   const orgId = metadata.organization_id;
   const tier = metadata.tier;
@@ -388,7 +388,7 @@ async function handleExistingOrgCheckout(supabase: any, session: Stripe.Checkout
 // ============================================================
 // SUBSCRIPTION UPDATE HANDLER
 // ============================================================
-async function handleSubscriptionUpdate(supabase: any, subscription: Stripe.Subscription) {
+async function handleSubscriptionUpdate(supabase: SupabaseClient, subscription: Stripe.Subscription) {
   console.log("Subscription updated:", subscription.id);
   
   // Check if this is an org subscription
@@ -412,7 +412,7 @@ async function handleSubscriptionUpdate(supabase: any, subscription: Stripe.Subs
 // ============================================================
 // SUBSCRIPTION CANCELED HANDLER
 // ============================================================
-async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Subscription) {
+async function handleSubscriptionCanceled(supabase: SupabaseClient, subscription: Stripe.Subscription) {
   console.log("Subscription canceled:", subscription.id);
   
   // Check if org subscription
@@ -465,7 +465,7 @@ async function handleSubscriptionCanceled(supabase: any, subscription: Stripe.Su
 // ============================================================
 // PAYMENT SUCCEEDED HANDLER
 // ============================================================
-async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
+async function handlePaymentSucceeded(supabase: SupabaseClient, invoice: Stripe.Invoice) {
   console.log("Payment succeeded for invoice:", invoice.id);
   if (!invoice.subscription) return;
 
@@ -505,7 +505,7 @@ async function handlePaymentSucceeded(supabase: any, invoice: Stripe.Invoice) {
 // ============================================================
 // PAYMENT FAILED HANDLER
 // ============================================================
-async function handlePaymentFailed(supabase: any, invoice: Stripe.Invoice) {
+async function handlePaymentFailed(supabase: SupabaseClient, invoice: Stripe.Invoice) {
   console.log("Payment failed for invoice:", invoice.id);
   if (!invoice.subscription) return;
 
@@ -539,7 +539,7 @@ async function handlePaymentFailed(supabase: any, invoice: Stripe.Invoice) {
 // NEVER queries tier_config or pricing_plans for tier mapping
 // ============================================================
 async function updateUserSubscription(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string,
   customerId: string,
   subscription: Stripe.Subscription

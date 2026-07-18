@@ -1,13 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { getCorsHeadersFromRequest } from '../_shared/corsConfig.ts';
 import { checkLessonLimit } from '../_shared/subscriptionCheck.ts';
-import { getTrialStatus, doesTrialApply } from '../_shared/trialConfig.ts';
-import { getShapeById } from '../_shared/lessonShapeProfiles.ts';
+import { getTrialStatus, doesTrialApply, TrialStatus, TrialProfileRow } from '../_shared/trialConfig.ts';
+import { getShapeById, ShapeId } from '../_shared/lessonShapeProfiles.ts';
 import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
 import { checkOrgPoolAccess, consumeFromOrgPool } from '../_shared/orgPoolCheck.ts';
-import { callAnthropicNonStreaming, getForcedErrorClass } from '../_shared/anthropicRetry.ts';
+import { callAnthropicNonStreaming, getForcedErrorClass, AnthropicUsage } from '../_shared/anthropicRetry.ts';
 
 /**
  * reshape-lesson Edge Function (Session A -- reshape-as-lesson)
@@ -73,7 +73,7 @@ serve(async (req) => {
   }
 
   let metricId: string | undefined;
-  let supabase: any;
+  let supabase: SupabaseClient;
 
   try {
     let checkpoint = functionStartTime;
@@ -215,8 +215,8 @@ serve(async (req) => {
     // =========================================================================
     let userTier: string = 'free';
     let isTrialLesson = false;
-    let trialProfileData: any = null;
-    let trialStatus: any = null;
+    let trialProfileData: TrialProfileRow | null = null;
+    let trialStatus: TrialStatus | null = null;
 
     // Inherit the parent lesson's funding bucket.
     const parentUsedPool = parentLesson.org_pool_consumed === true && !!parentLesson.organization_id;
@@ -430,7 +430,7 @@ serve(async (req) => {
 
     reshapedContent = reshapeResult.text;
     modelUsed = reshapeResult.modelUsed;
-    const rawUsage = (reshapeResult.raw as any)?.usage;
+    const rawUsage = (reshapeResult.raw as { usage?: AnthropicUsage })?.usage;
     tokensInput = rawUsage?.input_tokens ?? null;
     tokensOutput = rawUsage?.output_tokens ?? null;
 
@@ -446,12 +446,28 @@ serve(async (req) => {
     // Parent row is left untouched (shaped_content / shape_id on parent are
     // preserved as-is for backward compatibility with the existing viewer).
     // =========================================================================
-    const shape = getShapeById(shape_id as any);
+    const shape = getShapeById(shape_id as ShapeId);
     const shapeName = shape?.name ?? shape_id;
     const parentTitle = (parentLesson.title && parentLesson.title.trim()) || 'Untitled Lesson';
     const newTitle = `${shapeName}: ${parentTitle}`;
 
-    const newLessonRow: Record<string, any> = {
+    interface NewReshapeLessonRow {
+      user_id: string;
+      organization_id: string | null;
+      title: string;
+      original_text: string;
+      source_type: string;
+      filters: unknown;
+      audience_profile: unknown;
+      shared_with_team: boolean;
+      shared_with_org: boolean;
+      lesson_type: string;
+      reshape_of: string;
+      shape_id: string;
+      org_pool_consumed: boolean;
+    }
+
+    const newLessonRow: NewReshapeLessonRow = {
       user_id: user.id,
       organization_id: parentLesson.organization_id ?? null,
       title: newTitle,
@@ -579,9 +595,10 @@ serve(async (req) => {
       headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     logTiming('ERROR occurred at', functionStartTime);
     console.error('Error in reshape-lesson:', error);
+    const err = error as { message?: string; toString(): string };
 
     if (typeof metricId !== 'undefined' && metricId && supabase) {
       await supabase
@@ -591,14 +608,14 @@ serve(async (req) => {
           reshape_duration_ms: Date.now() - functionStartTime,
           status: 'error',
           anthropic_model: ANTHROPIC_MODEL,
-          error_message: error.message || 'Unknown error'
+          error_message: err.message || 'Unknown error'
         })
         .eq('id', metricId);
     }
 
     return new Response(JSON.stringify({
-      error: error.message || 'An unexpected error occurred',
-      details: error.toString()
+      error: err.message || 'An unexpected error occurred',
+      details: err.toString()
     }), {
       status: 500,
       headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }

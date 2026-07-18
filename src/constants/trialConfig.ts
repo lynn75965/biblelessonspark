@@ -183,6 +183,18 @@ export interface TrialStatus {
   periodEnd:             Date | null;
 }
 
+/**
+ * The profiles-table columns generate-lesson and reshape-lesson select to
+ * compute trial status. Added 2026-07-18 (no-explicit-any batch 1) -- both
+ * edge functions previously typed this `any`.
+ */
+export interface TrialProfileRow {
+  trial_period_start:             string | null;
+  trial_full_lessons_used:        number | null;
+  trial_short_lessons_used:       number | null;
+  trial_full_lesson_granted_until: string | null;
+}
+
 // ----------------------------------------------------------------------------
 // HELPERS
 // ----------------------------------------------------------------------------

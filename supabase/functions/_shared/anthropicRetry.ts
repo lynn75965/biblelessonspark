@@ -262,6 +262,19 @@ export interface NonStreamingFailure {
   attempts: number;
 }
 
+/**
+ * Anthropic's documented usage object (input_tokens/output_tokens/cache_*),
+ * present on `raw` for a successful call. Narrows `raw: unknown` at call
+ * sites that need token counts without an `as any` cast. Added 2026-07-18
+ * (no-explicit-any batch 1).
+ */
+export interface AnthropicUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
 export async function callAnthropicNonStreaming(
   opts: NonStreamingCallOptions,
 ): Promise<NonStreamingSuccess | NonStreamingFailure> {

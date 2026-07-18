@@ -47,7 +47,7 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { marked } from "marked";
 import TurndownService from "turndown";
-import { useEnhanceLesson } from "@/hooks/useEnhanceLesson";
+import { useEnhanceLesson, GeneratedLessonData } from "@/hooks/useEnhanceLesson";
 import { useLessons } from "@/hooks/useLessons";
 import { useSubscription } from "@/hooks/useSubscription";
 import { RESHAPE_RULE } from "@/constants/featureFlags";
@@ -89,6 +89,7 @@ import {
   getShapesForAgeGroup,
   getShapeById,
 } from "@/constants/lessonShapeProfiles";
+import { Lesson, ViewingLesson } from "@/constants/contracts";
 
 // ============================================================================
 // INLINE LESSON EDITOR -- module-scope configuration
@@ -164,6 +165,12 @@ const LESSON_EDITOR_MODULES = {
 // ============================================================================
 
 interface EnhanceLessonFormProps {
+  /** Called with the raw enhanceLesson() result payload (GeneratedLessonData
+   *  from useEnhanceLesson.tsx), NOT the lesson itself -- left untyped
+   *  (no-explicit-any batch 1, 2026-07-18) because Dashboard.tsx's handler
+   *  reads `lesson?.id` (only present on the nested .lesson), which a strict
+   *  type would turn into a compile error. Flagged for Lynn; not fixed here
+   *  to avoid a runtime behavior change under this session's mandate. */
   onLessonGenerated?: (lesson: any) => void;
   onExport?: () => void;
   onRequestFeedback?: () => void;
@@ -171,7 +178,7 @@ interface EnhanceLessonFormProps {
   organizationId?: string;
   userPreferredAgeGroup?: string;
   defaultDoctrine?: string;
-  viewingLesson?: any;
+  viewingLesson?: ViewingLesson;
   viewingOrigin?: string | null;
   onClearViewing?: () => void;
   /** Inline editor: called after a successful save so parent can refresh viewingLesson */
@@ -180,6 +187,18 @@ interface EnhanceLessonFormProps {
   lessonCount?: number; // Used to conditionally show welcome banner for new users only
   lessonsLoading?: boolean; // Prevent flicker - don't show welcome banner while loading
   buildLessonKey?: number; // Incremented by Dashboard when "Build Lesson" tab is activated -- clears generated lesson
+}
+
+/**
+ * The two lessons.filters fields the reshape flow reads to recover theology/
+ * age context. Narrow and honest about the actual (snake_case) runtime shape
+ * rather than the LessonFilters SSOT type (which is camelCase and does not
+ * match what generate-lesson actually writes -- see contracts.ts LessonFiltersRaw
+ * for the fuller finding). Added 2026-07-18 (no-explicit-any batch 1).
+ */
+interface ReshapeFiltersSnapshot {
+  theology_profile_id?: string;
+  age_group?: string;
 }
 
 // ============================================================================
@@ -586,7 +605,7 @@ export function EnhanceLessonForm({
   const generationStartRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const generationLessonTypeRef = useRef<'full' | 'short' | null>(null);
-  const [generatedLesson, setGeneratedLesson] = useState<any>(null);
+  const [generatedLesson, setGeneratedLesson] = useState<GeneratedLessonData | null>(null);
   const [freshnessMode, setFreshnessMode] = useState<'fresh' | 'consistent'>('fresh');
 
   // ============================================================================
@@ -1091,7 +1110,7 @@ export function EnhanceLessonForm({
         });
 
         if (!response.ok) {
-          let errBody: any = {};
+          let errBody: { error?: string } = {};
           try { errBody = await response.json(); } catch { /* non-JSON body */ }
           throw new Error(errBody.error || "We ran into a problem generating that. Please try again in a moment.");
         }
@@ -1130,11 +1149,11 @@ export function EnhanceLessonForm({
           throw new Error(result.error || `Failed to extract content from ${file.name}`);
         }
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("File extraction error:", error);
       toast({
         title: "File processing failed",
-        description: error.message || "Please try again",
+        description: (error as { message?: string }).message || "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -1195,7 +1214,7 @@ export function EnhanceLessonForm({
         // B4: this used to fail silently. It's a best-effort auto-populate
         // convenience (the teacher can still type passage/focus manually),
         // so keep the toast low-key rather than alarming.
-        let errBody: any = {};
+        let errBody: { error?: string } = {};
         try { errBody = await response.json(); } catch { /* non-JSON body */ }
         toast({
           title: "Auto-fill unavailable",
@@ -1318,7 +1337,7 @@ export function EnhanceLessonForm({
               // B4: this used to fail silently. Low-key toast, since this is
               // a background auto-populate courtesy after removing a page --
               // not something that should feel alarming mid-edit.
-              let errBody: any = {};
+              let errBody: { error?: string } = {};
               try { errBody = await response.json(); } catch { /* non-JSON body */ }
               toast({
                 title: "Auto-fill unavailable",
@@ -1454,8 +1473,8 @@ export function EnhanceLessonForm({
 
       // onSupplements: called when Phase 2 supplements arrive (S6-S8 + Teaser).
       // Silently replaces the lesson in state with the fully-assembled version.
-      const onSupplements = (updatedLesson: any) => {
-        setGeneratedLesson((prev: any) => prev
+      const onSupplements = (updatedLesson: Lesson) => {
+        setGeneratedLesson((prev) => prev
           ? { ...prev, lesson: updatedLesson }
           : null
         );
@@ -1566,7 +1585,7 @@ export function EnhanceLessonForm({
     if (!selectedShapeForReshape || !currentLesson) return;
 
     const shapeId = selectedShapeForReshape as ShapeId;
-    const filters = currentLesson.filters as Record<string, any> | null;
+    const filters = currentLesson.filters as ReshapeFiltersSnapshot | null;
 
     // Get theology profile name for prompt context
     const theologyId = filters?.theology_profile_id || theologyProfileId;
@@ -3248,7 +3267,7 @@ export function EnhanceLessonForm({
                     </SelectTrigger>
                     <SelectContent>
                       {(() => {
-                        const filters = currentLesson?.filters as Record<string, any> | null;
+                        const filters = currentLesson?.filters as ReshapeFiltersSnapshot | null;
                         const ageId = filters?.age_group || ageGroup || 'mixed';
                         const shapes = getShapesForAgeGroup(ageId);
                         return shapes.map((shape, index) => (

@@ -2,10 +2,38 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { API_ERROR_CODES } from "@/constants/apiErrorCodes";
+import { Lesson } from "@/constants/contracts";
+import { SeriesStyleMetadata } from "@/constants/seriesConfig";
+
+/**
+ * The generate-lesson Edge Function's SSE 'done'/'supplements' payload shape
+ * (see supabase/functions/generate-lesson/index.ts sendEvent calls). Added
+ * 2026-07-18 (no-explicit-any batch 1).
+ */
+export interface GeneratedLessonData {
+  lesson: Lesson;
+  style_metadata: SeriesStyleMetadata | null;
+  /** Generation metadata (word count, model, guardrail info, etc.) --
+   *  frontend consumers only ever read style_metadata/lesson off this
+   *  wrapper, never into metadata's contents, so it stays loosely typed. */
+  metadata: Record<string, unknown>;
+  success: true;
+}
+
+/**
+ * The generate-lesson Edge Function's SSE event stream shape. Added
+ * 2026-07-18 (no-explicit-any batch 1).
+ */
+type GenerateLessonSSEEvent =
+  | { type: 'token'; token: string }
+  | { type: 'done'; lesson: Lesson; style_metadata?: SeriesStyleMetadata | null; metadata?: Record<string, unknown>; two_phase?: boolean }
+  | { type: 'supplements'; lesson: Lesson }
+  | { type: 'supplements_failed'; message?: string }
+  | { type: 'error'; error?: string; code?: string };
 
 export interface EnhanceLessonResult {
   success: boolean;
-  data?: any;
+  data?: GeneratedLessonData;
   error?: string;
   code?: string;
   lessons_used?: number;
@@ -59,8 +87,8 @@ export const useEnhanceLesson = () => {
   }, [isLoadingSupplements]);
 
   const enhanceLesson = async (
-    enhancementData: Record<string, any>,
-    onSupplements?: (updatedLesson: any) => void
+    enhancementData: Record<string, unknown>,
+    onSupplements?: (updatedLesson: Lesson) => void
   ): Promise<EnhanceLessonResult> => {
     setIsGenerating(true);
     setIsLoadingSupplements(false);
@@ -97,7 +125,7 @@ export const useEnhanceLesson = () => {
 
       // Pre-streaming error (auth failure, limit reached, etc.) -- JSON body
       if (!response.ok) {
-        let errorBody: any = {};
+        let errorBody: { error?: string; code?: string; lessons_used?: number; lessons_limit?: number; tier?: string; reset_date?: string } = {};
         try { errorBody = await response.json(); } catch { /* non-JSON body */ }
 
         if (errorBody.code === API_ERROR_CODES.LIMIT_REACHED) {
@@ -150,7 +178,7 @@ export const useEnhanceLesson = () => {
                 const dataLine = message.split('\n').find(l => l.startsWith('data: '));
                 if (!dataLine) continue;
 
-                let event: any;
+                let event: GenerateLessonSSEEvent;
                 try { event = JSON.parse(dataLine.slice(6)); } catch { continue; }
 
                 if (event.type === 'token') {
@@ -211,23 +239,24 @@ export const useEnhanceLesson = () => {
                 }
               }
             }
-          } catch (readError: any) {
+          } catch (readError) {
             if (!phase1Resolved) {
-              resolve({ success: false, error: readError.message || 'Stream read error' });
+              resolve({ success: false, error: (readError as { message?: string }).message || 'Stream read error' });
             }
             setIsLoadingSupplements(false);
           }
         })();
       });
 
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error generating lesson:", error);
+      const message = (error as { message?: string }).message;
       toast({
         title: "Error",
-        description: error.message || "Failed to generate lesson",
+        description: message || "Failed to generate lesson",
         variant: "destructive",
       });
-      return { success: false, error: error.message };
+      return { success: false, error: message };
     } finally {
       setIsGenerating(false);
       // Note: isLoadingSupplements is NOT cleared here -- Phase 2 may still be running

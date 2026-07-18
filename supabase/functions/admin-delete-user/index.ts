@@ -63,31 +63,35 @@ Deno.serve(async (req) => {
       .select('id, name')
       .eq('lead_teacher_id', user_id);
 
-    const teamIds = (teams || []).map((t: any) => t.id);
+    const teamIds = (teams as { id: string; name: string }[] || []).map((t) => t.id);
     let membersToNotify: { email: string; full_name: string; team_name: string }[] = [];
 
     if (teamIds.length > 0) {
-      const { data: members } = await adminClient
+      const { data: membersRaw } = await adminClient
         .from('teaching_team_members')
         .select('user_id, teaching_teams(name)')
         .in('team_id', teamIds)
         .neq('user_id', user_id);
 
+      const members = membersRaw as { user_id: string; teaching_teams: { name: string } | null }[] | null;
+
       if (members && members.length > 0) {
-        const memberIds = members.map((m: any) => m.user_id);
-        const { data: memberProfiles } = await adminClient
+        const memberIds = members.map((m) => m.user_id);
+        const { data: memberProfilesRaw } = await adminClient
           .from('profiles')
           .select('id, full_name, email')
           .in('id', memberIds);
 
-        membersToNotify = (members || []).map((m: any) => {
-          const p = (memberProfiles || []).find((p: any) => p.id === m.user_id);
+        const memberProfiles = memberProfilesRaw as { id: string; full_name: string | null; email: string | null }[] | null;
+
+        membersToNotify = (members || []).map((m) => {
+          const p = (memberProfiles || []).find((p) => p.id === m.user_id);
           return {
             email: p?.email || '',
             full_name: p?.full_name || 'Teacher',
-            team_name: (m.teaching_teams as any)?.name || 'your teaching team',
+            team_name: m.teaching_teams?.name || 'your teaching team',
           };
-        }).filter((m: any) => !!m.email);
+        }).filter((m) => !!m.email);
       }
     }
 
@@ -186,9 +190,9 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: error?.message || 'Internal server error' }),
+    return new Response(JSON.stringify({ error: (error as { message?: string })?.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

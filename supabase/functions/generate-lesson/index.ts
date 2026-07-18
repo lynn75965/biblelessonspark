@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { LESSON_STRUCTURE_VERSION, getRequiredSections, getOptionalSections, getTotalMinWords, getTotalMaxWords, getTeaserSection } from '../_shared/lessonStructure.ts';
 import { AGE_GROUPS } from '../_shared/ageGroups.ts';
 import { THEOLOGY_PROFILES, generateTheologicalGuardrails } from '../_shared/theologyProfiles.ts';
@@ -27,7 +27,7 @@ import { PLATFORM_MODE_ACCESS, ORG_TYPES, LESSON_FUNDING, DEFAULT_LESSON_FUNDING
 // ============================================================
 // TRIAL: Updated to rolling 30-day period (3 full + 2 short)
 // ============================================================
-import { TRIAL_CONFIG, getTrialStatus, doesTrialApply, TrialStatus } from '../_shared/trialConfig.ts';
+import { TRIAL_CONFIG, getTrialStatus, doesTrialApply, TrialStatus, TrialProfileRow } from '../_shared/trialConfig.ts';
 // Phase 13.6: Organization Pool Check
 import { checkOrgPoolAccess, consumeFromOrgPool, OrgPoolCheckResult } from '../_shared/orgPoolCheck.ts';
 // Output Guardrails: Post-generation truth & integrity verification (SSOT: outputGuardrails.ts)
@@ -35,7 +35,7 @@ import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replace
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
-import { callAnthropicNonStreaming, openAnthropicStreamWithRetry, getForcedErrorClass } from '../_shared/anthropicRetry.ts';
+import { callAnthropicNonStreaming, openAnthropicStreamWithRetry, getForcedErrorClass, AnthropicUsage } from '../_shared/anthropicRetry.ts';
 import { logCapacityEvent } from '../_shared/capacityEvents.ts';
 // Section-shape SSOT (Phase 1). Full = [1..8], Short = [1,5,8]. This is the
 // first edge function to import the _shared mirror at runtime.
@@ -163,10 +163,10 @@ Integrity matters more than engagement. A teacher's credibility depends on it.
 `;
 }
 
-function buildCompressionRules(includeTeaser: boolean = false, sections: any[] | null = null) {
+function buildCompressionRules(includeTeaser: boolean = false, sections: ReturnType<typeof getRequiredSections> | null = null) {
   const targetSections = sections ?? getRequiredSections();
-  const baseWordMin = targetSections.reduce((sum: number, s: any) => sum + s.minWords, 0);
-  const baseWordMax = targetSections.reduce((sum: number, s: any) => sum + s.maxWords, 0);
+  const baseWordMin = targetSections.reduce((sum: number, s) => sum + s.minWords, 0);
+  const baseWordMax = targetSections.reduce((sum: number, s) => sum + s.maxWords, 0);
 
   return `
 -------------------------------------------------------------------------------
@@ -296,7 +296,7 @@ serve(async (req) => {
   }
 
   let metricId: string | undefined;
-  let supabase: any;
+  let supabase: SupabaseClient;
 
   try {
     let checkpoint = functionStartTime;
@@ -490,7 +490,7 @@ serve(async (req) => {
     let sectionsToGenerate: number[];
     let isTrialLesson = false;
     let isFullTrialLesson = false;
-    let trialProfileData: any = null;
+    let trialProfileData: TrialProfileRow | null = null;
     let trialStatus: TrialStatus | null = null;
     
     if (isAdmin) {
@@ -646,7 +646,7 @@ serve(async (req) => {
     // Phase 1 = S1-S5 (doctrinal core, streamed); Phase 2 = S6-S8+Teaser (derived supplements).
     const usesTwoPhase = isFullLesson && filteredSections.length === 8;
     const phase1Sections = usesTwoPhase
-      ? filteredSections.filter((s: any) => s.id <= 5)
+      ? filteredSections.filter((s) => s.id <= 5)
       : filteredSections;
     const phase1SectionCount = phase1Sections.length;
 
@@ -1191,7 +1191,7 @@ ${styleExtractionPromptAddition}
               .is('revoked_at', null);
             if (suppressionError) throw suppressionError;
             activeSuppressions = new Set(
-              (suppressionRows || []).map((r: any) => `${r.violation_code}::${r.matched_phrase_normalized}`)
+              (suppressionRows || []).map((r: { violation_code: string; matched_phrase_normalized: string }) => `${r.violation_code}::${r.matched_phrase_normalized}`)
             );
           } catch (suppressionFetchError) {
             console.error('GUARDRAIL SUPPRESSION FETCH FAILED -- failing open (treating as zero suppressions):', suppressionFetchError);
@@ -1256,7 +1256,7 @@ ${styleExtractionPromptAddition}
 
                 wordCount = generatedLesson.split(/\s+/).length;
 
-                const rawUsage = (rewriteResult.raw as any)?.usage;
+                const rawUsage = (rewriteResult.raw as { usage?: AnthropicUsage })?.usage;
                 rewriteTokensInput = rawUsage?.input_tokens || 0;
                 rewriteTokensOutput = rawUsage?.output_tokens || 0;
 
@@ -1359,7 +1359,7 @@ ${styleExtractionPromptAddition}
             platformMode: platformMode,
             isTrialLesson: isTrialLesson,
             isFullTrialLesson: isFullTrialLesson,
-            sectionsGenerated: phase1Sections.map((s: any) => s.id),
+            sectionsGenerated: phase1Sections.map((s) => s.id),
             extractedStyleMetadata: extract_style_metadata,
             usedSeriesStyleContext: !!series_style_context,
             usedOrgPool: useOrgPool,
@@ -1538,7 +1538,7 @@ ${styleExtractionPromptAddition}
         if (usesTwoPhase) {
           const phase2Start = Date.now();
           try {
-            const phase2Sections = filteredSections.filter((s: any) => s.id > 5);
+            const phase2Sections = filteredSections.filter((s) => s.id > 5);
             const phase2SectionCount = phase2Sections.length;
 
             const phase2SystemPrefix = `You are a Baptist Bible study lesson generator using the BibleLessonSpark Framework.
@@ -1635,7 +1635,7 @@ All supplements must be specific to this lesson's content -- not generic.${bible
             }
 
             const phase2RawText: string = phase2Result.text;
-            const phase2RawUsage = (phase2Result.raw as any)?.usage;
+            const phase2RawUsage = (phase2Result.raw as { usage?: AnthropicUsage })?.usage;
             const phase2TokensOut: number = phase2RawUsage?.output_tokens ?? 0;
             const phase2TokensIn: number = phase2RawUsage?.input_tokens ?? 0;
             const phase2CacheWrite: number = phase2RawUsage?.cache_creation_input_tokens ?? 0;
@@ -1662,7 +1662,7 @@ All supplements must be specific to this lesson's content -- not generic.${bible
             if (!phase2GuardrailResult.passed) {
               console.log(`[Phase 2 Guardrail] ${phase2GuardrailResult.totalViolations} violation(s) -- attempting rewrite`);
               try {
-                const p2Violated = phase2GuardrailResult.results.filter((r: any) => r.violations.length > 0);
+                const p2Violated = phase2GuardrailResult.results.filter((r) => r.violations.length > 0);
                 const p2RewritePrompt = buildRewritePrompt(p2Violated);
                 // B4: retry + model fallback. Non-fatal exactly as before --
                 // on terminal failure, phase2FinalText simply stays as the
@@ -1704,7 +1704,7 @@ All supplements must be specific to this lesson's content -- not generic.${bible
               ...(lesson.metadata as Record<string, unknown> || {}),
               phase2Completed: true,
               sectionCount: filteredSections.length,
-              sectionsGenerated: filteredSections.map((s: any) => s.id),
+              sectionsGenerated: filteredSections.map((s) => s.id),
               includesTeaser: effectiveTeaser && phase2TeaserContent !== null,
               teaser: phase2TeaserContent,
               phase2GenerationSeconds: ((Date.now() - phase2Start) / 1000).toFixed(2),
@@ -1742,15 +1742,16 @@ All supplements must be specific to this lesson's content -- not generic.${bible
             await sendEvent('supplements', { lesson: updatedLesson });
             console.log(`[Phase 2] Complete for lesson ${lesson.id}`);
 
-          } catch (phase2Err: any) {
+          } catch (phase2Err) {
             // Phase 2 failure: Phase 1 lesson is already saved. Teacher is not blocked.
-            console.error('[Phase 2] Failed (Phase 1 lesson preserved):', phase2Err.message);
+            const phase2ErrMessage = (phase2Err as { message?: string }).message;
+            console.error('[Phase 2] Failed (Phase 1 lesson preserved):', phase2ErrMessage);
             await logCapacityEvent(supabase, {
               userId: user.id,
               source: 'generate-lesson',
               eventType: 'anthropic_terminal_failure',
               tier: userTier,
-              meta: { phase: 'phase2', lessonId: lesson.id, error: phase2Err.message },
+              meta: { phase: 'phase2', lessonId: lesson.id, error: phase2ErrMessage },
             });
             await sendEvent('supplements_failed', {
               lesson_id: lesson.id,
@@ -1760,7 +1761,8 @@ All supplements must be specific to this lesson's content -- not generic.${bible
         }
         // end Phase 2
 
-      } catch (streamError: any) {
+      } catch (streamError) {
+        const streamErr = streamError as { name?: string; message?: string };
         clearInterval(stallTimer);
         logTiming('ERROR occurred at', functionStartTime);
         console.error('Error in generate-lesson stream:', streamError);
@@ -1770,11 +1772,11 @@ All supplements must be specific to this lesson's content -- not generic.${bible
             .update({
               generation_end: new Date().toISOString(),
               generation_duration_ms: Date.now() - functionStartTime,
-              status: streamError.name === 'AbortError' ? 'timeout' : 'error',
+              status: streamErr.name === 'AbortError' ? 'timeout' : 'error',
               anthropic_model: ANTHROPIC_MODEL,
-              error_message: streamError.name === 'AbortError'
+              error_message: streamErr.name === 'AbortError'
                 ? `Stream stalled for >${STALL_TIMEOUT_MS / 1000}s`
-                : (streamError.message || 'Unknown error')
+                : (streamErr.message || 'Unknown error')
             })
             .eq('id', metricId);
         }
@@ -1783,11 +1785,11 @@ All supplements must be specific to this lesson's content -- not generic.${bible
           source: 'generate-lesson',
           eventType: 'anthropic_terminal_failure',
           tier: userTier,
-          meta: { phase: 'phase1-stream', name: streamError.name },
+          meta: { phase: 'phase1-stream', name: streamErr.name },
         });
-        const errMsg = streamError.name === 'AbortError'
+        const errMsg = streamErr.name === 'AbortError'
           ? 'Generation timed out. Please try again.'
-          : (streamError.message || 'An unexpected error occurred');
+          : (streamErr.message || 'An unexpected error occurred');
         await sendEvent('error', { error: errMsg }).catch(() => {});
       } finally {
         clearInterval(stallTimer);
