@@ -1,4 +1,4 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 1 SHIPPED -- top 9 offender files (88 errors, fresh count) fully typed, zero behavior change, 1 occurrence intentionally left with justification; commit 2423425, pushed to main, 4 edge functions redeployed. Prior sessions same day: events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: no-explicit-any BATCH 2 SHIPPED -- 22 mid-tier files (88 errors, fresh count) fully typed, zero behavior change, 1 occurrence intentionally left with justification; commit 4f24bb0, pushed to main, 17 edge functions redeployed (wide blast radius from 4 shared modules). Prior sessions same day: no-explicit-any BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
 ## >>> RESUME HERE <<< -- GUARDRAIL VIOLATION REVIEW SYSTEM (the whole
 multi-session arc: admin review UI, AL02 pattern tuning, permission fix,
@@ -90,28 +90,28 @@ Gate 1 (B1-B5) was fully shipped July 15, 2026 -- see that session's own
 entry below for the full account. Two non-blocking backlog items carry
 forward from Gate 1 (neither gates Gate 2):
 
-  1. `@typescript-eslint/no-explicit-any` -- BATCH 1 SHIPPED 2026-07-18
-     (see that session's log entry for full detail). Repo-wide count was
-     254 (drifted up from 246 by 2026-07-18; re-verify fresh at the
-     start of each future batch session -- `npx eslint . --format json`).
-     Batch 1 fixed the top 9 offender files (88 of those 254). Current
-     repo-wide count: 167, across ~77 remaining files. Batches 2-3 still
-     need their own dedicated sessions (see table below, top-9 rows now
-     struck). Still blocks ci.yml's `lint` job from going back to
-     blocking (per Rule #28's two-condition requirement) until zero.
+  1. `@typescript-eslint/no-explicit-any` -- BATCH 1 + BATCH 2 SHIPPED
+     2026-07-18 (see each session's log entry below for full detail).
+     Repo-wide count was 254 at Batch 1's start (drifted up from 246;
+     re-verify fresh at the start of each future batch session --
+     `npx eslint . --format json`). Batch 1 fixed the top 9 offender
+     files (88 of those 254), landing at 167. Batch 2 fixed the next 22
+     mid-tier files (88 of those 167, 1 intentionally left flagged),
+     landing at 80. Current repo-wide count: 80, across ~55 remaining
+     files (each 1-2 errors). Batch 3 still needs its own dedicated
+     session (see table below). Still blocks ci.yml's `lint` job from
+     going back to blocking (per Rule #28's two-condition requirement)
+     until zero.
   2. Two untracked/gitignored directories (`backups/`, `SSOT-PROJECT-
      FILES/`) need Lynn's own per-file review -- see inventory below.
      Neither blocks anything; both are excluded from eslint's scan.
 
-  NEW STANDING BACKLOG (logged 2026-07-15, BATCH 1 SHIPPED 2026-07-18):
-  `@typescript-eslint/no-explicit-any`. Each occurrence needs a real type
-  judgment at its call site, not a mechanical substitution -- genuine
-  type-engineering work, not hygiene. Top offenders (>= 3 errors as of
-  2026-07-15) to help scope Batches 2-3 -- top 9 rows below are DONE,
-  left in place for history; regenerate the list fresh
-  (`npx eslint . --format json`) before starting Batch 2, since files
-  below this point may have drifted since July 15 the same way the top 9
-  did (generate-lesson went 11->15 by session start):
+  NEW STANDING BACKLOG (logged 2026-07-15, BATCH 1 + BATCH 2 SHIPPED
+  2026-07-18): `@typescript-eslint/no-explicit-any`. Each occurrence needs
+  a real type judgment at its call site, not a mechanical substitution --
+  genuine type-engineering work, not hygiene. Top offenders (>= 3 errors
+  as of 2026-07-15) to help scope Batch 3 -- all rows below are now DONE,
+  left in place for history:
 
   | File | Count (July 15) | Status |
   |---|---|---|
@@ -124,32 +124,35 @@ forward from Gate 1 (neither gates Gate 2):
   | src/pages/PublishingHub.tsx | 7 | DONE (0 remaining) |
   | supabase/functions/admin-delete-user/index.ts | 7 | DONE (0 remaining) |
   | supabase/functions/reshape-lesson/index.ts | 7 | DONE (0 remaining) |
-  | src/components/dashboard/DevotionalLibrary.tsx | 5 |
-  | src/components/dashboard/LessonLibrary.tsx | 5 |
-  | src/components/feedback/BetaFeedbackForm.tsx | 5 |
-  | src/lib/auditLogger.ts | 5 |
-  | supabase/functions/_shared/orgPoolCheck.ts | 5 |
-  | supabase/functions/generate-devotional/index.ts | 5 |
-  | src/components/EmailLessonDialog.tsx | 4 |
-  | src/components/account/MyOrganizationSection.tsx | 4 |
-  | src/components/org/OrgManagerTransferRequests.tsx | 4 |
-  | src/hooks/useAdminOperations.tsx | 4 |
-  | src/hooks/useInvites.tsx | 4 |
-  | src/pages/OrgManager.tsx | 4 |
-  | supabase/functions/_shared/branding.ts | 4 |
-  | supabase/functions/_shared/validation.ts | 4 |
-  | supabase/functions/sync-pricing-from-stripe/index.ts | 4 |
-  | src/components/org/OrgLessonsPanel.tsx | 3 |
-  | src/components/org/OrgSharedFocusPanel.tsx | 3 |
-  | src/hooks/useSeriesManager.ts | 3 |
-  | src/pages/Admin.tsx | 3 |
-  | supabase/functions/_shared/anthropicRetry.ts | 3 |
-  | supabase/functions/approve-org-deletion/index.ts | 3 |
-  | supabase/functions/send-auth-email/index.ts | 3 |
+  | src/components/dashboard/DevotionalLibrary.tsx | 5 | DONE (0 remaining) |
+  | src/components/dashboard/LessonLibrary.tsx | 5 | DONE (1 remaining -- see below) |
+  | src/components/feedback/BetaFeedbackForm.tsx | 5 | DONE (0 remaining) |
+  | src/lib/auditLogger.ts | 5 | DONE (0 remaining; typed, not deleted -- live importers confirmed) |
+  | supabase/functions/_shared/orgPoolCheck.ts | 5 | DONE (0 remaining) |
+  | supabase/functions/generate-devotional/index.ts | 5 | DONE (0 remaining) |
+  | src/components/EmailLessonDialog.tsx | 4 | DONE (0 remaining) |
+  | src/components/account/MyOrganizationSection.tsx | 4 | DONE (0 remaining) |
+  | src/components/org/OrgManagerTransferRequests.tsx | 4 | DONE (0 remaining) |
+  | src/hooks/useAdminOperations.tsx | 4 | DONE (0 remaining) |
+  | src/hooks/useInvites.tsx | 4 | DONE (0 remaining) |
+  | src/pages/OrgManager.tsx | 4 | DONE (0 remaining) |
+  | supabase/functions/_shared/branding.ts | 4 | DONE (0 remaining) |
+  | supabase/functions/_shared/validation.ts | 4 | DONE (0 remaining) |
+  | supabase/functions/sync-pricing-from-stripe/index.ts | 4 | DONE (0 remaining) |
+  | src/components/org/OrgLessonsPanel.tsx | 3 | DONE (0 remaining) |
+  | src/components/org/OrgSharedFocusPanel.tsx | 3 | DONE (0 remaining) |
+  | src/hooks/useSeriesManager.ts | 3 | DONE (0 remaining) |
+  | src/pages/Admin.tsx | 3 | DONE (0 remaining) |
+  | supabase/functions/_shared/anthropicRetry.ts | 3 | DONE (0 remaining; was actually 4 by 2026-07-18) |
+  | supabase/functions/approve-org-deletion/index.ts | 3 | DONE (0 remaining) |
+  | supabase/functions/send-auth-email/index.ts | 3 | DONE (0 remaining) |
 
-  Remaining 55 files carry 1-2 errors each (diffuse, likely quick
-  individual fixes) -- full list is in the eslint JSON output, not
-  reproduced here. `npx eslint . --format json` regenerates it fresh.
+  Remaining ~55 files carry 1-2 errors each (diffuse, likely quick
+  individual fixes) -- repo-wide total is 80 as of 2026-07-18 (was 246 at
+  the 2026-07-15 baseline). Full list is in the eslint JSON output, not
+  reproduced here. `npx eslint . --format json` regenerates it fresh --
+  regenerate before starting Batch 3, since these files may have drifted
+  the same way the top offenders did across both prior batches.
 
   NEW STANDING BACKLOG (logged 2026-07-15, NOT deleted -- needs Lynn's
   per-file review, do not touch without her sign-off): two entirely
@@ -555,7 +558,163 @@ COMPLETE (see their own session logs below for full accounts). B6's own
 standing findings (numbered in theology-golden-suite/README.md) are
 follow-up candidates, not Gate 2 blockers.
 
-## JULY 18, 2026 SESSION (LATEST) -- no-explicit-any BATCH 1 SHIPPED: top 9 offender files fully typed, zero behavior change
+## JULY 18, 2026 SESSION (LATEST) -- no-explicit-any BATCH 2 SHIPPED: 22 mid-tier files fully typed, zero behavior change, wide shared-module blast radius
+
+GOAL: continue the no-explicit-any campaign (Rule #28) with BATCH 2 -- the
+22 files that carried 3-5 errors each as of the July 15 count (~88
+errors, fresh count). Batch 3 (the remaining ~55 one-to-two-error files)
+stays a separate future session.
+
+### Phase 1 -- diagnose
+Fresh `npx eslint . --format json`: repo-wide total 167 (matched Batch
+1's closing count exactly), Batch 2's 22-file total 88. Only one drift:
+`_shared/anthropicRetry.ts` had grown 3 -> 4 errors since Batch 1 (new
+`any` casts in `callAnthropicNonStreaming`'s raw JSON parsing, unrelated
+to Batch 1's own edits to that file).
+
+Special case per the session prompt: `src/lib/auditLogger.ts`. The July
+18 events-retirement session had found `logAuditEvent` writes only to
+localStorage (inert) and its known caller (`useAnalytics.tsx`) was
+deleted -- so before typing this file, confirmed via grep whether any
+importers remained. Two real ones do: `useAuth.tsx` (`logAuthEvent`,
+`logSecurityEvent`) and `useSecurityMonitor.tsx` (`logSecurityEvent`).
+Typed normally, not deleted. Side finding (flagged, not acted on):
+`logLessonEvent` and `logFileUploadEvent` are defined but have zero
+callers anywhere -- dead sibling exports in an otherwise-live file.
+
+### Phase 2/3 -- proposed, then implemented after approval
+Two `_shared/` modules needed wide blast-radius analysis before typing:
+- `_shared/branding.ts` -- 9 importers (`create-checkout-session`,
+  `send-lesson-email`, `notify-team-invitation`, `create-portal-session`,
+  `create-org-checkout-session`, `send-focus-notification`,
+  `resend-verification`, `send-invite`, `send-auth-email`). Verified
+  every one of the 4 flagged `[key: string]: any` index signatures is
+  safe to widen to `unknown` -- confirmed by grep that no importer
+  anywhere reads branding data except through the typed helper functions
+  (`getEmailFrom`, `getEmailSubject`, etc.), never through the raw
+  catch-all bucket.
+- `_shared/anthropicRetry.ts` -- 6 importers (`generate-lesson`,
+  `reshape-lesson`, `generate-parable`, `extract-lesson`,
+  `generate-devotional`, `toolbelt-reflect`). Added a new
+  `AnthropicRawResponse` interface (Anthropic's real Messages API
+  response shape) collapsing 4 scattered `as any` casts into one type.
+- `_shared/orgPoolCheck.ts` -- 2 importers (`generate-lesson`,
+  `reshape-lesson`), both already `SupabaseClient`-typed from Batch 1 --
+  zero-friction match.
+- `_shared/validation.ts` -- 1 importer (`generate-lesson`).
+  `validateLessonRequest(data: any)` became
+  `data: Partial<LessonRequest>`, reusing the function's own output type
+  as an optimistic, unenforced boundary type -- the real runtime
+  `typeof`/`Array.isArray` guards inside the function body are unchanged
+  either way. Caught and fixed a real consequence of this before it
+  shipped: `LessonRequest.lesson_number`/`total_lessons` were declared
+  `number` (no null) but the function's own return statement could
+  produce `null` for them -- confirmed via grep that generate-lesson
+  never actually consumes either field, so widened both to
+  `number | null` as a zero-risk fix matching what the function already
+  returned.
+
+One occurrence flagged and deliberately LEFT as `any` (category d), same
+pattern as Batch 1's `onLessonGenerated`: `LessonLibrary.tsx`'s
+`transformToDisplay(lesson: any, ...)`. Called with 3 structurally
+incompatible shapes -- a full `Lesson` row, a `get_team_lessons` RPC row,
+and a hand-built shepherd-lesson object that genuinely omits required
+`Lesson` fields (`source_type`, `upload_path`, `organization_id`).
+Honestly typing it would force either loosening `LessonDisplay`'s
+required-field contract (wide ripple through the file) or changing the
+shepherd object's construction (runtime-adjacent) -- neither is type-only.
+
+Also reused Batch 1's `ViewingLesson` type for `LessonLibrary.tsx`'s
+`onViewLesson` prop -- exactly the cross-file follow-through that type
+was built for.
+
+### Phase 4 -- implement (22 files changed)
+All 22 files fixed to 0 remaining `no-explicit-any` except
+`LessonLibrary.tsx` (5 -> 1, the flagged occurrence). New types: local
+`ResponseValue` (`BetaFeedbackForm.tsx`), local `DevotionalLimitCheck`
+(`generate-devotional`, matches the authoritative `check_devotional_limit`
+RPC Returns shape in generated `types.ts`), local `TierPriceInfo`
+(`sync-pricing-from-stripe`), local row interfaces
+(`approve-org-deletion`), `AnthropicRawResponse` + reused `AnthropicUsage`
+(`anthropicRetry.ts`), reused generated `Database`/`Json` types
+(`useSeriesManager.ts`, `Admin.tsx`).
+
+**Caught and fixed after `npm run build` looked clean:** `vite build`
+uses esbuild and does NOT type-check -- it transpiles and ignores type
+errors entirely. Ran `npx tsc --noEmit -p tsconfig.app.json` as a second
+check and found real errors, but the codebase already had 182
+pre-existing tsc errors unrelated to this session (confirmed by
+`git stash`-ing all Batch 2 changes, re-running tsc for a clean baseline,
+then restoring). Diffed baseline vs. after (matching by file+message,
+ignoring line-number shifts from inserted comments) and found exactly 8
+genuinely NEW errors, all direct, foreseeable consequences of properly
+typing previously-`any` values: `BetaFeedbackForm.tsx` needed narrowing
+casts where star-rating/textarea values are always `number`/`string` at
+their specific render sites (3 errors), `OrgManagerTransferRequests.tsx`
+needed the array-widening trick from Batch 1's Dashboard.tsx fix instead
+of casting the searched value (1 error), `OrgLessonsPanel.tsx` needed an
+`unknown`-bridge cast for a `Json`-typed field (1 error), and
+`useSeriesManager.ts` needed the same `Json` bridge in three more spots
+now that `castSeriesRows`'s `data` param is honestly typed instead of
+`any` (3 errors). Fixed all 8, re-ran the full baseline diff: 182 -> 182,
+zero net new tsc errors. This second-pass check is NOT part of this
+repo's CI gate (`vite build`, not `tsc`) but catching these kept the
+type work honest rather than just lint-clean.
+
+**Caught and fixed a second self-introduced bug via the per-file eslint
+recount** (not just the aggregate number): the first-pass fix for
+`auditLogger.ts` used a find/replace pattern with a trailing semicolon
+that only matched the interface field declaration, silently missing all
+4 function-parameter occurrences (`logAuthEvent`, `logLessonEvent`,
+`logFileUploadEvent`, `logSecurityEvent` all still said
+`Record<string, any>`). Caught because the aggregate before/after eslint
+numbers didn't land exactly where expected (167 -> 84 instead of the
+predicted 167 -> 80); re-checked every batch-2 file's own eslint count
+individually rather than trusting the total, found the 4 survivors, fixed
+with a pattern that doesn't require the trailing punctuation, reverified.
+
+`npm run build`: clean, 3968 modules transformed. Fresh eslint:
+`no-explicit-any` 167 -> 80 (-87, matching 88 flagged minus the 1
+intentionally left). Total lint errors also -87 exactly -- confirms zero
+new errors of any other rule. Manually scanned all 22 changed files for
+non-ASCII characters and BOMs -- clean (ASCII guard also passed
+automatically on commit). Lynn verified on localhost before deploy.
+
+### Deploy
+17 edge functions redeployed one at a time via `--use-api`, each
+confirmed clean before the next -- the wide list driven by the
+`branding.ts` (9 importers) and `anthropicRetry.ts` (6 importers) blast
+radii, not just the 4 directly-edited functions:
+`generate-lesson` (v188), `reshape-lesson` (v23), `generate-devotional`
+(v34), `generate-parable` (v61), `extract-lesson` (v33),
+`toolbelt-reflect` (v25), `sync-pricing-from-stripe` (v127),
+`approve-org-deletion` (v11), `send-auth-email` (v124),
+`create-checkout-session` (v30), `send-lesson-email` (v25),
+`notify-team-invitation` (v13), `create-portal-session` (v20),
+`create-org-checkout-session` (v25), `send-focus-notification` (v23),
+`resend-verification` (v123), `send-invite` (v145). Committed as
+`REFACTOR: no-explicit-any batch 2 -- type 22 mid-tier files`, commit
+`4f24bb0`. Pushed to `origin/main` (`8219cb4..4f24bb0`) via
+`.\deploy.ps1` -- ASCII guard passed, Netlify build triggered.
+
+### BATCH 2 -- COMPLETE. Carry-forward:
+1. Batch 3 (~80 `no-explicit-any` errors across ~55 files, each 1-2
+   errors) -- separate future session, per the updated backlog table
+   above. Regenerate the file list fresh at the start (files may have
+   drifted since July 15 the same way both prior batches' top offenders
+   did).
+2. `LessonLibrary.tsx`'s `transformToDisplay` -- flagged category (d),
+   not fixed. See Phase 2/3 above.
+3. `logLessonEvent`/`logFileUploadEvent` in `auditLogger.ts` -- dead
+   sibling exports with zero callers, flagged not pruned (out of scope
+   for a typing session).
+4. The two Batch 1 findings (`LessonFilters` shape mismatch,
+   `EnhanceLessonForm.tsx`/`Dashboard.tsx`'s possible
+   `lastGeneratedLessonId`-always-null bug) remain open, untouched --
+   this session did not revisit them even where it touched the same
+   files.
+
+## JULY 18, 2026 SESSION -- no-explicit-any BATCH 1 SHIPPED: top 9 offender files fully typed, zero behavior change
 
 GOAL: close out the standing backlog item logged 2026-07-15 (Gate 1) --
 `@typescript-eslint/no-explicit-any`, which blocks ci.yml's `lint` job
