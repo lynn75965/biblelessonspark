@@ -694,13 +694,27 @@ column-limited grants from the July 17 review-system work and were
 deliberately left untouched by this sweep (verified via
 `role_column_grants`, not the naive table-level query).
 
-STILL OPEN (deliberately out of this session's scope): a matching
-`ALTER DEFAULT PRIVILEGES ... ON FUNCTIONS` gap -- new SECURITY DEFINER
-functions created by `postgres` still auto-grant EXECUTE to anon/
-authenticated by default (verified via `pg_default_acl`, unchanged by
-this migration). A future session should evaluate revoking that default
-without breaking the established per-function `GRANT EXECUTE TO
-authenticated` pattern already used for every RPC in this codebase.
+CLOSED July 18, 2026 (same day, follow-up session, migration
+`20260718160000_execute_grant_hardening.sql`): the matching
+`ALTER DEFAULT PRIVILEGES ... ON FUNCTIONS` gap is fixed -- new
+functions created by `postgres` no longer auto-grant EXECUTE to
+`PUBLIC`/`anon`/`authenticated` (verified via `pg_default_acl`, only
+`postgres`/`service_role` remain in the default ACL). That session also
+extended the June 2026 `20260531120100_security_definer_execute_revoke.sql`
+sweep (40 functions) to 8 more: `invite_team_member` (a real
+authenticated-only RPC that had `PUBLIC`+`anon` open) and 7 trigger
+functions created after June 3 that were never audited
+(`check_max_profiles_per_user`, `ensure_single_default_profile`,
+`set_tenant_config_updated_at`, `update_branding_config_updated_at`,
+`update_feedback_questions_timestamp`, `update_modern_parables_updated_at`,
+`update_teacher_profile_updated_at`) -- same trigger-function treatment as
+June's B-7 category (triggers fire via the table owner's privileges, not
+the caller's; revoking EXECUTE does not stop them from firing). Every new
+RPC still needs an explicit `GRANT EXECUTE TO authenticated` (or `anon`
+only if genuinely pre-auth-reachable, matching `get_invite_by_token`'s
+precedent) in its own migration -- the same discipline as Rule #36's
+table-grant requirement, now extended to functions. Rollback preserved
+at `scripts/rollback_20260718160000_execute_grant_hardening.sql`.
 
 ---
 

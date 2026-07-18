@@ -1,4 +1,71 @@
-# PROJECT MASTER -- Last updated: July 18, 2026 (Session: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 18, 2026 (Session: EXECUTE GRANT HARDENING APPLIED LIVE, migration 20260718160000 -- least-privilege EXECUTE grants for functions, direct sequel to the table/view sweep. Extends the June migration (20260531120100, 40 functions) to 8 more: invite_team_member (real authenticated RPC, had PUBLIC+anon open) + 7 trigger functions created since June 3 that were never audited. Verified via a programmatic diff computed from a live "before" snapshot plus known deltas (not hand-retyped, learning from the table sweep's transcription errors) across all 71 public-schema functions -- empty both pre- and post-apply. get_invite_by_token confirmed keeping anon (the deliberate Phase-2 anon RPC). ALTER DEFAULT PRIVILEGES confirmed via pg_default_acl -- new functions no longer auto-grant EXECUTE to PUBLIC/anon/authenticated. Code committed locally, NOT pushed -- holding for Lynn's regression pass (team invite as non-admin lead + the 7 trigger-fire checks). See EXECUTE GRANT HARDENING note below for full detail. Prior session same day: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+
+## >>> EXECUTE GRANT HARDENING -- APPLIED LIVE, holding for Lynn's regression pass
+July 18, 2026. Direct sequel to the grant hardening sweep (Rule #36,
+commit 91e2459), which closed table/view grants and logged the
+functions/EXECUTE gap as a new backlog item. This session closes that
+item.
+
+**Diagnosis**: full live inventory (71 public-schema functions, matching
+the June audit's ~55-routine count plus growth since). Cross-referenced
+against `20260531120100_security_definer_execute_revoke.sql` (June,
+40 functions covered) -- spot-verified June's "RLS-helper, keep open"
+classification is still accurate today (`get_managed_org_ids`,
+`is_org_manager`, `is_team_lead_of`, `get_user_org_id` all confirmed
+genuinely referenced inside live RLS policy `USING` clauses). A complete
+multiline-aware `.rpc()` sweep across `src/` (33 distinct RPCs called --
+the first single-line-only grep pass missed several multi-line calls
+like `useTeachingTeam.tsx`'s `get_my_teaching_team`, caught and
+corrected before finalizing) plus a check of the 5 edge functions
+calling `.rpc()` (all confirmed `service_role`, already correctly
+granted by June) found the actual gap was narrow: everything created
+since June 3 was already born correctly narrow EXCEPT
+`invite_team_member` (real, live RPC --
+`useTeachingTeam.tsx:429`, team lead inviting a member -- had
+PUBLIC+anon open) and 7 trigger functions created after June 3 that
+were never audited (`check_max_profiles_per_user`,
+`ensure_single_default_profile`, `set_tenant_config_updated_at`,
+`update_branding_config_updated_at`, `update_feedback_questions_timestamp`,
+`update_modern_parables_updated_at`, `update_teacher_profile_updated_at`).
+
+**Verification methodology upgraded** after the table sweep's
+transcription-error lesson: rather than hand-retyping a 71-function
+approved matrix (the exact failure mode that caused 5 missed tables
+last time), computed the expected end-state PROGRAMMATICALLY from a
+live "before" grant snapshot plus only the 8 known deltas, then diffed
+against both the migration file's parsed REVOKE statements (pre-apply)
+and the live post-migration grants (post-apply). Caught and fixed two
+real bugs in the verification script itself before trusting its output
+(a named-vs-bare-type argument-signature mismatch, and an incorrect
+assertion that trigger functions should have zero grantees instead of
+just zero PUBLIC/anon/authenticated) -- both script bugs, not migration
+bugs; the underlying SQL was correct throughout. Final diff: EMPTY
+across all 71 functions, both before and after applying.
+
+`get_invite_by_token` confirmed keeping `anon` (no `PUBLIC` grant ever
+existed on it -- the deliberate Phase 2 anon-callable RPC). `ALTER
+DEFAULT PRIVILEGES` confirmed working via `pg_default_acl` -- new
+functions created by the `postgres` role no longer auto-grant EXECUTE
+to `PUBLIC`/`anon`/`authenticated` (only `postgres`/`service_role`
+remain in the default ACL). Same `supabase_admin`-role residual gap as
+Rule #36's table note -- not this project's actual function-creation
+path, not altered, documented not silently claimed as covered.
+
+Migration: `supabase/migrations/20260718160000_execute_grant_hardening.sql`.
+Rollback: `scripts/rollback_20260718160000_execute_grant_hardening.sql`
+(outside `supabase/migrations/`, same pattern as the table sweep).
+
+**Migration already applied to the live DB.** Code committed locally
+(migration + rollback + docs), **NOT pushed** -- holding for Lynn's
+regression pass: team invite as a non-admin lead (the one live-caller-
+affecting change), plus the 7 trigger-fire checks (new signup, tenant
+branding edit, feedback question edit, modern parable edit, teacher
+profile edit -- confirming triggers still fire despite EXECUTE
+revocation, matching June's identical production-proven treatment of
+10 other trigger functions).
+
+**THE FUNCTIONS/EXECUTE DEFAULT-PRIVILEGE BACKLOG ITEM (logged during
+the grant hardening sweep) IS NOW CLOSED.**
 
 ## >>> GRANT HARDENING SWEEP -- APPLIED LIVE, holding for Lynn's regression test
 July 18, 2026. Closes the longest-standing deferred security item: anon/
