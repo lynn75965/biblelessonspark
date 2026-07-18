@@ -43,8 +43,8 @@ export function useAdminOperations() {
 
       toast.success('User created successfully');
       return data;
-    } catch (error: any) {
-      toast.error(`Failed to create user: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to create user: ${(error as { message?: string }).message}`);
       throw error;
     } finally {
       setLoading(false);
@@ -77,8 +77,8 @@ export function useAdminOperations() {
 
       toast.success('User role updated successfully');
       return data;
-    } catch (error: any) {
-      toast.error(`Failed to update role: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to update role: ${(error as { message?: string }).message}`);
       throw error;
     } finally {
       setLoading(false);
@@ -114,8 +114,8 @@ export function useAdminOperations() {
 
       toast.success('User deleted successfully');
       return data;
-    } catch (error: any) {
-      toast.error(`Failed to delete user: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to delete user: ${(error as { message?: string }).message}`);
       throw error;
     } finally {
       setLoading(false);
@@ -148,8 +148,8 @@ export function useAdminOperations() {
 
       toast.success('Password reset successfully');
       return data;
-    } catch (error: any) {
-      toast.error(`Failed to reset password: ${error.message}`);
+    } catch (error) {
+      toast.error(`Failed to reset password: ${(error as { message?: string }).message}`);
       throw error;
     } finally {
       setLoading(false);

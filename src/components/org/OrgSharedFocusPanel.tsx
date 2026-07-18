@@ -217,11 +217,11 @@ export function OrgSharedFocusPanel({
       if (savedFocusId && confirm("Would you like to notify organization members about this focus?")) {
         await sendNotification(savedFocusId, isUpdate);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving shared focus:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save shared focus",
+        description: (error as { message?: string }).message || "Failed to save shared focus",
         variant: "destructive",
       });
     }
@@ -240,11 +240,11 @@ export function OrgSharedFocusPanel({
       if (error) throw error;
       toast({ title: "Success", description: "Shared focus deleted" });
       fetchFocusList();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error deleting shared focus:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to delete shared focus",
+        description: (error as { message?: string }).message || "Failed to delete shared focus",
         variant: "destructive",
       });
     }
@@ -283,11 +283,11 @@ export function OrgSharedFocusPanel({
           description: "You are the only member in this organization",
         });
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error sending notifications:", error);
       toast({
         title: "Notification Failed",
-        description: error.message || "Failed to send notifications",
+        description: (error as { message?: string }).message || "Failed to send notifications",
         variant: "destructive",
       });
     }

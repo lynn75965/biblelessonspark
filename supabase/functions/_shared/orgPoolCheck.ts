@@ -11,6 +11,7 @@
 //   lazily on read -- independent of the annual Stripe billing boundary
 // ============================================================
 
+import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ORG_POOL } from './organizationConfig.ts';
 
 /** Rolling pool window length in ms, sourced from the frontend SSOT. */
@@ -50,7 +51,7 @@ export interface OrgPoolCheckResult {
  * Check if user is a member of an organization and get their org details
  */
 export async function getOrgMembership(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ): Promise<OrgMembership | null> {
   const { data, error } = await supabase
@@ -90,7 +91,7 @@ export async function getOrgMembership(
  * Get organization's pool balance (subscription + bonus)
  */
 export async function getOrgPoolBalance(
-  supabase: any,
+  supabase: SupabaseClient,
   organizationId: string
 ): Promise<OrgPoolStatus | null> {
   const { data: org, error } = await supabase
@@ -155,7 +156,7 @@ export async function getOrgPoolBalance(
  * Must run BEFORE getOrgPoolBalance so the balance reflects any refill.
  */
 export async function rollOrgPoolPeriodIfElapsed(
-  supabase: any,
+  supabase: SupabaseClient,
   organizationId: string
 ): Promise<void> {
   const { data: org, error } = await supabase
@@ -207,7 +208,7 @@ export async function rollOrgPoolPeriodIfElapsed(
  * Complete org pool check - combines membership and balance check
  */
 export async function checkOrgPoolAccess(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ): Promise<OrgPoolCheckResult> {
   // Step 1: Check if user is an org member
@@ -260,7 +261,7 @@ export async function checkOrgPoolAccess(
  * @returns true if consumption succeeded, false if pool was empty
  */
 export async function consumeFromOrgPool(
-  supabase: any,
+  supabase: SupabaseClient,
   organizationId: string
 ): Promise<boolean> {
   // Get current pool status

@@ -171,7 +171,7 @@ export function OrgManagerTransferRequests({
 
     setSubmitting(true);
     try {
-      const updateData: Record<string, any> = {
+      const updateData: { status: TransferStatusValue; response_note: string | null; responded_at: string } = {
         status: agree ? TRANSFER_STATUS.PENDING_ADMIN : TRANSFER_STATUS.DECLINED_BY_ORG_MANAGER,
         response_note: responseNote.trim() || null,
         responded_at: new Date().toISOString(),
@@ -195,11 +195,11 @@ export function OrgManagerTransferRequests({
       setSelectedRequest(null);
       setResponseNote("");
       loadRequests();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error responding to transfer:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to respond to transfer request.",
+        description: (error as { message?: string }).message || "Failed to respond to transfer request.",
         variant: "destructive",
       });
     } finally {
@@ -228,11 +228,11 @@ export function OrgManagerTransferRequests({
       });
 
       loadRequests();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error cancelling request:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to cancel request.",
+        description: (error as { message?: string }).message || "Failed to cancel request.",
         variant: "destructive",
       });
     } finally {
@@ -370,9 +370,9 @@ export function OrgManagerTransferRequests({
                     )}
                     
                     {/* Terminal statuses */}
-                    {[TRANSFER_STATUS.APPROVED, TRANSFER_STATUS.DENIED, 
+                    {([TRANSFER_STATUS.APPROVED, TRANSFER_STATUS.DENIED,
                       TRANSFER_STATUS.DECLINED_BY_TEACHER, TRANSFER_STATUS.DECLINED_BY_ORG_MANAGER,
-                      TRANSFER_STATUS.CANCELLED].includes(request.status as any) && (
+                      TRANSFER_STATUS.CANCELLED] as readonly TransferStatusValue[]).includes(request.status as TransferStatusValue) && (
                       <span className="text-sm text-muted-foreground">
                         {request.processed_at || request.responded_at
                           ? new Date(request.processed_at || request.responded_at!).toLocaleDateString()

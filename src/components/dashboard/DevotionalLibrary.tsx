@@ -77,6 +77,21 @@ import {
   DEVOTIONAL_SERIES_LIMITS as LIMITS,
 } from "@/constants/devotionalSeriesConfig";
 import { ROUTES } from "@/constants/routes";
+import { Lesson, LessonFiltersRaw } from "@/constants/contracts";
+
+/**
+ * The raw lessons.* row fetched directly (not via LessonLibrary's
+ * transformToDisplay), used only for the "View Source Lesson" modal.
+ * ai_lesson_title is a display-only field transformToDisplay computes --
+ * this path never runs it, so that access is always undefined (dead,
+ * pre-existing -- flagged, not fixed). filters uses LessonFiltersRaw (the
+ * real snake_case runtime shape) rather than the LessonFilters SSOT type,
+ * consistent with no-explicit-any batch 1's finding. Added 2026-07-18.
+ */
+type SourceLessonRow = Omit<Lesson, 'filters'> & {
+  filters: LessonFiltersRaw | null;
+  ai_lesson_title?: string | null;
+};
 
 // ============================================================================
 // TYPES
@@ -130,7 +145,7 @@ export function DevotionalLibrary() {
 
   // View devotional modal
   const [selectedDevotional, setSelectedDevotional] = useState<Devotional | null>(null);
-  const [sourceLesson, setSourceLesson] = useState<any>(null);
+  const [sourceLesson, setSourceLesson] = useState<SourceLessonRow | null>(null);
   const [loadingSource, setLoadingSource] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -275,8 +290,8 @@ export function DevotionalLibrary() {
       setNewSeriesName("");
       setNewSeriesDescription("");
       fetchSeries();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to create series.", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Error", description: (err as { message?: string }).message || "Failed to create series.", variant: "destructive" });
     } finally {
       setCreating(false);
     }
@@ -312,8 +327,8 @@ export function DevotionalLibrary() {
       refetch();
       fetchSeries();
       if (expandedSeriesId === seriesId) fetchSeriesDevotionals(seriesId);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to add to series.", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Error", description: (err as { message?: string }).message || "Failed to add to series.", variant: "destructive" });
     }
   };
 
@@ -336,8 +351,8 @@ export function DevotionalLibrary() {
       refetch();
       fetchSeries();
       if (expandedSeriesId) fetchSeriesDevotionals(expandedSeriesId);
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to remove from series.", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Error", description: (err as { message?: string }).message || "Failed to remove from series.", variant: "destructive" });
     }
   };
 
@@ -450,8 +465,8 @@ export function DevotionalLibrary() {
       }
       refetch();
       fetchSeries();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Failed to delete series.", variant: "destructive" });
+    } catch (err) {
+      toast({ title: "Error", description: (err as { message?: string }).message || "Failed to delete series.", variant: "destructive" });
     }
   };
 
@@ -501,7 +516,7 @@ export function DevotionalLibrary() {
         .eq("id", lessonId)
         .single();
       if (error) throw error;
-      setSourceLesson(data);
+      setSourceLesson(data as unknown as SourceLessonRow);
     } catch {
       toast({ title: "Error", description: "Could not load source lesson.", variant: "destructive" });
     } finally {

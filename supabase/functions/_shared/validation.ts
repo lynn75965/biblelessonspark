@@ -35,20 +35,20 @@ export interface LessonRequest {
   freshness_mode?: string;
   include_liturgical?: boolean;
   include_cultural?: boolean;
-  freshness_suggestions?: any;
+  freshness_suggestions?: unknown;
   // Series support
-  lesson_number?: number;
-  total_lessons?: number;
+  lesson_number?: number | null;
+  total_lessons?: number | null;
   // Consistent Style Mode
   extract_style_metadata?: boolean;
-  series_style_context?: any;
+  series_style_context?: unknown;
 }
 
 /**
  * Validates and sanitizes lesson generation request
  * @throws Error if validation fails
  */
-export function validateLessonRequest(data: any): LessonRequest {
+export function validateLessonRequest(data: Partial<LessonRequest>): LessonRequest {
   // Required field validation - now accepts extracted_content as alternative
   if (!data.bible_passage && !data.focused_topic && !data.extracted_content) {
     throw new Error('Either bible_passage, focused_topic, or extracted_content is required');
@@ -101,7 +101,7 @@ export function validateLessonRequest(data: any): LessonRequest {
     if (data.activity_types.length > 10) {
       throw new Error('activity_types must contain 10 or fewer items');
     }
-    data.activity_types.forEach((type: any) => {
+    data.activity_types.forEach((type) => {
       if (typeof type !== 'string' || type.length > 100) {
         throw new Error('Each activity_type must be a string of 100 characters or less');
       }

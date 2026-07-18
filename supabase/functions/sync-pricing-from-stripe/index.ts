@@ -23,6 +23,14 @@ const getLookupKeyInfo = (lookupKey: string) => {
   return { tier, interval };
 };
 
+interface TierPriceInfo {
+  lookupKey: string;
+  priceId: string;
+  productId: string;
+  amount: number | null;
+  currency: string;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -88,13 +96,13 @@ serve(async (req) => {
 
     const summary = {
       mode,
-      updated: [] as any[],
+      updated: [] as unknown[],
       reused: [] as string[],
-      errors: [] as any[],
+      errors: [] as unknown[],
     };
 
     // Group lookup keys by tier (monthly/yearly pairs)
-    const tierGroups: Record<string, { monthly?: any; yearly?: any }> = {};
+    const tierGroups: Record<string, { monthly?: TierPriceInfo; yearly?: TierPriceInfo }> = {};
 
     for (const lookupKey of CANONICAL_LOOKUP_KEYS) {
       console.log(`Fetching price for lookup_key: ${lookupKey}`);

@@ -46,12 +46,12 @@ serve(async (req) => {
         { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
       )
     }
-    let webhookData: any
+    let webhookData: unknown
     try {
       const wh = new Webhook(hookSecret)
       webhookData = wh.verify(payload, headers)
-    } catch (verifyErr: any) {
-      console.error('Webhook signature verification failed:', verifyErr?.message)
+    } catch (verifyErr) {
+      console.error('Webhook signature verification failed:', (verifyErr as { message?: string })?.message)
       return new Response(
         JSON.stringify({ error: { message: 'Invalid signature' } }),
         { status: 401, headers: { 'Content-Type': 'application/json', ...corsHeaders } }
@@ -182,16 +182,17 @@ serve(async (req) => {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in send-auth-email function:', error)
+    const err = error as { message?: string; code?: number }
     return new Response(
       JSON.stringify({
         error: {
-          message: error.message || 'Internal server error',
+          message: err.message || 'Internal server error',
         },
       }),
       {
-        status: error.code === 401 ? 401 : 500,
+        status: err.code === 401 ? 401 : 500,
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       }
     )

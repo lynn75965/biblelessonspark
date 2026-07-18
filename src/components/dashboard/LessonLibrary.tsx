@@ -51,7 +51,7 @@ import { useToast } from "@/hooks/use-toast";
 import { UpgradePromptModal } from "@/components/subscription/UpgradePromptModal";
 import { ROUTES } from "@/constants/routes";
 import { LESSON_LIBRARY_TEXT } from "@/constants/dashboardConfig";
-import { Lesson, LESSONS_TABLE } from "@/constants/contracts";
+import { Lesson, LESSONS_TABLE, ViewingLesson, LessonFiltersRaw } from "@/constants/contracts";
 import { SERIES_LIMITS } from "@/constants/seriesConfig";
 import { AGE_GROUPS } from "@/constants/ageGroups";
 import { getTheologyProfile, getTheologyProfileOptions, getDefaultTheologyProfile, getProfileBadgeClass, DEFAULT_BADGE_CLASS } from "@/constants/theologyProfiles";
@@ -68,7 +68,7 @@ import {
 // ============================================================================
 
 interface LessonLibraryProps {
-  onViewLesson?: (lesson: any) => void;
+  onViewLesson?: (lesson: ViewingLesson) => void;
   onCreateNew?: () => void;
   organizationId?: string;
 }
@@ -158,12 +158,21 @@ const extractPrimaryScripture = (content: string): string | null => {
 /**
  * Transform a raw lesson row into LessonDisplay format
  * Used for both user's own lessons and team lessons
+ *
+ * `lesson` is left untyped (no-explicit-any batch 2, 2026-07-18): this is
+ * called with 3 structurally different shapes -- a full Lesson row, a
+ * get_team_lessons RPC row, and a hand-built object for shepherd lessons
+ * that genuinely omits required Lesson fields (source_type, upload_path,
+ * organization_id). Typing it honestly would force either loosening
+ * LessonDisplay's required-field contract (wide ripple through this file)
+ * or changing the shepherd object's construction (a runtime-adjacent
+ * change) -- neither is a type-only fix. Flagged for Lynn.
  */
 const transformToDisplay = (
   lesson: any,
   options?: { isTeamLesson?: boolean; isShepherdLesson?: boolean; authorName?: string }
 ): LessonDisplay => {
-  const filters = lesson.filters as Record<string, any> | null;
+  const filters = lesson.filters as (LessonFiltersRaw & { passageOrTopic?: string }) | null;
   const aiGeneratedTitle = extractLessonTitle(lesson.original_text || "");
   const userInputPassage = filters?.bible_passage || null;
   const userInputTopic = filters?.focused_topic || null;
@@ -333,7 +342,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
       // (author_name). The local nameMap cannot resolve the LEAD's name for a
       // member viewer (members[] holds only non-lead rows), so the resolver value
       // is authoritative; nameMap and a generic label remain as fallbacks.
-      const transformed = (data || []).map((lesson: any) =>
+      const transformed = (data || []).map((lesson) =>
         transformToDisplay(lesson, {
           isTeamLesson: true,
           authorName: lesson.author_name || nameMap[lesson.user_id] || "Team Member",
@@ -361,7 +370,7 @@ export function LessonLibrary({ onViewLesson, onCreateNew, organizationId }: Les
         setShepherdLessons([]);
         return;
       }
-      const transformed = (data || []).map((row: any) =>
+      const transformed = (data || []).map((row) =>
         transformToDisplay(
           {
             id: row.lesson_id,

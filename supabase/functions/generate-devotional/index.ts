@@ -22,7 +22,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // SSOT Imports
 import {
@@ -49,7 +49,7 @@ import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuar
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
 import { parseDeviceType, parseBrowser, parseOS } from "../_shared/generationMetrics.ts";
-import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, AnthropicUsage } from "../_shared/anthropicRetry.ts";
 import { logCapacityEvent } from "../_shared/capacityEvents.ts";
 
 // ============================================================================
@@ -89,6 +89,18 @@ interface DevotionalRequest {
   // Source lesson reference
   source_lesson_id?: string;
   lesson_title?: string;
+}
+
+/**
+ * check_devotional_limit RPC return shape (authoritative source:
+ * src/integrations/supabase/types.ts). Added 2026-07-18 (no-explicit-any batch 2).
+ */
+interface DevotionalLimitCheck {
+  can_generate: boolean;
+  devotionals_limit: number;
+  devotionals_used: number;
+  period_end: string;
+  period_start: string;
 }
 
 interface DevotionalResponse {
@@ -465,7 +477,7 @@ serve(async (req: Request) => {
   // Telemetry handles. Declared outside the try so the outer catch can stamp a
   // failed attempt even if an unexpected error escapes after the row is created.
   let metricId: string | null = null;
-  let metricsClient: any = null;
+  let metricsClient: SupabaseClient | null = null;
 
   try {
     // ========================================================================
@@ -557,8 +569,8 @@ serve(async (req: Request) => {
 
       // Per-user monthly limit -- FAIL CLOSED: any error, thrown rejection, or
       // missing result rejects (503) and never reaches the paid Anthropic call.
-      let limitData: any;
-      let limitError: any;
+      let limitData: DevotionalLimitCheck[] | null;
+      let limitError: unknown;
       try {
         ({ data: limitData, error: limitError } = await supabase
           .rpc("check_devotional_limit", { p_user_id: user.id }));
@@ -832,7 +844,7 @@ serve(async (req: Request) => {
     console.log("[generate-devotional] Anthropic response received (model:", devotionalResult.modelUsed, "attempts:", devotionalResult.attempts, ")");
 
     let generatedContent = devotionalResult.text;
-    const rawUsage = (devotionalResult.raw as any)?.usage;
+    const rawUsage = (devotionalResult.raw as { usage?: AnthropicUsage })?.usage;
     const tokensInput = rawUsage?.input_tokens || 0;
     const tokensOutput = rawUsage?.output_tokens || 0;
 
@@ -976,7 +988,7 @@ serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("[generate-devotional] Unexpected error:", error);
     if (metricsClient && metricId) {
       try {
@@ -986,7 +998,7 @@ serve(async (req: Request) => {
             generation_end: new Date().toISOString(),
             generation_duration_ms: Date.now() - startTime,
             status: "error",
-            error_message: `Unexpected: ${error?.message ?? "unknown"}`,
+            error_message: `Unexpected: ${(error as { message?: string })?.message ?? "unknown"}`,
           })
           .eq("id", metricId);
       } catch (_) {

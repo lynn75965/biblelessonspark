@@ -74,11 +74,11 @@ export default function OrgManager() {
   const hasAccess = effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader;
 
   // Phase N4: Can this org create children? (level < maxDepth)
-  const currentOrgLevel = (organization as any)?.org_level ?? 1;
+  const currentOrgLevel = organization?.org_level ?? 1;
   const canCreateChild = hasAccess && isWithinMaxDepth(currentOrgLevel);
 
   // Phase N6: Detect if this org is a child (has parent_org_id)
-  const parentOrgId = (organization as any)?.parent_org_id as string | null;
+  const parentOrgId = organization?.parent_org_id ?? null;
   const isChildOrg = !!parentOrgId;
 
   // Phase N6: Focus adoption map for Network tab (parent sees adoption status)
@@ -176,8 +176,8 @@ export default function OrgManager() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Request failed');
       toast({ title: 'Request Submitted', description: json.message });
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: (err as { message?: string }).message, variant: 'destructive' });
     } finally {
       setRequestingClosure(false);
     }
@@ -513,7 +513,7 @@ export default function OrgManager() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {(organization as any)?.deletion_requested_at ? (
+                  {organization?.deletion_requested_at ? (
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50">
                         {ORG_DELETION_REQUEST.uiCopy.pendingBadge}

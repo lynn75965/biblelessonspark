@@ -79,15 +79,16 @@ Deno.serve(async (req) => {
       .select('user_id')
       .eq('organization_id', org_id);
 
-    const memberIds = (members || []).map((m: any) => m.user_id);
-    let memberProfiles: { email: string; full_name: string }[] = [];
+    const memberIds = (members as { user_id: string }[] || []).map((m) => m.user_id);
+    let memberProfiles: { email: string; full_name: string | null }[] = [];
 
     if (memberIds.length > 0) {
-      const { data: profiles } = await adminClient
+      const { data: profilesRaw } = await adminClient
         .from('profiles')
         .select('email, full_name')
         .in('id', memberIds);
-      memberProfiles = (profiles || []).filter((p: any) => !!p.email);
+      const profiles = profilesRaw as { email: string | null; full_name: string | null }[] | null;
+      memberProfiles = (profiles || []).filter((p): p is { email: string; full_name: string | null } => !!p.email);
     }
 
     // Send dissolution notice to all members BEFORE deletion
@@ -160,9 +161,9 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Unexpected error:', error);
-    return new Response(JSON.stringify({ error: error?.message || 'Internal server error' }),
+    return new Response(JSON.stringify({ error: (error as { message?: string })?.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

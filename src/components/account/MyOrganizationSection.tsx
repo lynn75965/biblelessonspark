@@ -221,11 +221,11 @@ export function MyOrganizationSection() {
       setShowInitiateDialog(false);
       resetForm();
       loadData();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error initiating transfer:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to submit transfer request.",
+        description: (error as { message?: string }).message || "Failed to submit transfer request.",
         variant: "destructive",
       });
     } finally {
@@ -239,7 +239,7 @@ export function MyOrganizationSection() {
 
     setSubmitting(true);
     try {
-      const updateData: Record<string, any> = {
+      const updateData: { status: TransferStatusValue; response_note: string | null; responded_at: string } = {
         status: agree ? TRANSFER_STATUS.PENDING_ADMIN : TRANSFER_STATUS.DECLINED_BY_TEACHER,
         response_note: responseNote.trim() || null,
         responded_at: new Date().toISOString(),
@@ -262,11 +262,11 @@ export function MyOrganizationSection() {
       setShowRespondDialog(false);
       setResponseNote("");
       loadData();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error responding to transfer:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to respond to transfer request.",
+        description: (error as { message?: string }).message || "Failed to respond to transfer request.",
         variant: "destructive",
       });
     } finally {
@@ -297,11 +297,11 @@ export function MyOrganizationSection() {
 
       setShowCancelDialog(false);
       loadData();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error cancelling request:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to cancel transfer request.",
+        description: (error as { message?: string }).message || "Failed to cancel transfer request.",
         variant: "destructive",
       });
     } finally {

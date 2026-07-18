@@ -84,7 +84,7 @@ export function useInvites() {
         description: `An invitation email has been sent to ${email}`,
       });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error sending invite:', error);
       toast({
         title: 'Error',
@@ -212,7 +212,7 @@ export function useInvites() {
       }
 
       return data || [];
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching invites:', error);
       toast({
         title: 'Error',
@@ -245,7 +245,7 @@ export function useInvites() {
       }
 
       return data || [];
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching org invites:', error);
       toast({
         title: 'Error',
@@ -281,7 +281,7 @@ export function useInvites() {
         description: 'The invitation has been canceled.',
       });
       return true;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error canceling invite:', error);
       toast({
         title: 'Error',

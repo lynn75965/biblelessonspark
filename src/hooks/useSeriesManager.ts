@@ -16,6 +16,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { Database, Json } from "@/integrations/supabase/types";
 import {
   LessonSeries,
   SeriesStyleMetadata,
@@ -25,6 +26,8 @@ import {
   getNextLessonNumber,
   isSeriesComplete,
 } from "@/constants/seriesConfig";
+
+type LessonSeriesRow = Database['public']['Tables']['lesson_series']['Row'];
 
 // ============================================================================
 // HOOK RETURN TYPE
@@ -73,11 +76,11 @@ export function useSeriesManager(): UseSeriesManagerReturn {
   // SHARED: Cast Supabase JSONB fields to typed arrays
   // ============================================================================
 
-  const castSeriesRows = (data: any[]): LessonSeries[] => {
+  const castSeriesRows = (data: LessonSeriesRow[]): LessonSeries[] => {
     return (data || []).map(row => ({
       ...row,
-      lesson_summaries: (row.lesson_summaries as SeriesLessonSummary[]) || [],
-      style_metadata: row.style_metadata as SeriesStyleMetadata | null,
+      lesson_summaries: (row.lesson_summaries as unknown as SeriesLessonSummary[]) || [],
+      style_metadata: row.style_metadata as unknown as SeriesStyleMetadata | null,
       status: row.status as LessonSeries['status'],
     }));
   };
@@ -312,7 +315,7 @@ export function useSeriesManager(): UseSeriesManagerReturn {
       const { error } = await supabase
         .from('lesson_series')
         .update({
-          style_metadata: styleMetadata as any,
+          style_metadata: styleMetadata as unknown as Json,
           updated_at: new Date().toISOString(),
         })
         .eq('id', seriesId);
@@ -366,7 +369,7 @@ export function useSeriesManager(): UseSeriesManagerReturn {
       // Check if series should auto-complete
       const shouldComplete = updatedSummaries.length >= current.total_lessons;
 
-      const updateData: any = {
+      const updateData: { lesson_summaries: SeriesLessonSummary[]; updated_at: string; status?: string } = {
         lesson_summaries: updatedSummaries,
         updated_at: new Date().toISOString(),
       };
@@ -377,7 +380,11 @@ export function useSeriesManager(): UseSeriesManagerReturn {
 
       const { error: updateError } = await supabase
         .from('lesson_series')
-        .update(updateData)
+        .update({
+          lesson_summaries: updateData.lesson_summaries as unknown as Json,
+          updated_at: updateData.updated_at,
+          ...(updateData.status ? { status: updateData.status } : {}),
+        })
         .eq('id', seriesId);
 
       if (updateError) {

@@ -60,14 +60,14 @@ interface OrgLesson {
     bible_passage?: string;
     age_group?: string;
     focused_topic?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   metadata: {
     ageGroup?: string;
     teaser?: string;
     wordCount?: number;
     theologyProfile?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
   created_at: string;
   user_id: string;
@@ -146,7 +146,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
         return;
       }
 
-      const rows = (data ?? []) as any[];
+      const rows = data ?? [];
       const map: ProfileMap = {};
       const mapped: OrgLesson[] = rows.map((row) => {
         if (row.author_name) map[row.user_id] = { full_name: row.author_name };
@@ -160,7 +160,7 @@ export function OrgLessonsPanel({ organizationId, organizationName }: OrgLessons
             age_group: row.age_group ?? undefined,
             theology_profile_id: row.theology_profile ?? undefined,
           },
-          metadata: row.metadata ?? null,
+          metadata: (row.metadata ?? null) as unknown as OrgLesson['metadata'],
           created_at: row.created_at,
           user_id: row.user_id,
           organization_id: organizationId,

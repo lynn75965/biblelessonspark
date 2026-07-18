@@ -275,6 +275,17 @@ export interface AnthropicUsage {
   cache_read_input_tokens?: number;
 }
 
+/**
+ * Anthropic's Messages API raw JSON response shape (content blocks +
+ * stop_reason). Narrows the `resp.json()` result and `NonStreamingSuccess.raw`
+ * without `any`. Added 2026-07-18 (no-explicit-any batch 2).
+ */
+export interface AnthropicRawResponse {
+  content?: { type: string; text?: string }[];
+  stop_reason?: string;
+  usage?: AnthropicUsage;
+}
+
 export async function callAnthropicNonStreaming(
   opts: NonStreamingCallOptions,
 ): Promise<NonStreamingSuccess | NonStreamingFailure> {
@@ -313,10 +324,10 @@ export async function callAnthropicNonStreaming(
           return classifyErrorResponse(resp.status, bodyText, resp.headers.get("retry-after"));
         }
 
-        const json = await resp.json();
+        const json = await resp.json() as AnthropicRawResponse;
         const text =
-          (json as any)?.content?.find?.((c: any) => c?.type === "text")?.text ??
-          (json as any)?.content?.[0]?.text ??
+          json?.content?.find?.((c) => c?.type === "text")?.text ??
+          json?.content?.[0]?.text ??
           "";
         if (!text) {
           return { kind: "retryable" as const, errorClass: "malformed" as const, detail: "empty_completion" };
@@ -339,7 +350,7 @@ export async function callAnthropicNonStreaming(
       ok: true,
       text: result.value.text,
       raw: result.value.raw,
-      stopReason: (result.value.raw as any)?.stop_reason,
+      stopReason: (result.value.raw as AnthropicRawResponse)?.stop_reason,
       modelUsed: result.modelUsed,
       attempts: result.attempts,
     };

@@ -50,14 +50,14 @@ export interface BrandingEmail {
   replyTo: string;
   subjects: BrandingEmailSubjects;
   // Other email properties available but not typed here for brevity
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface BrandingUrls {
   domain: string;
   baseUrl: string;
   support: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface BrandingConfig {
@@ -69,10 +69,10 @@ export interface BrandingConfig {
     supportEmail: string;
     noReplyEmail: string;
     emailSenderName: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   email: BrandingEmail;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // ============================================================================

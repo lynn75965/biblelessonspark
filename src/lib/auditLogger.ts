@@ -5,7 +5,7 @@ export interface AuditLogEntry {
   action: string;
   resource_type: string;
   resource_id?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   ip_address?: string;
   user_agent?: string;
 }
@@ -57,7 +57,7 @@ async function getClientIP(): Promise<string> {
 /**
  * Log user authentication events
  */
-export function logAuthEvent(action: 'login' | 'logout' | 'signup' | 'password_reset', userId: string, details?: Record<string, any>) {
+export function logAuthEvent(action: 'login' | 'logout' | 'signup' | 'password_reset', userId: string, details?: Record<string, unknown>) {
   logAuditEvent({
     user_id: userId,
     action: `auth_${action}`,
@@ -69,7 +69,7 @@ export function logAuthEvent(action: 'login' | 'logout' | 'signup' | 'password_r
 /**
  * Log lesson-related events
  */
-export function logLessonEvent(action: 'create' | 'update' | 'delete' | 'view', userId: string, lessonId?: string, details?: Record<string, any>) {
+export function logLessonEvent(action: 'create' | 'update' | 'delete' | 'view', userId: string, lessonId?: string, details?: Record<string, unknown>) {
   logAuditEvent({
     user_id: userId,
     action: `lesson_${action}`,
@@ -82,7 +82,7 @@ export function logLessonEvent(action: 'create' | 'update' | 'delete' | 'view', 
 /**
  * Log file upload events
  */
-export function logFileUploadEvent(userId: string, fileName: string, fileSize: number, success: boolean, details?: Record<string, any>) {
+export function logFileUploadEvent(userId: string, fileName: string, fileSize: number, success: boolean, details?: Record<string, unknown>) {
   logAuditEvent({
     user_id: userId,
     action: success ? 'file_upload_success' : 'file_upload_failure',
@@ -98,7 +98,7 @@ export function logFileUploadEvent(userId: string, fileName: string, fileSize: n
 /**
  * Log security events
  */
-export function logSecurityEvent(action: string, userId: string, details?: Record<string, any>) {
+export function logSecurityEvent(action: string, userId: string, details?: Record<string, unknown>) {
   logAuditEvent({
     user_id: userId,
     action: `security_${action}`,

@@ -50,6 +50,10 @@ interface BetaFeedbackFormProps {
   onCancel?: () => void;
 }
 
+/** A feedback response value -- stars/nps use number, boolean uses boolean,
+ *  select preserves the option's original type, textarea uses string. */
+type ResponseValue = string | number | boolean | null;
+
 export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedbackFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -60,7 +64,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
   const [loadError, setLoadError] = useState<string | null>(null);
   
   // Form responses keyed by columnName
-  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [responses, setResponses] = useState<Record<string, ResponseValue>>({});
   
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -86,7 +90,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
         setQuestions(data as FeedbackQuestion[]);
         
         // Initialize responses with empty values
-        const initialResponses: Record<string, any> = {};
+        const initialResponses: Record<string, ResponseValue> = {};
         (data as FeedbackQuestion[]).forEach(q => {
           initialResponses[q.columnName] = q.type === 'boolean' ? null : 
                                            q.type === 'stars' || q.type === 'nps' ? 0 : '';
@@ -105,7 +109,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
   }, []);
 
   // Update a response value
-  const updateResponse = (columnName: string, value: any) => {
+  const updateResponse = (columnName: string, value: ResponseValue) => {
     setResponses(prev => ({ ...prev, [columnName]: value }));
   };
 
@@ -148,7 +152,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
 
     try {
       // Build submission object from responses
-      const submission: Record<string, any> = {
+      const submission: Record<string, ResponseValue> = {
         user_id: user.id,
         lesson_id: lessonId || null,
         is_beta_feedback: CURRENT_FEEDBACK_MODE === 'beta',
@@ -189,7 +193,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
   // Render star rating input
   const renderStars = (question: FeedbackQuestion) => {
     const maxStars = question.maxValue || 5;
-    const currentValue = responses[question.columnName] || 0;
+    const currentValue = (responses[question.columnName] as number) || 0;
     const hovered = hoveredStar[question.columnName] || 0;
     
     return (
@@ -309,7 +313,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
   const renderTextarea = (question: FeedbackQuestion) => {
     return (
       <Textarea
-        value={responses[question.columnName] || ''}
+        value={(responses[question.columnName] as string) || ''}
         onChange={(e) => updateResponse(question.columnName, e.target.value)}
         placeholder={question.placeholder || ''}
         maxLength={question.maxLength || 2000}
@@ -370,7 +374,7 @@ export function BetaFeedbackForm({ lessonId, onSuccess, onCancel }: BetaFeedback
   // Reset form for another submission
   const handleSubmitAnother = () => {
     // Reset responses to initial values
-    const initialResponses: Record<string, any> = {};
+    const initialResponses: Record<string, ResponseValue> = {};
     questions.forEach(q => {
       initialResponses[q.columnName] = q.type === 'boolean' ? null :
                                        q.type === 'stars' || q.type === 'nps' ? 0 : '';

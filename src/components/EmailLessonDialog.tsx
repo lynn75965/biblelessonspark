@@ -228,9 +228,9 @@ export function EmailLessonDialog({
       setNewRosterName("");
       setShowSaveRoster(false);
       await loadRosters();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Save roster error:", err);
-      toast({ title: "Failed to save roster", description: err.message, variant: "destructive" });
+      toast({ title: "Failed to save roster", description: (err as { message?: string }).message, variant: "destructive" });
     } finally {
       setSavingRoster(false);
     }
@@ -263,7 +263,7 @@ export function EmailLessonDialog({
       });
 
       await loadRosters();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Update roster error:", err);
       toast({ title: "Failed to update roster", variant: "destructive" });
     } finally {
@@ -298,7 +298,7 @@ export function EmailLessonDialog({
       }
 
       await loadRosters();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Delete roster error:", err);
       toast({ title: "Failed to delete roster", variant: "destructive" });
     } finally {
@@ -411,7 +411,7 @@ export function EmailLessonDialog({
       } else {
         throw new Error(data?.error || "Unknown error");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Email send error:", err);
       toast({
         title: labels.errorTitle,

@@ -32,6 +32,14 @@ import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 import { ORG_DELETION_REQUEST } from "@/constants/organizationConfig";
 import { ADMIN_ANALYTICS_TAB_LABELS } from "@/constants/adminAnalyticsConfig";
+import type { Database } from "@/integrations/supabase/types";
+
+interface PendingOrgDeletion {
+  id: string;
+  name: string;
+  deletion_requested_at: string | null;
+  deletion_requested_by: string | null;
+}
 
 // Mobile responsiveness fixes (December 4, 2025)
 // SSOT Fix: Query 'feedback' table with is_beta_feedback flag (December 10, 2025)
@@ -53,7 +61,7 @@ export default function Admin() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { settings } = useSystemSettings();
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<Database['public']['Tables']['profiles']['Row'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [betaStats, setBetaStats] = useState({
     totalBetaTesters: 0,
@@ -61,7 +69,7 @@ export default function Admin() {
     feedbackCount: 0,
     averageRating: null as number | null,
   });
-  const [pendingOrgDeletions, setPendingOrgDeletions] = useState<any[]>([]);
+  const [pendingOrgDeletions, setPendingOrgDeletions] = useState<PendingOrgDeletion[]>([]);
   const [approvingOrgId, setApprovingOrgId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -209,8 +217,8 @@ export default function Admin() {
       if (!res.ok) throw new Error(json.error || 'Approval failed');
       toast({ title: 'Organization Deleted', description: json.message });
       setPendingOrgDeletions(prev => prev.filter(o => o.id !== orgId));
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: (err as { message?: string }).message, variant: 'destructive' });
     } finally {
       setApprovingOrgId(null);
     }
