@@ -70,19 +70,14 @@ jobs:
         run: node scripts/guardrail-pattern-fixtures.mts
 
   lint:
-    name: Lint (report-only)
+    name: Lint
     runs-on: ubuntu-latest
-    # Baseline reduced 2026-07-15 (B5 item 5 session) to exactly two
-    # categories left: no-explicit-any (246 errors, deferred to its own
-    # session -- see PROJECT_MASTER.md backlog table) and one parsing
-    # error in temp_working_version.ts (B5 item 6). Every other rule was
-    # zeroed. Deliberately NOT using continue-on-error:
-    # that flag still renders the job as failing/flagged in the Checks UI.
-    # Instead the step below always exits 0 and prints the problem count as
-    # its own summary line, so the job is genuinely green and the baseline
-    # number is still visible to anyone who opens the log. Flip this back to
-    # a plain `npm run lint` (job fails on errors) once a dedicated cleanup
-    # session zeroes the baseline.
+    # Blocking again as of 2026-07-18 (no-explicit-any batch 3 -- see
+    # PROJECT_MASTER.md). Both report-only conditions are now met:
+    # @typescript-eslint/no-explicit-any is at zero (three justified,
+    # line-scoped eslint-disable exceptions remain) and temp_working_version.ts
+    # (the parsing-error file) is gone. A new lint error now fails this job,
+    # same as the local pre-commit posture.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -96,18 +91,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint (never fails this job -- see LINT BASELINE line below)
-        run: |
-          set +e
-          npm run lint > /tmp/lint-output.txt 2>&1
-          cat /tmp/lint-output.txt
-          SUMMARY=$(grep -E '[0-9]+ problems \(' /tmp/lint-output.txt | tail -1)
-          echo ""
-          echo "=========================================="
-          if [ -n "$SUMMARY" ]; then
-            echo "LINT BASELINE: $SUMMARY -- non-blocking, job intentionally green"
-          else
-            echo "LINT BASELINE: 0 problems -- non-blocking, job intentionally green"
-          fi
-          echo "=========================================="
-          exit 0
+      - name: Lint
+        run: npm run lint
