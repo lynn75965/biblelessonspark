@@ -45,6 +45,7 @@ const FILES_TO_SYNC = [
   'scriptureIntegrityGuardrail.ts',
   'modelConfig.ts',
   'conversionEvents.ts',
+  'concurrencyConfig.ts',
 ];
 function generateHeader(sourceFile) {
   return `/**

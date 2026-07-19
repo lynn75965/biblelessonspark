@@ -39,7 +39,9 @@ import {
 } from "../_shared/toolbeltConfig.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
-import { callAnthropicNonStreaming, getForcedErrorClass, type AnthropicRawResponse } from "../_shared/anthropicRetry.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, BUSY_MESSAGE, type AnthropicRawResponse } from "../_shared/anthropicRetry.ts";
+import { claimGenerationSlot, releaseGenerationSlot } from "../_shared/generationAdmission.ts";
+import { logCapacityEvent } from "../_shared/capacityEvents.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -357,24 +359,49 @@ serve(async (req) => {
     // 4. CALL ANTHROPIC API (retry + model fallback, B4)
     // ========================================================================
 
+    // ========================================================================
+    // 3b. ADMISSION CONTROL (B8 Session 1) -- claim a concurrency slot before
+    // the paid Anthropic call. Immediate-reject policy: this function's own
+    // 90s totalBudgetMs has no slack for a poll-wait. No authenticated user
+    // on this public tool -- userId is always null.
+    // ========================================================================
+    const admission = await claimGenerationSlot(supabase, { source: "toolbelt-reflect", userId: null });
+    if (!admission.claimed) {
+      await logCapacityEvent(supabase, {
+        userId: null,
+        source: "toolbelt-reflect",
+        eventType: admission.reason === "cooldown" ? "admission_cooldown_rejected" : "admission_rejected",
+      });
+      await refundRateLimits(supabase, rateLimitScopes);
+      return new Response(
+        JSON.stringify({ success: false, error: BUSY_MESSAGE, code: "AI_TEMPORARILY_UNAVAILABLE" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const forcedErrorClass = getForcedErrorClass(req);
-    const anthropicResult = await callAnthropicNonStreaming({
-      functionName: "toolbelt-reflect",
-      callLabel: "reflection",
-      callSite: "toolbeltReflect",
-      apiKey: anthropicApiKey,
-      primaryModel: ANTHROPIC_MODELS.default,
-      fallbackModel: ANTHROPIC_MODELS.fallback,
-      forcedErrorClass,
-      buildBody: (model) => ({
-        model,
-        max_tokens: TOOLBELT_THRESHOLDS.maxTokensPerCall,
-        messages: [
-          { role: "user", content: userPrompt }
-        ],
-        system: systemPrompt,
-      }),
-    });
+    let anthropicResult;
+    try {
+      anthropicResult = await callAnthropicNonStreaming({
+        functionName: "toolbelt-reflect",
+        callLabel: "reflection",
+        callSite: "toolbeltReflect",
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODELS.default,
+        fallbackModel: ANTHROPIC_MODELS.fallback,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
+          max_tokens: TOOLBELT_THRESHOLDS.maxTokensPerCall,
+          messages: [
+            { role: "user", content: userPrompt }
+          ],
+          system: systemPrompt,
+        }),
+      });
+    } finally {
+      await releaseGenerationSlot(supabase, admission.slotId);
+    }
 
     if (!anthropicResult.ok) {
       // Terminal failure after retries/fallback exhausted -- refund the three

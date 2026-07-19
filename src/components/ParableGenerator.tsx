@@ -480,7 +480,21 @@ export function ParableGenerator({
       });
 
       if (fnError) {
-        throw new Error(fnError.message || 'Failed to generate parable');
+        // supabase-js's fnError.message is a generic "non-2xx status code"
+        // string -- the real { error, code } body (e.g. the B8 admission-
+        // control "Service Busy" text) lives on fnError.context, a Response.
+        // Mirrors DevotionalGenerator.tsx's readEdgeError.
+        let bodyMessage: string | undefined;
+        const context = (fnError as { context?: Response }).context;
+        if (context && typeof context.json === 'function') {
+          try {
+            const body = await context.json();
+            bodyMessage = body?.error || body?.message;
+          } catch {
+            // Body was not JSON -- fall through to the generic message.
+          }
+        }
+        throw new Error(bodyMessage || fnError.message || 'Failed to generate parable');
       }
 
       if (!data || !data.success || !data.parable || !data.parable.parable_text) {

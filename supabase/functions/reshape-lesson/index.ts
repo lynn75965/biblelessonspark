@@ -7,7 +7,9 @@ import { getShapeById, ShapeId } from '../_shared/lessonShapeProfiles.ts';
 import { RESHAPE_RULE } from '../_shared/featureFlags.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
 import { checkOrgPoolAccess, consumeFromOrgPool } from '../_shared/orgPoolCheck.ts';
-import { callAnthropicNonStreaming, getForcedErrorClass, AnthropicUsage } from '../_shared/anthropicRetry.ts';
+import { callAnthropicNonStreaming, getForcedErrorClass, AnthropicUsage, BUSY_MESSAGE } from '../_shared/anthropicRetry.ts';
+import { claimGenerationSlot, releaseGenerationSlot } from '../_shared/generationAdmission.ts';
+import { logCapacityEvent } from '../_shared/capacityEvents.ts';
 
 /**
  * reshape-lesson Edge Function (Session A -- reshape-as-lesson)
@@ -382,23 +384,58 @@ serve(async (req) => {
     let tokensOutput: number | null = null;
     let modelUsed: string = ANTHROPIC_MODEL;
 
+    // =========================================================================
+    // ADMISSION CONTROL (B8 Session 1) -- claim a concurrency slot before the
+    // paid Anthropic call. Immediate-reject policy: reshape-lesson's own
+    // 145s totalBudgetMs has no slack to carve a poll-wait out of.
+    // =========================================================================
+    const admission = await claimGenerationSlot(supabase, { source: 'reshape-lesson', userId: user.id });
+    if (!admission.claimed) {
+      await logCapacityEvent(supabase, {
+        userId: user.id,
+        source: 'reshape-lesson',
+        eventType: admission.reason === 'cooldown' ? 'admission_cooldown_rejected' : 'admission_rejected',
+        tier: userTier,
+      });
+      if (metricId) {
+        await supabase
+          .from('reshape_metrics')
+          .update({
+            reshape_end: new Date().toISOString(),
+            reshape_duration_ms: Date.now() - functionStartTime,
+            status: 'error',
+            error_message: `Admission rejected: ${admission.reason}`,
+          })
+          .eq('id', metricId);
+      }
+      return new Response(JSON.stringify({ error: BUSY_MESSAGE, code: 'AI_TEMPORARILY_UNAVAILABLE' }), {
+        status: 503,
+        headers: { ...dynamicCorsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const forcedErrorClass = getForcedErrorClass(req);
-    const reshapeResult = await callAnthropicNonStreaming({
-      functionName: 'reshape-lesson',
-      callLabel: 'reshape',
-      callSite: 'reshapeLesson',
-      apiKey: anthropicApiKey,
-      primaryModel: ANTHROPIC_MODEL,
-      fallbackModel: ANTHROPIC_MODELS.fallback,
-      forcedErrorClass,
-      buildBody: (model) => ({
-        model,
-        max_tokens: RESHAPE_MAX_TOKENS,
-        temperature: RESHAPE_TEMPERATURE,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
-    });
+    let reshapeResult;
+    try {
+      reshapeResult = await callAnthropicNonStreaming({
+        functionName: 'reshape-lesson',
+        callLabel: 'reshape',
+        callSite: 'reshapeLesson',
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODEL,
+        fallbackModel: ANTHROPIC_MODELS.fallback,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
+          max_tokens: RESHAPE_MAX_TOKENS,
+          temperature: RESHAPE_TEMPERATURE,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }]
+        })
+      });
+    } finally {
+      await releaseGenerationSlot(supabase, admission.slotId);
+    }
 
     checkpoint = logTiming('Anthropic API returned', checkpoint);
 

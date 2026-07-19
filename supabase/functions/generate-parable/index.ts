@@ -24,8 +24,9 @@ import { createClient, User } from "https://esm.sh/@supabase/supabase-js@2";
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuardrail.ts";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
-import { callAnthropicNonStreaming, getForcedErrorClass, type AnthropicErrorClass } from "../_shared/anthropicRetry.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, BUSY_MESSAGE, type AnthropicErrorClass } from "../_shared/anthropicRetry.ts";
 import { logCapacityEvent } from "../_shared/capacityEvents.ts";
+import { claimGenerationSlot, releaseGenerationSlot } from "../_shared/generationAdmission.ts";
 
 // =============================================================================
 // TYPES
@@ -1108,6 +1109,20 @@ Deno.serve(async (req: Request) => {
       return json({ success: false, error: blockMsg }, 429);
     }
 
+    // ADMISSION CONTROL (B8 Session 1) -- claim a concurrency slot before the
+    // paid Anthropic call. Immediate-reject policy: anonymous parable
+    // requests are not worth queuing for a slot they may never get.
+    const admission = await claimGenerationSlot(supabaseAdmin, { source: "generate-parable", userId: null });
+    if (!admission.claimed) {
+      await logCapacityEvent(supabaseAdmin, {
+        userId: null,
+        source: "generate-parable",
+        eventType: admission.reason === "cooldown" ? "admission_cooldown_rejected" : "admission_rejected",
+        tier: "anonymous",
+      });
+      return json({ success: false, error: BUSY_MESSAGE, code: "AI_TEMPORARILY_UNAVAILABLE" }, 503);
+    }
+
     try {
       // Apply anonymous defaults
       console.log("Applying anonymous defaults...");
@@ -1130,7 +1145,12 @@ Deno.serve(async (req: Request) => {
       // Generate parable
       console.log("Generating parable for anonymous user");
       const forcedErrorClass = getForcedErrorClass(req);
-      const genResult = await generateParableWithProvider(systemInstruction, userPrompt, forcedErrorClass);
+      let genResult;
+      try {
+        genResult = await generateParableWithProvider(systemInstruction, userPrompt, forcedErrorClass);
+      } finally {
+        await releaseGenerationSlot(supabaseAdmin, admission.slotId);
+      }
       if (!genResult.ok) {
         // Terminal failure after retries/fallback exhausted -- refund the
         // anon-IP and global scopes consumed above so a transient Anthropic
@@ -1251,6 +1271,21 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // ADMISSION CONTROL (B8 Session 1) -- claim a concurrency slot before the
+    // paid Anthropic call. Immediate-reject policy.
+    const admission = await claimGenerationSlot(supabaseAdmin, { source: "generate-parable", userId: user.id });
+    if (!admission.claimed) {
+      await logCapacityEvent(supabaseAdmin, {
+        userId: user.id,
+        source: "generate-parable",
+        eventType: admission.reason === "cooldown" ? "admission_cooldown_rejected" : "admission_rejected",
+      });
+      if (authGlobalRateLimitScopes.length > 0) {
+        await refundRateLimits(supabaseAdmin, authGlobalRateLimitScopes);
+      }
+      return json({ success: false, error: BUSY_MESSAGE, code: "AI_TEMPORARILY_UNAVAILABLE" }, 503);
+    }
+
     // Load lesson context if Teaching context (SSOT from database)
     if (context === "teaching" && payload.lesson_id) {
       const lessonContext = await loadLessonContext(supabaseAdmin, payload.lesson_id);
@@ -1287,7 +1322,12 @@ Deno.serve(async (req: Request) => {
     // Generate parable
     console.log("Generating parable for authenticated user:", user.id);
     const forcedErrorClass = getForcedErrorClass(req);
-    const genResult = await generateParableWithProvider(systemInstruction, userPrompt, forcedErrorClass);
+    let genResult;
+    try {
+      genResult = await generateParableWithProvider(systemInstruction, userPrompt, forcedErrorClass);
+    } finally {
+      await releaseGenerationSlot(supabaseAdmin, admission.slotId);
+    }
     if (!genResult.ok) {
       // Terminal failure after retries/fallback exhausted -- refund the
       // global backstop scope if it was consumed above (admins never

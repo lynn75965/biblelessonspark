@@ -2,8 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { getClientIP, windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
-import { callAnthropicNonStreaming, getForcedErrorClass } from "../_shared/anthropicRetry.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, BUSY_MESSAGE } from "../_shared/anthropicRetry.ts";
 import { logCapacityEvent } from "../_shared/capacityEvents.ts";
+import { claimGenerationSlot, releaseGenerationSlot, type AdmissionResult } from "../_shared/generationAdmission.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -89,6 +90,29 @@ serve(async (req) => {
       }
     }
     const forcedErrorClass = getForcedErrorClass(req);
+
+    // ADMISSION CONTROL (B8 Session 1) -- claims a concurrency slot for the
+    // 'default' bucket. Applies ONLY to the heavy (PDF/DOCX/image) Anthropic
+    // calls below -- the Haiku fast/tagging path is intentionally ungated
+    // (see concurrencyConfig.ts). Immediate-reject policy: extractHeavy's
+    // own 100s totalBudgetMs has no slack for a poll-wait.
+    async function claimHeavySlot(): Promise<AdmissionResult> {
+      const admission = await claimGenerationSlot(supabase, { source: "extract-lesson", userId: user.id });
+      if (!admission.claimed) {
+        await logCapacityEvent(supabase, {
+          userId: user.id,
+          source: "extract-lesson",
+          eventType: admission.reason === "cooldown" ? "admission_cooldown_rejected" : "admission_rejected",
+        });
+      }
+      return admission;
+    }
+    function admissionRejectedResponse(): Response {
+      return new Response(
+        JSON.stringify({ success: false, error: BUSY_MESSAGE, code: "AI_TEMPORARILY_UNAVAILABLE" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Parse form data
     const formData = await req.formData();
@@ -203,38 +227,46 @@ serve(async (req) => {
 
       console.log(`Sending PDF to Claude Sonnet 4: ${file.name} (${Math.round(base64.length / 1024)}KB base64)`);
 
-      const pdfResult = await callAnthropicNonStreaming({
-        functionName: "extract-lesson",
-        callLabel: "pdf-extraction",
-        callSite: "extractHeavy",
-        apiKey: anthropicApiKey,
-        primaryModel: ANTHROPIC_MODELS.default,
-        fallbackModel: ANTHROPIC_MODELS.fallback,
-        forcedErrorClass,
-        buildBody: (model) => ({
-          model,
-          max_tokens: 8000,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "document",
-                  source: {
-                    type: "base64",
-                    media_type: "application/pdf",
-                    data: base64,
+      const pdfAdmission = await claimHeavySlot();
+      if (!pdfAdmission.claimed) return admissionRejectedResponse();
+
+      let pdfResult;
+      try {
+        pdfResult = await callAnthropicNonStreaming({
+          functionName: "extract-lesson",
+          callLabel: "pdf-extraction",
+          callSite: "extractHeavy",
+          apiKey: anthropicApiKey,
+          primaryModel: ANTHROPIC_MODELS.default,
+          fallbackModel: ANTHROPIC_MODELS.fallback,
+          forcedErrorClass,
+          buildBody: (model) => ({
+            model,
+            max_tokens: 8000,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "document",
+                    source: {
+                      type: "base64",
+                      media_type: "application/pdf",
+                      data: base64,
+                    },
                   },
-                },
-                {
-                  type: "text",
-                  text: "Extract ALL text content from this PDF document. Return ONLY the extracted text, preserving the original structure, paragraphs, and formatting. Do not add any commentary or analysis.",
-                },
-              ],
-            },
-          ],
-        }),
-      });
+                  {
+                    type: "text",
+                    text: "Extract ALL text content from this PDF document. Return ONLY the extracted text, preserving the original structure, paragraphs, and formatting. Do not add any commentary or analysis.",
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+      } finally {
+        await releaseGenerationSlot(supabase, pdfAdmission.slotId);
+      }
 
       if (!pdfResult.ok) {
         await logCapacityEvent(supabase, {
@@ -295,38 +327,46 @@ serve(async (req) => {
 
       console.log(`Sending DOCX to Claude Sonnet 4: ${file.name}`);
 
-      const docxResult = await callAnthropicNonStreaming({
-        functionName: "extract-lesson",
-        callLabel: "docx-extraction",
-        callSite: "extractHeavy",
-        apiKey: anthropicApiKey,
-        primaryModel: ANTHROPIC_MODELS.default,
-        fallbackModel: ANTHROPIC_MODELS.fallback,
-        forcedErrorClass,
-        buildBody: (model) => ({
-          model,
-          max_tokens: 8000,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "document",
-                  source: {
-                    type: "base64",
-                    media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    data: base64,
+      const docxAdmission = await claimHeavySlot();
+      if (!docxAdmission.claimed) return admissionRejectedResponse();
+
+      let docxResult;
+      try {
+        docxResult = await callAnthropicNonStreaming({
+          functionName: "extract-lesson",
+          callLabel: "docx-extraction",
+          callSite: "extractHeavy",
+          apiKey: anthropicApiKey,
+          primaryModel: ANTHROPIC_MODELS.default,
+          fallbackModel: ANTHROPIC_MODELS.fallback,
+          forcedErrorClass,
+          buildBody: (model) => ({
+            model,
+            max_tokens: 8000,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "document",
+                    source: {
+                      type: "base64",
+                      media_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                      data: base64,
+                    },
                   },
-                },
-                {
-                  type: "text",
-                  text: "Extract ALL text content from this Word document. Return ONLY the extracted text, preserving structure. No commentary.",
-                },
-              ],
-            },
-          ],
-        }),
-      });
+                  {
+                    type: "text",
+                    text: "Extract ALL text content from this Word document. Return ONLY the extracted text, preserving structure. No commentary.",
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+      } finally {
+        await releaseGenerationSlot(supabase, docxAdmission.slotId);
+      }
 
       if (!docxResult.ok) {
         await logCapacityEvent(supabase, {
@@ -390,38 +430,46 @@ serve(async (req) => {
 
       console.log(`Sending image to Claude Sonnet 4: ${file.name}`);
 
-      const imageResult = await callAnthropicNonStreaming({
-        functionName: "extract-lesson",
-        callLabel: "image-extraction",
-        callSite: "extractHeavy",
-        apiKey: anthropicApiKey,
-        primaryModel: ANTHROPIC_MODELS.default,
-        fallbackModel: ANTHROPIC_MODELS.fallback,
-        forcedErrorClass,
-        buildBody: (model) => ({
-          model,
-          max_tokens: 4000,
-          messages: [
-            {
-              role: "user",
-              content: [
-                {
-                  type: "image",
-                  source: {
-                    type: "base64",
-                    media_type: mediaType,
-                    data: base64,
+      const imageAdmission = await claimHeavySlot();
+      if (!imageAdmission.claimed) return admissionRejectedResponse();
+
+      let imageResult;
+      try {
+        imageResult = await callAnthropicNonStreaming({
+          functionName: "extract-lesson",
+          callLabel: "image-extraction",
+          callSite: "extractHeavy",
+          apiKey: anthropicApiKey,
+          primaryModel: ANTHROPIC_MODELS.default,
+          fallbackModel: ANTHROPIC_MODELS.fallback,
+          forcedErrorClass,
+          buildBody: (model) => ({
+            model,
+            max_tokens: 4000,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  {
+                    type: "image",
+                    source: {
+                      type: "base64",
+                      media_type: mediaType,
+                      data: base64,
+                    },
                   },
-                },
-                {
-                  type: "text",
-                  text: "Extract ALL text from this image. Return ONLY the extracted text, maintaining structure.",
-                },
-              ],
-            },
-          ],
-        }),
-      });
+                  {
+                    type: "text",
+                    text: "Extract ALL text from this image. Return ONLY the extracted text, maintaining structure.",
+                  },
+                ],
+              },
+            ],
+          }),
+        });
+      } finally {
+        await releaseGenerationSlot(supabase, imageAdmission.slotId);
+      }
 
       if (!imageResult.ok) {
         await logCapacityEvent(supabase, {

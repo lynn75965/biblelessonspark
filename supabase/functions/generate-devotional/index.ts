@@ -49,8 +49,9 @@ import { SCRIPTURE_INTEGRITY_GUARDRAIL } from "../_shared/scriptureIntegrityGuar
 import { ANTHROPIC_MODELS } from "../_shared/modelConfig.ts";
 import { windowStartsISO, checkRateLimits, refundRateLimits } from "../_shared/edgeRateLimit.ts";
 import { parseDeviceType, parseBrowser, parseOS } from "../_shared/generationMetrics.ts";
-import { callAnthropicNonStreaming, getForcedErrorClass, AnthropicUsage } from "../_shared/anthropicRetry.ts";
+import { callAnthropicNonStreaming, getForcedErrorClass, AnthropicUsage, BUSY_MESSAGE } from "../_shared/anthropicRetry.ts";
 import { logCapacityEvent } from "../_shared/capacityEvents.ts";
+import { claimGenerationSlot, releaseGenerationSlot } from "../_shared/generationAdmission.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -754,27 +755,64 @@ serve(async (req: Request) => {
     // 6. CALL ANTHROPIC API
     // ========================================================================
 
+    // ========================================================================
+    // ADMISSION CONTROL (B8 Session 1) -- claim a concurrency slot before the
+    // paid Anthropic call. Immediate-reject policy: this function's own 145s
+    // totalBudgetMs has no slack to carve a poll-wait out of.
+    // ========================================================================
+    const admission = await claimGenerationSlot(supabase, { source: "generate-devotional", userId: user.id });
+    if (!admission.claimed) {
+      await logCapacityEvent(supabase, {
+        userId: user.id,
+        source: "generate-devotional",
+        eventType: admission.reason === "cooldown" ? "admission_cooldown_rejected" : "admission_rejected",
+      });
+      if (metricId) {
+        await supabase
+          .from("devotional_metrics")
+          .update({
+            generation_end: new Date().toISOString(),
+            generation_duration_ms: Date.now() - startTime,
+            status: "error",
+            error_message: `Admission rejected: ${admission.reason}`,
+          })
+          .eq("id", metricId);
+      }
+      if (devotionalGlobalScopes.length > 0) {
+        await refundRateLimits(supabase, devotionalGlobalScopes);
+      }
+      return new Response(
+        JSON.stringify({ success: false, error: BUSY_MESSAGE, code: "AI_TEMPORARILY_UNAVAILABLE" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // B4: retry + model fallback, budget-aware timeout (preserves the
     // original 120s-tuned first attempt via
     // RETRY_CONFIG.primaryAttemptTimeoutMs.devotional in _shared/modelConfig.ts).
     const forcedErrorClass = getForcedErrorClass(req);
-    const devotionalResult = await callAnthropicNonStreaming({
-      functionName: "generate-devotional",
-      callLabel: "devotional",
-      callSite: "devotional",
-      apiKey: anthropicApiKey,
-      primaryModel: ANTHROPIC_MODELS.default,
-      fallbackModel: ANTHROPIC_MODELS.fallback,
-      forcedErrorClass,
-      buildBody: (model) => ({
-        model,
-        max_tokens: 4096,
-        messages: [
-          { role: "user", content: userPrompt }
-        ],
-        system: systemPrompt,
-      }),
-    });
+    let devotionalResult;
+    try {
+      devotionalResult = await callAnthropicNonStreaming({
+        functionName: "generate-devotional",
+        callLabel: "devotional",
+        callSite: "devotional",
+        apiKey: anthropicApiKey,
+        primaryModel: ANTHROPIC_MODELS.default,
+        fallbackModel: ANTHROPIC_MODELS.fallback,
+        forcedErrorClass,
+        buildBody: (model) => ({
+          model,
+          max_tokens: 4096,
+          messages: [
+            { role: "user", content: userPrompt }
+          ],
+          system: systemPrompt,
+        }),
+      });
+    } finally {
+      await releaseGenerationSlot(supabase, admission.slotId);
+    }
 
     if (!devotionalResult.ok) {
       console.error("[generate-devotional] Anthropic call failed after retries/fallback:", devotionalResult.errorClass);

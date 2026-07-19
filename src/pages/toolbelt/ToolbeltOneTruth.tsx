@@ -102,7 +102,22 @@ export default function ToolbeltOneTruth() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // supabase-js's error.message is a generic "non-2xx status code"
+        // string -- the real { error, code } body (e.g. the B8 admission-
+        // control "Service Busy" text) lives on error.context, a Response.
+        let bodyMessage: string | undefined;
+        const context = (error as { context?: Response }).context;
+        if (context && typeof context.json === 'function') {
+          try {
+            const body = await context.json();
+            bodyMessage = body?.error || body?.message;
+          } catch {
+            // Body was not JSON -- fall through to the generic message.
+          }
+        }
+        throw new Error(bodyMessage || error.message);
+      }
 
       if (data?.success && data?.reflection) {
         setReflection(data.reflection);
@@ -112,9 +127,10 @@ export default function ToolbeltOneTruth() {
       }
     } catch (err) {
       console.error('Reflection error:', err);
+      const message = err instanceof Error ? err.message : 'Please try again in a moment.';
       toast({
         title: "Something went wrong",
-        description: "Please try again in a moment.",
+        description: message,
         variant: "destructive",
       });
     } finally {

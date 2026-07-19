@@ -38,7 +38,13 @@ export type AnthropicErrorClass =
 
 export type AnthropicGracefulCode = "AI_TEMPORARILY_UNAVAILABLE" | "AI_ERROR";
 
-const BUSY_MESSAGE =
+// Exported so _shared/generationAdmission.ts (B8 admission control) can
+// return the identical string on a slot-claim rejection -- the frontend's
+// existing `code === 'AI_TEMPORARILY_UNAVAILABLE'` handling (e.g.
+// useReshapeLesson.tsx) must not be able to tell an admission rejection
+// apart from a retries-exhausted rejection; both are "AI is busy" to the
+// teacher.
+export const BUSY_MESSAGE =
   "Our AI assistant is experiencing very heavy demand right now. Please try again in a few minutes.";
 const GENERIC_RETRY_MESSAGE =
   "We ran into a problem generating that. Please try again in a moment.";
