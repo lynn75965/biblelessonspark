@@ -487,6 +487,27 @@ If the new function's calling pattern is a pre-increment rate-limit gate
 call sites for the pattern) -- a failed generation must never permanently
 cost the user part of their daily/hourly allotment.
 
+AMENDED July 19, 2026 (B8 concurrency admission control, both sessions):
+`anthropicRetry.ts` is now also the cooldown-WRITE integration point.
+`callAnthropicNonStreaming()`/`openAnthropicStreamWithRetry()` accept
+optional `supabase`/`modelBucket` fields; when both are present,
+`giveUp()` calls `_shared/generationAdmission.ts`'s `setModelCooldown()`
+if (and only if) the exhausted `errorClass` is `overloaded` or
+`rate_limit`. A NEW Claude-calling function should also claim a
+concurrency slot before its Anthropic call via
+`_shared/generationAdmission.ts`'s `claimGenerationSlot()`/
+`releaseGenerationSlot()` (add its source to `ConcurrencySource` in
+`concurrencyConfig.ts` and to `active_generations`'/`capacity_events`'
+CHECK constraints in a migration) -- see
+`B8_CONCURRENCY_ADMISSION_DESIGN.md` for the design and
+`generate-lesson/index.ts` for the streaming reference implementation
+(heartbeat-renewed slot, bounded queue) or any of reshape-lesson/
+generate-devotional/generate-parable/extract-lesson/toolbelt-reflect for
+the simpler immediate-reject non-streaming pattern. Currently only
+generate-lesson passes `supabase`/`modelBucket` (writes cooldown); the
+other 5 still only read it -- a documented, intentional asymmetry, not
+an oversight (see PROJECT_MASTER.md's B8 Session 2 note).
+
 ### Rule #30: Every Stripe checkout-session function must validate its price_id
 Added July 15, 2026 (closes a vulnerability class found TWICE: create-
 checkout-session on July 14, create-org-checkout-session's MODE 2 on

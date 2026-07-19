@@ -35,8 +35,10 @@ import { checkOutputGuardrails, buildRewritePrompt, parseLessonSections, replace
 // Scripture Integrity Guardrail (Rule 5) -- SSOT: src/constants/scriptureIntegrityGuardrail.ts
 import { SCRIPTURE_INTEGRITY_GUARDRAIL } from '../_shared/scriptureIntegrityGuardrail.ts';
 import { ANTHROPIC_MODELS } from '../_shared/modelConfig.ts';
-import { callAnthropicNonStreaming, openAnthropicStreamWithRetry, getForcedErrorClass, AnthropicUsage } from '../_shared/anthropicRetry.ts';
+import { callAnthropicNonStreaming, openAnthropicStreamWithRetry, getForcedErrorClass, AnthropicUsage, BUSY_MESSAGE } from '../_shared/anthropicRetry.ts';
 import { logCapacityEvent } from '../_shared/capacityEvents.ts';
+import { claimGenerationSlot, releaseGenerationSlot, renewGenerationSlot } from '../_shared/generationAdmission.ts';
+import { CONCURRENCY_CONFIG } from '../_shared/concurrencyConfig.ts';
 // Section-shape SSOT (Phase 1). Full = [1..8], Short = [1,5,8]. This is the
 // first edge function to import the _shared mirror at runtime.
 import { FULL_SECTIONS, SHORT_SECTIONS } from '../_shared/lessonTiers.ts';
@@ -52,6 +54,11 @@ const corsHeaders = {
 
 // Anthropic model constant for tracking (value sourced from model-ID SSOT)
 const ANTHROPIC_MODEL = ANTHROPIC_MODELS.default;
+
+// B8 Session 2: the shared Anthropic-account bucket this function's calls
+// draw against (admission ceiling + cooldown writer), sourced from the
+// same SSOT concurrencyConfig.ts uses to map every other source.
+const GENERATION_MODEL_BUCKET = CONCURRENCY_CONFIG.sourceBucket['generate-lesson'];
 
 // B8: shown to the teacher whenever Phase 2 (Sections 6-8 + Teaser) fails
 // or is truncated -- the core lesson (Sections 1-5) is always trustworthy
@@ -940,9 +947,105 @@ ${styleExtractionPromptAddition}
     // Only assigned once we have a successful stream connection.
     let stallTimer: ReturnType<typeof setInterval> | undefined;
 
+    // B8 Session 2 -- SEPARATE from stallTimer above, deliberately. stallTimer
+    // is scoped to Phase 1's SSE read loop only (cleared the instant streaming
+    // ends); this slot must survive Phase 2's non-streaming calls too, so it
+    // needs its own interval spanning claim -> Phase 1 -> Phase 2 -> release.
+    // Same 5s cadence as the stall guard (concurrencyConfig.ts's
+    // heartbeat.intervalSeconds), not the same timer object.
+    let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+    let admissionSlotId: string | null = null;
+
     (async () => {
       try {
         const forcedErrorClass = getForcedErrorClass(req);
+
+        // =====================================================================
+        // ADMISSION CONTROL (B8 Session 2) -- claim ONE slot for the whole
+        // invocation (Phase 1 + Phase 2 combined). Bounded poll-wait policy:
+        // generate-lesson streams, so the SSE connection is already open by
+        // the time this runs (the outer handler already returned the
+        // Response below) -- a short wait here is invisible to the teacher,
+        // indistinguishable from ordinary "preparing your lesson" time.
+        // Zero Anthropic cost if this never succeeds: rejection happens
+        // before openAnthropicStreamWithRetry is ever called.
+        // =====================================================================
+        {
+          const { pollIntervalMs, maxWaitMs } = CONCURRENCY_CONFIG.admissionQueue;
+          const admissionDeadline = Date.now() + maxWaitMs;
+          let admission = await claimGenerationSlot(supabase, { source: 'generate-lesson', userId: user.id });
+          let queuedLogged = false;
+
+          while (!admission.claimed) {
+            if (!queuedLogged) {
+              await logCapacityEvent(supabase, {
+                userId: user.id,
+                source: 'generate-lesson',
+                eventType: 'admission_queued',
+                tier: userTier,
+                meta: { reason: admission.reason },
+              });
+              queuedLogged = true;
+            }
+            if (Date.now() + pollIntervalMs > admissionDeadline) break;
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+            admission = await claimGenerationSlot(supabase, { source: 'generate-lesson', userId: user.id });
+          }
+
+          if (!admission.claimed) {
+            await logCapacityEvent(supabase, {
+              userId: user.id,
+              source: 'generate-lesson',
+              eventType: admission.reason === 'cooldown' ? 'admission_cooldown_rejected' : 'admission_rejected',
+              tier: userTier,
+            });
+            if (metricId) {
+              await supabase
+                .from('generation_metrics')
+                .update({
+                  generation_end: new Date().toISOString(),
+                  generation_duration_ms: Date.now() - functionStartTime,
+                  status: 'error',
+                  error_message: `Admission rejected after queue wait: ${admission.reason}`,
+                })
+                .eq('id', metricId);
+            }
+            await sendEvent('error', { error: BUSY_MESSAGE, code: 'AI_TEMPORARILY_UNAVAILABLE' });
+            return;
+          }
+
+          admissionSlotId = admission.slotId;
+          heartbeatTimer = setInterval(() => {
+            if (!admissionSlotId) return;
+            renewGenerationSlot(supabase, admissionSlotId).then((renewed) => {
+              if (!renewed) {
+                // B8 Session 2 renewal-failure decision: the slot was
+                // stale-swept before this tick reached it (should be rare/
+                // never under normal operation -- 12 renewal attempts
+                // happen within the 60s window before that could occur).
+                // We do NOT abort a live, successful generation over an
+                // admission-control bookkeeping race -- the only
+                // consequence is a transient, self-limiting undercount of
+                // true concurrency against the ceiling for the remainder
+                // of this one already-in-flight request, not a correctness
+                // or safety issue for the teacher. Log it, stop trying to
+                // renew a slot that no longer exists, keep generating.
+                console.error('[generate-lesson] heartbeat: slot no longer exists (stale-swept) -- continuing generation without re-claiming');
+                logCapacityEvent(supabase, {
+                  userId: user.id,
+                  source: 'generate-lesson',
+                  eventType: 'admission_heartbeat_lost',
+                  tier: userTier,
+                  meta: { slotId: admissionSlotId },
+                }).catch(() => {});
+                clearInterval(heartbeatTimer);
+              }
+            }).catch((e) => {
+              console.error('[generate-lesson] heartbeat renewal call failed:', e);
+            });
+          }, CONCURRENCY_CONFIG.heartbeat.intervalSeconds * 1000);
+        }
+
         const streamResult = await openAnthropicStreamWithRetry({
           functionName: 'generate-lesson',
           callLabel: 'phase1-stream',
@@ -950,6 +1053,8 @@ ${styleExtractionPromptAddition}
           primaryModel: ANTHROPIC_MODEL,
           fallbackModel: ANTHROPIC_MODELS.fallback,
           forcedErrorClass,
+          supabase,
+          modelBucket: GENERATION_MODEL_BUCKET,
           buildBody: (model) => ({
             model,
             max_tokens: usesTwoPhase ? 4000 : 8000,
@@ -1236,6 +1341,8 @@ ${styleExtractionPromptAddition}
               primaryModel: ANTHROPIC_MODEL,
               fallbackModel: ANTHROPIC_MODELS.fallback,
               forcedErrorClass,
+              supabase,
+              modelBucket: GENERATION_MODEL_BUCKET,
               buildBody: (model) => ({
                 model,
                 max_tokens: REWRITE_CONFIG.maxTokens,
@@ -1597,6 +1704,8 @@ All supplements must be specific to this lesson's content -- not generic.${bible
               primaryModel: ANTHROPIC_MODEL,
               fallbackModel: ANTHROPIC_MODELS.fallback,
               forcedErrorClass,
+              supabase,
+              modelBucket: GENERATION_MODEL_BUCKET,
               buildBody: (model) => ({
                 model,
                 max_tokens: 2500,
@@ -1675,6 +1784,8 @@ All supplements must be specific to this lesson's content -- not generic.${bible
                   primaryModel: ANTHROPIC_MODEL,
                   fallbackModel: ANTHROPIC_MODELS.fallback,
                   forcedErrorClass,
+                  supabase,
+                  modelBucket: GENERATION_MODEL_BUCKET,
                   buildBody: (model) => ({
                     model,
                     max_tokens: REWRITE_CONFIG.maxTokens,
@@ -1793,6 +1904,15 @@ All supplements must be specific to this lesson's content -- not generic.${bible
         await sendEvent('error', { error: errMsg }).catch(() => {});
       } finally {
         clearInterval(stallTimer);
+        clearInterval(heartbeatTimer);
+        // B8 Session 2 -- guaranteed on every exit path this finally covers
+        // (success, every early return above, the outer catch, and the
+        // stall-guard's own abort -- see the Session 2 report for the full
+        // per-path analysis). release_generation_slot() is a no-op DELETE
+        // if the slot is already gone (e.g. already reclaimed by the
+        // stale-sweep after a heartbeat-renewal failure above), so calling
+        // it here unconditionally is always safe.
+        if (admissionSlotId) await releaseGenerationSlot(supabase, admissionSlotId);
         try { writer.close(); } catch { /* already closed */ }
       }
     })();

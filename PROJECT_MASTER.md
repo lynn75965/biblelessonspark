@@ -1,6 +1,139 @@
-# PROJECT MASTER -- Last updated: July 19, 2026 (Session: B8 CONCURRENCY ADMISSION CONTROL SESSION 1 SHIPPED, commit d80204f, pushed to origin/main -- DB-backed concurrency admission control (claim/release slots via service-role-only RPCs) live on 5 of 6 Anthropic-calling functions (reshape-lesson, generate-devotional, generate-parable, extract-lesson, toolbelt-reflect); generate-lesson deferred to Session 2 (streaming queue/poll + heartbeat + cooldown-writer wiring, deliberately excluded from Session 1). Migration + all 5 edge functions deployed one at a time per Rule #20, each individually live-verified via real UI-triggered generations plus SQL checks. Production admission-REJECTION integration test also passed after one diagnosed false alarm (first attempt showed no rejection; downloading and diffing the actual live deployed bundles against local source for all 5 functions, plus pulling the live claim_generation_slot definition directly from the DB, found zero drift anywhere -- root cause was a timing miss, cooldown window expired before the trigger, not a defect; retest confirmed toolbelt-reflect rejecting instantly under a live cooldown with two admission_cooldown_rejected rows logged in capacity_events). Frontend Service-Busy message-parity fix (ParableGenerator.tsx + 3 Toolbelt pages, previously showing supabase-js's generic error text instead of the real busy message) shipped in the same commit, Lynn-verified on localhost before deploy. Diagnostic gateway-ceiling test function spec is approved but still parked, not deployed, pending separate go-ahead. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) for 5 of 6 functions. See B8 CONCURRENCY ADMISSION CONTROL note below for full detail. Prior session: EXECUTE GRANT HARDENING SHIPPED, commit a6b1ea1, pushed to origin/main -- least-privilege EXECUTE grants for functions, direct sequel to the table/view sweep. Extends the June migration (20260531120100, 40 functions) to 8 more: invite_team_member (real authenticated RPC, had PUBLIC+anon open) + 7 trigger functions created since June 3 that were never audited. Verified via a programmatic diff computed from a live "before" snapshot plus known deltas (not hand-retyped, learning from the table sweep's transcription errors) across all 71 public-schema functions -- empty both pre- and post-apply. get_invite_by_token confirmed keeping anon (the deliberate Phase-2 anon RPC). ALTER DEFAULT PRIVILEGES confirmed via pg_default_acl. Lynn ran the full regression checklist as a non-admin user (team invite + all 7 trigger-fire checks) against production-with-new-grants via localhost -- everything passed. CI run #78 green, all 4 jobs. This closes the functions/EXECUTE default-privilege backlog item logged during the prior grant hardening sweep. See EXECUTE GRANT HARDENING note below for full detail. Prior session same day: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 19, 2026 (Session: B8 CONCURRENCY ADMISSION CONTROL SESSION 2 SHIPPED, pushed to origin/main -- generate-lesson, the last of the 6 Anthropic-calling functions, is now wired into DB-backed admission control: one slot claimed for the whole invocation (Phase 1 stream + Phase 2 supplements combined), a bounded 25s queue-poll (invisible to the teacher -- happens inside the already-open SSE connection, before any tokens), a heartbeat-renewed slot (a SEPARATE interval from the pre-existing stall-guard timer, same 5s cadence, spanning the full invocation since the stall guard alone is scoped to Phase 1's read loop only and would let the slot expire mid-Phase-2), and the cooldown WRITER (anthropicRetry.ts's giveUp() now sets a shared cooldown on overloaded/rate_limit exhaustion -- Session 1 only built the reader). Migration 20260719140000 (2 new RPCs: renew_generation_slot, set_model_cooldown; CHECK constraints extended) applied and verified via Dashboard SQL (both new RPCs EXECUTE-granted to service_role only, existing table grants on active_generations/generation_slot_counters/capacity_events confirmed unchanged). generate-lesson deployed clean. Live production test passed in full: heartbeat_at visibly advancing during a real generation, zero active_generations rows after completion, zero unexpected capacity_events rows, and the cooldown-rejection test (instant SSE busy-error, zero Anthropic cost, admission_cooldown_rejected logged, cooldown cleared afterward) all confirmed by Lynn. Release-on-every-termination-path analysis (client disconnect, write-throw, Phase 2 throw, hard isolate kill) and the renewal-failure decision (log admission_heartbeat_lost, stop heartbeating, NEVER abort a live stream over an admission-control bookkeeping race) are both documented in full in the B8 CONCURRENCY ADMISSION CONTROL note below. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) COMPLETELY -- all 6 functions now covered. One documented follow-up remains open, not fixed this session: the 5 Session 1 functions still only READ the cooldown flag, not WRITE it (a 2-line addition per existing call site whenever wanted). The diagnostic gateway-ceiling test function is still parked, not deployed, pending separate approval. Prior session: B8 CONCURRENCY ADMISSION CONTROL SESSION 1 SHIPPED, commit d80204f, pushed to origin/main -- DB-backed concurrency admission control (claim/release slots via service-role-only RPCs) live on 5 of 6 Anthropic-calling functions (reshape-lesson, generate-devotional, generate-parable, extract-lesson, toolbelt-reflect). Migration + all 5 edge functions deployed one at a time per Rule #20, each individually live-verified via real UI-triggered generations plus SQL checks. Production admission-REJECTION integration test also passed after one diagnosed false alarm (first attempt showed no rejection; downloading and diffing the actual live deployed bundles against local source for all 5 functions, plus pulling the live claim_generation_slot definition directly from the DB, found zero drift anywhere -- root cause was a timing miss, cooldown window expired before the trigger, not a defect; retest confirmed toolbelt-reflect rejecting instantly under a live cooldown with two admission_cooldown_rejected rows logged in capacity_events). Frontend Service-Busy message-parity fix (ParableGenerator.tsx + 3 Toolbelt pages, previously showing supabase-js's generic error text instead of the real busy message) shipped in the same commit, Lynn-verified on localhost before deploy. Diagnostic gateway-ceiling test function spec is approved but still parked, not deployed, pending separate go-ahead. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) for 5 of 6 functions. See B8 CONCURRENCY ADMISSION CONTROL note below for full detail. Prior session: EXECUTE GRANT HARDENING SHIPPED, commit a6b1ea1, pushed to origin/main -- least-privilege EXECUTE grants for functions, direct sequel to the table/view sweep. Extends the June migration (20260531120100, 40 functions) to 8 more: invite_team_member (real authenticated RPC, had PUBLIC+anon open) + 7 trigger functions created since June 3 that were never audited. Verified via a programmatic diff computed from a live "before" snapshot plus known deltas (not hand-retyped, learning from the table sweep's transcription errors) across all 71 public-schema functions -- empty both pre- and post-apply. get_invite_by_token confirmed keeping anon (the deliberate Phase-2 anon RPC). ALTER DEFAULT PRIVILEGES confirmed via pg_default_acl. Lynn ran the full regression checklist as a non-admin user (team invite + all 7 trigger-fire checks) against production-with-new-grants via localhost -- everything passed. CI run #78 green, all 4 jobs. This closes the functions/EXECUTE default-privilege backlog item logged during the prior grant hardening sweep. See EXECUTE GRANT HARDENING note below for full detail. Prior session same day: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
 
-## >>> B8 CONCURRENCY ADMISSION CONTROL -- SESSION 1 SHIPPED AND VERIFIED, Session 2 next
+## >>> B8 CONCURRENCY ADMISSION CONTROL -- SESSION 2 SHIPPED AND VERIFIED, backlog item CLOSED
+July 19, 2026 (same day as Session 1). Wires generate-lesson -- the last
+of the 6 Anthropic-calling functions, deliberately excluded from Session
+1 as the streaming architectural outlier -- into the admission control
+infrastructure Session 1 built. With this, the "proactive Anthropic
+throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8
+session, see that original entry further below) is **fully closed** --
+every Anthropic-calling function on the platform now has DB-backed
+admission control.
+
+**Pre-implementation report, approved before any code**: poll interval
+2,000ms, max wait 25,000ms (both already set in `concurrencyConfig.ts`
+from Session 1). Heartbeat deliberately NOT the same `setInterval` object
+as the existing stall guard -- the stall guard is scoped to Phase 1's SSE
+read loop only (cleared the instant streaming ends), but the slot must
+survive Phase 2's non-streaming supplement calls too, so a heartbeat tied
+to the stall guard's lifetime would let the slot expire mid-Phase-2 and
+get reclaimed while the invocation is still legitimately running. A
+SEPARATE interval, same 5s cadence, spanning claim -> Phase 1 -> Phase 2
+-> release, resolves this. Cooldown trigger confirmed to fire ONLY on
+`errorClass` `overloaded`/`rate_limit` (genuine Anthropic-signaled
+capacity problems), never on `client_error`/`malformed`/`network`/
+`server_error`, and only after the FULL retry+fallback sequence is
+exhausted (`RETRY_CONFIG.maxSameModelRetries` + `maxFallbackRetries`,
+both 1) -- an ordinary single transient error that succeeds on its first
+retry never reaches the cooldown-write path at all.
+
+**Two additions required before approval, both addressed**:
+1. Release-on-every-termination-path analysis. Client disconnect mid-
+   stream and stream-write-throws both propagate as a normal JS exception
+   to the outer `catch` -> `finally`, where release fires -- guaranteed,
+   though not always instant if the disconnect happens during a write-
+   quiet gap (e.g. mid-Phase-2); the slot is held for the generation's
+   natural duration either way, never leaked. Phase 2's own errors are
+   absorbed by ITS OWN inner catch (doesn't re-throw), so execution falls
+   through to the outer `finally` on normal completion, exception or not
+   -- guaranteed. Hard isolate kill is the one path app code cannot cover
+   at all -- this is exactly what the stale-sweep + heartbeat exist for.
+   **Worst-case orphan duration: 60 seconds**
+   (`heartbeat.renewalWindowSeconds`) from the last successful renewal
+   before the kill; reclamation happens on the next `claim_generation_
+   slot()` call from any source sharing the bucket, not on a schedule. At
+   ceiling 10, one orphaned slot is a temporary, self-healing 10%
+   capacity reduction, consistent with the whole design's soft-circuit-
+   breaker posture.
+2. Renewal-failure handling. `renew_generation_slot()` returns `boolean`
+   (whether a row was actually found/updated). On `false` (the slot was
+   already stale-swept before this heartbeat tick reached it -- should be
+   rare/never under normal operation, since 12 renewal attempts happen
+   within the 60s window before that could occur), the tick logs a new
+   dedicated `admission_heartbeat_lost` capacity_event, stops the
+   heartbeat interval (the slot's UUID can never be reused, so further
+   renewal attempts would be pointless repeated no-op RPCs), and does
+   **NOT** touch the stream, Phase 2, or attempt to re-claim -- the
+   generation completes normally regardless. Lynn's explicit ruling,
+   agreed: a live, successful stream must never be aborted over an
+   admission-control bookkeeping race; the only consequence of a lost
+   heartbeat is a transient, self-limiting undercount of true concurrency
+   against the ceiling for the remainder of that one already-in-flight
+   request, never a correctness or safety issue for the teacher.
+
+**What shipped**:
+- Migration `20260719140000_generate_lesson_admission_wiring.sql`:
+  `active_generations`'s source CHECK extended (+generate-lesson);
+  `capacity_events`'s event_type CHECK extended (+admission_queued,
+  +admission_heartbeat_lost -- a dedicated type, not overloaded metadata
+  on an existing one, so a future Admin Panel can filter/alert on the
+  heartbeat-lost anomaly unambiguously); two new SECURITY DEFINER RPCs,
+  both service_role-only EXECUTE: `renew_generation_slot(uuid, integer)
+  RETURNS boolean` (renewal window is a PARAMETER, never hardcoded, same
+  discipline as `claim_generation_slot`'s `p_ttl_seconds`) and
+  `set_model_cooldown(text, integer) RETURNS void` (`GREATEST`/
+  `COALESCE`, extends forward, never resets backward). No new tables --
+  existing table grants on all three tables confirmed unchanged via
+  Dashboard SQL post-migration, per the corrected Rule #32 guidance
+  (verify, don't assume).
+- `_shared/generationAdmission.ts`: `renewGenerationSlot()` (returns
+  `true` on a transient RPC error/throw too -- an unknown/failed check is
+  deliberately NOT treated as evidence the slot is gone) and
+  `setModelCooldown()` (best-effort, swallowed on failure, matching
+  `releaseGenerationSlot()`'s posture).
+- `_shared/anthropicRetry.ts`: optional `supabase`/`modelBucket` threaded
+  through `RunOptions`/`NonStreamingCallOptions`/`StreamCallOptions` and
+  both public entry points; `giveUp()` made `async`, writes the cooldown
+  under the exact condition above. Only generate-lesson's own 4 call
+  sites (Phase 1 stream, guardrail rewrite, Phase 2, Phase 2 guardrail
+  rewrite) pass these -- the 5 Session 1 functions' own files were out of
+  scope this session, so they still only READ the cooldown flag on every
+  claim (respecting one generate-lesson sets), they don't WRITE one
+  themselves yet. Documented, intentional follow-up: adding the same two
+  options-object fields to their existing `callAnthropicNonStreaming()`
+  calls closes the gap whenever wanted -- no `anthropicRetry.ts` changes
+  needed for it.
+- `generate-lesson/index.ts`: claim+bounded-poll block as the first thing
+  inside the background IIFE (before `openAnthropicStreamWithRetry` is
+  ever called -- a rejection after the poll window costs zero Anthropic
+  tokens); `heartbeatTimer` declared alongside the existing `stallTimer`
+  but as its own separate interval; `admissionSlotId` released in the
+  existing outer `finally` (guaranteed on every path that finally
+  covers -- see the release analysis above).
+- `src/constants/concurrencyConfig.ts` (+ mirror): comment-only updates
+  -- Session 1 had already set the correct values for every
+  `generate-lesson` entry (`sourceBucket`, `staleThresholdSeconds`,
+  `admissionPolicy: 'queue'`, the `heartbeat`/`admissionQueue` blocks),
+  reserved ahead of time exactly so this session's diff would be small.
+  `npm run sync-constants` diff clean.
+- CLAUDE.md Rule #29 amended: `anthropicRetry.ts` is now also the
+  documented cooldown-write integration point for any future Claude-
+  calling function, alongside the existing retry/fallback guidance.
+
+**Deployed and verified**: `db push` applied clean (postcheck NOTICEs
+confirmed both CHECK constraints updated exactly as designed). Dashboard
+SQL confirmed: both RPCs exist with EXECUTE granted to service_role only
+(zero anon/authenticated/PUBLIC rows), both CHECK constraints show the
+new values, and existing table grants on all three tables are
+byte-for-byte unchanged from Session 1's state. `generate-lesson`
+deployed via `--use-api`, clean bundle (same benign extensionless-path
+WARN lines seen on Session 1's `generate-devotional` deploy -- pre-
+existing bundler behavior, not caused by this session's changes).
+
+**Live production test, all 4 items confirmed by Lynn**: `heartbeat_at`
+visibly advancing (~5s) during a real in-progress lesson generation;
+`active_generations` back to 0 rows for `generate-lesson` after
+completion; no unexpected `capacity_events` rows from the normal test;
+and the cooldown-rejection test (`cooldown_until` set 5 minutes out,
+triggered generation rejected instantly with zero Anthropic cost,
+`admission_cooldown_rejected` logged, `cooldown_until` reset to NULL
+afterward) all passed.
+
+Design doc `B8_CONCURRENCY_ADMISSION_DESIGN.md` (repo root) now covers
+both sessions in full, including this session's pre-implementation
+report and both addition analyses (chat record).
+
+## >>> B8 CONCURRENCY ADMISSION CONTROL -- SESSION 1 SHIPPED AND VERIFIED
 July 19, 2026. Closes the "proactive Anthropic throttle/backpressure/
 queueing" backlog item logged 2026-07-16 (B8 session, see that original
 entry further below -- left in place, now superseded for 5 of 6
@@ -109,19 +242,12 @@ security issue either way (`anon`/`authenticated` lockdown was correct
 and verified) -- just documented as a correction to a prior
 observation, not chased further.
 
-**SESSION 2 -- NOT STARTED**: generate-lesson is the architectural
-outlier (Phase-1 SSE stream, unbounded duration) and was deliberately
-excluded from Session 1's scope. Needs: a heartbeat-renewed slot
-(piggybacked on the existing 5s stall-guard interval,
-`generate-lesson/index.ts:1003`) instead of a fixed TTL; a bounded
-poll-for-a-slot (up to 25s) before opening the stream, instead of
-immediate rejection; the shared cooldown-flag WRITER wired into
-`anthropicRetry.ts`'s give-up path (the claim RPC already READS
-`cooldown_until` -- inert until Session 2 adds the writer, no RPC
-changes needed then); and a Session-2 migration adding `generate-lesson`
-to `active_generations`'s and `capacity_events`'s CHECK constraints,
-plus `admission_queued` to `capacity_events`'s event-type allowlist
-(neither was pre-added in Session 1, by design).
+**SESSION 2 -- SHIPPED July 19, 2026 (same day).** See the ">>> B8
+CONCURRENCY ADMISSION CONTROL -- SESSION 2" note directly above this one
+for full detail -- generate-lesson is now fully wired (heartbeat-renewed
+slot, bounded 25s queue-poll, cooldown writer), deployed, and live-
+verified. The backlog item this whole effort closes is now marked CLOSED
+further below.
 
 **Diagnostic gateway-ceiling test function** (`_diag-gateway-sleep`,
 spec'd during the design phase to empirically pin the real Supabase
@@ -645,12 +771,18 @@ forward from Gate 1 (neither gates Gate 2):
   than trust either number, since the two sources disagree and this
   project has already been burned once by trusting the wrong one.
 
-  **PARTIALLY CLOSED July 19, 2026** -- see the ">>> B8 CONCURRENCY
-  ADMISSION CONTROL" note near the top of this file. Session 1 shipped
-  DB-backed admission control for 5 of 6 Anthropic-calling functions
-  (everything except generate-lesson, which streams and needs a
-  different mechanism -- Session 2, not yet started). This backlog item
-  stays open until Session 2 closes the last function.
+  **CLOSED July 19, 2026** (same day, two sessions) -- see the ">>> B8
+  CONCURRENCY ADMISSION CONTROL" notes near the top of this file. Session
+  1 shipped DB-backed admission control for 5 of 6 Anthropic-calling
+  functions; Session 2 (same day) wired the 6th (generate-lesson,
+  streaming, needed a heartbeat-renewed slot and bounded queue-poll
+  instead of the other 5's fixed-TTL immediate-reject pattern). All 6
+  functions deployed and live-verified, including a production cooldown-
+  rejection test on both the immediate-reject and queue paths. One small,
+  documented, low-priority follow-up remains (the 5 Session 1 functions
+  don't WRITE the cooldown flag yet, only read it -- see the Session 2
+  note for the trivial fix whenever wanted); not tracked as its own
+  backlog item since it doesn't block or degrade anything currently live.
 
   NEW LOW/architecture (logged 2026-07-16, B8 adjacent finding, not
   fixed): `src/constants/lessonTiers.ts:58`'s full-tier `wordCountTarget.max`

@@ -26,7 +26,10 @@
  * written once.
  */
 
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { RETRY_CONFIG, type RetryCallSite } from "./modelConfig.ts";
+import { CONCURRENCY_CONFIG, type ModelBucket } from "./concurrencyConfig.ts";
+import { setModelCooldown } from "./generationAdmission.ts";
 
 export type AnthropicErrorClass =
   | "overloaded"
@@ -84,6 +87,17 @@ interface RunOptions<T> {
   /** If set (test-only), every attempt is forced to this outcome -- see getForcedErrorClass(). */
   forcedErrorClass?: AnthropicErrorClass | null;
   attempt: (model: string, timeoutMs: number, forced?: AnthropicErrorClass | null) => Promise<AttemptOutcome<T>>;
+  /**
+   * B8 Session 2, optional. When both are supplied, giveUp() sets a
+   * shared cooldown on this model bucket if (and only if) the exhausted
+   * errorClass is 'overloaded' or 'rate_limit' -- see giveUp() below for
+   * the exact condition. Omitted by all 5 Session 1 call sites (their own
+   * files are out of scope for this session); their claims still READ any
+   * cooldown generate-lesson sets, they just don't WRITE one themselves
+   * yet -- a documented, intentional asymmetry, not an oversight.
+   */
+  supabase?: SupabaseClient;
+  modelBucket?: ModelBucket;
 }
 
 interface RunSuccess<T> {
@@ -115,8 +129,21 @@ async function runWithRetryAndFallback<T>(opts: RunOptions<T>): Promise<RunSucce
     return opts.attempt(model, timeoutMs, opts.forcedErrorClass ?? null);
   }
 
-  function giveUp(errorClass: AnthropicErrorClass, code: AnthropicGracefulCode, message: string): RunFailure {
+  async function giveUp(errorClass: AnthropicErrorClass, code: AnthropicGracefulCode, message: string): Promise<RunFailure> {
     logAttempt(opts.functionName, opts.callLabel, "give_up", errorClass, attempts, "n/a", "retries/fallback exhausted or budget exhausted");
+    // B8 Session 2 -- proactive cooldown writer. Fires ONLY on the two
+    // classes that are genuine Anthropic-signaled capacity problems
+    // (529 overloaded / 429 rate_limit), never on 'client_error' (fatal,
+    // never retried -- a single bad request must not punish every other
+    // in-flight request), 'malformed' (a content glitch, not a capacity
+    // signal), or 'network'/'server_error' (not reliable capacity signals
+    // per the design). Reached only after the FULL retry+fallback
+    // sequence is exhausted (RETRY_CONFIG.maxSameModelRetries +
+    // maxFallbackRetries, both 1) -- an ordinary single transient error
+    // that succeeds on its first retry never reaches this function at all.
+    if (opts.supabase && opts.modelBucket && (errorClass === "overloaded" || errorClass === "rate_limit")) {
+      await setModelCooldown(opts.supabase, opts.modelBucket, CONCURRENCY_CONFIG.cooldownSeconds);
+    }
     return { ok: false, code, error: message, errorClass, attempts };
   }
 
@@ -246,6 +273,9 @@ export interface NonStreamingCallOptions {
   buildBody: (model: string) => Record<string, unknown>;
   /** Test-only forced error injection -- see getForcedErrorClass(). */
   forcedErrorClass?: AnthropicErrorClass | null;
+  /** B8 Session 2 -- see RunOptions for the exact contract. Optional; only generate-lesson passes these so far. */
+  supabase?: SupabaseClient;
+  modelBucket?: ModelBucket;
 }
 
 export interface NonStreamingSuccess {
@@ -306,6 +336,8 @@ export async function callAnthropicNonStreaming(
     totalBudgetMs,
     primaryAttemptTimeoutMs,
     forcedErrorClass: opts.forcedErrorClass,
+    supabase: opts.supabase,
+    modelBucket: opts.modelBucket,
     attempt: async (model, timeoutMs, forced) => {
       const forcedOutcome = applyForcedError(forced);
       if (forcedOutcome) return forcedOutcome;
@@ -372,6 +404,9 @@ export interface StreamCallOptions {
   fallbackModel: string | null;
   buildBody: (model: string) => Record<string, unknown>;
   forcedErrorClass?: AnthropicErrorClass | null;
+  /** B8 Session 2 -- see RunOptions for the exact contract. */
+  supabase?: SupabaseClient;
+  modelBucket?: ModelBucket;
 }
 
 export interface StreamSuccess {
@@ -421,6 +456,8 @@ export async function openAnthropicStreamWithRetry(
     totalBudgetMs,
     primaryAttemptTimeoutMs: timeoutMs,
     forcedErrorClass: opts.forcedErrorClass,
+    supabase: opts.supabase,
+    modelBucket: opts.modelBucket,
     attempt: async (model, attemptTimeoutMs, forced) => {
       const forcedOutcome = applyForcedError(forced);
       if (forcedOutcome) return forcedOutcome;

@@ -66,10 +66,10 @@ export const CONCURRENCY_CONFIG = {
   // p_ttl_seconds -- the fixed-TTL sources' values are each source's own
   // RETRY_CONFIG.totalBudgetMs (modelConfig.ts) + a 20s safety margin, so a
   // slot can never be reclaimed while its call could still legitimately be
-  // running. generate-lesson's value is a heartbeat renewal window, not a
-  // budget-derived TTL -- Phase-1 stream duration is unbounded, and
-  // generate-lesson is not wired until Session 2; the value is reserved
-  // here now so the shape of this file doesn't change when it is.
+  // running. generate-lesson's value (Session 2, live) is the crash-only
+  // backstop threshold -- under normal operation its slot is kept fresh by
+  // the heartbeat renewing expires_at every heartbeat.intervalSeconds, so
+  // this number only matters if the heartbeat itself stops (isolate kill).
   staleThresholdSeconds: {
     'generate-lesson': 60,
     'reshape-lesson': 165,
@@ -79,9 +79,12 @@ export const CONCURRENCY_CONFIG = {
     'toolbelt-reflect': 110,
   } satisfies Record<ConcurrencySource, number>,
 
-  // generate-lesson only (Session 2) -- heartbeat cadence piggybacked on
-  // the existing 5s stall-guard interval in generate-lesson/index.ts.
-  // Unused by any Session 1 source.
+  // generate-lesson only (Session 2, live). A SEPARATE interval from
+  // generate-lesson's own stall-guard timer, sharing only the same 5s
+  // cadence -- the stall guard is scoped to Phase 1's SSE read loop only
+  // and is cleared once streaming ends, but this slot must survive
+  // Phase 2's non-streaming calls too, so it needs its own longer-lived
+  // interval (claim -> Phase 1 -> Phase 2 -> release).
   heartbeat: {
     intervalSeconds: 5,
     renewalWindowSeconds: 60,
@@ -91,8 +94,10 @@ export const CONCURRENCY_CONFIG = {
   // maxWaitMs before giving up; 'immediate' rejects on the first failed
   // claim. All 5 Session 1 sources are 'immediate' -- none of their
   // Anthropic budgets (RETRY_CONFIG.totalBudgetMs) have slack to carve a
-  // wait out of. 'queue' is reserved for generate-lesson (Session 2),
-  // which streams and can afford a short pre-connect wait.
+  // wait out of. generate-lesson (Session 2, live) is 'queue' -- it
+  // streams, so the wait happens invisibly inside the already-open SSE
+  // connection, before any tokens, indistinguishable to the teacher from
+  // ordinary "preparing your lesson" time.
   admissionPolicy: {
     'generate-lesson': 'queue',
     'reshape-lesson': 'immediate',
@@ -102,8 +107,9 @@ export const CONCURRENCY_CONFIG = {
     'toolbelt-reflect': 'immediate',
   } satisfies Record<ConcurrencySource, 'queue' | 'immediate'>,
 
-  // generate-lesson's bounded poll-for-a-slot window (Session 2 only --
-  // consulted only when admissionPolicy is 'queue').
+  // generate-lesson's bounded poll-for-a-slot window (live, Session 2 --
+  // consulted only when admissionPolicy is 'queue', currently just
+  // generate-lesson).
   admissionQueue: {
     pollIntervalMs: 2_000,
     maxWaitMs: 25_000,
@@ -112,9 +118,14 @@ export const CONCURRENCY_CONFIG = {
   // Shared cooldown window applied to a model_bucket when the retry layer
   // (_shared/anthropicRetry.ts) exhausts retries/fallback on 'overloaded'
   // or 'rate_limit'. Extended forward (GREATEST), never reset backward, on
-  // repeated signals. NOT wired to any writer in Session 1 -- the
-  // claim_generation_slot() RPC already reads generation_slot_counters
-  // .cooldown_until (always NULL until Session 2 adds the writer in
-  // anthropicRetry.ts's give-up path), so this value is reserved but inert.
+  // repeated signals. Writer live as of Session 2, wired only into
+  // generate-lesson's own call sites (anthropicRetry.ts's giveUp() checks
+  // for an optional supabase+modelBucket pair that only generate-lesson
+  // currently passes) -- the 5 Session 1 functions still READ this value
+  // on every claim (so they'll respect a cooldown generate-lesson sets),
+  // they just don't WRITE one themselves yet. Documented follow-up, not
+  // an oversight: adding the same two options-object fields to their
+  // existing callAnthropicNonStreaming() calls closes the gap whenever
+  // that's wanted -- no anthropicRetry.ts changes needed for it.
   cooldownSeconds: 20,
 } as const;
