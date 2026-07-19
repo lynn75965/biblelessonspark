@@ -544,7 +544,29 @@ established in capacity_events / conversion_events / guardrail_suppressions:
 column-limited, `GRANT ... TO authenticated` for exactly what the app
 writes, plus an explicit `GRANT ALL ... TO service_role` (confirmed via
 capacity_events that service_role privileges are NOT automatic on a new
-table either). The three OTHER tables Section F left at
+table either).
+
+**AMENDED July 19, 2026 (B8 concurrency admission control session) --
+the capacity_events observation directly above is SUPERSEDED, not
+universally true.** Two new tables created that session
+(`active_generations`, `generation_slot_counters`, migration
+`20260719120000_concurrency_admission_control.sql`) came back with
+`service_role` auto-granted full INSERT/SELECT/UPDATE/DELETE
+(`information_schema.role_table_grants`) with NO explicit
+`GRANT ... TO service_role` statement anywhere in that migration.
+Whether this reflects a platform-level default that changed since
+capacity_events was created, or something specific to how that earlier
+migration was authored, is unresolved -- not chased down further. Going
+forward: **verify `service_role`'s actual grants after every new-table
+migration** (query `information_schema.role_table_grants WHERE grantee
+= 'service_role'`) rather than assuming either the original
+capacity_events precedent (explicit grant needed) or this July 19
+observation (grant automatic) holds universally. The `anon`/
+`authenticated` lockdown guidance in this rule and in Rule #36 is
+unaffected either way -- that part remains correct and was verified
+independently again this session.
+
+The three OTHER tables Section F left at
 authenticated-SELECT-only (app_settings, org_tier_config,
 guardrail_violation_summary) have not been individually re-checked --
 if any of them ever gains a client-side write path, check for this exact
@@ -693,6 +715,15 @@ this sweep ever needs reverting.
 column-limited grants from the July 17 review-system work and were
 deliberately left untouched by this sweep (verified via
 `role_column_grants`, not the naive table-level query).
+
+NOTE (July 19, 2026): this rule governs `anon`/`authenticated` defaults
+only, which remain correct and independently reverified as of the B8
+concurrency admission control session. The related `service_role`
+auto-grant claim from that same July 18 sweep (originally in Rule #32's
+body, the explicit-grant-pattern paragraph above) was found NOT to hold
+for two tables created July 19 -- see Rule #32's "AMENDED July 19, 2026"
+note for the correction and the current guidance (verify service_role's
+grants after every new-table migration rather than assuming either way).
 
 CLOSED July 18, 2026 (same day, follow-up session, migration
 `20260718160000_execute_grant_hardening.sql`): the matching
