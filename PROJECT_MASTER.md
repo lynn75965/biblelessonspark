@@ -1,4 +1,199 @@
-# PROJECT MASTER -- Last updated: July 19, 2026 (Session: B8 CONCURRENCY ADMISSION CONTROL SESSION 2 SHIPPED, pushed to origin/main -- generate-lesson, the last of the 6 Anthropic-calling functions, is now wired into DB-backed admission control: one slot claimed for the whole invocation (Phase 1 stream + Phase 2 supplements combined), a bounded 25s queue-poll (invisible to the teacher -- happens inside the already-open SSE connection, before any tokens), a heartbeat-renewed slot (a SEPARATE interval from the pre-existing stall-guard timer, same 5s cadence, spanning the full invocation since the stall guard alone is scoped to Phase 1's read loop only and would let the slot expire mid-Phase-2), and the cooldown WRITER (anthropicRetry.ts's giveUp() now sets a shared cooldown on overloaded/rate_limit exhaustion -- Session 1 only built the reader). Migration 20260719140000 (2 new RPCs: renew_generation_slot, set_model_cooldown; CHECK constraints extended) applied and verified via Dashboard SQL (both new RPCs EXECUTE-granted to service_role only, existing table grants on active_generations/generation_slot_counters/capacity_events confirmed unchanged). generate-lesson deployed clean. Live production test passed in full: heartbeat_at visibly advancing during a real generation, zero active_generations rows after completion, zero unexpected capacity_events rows, and the cooldown-rejection test (instant SSE busy-error, zero Anthropic cost, admission_cooldown_rejected logged, cooldown cleared afterward) all confirmed by Lynn. Release-on-every-termination-path analysis (client disconnect, write-throw, Phase 2 throw, hard isolate kill) and the renewal-failure decision (log admission_heartbeat_lost, stop heartbeating, NEVER abort a live stream over an admission-control bookkeeping race) are both documented in full in the B8 CONCURRENCY ADMISSION CONTROL note below. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) COMPLETELY -- all 6 functions now covered. One documented follow-up remains open, not fixed this session: the 5 Session 1 functions still only READ the cooldown flag, not WRITE it (a 2-line addition per existing call site whenever wanted). The diagnostic gateway-ceiling test function is still parked, not deployed, pending separate approval. Prior session: B8 CONCURRENCY ADMISSION CONTROL SESSION 1 SHIPPED, commit d80204f, pushed to origin/main -- DB-backed concurrency admission control (claim/release slots via service-role-only RPCs) live on 5 of 6 Anthropic-calling functions (reshape-lesson, generate-devotional, generate-parable, extract-lesson, toolbelt-reflect). Migration + all 5 edge functions deployed one at a time per Rule #20, each individually live-verified via real UI-triggered generations plus SQL checks. Production admission-REJECTION integration test also passed after one diagnosed false alarm (first attempt showed no rejection; downloading and diffing the actual live deployed bundles against local source for all 5 functions, plus pulling the live claim_generation_slot definition directly from the DB, found zero drift anywhere -- root cause was a timing miss, cooldown window expired before the trigger, not a defect; retest confirmed toolbelt-reflect rejecting instantly under a live cooldown with two admission_cooldown_rejected rows logged in capacity_events). Frontend Service-Busy message-parity fix (ParableGenerator.tsx + 3 Toolbelt pages, previously showing supabase-js's generic error text instead of the real busy message) shipped in the same commit, Lynn-verified on localhost before deploy. Diagnostic gateway-ceiling test function spec is approved but still parked, not deployed, pending separate go-ahead. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) for 5 of 6 functions. See B8 CONCURRENCY ADMISSION CONTROL note below for full detail. Prior session: EXECUTE GRANT HARDENING SHIPPED, commit a6b1ea1, pushed to origin/main -- least-privilege EXECUTE grants for functions, direct sequel to the table/view sweep. Extends the June migration (20260531120100, 40 functions) to 8 more: invite_team_member (real authenticated RPC, had PUBLIC+anon open) + 7 trigger functions created since June 3 that were never audited. Verified via a programmatic diff computed from a live "before" snapshot plus known deltas (not hand-retyped, learning from the table sweep's transcription errors) across all 71 public-schema functions -- empty both pre- and post-apply. get_invite_by_token confirmed keeping anon (the deliberate Phase-2 anon RPC). ALTER DEFAULT PRIVILEGES confirmed via pg_default_acl. Lynn ran the full regression checklist as a non-admin user (team invite + all 7 trigger-fire checks) against production-with-new-grants via localhost -- everything passed. CI run #78 green, all 4 jobs. This closes the functions/EXECUTE default-privilege backlog item logged during the prior grant hardening sweep. See EXECUTE GRANT HARDENING note below for full detail. Prior session same day: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+# PROJECT MASTER -- Last updated: July 20, 2026 (Session: CLOUDFLARE TURNSTILE CAPTCHA ROLLOUT SHIPPED AND VERIFIED LIVE IN PRODUCTION, commits f16f878 (feature) + de9723b (CSP fix) -- Turnstile CAPTCHA wired across all 5 gated Supabase auth call sites (useAuth signIn/signUp, Auth.tsx handleResendVerification, the invite-flow chained signInWithPassword, handleForgotPassword) via a reusable CaptchaWidget component (src/components/auth/CaptchaWidget.tsx) and a new captchaConfig.ts SSOT (CAPTCHA_ENABLED derived purely from VITE_TURNSTILE_SITE_KEY presence). The invite-chain problem (signUp() and the immediately-following signInWithPassword() both need a captcha token, but Turnstile tokens are single-use) was diagnosed and fixed across three iterations against a dedicated throwaway Supabase project (idrqvolxvocdwravazbj, now safe to delete along with its Turnstile test site): first reset()+execute() on the same widget (failed, matching a real Cloudflare community-reported bug where reset()ing a widget that already passed silently under appearance:'interaction-only' can leave it stuck invisible if the reset-triggered pass wants interaction); then a dedicated second never-reset widget with a new autoExecute=false prop (appeared to fail identically on first retest); instrumented diagnostic logging (mount/execute/callback timestamps plus container/iframe DOM state, since fully removed) then revealed the true root cause was unrelated to Turnstile entirely -- Auth.tsx's own post-signup redirect useEffect was unmounting the page mid-mint because the throwaway project had email confirmation disabled (signUp() established a session immediately) and the test harness's URL lacked the ?invite= param that protects the real invite flow's !inviteToken guard; fixing the test harness (not the widget) confirmed the dedicated-widget architecture had been correct all along. All temporary test/diagnostic scaffolding (the ?captchaChainTest=1 harness, [captchaDiag] instrumentation) was fully removed before production rollout, grep-verified zero residual references. Also fixed along the way: client.ts refactored to read VITE_SUPABASE_URL/VITE_SUPABASE_ANON_KEY from env with hardcoded production fallbacks (lets local dev point at the throwaway project without touching the production path), and netlify.toml's CSP widened to allow challenges.cloudflare.com on script-src, frame-src, AND connect-src (Cloudflare's own primary CSP doc under-states the connect-src requirement -- verified via a second official doc page's worked example, not assumed). Shipped via a 5-step gated sequence with a hold at every handoff: (1) frontend deployed CAPTCHA-inert (VITE_TURNSTILE_SITE_KEY unset in Netlify, zero behavior change, confirmed); (1b) CSP fix deployed separately, still inert; (2) Lynn added the Netlify site-key env var and redeployed; (3) DevTools-verified gotrue_meta_security.captcha_token present and non-empty on signup/signin/forgot-password in production before any server-side enforcement; (4) Lynn enabled Turnstile enforcement in Supabase Auth -> Attack Protection (project hphebzdftpjbiudpfcrs); (5) full production smoke test passed, including the org-invite two-token chain under REAL production config (email confirmation ON, real confirm-invite-email edge function) for the first time -- it had only ever been simulated on the throwaway project's confirmation-off config, and passed clean on the first live run. Rollback at any stage was a single toggle (env var removal or the Supabase Attack Protection switch), never exercised. NEW STANDING BACKLOG opened this session: Settings.tsx:38 calls supabase.auth.admin.deleteUser(user.id) directly from the browser client using the anon/publishable key -- admin.* GoTrue methods require a service_role key, so this call is almost certainly failing today (falls through to the existing "Fallback: Sign out" branch, meaning self-service account deletion may already be silently broken in production); a working admin-delete-user Edge Function already exists (supabase/functions/admin-delete-user/index.ts) and is presumably the intended real path -- not diagnosed further or fixed this session, flagged for a dedicated look. See CLOUDFLARE TURNSTILE CAPTCHA ROLLOUT note and STANDING BACKLOG -- Settings.tsx admin.deleteUser note below for full detail. Prior session: B8 CONCURRENCY ADMISSION CONTROL SESSION 2 SHIPPED, pushed to origin/main -- generate-lesson, the last of the 6 Anthropic-calling functions, is now wired into DB-backed admission control: one slot claimed for the whole invocation (Phase 1 stream + Phase 2 supplements combined), a bounded 25s queue-poll (invisible to the teacher -- happens inside the already-open SSE connection, before any tokens), a heartbeat-renewed slot (a SEPARATE interval from the pre-existing stall-guard timer, same 5s cadence, spanning the full invocation since the stall guard alone is scoped to Phase 1's read loop only and would let the slot expire mid-Phase-2), and the cooldown WRITER (anthropicRetry.ts's giveUp() now sets a shared cooldown on overloaded/rate_limit exhaustion -- Session 1 only built the reader). Migration 20260719140000 (2 new RPCs: renew_generation_slot, set_model_cooldown; CHECK constraints extended) applied and verified via Dashboard SQL (both new RPCs EXECUTE-granted to service_role only, existing table grants on active_generations/generation_slot_counters/capacity_events confirmed unchanged). generate-lesson deployed clean. Live production test passed in full: heartbeat_at visibly advancing during a real generation, zero active_generations rows after completion, zero unexpected capacity_events rows, and the cooldown-rejection test (instant SSE busy-error, zero Anthropic cost, admission_cooldown_rejected logged, cooldown cleared afterward) all confirmed by Lynn. Release-on-every-termination-path analysis (client disconnect, write-throw, Phase 2 throw, hard isolate kill) and the renewal-failure decision (log admission_heartbeat_lost, stop heartbeating, NEVER abort a live stream over an admission-control bookkeeping race) are both documented in full in the B8 CONCURRENCY ADMISSION CONTROL note below. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) COMPLETELY -- all 6 functions now covered. One documented follow-up remains open, not fixed this session: the 5 Session 1 functions still only READ the cooldown flag, not WRITE it (a 2-line addition per existing call site whenever wanted). The diagnostic gateway-ceiling test function is still parked, not deployed, pending separate approval. Prior session: B8 CONCURRENCY ADMISSION CONTROL SESSION 1 SHIPPED, commit d80204f, pushed to origin/main -- DB-backed concurrency admission control (claim/release slots via service-role-only RPCs) live on 5 of 6 Anthropic-calling functions (reshape-lesson, generate-devotional, generate-parable, extract-lesson, toolbelt-reflect). Migration + all 5 edge functions deployed one at a time per Rule #20, each individually live-verified via real UI-triggered generations plus SQL checks. Production admission-REJECTION integration test also passed after one diagnosed false alarm (first attempt showed no rejection; downloading and diffing the actual live deployed bundles against local source for all 5 functions, plus pulling the live claim_generation_slot definition directly from the DB, found zero drift anywhere -- root cause was a timing miss, cooldown window expired before the trigger, not a defect; retest confirmed toolbelt-reflect rejecting instantly under a live cooldown with two admission_cooldown_rejected rows logged in capacity_events). Frontend Service-Busy message-parity fix (ParableGenerator.tsx + 3 Toolbelt pages, previously showing supabase-js's generic error text instead of the real busy message) shipped in the same commit, Lynn-verified on localhost before deploy. Diagnostic gateway-ceiling test function spec is approved but still parked, not deployed, pending separate go-ahead. Closes the "proactive Anthropic throttle/backpressure/queueing" backlog item (logged 2026-07-16, B8 session) for 5 of 6 functions. See B8 CONCURRENCY ADMISSION CONTROL note below for full detail. Prior session: EXECUTE GRANT HARDENING SHIPPED, commit a6b1ea1, pushed to origin/main -- least-privilege EXECUTE grants for functions, direct sequel to the table/view sweep. Extends the June migration (20260531120100, 40 functions) to 8 more: invite_team_member (real authenticated RPC, had PUBLIC+anon open) + 7 trigger functions created since June 3 that were never audited. Verified via a programmatic diff computed from a live "before" snapshot plus known deltas (not hand-retyped, learning from the table sweep's transcription errors) across all 71 public-schema functions -- empty both pre- and post-apply. get_invite_by_token confirmed keeping anon (the deliberate Phase-2 anon RPC). ALTER DEFAULT PRIVILEGES confirmed via pg_default_acl. Lynn ran the full regression checklist as a non-admin user (team invite + all 7 trigger-fire checks) against production-with-new-grants via localhost -- everything passed. CI run #78 green, all 4 jobs. This closes the functions/EXECUTE default-privilege backlog item logged during the prior grant hardening sweep. See EXECUTE GRANT HARDENING note below for full detail. Prior session same day: GRANT HARDENING SWEEP SHIPPED, commit 91e2459, pushed to origin/main -- least-privilege anon/authenticated grants across the entire public schema, extending Section F (20260605100000) to all 64 tables/views. Post-approval verification caught the sweep's approved matrix itself was missing 5 tables (blog_posts, capacity_events, conversion_events, email_sequence_templates, toolbelt_usage) before applying -- toolbelt_usage had ZERO grants despite a live admin SELECT call, a genuine pre-existing production bug now fixed. Post-migration diff against the corrected approved matrix: EMPTY, all 64 objects verified exact match. ALTER DEFAULT PRIVILEGES confirmed working via pg_default_acl. Lynn ran the full regression checklist as a non-admin user against production-with-new-grants via localhost -- everything passed, including the toolbelt_usage fix. CI run #76 green, all 4 jobs. This closes the longest-standing deferred anon-grants backlog item. See GRANT HARDENING SWEEP note below for full detail. Prior session same day: PRICING SSOT CONSOLIDATION SHIPPED, commits 9912f4a+34c93bc, pushed to origin/main -- both logged backlog items (orphaned subscription_plans cluster, usePricingPlans.tsx second source) closed together. Migration 20260718140000 applied live (all 5 objects confirmed dropped via post-push SQL: allocate_monthly_credits(), the plan_id FK+column, subscription_plans, pricing_plans; user_subscriptions intact at 44 rows, credits_ledger untouched at 0 rows). sync-pricing-from-stripe and seed-stripe-catalog deleted from the live project and confirmed absent via functions list (45 functions remain). CI run #73 green, all 4 jobs (Build/ASCII Guard/Guardrail Fixtures/Lint) passed. Netlify auto-deploying. See RESOLVED note below for full detail. Prior sessions same day: no-explicit-any BATCH 3 SHIPPED (FINAL BATCH), commits b1cd647+aae08a4+795754b+38608d1, pushed, CI green; BATCH 2 SHIPPED, commit 4f24bb0; BATCH 1 SHIPPED, commit 2423425; events analytics write path retired, commit f08899a; feedback popup trigger fixed, commit 080fa35)
+
+## >>> CLOUDFLARE TURNSTILE CAPTCHA ROLLOUT -- SHIPPED AND VERIFIED LIVE IN PRODUCTION
+July 20, 2026. Cloudflare Turnstile CAPTCHA added to all five gated
+Supabase auth call sites, developed and iteratively debugged against a
+dedicated throwaway Supabase project, then rolled out to production
+behind a fully reversible, gated 5-step sequence with a hold at every
+handoff.
+
+**Diagnosis (call sites and the chaining problem)**: five places call a
+Supabase auth method that accepts `captchaToken`: `useAuth.signIn`,
+`useAuth.signUp`, `Auth.tsx`'s `handleResendVerification` (a raw
+`supabase.auth.signInWithPassword` used to trigger a resend, not routed
+through `useAuth`), `handleForgotPassword`
+(`resetPasswordForEmail`), and the org-invite accept path inside
+`handleSignUp` -- which calls `signUp()` AND then, immediately, a second
+`signInWithPassword()` to establish the session before claiming the
+invite. Turnstile tokens are single-use, so that second call cannot
+reuse the token `signUp()` consumed; some mechanism has to mint a
+second, distinct token in the same page load without a reload.
+
+**Architecture that shipped**:
+- `src/config/captchaConfig.ts` (new): `CAPTCHA_ENABLED` derived purely
+  from `VITE_TURNSTILE_SITE_KEY` presence -- the only gate anywhere.
+- `src/components/auth/CaptchaWidget.tsx` (new): managed-mode Turnstile
+  widget, `appearance: 'interaction-only'` (invisible unless
+  Cloudflare's risk engine wants interaction), `execution: 'execute'`
+  with an explicit `execute()` call right after `render()` (reproduces
+  auto-run UX without relying on the `execution: 'render'` default).
+  Exposes `getToken()` and `refreshToken(): Promise<string>` via ref.
+  New `autoExecute` prop (default true; false = render but stay dormant
+  until the first `refreshToken()` call) -- this is what makes the
+  dedicated-second-widget pattern below possible.
+- `Auth.tsx`: four widgets on the three visible forms (sign-in, sign-up,
+  forgot-password) plus a small one on the "Check Your Email" screen
+  (needed because `handleResendVerification` fires from that screen,
+  which has no widget once the sign-up form unmounts) -- PLUS a fifth,
+  `inviteChainCaptchaRef`, rendered `autoExecute={false}` right below
+  the sign-up widget, used ONLY for the invite path's second
+  `signInWithPassword()` call via `refreshToken()`.
+- `useAuth.tsx`: `signIn`/`signUp` take an optional trailing
+  `captchaToken` param, forwarded to `options.captchaToken`.
+- `client.ts`: refactored to read `VITE_SUPABASE_URL`/
+  `VITE_SUPABASE_ANON_KEY` from env with the hardcoded production
+  values as fallback -- lets `.env.local` point local dev at a
+  different Supabase project (the throwaway) without touching the
+  production build path (unset in Netlify -> falls back exactly as
+  before).
+- `netlify.toml`: CSP widened to add `https://challenges.cloudflare.com`
+  to `script-src`, `frame-src`, AND `connect-src`. Verified against two
+  separate official Cloudflare doc pages, not assumed from one --
+  Cloudflare's dedicated CSP reference page states only `script-src`/
+  `frame-src` are required (calling `connect-src` a pre-clearance-only
+  need), but their Mobile Implementation troubleshooting page gives a
+  worked example that includes `connect-src` unconditionally. Included
+  it rather than trust the narrower claim; zero downside since it's a
+  pure widen of an already-present directive.
+
+**The chaining bug hunt (three iterations against the throwaway
+project, idrqvolxvocdwravazbj -- now safe to delete, along with its
+Turnstile test site, no longer needed)**:
+1. First attempt: `reset()` alone on the sign-up widget to mint the
+   second token. Timed out. Matches a real, community-reported
+   Cloudflare Turnstile bug: `reset()`ing a widget whose first pass
+   completed silently under `appearance: 'interaction-only'` can leave
+   it stuck invisible if the reset-triggered pass decides it needs
+   interaction -- the challenge UI never renders, the callback never
+   fires.
+2. Second attempt: switched to `execution: 'execute'` with explicit
+   `execute()` calls, pairing `reset()` with `execute()` in
+   `refreshToken()` -- Cloudflare's own documented workaround for the
+   bug above. Timed out identically.
+3. Third attempt: a SECOND, dedicated widget (`autoExecute={false}`)
+   solely for the chained call, never `reset()` at all -- its first-ever
+   `execute()` at chain time is a genuinely fresh pass. STILL timed out
+   on first retest, with GoTrue's raw error surfacing
+   ("captcha protection: request disallowed (no captcha_token found)"),
+   proving the token genuinely never arrived, not just a UI display
+   glitch.
+
+At that point, per an explicit STOP-fixing instruction, temporary
+diagnostic instrumentation was added instead of a fourth fix attempt:
+`timeout-callback`/`unsupported-callback` wiring, real Cloudflare
+`error-callback` error codes (previously swallowed), and a `diagLog`
+helper capturing container/iframe DOM state (presence, computed
+display/visibility, bounding rects) plus timestamps at every
+render/execute/callback/timeout event. One instrumented run revealed
+the actual root cause: the dedicated widget's container existed and
+was healthy immediately after `reset()+execute()`, then was **entirely
+gone** (`containerPresent: false`, `widgetId: null`) by the time the
+30s timeout fired -- the container had been unmounted mid-mint.
+
+**True root cause**: `Auth.tsx`'s own post-signup redirect
+`useEffect` (`if (user && ... && !inviteToken && !showEmailConfirmation)
+navigate(ROUTES.DASHBOARD)`) already carries an `!inviteToken` guard
+specifically so a real invited user's session doesn't get yanked out
+from under the invite-claim flow. But the test harness's URL
+(`?captchaChainTest=1`) carried no `invite=` param, so that guard never
+applied to the TEST. With email confirmation disabled in the throwaway
+project (a rate-limit workaround adopted mid-session), `signUp()`
+established a session immediately, `onAuthStateChange` fired, `user`
+went truthy, and the redirect fired mid-`refreshToken()`, unmounting
+both widgets before Cloudflare could deliver the second token --
+nothing to do with Turnstile's mechanics at all. Fixing the TEST
+HARNESS (adding the equivalent guard for the test's own flag) rather
+than the widget confirmed the dedicated-widget architecture had been
+correct since iteration 3; the retest passed clean (`callback:success`
+~4s after `refreshToken:after-reset-execute`, two distinct tokens).
+Important correction made mid-diagnosis: the iteration-1 and
+iteration-2 "failures" cannot be cleanly attributed to the Cloudflare
+`reset()` bug after all -- both ran through the same contaminated
+harness, so whether the simpler single-widget `reset()+execute()`
+approach would ALSO have worked is genuinely unknown; the
+dedicated-widget architecture was kept regardless, since it's the only
+path with clean positive evidence and it structurally avoids the
+documented bug class either way.
+
+**Harness cleanup**: once verified, all temporary scaffolding was fully
+removed -- the `?captchaChainTest=1` branch and `forceChainTest`
+variable in `Auth.tsx` (including its lift to component scope for the
+redirect-effect fix, which was itself reverted to the exact
+byte-identical pre-harness guard), and every `diagLog` call plus the
+`timeout-callback`/`unsupported-callback` wiring in `CaptchaWidget.tsx`.
+Grep-verified zero residual references to `captchaChainTest`,
+`captchaDiag`, or `forceChainTest` anywhere in the repo before
+shipping. One genuine improvement survived the cleanup (not
+scaffolding): `handleError` now captures Cloudflare's real
+`errorCode` into the rejected `Error`'s message instead of a generic
+string.
+
+**Production rollout (5 steps, hold at every handoff)**:
+1. Frontend deployed with `VITE_TURNSTILE_SITE_KEY` unset in Netlify --
+   `CAPTCHA_ENABLED` false, widget renders nothing, confirmed zero
+   behavior change on biblelessonspark.com. Commit `f16f878`.
+2. Same-session CSP fix deployed separately (commit `de9723b`) after
+   discovering the gap described above -- still CAPTCHA-disabled-safe,
+   pure widen.
+3. Lynn added the production Turnstile site key to Netlify and
+   redeployed -- widget now renders, tokens generated, GoTrue still not
+   validating them (Supabase Attack Protection toggle still off).
+4. DevTools-verified `gotrue_meta_security.captcha_token` present and
+   non-empty on the real `signup`/`token?grant_type=password`/`recover`
+   requests in production, BEFORE any server-side enforcement -- this
+   was the hard gate; enforcement would not have been enabled without
+   it.
+5. Lynn enabled Turnstile in Supabase Auth -> Attack Protection
+   (project `hphebzdftpjbiudpfcrs`), pasted the production secret key.
+   Full production smoke test passed: signup, sign-in, forgot-password,
+   and -- the first real test of the two-token chain under production
+   config (email confirmation ON, real `confirm-invite-email` Edge
+   Function, a scenario the throwaway project could only simulate with
+   confirmation OFF) -- the org-invite accept flow. All passed clean on
+   the first live run.
+
+Rollback at every stage was a single toggle (remove the Netlify env var,
+or flip the Supabase Attack Protection switch back off) -- never
+exercised; nothing broke.
+
+CARRY-FORWARD:
+- Throwaway Supabase project `idrqvolxvocdwravazbj` and its Cloudflare
+  Turnstile test site key are no longer needed -- safe for Lynn to
+  delete whenever convenient. Not deleted this session (out of scope
+  per explicit instruction).
+- See STANDING BACKLOG -- Settings.tsx admin.deleteUser note directly
+  below for a finding surfaced but not chased down this session.
+
+## >>> STANDING BACKLOG -- Settings.tsx admin.deleteUser called from browser with anon key, likely already broken
+Logged July 20, 2026 (surfaced during CAPTCHA session close-out, not
+diagnosed or fixed). `src/pages/Settings.tsx:38`
+(`handleDeleteAccount`) calls `supabase.auth.admin.deleteUser(user.id)`
+directly from the browser client, which authenticates with the
+anon/publishable key. GoTrue's `admin.*` namespace requires a
+`service_role` key -- an anon-key caller should get a 403/permission
+error, not a successful delete. The existing code already has a
+fallback for exactly this: on `deleteError`, it signs the user out and
+shows "Your lessons have been deleted. Please contact support to
+complete account deletion," which strongly suggests this path has been
+silently hitting the fallback in production all along (the user's
+lessons rows do get deleted first, via a normal RLS-scoped client
+call at line ~27-35 -- that part is fine) rather than ever completing
+a real account deletion.
+
+A working `admin-delete-user` Edge Function already exists
+(`supabase/functions/admin-delete-user/index.ts`) and is presumably
+the intended real path -- self-service delete should likely be calling
+that function (which can run under `service_role`) instead of the
+browser-side `admin.deleteUser`. NOT diagnosed further or fixed this
+session -- needs a dedicated look at: (1) confirming the anon-key call
+does in fact fail in production (check browser Network tab / Supabase
+logs during a real delete attempt), (2) reading `admin-delete-user`'s
+current implementation to confirm it does what `Settings.tsx` needs,
+(3) wiring `Settings.tsx` to call it via `supabase.functions.invoke`
+instead of the direct `admin.deleteUser` call, matching the pattern
+already used elsewhere in this codebase (`accept-org-invite`,
+`resend-verification`, etc.) for privileged operations that must run
+server-side.
 
 ## >>> B8 CONCURRENCY ADMISSION CONTROL -- SESSION 2 SHIPPED AND VERIFIED, backlog item CLOSED
 July 19, 2026 (same day as Session 1). Wires generate-lesson -- the last

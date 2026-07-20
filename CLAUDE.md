@@ -768,6 +768,77 @@ precedent) in its own migration -- the same discipline as Rule #36's
 table-grant requirement, now extended to functions. Rollback preserved
 at `scripts/rollback_20260718160000_execute_grant_hardening.sql`.
 
+### Rule #37: CAPTCHA (Turnstile) -- every gated auth call needs a token; chained calls need a dedicated widget; third-party embeds need CSP on three directives together
+Added July 20, 2026 (Cloudflare Turnstile CAPTCHA rollout, commits
+f16f878 + de9723b, live and verified in production this session).
+
+SSOT: `src/config/captchaConfig.ts` (`CAPTCHA_ENABLED` derives purely
+from `VITE_TURNSTILE_SITE_KEY` presence -- no other flag anywhere) and
+`src/components/auth/CaptchaWidget.tsx` (the widget wrapper). Any
+NEW frontend call to a GoTrue method that accepts `captchaToken`
+(`signUp`, `signInWithPassword`, `resetPasswordForEmail`, and others --
+check `@supabase/auth-js`'s `lib/types.d.ts` for the current list) must
+mount a `CaptchaWidget`, read its token via `getToken()`, and pass it
+through `options.captchaToken`. When `CAPTCHA_ENABLED` is false the
+widget renders `null` and every call site must tolerate `captchaToken`
+being `undefined` -- this is how the feature ships inert when the site
+key is unset (verified live: Netlify with no site key -> zero behavior
+change; site key added -> widget renders and tokens flow).
+
+Turnstile tokens are single-use. A flow that needs TWO gated Supabase
+calls back-to-back (e.g. `signUp()` immediately followed by
+`signInWithPassword()` in the org-invite accept path, `Auth.tsx`) must
+NOT `reset()` the same widget that already produced the first token to
+get a second one. Cloudflare has a confirmed, community-reported bug
+where `reset()`ing a widget whose first pass completed silently under
+`appearance: 'interaction-only'` can leave it stuck invisible if the
+reset-triggered pass decides it needs interaction -- the challenge UI
+never appears and the callback never fires, hanging indefinitely. The
+verified fix is a SECOND, dedicated widget instance for the chained
+call, rendered with `autoExecute={false}` (stays dormant until its
+first `refreshToken()` call) -- its first-ever execution is always a
+genuinely fresh pass, never a reset of an already-passed widget, so the
+bug class never triggers. See `inviteChainCaptchaRef` in `Auth.tsx` and
+the component-level comment in `CaptchaWidget.tsx` for the reference
+implementation. Do not "simplify" this back to one widget with
+`reset()`+`execute()` -- that exact pattern was tried and timed out
+identically to a bare `reset()` against the live throwaway project
+before this architecture was adopted.
+
+Any third-party embed (Turnstile or otherwise) that loads a script AND
+renders content in an iframe needs its origin added to **three** CSP
+directives together in `netlify.toml`, not just the two that vendor
+docs sometimes lead with: `script-src` (loads the JS), `frame-src`
+(permits the iframe), and `connect-src` (the script's own network
+calls from the parent page context, independent of what's inside the
+iframe). Cloudflare's own CSP reference page under-states this --
+verify against a full walkthrough of every directive category (see
+Rule #32's `information_schema` discipline for the same "verify, don't
+assume" posture) rather than trusting a single doc page's directive
+list. Missing `connect-src` in particular fails silently: the script
+loads, may even render, but produces no token -- and looks identical to
+a CAPTCHA-wiring bug rather than a CSP gap, wasting debugging time on
+the wrong layer. `default-src` does NOT provide a fallback for any
+directive already explicitly listed in the policy (each directive that
+appears at all is authoritative for its category, `default-src` only
+covers categories with no explicit entry) -- do not assume widening
+`default-src` fixes anything once `script-src`/`frame-src`/`connect-src`
+are already present.
+
+Rollout sequence that shipped, safe to reuse for any future
+enforcement-style feature flip (frontend capability existing behind a
+still-OFF server-side gate): (1) deploy the frontend with the feature
+inert (env var/flag unset) and confirm zero behavior change; (2) flip
+the env var/flag on and confirm the client-side half now actually
+fires (DevTools network inspection of the real request payload, not
+just "no errors in console"); (3) only then enable server-side
+enforcement; (4) live smoke-test every gated path, including the one
+hardest to simulate pre-production (here: the org-invite two-token
+chain, which could only be simulated on a throwaway Supabase project
+with confirmation-off, and worked on its first real run under
+production's confirmation-on config). Rollback at every stage is a
+single toggle, never a re-deploy.
+
 ---
 
 ## DEBUGGING PROTOCOL
