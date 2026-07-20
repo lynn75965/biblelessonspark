@@ -11,8 +11,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   setUser: (user: User | null) => void;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, fullName: string, captchaToken?: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<Session | null>;
   isSessionExpired: boolean;
@@ -182,17 +182,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, captchaToken?: string) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: captchaToken ? { captchaToken } : undefined,
       });
-      
+
       if (!error) {
         // Log successful login attempt
       }
-      
+
       return { error };
     } catch (error) {
       logSecurityEvent('login_error', 'unknown', { email, error: error.message });
@@ -200,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, captchaToken?: string) => {
     try {
       const { error, data } = await supabase.auth.signUp({
         email,
@@ -210,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data: {
             full_name: fullName,
           },
+          captchaToken,
         },
       });
       

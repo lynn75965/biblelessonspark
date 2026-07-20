@@ -21,6 +21,8 @@ import { isBetaMode } from '@/constants/systemSettings';
 import { LegalModal } from '@/components/LegalModal';
 import { BETA_ENROLLMENT_CONFIG, shouldShowPublicBetaEnrollment } from '@/constants/betaEnrollmentConfig';
 import { ROUTES } from "@/constants/routes";
+import CaptchaWidget, { CaptchaWidgetHandle } from '@/components/auth/CaptchaWidget';
+import { CAPTCHA_ENABLED } from '@/config/captchaConfig';
 
 // Public Beta Organization ID - SSOT: This should match system_settings or be fetched
 const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
@@ -28,7 +30,7 @@ const PUBLIC_BETA_ORG_ID = '9a5da69e-adf2-4661-8833-197940c255e0';
 export default function Auth() {
   const [searchParams] = useSearchParams();
   const inviteToken = searchParams.get('invite');
-  
+
   // Get system settings for platform mode
   const { settings } = useSystemSettings();
   const platformMode = settings.current_phase as string;
@@ -76,6 +78,22 @@ export default function Auth() {
   const { toast } = useToast();
   const { getInviteByToken, claimInvite } = useInvites();
   const navigate = useNavigate();
+
+  const signInCaptchaRef = useRef<CaptchaWidgetHandle>(null);
+  const signUpCaptchaRef = useRef<CaptchaWidgetHandle>(null);
+  const forgotPasswordCaptchaRef = useRef<CaptchaWidgetHandle>(null);
+  const resendVerificationCaptchaRef = useRef<CaptchaWidgetHandle>(null);
+  // Dedicated, autoExecute=false widget solely for the chained sign-in call
+  // that follows signUp() in the invite path. Never reset() -- its first
+  // execute() at chain time is a fresh pass, sidestepping the
+  // interaction-only + reset() visibility bug. See the note above
+  // CaptchaWidget's component definition.
+  const inviteChainCaptchaRef = useRef<CaptchaWidgetHandle>(null);
+
+  // CAPTCHA disabled (VITE_TURNSTILE_SITE_KEY unset): every ref is unmounted
+  // (CaptchaWidget renders null) so getToken()/refreshToken() are never
+  // called and every captchaToken below stays undefined -- identical to
+  // pre-Turnstile behavior.
 
   // SSOT: Text from BRANDING.beta, behavior from BETA_ENROLLMENT_CONFIG
   const FORM_TEXT = BRANDING.beta.form;
@@ -155,10 +173,20 @@ export default function Auth() {
     e.preventDefault();
     if (!formData.email || !formData.password) return;
 
+    const captchaToken = signInCaptchaRef.current?.getToken() ?? undefined;
+    if (CAPTCHA_ENABLED && !captchaToken) {
+      toast({
+        title: "Security check in progress",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const sanitizedEmail = sanitizeEmail(formData.email);
-      const { error, data } = await signIn(sanitizedEmail, formData.password);
+      const { error, data } = await signIn(sanitizedEmail, formData.password, captchaToken);
 
       if (error) {
         toast({
@@ -199,13 +227,24 @@ export default function Auth() {
   // NEW: Handle resending verification email
   const handleResendVerification = async () => {
     if (!unconfirmedEmail) return;
-    
+
+    const captchaToken = resendVerificationCaptchaRef.current?.getToken() ?? undefined;
+    if (CAPTCHA_ENABLED && !captchaToken) {
+      toast({
+        title: "Security check in progress",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsResendingVerification(true);
     try {
       // Sign in temporarily to trigger resend
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: unconfirmedEmail,
         password: formData.password,
+        options: captchaToken ? { captchaToken } : undefined,
       });
       
       if (!signInError) {
@@ -280,6 +319,16 @@ export default function Auth() {
       return;
     }
 
+    const captchaToken = signUpCaptchaRef.current?.getToken() ?? undefined;
+    if (CAPTCHA_ENABLED && !captchaToken) {
+      toast({
+        title: "Security check in progress",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const sanitizedEmail = sanitizeEmail(formData.email);
@@ -296,7 +345,7 @@ export default function Auth() {
         return;
       }
 
-      const { error, data } = await signUp(sanitizedEmail, formData.password, sanitizedFullName);
+      const { error, data } = await signUp(sanitizedEmail, formData.password, sanitizedFullName, captchaToken);
 
       if (error) {
         // ---------------------------------------------------------------
@@ -347,10 +396,28 @@ export default function Auth() {
           // the AuthProvider consumer finish the join after the user confirms.
           try { localStorage.setItem('bls_pending_invite', inviteToken); } catch { /* localStorage unavailable (private browsing, disabled) -- safe to ignore */ }
 
+          // Turnstile tokens are single-use -- the token spent on signUp()
+          // above cannot cover this second Supabase auth call. Mint one from
+          // the dedicated inviteChainCaptchaRef widget (never reset -- see
+          // its autoExecute={false} render below). A refresh failure
+          // (timeout, widget error) is not fatal: the call below simply
+          // proceeds without a token, and if CAPTCHA enforcement rejects it,
+          // the existing signInError branch already sends the user to the
+          // Sign In tab (which has its own widget) to retry.
+          let inlineSignInToken: string | undefined;
+          if (CAPTCHA_ENABLED) {
+            try {
+              inlineSignInToken = await inviteChainCaptchaRef.current?.refreshToken();
+            } catch (refreshError) {
+              console.error('Failed to mint captcha token for invite sign-in:', refreshError);
+            }
+          }
+
           // Sign in the user to establish an active session
           const { error: signInError } = await supabase.auth.signInWithPassword({
             email: sanitizedEmail,
             password: formData.password,
+            options: inlineSignInToken ? { captchaToken: inlineSignInToken } : undefined,
           });
 
           if (signInError) {
@@ -439,11 +506,22 @@ export default function Auth() {
       return;
     }
 
+    const captchaToken = forgotPasswordCaptchaRef.current?.getToken() ?? undefined;
+    if (CAPTCHA_ENABLED && !captchaToken) {
+      toast({
+        title: "Security check in progress",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const sanitizedEmail = sanitizeEmail(formData.email);
       const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
         redirectTo: `${window.location.origin}/auth?reset=true`,
+        captchaToken,
       });
 
       if (error) {
@@ -576,6 +654,8 @@ export default function Auth() {
                     You must verify your email before you can sign in. Please check your inbox and spam folder.
                   </p>
                 </div>
+
+                <CaptchaWidget ref={resendVerificationCaptchaRef} label="Resend verification security check" action="resend_verification" />
 
                 <div className="pt-2 space-y-3">
                   <Button
@@ -776,6 +856,7 @@ export default function Auth() {
                       />
                     </div>
                   </div>
+                  <CaptchaWidget ref={forgotPasswordCaptchaRef} label="Password reset security check" action="forgot_password" />
                   <Button
                     type="submit"
                     className="w-full"
@@ -902,6 +983,7 @@ export default function Auth() {
                       </ul>
                     </div>
                   </div>
+                  <CaptchaWidget ref={signInCaptchaRef} label="Sign-in security check" action="signin" />
                   <Button
                     type="submit"
                     className="bg-[#c8d8a8] text-[#1a2e1a] font-bold hover:bg-[#d8e8b8] transition-colors w-full py-3 rounded-md text-base"
@@ -1021,6 +1103,10 @@ export default function Auth() {
                       </Select>
                     </div>
                   )}
+
+                  <CaptchaWidget ref={signUpCaptchaRef} label="Sign-up security check" action="signup" />
+                  {/* Dormant until the invite sign-up path calls refreshToken() -- see inviteChainCaptchaRef above. */}
+                  <CaptchaWidget ref={inviteChainCaptchaRef} label="Invite sign-in security check" action="invite_chain_signin" autoExecute={false} />
 
                   <Button
                     data-tour="signup-create-button"
