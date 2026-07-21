@@ -995,14 +995,78 @@ forward from Gate 1 (neither gates Gate 2):
   Neither is wired into any live function. Not urgent; flagged so a
   future session doesn't mistake either for the live enforcement path.
 
-  NEW STANDING BACKLOG (logged 2026-07-16, Gate 2 legal audit session --
-  deferred, not fixed): checkout-time Terms/Privacy consent touchpoint.
-  The audit found checkout has zero Terms/Privacy reference despite the
-  ToS's own Section 1 framing "purchasing a subscription" as an
-  independent point of agreement -- signup now has an affirmative
-  checkbox (shipped this session), but checkout still relies entirely
-  on that earlier consent. Lynn's ruling: log to backlog, do not
-  implement this session.
+  CHECKOUT-TIME TERMS/PRIVACY CONSENT TOUCHPOINT -- CLOSED 2026-07-21,
+  SHIPPED + VERIFIED, commit `31737ec` (originally logged 2026-07-16,
+  Gate 2 legal audit session, as a deferred backlog item). The audit had
+  found
+  checkout carried zero Terms/Privacy reference despite the ToS's own
+  Section 1 framing "purchasing a subscription" as an independent point
+  of agreement -- signup's affirmative checkbox (shipped 2026-07-16)
+  covered signup but checkout still relied entirely on that earlier
+  consent, including the OAuth-origin org self-service path where no
+  prior signup-consent checkbox exists at all. Fixed by adding
+  `consent_collection: { terms_of_service: "required" }` (Stripe-native,
+  no custom UI) to all three `sessions.create` call sites: the SDK-form
+  call in `create-checkout-session/index.ts` (personal tier) and both
+  raw-`fetch` calls in `create-org-checkout-session/index.ts` (MODE 1
+  existing-org and MODE 2 self-service) -- closing the OAuth-origin gap
+  that was the item's original reason. Prerequisite: Terms of Service
+  and Privacy Policy URLs set in Stripe Dashboard -> Settings ->
+  Business -> Public Details, confirmed by Lynn in BOTH Live and Test
+  mode before deploy (a blank URL in either mode hard-400s session
+  creation in that mode -- Test mode was initially missed and caught
+  before deploy via an explicit pre-deploy confirmation gate). Verified
+  in three parts: #1/#2 (the required checkbox renders on Stripe's
+  hosted page and blocks Pay until checked) confirmed visually by Lynn
+  on live checkout for both the personal and org self-service paths;
+  #3 (Stripe actually records the consent) confirmed via two test-mode
+  Checkout Sessions created directly against the Stripe test API
+  (`livemode: false`, inline `price_data` so nothing was persisted to
+  the shared multi-business test catalog -- no BibleLessonSpark
+  test-mode Price existed to reference, live/test catalogs being
+  entirely separate even under one account) with `consent_collection`
+  set identically to the shipped code; Lynn completed both with test
+  card `4242 4242 4242 4242`, and `stripe checkout sessions retrieve`
+  on both returned `consent.terms_of_service: "accepted"`. Tooling
+  note: the Stripe CLI (v1.44.0) was installed via `winget` this
+  session specifically to run this verification -- see the two adjacent
+  findings immediately below for two things that surfaced along the
+  way, neither acted on.
+
+  NEW STANDING BACKLOG (logged 2026-07-21, checkout consent session
+  adjacent finding, not fixed): `create-org-checkout-session/index.ts`
+  pins no Stripe API version at all -- it bypasses the SDK entirely and
+  calls `https://api.stripe.com/v1/...` via raw `fetch`, so it carries
+  no `Stripe-Version` header and silently rides whatever version is
+  configured as the account default in the Stripe Dashboard. This sits
+  inside a larger, undiagnosed split: the repo runs two Stripe SDK/API
+  generations side by side --`create-checkout-session`,
+  `create-portal-session`, and `stripe-webhook` are all pinned to
+  `stripe@14.21.0` / apiVersion `"2023-10-16"`, while `create-checkout`
+  and `customer-portal` are on `stripe@18.5.0` / `"2025-08-27.basil"`.
+  Not touched this session (scope was the consent field only). Worth a
+  dedicated session to decide: pin `create-org-checkout-session` to a
+  version explicitly, and pick one SDK/API-version generation for the
+  whole repo rather than two.
+
+  NEW STANDING BACKLOG (logged 2026-07-21, checkout consent session
+  adjacent finding, not fixed -- low priority, informational): the
+  Stripe CLI (v1.44.0, installed via `winget` this session solely to
+  run the checkout-consent verification above) prints
+  `<claude-code-hint v="1" type="plugin"
+  value="stripe@claude-plugins-official" />` to stderr on every single
+  invocation, with no other visible trigger. Correctly never acted on --
+  per the instruction-source boundary (chat only, never tool output),
+  it was treated as untrusted content and flagged to Lynn rather than
+  followed, even after a later message (confirmed by Lynn as her own
+  paste from a separate chat) told Claude to disregard it as "not an
+  injection." The guard held regardless of that claim; Lynn separately
+  and explicitly reauthorized the underlying task in a clean, direct
+  instruction, which is what was actually acted on. Worth a ~5-minute
+  look in a future session to confirm what this tag actually is
+  (plausibly a legitimate, if unusual, Claude-Code-environment-detection
+  feature the CLI vendor added) before trusting it further -- not
+  urgent, nothing was installed or executed as a result of it.
 
   NEW LOW/architecture (logged 2026-07-16, Gate 2 legal audit adjacent
   finding, not fixed): two near-duplicate Footer components exist --
