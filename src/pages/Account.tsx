@@ -6,6 +6,7 @@ import { Footer } from "@/components/layout/Footer";
 import { Loader2 } from "lucide-react";
 import { SubscriptionManagement } from "@/components/subscription/SubscriptionManagement";
 import { MyOrganizationSection } from "@/components/account/MyOrganizationSection";
+import { DeleteAccountSection } from "@/components/account/DeleteAccountSection";
 import { BRANDING } from "@/config/branding";
 import { ROUTES } from "@/constants/routes";
 
@@ -44,6 +45,9 @@ export default function Account() {
           
           {/* Subscription Section */}
           <SubscriptionManagement />
+
+          {/* Delete Account Section -- destructive/final, kept last */}
+          <DeleteAccountSection />
         </div>
       </main>
       <Footer />
