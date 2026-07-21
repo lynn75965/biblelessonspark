@@ -135,6 +135,7 @@ serve(async (req) => {
           success_url: `${siteUrl}/org?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${siteUrl}/org?checkout=cancelled`,
           allow_promotion_codes: "true",
+          "consent_collection[terms_of_service]": "required",
           "metadata[organization_id]": organization_id,
           "metadata[tier]": tier,
           "metadata[billing_interval]": billing_interval,
@@ -314,6 +315,7 @@ serve(async (req) => {
       success_url: finalSuccessUrl,
       cancel_url: finalCancelUrl,
       allow_promotion_codes: "true",
+      "consent_collection[terms_of_service]": "required",
       // Session metadata - webhook reads this to create org
       "metadata[mode]": "self_service",
       "metadata[user_id]": user.id,

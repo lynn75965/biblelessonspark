@@ -139,6 +139,7 @@ serve(async (req) => {
       metadata: { user_id: user.id },
       subscription_data: { metadata: { user_id: user.id } },
       allow_promotion_codes: true,
+      consent_collection: { terms_of_service: "required" },
     });
 
     console.log(`Created checkout session ${session.id} for user ${user.id}`);
