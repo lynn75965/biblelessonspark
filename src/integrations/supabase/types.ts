@@ -39,33 +39,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      active_generations: {
+        Row: {
+          claimed_at: string
+          expires_at: string
+          heartbeat_at: string
+          id: string
+          model_bucket: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          claimed_at?: string
+          expires_at: string
+          heartbeat_at?: string
+          id?: string
+          model_bucket: string
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          claimed_at?: string
+          expires_at?: string
+          heartbeat_at?: string
+          id?: string
+          model_bucket?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_generations_model_bucket_fkey"
+            columns: ["model_bucket"]
+            isOneToOne: false
+            referencedRelation: "generation_slot_counters"
+            referencedColumns: ["model_bucket"]
+          },
+        ]
+      }
       admin_audit: {
         Row: {
           action: string
-          actor_user_id: string
+          actor_user_id: string | null
           created_at: string
           id: string
           payload: Json | null
           target_org_id: string | null
-          target_user_id: string
+          target_user_id: string | null
         }
         Insert: {
           action: string
-          actor_user_id: string
+          actor_user_id?: string | null
           created_at?: string
           id?: string
           payload?: Json | null
           target_org_id?: string | null
-          target_user_id: string
+          target_user_id?: string | null
         }
         Update: {
           action?: string
-          actor_user_id?: string
+          actor_user_id?: string | null
           created_at?: string
           id?: string
           payload?: Json | null
           target_org_id?: string | null
-          target_user_id?: string
+          target_user_id?: string | null
         }
         Relationships: [
           {
@@ -328,6 +366,36 @@ export type Database = {
           },
         ]
       }
+      capacity_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          meta: Json
+          source: string
+          tier_at_event: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          meta?: Json
+          source: string
+          tier_at_event?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json
+          source?: string
+          tier_at_event?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       conversion_events: {
         Row: {
           created_at: string
@@ -409,7 +477,7 @@ export type Database = {
           tokens_input: number | null
           tokens_output: number | null
           user_agent: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           anthropic_model?: string | null
@@ -431,7 +499,7 @@ export type Database = {
           tokens_input?: number | null
           tokens_output?: number | null
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           anthropic_model?: string | null
@@ -453,7 +521,7 @@ export type Database = {
           tokens_input?: number | null
           tokens_output?: number | null
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1015,6 +1083,65 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generation_slot_counters: {
+        Row: {
+          cooldown_until: string | null
+          model_bucket: string
+        }
+        Insert: {
+          cooldown_until?: string | null
+          model_bucket: string
+        }
+        Update: {
+          cooldown_until?: string | null
+          model_bucket?: string
+        }
+        Relationships: []
+      }
+      guardrail_suppressions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          matched_phrase_normalized: string
+          revoked_at: string | null
+          revoked_by: string | null
+          source_violation_id: string | null
+          user_id: string
+          violation_code: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matched_phrase_normalized: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source_violation_id?: string | null
+          user_id: string
+          violation_code: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matched_phrase_normalized?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          source_violation_id?: string | null
+          user_id?: string
+          violation_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guardrail_suppressions_source_violation_id_fkey"
+            columns: ["source_violation_id"]
+            isOneToOne: false
+            referencedRelation: "guardrail_violations"
             referencedColumns: ["id"]
           },
         ]
@@ -1624,11 +1751,55 @@ export type Database = {
           },
         ]
       }
+      org_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_path: string
+          file_size: number
+          id: string
+          organization_id: string
+          page_count: number | null
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_size: number
+          id?: string
+          organization_id: string
+          page_count?: number | null
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_size?: number
+          id?: string
+          organization_id?: string
+          page_count?: number | null
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_resources_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_shared_focus: {
         Row: {
           adopted_from_focus_id: string | null
           created_at: string | null
-          created_by: string
+          created_by: string | null
           end_date: string
           focus_type: string
           id: string
@@ -1642,7 +1813,7 @@ export type Database = {
         Insert: {
           adopted_from_focus_id?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string | null
           end_date: string
           focus_type: string
           id?: string
@@ -1656,7 +1827,7 @@ export type Database = {
         Update: {
           adopted_from_focus_id?: string | null
           created_at?: string | null
-          created_by?: string
+          created_by?: string | null
           end_date?: string
           focus_type?: string
           id?: string
@@ -2049,69 +2220,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pricing_plans: {
-        Row: {
-          best_for: string | null
-          created_at: string | null
-          display_order: number | null
-          features: Json | null
-          id: string
-          includes_modern_parables: boolean | null
-          includes_teaser: boolean | null
-          is_active: boolean | null
-          lessons_per_month: number
-          plan_name: string
-          price_annual: number | null
-          price_monthly: number | null
-          sections_included: string[]
-          stripe_price_id_annual: string | null
-          stripe_price_id_monthly: string | null
-          stripe_product_id: string
-          tier: Database["public"]["Enums"]["subscription_tier"]
-          updated_at: string | null
-        }
-        Insert: {
-          best_for?: string | null
-          created_at?: string | null
-          display_order?: number | null
-          features?: Json | null
-          id?: string
-          includes_modern_parables?: boolean | null
-          includes_teaser?: boolean | null
-          is_active?: boolean | null
-          lessons_per_month?: number
-          plan_name: string
-          price_annual?: number | null
-          price_monthly?: number | null
-          sections_included?: string[]
-          stripe_price_id_annual?: string | null
-          stripe_price_id_monthly?: string | null
-          stripe_product_id: string
-          tier: Database["public"]["Enums"]["subscription_tier"]
-          updated_at?: string | null
-        }
-        Update: {
-          best_for?: string | null
-          created_at?: string | null
-          display_order?: number | null
-          features?: Json | null
-          id?: string
-          includes_modern_parables?: boolean | null
-          includes_teaser?: boolean | null
-          is_active?: boolean | null
-          lessons_per_month?: number
-          plan_name?: string
-          price_annual?: number | null
-          price_monthly?: number | null
-          sections_included?: string[]
-          stripe_price_id_annual?: string | null
-          stripe_price_id_monthly?: string | null
-          stripe_product_id?: string
-          tier?: Database["public"]["Enums"]["subscription_tier"]
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           audience_profile: Json | null
@@ -2124,6 +2232,8 @@ export type Database = {
           default_lesson_duration: number | null
           email: string | null
           email_notifications: boolean | null
+          feedback_popup_dismissed: boolean
+          first_lesson_generated_at: string | null
           founder_status: string | null
           full_name: string | null
           id: string
@@ -2165,6 +2275,8 @@ export type Database = {
           default_lesson_duration?: number | null
           email?: string | null
           email_notifications?: boolean | null
+          feedback_popup_dismissed?: boolean
+          first_lesson_generated_at?: string | null
           founder_status?: string | null
           full_name?: string | null
           id: string
@@ -2206,6 +2318,8 @@ export type Database = {
           default_lesson_duration?: number | null
           email?: string | null
           email_notifications?: boolean | null
+          feedback_popup_dismissed?: boolean
+          first_lesson_generated_at?: string | null
           founder_status?: string | null
           full_name?: string | null
           id?: string
@@ -2409,51 +2523,6 @@ export type Database = {
           event_type?: string
           id?: string
           processed_at?: string
-        }
-        Relationships: []
-      }
-      subscription_plans: {
-        Row: {
-          credits_monthly: number | null
-          currency: string
-          id: string
-          lookup_key: string
-          name: string
-          price_monthly_cents: number
-          price_yearly_cents: number
-          stripe_price_id_monthly: string
-          stripe_price_id_yearly: string
-          stripe_product_id: string
-          tier: string
-          updated_at: string | null
-        }
-        Insert: {
-          credits_monthly?: number | null
-          currency?: string
-          id?: string
-          lookup_key: string
-          name: string
-          price_monthly_cents: number
-          price_yearly_cents: number
-          stripe_price_id_monthly: string
-          stripe_price_id_yearly: string
-          stripe_product_id: string
-          tier: string
-          updated_at?: string | null
-        }
-        Update: {
-          credits_monthly?: number | null
-          currency?: string
-          id?: string
-          lookup_key?: string
-          name?: string
-          price_monthly_cents?: number
-          price_yearly_cents?: number
-          stripe_price_id_monthly?: string
-          stripe_price_id_yearly?: string
-          stripe_product_id?: string
-          tier?: string
-          updated_at?: string | null
         }
         Relationships: []
       }
@@ -2930,7 +2999,7 @@ export type Database = {
           processed_at: string | null
           processed_by: string | null
           reason: string
-          requested_by: string
+          requested_by: string | null
           responded_at: string | null
           response_note: string | null
           status: string
@@ -2949,7 +3018,7 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           reason: string
-          requested_by: string
+          requested_by?: string | null
           responded_at?: string | null
           response_note?: string | null
           status?: string
@@ -2968,7 +3037,7 @@ export type Database = {
           processed_at?: string | null
           processed_by?: string | null
           reason?: string
-          requested_by?: string
+          requested_by?: string | null
           responded_at?: string | null
           response_note?: string | null
           status?: string
@@ -3029,7 +3098,6 @@ export type Database = {
           id: string
           lessons_limit: number | null
           lessons_used: number | null
-          plan_id: string | null
           reset_date: string | null
           status: string | null
           stripe_customer_id: string | null
@@ -3049,7 +3117,6 @@ export type Database = {
           id?: string
           lessons_limit?: number | null
           lessons_used?: number | null
-          plan_id?: string | null
           reset_date?: string | null
           status?: string | null
           stripe_customer_id?: string | null
@@ -3069,7 +3136,6 @@ export type Database = {
           id?: string
           lessons_limit?: number | null
           lessons_used?: number | null
-          plan_id?: string | null
           reset_date?: string | null
           status?: string | null
           stripe_customer_id?: string | null
@@ -3080,15 +3146,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_subscriptions_plan_id_fkey"
-            columns: ["plan_id"]
-            isOneToOne: false
-            referencedRelation: "subscription_plans"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Views: {
@@ -3170,7 +3228,6 @@ export type Database = {
         Args: { p_child_org_id: string; p_parent_focus_id: string }
         Returns: string
       }
-      allocate_monthly_credits: { Args: never; Returns: undefined }
       bulk_extend_trials: {
         Args: { p_extend_mode?: string; p_new_expiration: string }
         Returns: {
@@ -3208,6 +3265,21 @@ export type Database = {
           upgrade_needed: boolean
         }[]
       }
+      claim_generation_slot: {
+        Args: {
+          p_ceiling: number
+          p_model_bucket: string
+          p_source: string
+          p_ttl_seconds: number
+          p_user_id: string
+        }
+        Returns: {
+          active_count: number
+          claimed: boolean
+          reason: string
+          slot_id: string
+        }[]
+      }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       debug_admin_check: {
         Args: never
@@ -3234,6 +3306,7 @@ export type Database = {
         Returns: boolean
       }
       disconnect_org_from_network: { Args: { p_org_id: string }; Returns: Json }
+      dismiss_feedback_popup: { Args: never; Returns: undefined }
       find_teaching_team_invitee: {
         Args: { p_email: string }
         Returns: {
@@ -3507,18 +3580,27 @@ export type Database = {
         Args: { p_event_type: string; p_meta?: Json; p_trigger_source?: string }
         Returns: undefined
       }
-      log_security_event: {
-        Args: { event_type: string; metadata?: Json; user_id?: string }
-        Returns: undefined
-      }
       record_anonymous_parable_usage: {
         Args: { p_parable_id: string; p_session_id: string }
         Returns: undefined
+      }
+      release_generation_slot: {
+        Args: { p_slot_id: string }
+        Returns: undefined
+      }
+      renew_generation_slot: {
+        Args: { p_renewal_seconds: number; p_slot_id: string }
+        Returns: boolean
       }
       respond_to_team_invitation: {
         Args: { p_accept: boolean; p_membership_id: string }
         Returns: string
       }
+      set_model_cooldown: {
+        Args: { p_model_bucket: string; p_seconds: number }
+        Returns: undefined
+      }
+      should_show_feedback_popup: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "teacher" | "moderator"
