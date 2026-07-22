@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ export function OrgResourcesPanel({ organizationId, canManage }: OrgResourcesPan
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [rightsConfirmed, setRightsConfirmed] = useState(false);
 
   const [deleteTarget, setDeleteTarget] = useState<OrgResource | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -57,10 +59,11 @@ export function OrgResourcesPanel({ organizationId, canManage }: OrgResourcesPan
     setTitle("");
     setDescription("");
     setSelectedFile(null);
+    setRightsConfirmed(false);
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !title.trim()) return;
+    if (!selectedFile || !title.trim() || !rightsConfirmed) return;
 
     setUploading(true);
     try {
@@ -78,6 +81,7 @@ export function OrgResourcesPanel({ organizationId, canManage }: OrgResourcesPan
         formDataToSend.append("description", description.trim());
       }
       formDataToSend.append("organization_id", organizationId);
+      formDataToSend.append("rights_affirmed", "true");
 
       const response = await fetch(`${supabaseUrl}/functions/v1/upload-org-resource`, {
         method: "POST",
@@ -162,7 +166,7 @@ export function OrgResourcesPanel({ organizationId, canManage }: OrgResourcesPan
     <div className="space-y-4">
       {canManage && (
         <div className="flex justify-end">
-          <Button onClick={() => setUploadOpen(true)} className="gap-2">
+          <Button onClick={() => { resetUploadForm(); setUploadOpen(true); }} className="gap-2">
             <Upload className="h-4 w-4" aria-hidden="true" />
             Add Resource
           </Button>
@@ -260,9 +264,25 @@ export function OrgResourcesPanel({ organizationId, canManage }: OrgResourcesPan
                 disabled={uploading}
               />
             </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="resource-rights-confirmed"
+                checked={rightsConfirmed}
+                onCheckedChange={(checked) => setRightsConfirmed(checked === true)}
+                aria-required="true"
+                disabled={uploading}
+                className="mt-0.5"
+              />
+              <Label
+                htmlFor="resource-rights-confirmed"
+                className="text-xs text-muted-foreground font-normal leading-snug"
+              >
+                I am authorized to share this material, and my Organization holds the rights to distribute it to its members.
+              </Label>
+            </div>
             <Button
               onClick={handleUpload}
-              disabled={uploading || !selectedFile || !title.trim()}
+              disabled={uploading || !selectedFile || !title.trim() || !rightsConfirmed}
               className="w-full"
             >
               {uploading ? (

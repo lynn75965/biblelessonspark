@@ -20,7 +20,7 @@ export default function TermsOfService() {
         </Button>
 
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-4 sm:mb-6">Terms of Service</h1>
-        <p className="text-sm text-muted-foreground mb-8">Last Updated: July 13, 2026</p>
+        <p className="text-sm text-muted-foreground mb-8">Last Updated: July 22, 2026</p>
 
         <div className="prose prose-blue max-w-none space-y-6">
           <section aria-labelledby="acceptance-of-terms">
@@ -337,6 +337,25 @@ export default function TermsOfService() {
             <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 mt-4">8.6 Feedback</h3>
             <p className="text-foreground">
               If you provide suggestions, corrections, ideas, ratings, or other feedback, you permit us to use that feedback without restriction or compensation to improve the Service, provided that we do not publicly identify you without permission.
+            </p>
+
+            <h3 className="text-lg sm:text-xl font-semibold text-foreground mb-2 mt-4">8.7 Organization Resource Library</h3>
+            <p className="text-foreground">
+              Organization plans include a Resource Library that allows an authorized leader to upload documents and make them available to members of that Organization.
+            </p>
+            <p className="text-foreground mt-3 mb-2">
+              By uploading a document to the Resource Library, the leader represents and warrants that:
+            </p>
+            <ul className="list-disc pl-6 text-foreground space-y-1">
+              <li>He or she is authorized to act on behalf of the Organization in doing so;</li>
+              <li>The Organization holds the rights necessary to distribute the material to its members; and</li>
+              <li>The material does not infringe the copyright or other rights of any third party.</li>
+            </ul>
+            <p className="text-foreground mt-3">
+              The Organization is responsible for the material it uploads and for any use its members make of that material. Uploaded documents are made available to members of that Organization only. Members may not redistribute uploaded material outside the Organization without the permission of the rights holder.
+            </p>
+            <p className="text-foreground mt-3">
+              BibleLessonSpark does not review, verify, or endorse material uploaded to the Resource Library. We may remove any uploaded material at our discretion and without notice. If you believe material in a Resource Library infringes your rights, contact us at <strong>{BRANDING.contact.supportEmail}</strong>. Accounts and Organizations that repeatedly upload infringing material will be terminated.
             </p>
           </section>
 

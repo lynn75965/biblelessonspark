@@ -1760,6 +1760,7 @@ export type Database = {
           id: string
           organization_id: string
           page_count: number | null
+          rights_affirmed_at: string
           title: string
           uploaded_by: string | null
         }
@@ -1771,6 +1772,7 @@ export type Database = {
           id?: string
           organization_id: string
           page_count?: number | null
+          rights_affirmed_at: string
           title: string
           uploaded_by?: string | null
         }
@@ -1782,6 +1784,7 @@ export type Database = {
           id?: string
           organization_id?: string
           page_count?: number | null
+          rights_affirmed_at?: string
           title?: string
           uploaded_by?: string | null
         }

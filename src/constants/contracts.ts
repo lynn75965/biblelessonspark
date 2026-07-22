@@ -499,6 +499,7 @@ export interface OrgResource {
   file_path: string;
   file_size: number;
   page_count: number | null;
+  rights_affirmed_at: string;
   created_at: string;
 }
 

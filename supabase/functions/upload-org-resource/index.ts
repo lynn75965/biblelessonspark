@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
     const title = (formData.get("title") as string | null)?.trim() ?? "";
     const description = (formData.get("description") as string | null)?.trim() || null;
     const organizationId = formData.get("organization_id") as string | null;
+    const rightsAffirmed = formData.get("rights_affirmed") as string | null;
 
     if (!organizationId) {
       return new Response(JSON.stringify({ error: 'organization_id is required' }),
@@ -76,6 +77,10 @@ Deno.serve(async (req) => {
     }
     if (!file) {
       return new Response(JSON.stringify({ error: 'File is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (rightsAffirmed !== "true") {
+      return new Response(JSON.stringify({ error: 'Rights affirmation is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
@@ -153,8 +158,9 @@ Deno.serve(async (req) => {
         file_path: filePath,
         file_size: file.size,
         page_count: pageCount,
+        rights_affirmed_at: new Date().toISOString(),
       })
-      .select('id, organization_id, uploaded_by, title, description, file_path, file_size, page_count, created_at')
+      .select('id, organization_id, uploaded_by, title, description, file_path, file_size, page_count, rights_affirmed_at, created_at')
       .single();
 
     if (insertError) {
