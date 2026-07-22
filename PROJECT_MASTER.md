@@ -144,7 +144,7 @@ outright, the specific confusion this carried (a local dev environment
 silently pointed at a project that still existed but was not the real
 one) cannot recur.
 
-## >>> STANDING BACKLOG -- LOCALHOST TURNSTILE 400 LOOP, UNRESOLVED (regression run against production instead)
+## >>> LOCALHOST TURNSTILE 400 LOOP -- CLOSED, deprioritized by Lynn (not root-caused; regression continues to run against production)
 
 Even after correcting both the Turnstile site key and the
 .env.local Supabase project pointer (see above), localhost sign-in
@@ -213,8 +213,22 @@ re-verifying.
 The throwaway Supabase project idrqvolxvocdwravazbj and the question of
 a stray Cloudflare Turnstile widget were both resolved at session close
 -- see the CLOSED items recorded in the ORG RESOURCE LIBRARY note
-above. Neither is a carry-forward item anymore. The remaining open
-item in this note is localhost Turnstile itself, restated above.
+above. Neither is a carry-forward item anymore.
+
+**Follow-up check, next session, then CLOSED by Lynn's decision.**
+Opened the widget's actual settings/edit page (not just the dashboard's
+list-index count) and confirmed it lists exactly 2 hostnames -- the
+same count the index page had already shown, so that earlier count was
+accurate, not lagging or stale. Which two hostnames remain listed and
+whether localhost is among them was not determined; Lynn reviewed the
+page directly and, rather than continuing the investigation, decided
+to drop the matter. THIS IS A DELIBERATE DEPRIORITIZATION, NOT A ROOT
+CAUSE FOUND -- none of the ranked candidates above were confirmed or
+ruled out, and no fix was applied. Localhost sign-in may still 400-loop
+if anyone attempts it. Regression testing for this and future sessions
+continues against production, per the discipline exception already
+noted above, until/unless Lynn chooses to revisit this. Not a
+carry-forward item going forward -- closed by decision, not resolved.
 
 ## >>> CLAUDE PROCESS FAILURES THIS SESSION (2026-07-22)
 
