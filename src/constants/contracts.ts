@@ -485,3 +485,20 @@ export interface OrganizationMember {
   joined_at: string;
 }
 
+/**
+ * Org Resource Library entry from org_resources table.
+ * Verbatim leader-uploaded PDF (e.g. a training booklet) shared with org
+ * members. Not AI-processed -- distinct from lessons/devotionals.
+ */
+export interface OrgResource {
+  id: string;
+  organization_id: string;
+  uploaded_by: string | null;
+  title: string;
+  description: string | null;
+  file_path: string;
+  file_size: number;
+  page_count: number | null;
+  created_at: string;
+}
+
