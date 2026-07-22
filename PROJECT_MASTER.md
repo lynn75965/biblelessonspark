@@ -119,6 +119,31 @@ eckbrosmediallc+testmember@gmail.com) were DELIBERATELY RETAINED, not
 deleted, so future org-feature testing does not have to redo the
 signup+CAPTCHA cycle to get two throwaway org-affiliated accounts.
 
+**Session-close cleanup: the July 20 carry-forward item is now
+CLOSED.** Deleted the throwaway Supabase project idrqvolxvocdwravazbj
+(name: bls-captcha-test) via `npx supabase projects delete
+idrqvolxvocdwravazbj --yes`, confirmed gone by re-listing projects.
+Four legitimate projects remain: uprfupgiuruseobvhxce
+(making-disciples-daily), hfamquasdbiumpzjwqsy (BLS-staging),
+hphebzdftpjbiudpfcrs (LessonSparkUSA / production), jstcprjtocjlyradojvm
+(TourBuilder). Lynn separately verified in the Cloudflare dashboard
+that the account holds exactly ONE Turnstile widget
+(BibleLessonSpark-Production, sitekey 0x4AAAAAAD56orRmYue7SzpP); the
+throwaway widget's sitekey (0x4AAAAAAD5zkgR5TXE28Xq8) is not present on
+the account at all -- either already deleted, or created under a
+different Cloudflare account during the July 20 work. Closed as
+no-action-required, not verified-then-fixed. For the record: Claude
+Code has no Cloudflare API credentials in any session to date -- all
+Cloudflare-side work is dashboard-only unless a token is provisioned.
+.env.local now reads VITE_SUPABASE_URL=https://hphebzdftpjbiudpfcrs.supabase.co,
+the production project's real anon key (verified against two
+independent sources: the Supabase Management API and the live
+production bundle), and VITE_TURNSTILE_SITE_KEY=0x4AAAAAAD56orRmYue7SzpP --
+still gitignored and untracked. With bls-captcha-test now deleted
+outright, the specific confusion this carried (a local dev environment
+silently pointed at a project that still existed but was not the real
+one) cannot recur.
+
 ## >>> STANDING BACKLOG -- LOCALHOST TURNSTILE 400 LOOP, UNRESOLVED (regression run against production instead)
 
 Even after correcting both the Turnstile site key and the
@@ -167,11 +192,60 @@ was run against production instead of localhost -- a deliberate,
 explicitly-acknowledged exception to this project's normal
 localhost-first discipline, not a silent skip.
 
-The throwaway Supabase project idrqvolxvocdwravazbj and its own
-separate Cloudflare Turnstile widget both still exist. Both have been
-flagged safe to delete since the July 20 session (see that session's
-carry-forward note below) and remain undeleted -- Lynn's action, in
-his own dashboards, not done by Claude Code at any point.
+**Session-close observation, recorded as observed only -- no cause
+assigned.** At session close, the Cloudflare dashboard's widget list
+showed "Number of hostnames: 2" for the BibleLessonSpark-Production
+widget, after Lynn had earlier in the session added localhost as a
+third hostname. Whether localhost is still actually on the list is
+UNVERIFIED: only the index-page hostname count was observed; the
+widget's own settings/edit page, which would show the real list, was
+not reopened to confirm. This is not recorded as evidence of any
+particular cause -- it may mean the addition did not save, may mean
+the count display lags the underlying list, or may mean something
+else entirely. Next session, before any further localhost debugging:
+open the widget's settings page directly and read the actual hostname
+list. That is the authoritative source, not the index count.
+Everything ruled out earlier in this session (env injection, the
+dev-server restart, render() options, render timing, the
+explicit-render-mode pattern) still stands and does not need
+re-verifying.
+
+The throwaway Supabase project idrqvolxvocdwravazbj and the question of
+a stray Cloudflare Turnstile widget were both resolved at session close
+-- see the CLOSED items recorded in the ORG RESOURCE LIBRARY note
+above. Neither is a carry-forward item anymore. The remaining open
+item in this note is localhost Turnstile itself, restated above.
+
+## >>> CLAUDE PROCESS FAILURES THIS SESSION (2026-07-22)
+
+Logged without commentary or apology, matching the July 21 entry's
+convention.
+
+1. Gave Lynn a Turnstile site key read off a dashboard screenshot
+   without verifying it matched the key already in .env.local. Two
+   different widgets were involved. Cost multiple failed diagnostic
+   cycles before the mismatch was found.
+2. Directed a swap to a Cloudflare test site key without accounting
+   for the paired secret key held server-side by GoTrue, producing a
+   "captcha protection: request disallowed (invalid-input-response)"
+   error.
+3. Asserted that Claude Code could not delete the throwaway Supabase
+   project. Deleted it via the Supabase CLI (`supabase projects
+   delete`) in one command when directly asked. The capability was
+   assumed absent rather than checked.
+4. Stated a likely cause for the Cloudflare dashboard's hostname count
+   reading 2 without verifying it by opening the widget's actual
+   settings page.
+5. Net effect: an entire day's regression had to run against
+   production instead of localhost.
+
+New standing rule recorded in Claude's memory as a result: never give
+Lynn an instruction containing a value, key, path, ID, or setting that
+has not been verified from the actual source it will be used against;
+route all configuration surfaces through Claude Code first rather than
+screenshots or recollection; reason about paired credentials (site
+key/secret key, anon key/project ref, etc.) as pairs, not
+independently.
 
 ## >>> ACCOUNT DELETION -- ABSENT TO SHIPPED (self-service deletion built, live-tested, and wired into the real /account page)
 
