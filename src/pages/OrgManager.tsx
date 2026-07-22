@@ -15,7 +15,8 @@ import {
   Layers,
   Network,
   Plus,
-  Unlink
+  Unlink,
+  FileText
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useOrganization } from "@/hooks/useOrganization";
@@ -24,6 +25,7 @@ import { useChildOrgSummaries } from "@/hooks/useChildOrgSummaries";
 import { useFocusAdoptionMap } from "@/hooks/useFocusAdoptionMap";
 import { OrgMemberManagement } from "@/components/org/OrgMemberManagement";
 import { OrgLessonsPanel } from "@/components/org/OrgLessonsPanel";
+import { OrgResourcesPanel } from "@/components/org/OrgResourcesPanel";
 import { OrgAnalyticsPanel } from "@/components/org/OrgAnalyticsPanel";
 import { OrgSharedFocusPanel } from "@/components/org/OrgSharedFocusPanel";
 import { OrgPoolStatusCard } from "@/components/org/OrgPoolStatusCard";
@@ -283,6 +285,10 @@ export default function OrgManager() {
               <BookOpen className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Org Lessons</span>
             </TabsTrigger>
+            <TabsTrigger value="resources" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
+              <FileText className="h-4 w-4 flex-shrink-0" />
+              <span className="hidden sm:inline">Resources</span>
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex-1 min-w-fit flex items-center justify-center gap-1 px-2 sm:px-3 whitespace-nowrap">
               <BarChart3 className="h-4 w-4 flex-shrink-0" />
               <span className="hidden sm:inline">Analytics</span>
@@ -365,6 +371,21 @@ export default function OrgManager() {
               <OrgLessonsPanel
                 organizationId={organization.id}
                 organizationName={organization.name || "Organization"}
+              />
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No organization found.
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Resources Tab */}
+          <TabsContent value="resources" className="mt-6">
+            {organization?.id ? (
+              <OrgResourcesPanel
+                organizationId={organization.id}
+                organizationName={organization.name || "Organization"}
+                canManage={effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader}
               />
             ) : (
               <div className="text-center py-8 text-muted-foreground">

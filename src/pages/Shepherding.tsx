@@ -3,12 +3,15 @@ import { Navigate } from "react-router-dom";
 import { AppShell } from "@/components/layout/AppShell";
 import { useOrganization } from "@/hooks/useOrganization";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { MemberPoolStatusBanner } from "@/components/org/MemberPoolStatusBanner";
+import { OrgResourcesPanel } from "@/components/org/OrgResourcesPanel";
 import { LessonExportButtons } from "@/components/dashboard/LessonExportButtons";
 import type { Lesson } from "@/constants/contracts";
 import { supabase } from "@/integrations/supabase/client";
 import { ROUTES } from "@/constants/routes";
-import { Building2, BookOpen, Loader2, Eye, Search } from "lucide-react";
+import { ROLES, getEffectiveRole } from "@/constants/accessControl";
+import { Building2, BookOpen, FileText, Loader2, Eye, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -54,8 +57,16 @@ interface ShepherdLesson {
 }
 
 export default function Shepherding() {
-  const { organization, hasOrganization, loading: orgLoading } = useOrganization();
+  const { organization, userRole, hasOrganization, loading: orgLoading } = useOrganization();
   const { isPaidTier } = useSubscription();
+  const { isAdmin } = useAdminAccess();
+
+  // Leaders can also land on this page (the access gate below is role-blind),
+  // so canManage is computed the same way OrgManager does rather than
+  // hardcoded false -- a leader visiting /shepherding should still see the
+  // upload/delete controls, not a crippled member-only view.
+  const effectiveRole = getEffectiveRole(isAdmin, hasOrganization, userRole);
+  const canManageResources = effectiveRole === ROLES.platformAdmin || effectiveRole === ROLES.orgLeader;
 
   const [lessons, setLessons] = useState<ShepherdLesson[]>([]);
   const [lessonsLoading, setLessonsLoading] = useState(true);
@@ -218,6 +229,24 @@ export default function Shepherding() {
             )}
           </div>
         </section>
+
+        {/* Resources */}
+        {organization?.id && organization?.name && (
+          <section aria-labelledby="shepherd-resources-heading" className="mt-8">
+            <h2
+              id="shepherd-resources-heading"
+              className="text-lg font-semibold mb-3 flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              Resources
+            </h2>
+            <OrgResourcesPanel
+              organizationId={organization.id}
+              organizationName={organization.name}
+              canManage={canManageResources}
+            />
+          </section>
+        )}
       </div>
 
       {/* Read-only lesson viewer */}
