@@ -69,6 +69,34 @@ serve(async (req) => {
     console.log(`Processing Stripe event: ${event.type}`);
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Idempotency gate -- insert the event ID before any state change. A
+    // UNIQUE violation (Postgres code 23505) means this exact event was
+    // already processed; return 200 immediately without re-running any
+    // handler, matching Stripe's expectation for a successfully-handled
+    // delivery.
+    const { error: idempotencyError } = await supabase
+      .from("stripe_events")
+      .insert({ event_id: event.id, event_type: event.type });
+
+    if (idempotencyError) {
+      if (idempotencyError.code === "23505") {
+        console.log(`Duplicate event ${event.id} (${event.type}) -- already processed, skipping`);
+        return new Response(JSON.stringify({ received: true, duplicate: true }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Fail CLOSED -- cannot confirm this event has not already been
+      // processed, so reject with a non-2xx and let Stripe retry later
+      // rather than risk double-processing a real event.
+      console.error(`stripe_events insert failed for ${event.id}, failing closed:`, idempotencyError.message);
+      return new Response(JSON.stringify({ error: "Idempotency check failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    try {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -98,6 +126,16 @@ serve(async (req) => {
       }
       default:
         console.log(`Unhandled event type: ${event.type}`);
+    }
+    } catch (processingError) {
+      // The event was marked seen above, but processing itself failed
+      // partway through. Roll back the marker so Stripe's automatic
+      // redelivery is not silently swallowed by the idempotency gate --
+      // it will be reprocessed from scratch on retry instead of being
+      // lost forever.
+      console.error(`Processing failed for event ${event.id} after being marked seen -- rolling back idempotency marker so retry can reprocess:`, processingError);
+      await supabase.from("stripe_events").delete().eq("event_id", event.id);
+      throw processingError;
     }
 
     return new Response(JSON.stringify({ received: true }), {
