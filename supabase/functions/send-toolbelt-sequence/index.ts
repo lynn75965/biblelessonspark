@@ -190,6 +190,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Cron-secret gate -- fails CLOSED. This is a server-side batch job, never
+  // a user endpoint. Reject if the secret is unset, the header is absent,
+  // or the value does not match.
+  const CRON_SECRET = Deno.env.get("TOOLBELT_CRON_SECRET");
+  const providedSecret = req.headers.get("x-cron-secret");
+  if (!CRON_SECRET || !providedSecret || providedSecret !== CRON_SECRET) {
+    return new Response(
+      JSON.stringify({ success: false, error: "Unauthorized" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 401 }
+    );
+  }
+
   const startTime = Date.now();
   let emailsSent = 0;
   let errors = 0;
