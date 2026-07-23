@@ -25,6 +25,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
   TOOLBELT_EMAIL_SEQUENCE,
 } from "../_shared/toolbeltConfig.ts";
+import {
+  CRON_EMAIL_BATCH_SIZE,
+  CRON_EMAIL_FAILURES_TABLE,
+} from "../_shared/cronEmailConfig.ts";
 
 // ============================================================================
 // CORS HEADERS
@@ -181,6 +185,39 @@ function personalizeContent(content: string, email: string): string {
 }
 
 // ============================================================================
+// FAILURE LOGGING
+// ============================================================================
+
+function truncateEmail(email: string): string {
+  return email.substring(0, 3) + "***";
+}
+
+async function logCronEmailFailure(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    event_type: "send_failed" | "run_failed" | "tracking_update_failed";
+    tracking_row_id?: string;
+    recipient_email?: string;
+    error_detail?: string;
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase.from(CRON_EMAIL_FAILURES_TABLE).insert({
+      source: "send-toolbelt-sequence",
+      event_type: params.event_type,
+      tracking_row_id: params.tracking_row_id ?? null,
+      recipient_email: params.recipient_email ?? null,
+      error_detail: params.error_detail ?? null,
+    });
+    if (error) {
+      console.error("[send-toolbelt-sequence] Failed to log cron_email_failures row:", error.message);
+    }
+  } catch (logErr) {
+    console.error("[send-toolbelt-sequence] Exception logging cron_email_failures row:", logErr);
+  }
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -205,6 +242,7 @@ serve(async (req) => {
   const startTime = Date.now();
   let emailsSent = 0;
   let errors = 0;
+  let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
     // ========================================================================
@@ -223,7 +261,7 @@ serve(async (req) => {
       );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     console.log("[send-toolbelt-sequence] Starting sequence processing");
 
@@ -252,7 +290,10 @@ serve(async (req) => {
     // 3. FIND USERS WHO NEED EMAILS
     // ========================================================================
 
-    // Get all tracking records that aren't unsubscribed
+    // Get all tracking records that aren't unsubscribed, not yet fully
+    // sequenced, ordered so the least-recently-served rows are served
+    // first (self-correcting rotation), bounded to CRON_EMAIL_BATCH_SIZE
+    // per run.
     const { data: trackingRecords, error: trackingError } = await supabase
       .from("toolbelt_email_tracking")
       .select(`
@@ -266,7 +307,10 @@ serve(async (req) => {
           email
         )
       `)
-      .eq("unsubscribed", false);
+      .eq("unsubscribed", false)
+      .lt("last_email_sent", templates.length)
+      .order("last_email_sent_at", { ascending: true, nullsFirst: true })
+      .limit(CRON_EMAIL_BATCH_SIZE);
 
     if (trackingError) {
       console.error("[send-toolbelt-sequence] Tracking query error:", trackingError.message);
@@ -362,6 +406,12 @@ serve(async (req) => {
           const errorText = await resendResponse.text();
           console.error(`[send-toolbelt-sequence] Resend error for ${tracking.id}:`, errorText);
           errors++;
+          await logCronEmailFailure(supabase!, {
+            event_type: "send_failed",
+            tracking_row_id: tracking.id,
+            recipient_email: truncateEmail(tracking.capture.email),
+            error_detail: errorText,
+          });
           continue;
         }
 
@@ -369,7 +419,7 @@ serve(async (req) => {
         // 6. UPDATE TRACKING RECORD
         // ====================================================================
 
-        await supabase
+        const { error: updateError } = await supabase
           .from("toolbelt_email_tracking")
           .update({
             last_email_sent: nextSequenceOrder,
@@ -377,12 +427,34 @@ serve(async (req) => {
           })
           .eq("id", tracking.id);
 
+        if (updateError) {
+          // The send already succeeded via Resend -- only the tracking row
+          // failed to advance. Left as-is, this row looks unsent on the next
+          // run and the subscriber receives the same email a second time.
+          // Logged as its own distinct event_type so it is queryable
+          // separately from an outright send failure.
+          console.error(`[send-toolbelt-sequence] Tracking update failed after successful send for ${tracking.id}:`, updateError.message);
+          await logCronEmailFailure(supabase!, {
+            event_type: "tracking_update_failed",
+            tracking_row_id: tracking.id,
+            recipient_email: truncateEmail(tracking.capture.email),
+            error_detail: updateError.message,
+          });
+        }
+
         emailsSent++;
         console.log(`[send-toolbelt-sequence] Successfully sent email ${nextSequenceOrder}`);
 
       } catch (recordError) {
         console.error(`[send-toolbelt-sequence] Error processing record:`, recordError);
         errors++;
+        const rec = record as unknown as TrackingRecord;
+        await logCronEmailFailure(supabase!, {
+          event_type: "send_failed",
+          tracking_row_id: rec?.id,
+          recipient_email: rec?.capture?.email ? truncateEmail(rec.capture.email) : undefined,
+          error_detail: recordError instanceof Error ? recordError.message : String(recordError),
+        });
       }
     }
 
@@ -405,6 +477,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[send-toolbelt-sequence] Unexpected error:", error);
+    if (supabase) {
+      await logCronEmailFailure(supabase, {
+        event_type: "run_failed",
+        error_detail: error instanceof Error ? error.message : String(error),
+      });
+    }
     return new Response(
       JSON.stringify({ success: false, error: "Internal server error", emailsSent, errors }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

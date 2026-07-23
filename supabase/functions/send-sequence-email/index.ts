@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  CRON_EMAIL_BATCH_SIZE,
+  CRON_EMAIL_FAILURES_TABLE,
+} from "../_shared/cronEmailConfig.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -166,6 +170,39 @@ function generateHtmlEmail(subject: string, bodyHtml: string): string {
 </html>`;
 }
 
+// ============================================================================
+// FAILURE LOGGING
+// ============================================================================
+
+function truncateEmail(email: string): string {
+  return email.substring(0, 3) + "***";
+}
+
+async function logCronEmailFailure(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    event_type: "send_failed" | "run_failed" | "tracking_update_failed";
+    tracking_row_id?: string;
+    recipient_email?: string;
+    error_detail?: string;
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase.from(CRON_EMAIL_FAILURES_TABLE).insert({
+      source: "send-sequence-email",
+      event_type: params.event_type,
+      tracking_row_id: params.tracking_row_id ?? null,
+      recipient_email: params.recipient_email ?? null,
+      error_detail: params.error_detail ?? null,
+    });
+    if (error) {
+      console.error("[send-sequence-email] Failed to log cron_email_failures row:", error.message);
+    }
+  } catch (logErr) {
+    console.error("[send-sequence-email] Exception logging cron_email_failures row:", logErr);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -183,12 +220,14 @@ serve(async (req) => {
     );
   }
 
+  let supabase: ReturnType<typeof createClient> | null = null;
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { data: templates, error: templatesError } = await supabase
       .from("email_sequence_templates")
@@ -208,11 +247,15 @@ serve(async (req) => {
 
     console.log(`Loaded ${templates.length} email templates`);
 
+    // Ordered so the least-recently-served rows are served first
+    // (self-correcting rotation), bounded to CRON_EMAIL_BATCH_SIZE per run.
     const { data: users, error: fetchError } = await supabase
       .from("email_sequence_tracking")
       .select("*")
       .eq("unsubscribed", false)
-      .lt("last_email_sent", templates.length);
+      .lt("last_email_sent", templates.length)
+      .order("last_email_sent_at", { ascending: true, nullsFirst: true })
+      .limit(CRON_EMAIL_BATCH_SIZE);
 
     if (fetchError) throw fetchError;
 
@@ -270,6 +313,12 @@ serve(async (req) => {
           if (!resendResponse.ok) {
             const errorText = await resendResponse.text();
             results.errors.push(`${user.email}: ${errorText}`);
+            await logCronEmailFailure(supabase!, {
+              event_type: "send_failed",
+              tracking_row_id: user.id,
+              recipient_email: truncateEmail(user.email),
+              error_detail: errorText,
+            });
             continue;
           }
 
@@ -282,13 +331,30 @@ serve(async (req) => {
             .eq("id", user.id);
 
           if (updateError) {
+            // The send already succeeded via Resend -- only the tracking row
+            // failed to advance. Left as-is, this row looks unsent on the
+            // next run and the subscriber receives the same email a second
+            // time. Logged as its own distinct event_type so it is queryable
+            // separately from an outright send failure.
             results.errors.push(`${user.email}: tracking update failed`);
+            await logCronEmailFailure(supabase!, {
+              event_type: "tracking_update_failed",
+              tracking_row_id: user.id,
+              recipient_email: truncateEmail(user.email),
+              error_detail: updateError.message,
+            });
           } else {
             results.emailsSent++;
             console.log(`Sent email ${nextEmailIndex + 1} to ${user.email}`);
           }
         } catch (sendError) {
           results.errors.push(`${user.email}: ${sendError.message}`);
+          await logCronEmailFailure(supabase!, {
+            event_type: "send_failed",
+            tracking_row_id: user.id,
+            recipient_email: truncateEmail(user.email),
+            error_detail: sendError instanceof Error ? sendError.message : String(sendError),
+          });
         }
       }
 
@@ -301,6 +367,12 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error:", error);
+    if (supabase) {
+      await logCronEmailFailure(supabase, {
+        event_type: "run_failed",
+        error_detail: error instanceof Error ? error.message : String(error),
+      });
+    }
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
