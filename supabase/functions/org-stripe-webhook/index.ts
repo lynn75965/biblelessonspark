@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveTierFromPriceId, TIER_LESSON_LIMITS, ORG_TIERS } from "../_shared/pricingConfig.ts";
+import { ORG_TIERS } from "../_shared/pricingConfig.ts";
 import type { SubscriptionTier } from "../_shared/pricingConfig.ts";
 
 const corsHeaders = {
@@ -106,8 +106,13 @@ serve(async (req) => {
       const metadata = subscription.metadata || {};
       if (metadata.organization_id) {
         const priceId = subscription.items.data[0]?.price?.id;
-        // SSOT: Resolve tier from price ID using pricingConfig.ts -- never query org_tier_config
-        const resolvedTier = resolveTierFromPriceId(priceId || '');
+        // SSOT: ORG_TIERS in pricingConfig.ts is the authority for org tier
+        // limits -- resolve directly against ORG_TIERS by Stripe price ID,
+        // matching create-org-checkout-session's own SSOT gate. Never route
+        // an org price through resolveTierFromPriceId/TIER_LESSON_LIMITS --
+        // those translate into the unrelated individual-plan SubscriptionTier
+        // vocabulary, which no org-side reader of subscription_tier expects.
+        const orgTierConfig = ORG_TIERS.find(t => t.priceMonthly === priceId || t.priceAnnual === priceId);
         const updateData: {
           subscription_status: string;
           subscription_tier?: string;
@@ -115,7 +120,12 @@ serve(async (req) => {
           current_period_start?: string;
           current_period_end?: string;
         } = { subscription_status: subscription.status };
-        if (resolvedTier) { updateData.subscription_tier = resolvedTier; updateData.lessons_limit = TIER_LESSON_LIMITS[resolvedTier]; }
+        if (orgTierConfig) {
+          updateData.subscription_tier = orgTierConfig.tier;
+          updateData.lessons_limit = orgTierConfig.lessonsLimit;
+        } else {
+          console.error(`Unresolvable org price ID in subscription ${subscription.id}: ${priceId} -- refusing to guess a tier/limit`);
+        }
         if (subscription.current_period_start) { updateData.current_period_start = new Date(subscription.current_period_start * 1000).toISOString(); }
         if (subscription.current_period_end) { updateData.current_period_end = new Date(subscription.current_period_end * 1000).toISOString(); }
         await supabase.from("organizations").update(updateData).eq("id", metadata.organization_id);
