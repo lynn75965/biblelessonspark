@@ -140,6 +140,8 @@ Changes to a domain require updating only ONE file.
 | src/components/admin/PricingPlansManager.tsx        | Admin UI for the orphaned subscription_plans table (pre-SSOT credits model, essentials/pro/premium -- matched no current tier); "Sync from Stripe" button was a live footgun (deleted July 18, 2026) |
 | supabase/functions/sync-pricing-from-stripe/         | Synced the orphaned subscription_plans table against stale essentials/pro/premium Stripe lookup keys; zero callers beyond the deleted admin UI (deleted July 18, 2026) |
 | supabase/functions/seed-stripe-catalog/              | Seeded the orphaned subscription_plans table; zero callers anywhere, not even the admin UI (deleted July 18, 2026) |
+| supabase/functions/create-checkout/                  | Orphaned Stripe checkout function, zero callers in repo or live production bundle; superseded by create-checkout-session; additionally failed Rule #30 (no price_id/lookup_key validation) (deleted July 23, 2026) |
+| supabase/functions/customer-portal/                  | Orphaned Stripe billing-portal function, zero callers in repo or live production bundle; superseded by create-portal-session (deleted July 23, 2026) |
 
 ### Before touching any SSOT file:
 Audit ALL consumers of that file. Every import must be verified.
