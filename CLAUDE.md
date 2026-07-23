@@ -841,6 +841,26 @@ with confirmation-off, and worked on its first real run under
 production's confirmation-on config). Rollback at every stage is a
 single toggle, never a re-deploy.
 
+### Rule #38: Webhook signing-secret rotation is a two-step action -- Dashboard AND Supabase
+Added July 23, 2026 (org-stripe-webhook signature-verification
+hardening session -- found live, not hypothetical: Supabase was holding
+a value that did not match the Dashboard's actual signing secret for
+we_1SvOmxI4GLksxBfVqmuSmpH1, undetected until a verification test
+expected a 200 and got a 400). Rotating a webhook signing secret in the
+Stripe Dashboard does NOT propagate to Supabase automatically. The
+matching `npx supabase secrets set STRIPE_ORG_WEBHOOK_SECRET=... --project-ref hphebzdftpjbiudpfcrs`
+(or `STRIPE_WEBHOOK_SECRET` for the personal-tier webhook) is a
+REQUIRED second step. Skipping it does not error, warn, or fail loudly
+anywhere -- it breaks the endpoint silently, and every subsequent
+delivery fails signature verification identically until someone
+notices (Stripe sees a 400, retries on its normal schedule, and fails
+the same way every time, since the mismatch is static, not transient).
+Applies to both `STRIPE_WEBHOOK_SECRET` and `STRIPE_ORG_WEBHOOK_SECRET`.
+Any future Dashboard-side rotation of either secret is a TWO-STEP
+action, not one, and must be verified end-to-end (a real or synthetic
+signed delivery, not just "the Dashboard shows the new value") before
+being considered complete.
+
 ---
 
 ## DEBUGGING PROTOCOL

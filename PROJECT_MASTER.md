@@ -100,6 +100,41 @@ start; both were independently ruled out before the actual root cause
 (a three-way secret mismatch between the Dashboard, the Supabase
 secret, and the local file) was identified and corrected.
 
+**This was a PRODUCTION defect, not merely a test-harness inconvenience
+-- stated plainly rather than left implicit in the narrative above.**
+The live Supabase `STRIPE_ORG_WEBHOOK_SECRET` did not match the Stripe
+Dashboard's actual signing secret for `we_1SvOmxI4GLksxBfVqmuSmpH1`.
+When the divergence began is NOT established -- the secret was rotated
+in the Dashboard during an earlier session, and whether the matching
+Supabase update was ever performed was never verified either way. What
+is established: the value Supabase held at the start of this session
+did not verify Dashboard-signed payloads, and correcting it made case
+(a) pass. The endpoint had been enabled earlier the same day, so the
+exposure window on a live-reachable endpoint was at minimum several
+hours. Had a real delivery arrived during that window, signature
+verification would have failed -- silently, from the outside: Stripe
+would see a 400, retry on its normal schedule, and fail identically
+every time, since the mismatch was static, not transient. Nothing would
+have surfaced this except a human noticing an org purchase never
+provisioned, or a deliberate reachability probe like this session's
+case (a). It was caught here only because case (a) was expected to
+return 200 and didn't -- an accident of this session's timing
+(hardening work happened to follow enablement the same day), not a
+safeguard that would generally catch this class of defect on its own.
+
+**RULE, carried forward:** rotating a webhook signing secret in the
+Stripe Dashboard does NOT propagate to Supabase automatically. The
+matching `npx supabase secrets set STRIPE_ORG_WEBHOOK_SECRET=... --project-ref hphebzdftpjbiudpfcrs`
+(or the equivalent for `STRIPE_WEBHOOK_SECRET` on the sibling function)
+is a REQUIRED second step. Skipping it does not error, warn, or fail
+loudly anywhere -- it breaks the endpoint silently, and by construction
+every subsequent delivery fails the same way until someone notices.
+Any future Dashboard-side secret rotation for either webhook endpoint
+must be treated as a two-step action, not one, and verified
+end-to-end (a real or synthetic signed delivery, not just "the
+Dashboard shows the new value") before considering the rotation
+complete.
+
 Hard constraints honored throughout: zero real Stripe mutations (every
 outbound call in the test harness was a POST to the already-deployed
 function itself, never to api.stripe.com); zero emails sent; both cron
