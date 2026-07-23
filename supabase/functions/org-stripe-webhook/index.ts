@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveTierFromPriceId, TIER_LESSON_LIMITS } from "../_shared/pricingConfig.ts";
+import { resolveTierFromPriceId, TIER_LESSON_LIMITS, ORG_TIERS } from "../_shared/pricingConfig.ts";
 import type { SubscriptionTier } from "../_shared/pricingConfig.ts";
 
 const corsHeaders = {
@@ -66,17 +66,25 @@ serve(async (req) => {
       const session = event.data.object;
       const metadata = session.metadata || {};
       if (metadata.organization_id && metadata.tier) {
-        // SSOT: Resolve lesson limit from pricingConfig.ts -- never query org_tier_config
-        const lessonsLimit = TIER_LESSON_LIMITS[metadata.tier as SubscriptionTier] ?? TIER_LESSON_LIMITS.starter;
-        const now = new Date();
-        const periodEnd = new Date(now);
-        if (metadata.billing_interval === "annual") { periodEnd.setFullYear(periodEnd.getFullYear() + 1); } else { periodEnd.setMonth(periodEnd.getMonth() + 1); }
-        await supabase.from("organizations").update({
-          subscription_tier: metadata.tier, stripe_subscription_id: session.subscription, subscription_status: "active",
-          lessons_limit: lessonsLimit, lessons_used_this_period: 0,
-          current_period_start: now.toISOString(), current_period_end: periodEnd.toISOString(), billing_interval: metadata.billing_interval,
-        }).eq("id", metadata.organization_id);
-        console.log(`Org ${metadata.organization_id} subscribed to ${metadata.tier} (limit: ${lessonsLimit})`);
+        // SSOT: ORG_TIERS in pricingConfig.ts is the authority for org tier
+        // limits -- metadata.tier carries an ORG_TIERS name, never a
+        // SubscriptionTier name, so TIER_LESSON_LIMITS is the wrong
+        // dictionary for this lookup entirely. Never query org_tier_config.
+        const orgTierConfig = ORG_TIERS.find(t => t.tier === metadata.tier);
+        if (!orgTierConfig) {
+          console.error(`Unknown org tier in checkout metadata: ${metadata.tier} (org ${metadata.organization_id}) -- refusing to guess a limit`);
+        } else {
+          const lessonsLimit = orgTierConfig.lessonsLimit;
+          const now = new Date();
+          const periodEnd = new Date(now);
+          if (metadata.billing_interval === "annual") { periodEnd.setFullYear(periodEnd.getFullYear() + 1); } else { periodEnd.setMonth(periodEnd.getMonth() + 1); }
+          await supabase.from("organizations").update({
+            subscription_tier: metadata.tier, stripe_subscription_id: session.subscription, subscription_status: "active",
+            lessons_limit: lessonsLimit, lessons_used_this_period: 0,
+            current_period_start: now.toISOString(), current_period_end: periodEnd.toISOString(), billing_interval: metadata.billing_interval,
+          }).eq("id", metadata.organization_id);
+          console.log(`Org ${metadata.organization_id} subscribed to ${metadata.tier} (limit: ${lessonsLimit})`);
+        }
       } else if (metadata.purchase_type === "lesson_pack") {
         const lessonsToAdd = parseInt(metadata.lessons_included, 10);
         const { data: org } = await supabase.from("organizations").select("bonus_lessons").eq("id", metadata.organization_id).single();
@@ -93,7 +101,7 @@ serve(async (req) => {
         });
         console.log(`Org ${metadata.organization_id} purchased ${metadata.onboarding_type} onboarding`);
       }
-    } else if (event.type === "customer.subscription.updated") {
+    } else if (event.type === "customer.subscription.updated" || event.type === "customer.subscription.created") {
       const subscription = event.data.object;
       const metadata = subscription.metadata || {};
       if (metadata.organization_id) {
@@ -123,16 +131,26 @@ serve(async (req) => {
       const invoice = event.data.object;
       if (invoice.subscription) {
         const subResponse = await fetch(`https://api.stripe.com/v1/subscriptions/${invoice.subscription}`, { headers: { "Authorization": `Bearer ${stripeSecretKey}` } });
+        if (!subResponse.ok) {
+          const errText = await subResponse.text();
+          console.error(`Failed to fetch subscription ${invoice.subscription}: ${subResponse.status} ${errText}`);
+          throw new Error(`Stripe subscription fetch failed: ${subResponse.status}`);
+        }
         const subscription = await subResponse.json();
         if (subscription.metadata?.organization_id) {
           await supabase.from("organizations").update({ subscription_status: "past_due" }).eq("id", subscription.metadata.organization_id);
           console.log(`Org ${subscription.metadata.organization_id} payment failed`);
         }
       }
-    } else if (event.type === "invoice.paid") {
+    } else if (event.type === "invoice.payment_succeeded") {
       const invoice = event.data.object;
       if (invoice.subscription) {
         const subResponse = await fetch(`https://api.stripe.com/v1/subscriptions/${invoice.subscription}`, { headers: { "Authorization": `Bearer ${stripeSecretKey}` } });
+        if (!subResponse.ok) {
+          const errText = await subResponse.text();
+          console.error(`Failed to fetch subscription ${invoice.subscription}: ${subResponse.status} ${errText}`);
+          throw new Error(`Stripe subscription fetch failed: ${subResponse.status}`);
+        }
         const subscription = await subResponse.json();
         if (subscription.metadata?.organization_id) {
           await supabase.from("organizations").update({
