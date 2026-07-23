@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { timingSafeEqual } from "https://deno.land/std@0.168.0/crypto/timing_safe_equal.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ORG_TIERS } from "../_shared/pricingConfig.ts";
 import type { SubscriptionTier } from "../_shared/pricingConfig.ts";
@@ -7,6 +8,23 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
+
+// Mirrors the Stripe SDK's Webhook.DEFAULT_TOLERANCE (stripe-node
+// v14.21.0, src/Webhooks.ts) -- confirmed 300 seconds (5 minutes) from
+// the pinned package's own source this session, not assumed.
+const REPLAY_TOLERANCE_SECONDS = 300;
+
+// expectedSig is validated as exactly 64 lowercase hex chars before this
+// is ever called (see the malformed-header guard below), so this always
+// produces exactly 32 bytes -- the same length as the computed SHA-256
+// HMAC digest it gets compared against.
+function hexToBytes(hex: string): Uint8Array {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return bytes;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,16 +40,59 @@ serve(async (req) => {
     const signature = req.headers.get("stripe-signature");
     if (!signature) throw new Error("No Stripe signature");
 
-    const sigParts = signature.split(",").reduce((acc, part) => { const [key, value] = part.split("="); acc[key] = value; return acc; }, {} as Record<string, string>);
-    const timestamp = sigParts["t"];
-    const expectedSig = sigParts["v1"];
+    // Strict parse: split each comma-separated part on the FIRST "="
+    // only. The prior `part.split("=")` destructured as [key, value]
+    // truncated any value containing "=" -- this doesn't.
+    const sigFields: Record<string, string> = {};
+    for (const part of signature.split(",")) {
+      const eqIndex = part.indexOf("=");
+      if (eqIndex === -1) continue;
+      sigFields[part.slice(0, eqIndex)] = part.slice(eqIndex + 1);
+    }
+    const timestampRaw = sigFields["t"];
+    const expectedSig = sigFields["v1"];
 
-    const signedPayload = `${timestamp}.${body}`;
+    // Malformed-header guard -- reject BEFORE any HMAC work or DB write.
+    // Logged distinctly from a genuine signature mismatch so the two
+    // are distinguishable in the logs; the client-facing error stays
+    // the same generic "Invalid signature" shape either way, so a
+    // caller can't learn which specific check failed.
+    const timestampNum = Number(timestampRaw);
+    const hasValidTimestamp = !!timestampRaw && Number.isFinite(timestampNum);
+    const hasValidSigHex = !!expectedSig && /^[0-9a-f]{64}$/.test(expectedSig);
+    if (!hasValidTimestamp || !hasValidSigHex) {
+      console.error("Malformed Stripe-Signature header");
+      throw new Error("Invalid signature");
+    }
+
+    // Replay-window guard -- mirrors the Stripe SDK's own tolerance
+    // check (constructEventAsync -> DEFAULT_TOLERANCE). t= is UNIX
+    // seconds; Date.now() is milliseconds, so divide by 1000 before
+    // comparing. Rejects both stale AND implausibly-future timestamps.
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    if (Math.abs(nowSeconds - timestampNum) > REPLAY_TOLERANCE_SECONDS) {
+      console.error(`Stripe-Signature timestamp outside tolerance: now=${nowSeconds} t=${timestampNum}`);
+      throw new Error("Invalid signature");
+    }
+
+    const signedPayload = `${timestampRaw}.${body}`;
     const encoder = new TextEncoder();
     const key = await crypto.subtle.importKey("raw", encoder.encode(webhookSecret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
     const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(signedPayload));
-    const computedSig = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, "0")).join("");
-    if (computedSig !== expectedSig) throw new Error("Invalid signature");
+
+    // Constant-time comparison via Deno std's timingSafeEqual, which
+    // compares raw bytes, not strings. expectedSig is already validated
+    // above as exactly 64 lowercase hex chars (a 32-byte SHA-256
+    // digest), so decoding it back to bytes and comparing directly
+    // against the computed digest bytes avoids ever needing to
+    // hex-encode the computed side just for a string comparison --
+    // both operands are guaranteed the same 32-byte length by
+    // construction, which is required for timingSafeEqual to be
+    // meaningful (it does not itself define behavior for mismatched
+    // lengths beyond returning false).
+    if (!timingSafeEqual(new Uint8Array(signatureBuffer), hexToBytes(expectedSig))) {
+      throw new Error("Invalid signature");
+    }
 
     const event = JSON.parse(body);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
