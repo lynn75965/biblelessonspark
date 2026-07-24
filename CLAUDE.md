@@ -861,6 +861,58 @@ action, not one, and must be verified end-to-end (a real or synthetic
 signed delivery, not just "the Dashboard shows the new value") before
 being considered complete.
 
+### Rule #39: `npx supabase projects api-keys` prints legacy API keys in cleartext -- NEVER run it
+Added July 24, 2026 (legacy API key disable arc). Running
+`npx supabase projects api-keys --project-ref <ref>` -- even WITHOUT the
+`--reveal` flag -- prints the project's legacy `anon` and `service_role`
+JWTs in full, unmasked cleartext. Only the NEW-generation `sb_secret_...`
+key is masked by default (shown as `sb_secret_XXXX****************`);
+the CLI's masking behavior does not extend to legacy JWT-format keys at
+all, on any project that still has them provisioned. This is the exact
+command that caused this entire multi-session remediation arc: it
+exposed the production `service_role` JWT into a session transcript,
+which forced a full frontend + edge-function + test-tooling migration
+off the legacy key generation before the exposed key could safely be
+disabled.
+
+NEVER run `npx supabase projects api-keys` for any reason, with or
+without `--reveal`, against any project. If you need to confirm a key's
+SHAPE CLASS only (legacy JWT vs. `sb_publishable_` vs. `sb_secret_`), do
+not use this command -- write a throwaway, admin-gated edge function
+that reads the key server-side and returns a classification string only
+(see the `diag-key-shape` pattern: deploy, invoke exactly once, delete,
+verify teardown -- function count back to baseline, all remaining
+functions still `ACTIVE`, one-off secret unset, `git status` clean)
+rather than any command that could print the value itself. Note also:
+edge function slugs cannot start with an underscore
+(`^[A-Za-z][A-Za-z0-9_-]*$`) -- name the diagnostic function without a
+leading `_` from the start.
+
+To verify a key is VALID and correctly project-scoped without ever
+printing it: issue a live request using the key exactly as it appears
+in source, against a table on the target project, paired with a
+NEGATIVE CONTROL (the same request with the key's last character
+dropped). A 200 on the real key and a 401 "Invalid API key" on the
+corrupted one proves format, validity, and project scope together -- a
+key belonging to a different project fails signature verification and
+never reaches the RLS layer at all. This session used `tenant_config`,
+which exists only on `hphebzdftpjbiudpfcrs` and returned `tenant_id`
+"biblelessonspark", independently corroborating scope. Without the
+negative control the test proves nothing, since an endpoint may answer
+regardless of key validity.
+
+If a legacy key is ever exposed this way again: the safe response is
+NOT to rotate the legacy key or the JWT secret in isolation -- rotating
+the JWT secret invalidates BOTH legacy keys (anon + service_role)
+simultaneously, and the Dashboard offers no per-key rotation for legacy
+keys. The safe response is the same arc this session closed: migrate
+every consumer (frontend, edge functions, test tooling) onto the new
+key generation first, verify zero remaining legacy-key consumers with a
+full repo + secrets + edge-function sweep, THEN disable legacy keys
+entirely via the Dashboard's "Disable JWT-based API keys" control. Do
+not disable legacy keys while any consumer's dependency on them is
+unverified.
+
 ---
 
 ## DEBUGGING PROTOCOL
