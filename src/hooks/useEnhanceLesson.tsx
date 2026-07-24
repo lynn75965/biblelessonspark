@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { API_ERROR_CODES } from "@/constants/apiErrorCodes";
 import { Lesson } from "@/constants/contracts";
@@ -109,16 +109,12 @@ export const useEnhanceLesson = () => {
         return { success: false, error: "User not authenticated" };
       }
 
-      // URL and key match src/integrations/supabase/client.ts (auto-generated, no env vars)
-      const SUPABASE_URL = "https://hphebzdftpjbiudpfcrs.supabase.co";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaGViemRmdHBqYml1ZHBmY3JzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MDk0MjksImV4cCI6MjA3NjM4NTQyOX0.WSNtUrxihquk0ZV0tT7uaad8W3MNjIUwCD4hG0jr-eo";
-
       const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-lesson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
-          'apikey': SUPABASE_ANON_KEY,
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
         },
         body: JSON.stringify(enhancementData),
       });
