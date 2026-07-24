@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildIdempotencyKey } from "../_shared/stripeIdempotency.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +60,11 @@ serve(async (req) => {
     const siteUrl = Deno.env.get("SITE_URL") || "https://biblelessonspark.com";
     const checkoutResponse = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${stripeSecretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Authorization": `Bearer ${stripeSecretKey}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Idempotency-Key": buildIdempotencyKey("checkout:lesson-pack", [organization_id, pack_type])
+      },
       body: new URLSearchParams({
         customer: org.stripe_customer_id, "line_items[0][price]": packConfig.stripe_price_id, "line_items[0][quantity]": "1", mode: "payment",
         success_url: `${siteUrl}/org-manager?pack_purchase=success&session_id={CHECKOUT_SESSION_ID}`,

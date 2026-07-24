@@ -16,6 +16,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ORG_TIERS, STRIPE_INDIVIDUAL } from "../_shared/pricingConfig.ts";
 import { getBranding, getBaseUrl } from "../_shared/branding.ts";
+import { buildIdempotencyKey } from "../_shared/stripeIdempotency.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,7 +126,8 @@ serve(async (req) => {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${stripeSecretKey}`,
-          "Content-Type": "application/x-www-form-urlencoded"
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Idempotency-Key": buildIdempotencyKey("checkout:org-existing", [organization_id, tier, billing_interval])
         },
         body: new URLSearchParams({
           customer: stripeCustomerId,
@@ -339,7 +341,8 @@ serve(async (req) => {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${stripeSecretKey}`,
-        "Content-Type": "application/x-www-form-urlencoded"
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Idempotency-Key": buildIdempotencyKey("checkout:org-selfservice", [user.id, priceId, billingInterval])
       },
       body: checkoutParams,
     });

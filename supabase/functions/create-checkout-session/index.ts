@@ -9,6 +9,7 @@ import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { getBranding, getBaseUrl } from "../_shared/branding.ts";
 import { resolveTierFromPriceId } from "../_shared/pricingConfig.ts";
 import { CONVERSION_EVENT_TYPES } from "../_shared/conversionEvents.ts";
+import { buildIdempotencyKey } from "../_shared/stripeIdempotency.ts";
 
 const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
   apiVersion: "2023-10-16",
@@ -129,18 +130,21 @@ serve(async (req) => {
     const finalSuccessUrl = success_url || `${baseUrl}/dashboard?payment=success`;
     const finalCancelUrl = cancel_url || `${baseUrl}/pricing?payment=canceled`;
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ["card"],
-      line_items: [{ price: price_id, quantity: 1 }],
-      mode: "subscription",
-      success_url: finalSuccessUrl,
-      cancel_url: finalCancelUrl,
-      metadata: { user_id: user.id },
-      subscription_data: { metadata: { user_id: user.id } },
-      allow_promotion_codes: true,
-      consent_collection: { terms_of_service: "required" },
-    });
+    const session = await stripe.checkout.sessions.create(
+      {
+        customer: customerId,
+        payment_method_types: ["card"],
+        line_items: [{ price: price_id, quantity: 1 }],
+        mode: "subscription",
+        success_url: finalSuccessUrl,
+        cancel_url: finalCancelUrl,
+        metadata: { user_id: user.id },
+        subscription_data: { metadata: { user_id: user.id } },
+        allow_promotion_codes: true,
+        consent_collection: { terms_of_service: "required" },
+      },
+      { idempotencyKey: buildIdempotencyKey("checkout:personal", [user.id, price_id]) }
+    );
 
     console.log(`Created checkout session ${session.id} for user ${user.id}`);
 
