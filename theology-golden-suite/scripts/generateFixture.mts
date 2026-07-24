@@ -35,12 +35,11 @@ import { computePipelineHash } from './computePipelineHash.mts';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SUITE_ROOT = resolve(__dirname, '..');
 
-// Same URL and anon key the frontend uses (src/hooks/useEnhanceLesson.tsx) --
-// the anon key is a public/publishable key by design, safe to embed here
-// exactly as it already is in the shipped frontend bundle.
+// Same URL and publishable key the frontend uses (src/integrations/supabase/client.ts) --
+// the publishable key is a public key by design, safe to embed here exactly
+// as it already is in the shipped frontend bundle.
 const SUPABASE_URL = 'https://hphebzdftpjbiudpfcrs.supabase.co';
-const SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwaGViemRmdHBqYml1ZHBmY3JzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MDk0MjksImV4cCI6MjA3NjM4NTQyOX0.WSNtUrxihquk0ZV0tT7uaad8W3MNjIUwCD4hG0jr-eo';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_-2ep_VXk9NQPCd72kEF5LA_aYtB5SWW';
 
 function getAdminToken(): string {
   const argToken = process.argv.find((a) => a.startsWith('--token='));
@@ -71,7 +70,7 @@ async function callGenerateLesson(
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${adminToken}`,
-      'apikey': SUPABASE_ANON_KEY,
+      'apikey': SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({
       bible_passage: passageReference,
@@ -224,7 +223,7 @@ async function main() {
   }
 
   const adminToken = getAdminToken();
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: { headers: { Authorization: `Bearer ${adminToken}` } },
   });
 
